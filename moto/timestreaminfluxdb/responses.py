@@ -104,7 +104,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
         tags = self.timestreaminfluxdb_backend.list_tags_for_resource(resource_arn=arn)
         return json.dumps({"tags": tags})
 
-    def create_db_parameter_group(self):
+    def create_db_parameter_group(self) -> str:
         params = json.loads(self.body)
         name = params.get("name")
         description = params.get("description")
@@ -130,7 +130,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
             }
         )
 
-    def get_db_parameter_group(self):
+    def get_db_parameter_group(self) -> str:
         params = json.loads(self.body)
         identifier = params.get("identifier")
 
@@ -150,7 +150,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
             }
         )
 
-    def list_db_parameter_groups(self):
+    def list_db_parameter_groups(self) -> str:
         params = json.loads(self.body)
         next_token = params.get("nextToken")
         max_results = params.get("maxResults")
@@ -166,7 +166,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def list_db_clusters(self):
+    def list_db_clusters(self) -> str:
         params = json.loads(self.body)
         next_token = params.get("nextToken")
         max_results = params.get("maxResults")
@@ -182,7 +182,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def get_db_cluster(self):
+    def get_db_cluster(self) -> str:
         params = json.loads(self.body)
         db_cluster_id = params.get("dbClusterId")
 
@@ -234,7 +234,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
             }
         )
 
-    def create_db_cluster(self):
+    def create_db_cluster(self) -> str:
         params = json.loads(self.body)
         name = params.get("name")
         username = params.get("username")

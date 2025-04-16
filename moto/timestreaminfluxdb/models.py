@@ -1,7 +1,7 @@
 """TimestreamInfluxDBBackend class with methods for supported APIs."""
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -292,7 +292,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
         description: Optional[str] = None,
         parameters: Optional[Dict[str, Any]] = None,
         tags: Optional[Dict[str, str]] = None,
-    ) -> tuple:
+    ) -> Tuple[str, str, str, str, Dict[str, Any]]:
         validate_name(name)
 
         for param_group in getattr(self, "db_parameter_groups", {}).values():
@@ -329,7 +329,9 @@ class TimestreamInfluxDBBackend(BaseBackend):
             param_group["parameters"],
         )
 
-    def get_db_parameter_group(self, identifier: str) -> tuple:
+    def get_db_parameter_group(
+        self, identifier: str
+    ) -> Tuple[str, str, str, str, Dict[str, Any]]:
         if not hasattr(self, "db_parameter_groups"):
             raise ResourceNotFoundException(
                 f"DB parameter group with identifier {identifier} not found"
@@ -396,7 +398,29 @@ class TimestreamInfluxDBBackend(BaseBackend):
 
         return items
 
-    def get_db_cluster(self, db_cluster_id: str) -> tuple:
+    def get_db_cluster(
+        self, db_cluster_id: str
+    ) -> Tuple[
+        str,
+        str,
+        str,
+        str,
+        str,
+        str,
+        int,
+        str,
+        str,
+        str,
+        str,
+        int,
+        bool,
+        Optional[str],
+        Dict[str, Any],
+        str,
+        List[str],
+        List[str],
+        str,
+    ]:
         if not hasattr(self, "db_clusters"):
             raise ResourceNotFoundException(
                 f"DB cluster with ID {db_cluster_id} not found"
@@ -439,18 +463,18 @@ class TimestreamInfluxDBBackend(BaseBackend):
         bucket: Optional[str] = None,
         port: Optional[int] = None,
         db_parameter_group_identifier: Optional[str] = None,
-        db_instance_type: str = None,
+        db_instance_type: Optional[str] = None,
         db_storage_type: Optional[str] = None,
-        allocated_storage: int = None,
+        allocated_storage: Optional[int] = None,
         network_type: Optional[str] = None,
         publicly_accessible: Optional[bool] = None,
-        vpc_subnet_ids: List[str] = None,
-        vpc_security_group_ids: List[str] = None,
-        deployment_type: str = None,
+        vpc_subnet_ids: Optional[List[str]] = None,
+        vpc_security_group_ids: Optional[List[str]] = None,
+        deployment_type: Optional[str] = None,
         failover_mode: Optional[str] = None,
         log_delivery_configuration: Optional[Dict[str, Any]] = None,
         tags: Optional[Dict[str, str]] = None,
-    ) -> tuple:
+    ) -> Tuple[str, str]:
         if not name:
             raise ValidationException("DB cluster name is required")
         if not password:
@@ -469,7 +493,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
         validate_name(name)
 
         if not hasattr(self, "db_clusters"):
-            self.db_clusters = {}
+            self.db_clusters: Dict[str, Dict[str, Any]] = {}
 
         for cluster in self.db_clusters.values():
             if cluster.get("name") == name:
