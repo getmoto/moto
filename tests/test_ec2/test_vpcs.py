@@ -23,6 +23,11 @@ def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)
     for vpc in all_vpcs:
+        subnets = client.describe_subnets(
+            Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
+        )["Subnets"]
+        for subnet in subnets:
+            client.delete_subnet(SubnetId=subnet["SubnetId"])
         client.delete_vpc(VpcId=vpc["VpcId"])
     # create vpc
     client.create_vpc(CidrBlock="10.0.0.0/16")
@@ -40,6 +45,11 @@ def test_create_default_vpc():
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)
     for vpc in all_vpcs:
+        subnets = client.describe_subnets(
+            Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
+        )["Subnets"]
+        for subnet in subnets:
+            client.delete_subnet(SubnetId=subnet["SubnetId"])
         client.delete_vpc(VpcId=vpc["VpcId"])
     # create default vpc
     client.create_default_vpc()
