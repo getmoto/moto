@@ -346,11 +346,14 @@ def test_bot_alias():
 @mock_aws
 def test_resource_policy():
     client = boto3.client("lexv2-models", region_name="eu-west-1")
-    arn = "arn:aws:lex:us-east-1:123456789012:bot/MyLexBot/ABCDEF123456"
+
+    arn = "arn:aws:lex:eu-west-1:123456789012:bot/MyLexBot"
+
     resp = client.create_resource_policy(
         resourceArn=arn,
         policy="test_resource_policy",
     )
+
     assert resp["resourceArn"] == arn
     assert resp.get("revisionId")
 
@@ -377,7 +380,7 @@ def test_resource_policy():
 
 @mock_aws
 def test_tag_resource():
-    sts = boto3.client("sts")
+    sts = boto3.client("sts", "eu-west-1")
     account_id = sts.get_caller_identity()["Account"]
     region_name = "eu-west-1"
 
