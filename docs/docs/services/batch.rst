@@ -18,11 +18,9 @@ batch
 
 - [X] cancel_job
 - [X] create_compute_environment
-- [ ] create_consumable_resource
 - [X] create_job_queue
 - [X] create_scheduling_policy
 - [X] delete_compute_environment
-- [ ] delete_consumable_resource
 - [X] delete_job_queue
 - [X] delete_scheduling_policy
 - [X] deregister_job_definition
@@ -31,7 +29,6 @@ batch
         Pagination is not yet implemented
         
 
-- [ ] describe_consumable_resource
 - [X] describe_job_definitions
   
         Pagination is not yet implemented
@@ -45,13 +42,11 @@ batch
 - [X] describe_jobs
 - [X] describe_scheduling_policies
 - [ ] get_job_queue_snapshot
-- [ ] list_consumable_resources
 - [X] list_jobs
   
         Pagination is not yet implemented
         
 
-- [ ] list_jobs_by_consumable_resource
 - [X] list_scheduling_policies
   
         Pagination is not yet implemented
@@ -68,7 +63,6 @@ batch
 - [X] terminate_job
 - [X] untag_resource
 - [X] update_compute_environment
-- [ ] update_consumable_resource
 - [X] update_job_queue
 - [X] update_scheduling_policy
 

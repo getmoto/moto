@@ -229,7 +229,9 @@ class CertBundle(BaseModel):
             certificate=cert_armored,
             private_key=private_key,
             cert_type="PRIVATE" if cert_authority_arn is not None else "AMAZON_ISSUED",
-            cert_status="PENDING_VALIDATION",
+            cert_status="ISSUED"
+            if cert_authority_arn is not None
+            else "PENDING_VALIDATION",
             cert_authority_arn=cert_authority_arn,
             account_id=account_id,
             region=region,
@@ -317,6 +319,12 @@ class CertBundle(BaseModel):
             )
 
     def check(self) -> None:
+        # Check for certificate expiration
+        now = utcnow()
+        if self._not_valid_after(self._cert) <= now:
+            self.status = "EXPIRED"
+            return
+
         # Basically, if the certificate is pending, and then checked again after a
         # while, it will appear as if its been validated. The default wait time is 60
         # seconds but you can set an environment to change it.

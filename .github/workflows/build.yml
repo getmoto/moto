@@ -72,6 +72,10 @@ jobs:
         mkdir .mypy_cache
         make lint
 
+  clitest:
+    needs: lint
+    uses: ./.github/workflows/tests_cli.yml
+
   cpptest:
     needs: lint
     uses: ./.github/workflows/tests_sdk_cpp.yml
