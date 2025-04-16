@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 from moto.ec2.models.availability_zones_and_regions import Zone
 
 from ..exceptions import (
+    DefaultSubnetAlreadyExistsInAvailabilityZoneError,
+    DefaultVpcDoesNotExistError,
     GenericInvalidParameterValueError,
     InvalidAvailabilityZoneError,
     InvalidCIDRBlockParameterError,
@@ -309,6 +311,26 @@ class SubnetBackend:
             for subnet in self.describe_subnets()
             if subnet.default_for_az
         }
+
+    def create_default_subnet(self, availability_zone: str) -> Subnet:
+        default_subnets = self.get_default_subnets()
+        if availability_zone in default_subnets:
+            raise DefaultSubnetAlreadyExistsInAvailabilityZoneError(
+                default_subnets[availability_zone].id, availability_zone
+            )
+
+        default_vpc = self.get_default_vpc()  # type: ignore[attr-defined]
+        if default_vpc is None:
+            raise DefaultVpcDoesNotExistError()
+
+        cidr_block = default_vpc.cidr_block
+        blocks = list(ipaddress.ip_network(cidr_block).subnets(new_prefix=20))
+        subnet = self.create_subnet(
+            vpc_id=default_vpc.id,
+            cidr_block=str(blocks[len(default_subnets)]),
+            availability_zone=availability_zone,
+        )
+        return subnet
 
     def create_subnet(
         self,

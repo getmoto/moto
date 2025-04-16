@@ -709,7 +709,17 @@ class VPCBackend:
         if default_vpc:
             raise DefaultVpcAlreadyExists
         cidr_block = "172.31.0.0/16"
-        return self.create_vpc(cidr_block=cidr_block, is_default=True)
+        vpc = self.create_vpc(cidr_block=cidr_block, is_default=True)
+
+        for zone in self.describe_availability_zones():  # type: ignore[attr-defined]
+            self.create_default_subnet(zone.name)  # type: ignore[attr-defined]
+        return vpc
+
+    def get_default_vpc(self) -> Optional[VPC]:
+        for vpc in self.vpcs.values():
+            if vpc.is_default == "true":
+                return vpc
+        return None
 
     def create_vpc(
         self,
