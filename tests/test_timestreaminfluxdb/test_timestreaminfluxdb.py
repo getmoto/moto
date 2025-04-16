@@ -495,32 +495,6 @@ def test_create_db_cluster():
 
     assert exc.value.response["Error"]["Code"] == "ConflictException"
 
-    with pytest.raises(ClientError) as exc:
-        client.create_db_cluster(
-            name="test-cluster-2",
-            password="password123",
-            dbInstanceType="db.invalid.type",
-            allocatedStorage=100,
-            vpcSubnetIds=["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"],
-            vpcSecurityGroupIds=["sg-0123456789abcdef0"],
-            deploymentType="MULTI_NODE_READ_REPLICAS",
-        )
-
-    assert exc.value.response["Error"]["Code"] == "ValidationException"
-
-    with pytest.raises(ClientError) as exc:
-        client.create_db_cluster(
-            name="test-cluster-3",
-            password="password123",
-            dbInstanceType="db.influx.medium",
-            allocatedStorage=100,
-            vpcSubnetIds=["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"],
-            vpcSecurityGroupIds=["sg-0123456789abcdef0"],
-            deploymentType="INVALID_DEPLOYMENT_TYPE",
-        )
-
-    assert exc.value.response["Error"]["Code"] == "ValidationException"
-
     response = client.create_db_cluster(
         name="test-cluster-full",
         username="admin",

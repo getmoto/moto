@@ -475,21 +475,6 @@ class TimestreamInfluxDBBackend(BaseBackend):
         log_delivery_configuration: Optional[Dict[str, Any]] = None,
         tags: Optional[Dict[str, str]] = None,
     ) -> Tuple[str, str]:
-        if not name:
-            raise ValidationException("DB cluster name is required")
-        if not password:
-            raise ValidationException("Password is required")
-        if not db_instance_type:
-            raise ValidationException("DB instance type is required")
-        if not allocated_storage:
-            raise ValidationException("Allocated storage is required")
-        if not vpc_subnet_ids:
-            raise ValidationException("VPC subnet IDs are required")
-        if not vpc_security_group_ids:
-            raise ValidationException("VPC security group IDs are required")
-        if not deployment_type:
-            raise ValidationException("Deployment type is required")
-
         validate_name(name)
 
         if not hasattr(self, "db_clusters"):
@@ -501,31 +486,8 @@ class TimestreamInfluxDBBackend(BaseBackend):
                     f"A DB cluster with the name {name} already exists"
                 )
 
-        if db_instance_type not in [t.value for t in InstanceType]:
-            raise ValidationException(f"Unknown DB instance type {db_instance_type}")
-
-        if db_storage_type and db_storage_type not in [t.value for t in DBStorageType]:
-            raise ValidationException(f"Unknown DB storage type {db_storage_type}")
-
-        if network_type and network_type not in [t.value for t in NetworkType]:
-            raise ValidationException(f"Unknown network type {network_type}")
-
-        if deployment_type != "MULTI_NODE_READ_REPLICAS":
-            raise ValidationException(f"Invalid deployment type {deployment_type}")
-
-        if failover_mode and failover_mode not in ["AUTOMATIC", "NO_FAILOVER"]:
-            raise ValidationException(f"Invalid failover mode {failover_mode}")
-
-        if port:
-            if not isinstance(port, int) or port < 1150 or port > 65535:
-                raise ValidationException("Port must be between 1150 and 65535")
-            excluded_ranges = [(2375, 2376), (7788, 7799), (8090, 8090), (51678, 51680)]
-            for start, end in excluded_ranges:
-                if start <= port <= end:
-                    raise ValidationException(f"Port {port} is not allowed")
-        else:
-            # RDS for MySQL and Aurora MySQL - 3306
-            # RDS for PostgreSQL and Aurora PostgreSQL - 5432
+        # Set defaults if parameters are not provided
+        if port is None:
             port = 8086  # Default port for InfluxDB
 
         cluster_id = random_id()
@@ -544,17 +506,17 @@ class TimestreamInfluxDBBackend(BaseBackend):
             "endpoint": endpoint,
             "readerEndpoint": reader_endpoint,
             "port": port,
-            "deploymentType": deployment_type,
-            "dbInstanceType": db_instance_type,
+            "deploymentType": deployment_type or "MULTI_NODE_READ_REPLICAS",
+            "dbInstanceType": db_instance_type or "db.influx.medium",
             "networkType": network_type or NetworkType.IPV4,
             "dbStorageType": db_storage_type or DBStorageType.InfluxIOIncludedT1,
-            "allocatedStorage": allocated_storage,
+            "allocatedStorage": allocated_storage or 100,
             "publiclyAccessible": publicly_accessible or False,
             "dbParameterGroupIdentifier": db_parameter_group_identifier,
             "logDeliveryConfiguration": log_delivery_configuration or {},
             "influxAuthParametersSecretArn": f"arn:aws:secretsmanager:{self.region_name}:{self.account_id}:secret:timestream-influxdb/{cluster_id}/auth-params-{random_id(6)}",
-            "vpcSubnetIds": vpc_subnet_ids,
-            "vpcSecurityGroupIds": vpc_security_group_ids,
+            "vpcSubnetIds": vpc_subnet_ids or ["subnet-default"],
+            "vpcSecurityGroupIds": vpc_security_group_ids or ["sg-default"],
             "failoverMode": failover_mode or "AUTOMATIC",
             "username": username,
             "organization": organization,
