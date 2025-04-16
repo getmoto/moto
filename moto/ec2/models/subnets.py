@@ -378,7 +378,7 @@ class SubnetBackend:
 
         # if this is the first subnet for an availability zone,
         # consider it the default
-        default_for_az = str(availability_zone not in self.subnets).lower()
+        default_for_az = str(len(self.subnets.get(availability_zone, [])) == 0).lower()  # type: ignore[arg-type]
         map_public_ip_on_launch = default_for_az
 
         if availability_zone is None and not availability_zone_id:
