@@ -303,14 +303,12 @@ class SubnetBackend:
                 return subnets_per_zone[subnet_id]
         raise InvalidSubnetIdError(subnet_id)
 
-    def get_default_subnet(self, availability_zone: str) -> Subnet:
-        return [
-            subnet
-            for subnet in self.describe_subnets(
-                filters={"availabilityZone": availability_zone}
-            )
+    def get_default_subnets(self) -> Dict[str, Subnet]:
+        return {
+            subnet.availability_zone: subnet
+            for subnet in self.describe_subnets()
             if subnet.default_for_az
-        ][0]
+        }
 
     def create_subnet(
         self,
