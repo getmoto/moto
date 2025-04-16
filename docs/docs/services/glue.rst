@@ -141,7 +141,7 @@ glue
 - [X] get_job
 - [ ] get_job_bookmark
 - [X] get_job_run
-- [ ] get_job_runs
+- [X] get_job_runs
 - [X] get_jobs
 - [ ] get_mapping
 - [ ] get_ml_task_run
