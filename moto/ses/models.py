@@ -733,6 +733,8 @@ class SESBackend(BaseBackend):
                 f"Configuration set <{configuration_set_name}> does not exist"
             )
         config_set = self.config_sets[configuration_set_name]
+        if config_set.reputation_options is None:
+            config_set.reputation_options = {}
         config_set.reputation_options["ReputationMetricsEnabled"] = enabled
 
 
