@@ -713,7 +713,7 @@ def test_list_configuration_sets():
     # Validate
     assert len(config_sets["ConfigurationSets"]) == 2
     for c in config_sets["ConfigurationSets"]:
-        assert c in {name_v1, name_v2}
+        assert c in [name_v1, name_v2]
 
 
 @mock_aws

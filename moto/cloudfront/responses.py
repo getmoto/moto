@@ -552,7 +552,7 @@ DIST_CONFIG_TEMPLATE = """
         <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate else 'false' }}</CloudFrontDefaultCertificate>
         <IAMCertificateId>{{ distribution.distribution_config.viewer_certificate.iam_certificate_id }}</IAMCertificateId>
         <ACMCertificateArn>{{ distribution.distribution_config.viewer_certificate.acm_certificate_arn }}</ACMCertificateArn>
-        <SSLSupportMethod>{{ SSLSupportMethod }}</SSLSupportMethod>
+        <SSLSupportMethod>{{ distribution.distribution_config.viewer_certificate.ssl_support_method }}</SSLSupportMethod>
         <MinimumProtocolVersion>{{ distribution.distribution_config.viewer_certificate.min_protocol_version }}</MinimumProtocolVersion>
         <Certificate>{{ distribution.distribution_config.viewer_certificate.certificate }}</Certificate>
         <CertificateSource>{{ distribution.distribution_config.viewer_certificate.certificate_source }}</CertificateSource>
