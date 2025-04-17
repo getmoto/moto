@@ -116,6 +116,9 @@ def test_update_distribution():
     assert cert["CloudFrontDefaultCertificate"] is True
     assert cert["MinimumProtocolVersion"] == "TLSv1"
     assert cert["CertificateSource"] == "cloudfront"
+    assert cert["IAMCertificateId"] == ""
+    assert cert["ACMCertificateArn"] == ""
+    assert cert["SSLSupportMethod"] == "sni-only"
 
     restriction = config["Restrictions"]["GeoRestriction"]
     assert restriction["RestrictionType"] == "none"

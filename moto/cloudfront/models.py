@@ -121,9 +121,14 @@ class Logging:
 
 
 class ViewerCertificate:
-    def __init__(self) -> None:
-        self.cloud_front_default_certificate = True
-        self.min_protocol_version = "TLSv1"
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.cloud_front_default_certificate = (
+            config.get("CloudFrontDefaultCertificate") or True
+        )
+        self.iam_certificate_id = config.get("IAMCertificateId") or ""
+        self.acm_certificate_arn = config.get("ACMCertificateArn") or ""
+        self.ssl_support_method = config.get("SSLSupportMethod") or "sni-only"
+        self.min_protocol_version = config.get("MinimumProtocolVersion") or "TLSv1"
         self.certificate_source = "cloudfront"
 
 
@@ -195,7 +200,9 @@ class DistributionConfig:
         self.custom_error_responses: List[Any] = []
         self.logging = Logging(config.get("Logging") or {})
         self.enabled = config.get("Enabled") or False
-        self.viewer_certificate = ViewerCertificate()
+        self.viewer_certificate = ViewerCertificate(
+            config.get("ViewerCertificate") or {}
+        )
         self.geo_restriction = GeoRestrictions(config.get("Restrictions") or {})
         self.caller_reference = config.get("CallerReference", str(random.uuid4()))
         self.origins = config["Origins"]["Items"]["Origin"]
