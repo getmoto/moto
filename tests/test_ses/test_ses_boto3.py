@@ -1553,3 +1553,24 @@ def test_get_identity_verification_attributes():
         attributes["VerificationAttributes"]["foo@bar.com"]["VerificationStatus"]
         == "Success"
     )
+
+
+@mock_aws
+def test_update_configuration_set_reputation_metrics():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    # Create a configuration set first
+    conn.create_configuration_set(ConfigurationSet={"Name": "test-config-set"})
+
+    # Enable reputation metrics
+    response = conn.update_configuration_set_reputation_metrics_enabled(
+        ConfigurationSetName="test-config-set", Enabled=True
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Test with non-existent configuration set
+    with pytest.raises(ClientError) as e:
+        conn.update_configuration_set_reputation_metrics_enabled(
+            ConfigurationSetName="non-existent", Enabled=True
+        )
+    assert e.value.response["Error"]["Code"] == "ConfigurationSetDoesNotExist"
