@@ -722,5 +722,18 @@ class SESBackend(BaseBackend):
 
         return attributes_by_identity
 
+    def update_configuration_set_reputation_metrics_enabled(
+        self, configuration_set_name: str, enabled: bool
+    ) -> None:
+        """
+        Enable or disable reputation metrics for a configuration set.
+        """
+        if configuration_set_name not in self.config_sets:
+            raise ConfigurationSetDoesNotExist(
+                f"Configuration set <{configuration_set_name}> does not exist"
+            )
+        config_set = self.config_sets[configuration_set_name]
+        config_set.reputation_options["ReputationMetricsEnabled"] = enabled
+
 
 ses_backends = BackendDict(SESBackend, "ses")

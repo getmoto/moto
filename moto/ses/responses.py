@@ -401,6 +401,18 @@ class EmailResponse(BaseResponse):
             configuration_sets=configuration_sets, next_token=next_token
         )
 
+    def update_configuration_set_reputation_metrics_enabled(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        enabled = self._get_param("Enabled")
+        self.backend.update_configuration_set_reputation_metrics_enabled(
+            configuration_set_name=configuration_set_name,
+            enabled=enabled,
+        )
+        template = self.response_template(
+            UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE
+        )
+        return template.render()
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -860,3 +872,10 @@ LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http
     <NextToken>{{ next_token }}</NextToken>
   </ListConfigurationSetsResult>
 </ListConfigurationSetsResponse>"""
+
+UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE = """<UpdateConfigurationSetReputationMetricsEnabledResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <UpdateConfigurationSetReputationMetricsEnabledResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</UpdateConfigurationSetReputationMetricsEnabledResponse>"""
