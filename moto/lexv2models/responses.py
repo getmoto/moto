@@ -178,7 +178,7 @@ class LexModelsV2Response(BaseResponse):
         )
 
     def create_resource_policy(self) -> str:
-        resource_arn = self._get_param("resourceArn")
+        resource_arn = unquote(self._get_param("resourceArn"))
         policy = self._get_param("policy")
         resource_arn, revision_id = self.lexv2models_backend.create_resource_policy(
             resource_arn=resource_arn,
@@ -187,7 +187,7 @@ class LexModelsV2Response(BaseResponse):
         return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
 
     def describe_resource_policy(self) -> str:
-        resource_arn = self._get_param("resourceArn")
+        resource_arn = unquote(self._get_param("resourceArn"))
         resource_arn, policy, revision_id = (
             self.lexv2models_backend.describe_resource_policy(
                 resource_arn=resource_arn,
@@ -198,7 +198,7 @@ class LexModelsV2Response(BaseResponse):
         )
 
     def update_resource_policy(self) -> str:
-        resource_arn = self._get_param("resourceArn")
+        resource_arn = unquote(self._get_param("resourceArn"))
         policy = self._get_param("policy")
         expected_revision_id = self._get_param("expectedRevisionId")
         resource_arn, revision_id = self.lexv2models_backend.update_resource_policy(
@@ -209,7 +209,7 @@ class LexModelsV2Response(BaseResponse):
         return json.dumps(dict(resourceArn=resource_arn, revisionId=revision_id))
 
     def delete_resource_policy(self) -> str:
-        resource_arn = self._get_param("resourceArn")
+        resource_arn = unquote(self._get_param("resourceArn"))
         expected_revision_id = self._get_param("expectedRevisionId")
         resource_arn, revision_id = self.lexv2models_backend.delete_resource_policy(
             resource_arn=resource_arn,
