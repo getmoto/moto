@@ -101,12 +101,12 @@ class EventBridgeSchedulerResponse(BaseResponse):
         )
         response = {"Schedules": [sch.to_dict(short=True) for sch in schedules]}
         if next_token:
-            response["NextToken"] = next_token
+            response["NextToken"] = next_token  # type: ignore
         return json.dumps(response)
 
     def create_schedule_group(self) -> str:
         name = self._get_param("Name")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []  # type: ignore
         schedule_group = self.scheduler_backend.create_schedule_group(
             name=name,
             tags=tags,
@@ -134,7 +134,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
         )
         response = {"ScheduleGroups": [sg.to_dict() for sg in schedule_groups]}
         if next_token:
-            response["NextToken"] = next_token
+            response["NextToken"] = next_token  # type: ignore
         return json.dumps(response)
 
     def list_tags_for_resource(self) -> str:
@@ -144,7 +144,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
 
     def tag_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])
-        tags = json.loads(self.body)["Tags"]
+        tags = json.loads(self.body)["Tags"]  # type: ignore
         self.scheduler_backend.tag_resource(resource_arn, tags)
         return "{}"
 
