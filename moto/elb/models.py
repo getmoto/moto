@@ -310,7 +310,7 @@ class ELBBackend(BaseBackend):
             vpc_id = subnet.vpc_id
         elif zones:
             subnets = [
-                ec2_backend.get_default_subnet(availability_zone=zone).id
+                ec2_backend.get_default_subnets(availability_zone=zone)[0].id
                 for zone in zones
             ]
             subnet = ec2_backend.get_subnet(subnets[0])

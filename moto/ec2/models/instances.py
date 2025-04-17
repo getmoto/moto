@@ -29,6 +29,7 @@ from ..exceptions import (
     InvalidSubnetIdError,
     OperationDisableApiStopNotPermitted,
     OperationNotPermitted4,
+    VPCIdNotSpecifiedError,
 )
 from ..utils import (
     convert_tag_spec,
@@ -529,9 +530,12 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 else:
                     # Get default Subnet
                     zone = self._placement.zone
-                    nic_subnet = self.ec2_backend.get_default_subnet(
+                    default_subnets = self.ec2_backend.get_default_subnets(
                         availability_zone=zone
                     )
+                    if not default_subnets and self.subnet_id is None:
+                        raise VPCIdNotSpecifiedError()
+                    nic_subnet = default_subnets[0]
 
                 group_ids = nic.get("SecurityGroupId") or []
                 if security_groups:
