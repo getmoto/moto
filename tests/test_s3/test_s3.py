@@ -3587,3 +3587,71 @@ def enable_versioning(bucket_name, s3_client):
     while resp.get("Status") != "Enabled":
         sleep(0.1)
         resp = s3_client.get_bucket_versioning(Bucket=bucket_name)
+
+
+@mock_aws
+def test_put_and_get_bucket_inventory_configuration():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = "mybucket"
+    bucket2 = "mybucket2"
+    id = "my-inventory-config"
+    inventory_configuration = {
+        "Destination": {
+            "S3BucketDestination": {
+                "AccountId": DEFAULT_ACCOUNT_ID,
+                "Bucket": f"arn:aws:s3:::{bucket2}",
+                "Format": "CSV",
+                "Prefix": "test",
+                "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+            }
+        },
+        "IsEnabled": True,
+        "Filter": {"Prefix": "folder1/"},
+        "Id": id,
+        "IncludedObjectVersions": "All",
+        "OptionalFields": ["Size", "ETag"],
+        "Schedule": {"Frequency": "Daily"},
+    }
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+    resp = client.put_bucket_inventory_configuration(
+        Bucket=bucket,
+        Id=id,
+        InventoryConfiguration=inventory_configuration,
+        ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Retrieve the configuration
+    resp = client.get_bucket_inventory_configuration(Bucket=bucket, Id=id)
+    assert resp["InventoryConfiguration"]["Id"] == id
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"][
+            "AccountId"
+        ]
+        == DEFAULT_ACCOUNT_ID
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Bucket"]
+        == f"arn:aws:s3:::{bucket2}"
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Format"]
+        == "CSV"
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"]["Prefix"]
+        == "test"
+    )
+    assert (
+        resp["InventoryConfiguration"]["Destination"]["S3BucketDestination"][
+            "Encryption"
+        ]["SSEKMS"]["KeyId"]
+        == "key-12345"
+    )
+    assert resp["InventoryConfiguration"]["IsEnabled"] is True
+    assert resp["InventoryConfiguration"]["Filter"]["Prefix"] == "folder1/"
+    assert resp["InventoryConfiguration"]["IncludedObjectVersions"] == "All"
+    assert resp["InventoryConfiguration"]["OptionalFields"] == ["Size", "ETag"]
+    assert resp["InventoryConfiguration"]["Schedule"]["Frequency"] == "Daily"
