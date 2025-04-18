@@ -414,6 +414,12 @@ class EmailResponse(BaseResponse):
         )
         return template.render()
 
+    def get_identity_dkim_attributes(self) -> str:
+        identities = self._get_multi_param("Identities.member.")
+        dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
+        template = self.response_template(GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE)
+        return template.render(dkim_attributes=dkim_attributes)
+
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyEmailIdentityResult/>
@@ -880,3 +886,29 @@ UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE = """<UpdateConfigu
     <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
   </ResponseMetadata>
 </UpdateConfigurationSetReputationMetricsEnabledResponse>"""
+
+GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE = """<GetIdentityDkimAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <GetIdentityDkimAttributesResult>
+    <DkimAttributes>
+      {% for identity, attributes in dkim_attributes.items() %}
+      <entry>
+        <key>{{ identity }}</key>
+        <value>
+          <DkimEnabled>{{ attributes.DkimEnabled|lower }}</DkimEnabled>
+          <DkimVerificationStatus>{{ attributes.DkimVerificationStatus }}</DkimVerificationStatus>
+          {% if attributes.get('DkimTokens') %}
+          <DkimTokens>
+            {% for token in attributes.DkimTokens %}
+            <member>{{ token }}</member>
+            {% endfor %}
+          </DkimTokens>
+          {% endif %}
+        </value>
+      </entry>
+      {% endfor %}
+    </DkimAttributes>
+  </GetIdentityDkimAttributesResult>
+  <ResponseMetadata>
+    <RequestId>9662c15b-c469-11e1-99d1-797d6ecd6414</RequestId>
+  </ResponseMetadata>
+</GetIdentityDkimAttributesResponse>"""
