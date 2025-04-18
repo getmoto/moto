@@ -183,11 +183,13 @@ class SESV2Response(BaseResponse):
     def list_configuration_sets(self) -> str:
         next_token = self._get_param("NextToken")
         page_size = self._get_param("PageSize")
-        configuration_sets = self.sesv2_backend.list_configuration_sets(
+        configuration_sets, next_token = self.sesv2_backend.list_configuration_sets(
             next_token=next_token, page_size=page_size
         )
+        config_set_names = [c.configuration_set_name for c in configuration_sets]
+
         return json.dumps(
-            dict(ConfigurationSets=configuration_sets, NextToken=next_token)
+            dict(ConfigurationSets=config_set_names, NextToken=next_token)
         )
 
     def create_dedicated_ip_pool(self) -> str:
