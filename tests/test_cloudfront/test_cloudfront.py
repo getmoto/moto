@@ -273,9 +273,7 @@ def test_update_distribution_trusted_signers():
     assert (
         updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Quantity"] == 1
     )
-    assert (
-        updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Enabled"] == True
-    )
+    assert updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Enabled"]
     assert (
         "AwsAccountNumber123"
         in updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Items"]
