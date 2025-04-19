@@ -486,6 +486,10 @@ def test_modify_db_instance_manage_master_user_password(
         DBInstanceIdentifier=db_id, ManageMasterUserPassword=False
     )
 
+    retry_revert_modification_response = client.modify_db_instance(
+        DBInstanceIdentifier=db_id, ManageMasterUserPassword=False
+    )
+
     assert db_instance.get("MasterUserSecret") is None
     master_user_secret = modify_response["DBInstance"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
@@ -510,6 +514,9 @@ def test_modify_db_instance_manage_master_user_password(
         == describe_response["DBInstances"][0]["MasterUserSecret"]["SecretArn"]
     )
     assert revert_modification_response["DBInstance"].get("MasterUserSecret") is None
+    assert (
+        retry_revert_modification_response["DBInstance"].get("MasterUserSecret") is None
+    )
 
 
 @pytest.mark.parametrize("with_apply_immediately", [True, False])
