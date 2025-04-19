@@ -84,7 +84,7 @@ ec2
 - [ ] create_coip_cidr
 - [ ] create_coip_pool
 - [X] create_customer_gateway
-- [ ] create_default_subnet
+- [X] create_default_subnet
 - [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
