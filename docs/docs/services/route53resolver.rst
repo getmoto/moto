@@ -19,6 +19,8 @@ route53resolver
 - [ ] associate_firewall_rule_group
 - [X] associate_resolver_endpoint_ip_address
 - [X] associate_resolver_query_log_config
+  Associate a VPC with a resolver query log config.
+
 - [X] associate_resolver_rule
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
@@ -56,7 +58,9 @@ route53resolver
 - [ ] get_resolver_config
 - [ ] get_resolver_dnssec_config
 - [X] get_resolver_endpoint
-- [ ] get_resolver_query_log_config
+- [X] get_resolver_query_log_config
+  Get information about a resolver query log config.
+
 - [ ] get_resolver_query_log_config_association
 - [ ] get_resolver_query_log_config_policy
 - [X] get_resolver_rule
