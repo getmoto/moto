@@ -48,15 +48,15 @@ def test_invoke_endpoint():
     body = client.invoke_endpoint(EndpointName="asdf", Body="qwer")
     assert body["Body"].read() == b"first body"
 
-    # Same input -> same output
+    # Same input -> second item
     body = client.invoke_endpoint(EndpointName="asdf", Body="qwer")
-    assert body["Body"].read() == b"first body"
+    assert body["Body"].read() == b"second body"
 
-    # Different input -> second item
+    # Different input -> empty queue
     body = client.invoke_endpoint(
         EndpointName="asdf", Body="qwer", Accept="sth", TargetModel="tm"
     )
-    assert body["Body"].read() == b"second body"
+    assert body["Body"].read() == b"body"
 
 
 @mock_aws
@@ -80,33 +80,34 @@ def test_invoke_endpoint_async():
         json=sagemaker_result,
     )
 
+    s3 = boto3.client("s3", "us-east-1")
+
     # Return the first item from the list
     body = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
-    first_output_location = body["OutputLocation"]
-    first_failure_location = body["FailureLocation"]
-
-    # Same input -> same output
-    body = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
-    assert body["OutputLocation"] == first_output_location
-    assert body["FailureLocation"] == first_failure_location
-
-    s3 = boto3.client("s3", "us-east-1")
-    bucket_name, obj = bucket_and_name_from_url(first_output_location)
+    bucket_name, obj = bucket_and_name_from_url(body["OutputLocation"])
     resp = s3.get_object(Bucket=bucket_name, Key=obj)
     resp = json.loads(resp["Body"].read().decode("utf-8"))
     assert resp == {"first": "output"}
+    assert body["ResponseMetadata"]["HTTPStatusCode"] == 202
 
-    # Different input -> second item
-    body = client.invoke_endpoint_async(
-        EndpointName="asdf", InputLocation="asf", InferenceId="sth"
-    )
-    second_failure_location = body["FailureLocation"]
-    assert body["InferenceId"] == "sth"
-
-    bucket_name, obj = bucket_and_name_from_url(second_failure_location)
+    # Same input -> second item
+    body = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
+    bucket_name, obj = bucket_and_name_from_url(body["FailureLocation"])
     resp = s3.get_object(Bucket=bucket_name, Key=obj)
     resp = resp["Body"].read().decode("utf-8")
     assert resp == "second failure"
+    assert body["ResponseMetadata"]["HTTPStatusCode"] == 202
+
+    # Different input -> empty queue
+    body = client.invoke_endpoint_async(
+        EndpointName="asdf", InputLocation="asf", InferenceId="sth"
+    )
+    bucket_name, obj = bucket_and_name_from_url(body["OutputLocation"])
+    resp = s3.get_object(Bucket=bucket_name, Key=obj)
+    resp = json.loads(resp["Body"].read().decode("utf-8"))
+    assert resp == {"default": "response"}
+    assert body["ResponseMetadata"]["HTTPStatusCode"] == 202
+    assert body["InferenceId"] == "sth"
 
 
 @mock_aws
@@ -126,18 +127,12 @@ def test_invoke_endpoint_async_should_read_sync_queue_if_async_not_configured():
         json=sagemaker_result,
     )
 
+    s3 = boto3.client("s3", "us-east-1")
+
     # Return the first item from the list
     body = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
-    first_output_location = body["OutputLocation"]
-    first_failure_location = body["FailureLocation"]
-
-    # Same input -> same output
-    body = client.invoke_endpoint_async(EndpointName="asdf", InputLocation="qwer")
-    assert body["OutputLocation"] == first_output_location
-    assert body["FailureLocation"] == first_failure_location
-
-    s3 = boto3.client("s3", "us-east-1")
-    bucket_name, obj = bucket_and_name_from_url(first_output_location)
+    bucket_name, obj = bucket_and_name_from_url(body["OutputLocation"])
     resp = s3.get_object(Bucket=bucket_name, Key=obj)
     resp = json.loads(resp["Body"].read().decode("utf-8"))
     assert resp["Body"] == "support sync queue for backward compatibility"
+    assert body["ResponseMetadata"]["HTTPStatusCode"] == 202

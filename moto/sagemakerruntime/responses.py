@@ -58,5 +58,6 @@ class SageMakerRuntimeResponse(BaseResponse):
         headers = {
             "X-Amzn-SageMaker-OutputLocation": output_location,
             "X-Amzn-SageMaker-FailureLocation": failure_location,
+            "status": 202,
         }
-        return 200, headers, json.dumps(resp)
+        return 202, headers, json.dumps(resp)
