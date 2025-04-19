@@ -34,7 +34,6 @@ user_settable_fields = {
 ARCHIVE_STORAGE_CLASSES = [
     "GLACIER",
     "DEEP_ARCHIVE",
-    "GLACIER_IR",
 ]
 STORAGE_CLASS = [
     "STANDARD",
@@ -42,6 +41,8 @@ STORAGE_CLASS = [
     "STANDARD_IA",
     "ONEZONE_IA",
     "INTELLIGENT_TIERING",
+    "GLACIER_IR",
+    "EXPRESS_ONEZONE",
 ] + ARCHIVE_STORAGE_CLASSES
 LOGGING_SERVICE_PRINCIPAL = "logging.s3.amazonaws.com"
 

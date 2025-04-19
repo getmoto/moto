@@ -275,3 +275,18 @@ def test_s3_get_object_from_glacier():
         Bucket=bucket_name, Key="test.txt", ObjectAttributes=["StorageClass"]
     )
     assert resp["StorageClass"] == "GLACIER"
+
+
+@mock_aws
+def test_s3_get_object_from_glacierir():
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "tests3getobjectfromglacierir"
+    s3_client.create_bucket(Bucket=bucket_name)
+
+    s3_client.put_object(
+        Bucket=bucket_name, Key="test.txt", Body="contents", StorageClass="GLACIER_IR"
+    )
+
+    resp = s3_client.get_object(Bucket=bucket_name, Key="test.txt")
+
+    assert resp["StorageClass"] == "GLACIER_IR"
