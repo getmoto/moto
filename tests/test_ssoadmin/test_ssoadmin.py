@@ -443,8 +443,7 @@ def test_update_permission_set_unknown():
         client.update_permission_set(
             InstanceArn="arn:aws:sso:::instance/ins-aaaabbbbccccdddd",
             PermissionSetArn=(
-                "arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/"
-                "ps-hhhhkkkkppppoooo"
+                "arn:aws:sso:::permissionSet/ins-eeeeffffgggghhhh/ps-hhhhkkkkppppoooo"
             ),
             Description="New description",
             SessionDuration="PT2H",

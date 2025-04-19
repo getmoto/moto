@@ -1181,7 +1181,7 @@ class FeatureGroup(BaseObject):
         self.feature_definitions = feature_definitions
 
         table_name = (
-            f"{feature_group_name.replace('-','_')}_{int(datetime.now().timestamp())}"
+            f"{feature_group_name.replace('-', '_')}_{int(datetime.now().timestamp())}"
         )
         offline_store_config["DataCatalogConfig"] = {
             "TableName": table_name,
@@ -1189,7 +1189,7 @@ class FeatureGroup(BaseObject):
             "Database": "sagemaker_featurestore",
         }
         offline_store_config["S3StorageConfig"]["ResolvedOutputS3Uri"] = (
-            f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
+            f"{offline_store_config['S3StorageConfig']['S3Uri']}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data"
         )
 
         self.offline_store_config = offline_store_config

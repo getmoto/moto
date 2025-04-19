@@ -404,9 +404,9 @@ class InstanceResponse(EC2BaseResponse):
         from botocore import __version__ as botocore_version
 
         if "no_device" in device_mapping:
-            assert isinstance(
-                device_mapping["no_device"], str
-            ), f"botocore {botocore_version} isn't limiting NoDevice to str type anymore, it is type:{type(device_mapping['no_device'])}"
+            assert isinstance(device_mapping["no_device"], str), (
+                f"botocore {botocore_version} isn't limiting NoDevice to str type anymore, it is type:{type(device_mapping['no_device'])}"
+            )
             if device_mapping["no_device"] == "":
                 # the only legit value it can have is empty string
                 # and none of the other checks here matter if NoDevice

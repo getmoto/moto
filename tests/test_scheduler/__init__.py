@@ -4,9 +4,9 @@ from typing import List, Tuple
 from moto.core.utils import utcnow
 
 
-def pytest_parametrize_test_create_get_schedule__with_start_date() -> (
-    List[Tuple[datetime, datetime]]
-):
+def pytest_parametrize_test_create_get_schedule__with_start_date() -> List[
+    Tuple[datetime, datetime]
+]:
     now = utcnow()
     timedelta_kwargs = {"days": 1, "hours": 1, "weeks": 1}
     return_ = []
@@ -19,9 +19,9 @@ def pytest_parametrize_test_create_get_schedule__with_start_date() -> (
     return return_
 
 
-def pytest_parametrize_test_create_schedule__exception_with_start_date() -> (
-    List[datetime]
-):
+def pytest_parametrize_test_create_schedule__exception_with_start_date() -> List[
+    datetime
+]:
     now = utcnow()
     timedelta_kwargs = {"days": 1, "minutes": 6, "hours": 1, "weeks": 1}
     return_ = []

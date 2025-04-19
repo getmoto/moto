@@ -1748,7 +1748,7 @@ def test_head_object(size, bucket_name=None):
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 206
     assert (
         resp["ResponseMetadata"]["HTTPHeaders"]["content-range"]
-        == f"bytes 0-{size-1}/{size}"
+        == f"bytes 0-{size - 1}/{size}"
     )
     assert resp["ContentLength"] == size
     assert resp["AcceptRanges"] == "bytes"

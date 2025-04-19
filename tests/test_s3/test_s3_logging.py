@@ -284,10 +284,14 @@ def test_invalid_bucket_logging_when_permissions_are_false():
     log_bucket = "logbucket"
     s3_client.create_bucket(Bucket=bucket_name)
     s3_client.create_bucket(Bucket=log_bucket)
-    with patch(
-        "moto.s3.models.FakeBucket._log_permissions_enabled_policy", return_value=False
-    ), patch(
-        "moto.s3.models.FakeBucket._log_permissions_enabled_acl", return_value=False
+    with (
+        patch(
+            "moto.s3.models.FakeBucket._log_permissions_enabled_policy",
+            return_value=False,
+        ),
+        patch(
+            "moto.s3.models.FakeBucket._log_permissions_enabled_acl", return_value=False
+        ),
     ):
         with pytest.raises(ClientError) as err:
             s3_client.put_bucket_logging(
@@ -310,10 +314,14 @@ def test_valid_bucket_logging_when_permissions_are_true():
     log_bucket = "logbucket"
     s3_client.create_bucket(Bucket=bucket_name)
     s3_client.create_bucket(Bucket=log_bucket)
-    with patch(
-        "moto.s3.models.FakeBucket._log_permissions_enabled_policy", return_value=True
-    ), patch(
-        "moto.s3.models.FakeBucket._log_permissions_enabled_acl", return_value=True
+    with (
+        patch(
+            "moto.s3.models.FakeBucket._log_permissions_enabled_policy",
+            return_value=True,
+        ),
+        patch(
+            "moto.s3.models.FakeBucket._log_permissions_enabled_acl", return_value=True
+        ),
     ):
         s3_client.put_bucket_logging(
             Bucket=bucket_name,

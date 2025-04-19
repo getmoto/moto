@@ -343,7 +343,7 @@ class DirectConnectBackend(BaseBackend):
             connection = self.create_connection(
                 location=location,
                 bandwidth=connections_bandwidth,
-                connection_name=f"Requested Connection {i+1} for Lag {lag.lag_id}",
+                connection_name=f"Requested Connection {i + 1} for Lag {lag.lag_id}",
                 lag_id=lag.lag_id,
                 tags=child_connection_tags,
                 request_mac_sec=False,
