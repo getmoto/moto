@@ -8,6 +8,6 @@ url_bases = [
 
 url_paths = {
     "{0}/applications$": AppRegistryResponse.dispatch,
-    "{0}/applications/(?P<application>[^/]+)/resources/(?P<resource_type>[^/]+)/(?P<resource>[^/]+)$": AppRegistryResponse.dispatch,
-    "{0}/applications/(?P<application>[^/]+)/resources$": AppRegistryResponse.dispatch,
+    "{0}/applications/(?P<application>[^/]+)/resources/(?P<resource_type>[^/]+)/(?P<resource>.+)$": AppRegistryResponse.dispatch,
+    "{0}/applications/(?P<application>.+)/resources$": AppRegistryResponse.dispatch,
 }
