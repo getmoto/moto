@@ -69,6 +69,8 @@ transfer
 - [ ] send_workflow_step_state
 - [ ] start_directory_listing
 - [ ] start_file_transfer
+- [ ] start_remote_delete
+- [ ] start_remote_move
 - [ ] start_server
 - [ ] stop_server
 - [ ] tag_resource
