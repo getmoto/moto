@@ -4,7 +4,7 @@ Moto Changelog
 
 5.1.4
 -----
-Docker Digest for 5.1.4: <autopopulateddigest>
+Docker Digest for 5.1.4: _sha256:32d7805d8bd4c81db789c4fff2c36f96a8837cbd8e7a3853116b6516b9490dde_
 
     New Services:
         * CodeDeploy:
