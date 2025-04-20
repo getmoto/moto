@@ -439,7 +439,7 @@ class AccountConfiguration:
     def __init__(self, days_before_expiry: int = 45):
         self.days_before_expiry = days_before_expiry
 
-    def to_dict(self):
+    def to_dict(self):  # type: ignore
         return {"ExpiryEvents": {"DaysBeforeExpiry": self.days_before_expiry}}
 
 
@@ -614,7 +614,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         return certificate, certificate_chain, private_key
 
     def get_account_configuration(self) -> Dict[str, Any]:
-        return self._account_config.to_dict()
+        return self._account_config.to_dict()  # type: ignore
 
     def put_account_configuration(
         self, days_before_expiry: int, idempotency_token: str

@@ -262,7 +262,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if expiry_events is None:
             msg = "A required parameter for the specified action is not supplied."
-            return (
+            return (  # type: ignore
                 json.dumps({"__type": "MissingParameter", "message": msg}),
                 dict(status=400),
             )
@@ -270,7 +270,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         days_before_expiry = expiry_events.get("DaysBeforeExpiry")
         if days_before_expiry is None:
             msg = "DaysBeforeExpiry is required in ExpiryEvents."
-            return (
+            return (  # type: ignore
                 json.dumps({"__type": "ValidationException", "message": msg}),
                 dict(status=400),
             )
