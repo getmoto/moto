@@ -884,3 +884,30 @@ def test_certificate_expiration_status():
     with freeze_time(expiry_time + datetime.timedelta(days=1)):  # 1 day after
         resp = client.describe_certificate(CertificateArn=arn)
         assert resp["Certificate"]["Status"] == "EXPIRED"
+
+
+@mock_aws
+def test_account_configuration():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    # Test default configuration
+    response = client.get_account_configuration()
+    assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 45
+
+    # Test successful update
+    response = client.put_account_configuration(
+        ExpiryEvents={"DaysBeforeExpiry": 30}, IdempotencyToken="test-token"
+    )
+
+    # Verify the update was successful
+    response = client.get_account_configuration()
+    assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30
+
+    # Test idempotency token - trying to update with same token but different value
+    response = client.put_account_configuration(
+        ExpiryEvents={"DaysBeforeExpiry": 60}, IdempotencyToken="test-token"
+    )
+
+    # Should still be 30 due to idempotency token
+    response = client.get_account_configuration()
+    assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30
