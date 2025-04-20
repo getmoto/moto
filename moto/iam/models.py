@@ -802,7 +802,7 @@ class Role(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        backend = iam_backends[account_id][get_partition(region_name)]
+        backend: IAMBackend = iam_backends[account_id][get_partition(region_name)]
         for profile in backend.instance_profiles.values():
             profile.delete_role(role_name=resource_name)
 
@@ -810,6 +810,13 @@ class Role(CloudFormationModel):
             if role.name == resource_name:
                 for arn in list(role.policies.keys()):
                     role.delete_policy(arn)
+
+        # We may have inline policies attached to this role - make sure that they don't reference a deleted role
+        # If the reference still exists, it's impossible to delete the policy, because on deletion
+        # it will try to detach itself from a role that no longer exists
+        for policy in backend.inline_policies.values():
+            policy.role_names = [n for n in policy.role_names if n != resource_name]
+
         backend.delete_role(resource_name)
 
     @property
