@@ -588,6 +588,54 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "c8g.12xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.16xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.24xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.2xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.48xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.4xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.8xlarge",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.large",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.medium",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.metal-24xl",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.metal-48xl",
+  "Location": "sa-east-1"
+ },
+ {
+  "InstanceType": "c8g.xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "g4dn.12xlarge",
   "Location": "sa-east-1"
  },
