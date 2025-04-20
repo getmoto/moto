@@ -729,9 +729,6 @@ class SESBackend(BaseBackend):
     def update_configuration_set_reputation_metrics_enabled(
         self, configuration_set_name: str, enabled: bool
     ) -> None:
-        """
-        Enable or disable reputation metrics for a configuration set.
-        """
         if configuration_set_name not in self.config_sets:
             raise ConfigurationSetDoesNotExist(
                 f"Configuration set <{configuration_set_name}> does not exist"
@@ -744,10 +741,6 @@ class SESBackend(BaseBackend):
     def get_identity_dkim_attributes(
         self, identities: List[str]
     ) -> Dict[str, Dict[str, Any]]:
-        """
-        Returns the current status of Easy DKIM signing for an entity.
-        For domain name identities, this operation also returns the DKIM tokens.
-        """
         result = {}
         for identity in identities:
             is_domain = "@" not in identity
