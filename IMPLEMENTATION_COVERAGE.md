@@ -1,18 +1,18 @@
 
 ## acm
 <details>
-<summary>60% implemented</summary>
+<summary>73% implemented</summary>
 
 - [X] add_tags_to_certificate
 - [X] delete_certificate
 - [X] describe_certificate
 - [X] export_certificate
-- [ ] get_account_configuration
+- [X] get_account_configuration
 - [X] get_certificate
 - [X] import_certificate
 - [X] list_certificates
 - [ ] list_tags_for_certificate
-- [ ] put_account_configuration
+- [X] put_account_configuration
 - [X] remove_tags_from_certificate
 - [ ] renew_certificate
 - [X] request_certificate
@@ -22,26 +22,26 @@
 
 ## acm-pca
 <details>
-<summary>56% implemented</summary>
+<summary>69% implemented</summary>
 
 - [X] create_certificate_authority
 - [ ] create_certificate_authority_audit_report
 - [ ] create_permission
 - [X] delete_certificate_authority
 - [ ] delete_permission
-- [ ] delete_policy
+- [X] delete_policy
 - [X] describe_certificate_authority
 - [ ] describe_certificate_authority_audit_report
 - [X] get_certificate
 - [X] get_certificate_authority_certificate
 - [X] get_certificate_authority_csr
-- [ ] get_policy
+- [X] get_policy
 - [X] import_certificate_authority_certificate
 - [X] issue_certificate
 - [ ] list_certificate_authorities
 - [ ] list_permissions
 - [X] list_tags
-- [ ] put_policy
+- [X] put_policy
 - [ ] restore_certificate_authority
 - [X] revoke_certificate
 - [X] tag_certificate_authority
@@ -51,7 +51,7 @@
 
 ## amp
 <details>
-<summary>62% implemented</summary>
+<summary>58% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
@@ -68,6 +68,7 @@
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
+- [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
 - [X] list_rule_groups_namespaces
 - [ ] list_scrapers
@@ -80,6 +81,7 @@
 - [X] update_logging_configuration
 - [ ] update_scraper
 - [X] update_workspace_alias
+- [ ] update_workspace_configuration
 </details>
 
 ## apigateway
@@ -2387,13 +2389,14 @@
 
 ## dsql
 <details>
-<summary>20% implemented</summary>
+<summary>18% implemented</summary>
 
 - [X] create_cluster
 - [ ] create_multi_region_clusters
 - [ ] delete_cluster
 - [ ] delete_multi_region_clusters
 - [X] get_cluster
+- [ ] get_vpc_endpoint_service_name
 - [ ] list_clusters
 - [ ] list_tags_for_resource
 - [ ] tag_resource
@@ -2559,7 +2562,7 @@
 - [ ] create_coip_cidr
 - [ ] create_coip_pool
 - [X] create_customer_gateway
-- [ ] create_default_subnet
+- [X] create_default_subnet
 - [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
@@ -8033,7 +8036,7 @@
 
 ## s3tables
 <details>
-<summary>53% implemented</summary>
+<summary>46% implemented</summary>
 
 - [X] create_namespace
 - [X] create_table
@@ -8041,13 +8044,16 @@
 - [X] delete_namespace
 - [X] delete_table
 - [X] delete_table_bucket
+- [ ] delete_table_bucket_encryption
 - [ ] delete_table_bucket_policy
 - [ ] delete_table_policy
 - [X] get_namespace
 - [X] get_table
 - [X] get_table_bucket
+- [ ] get_table_bucket_encryption
 - [ ] get_table_bucket_maintenance_configuration
 - [ ] get_table_bucket_policy
+- [ ] get_table_encryption
 - [ ] get_table_maintenance_configuration
 - [ ] get_table_maintenance_job_status
 - [ ] get_table_metadata_location
@@ -8055,6 +8061,7 @@
 - [X] list_namespaces
 - [X] list_table_buckets
 - [X] list_tables
+- [ ] put_table_bucket_encryption
 - [ ] put_table_bucket_maintenance_configuration
 - [ ] put_table_bucket_policy
 - [ ] put_table_maintenance_configuration
@@ -8751,7 +8758,7 @@
 
 ## ses
 <details>
-<summary>43% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -8779,7 +8786,7 @@
 - [X] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
-- [ ] get_identity_dkim_attributes
+- [X] get_identity_dkim_attributes
 - [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
@@ -8814,7 +8821,7 @@
 - [ ] test_render_template
 - [ ] update_account_sending_enabled
 - [ ] update_configuration_set_event_destination
-- [ ] update_configuration_set_reputation_metrics_enabled
+- [X] update_configuration_set_reputation_metrics_enabled
 - [ ] update_configuration_set_sending_enabled
 - [ ] update_configuration_set_tracking_options
 - [ ] update_custom_verification_email_template
@@ -9429,7 +9436,7 @@
 
 ## textract
 <details>
-<summary>12% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] analyze_document
 - [ ] analyze_expense
@@ -9460,20 +9467,20 @@
 
 ## timestream-influxdb
 <details>
-<summary>76% implemented</summary>
+<summary>41% implemented</summary>
 
-- [X] create_db_cluster
+- [ ] create_db_cluster
 - [X] create_db_instance
-- [X] create_db_parameter_group
+- [ ] create_db_parameter_group
 - [ ] delete_db_cluster
 - [X] delete_db_instance
-- [X] get_db_cluster
+- [ ] get_db_cluster
 - [X] get_db_instance
-- [X] get_db_parameter_group
-- [X] list_db_clusters
+- [ ] get_db_parameter_group
+- [ ] list_db_clusters
 - [X] list_db_instances
 - [ ] list_db_instances_for_cluster
-- [X] list_db_parameter_groups
+- [ ] list_db_parameter_groups
 - [X] list_tags_for_resource
 - [X] tag_resource
 - [X] untag_resource

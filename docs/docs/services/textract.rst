@@ -39,6 +39,10 @@ textract
 - [ ] list_adapters
 - [ ] list_tags_for_resource
 - [X] start_document_analysis
+  
+        The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
+        
+
 - [X] start_document_text_detection
   
         The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID

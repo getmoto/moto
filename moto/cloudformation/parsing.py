@@ -82,6 +82,9 @@ NULL_MODELS = [
     "AWS::CloudFormation::WaitConditionHandle",
 ]
 
+# How often CF should attempt to update/delete a resource, before giving up
+MAX_UPDATE_ATTEMPTS = 5
+
 DEFAULT_REGION = "us-east-1"
 
 logger = logging.getLogger("moto")
@@ -842,10 +845,21 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     ) -> None:
         resource_names_by_action = self.build_resource_diff(template, parameters)
 
-        for logical_name in resource_names_by_action["Remove"]:
-            resource_json = self._resource_json_map[logical_name]
-            resource = self._parsed_resources[logical_name]
-            self._delete_resource(resource, resource_json)
+        tries = 1
+        while resource_names_by_action["Remove"] and tries < MAX_UPDATE_ATTEMPTS:
+            for logical_name in resource_names_by_action["Remove"].copy():
+                resource_json = self._resource_json_map[logical_name]
+                try:
+                    resource = self._parsed_resources[logical_name]
+                    self._delete_resource(resource, resource_json)
+                except Exception as e:
+                    # skip over dependency violations, and try again in another pass
+                    last_exception = e
+                else:
+                    resource_names_by_action["Remove"].remove(logical_name)
+            tries += 1
+        if tries == MAX_UPDATE_ATTEMPTS:
+            raise last_exception
 
         self._template = template
         if parameters:
@@ -862,7 +876,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             _ = self[logical_name]
 
         tries = 1
-        while resource_names_by_action["Modify"] and tries < 5:
+        while resource_names_by_action["Modify"] and tries < MAX_UPDATE_ATTEMPTS:
             for logical_name in resource_names_by_action["Modify"].copy():
                 resource_json = self._resource_json_map[logical_name]
                 try:
@@ -881,7 +895,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                     self._parsed_resources[logical_name] = changed_resource
                     resource_names_by_action["Modify"].remove(logical_name)
             tries += 1
-        if tries == 5:
+        if tries == MAX_UPDATE_ATTEMPTS:
             raise last_exception
 
     def delete(self) -> None:

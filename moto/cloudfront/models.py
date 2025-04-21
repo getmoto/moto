@@ -65,6 +65,14 @@ class ForwardedValues:
         self.cookies: List[Dict[str, Any]] = config.get("Cookies") or []
 
 
+class TrustedSigners:
+    def __init__(self, config: Dict[str, Any]):
+        items = config.get("Items") or {}
+        self.acct_nums = items.get("AwsAccountNumber") or []
+        if isinstance(self.acct_nums, str):
+            self.acct_nums = [self.acct_nums]
+
+
 class TrustedKeyGroups:
     def __init__(self, config: Dict[str, Any]):
         items = config.get("Items") or {}
@@ -77,7 +85,7 @@ class DefaultCacheBehaviour:
     def __init__(self, config: Dict[str, Any]):
         self.target_origin_id = config["TargetOriginId"]
         self.trusted_signers_enabled = False
-        self.trusted_signers: List[Any] = []
+        self.trusted_signers = TrustedSigners(config.get("TrustedSigners") or {})
         self.trusted_key_groups = TrustedKeyGroups(config.get("TrustedKeyGroups") or {})
         self.viewer_protocol_policy = config["ViewerProtocolPolicy"]
         methods = config.get("AllowedMethods", {})

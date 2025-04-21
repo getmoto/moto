@@ -206,6 +206,7 @@ class SESBackend(BaseBackend):
         self.identity_mail_from_domains: Dict[str, Dict[str, Any]] = {}
         self.templates: Dict[str, Dict[str, str]] = {}
         self.receipt_rule_set: Dict[str, List[Dict[str, Any]]] = {}
+        self.dkim_tokens: Dict[str, List[str]] = {}
 
     def _is_verified_address(self, source: str) -> bool:
         _, address = parseaddr(source)
@@ -728,9 +729,6 @@ class SESBackend(BaseBackend):
     def update_configuration_set_reputation_metrics_enabled(
         self, configuration_set_name: str, enabled: bool
     ) -> None:
-        """
-        Enable or disable reputation metrics for a configuration set.
-        """
         if configuration_set_name not in self.config_sets:
             raise ConfigurationSetDoesNotExist(
                 f"Configuration set <{configuration_set_name}> does not exist"
@@ -739,6 +737,39 @@ class SESBackend(BaseBackend):
         if config_set.reputation_options is None:
             config_set.reputation_options = {}
         config_set.reputation_options["ReputationMetricsEnabled"] = enabled
+
+    def get_identity_dkim_attributes(
+        self, identities: List[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        result = {}
+        for identity in identities:
+            is_domain = "@" not in identity
+            dkim_enabled = True
+            verification_status = (
+                "Success"
+                if identity in (self.domains + self.addresses)
+                else "NotStarted"
+            )
+
+            dkim_data = {
+                "DkimEnabled": dkim_enabled,
+                "DkimVerificationStatus": verification_status,
+            }
+
+            # Only include tokens for domain identities
+            if is_domain and verification_status == "Success":
+                if identity not in self.dkim_tokens:
+                    # Generate new DKIM tokens for the domain
+                    self.dkim_tokens[identity] = [
+                        "vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf",
+                        "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
+                        "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2",
+                    ]
+                dkim_data["DkimTokens"] = self.dkim_tokens[identity]
+
+            result[identity] = dkim_data
+
+        return result
 
 
 ses_backends = BackendDict(SESBackend, "ses")

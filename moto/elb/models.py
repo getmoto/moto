@@ -309,10 +309,8 @@ class ELBBackend(BaseBackend):
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
         elif zones:
-            subnets = [
-                ec2_backend.get_default_subnet(availability_zone=zone).id
-                for zone in zones
-            ]
+            default_subnets = ec2_backend.get_default_subnets()
+            subnets = [default_subnets[zone].id for zone in zones]
             subnet = ec2_backend.get_subnet(subnets[0])
             vpc_id = subnet.vpc_id
         if name in self.load_balancers:

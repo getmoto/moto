@@ -1,4 +1,5 @@
 import datetime
+import json
 import pickle
 
 import boto3
@@ -636,3 +637,63 @@ def create_cert():
     )
 
     return cert.public_bytes(serialization.Encoding.PEM)
+
+
+@mock_aws
+def test_policy_operations():
+    client = boto3.client("acm-pca", region_name="us-east-1")
+
+    # Create and activate a CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "test.example.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Get CSR and issue certificate to activate the CA
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    certificate_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+    cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=certificate_arn
+    )["Certificate"]
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=cert,
+    )
+
+    # Test policy operations
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"AWS": "012345678901"},
+                "Action": ["acm-pca:IssueCertificate"],
+                "Resource": ca_arn,
+            }
+        ],
+    }
+
+    # Put policy
+    client.put_policy(ResourceArn=ca_arn, Policy=json.dumps(policy))
+
+    # Get and verify policy
+    response = client.get_policy(ResourceArn=ca_arn)
+    assert json.loads(response["Policy"]) == policy
+
+    # Delete policy
+    client.delete_policy(ResourceArn=ca_arn)
+
+    # Get policy should now fail
+    with pytest.raises(ClientError) as exc:
+        client.get_policy(ResourceArn=ca_arn)
+    assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"

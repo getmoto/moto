@@ -325,10 +325,10 @@ DIST_CONFIG_TEMPLATE = """
       <DefaultCacheBehavior>
         <TargetOriginId>{{ distribution.distribution_config.default_cache_behavior.target_origin_id }}</TargetOriginId>
         <TrustedSigners>
-          <Enabled>{{ distribution.distribution_config.default_cache_behavior.trusted_signers_enabled }}</Enabled>
-          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers|length }}</Quantity>
+          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>          
+          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length }}</Quantity>
           <Items>
-            {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers %}
+            {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums %}
               <AwsAccountNumber>{{ aws_account_number }}</AwsAccountNumber>
             {% endfor %}
           </Items>
@@ -432,10 +432,10 @@ DIST_CONFIG_TEMPLATE = """
                 <PathPattern>{{ behaviour.path_pattern }}</PathPattern>
                 <TargetOriginId>{{ behaviour.target_origin_id }}</TargetOriginId>
                 <TrustedSigners>
-                  <Enabled>{{ behaviour.trusted_signers.enabled }}</Enabled>
-                  <Quantity>{{ behaviour.trusted_signers | length }}</Quantity>
+                  <Enabled>{{ 'true' if behaviour.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>
+                  <Quantity>{{ behaviour.trusted_signers.acct_nums | length }}</Quantity>
                   <Items>
-                    {% for account_nr  in behaviour.trusted_signers %}
+                    {% for account_nr  in behaviour.trusted_signers.acct_nums %}
                       <AwsAccountNumber>{{ account_nr }}</AwsAccountNumber>
                     {% endfor %}
                   </Items>
