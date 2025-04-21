@@ -133,7 +133,7 @@ class Cluster(BaseModel):
         self.username = username
         self.organization = organization
         self.bucket = bucket
-        self.port = port or 8086  
+        self.port = port or 8086
         self.db_parameter_group_identifier = db_parameter_group_identifier
         self.db_instance_type = db_instance_type or "db.influx.medium"
         self.db_storage_type = db_storage_type or DBStorageType.InfluxIOIncludedT1
