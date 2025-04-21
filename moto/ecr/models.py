@@ -244,6 +244,9 @@ class Image(BaseModel):
         self.image_pushed_at = int(datetime.now(timezone.utc).timestamp())
         self.last_scan: Optional[datetime] = None
 
+        self.scan_finding_results_queue: List[Any] = []
+        self.scan_finding_results: Dict[str, Any] = {}
+
     @property
     def image_digest(self) -> str:
         return self.get_image_digest()
@@ -315,6 +318,8 @@ class ECRBackend(BaseBackend):
         }
         self.registry_scanning_configuration_update_lock = threading.RLock()
         self.tagger = TaggingService(tag_name="tags")
+
+        self.scan_finding_results: list[dict[str, Any]] = []
 
     @staticmethod
     def default_vpc_endpoint_service(  # type: ignore[misc]
@@ -984,6 +989,56 @@ class ECRBackend(BaseBackend):
     def describe_image_scan_findings(
         self, registry_id: str, repository_name: str, image_id: Dict[str, Any]
     ) -> Dict[str, Any]:
+        """
+        This operation will return a static result by default. It is possible to configure a custom result using the Moto API.
+
+        Here is some example code showing how this can be configured:
+
+        .. sourcecode:: python
+
+            # Dict with the exact response that you want to Moto to return
+            example_response = {
+                "imageScanFindings": {
+                    "enhancedFindings": [
+                    ],
+                    "findingSeverityCounts": {
+                        "MEDIUM": 1,
+                        "UNTRIAGED": 1
+                    }
+                },
+                "registryId": 000000000000,
+                "repositoryName": "reponame",
+                "imageId": {
+                    "imageTag": "latest"
+                },
+                "imageScanStatus": {
+                    "status": "COMPLETE",
+                    "description": "The scan was completed successfully."
+                }
+            }
+            findings = {
+                "results": [example_response],
+                # Specify a region - us-east-1 by default
+                "region": "us-west-1",
+            }
+            resp = requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/ecr/scan-finding-results",
+                json=findings,
+            )
+
+            ecr = boto3.client("ecr", region_name="us-west-1")
+            # Create an image and start a scan
+            # ...
+            # Return the findings for reponame:latest
+            findings = ecr.describe_image_scan_findings(
+                repositoryName="reponame", imageId={"imageTag": "latest"}
+            )
+            findings.pop("ResponseMetadata")
+            assert findings == example_response
+
+        Note that the repository-name and imageTag/imageDigest should be an exact match. If you call `describe_image_scan_findings` with a repository/imageTag that is not part of any of the custom results, Moto will return a static default response.
+
+        """
         repo = self._get_repository(repository_name, registry_id)
 
         image = repo._get_image(image_id.get("imageTag"), image_id.get("imageDigest"))
@@ -998,7 +1053,7 @@ class ECRBackend(BaseBackend):
                 registry_id=repo.registry_id,
             )
 
-        return {
+        default_response = {
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
             "imageId": {
@@ -1035,6 +1090,33 @@ class ECRBackend(BaseBackend):
                 "findingSeverityCounts": {"HIGH": 1},
             },
         }
+
+        # Process new results, and delegate any results for this particular image
+        for res in self.scan_finding_results.copy():
+            no_image = not res["imageId"].get("imageTag") and not res["imageId"].get(
+                "imageDigest"
+            )
+            if repo.name == res["repositoryName"] and (
+                no_image
+                or res["imageId"].get("imageTag") == image.image_tag
+                or res["imageId"].get("imageDigest") == image.image_digest
+            ):
+                image.scan_finding_results_queue.append(res)
+                self.scan_finding_results.remove(res)
+
+        # Unique key that identifies this invocation
+        key = f"{json.dumps(image_id)}"
+
+        # Get the latest result from the queue, and assign to our key
+        if image.scan_finding_results_queue and key not in image.scan_finding_results:
+            image.scan_finding_results[key] = image.scan_finding_results_queue.pop(0)
+        # Return the result if we've found any
+        if key in image.scan_finding_results:
+            return image.scan_finding_results[key]
+
+        # Default response. Should no longer be used by people, but is the legacy behaviour
+        # To remove in Moto v6.0 - users should configure their own expected response
+        return default_response
 
     def put_replication_configuration(
         self, replication_config: Dict[str, Any]

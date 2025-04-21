@@ -1234,7 +1234,7 @@ class S3Response(BaseResponse):
         template = self.response_template(S3_DELETE_KEYS_RESPONSE)
         body_dict = xmltodict.parse(self.body, strip_whitespace=False)
         bypass_retention = (
-            self.headers.get("x-amz-bypass-governance-retention") == "True"
+            self.headers.get("x-amz-bypass-governance-retention", "").lower() == "true"
         )
 
         objects = body_dict["Delete"].get("Object", [])
@@ -3408,6 +3408,9 @@ S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </Filter>
   <Destination>
     <Bucket>{{ rule["Destination"]["Bucket"] }}</Bucket>
+    {% if rule["Destination"].get("Account") %}
+    <Account>{{ rule["Destination"]["Account"] }}</Account>
+    {% endif %}
   </Destination>
 </Rule>
 {% endfor %}

@@ -35,6 +35,7 @@ backend_url_patterns = [
     ("cloudwatch", re.compile("https?://monitoring\\.(.+)\\.amazonaws.com")),
     ("codebuild", re.compile("https?://codebuild\\.(.+)\\.amazonaws\\.com")),
     ("codecommit", re.compile("https?://codecommit\\.(.+)\\.amazonaws\\.com")),
+    ("codedeploy", re.compile("https?://codedeploy\\.(.+)\\.amazonaws\\.com")),
     ("codepipeline", re.compile("https?://codepipeline\\.(.+)\\.amazonaws\\.com")),
     ("cognitoidentity", re.compile("https?://cognito-identity\\.(.+)\\.amazonaws.com")),
     ("cognitoidp", re.compile("https?://cognito-idp\\.(.+)\\.amazonaws.com")),
@@ -104,6 +105,10 @@ backend_url_patterns = [
     ("kinesis", re.compile("https?://kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.control-kinesis\\.(.+)\\.amazonaws\\.com")),
     ("kinesis", re.compile("https?://(.+)\\.data-kinesis\\.(.+)\\.amazonaws\\.com")),
+    (
+        "kinesisanalyticsv2",
+        re.compile("https?://kinesisanalytics\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("kinesisvideo", re.compile("https?://kinesisvideo\\.(.+)\\.amazonaws.com")),
     (
         "kinesisvideoarchivedmedia",
@@ -194,6 +199,7 @@ backend_url_patterns = [
     ("sdb", re.compile("https?://sdb\\.(.+)\\.amazonaws\\.com")),
     ("secretsmanager", re.compile("https?://secretsmanager\\.(.+)\\.amazonaws\\.com")),
     ("securityhub", re.compile("https?://securityhub\\.(.+)\\.amazonaws\\.com")),
+    ("servicecatalog", re.compile("https?://servicecatalog\\.(.+)\\.amazonaws\\.com")),
     (
         "servicediscovery",
         re.compile("https?://(data-)?servicediscovery\\.(.+)\\.amazonaws\\.com"),

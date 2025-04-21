@@ -53,6 +53,13 @@ MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 MAXIMUM_SMS_MESSAGE_BYTES = 1600  # Amazon limit for a single publish SMS action
 
 
+class SMS(BaseModel):
+    def __init__(self, message_id: str, phone_number: str, message: str):
+        self.message_id = message_id
+        self.phone_number = phone_number
+        self.message = message
+
+
 class Topic(CloudFormationModel):
     def __init__(self, name: str, sns_backend: "SNSBackend"):
         self.name = name
@@ -492,7 +499,11 @@ class SNSBackend(BaseBackend):
         self.platform_endpoints: Dict[str, PlatformEndpoint] = {}
         self.region_name = region_name
         self.sms_attributes: Dict[str, str] = {}
+        # We're storing the messages twice here
+        # The tuple is for backwards compatibility; the object is to expose this data to the MotoAPI
+        # We should combine these in a next major release, when we're allowed to break compatibility
         self.sms_messages: Dict[str, Tuple[str, str]] = OrderedDict()
+        self.sms_message_objects: dict[str, SMS] = {}
         self.opt_out_numbers = [
             "+447420500600",
             "+447420505401",
@@ -695,6 +706,9 @@ class SNSBackend(BaseBackend):
 
             message_id = str(mock_random.uuid4())
             self.sms_messages[message_id] = (phone_number, message)
+            self.sms_message_objects[message_id] = SMS(
+                message_id, phone_number, message
+            )
             return message_id
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:

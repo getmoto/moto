@@ -9,6 +9,7 @@ from typing import Any, Callable, Dict, List, Type, Union
 from moto.dynamodb.exceptions import (
     AttributeDoesNotExist,
     AttributeIsReservedKeyword,
+    DuplicateUpdateExpression,
     EmptyKeyAttributeException,
     ExpressionAttributeNameNotDefined,
     ExpressionAttributeValueNotDefined,
@@ -17,6 +18,7 @@ from moto.dynamodb.exceptions import (
     InvalidUpdateExpressionInvalidDocumentPath,
     MockValidationException,
     ProvidedKeyDoesNotExist,
+    TooManyClauses,
     UpdateHashRangeKeyException,
 )
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
@@ -32,16 +34,21 @@ from moto.dynamodb.parsing.ast_nodes import (  # type: ignore
     ExpressionValueOperator,
     Node,
     NoneExistingPath,
+    UpdateExpression,
     UpdateExpressionAddAction,
+    UpdateExpressionAddClause,
     UpdateExpressionClause,
     UpdateExpressionDeleteAction,
     UpdateExpressionFunction,
     UpdateExpressionPath,
     UpdateExpressionRemoveAction,
+    UpdateExpressionRemoveClause,
     UpdateExpressionSetAction,
+    UpdateExpressionSetClause,
     UpdateExpressionValue,
 )
 from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
+from moto.dynamodb.utils import find_duplicates, find_path_overlaps
 
 
 class ExpressionAttributeValueProcessor(DepthFirstTraverser):  # type: ignore[misc]
@@ -445,6 +452,82 @@ class UpdateHashRangeKeyValidator(DepthFirstTraverser):  # type: ignore[misc]
         return node
 
 
+class OverlappingPathsValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def __init__(self, expression_attribute_names: Dict[str, str]):
+        self.expression_attribute_names = expression_attribute_names
+
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpression],
+        Callable[[UpdateExpression], UpdateExpression],
+    ]:
+        return {UpdateExpression: self.check_for_overlapping_paths}
+
+    def check_for_overlapping_paths(self, node: UpdateExpression) -> UpdateExpression:
+        actions = node.find_clauses(
+            [
+                UpdateExpressionSetAction,
+                UpdateExpressionAddAction,
+                UpdateExpressionRemoveAction,
+                UpdateExpressionDeleteAction,
+            ]
+        )
+        expression_attribute_name_paths = []
+        plaintext_paths = []
+        for action in actions:
+            path = action.children[0]
+            path_name = path.children[0]
+            # for some reason, if we only have a root expression ('#path1', '#path2'),
+            # AWS only checks for direct matches, not path overlaps
+            if (
+                isinstance(path_name, ExpressionAttributeName)
+                and len(path.children) == 1
+            ):
+                expression_attribute_name_paths.append(
+                    self.expression_attribute_names[
+                        path_name.get_attribute_name_placeholder()
+                    ]
+                )
+            else:
+                plaintext_paths.append(path.to_str())
+
+        overlapping_paths = find_path_overlaps(plaintext_paths)
+        if overlapping_paths:
+            # There might be more than one attribute duplicated:
+            # they may get mixed up in the Error Message which is inline with actual boto3 Error Messages
+            raise DuplicateUpdateExpression(*overlapping_paths)
+
+        duplicates = find_duplicates(plaintext_paths + expression_attribute_name_paths)
+        if duplicates:
+            raise DuplicateUpdateExpression(*duplicates)
+        return node
+
+
+class ActionCountValidator(DepthFirstTraverser):  # type: ignore[misc]
+    def _processing_map(
+        self,
+    ) -> Dict[
+        Type[UpdateExpression],
+        Callable[[UpdateExpression], UpdateExpression],
+    ]:
+        return {UpdateExpression: self.verify_action_counts}
+
+    def verify_action_counts(self, node: UpdateExpression) -> UpdateExpression:
+        add_clauses = node.find_clauses([UpdateExpressionAddClause])
+        remove_clauses = node.find_clauses([UpdateExpressionRemoveClause])
+        set_clauses = node.find_clauses([UpdateExpressionSetClause])
+
+        # Only allow single ADD/REMOVE clauses
+        if len(add_clauses) > 1:
+            raise TooManyClauses("ADD")
+        if len(remove_clauses) > 1:
+            raise TooManyClauses("REMOVE")
+        if len(set_clauses) > 1:
+            raise TooManyClauses("SET")
+        return node
+
+
 class Validator:
     """
     A validator is used to validate expressions which are passed in as an AST.
@@ -490,6 +573,8 @@ class UpdateExpressionValidator(Validator):
     def get_ast_processors(self) -> List[DepthFirstTraverser]:
         """Get the different processors that go through the AST tree and processes the nodes."""
         processors = [
+            ActionCountValidator(),
+            OverlappingPathsValidator(self.expression_attribute_names),
             UpdateHashRangeKeyValidator(
                 self.table.table_key_attrs, self.expression_attribute_names or {}
             ),

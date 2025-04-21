@@ -158,7 +158,11 @@ def test_modify_db_cluster_new_cluster_identifier(client):
 @mock_aws
 def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_key):
     cluster_id = "cluster-id"
-    custom_kms_key = f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/abcd1234-56ef-78gh-90ij-klmnopqrstuv"
+    kms = boto3.client("kms", region_name=DEFAULT_REGION)
+    key = kms.create_key(KeyUsage="ENCRYPT_DECRYPT", KeySpec="SYMMETRIC_DEFAULT")[
+        "KeyMetadata"
+    ]
+    custom_kms_key = key["Arn"]
     custom_kms_key_args = (
         {"MasterUserSecretKmsKeyId": custom_kms_key} if with_custom_kms_key else {}
     )
@@ -185,27 +189,37 @@ def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_k
         DBClusterIdentifier=cluster_id, ManageMasterUserPassword=False
     )
 
+    retry_revert_modification_response = client.modify_db_cluster(
+        DBClusterIdentifier=cluster_id, ManageMasterUserPassword=False
+    )
+
     assert create_response["DBCluster"].get("MasterUserSecret") is None
     master_user_secret = modify_response["DBCluster"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
-    assert (
-        master_user_secret["SecretArn"]
-        == f"arn:aws:secretsmanager:{DEFAULT_REGION}:123456789012:secret:rds!cluster-id"
+    assert str(master_user_secret["SecretArn"]).startswith(
+        f"arn:aws:secretsmanager:{DEFAULT_REGION}:{ACCOUNT_ID}:secret:rds!cluster"
     )
-    assert master_user_secret["SecretStatus"] == "active"
+    assert master_user_secret["SecretStatus"] == "creating"
     if with_custom_kms_key:
         assert master_user_secret["KmsKeyId"] == custom_kms_key
     else:
-        assert (
-            master_user_secret["KmsKeyId"]
-            == f"arn:aws:kms:{DEFAULT_REGION}:123456789012:key/cluster-id"
-        )
+        default_kms_key = kms.describe_key(KeyId="alias/aws/secretsmanager")[
+            "KeyMetadata"
+        ]["Arn"]
+        assert master_user_secret["KmsKeyId"] == default_kms_key
     assert len(describe_response["DBClusters"][0]["MasterUserSecret"].keys()) == 3
     assert (
-        modify_response["DBCluster"]["MasterUserSecret"]
-        == describe_response["DBClusters"][0]["MasterUserSecret"]
+        describe_response["DBClusters"][0]["MasterUserSecret"]["SecretStatus"]
+        == "active"
+    )
+    assert (
+        modify_response["DBCluster"]["MasterUserSecret"]["SecretArn"]
+        == describe_response["DBClusters"][0]["MasterUserSecret"]["SecretArn"]
     )
     assert revert_modification_response["DBCluster"].get("MasterUserSecret") is None
+    assert (
+        retry_revert_modification_response["DBCluster"].get("MasterUserSecret") is None
+    )
 
 
 @pytest.mark.parametrize("with_apply_immediately", [True, False])
@@ -1861,3 +1875,36 @@ def test_db_cluster_writer_promotion(client):
         if i["IsClusterWriter"]
     )
     assert writer == "test-instance-2"
+
+
+@mock_aws
+def test_db_cluster_identifier_is_case_insensitive(client):
+    cluster = client.create_db_cluster(
+        DBClusterIdentifier="FooBar",
+        DatabaseName="db_name",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+    )["DBCluster"]
+    assert cluster["DBClusterIdentifier"] == "foobar"
+
+    for identifier in "foobar", "FOOBAR":
+        response = client.describe_db_clusters(DBClusterIdentifier=identifier)
+        assert response["DBClusters"][0]["DBClusterIdentifier"] == "foobar"
+
+    response = client.modify_db_cluster(
+        DBClusterIdentifier="fOObAR",
+        NewDBClusterIdentifier="XxYy",
+    )
+    assert response["DBCluster"]["DBClusterIdentifier"] == "xxyy"
+
+    instance = create_db_instance(
+        DBInstanceIdentifier="clustered-instance",
+        DBClusterIdentifier="XxYy",
+        Engine="aurora-postgresql",
+    )
+    assert instance["DBClusterIdentifier"] == "xxyy"
+    client.delete_db_instance(DBInstanceIdentifier="clustered-instance")
+
+    response = client.delete_db_cluster(DBClusterIdentifier="xXyY")
+    assert response["DBCluster"]["DBClusterIdentifier"] == "xxyy"

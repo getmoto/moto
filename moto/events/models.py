@@ -823,18 +823,13 @@ class Connection(BaseModel):
                 secret_value.update(value)
         secret_value = CamelToUnderscoresWalker.parse(secret_value)
 
-        secret = secretsmanager_backend.create_secret(
-            name=f"events!connection/{connection_id}/auth",
+        secret = secretsmanager_backend.create_managed_secret(
+            service_name="events",
+            secret_id=f"events!connection/{connection_id}/auth",
             secret_string=json.dumps(secret_value),
-            replica_regions=[],
-            force_overwrite=False,
-            secret_binary=None,
             description=f"Auth parameters for Eventbridge connection {connection_id}",
-            tags=[{"Key": "aws:secretsmanager:owningService", "Value": "events"}],
-            kms_key_id=None,
-            client_request_token=None,
         )
-        self.secret_arn = json.loads(secret).get("ARN")
+        self.secret_arn = secret.arn
         self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{connection_id}"
 
     def describe_short(self) -> Dict[str, Any]:

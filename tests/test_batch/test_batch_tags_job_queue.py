@@ -1,12 +1,15 @@
 from uuid import uuid4
 
+import pytest
+
 from moto import mock_aws
 
 from . import _get_clients, _setup
 
 
 @mock_aws
-def test_create_job_queue_with_tags():
+@pytest.mark.parametrize("use_compute_env_arn", [True, False])
+def test_create_job_queue_with_tags(use_compute_env_arn):
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)
 
@@ -17,14 +20,18 @@ def test_create_job_queue_with_tags():
         state="ENABLED",
         serviceRole=iam_arn,
     )
-    arn = resp["computeEnvironmentArn"]
+    compute_env_identifier = (
+        resp["computeEnvironmentArn"] if use_compute_env_arn else compute_name
+    )
 
     jq_name = str(uuid4())[0:6]
     resp = batch_client.create_job_queue(
         jobQueueName=jq_name,
         state="ENABLED",
         priority=123,
-        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+        computeEnvironmentOrder=[
+            {"order": 123, "computeEnvironment": compute_env_identifier}
+        ],
         tags={"k1": "v1", "k2": "v2"},
     )
     assert "jobQueueArn" in resp

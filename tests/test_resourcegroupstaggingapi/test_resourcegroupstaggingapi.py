@@ -470,6 +470,100 @@ def test_get_tag_values_event_bus():
 
 
 @mock_aws
+def test_get_tag_values_cloudfront():
+    client = boto3.client("cloudfront", "us-east-1")
+    for i in range(1, 3):
+        caller_reference = f"distribution{i}"
+        origin_id = f"origin{i}"
+
+        client.create_distribution_with_tags(
+            DistributionConfigWithTags={
+                "DistributionConfig": {
+                    "CallerReference": caller_reference,
+                    "Origins": {
+                        "Quantity": 1,
+                        "Items": [
+                            {
+                                "Id": origin_id,
+                                "DomainName": "example-bucket.s3.amazonaws.com",
+                                "S3OriginConfig": {"OriginAccessIdentity": ""},
+                            }
+                        ],
+                    },
+                    "DefaultCacheBehavior": {
+                        "TargetOriginId": origin_id,
+                        "ViewerProtocolPolicy": "allow-all",
+                        "TrustedSigners": {"Enabled": False, "Quantity": 0},
+                        "ForwardedValues": {
+                            "QueryString": False,
+                            "Cookies": {"Forward": "none"},
+                        },
+                        "MinTTL": 0,
+                    },
+                    "Comment": f"Sample distribution {i}",
+                    "Enabled": True,
+                },
+                "Tags": {"Items": [{"Key": "Test", "Value": f"Test{i}"}]},
+            }
+        )
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+
+    # Test tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["cloudfront"],
+        TagFilters=[{"Key": "Test", "Values": ["Test1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "Test1"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
+def test_get_tag_values_lexv2_models():
+    client = boto3.client("lexv2-models", "us-east-1")
+    # Create a bot
+    bot = client.create_bot(
+        botName="TestBot",
+        description="A test bot",
+        roleArn="arn:aws:iam::123456789012:role/service-role/AmazonLexV2BotRole",
+        dataPrivacy={"childDirected": False},
+        idleSessionTTLInSeconds=300,
+        botTags={"Test": "Test1"},
+    )
+    bot_id = bot["botId"]
+    # Create a bot alias with tags
+    client.create_bot_alias(
+        botAliasName="TestBotAlias",
+        botId=bot_id,
+        description="A test bot alias",
+        tags={"Test": "Test2"},
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+
+    # Test bot tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["lexv2:bot"],
+        TagFilters=[{"Key": "Test", "Values": ["Test1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "Test1"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    # Test bot-alias tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["lexv2:bot-alias"],
+        TagFilters=[{"Key": "Test", "Values": ["Test2"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "Test2"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
 def test_get_many_resources():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

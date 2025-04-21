@@ -113,6 +113,53 @@ def test_get_job_run_that_doesnt_exist():
 
 
 @mock_aws
+def test_get_job_runs():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    job_run_id = client.start_job_run(JobName=job_name)["JobRunId"]
+
+    response = client.get_job_runs(JobName=job_name)
+    assert response["JobRuns"][0]["Id"] == job_run_id
+    assert response["JobRuns"][0]["JobName"] == job_name
+
+
+@mock_aws
+def test_get_job_runs_job_not_found():
+    client = create_glue_client()
+    with pytest.raises(ClientError) as exc:
+        client.get_job_runs(JobName="doesnt_exist")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "EntityNotFoundException"
+
+
+@mock_aws
+def test_get_job_runs_pagination():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    job_run_ids = []
+    job_run_ids.append(client.start_job_run(JobName=job_name)["JobRunId"])
+    job_run_ids.append(client.start_job_run(JobName=job_name)["JobRunId"])
+
+    first_response = client.get_job_runs(JobName=job_name, MaxResults=1)
+    assert len(first_response["JobRuns"]) == 1
+    assert first_response.get("NextToken")
+    assert first_response["JobRuns"][0]["Id"] in job_run_ids
+
+    second_response = client.get_job_runs(
+        JobName=job_name, NextToken=first_response["NextToken"]
+    )
+    assert second_response["JobRuns"][0]["Id"] in job_run_ids
+
+
+@mock_aws
+def test_get_job_runs_job_exists_but_no_runs():
+    client = create_glue_client()
+    job_name = create_test_job(client)
+    response = client.get_job_runs(JobName=job_name)
+    assert response["JobRuns"] == []
+
+
+@mock_aws
 def test_job_run_transition():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't set transition directly in ServerMode")

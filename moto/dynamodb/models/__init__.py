@@ -442,7 +442,6 @@ class DynamoDBBackend(BaseBackend):
             # Parse expression to get validation errors
             update_expression_ast = UpdateExpressionParser.make(update_expression)
             update_expression = re.sub(r"\s*([=\+-])\s*", "\\1", update_expression)
-            update_expression_ast.validate()
 
         if all([table.hash_key_attr in key, table.range_key_attr in key]):
             # Covers cases where table has hash and range keys, ``key`` param
@@ -678,10 +677,10 @@ class DynamoDBBackend(BaseBackend):
                         expression_attribute_values=expression_attribute_values,
                     )
                 errors.append((None, None, None))
-            except MultipleTransactionsException:
+            except (MultipleTransactionsException, MockValidationException):
                 # Rollback to the original state, and reraise the error
                 self.tables = original_table_state
-                raise MultipleTransactionsException()
+                raise
             except ConditionalCheckFailed as e:
                 errors.append(("ConditionalCheckFailed", str(e.message), original_item))  # type: ignore
             except Exception as e:  # noqa: E722 Do not use bare except

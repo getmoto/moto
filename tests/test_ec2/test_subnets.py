@@ -7,7 +7,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
-from tests import EXAMPLE_AMI_ID
+from tests import DEFAULT_ACCOUNT_ID, EXAMPLE_AMI_ID
 
 
 @mock_aws
@@ -32,6 +32,98 @@ def test_subnets():
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
     assert "RequestId" in ex.value.response["ResponseMetadata"]
     assert ex.value.response["Error"]["Code"] == "InvalidSubnetID.NotFound"
+
+
+@mock_aws
+def test_create_default_subnet():
+    client = boto3.client("ec2", region_name="ap-northeast-1")
+
+    default_vpc = client.describe_vpcs(
+        Filters=[{"Name": "is-default", "Values": ["true"]}]
+    )["Vpcs"][0]
+
+    zones = [
+        z["ZoneName"] for z in client.describe_availability_zones()["AvailabilityZones"]
+    ]
+
+    # Ensure moto has default subnets by default
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "default-for-az", "Values": ["true"]}]
+    )["Subnets"]
+    assert len(subnets) == len(zones)
+
+    default_subnets: dict[str, str] = {
+        subnet["AvailabilityZone"]: subnet["SubnetId"] for subnet in subnets
+    }
+
+    # Ensure that attempting to create a default subnet when it already exists raises
+    for zone in zones:
+        with pytest.raises(ClientError) as exc:
+            client.create_default_subnet(AvailabilityZone=zone)
+        assert (
+            exc.value.response["Error"]["Code"]
+            == "DefaultSubnetAlreadyExistsInAvailabilityZone"
+        )
+        assert (
+            exc.value.response["Error"]["Message"]
+            == f"'{default_subnets[zone]}' is already the default subnet in {zone}."
+        )
+
+    # Delete default subnets
+    for subnet in subnets:
+        client.delete_subnet(SubnetId=subnet["SubnetId"])
+    default_subnets.clear()
+
+    expected_cidr_blocks = [
+        "172.31.0.0/20",
+        "172.31.16.0/20",
+        "172.31.32.0/20",
+        "172.31.48.0/20",
+        "172.31.64.0/20",
+        "172.31.80.0/20",
+    ]
+
+    # Ensure default subnets can be created
+    for idx, zone in enumerate(zones):
+        response = client.create_default_subnet(AvailabilityZone=zone)["Subnet"]
+        assert response["OwnerId"] == DEFAULT_ACCOUNT_ID
+        assert response["VpcId"] == default_vpc["VpcId"]
+        assert response["State"] == "available"
+        assert response["CidrBlock"] == expected_cidr_blocks[idx]
+        assert response["AvailabilityZone"] == zone
+        assert response["DefaultForAz"] is True
+        subnet_id = default_subnets[zone] = response["SubnetId"]
+
+        response = client.describe_subnets(SubnetIds=[subnet_id])
+        assert len(response["Subnets"]) == 1
+        assert response["Subnets"][0]["SubnetId"] == subnet_id
+        assert response["Subnets"][0]["VpcId"] == default_vpc["VpcId"]
+        assert response["Subnets"][0]["DefaultForAz"] is True
+        assert response["Subnets"][0]["CidrBlock"] == expected_cidr_blocks[idx]
+        assert response["Subnets"][0]["AvailabilityZone"] == zone
+
+    # Delete default subnets and VPCs
+    for subnet_id in default_subnets.values():
+        client.delete_subnet(SubnetId=subnet_id)
+    client.delete_vpc(VpcId=default_vpc["VpcId"])
+
+    # Ensure attempting to create default subnet when there's no default VPC raises
+    for zone in zones:
+        with pytest.raises(ClientError) as exc:
+            client.create_default_subnet(AvailabilityZone=zone)
+
+        assert exc.value.response["Error"]["Code"] == "DefaultVpcDoesNotExist"
+        assert (
+            exc.value.response["Error"]["Message"]
+            == "No default VPC exists for this account in this region."
+        )
+
+    # Ensure creating a default VPC also creates default subnets
+    client.create_default_vpc()
+    subnets = client.describe_subnets(
+        Filters=[{"Name": "default-for-az", "Values": ["true"]}]
+    )["Subnets"]
+    assert len(subnets) == len(zones)
 
 
 @mock_aws

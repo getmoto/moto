@@ -23,6 +23,7 @@ from .list_secrets.filters import (
     description_filter,
     filter_all,
     name_filter,
+    owning_service_filter,
     tag_key,
     tag_value,
 )
@@ -49,9 +50,7 @@ _filter_functions = {
     "tag-key": tag_key,
     "tag-value": tag_value,
     "primary-region": filter_primary_region,
-    # Other services do not create secrets in Moto (yet)
-    # So if you're looking for any Secrets owned by a Service, you'll never get any results
-    "owning-service": lambda x, y: False,
+    "owning-service": owning_service_filter,
 }
 
 
@@ -72,12 +71,7 @@ def _matches(
     return is_match
 
 
-class SecretsManager(BaseModel):
-    def __init__(self, region_name: str):
-        self.region = region_name
-
-
-class FakeSecret:
+class FakeSecret(BaseModel):
     def __init__(
         self,
         account_id: str,
@@ -131,6 +125,13 @@ class FakeSecret:
         self.replicas = self.create_replicas(
             replica_regions or [], force_overwrite=force_overwrite
         )
+
+    @property
+    def owning_service(self) -> Optional[str]:
+        for tag in self.tags or []:
+            if tag["Key"] == "aws:secretsmanager:owningService":
+                return tag["Value"]
+        return None
 
     def create_replicas(
         self, replica_regions: List[Dict[str, str]], force_overwrite: bool
@@ -237,13 +238,16 @@ class FakeSecret:
         dct: Dict[str, Any] = {
             "ARN": self.arn,
             "Name": self.name,
-            "KmsKeyId": self.kms_key_id,
             "LastChangedDate": self.last_changed_date,
             "LastAccessedDate": None,
             "NextRotationDate": self.next_rotation_date,
             "DeletedDate": self.deleted_date,
             "CreatedDate": self.created_date,
         }
+        if self.kms_key_id != SecretsManagerBackend.DEFAULT_KMS_KEY_ALIAS:
+            dct["KmsKeyId"] = self.kms_key_id
+        if self.owning_service is not None:
+            dct["OwningService"] = self.owning_service
         if self.tags is not None:
             dct["Tags"] = self.tags
         if self.description:
@@ -296,7 +300,7 @@ class ReplicaSecret:
         self.has_replica = status is None
         self.config = {
             "Region": self.region,
-            "KmsKeyId": "alias/aws/secretsmanager",
+            "KmsKeyId": SecretsManagerBackend.DEFAULT_KMS_KEY_ALIAS,
             "Status": self.status,
             "StatusMessage": self.message,
         }
@@ -365,6 +369,8 @@ class SecretsStore(Dict[str, Union[FakeSecret, ReplicaSecret]]):
 
 
 class SecretsManagerBackend(BaseBackend):
+    DEFAULT_KMS_KEY_ALIAS = "alias/aws/secretsmanager"
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.secrets = SecretsStore()
@@ -659,6 +665,43 @@ class SecretsManagerBackend(BaseBackend):
             self.secrets[secret_id] = secret
 
         return secret, new_version
+
+    def create_managed_secret(
+        self,
+        service_name: str,
+        secret_id: str,
+        secret_string: Optional[str] = None,
+        secret_binary: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        version_id: Optional[str] = None,
+        replica_regions: Optional[List[Dict[str, str]]] = None,
+        force_overwrite: bool = False,
+    ) -> FakeSecret:
+        """Create an AWS managed secret for the specified service name."""
+        if kms_key_id is None:
+            kms_key_id = self.DEFAULT_KMS_KEY_ALIAS
+        managed_tag = {
+            "Key": "aws:secretsmanager:owningService",
+            "Value": service_name,
+        }
+        if tags is None:
+            tags = [managed_tag]
+        else:
+            tags.append(managed_tag)
+        secret, _ = self._add_secret(
+            secret_id,
+            secret_string=secret_string,
+            secret_binary=secret_binary,
+            description=description,
+            tags=tags,
+            kms_key_id=kms_key_id,
+            version_id=version_id,
+            replica_regions=replica_regions,
+            force_overwrite=force_overwrite,
+        )
+        return secret
 
     def put_secret_value(
         self,

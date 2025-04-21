@@ -14,6 +14,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.secretsmanager.models import secretsmanager_backends
 from moto.secretsmanager.utils import SecretsManagerSecretIdentifier
 from moto.utilities.id_generator import TAG_KEY_CUSTOM_ID
 from tests import allow_aws_request
@@ -2180,3 +2181,30 @@ def test_create_secret_with_tag_custom_id(set_custom_id):
     )
 
     assert secret["ARN"].split(":")[-1] == f"{secret_name}-{secret_suffix}"
+
+
+@mock_aws
+@pytest.mark.skipif(
+    not settings.TEST_DECORATOR_MODE,
+    reason="Can't modify backend directly if not in decorator mode.",
+)
+def test_aws_managed_secret(set_custom_id):
+    # We have to poke directly at the backend because technically this secret
+    # would be managed by RDS, and wouldn't be able to be created via the
+    # public API (due to the restricted 'aws' tag prefix).
+    backend = secretsmanager_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+    secret = backend.create_managed_secret("rds", "secret-managed-by-rds", "53cr3t")
+    assert secret.kms_key_id == "alias/aws/secretsmanager"
+    client = boto3.client("secretsmanager", region_name="us-east-1")
+    resp = client.describe_secret(SecretId=secret.arn)
+    assert "KmsKeyId" not in resp
+    assert resp["OwningService"] == "rds"
+    owning_service_filter = {"Key": "owning-service", "Values": ["rds"]}
+    resp = client.list_secrets(Filters=[owning_service_filter])
+    assert len(resp["SecretList"]) == 1
+    assert resp["SecretList"][0]["ARN"] == secret.arn
+    assert resp["SecretList"][0]["OwningService"] == secret.owning_service
+    resp = client.batch_get_secret_value(Filters=[owning_service_filter])
+    assert len(resp["SecretValues"]) == 1
+    assert resp["SecretValues"][0]["ARN"] == secret.arn
+    assert resp["SecretValues"][0]["SecretString"] == "53cr3t"
