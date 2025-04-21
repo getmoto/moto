@@ -257,3 +257,53 @@ class ConfigResponse(BaseResponse):
             self._get_param("RetentionConfigurationName")
         )
         return ""
+
+    def select_resource_config(self):
+        params = self._get_params()
+        expression = params.get("Expression")
+        limit = params.get("Limit")
+        next_token = params.get("NextToken")
+        results, query_info, next_token = self.config_backend.select_resource_config(
+            expression=expression,
+            limit=limit,
+            next_token=next_token,
+        )
+
+        response = {"Results": results}
+        if query_info:
+            response["QueryInfo"] = query_info
+
+        if next_token:
+            response["NextToken"] = next_token
+
+        return json.dumps(response)
+
+    def put_resource_config(self):
+        params = json.loads(self.body)
+        resource_type = params.get("ResourceType")
+        schema_version_id = params.get("SchemaVersionId")
+        resource_id = params.get("ResourceId")
+        resource_name = params.get("ResourceName")
+        configuration = params.get("Configuration")
+        tags = params.get("Tags")
+        self.config_backend.put_resource_config(
+            resource_type=resource_type,
+            schema_version_id=schema_version_id,
+            resource_id=resource_id,
+            resource_name=resource_name,
+            configuration=configuration,
+            tags=tags,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
+
+    def delete_resource_config(self):
+        params = self._get_params()
+        resource_type = params.get("ResourceType")
+        resource_id = params.get("ResourceId")
+        self.config_backend.delete_resource_config(
+            resource_type=resource_type,
+            resource_id=resource_id,
+        )
+        # TODO: adjust response
+        return json.dumps(dict())
