@@ -38,9 +38,15 @@ def test_update_logging_configuration():
 @mock_aws
 def test_list_firewalls():
     client = boto3.client("network-firewall", region_name="ap-southeast-1")
+    for i in range(5):
+        client.create_firewall(
+            FirewallName=f"test-firewall-{i}",
+            FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+        )
     resp = client.list_firewalls()
 
-    raise Exception("NotYetImplemented")
+    assert len(resp["Firewalls"]) == 5
+    
 
 
 @mock_aws

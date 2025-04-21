@@ -16,7 +16,6 @@ class NetworkFirewallResponse(BaseResponse):
     @property
     def networkfirewall_backend(self):
         """Return backend instance specific for this region."""
-        # TODO
         return networkfirewall_backends[self.current_account][self.region]
 
     def create_firewall(self):
@@ -93,13 +92,13 @@ class NetworkFirewallResponse(BaseResponse):
         next_token = params.get("NextToken")
         vpc_ids = params.get("VpcIds")
         max_results = params.get("MaxResults")
-        next_token, firewalls = self.networkfirewall_backend.list_firewalls(
+        firewalls, next_token = self.networkfirewall_backend.list_firewalls(
             next_token=next_token,
             vpc_ids=vpc_ids,
             max_results=max_results,
         )
-        # TODO: adjust response
-        return json.dumps(dict(nextToken=next_token, firewalls=firewalls))
+        firewall_list = [fw.to_dict() for fw in firewalls]
+        return json.dumps(dict(nextToken=next_token, Firewalls=firewall_list))
 
     def describe_firewall(self):
         params = self._get_params()

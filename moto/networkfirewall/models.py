@@ -1,5 +1,6 @@
 """NetworkFirewallBackend class with methods for supported APIs."""
 
+from typing import Dict, List
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.tagging_service import TaggingService
@@ -62,7 +63,7 @@ class NetworkFirewallBackend(BaseBackend):
 
     def __init__(self, region_name, account_id):
         super().__init__(region_name, account_id)
-        self.firewalls = {}
+        self.firewalls: Dict[str,NetworkFirewallModel] = {}
         self.tagger = TaggingService()
 
     def create_firewall(
@@ -111,9 +112,8 @@ class NetworkFirewallBackend(BaseBackend):
         # implement here
         return firewall_arn, firewall_name, logging_configuration
 
-    def list_firewalls(self, next_token, vpc_ids, max_results):
-        # implement here
-        return next_token, firewalls
+    def list_firewalls(self, next_token, vpc_ids, max_results) -> List[NetworkFirewallModel]:
+        return self.firewalls.values(), next_token
 
     def describe_firewall(self, firewall_name, firewall_arn):
         # implement here
