@@ -11,6 +11,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
+from moto.utilities.paginator import paginate
 
 from .exceptions import (
     AlreadyExists,
@@ -37,7 +38,7 @@ PAGINATION_MODEL = {
         "input_token": "next_token",
         "limit_key": "max_items",
         "limit_default": 100,
-        "unique_attribute": ["configuration_set_name"],
+        "unique_attribute": "configuration_set_name",
     },
 }
 
@@ -205,6 +206,7 @@ class SESBackend(BaseBackend):
         self.identity_mail_from_domains: Dict[str, Dict[str, Any]] = {}
         self.templates: Dict[str, Dict[str, str]] = {}
         self.receipt_rule_set: Dict[str, List[Dict[str, Any]]] = {}
+        self.dkim_tokens: Dict[str, List[str]] = {}
 
     def _is_verified_address(self, source: str) -> bool:
         _, address = parseaddr(source)
@@ -501,10 +503,12 @@ class SESBackend(BaseBackend):
     def delete_configuration_set(self, configuration_set_name: str) -> None:
         self.config_sets.pop(configuration_set_name)
 
-    def list_configuration_sets(
-        self, next_token: Optional[str], max_items: Optional[int]
-    ) -> List[str]:
-        return list(self.config_sets.keys())
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_configuration_sets(self) -> List[ConfigurationSet]:
+        return list(self.config_sets.values())
+
+    def _list_all_configuration_sets(self) -> List[ConfigurationSet]:
+        return list(self.config_sets.values())
 
     def create_configuration_set_event_destination(
         self, configuration_set_name: str, event_destination: Dict[str, Any]
@@ -721,6 +725,51 @@ class SESBackend(BaseBackend):
                 attributes_by_identity[identity] = "Success"
 
         return attributes_by_identity
+
+    def update_configuration_set_reputation_metrics_enabled(
+        self, configuration_set_name: str, enabled: bool
+    ) -> None:
+        if configuration_set_name not in self.config_sets:
+            raise ConfigurationSetDoesNotExist(
+                f"Configuration set <{configuration_set_name}> does not exist"
+            )
+        config_set = self.config_sets[configuration_set_name]
+        if config_set.reputation_options is None:
+            config_set.reputation_options = {}
+        config_set.reputation_options["ReputationMetricsEnabled"] = enabled
+
+    def get_identity_dkim_attributes(
+        self, identities: List[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        result = {}
+        for identity in identities:
+            is_domain = "@" not in identity
+            dkim_enabled = True
+            verification_status = (
+                "Success"
+                if identity in (self.domains + self.addresses)
+                else "NotStarted"
+            )
+
+            dkim_data = {
+                "DkimEnabled": dkim_enabled,
+                "DkimVerificationStatus": verification_status,
+            }
+
+            # Only include tokens for domain identities
+            if is_domain and verification_status == "Success":
+                if identity not in self.dkim_tokens:
+                    # Generate new DKIM tokens for the domain
+                    self.dkim_tokens[identity] = [
+                        "vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf",
+                        "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
+                        "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2",
+                    ]
+                dkim_data["DkimTokens"] = self.dkim_tokens[identity]
+
+            result[identity] = dkim_data
+
+        return result
 
 
 ses_backends = BackendDict(SESBackend, "ses")

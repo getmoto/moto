@@ -60,7 +60,6 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
-from .utils import PartitionFilter
 
 
 class FakeDevEndpoint(BaseModel):
@@ -1364,6 +1363,9 @@ class FakeTable(BaseModel):
         self.partitions[str(partition.values)] = partition
 
     def get_partitions(self, expression: str) -> List["FakePartition"]:
+        # Only load pyparsing when necessary
+        from .utils import PartitionFilter
+
         return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values: str) -> "FakePartition":

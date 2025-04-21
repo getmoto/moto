@@ -229,7 +229,9 @@ class CertBundle(BaseModel):
             certificate=cert_armored,
             private_key=private_key,
             cert_type="PRIVATE" if cert_authority_arn is not None else "AMAZON_ISSUED",
-            cert_status="PENDING_VALIDATION",
+            cert_status="ISSUED"
+            if cert_authority_arn is not None
+            else "PENDING_VALIDATION",
             cert_authority_arn=cert_authority_arn,
             account_id=account_id,
             region=region,
@@ -433,6 +435,14 @@ class CertBundle(BaseModel):
         return "<Certificate>"
 
 
+class AccountConfiguration:
+    def __init__(self, days_before_expiry: int = 45):
+        self.days_before_expiry = days_before_expiry
+
+    def to_dict(self):  # type: ignore
+        return {"ExpiryEvents": {"DaysBeforeExpiry": self.days_before_expiry}}
+
+
 class AWSCertificateManagerBackend(BaseBackend):
     MIN_PASSPHRASE_LEN = 4
 
@@ -440,6 +450,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._certificates: Dict[str, CertBundle] = {}
         self._idempotency_tokens: Dict[str, Any] = {}
+        self._account_config = AccountConfiguration()
 
     def set_certificate_in_use_by(self, arn: str, load_balancer_name: str) -> None:
         if arn not in self._certificates:
@@ -601,6 +612,24 @@ class AWSCertificateManagerBackend(BaseBackend):
         private_key = cert_bundle.serialize_pk(passphrase_bytes)
 
         return certificate, certificate_chain, private_key
+
+    def get_account_configuration(self) -> Dict[str, Any]:
+        return self._account_config.to_dict()  # type: ignore
+
+    def put_account_configuration(
+        self, days_before_expiry: int, idempotency_token: str
+    ) -> None:
+        if idempotency_token is not None:
+            arn = self._get_arn_from_idempotency_token(idempotency_token)
+            if arn:
+                return
+
+        if days_before_expiry < 1 or days_before_expiry > 90:
+            raise AWSValidationException("DaysBeforeExpiry must be between 1 and 90")
+
+        self._account_config = AccountConfiguration(days_before_expiry)
+        if idempotency_token is not None:
+            self._set_idempotency_token_arn(idempotency_token, "account_config")
 
 
 acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

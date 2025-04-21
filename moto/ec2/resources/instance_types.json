@@ -35486,7 +35486,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -35631,7 +35631,7 @@
    ]
   },
   "NitroTpmSupport": "supported",
-  "PhcSupport": "unsupported",
+  "PhcSupport": "supported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
     "cluster",
@@ -65299,7 +65299,8 @@
   ],
   "SupportedUsageClasses": [
    "capacity-block",
-   "on-demand"
+   "on-demand",
+   "spot"
   ],
   "SupportedVirtualizationTypes": [
    "hvm"
