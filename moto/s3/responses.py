@@ -1103,7 +1103,7 @@ class S3Response(BaseResponse):
             s3_bucket_config=inventory_configuration.destination["S3BucketDestination"],
         )
 
-    def list_bucket_inventory_configurations(self):
+    def list_bucket_inventory_configurations(self) -> str:
         inventory_configuration_list = (
             self.backend.list_bucket_inventory_configurations(
                 bucket_name=self.bucket_name,
