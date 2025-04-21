@@ -2841,7 +2841,7 @@ def test_instance_with_ipv6_address():
 @mock_aws
 def test_instance_without_default_subnet():
     # Ensure that in an account without a default subnet, launching instances without specifying a subnet raises.
-    client = boto3.client("ec2", region_name="us-east-1")
+    client = boto3.client("ec2", region_name="ap-south-1")
 
     # Delete all VPCs and subnets
     subnets = client.describe_subnets()
@@ -2876,7 +2876,7 @@ def test_instance_without_default_subnet():
     )
 
     # Create default subnet in an AZ
-    client.create_default_subnet(AvailabilityZone="us-east-1c")
+    client.create_default_subnet(AvailabilityZone="ap-south-1c")
 
     # Ensure RunInstances without a subnet, in a different AZ raises
     with pytest.raises(ClientError) as exc:
@@ -2884,12 +2884,12 @@ def test_instance_without_default_subnet():
             ImageId=EXAMPLE_AMI_ID,
             MinCount=1,
             MaxCount=1,
-            Placement={"AvailabilityZone": "us-east-1b"},
+            Placement={"AvailabilityZone": "ap-south-1b"},
         )
     assert exc.value.response["Error"]["Code"] == "InvalidInput"
     assert (
         exc.value.response["Error"]["Message"]
-        == "No default subnet for availability zone: 'us-east-1b'."
+        == "No default subnet for availability zone: 'ap-south-1b'."
     )
 
     # Ensure RunInstances without a subnet where a default subnet exists succeeds
@@ -2897,7 +2897,7 @@ def test_instance_without_default_subnet():
         ImageId=EXAMPLE_AMI_ID,
         MinCount=1,
         MaxCount=1,
-        Placement={"AvailabilityZone": "us-east-1c"},
+        Placement={"AvailabilityZone": "ap-south-1c"},
     )
 
     # Create another VPC and subnet
