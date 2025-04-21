@@ -189,6 +189,10 @@ def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_k
         DBClusterIdentifier=cluster_id, ManageMasterUserPassword=False
     )
 
+    retry_revert_modification_response = client.modify_db_cluster(
+        DBClusterIdentifier=cluster_id, ManageMasterUserPassword=False
+    )
+
     assert create_response["DBCluster"].get("MasterUserSecret") is None
     master_user_secret = modify_response["DBCluster"]["MasterUserSecret"]
     assert len(master_user_secret.keys()) == 3
@@ -213,6 +217,9 @@ def test_modify_db_cluster_manage_master_user_password(client, with_custom_kms_k
         == describe_response["DBClusters"][0]["MasterUserSecret"]["SecretArn"]
     )
     assert revert_modification_response["DBCluster"].get("MasterUserSecret") is None
+    assert (
+        retry_revert_modification_response["DBCluster"].get("MasterUserSecret") is None
+    )
 
 
 @pytest.mark.parametrize("with_apply_immediately", [True, False])

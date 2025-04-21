@@ -154,6 +154,13 @@ def test_create_and_retrieve_replication_with_multiple_rules():
                     "Destination": {"Bucket": "thirdbucket"},
                     "Status": "Disabled",
                 },
+                {
+                    "Destination": {
+                        "Bucket": "x-account-bucket",
+                        "Account": "1234567890",
+                    },
+                    "Status": "Enabled",
+                },
             ],
         },
     )
@@ -163,7 +170,7 @@ def test_create_and_retrieve_replication_with_multiple_rules():
     ]
     assert config["Role"] == "myrole"
     rules = config["Rules"]
-    assert len(rules) == 2
+    assert len(rules) == 3
 
     first_rule = rules[0]
     assert "ID" in first_rule
@@ -176,3 +183,10 @@ def test_create_and_retrieve_replication_with_multiple_rules():
     assert second["Priority"] == 2
     assert second["Status"] == "Disabled"
     assert second["Destination"] == {"Bucket": "thirdbucket"}
+
+    third = rules[2]
+    assert third["Status"] == "Enabled"
+    assert third["Destination"] == {
+        "Bucket": "x-account-bucket",
+        "Account": "1234567890",
+    }

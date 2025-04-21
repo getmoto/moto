@@ -49,6 +49,7 @@ class CertificateAuthority(BaseModel):
         self.status = "PENDING_CERTIFICATE"
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
+        self.policy: Optional[str] = None
 
         self.password = str(mock_random.uuid4()).encode("utf-8")
 
@@ -457,6 +458,31 @@ class ACMPCABackend(BaseBackend):
         self, certificate_authority_arn: str, tags: List[Dict[str, str]]
     ) -> None:
         self.tagger.untag_resource_using_tags(certificate_authority_arn, tags)
+
+    def put_policy(self, resource_arn: str, policy: str) -> None:
+        """
+        Attaches a resource-based policy to a private CA.
+        """
+        ca = self.describe_certificate_authority(resource_arn)
+        if ca.status != "ACTIVE":
+            raise InvalidStateException(resource_arn)
+        ca.policy = policy
+
+    def get_policy(self, resource_arn: str) -> str:
+        """
+        Retrieves the resource-based policy attached to a private CA.
+        """
+        ca = self.describe_certificate_authority(resource_arn)
+        if ca.policy is None:
+            raise ResourceNotFoundException(resource_arn)
+        return ca.policy
+
+    def delete_policy(self, resource_arn: str) -> None:
+        """
+        Deletes the resource-based policy attached to a private CA.
+        """
+        ca = self.describe_certificate_authority(resource_arn)
+        ca.policy = None
 
 
 acmpca_backends = BackendDict(ACMPCABackend, "acm-pca")

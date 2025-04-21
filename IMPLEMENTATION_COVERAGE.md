@@ -1,18 +1,18 @@
 
 ## acm
 <details>
-<summary>60% implemented</summary>
+<summary>73% implemented</summary>
 
 - [X] add_tags_to_certificate
 - [X] delete_certificate
 - [X] describe_certificate
 - [X] export_certificate
-- [ ] get_account_configuration
+- [X] get_account_configuration
 - [X] get_certificate
 - [X] import_certificate
 - [X] list_certificates
 - [ ] list_tags_for_certificate
-- [ ] put_account_configuration
+- [X] put_account_configuration
 - [X] remove_tags_from_certificate
 - [ ] renew_certificate
 - [X] request_certificate
@@ -22,26 +22,26 @@
 
 ## acm-pca
 <details>
-<summary>56% implemented</summary>
+<summary>69% implemented</summary>
 
 - [X] create_certificate_authority
 - [ ] create_certificate_authority_audit_report
 - [ ] create_permission
 - [X] delete_certificate_authority
 - [ ] delete_permission
-- [ ] delete_policy
+- [X] delete_policy
 - [X] describe_certificate_authority
 - [ ] describe_certificate_authority_audit_report
 - [X] get_certificate
 - [X] get_certificate_authority_certificate
 - [X] get_certificate_authority_csr
-- [ ] get_policy
+- [X] get_policy
 - [X] import_certificate_authority_certificate
 - [X] issue_certificate
 - [ ] list_certificate_authorities
 - [ ] list_permissions
 - [X] list_tags
-- [ ] put_policy
+- [X] put_policy
 - [ ] restore_certificate_authority
 - [X] revoke_certificate
 - [X] tag_certificate_authority
@@ -51,7 +51,7 @@
 
 ## amp
 <details>
-<summary>62% implemented</summary>
+<summary>58% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
@@ -68,6 +68,7 @@
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
+- [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
 - [X] list_rule_groups_namespaces
 - [ ] list_scrapers
@@ -80,6 +81,7 @@
 - [X] update_logging_configuration
 - [ ] update_scraper
 - [X] update_workspace_alias
+- [ ] update_workspace_configuration
 </details>
 
 ## apigateway
@@ -1356,15 +1358,17 @@
 
 ## codebuild
 <details>
-<summary>18% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] batch_delete_builds
 - [ ] batch_get_build_batches
 - [X] batch_get_builds
+- [ ] batch_get_command_executions
 - [ ] batch_get_fleets
 - [X] batch_get_projects
 - [ ] batch_get_report_groups
 - [ ] batch_get_reports
+- [ ] batch_get_sandboxes
 - [ ] create_fleet
 - [X] create_project
 - [ ] create_report_group
@@ -1387,12 +1391,15 @@
 - [ ] list_build_batches_for_project
 - [X] list_builds
 - [X] list_builds_for_project
+- [ ] list_command_executions_for_sandbox
 - [ ] list_curated_environment_images
 - [ ] list_fleets
 - [X] list_projects
 - [ ] list_report_groups
 - [ ] list_reports
 - [ ] list_reports_for_report_group
+- [ ] list_sandboxes
+- [ ] list_sandboxes_for_project
 - [ ] list_shared_projects
 - [ ] list_shared_report_groups
 - [ ] list_source_credentials
@@ -1401,8 +1408,12 @@
 - [ ] retry_build_batch
 - [X] start_build
 - [ ] start_build_batch
+- [ ] start_command_execution
+- [ ] start_sandbox
+- [ ] start_sandbox_connection
 - [X] stop_build
 - [ ] stop_build_batch
+- [ ] stop_sandbox
 - [ ] update_fleet
 - [ ] update_project
 - [ ] update_project_visibility
@@ -1493,6 +1504,59 @@
 - [ ] update_repository_description
 - [ ] update_repository_encryption_key
 - [ ] update_repository_name
+</details>
+
+## codedeploy
+<details>
+<summary>23% implemented</summary>
+
+- [ ] add_tags_to_on_premises_instances
+- [ ] batch_get_application_revisions
+- [X] batch_get_applications
+- [ ] batch_get_deployment_groups
+- [ ] batch_get_deployment_instances
+- [ ] batch_get_deployment_targets
+- [X] batch_get_deployments
+- [ ] batch_get_on_premises_instances
+- [ ] continue_deployment
+- [X] create_application
+- [X] create_deployment
+- [ ] create_deployment_config
+- [X] create_deployment_group
+- [ ] delete_application
+- [ ] delete_deployment_config
+- [ ] delete_deployment_group
+- [ ] delete_git_hub_account_token
+- [ ] delete_resources_by_external_id
+- [ ] deregister_on_premises_instance
+- [X] get_application
+- [ ] get_application_revision
+- [X] get_deployment
+- [ ] get_deployment_config
+- [X] get_deployment_group
+- [ ] get_deployment_instance
+- [ ] get_deployment_target
+- [ ] get_on_premises_instance
+- [ ] list_application_revisions
+- [X] list_applications
+- [ ] list_deployment_configs
+- [X] list_deployment_groups
+- [ ] list_deployment_instances
+- [ ] list_deployment_targets
+- [X] list_deployments
+- [ ] list_git_hub_account_token_names
+- [ ] list_on_premises_instances
+- [ ] list_tags_for_resource
+- [ ] put_lifecycle_event_hook_execution_status
+- [ ] register_application_revision
+- [ ] register_on_premises_instance
+- [ ] remove_tags_from_on_premises_instances
+- [ ] skip_wait_time_for_instance_termination
+- [ ] stop_deployment
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_application
+- [ ] update_deployment_group
 </details>
 
 ## codepipeline
@@ -2131,7 +2195,7 @@
 
 ## dms
 <details>
-<summary>4% implemented</summary>
+<summary>6% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2145,7 +2209,7 @@
 - [ ] create_instance_profile
 - [ ] create_migration_project
 - [ ] create_replication_config
-- [ ] create_replication_instance
+- [X] create_replication_instance
 - [ ] create_replication_subnet_group
 - [X] create_replication_task
 - [ ] delete_certificate
@@ -2197,7 +2261,7 @@
 - [ ] describe_refresh_schemas_status
 - [ ] describe_replication_configs
 - [ ] describe_replication_instance_task_logs
-- [ ] describe_replication_instances
+- [X] describe_replication_instances
 - [ ] describe_replication_subnet_groups
 - [ ] describe_replication_table_statistics
 - [ ] describe_replication_task_assessment_results
@@ -2325,13 +2389,14 @@
 
 ## dsql
 <details>
-<summary>20% implemented</summary>
+<summary>18% implemented</summary>
 
 - [X] create_cluster
 - [ ] create_multi_region_clusters
 - [ ] delete_cluster
 - [ ] delete_multi_region_clusters
 - [X] get_cluster
+- [ ] get_vpc_endpoint_service_name
 - [ ] list_clusters
 - [ ] list_tags_for_resource
 - [ ] tag_resource
@@ -2497,7 +2562,7 @@
 - [ ] create_coip_cidr
 - [ ] create_coip_pool
 - [X] create_customer_gateway
-- [ ] create_default_subnet
+- [X] create_default_subnet
 - [X] create_default_vpc
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
@@ -3994,7 +4059,7 @@
 
 ## glue
 <details>
-<summary>29% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -4119,7 +4184,7 @@
 - [X] get_job
 - [ ] get_job_bookmark
 - [X] get_job_run
-- [ ] get_job_runs
+- [X] get_job_runs
 - [X] get_jobs
 - [ ] get_mapping
 - [ ] get_ml_task_run
@@ -5721,6 +5786,7 @@
 - [ ] create_node
 - [ ] create_node_registration_script
 - [ ] create_partner_input
+- [ ] create_sdi_source
 - [ ] create_signal_map
 - [ ] create_tags
 - [X] delete_channel
@@ -5738,6 +5804,7 @@
 - [ ] delete_node
 - [ ] delete_reservation
 - [ ] delete_schedule
+- [ ] delete_sdi_source
 - [ ] delete_signal_map
 - [ ] delete_tags
 - [ ] describe_account_configuration
@@ -5755,6 +5822,7 @@
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] describe_schedule
+- [ ] describe_sdi_source
 - [ ] describe_thumbnails
 - [ ] get_cloud_watch_alarm_template
 - [ ] get_cloud_watch_alarm_template_group
@@ -5778,6 +5846,7 @@
 - [ ] list_nodes
 - [ ] list_offerings
 - [ ] list_reservations
+- [ ] list_sdi_sources
 - [ ] list_signal_maps
 - [ ] list_tags_for_resource
 - [ ] list_versions
@@ -5814,6 +5883,7 @@
 - [ ] update_node
 - [ ] update_node_state
 - [ ] update_reservation
+- [ ] update_sdi_source
 </details>
 
 ## mediapackage
@@ -7679,18 +7749,18 @@
 
 ## route53resolver
 <details>
-<summary>27% implemented</summary>
+<summary>32% implemented</summary>
 
 - [ ] associate_firewall_rule_group
 - [X] associate_resolver_endpoint_ip_address
-- [ ] associate_resolver_query_log_config
+- [X] associate_resolver_query_log_config
 - [X] associate_resolver_rule
 - [ ] create_firewall_domain_list
 - [ ] create_firewall_rule
 - [ ] create_firewall_rule_group
 - [ ] create_outpost_resolver
 - [X] create_resolver_endpoint
-- [ ] create_resolver_query_log_config
+- [X] create_resolver_query_log_config
 - [X] create_resolver_rule
 - [ ] delete_firewall_domain_list
 - [ ] delete_firewall_rule
@@ -7712,7 +7782,7 @@
 - [ ] get_resolver_config
 - [ ] get_resolver_dnssec_config
 - [X] get_resolver_endpoint
-- [ ] get_resolver_query_log_config
+- [X] get_resolver_query_log_config
 - [ ] get_resolver_query_log_config_association
 - [ ] get_resolver_query_log_config_policy
 - [X] get_resolver_rule
@@ -7966,7 +8036,7 @@
 
 ## s3tables
 <details>
-<summary>53% implemented</summary>
+<summary>46% implemented</summary>
 
 - [X] create_namespace
 - [X] create_table
@@ -7974,13 +8044,16 @@
 - [X] delete_namespace
 - [X] delete_table
 - [X] delete_table_bucket
+- [ ] delete_table_bucket_encryption
 - [ ] delete_table_bucket_policy
 - [ ] delete_table_policy
 - [X] get_namespace
 - [X] get_table
 - [X] get_table_bucket
+- [ ] get_table_bucket_encryption
 - [ ] get_table_bucket_maintenance_configuration
 - [ ] get_table_bucket_policy
+- [ ] get_table_encryption
 - [ ] get_table_maintenance_configuration
 - [ ] get_table_maintenance_job_status
 - [ ] get_table_metadata_location
@@ -7988,6 +8061,7 @@
 - [X] list_namespaces
 - [X] list_table_buckets
 - [X] list_tables
+- [ ] put_table_bucket_encryption
 - [ ] put_table_bucket_maintenance_configuration
 - [ ] put_table_bucket_policy
 - [ ] put_table_maintenance_configuration
@@ -8684,7 +8758,7 @@
 
 ## ses
 <details>
-<summary>43% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -8712,7 +8786,7 @@
 - [X] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
-- [ ] get_identity_dkim_attributes
+- [X] get_identity_dkim_attributes
 - [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
@@ -8747,7 +8821,7 @@
 - [ ] test_render_template
 - [ ] update_account_sending_enabled
 - [ ] update_configuration_set_event_destination
-- [ ] update_configuration_set_reputation_metrics_enabled
+- [X] update_configuration_set_reputation_metrics_enabled
 - [ ] update_configuration_set_sending_enabled
 - [ ] update_configuration_set_tracking_options
 - [ ] update_custom_verification_email_template
@@ -8761,7 +8835,7 @@
 
 ## sesv2
 <details>
-<summary>20% implemented</summary>
+<summary>24% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -8773,7 +8847,7 @@
 - [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
 - [X] create_email_identity
-- [ ] create_email_identity_policy
+- [X] create_email_identity_policy
 - [ ] create_email_template
 - [ ] create_export_job
 - [ ] create_import_job
@@ -8785,7 +8859,7 @@
 - [ ] delete_custom_verification_email_template
 - [X] delete_dedicated_ip_pool
 - [ ] delete_email_identity
-- [ ] delete_email_identity_policy
+- [X] delete_email_identity_policy
 - [ ] delete_email_template
 - [ ] delete_multi_region_endpoint
 - [ ] delete_suppressed_destination
@@ -8804,7 +8878,7 @@
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
 - [X] get_email_identity
-- [ ] get_email_identity_policies
+- [X] get_email_identity_policies
 - [ ] get_email_template
 - [ ] get_export_job
 - [ ] get_import_job
@@ -8858,7 +8932,7 @@
 - [ ] update_contact
 - [ ] update_contact_list
 - [ ] update_custom_verification_email_template
-- [ ] update_email_identity_policy
+- [X] update_email_identity_policy
 - [ ] update_email_template
 </details>
 
@@ -9362,7 +9436,7 @@
 
 ## textract
 <details>
-<summary>12% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] analyze_document
 - [ ] analyze_expense
@@ -9374,7 +9448,7 @@
 - [X] detect_document_text
 - [ ] get_adapter
 - [ ] get_adapter_version
-- [ ] get_document_analysis
+- [X] get_document_analysis
 - [X] get_document_text_detection
 - [ ] get_expense_analysis
 - [ ] get_lending_analysis
@@ -9382,7 +9456,7 @@
 - [ ] list_adapter_versions
 - [ ] list_adapters
 - [ ] list_tags_for_resource
-- [ ] start_document_analysis
+- [X] start_document_analysis
 - [X] start_document_text_detection
 - [ ] start_expense_analysis
 - [ ] start_lending_analysis
@@ -9566,6 +9640,8 @@
 - [ ] send_workflow_step_state
 - [ ] start_directory_listing
 - [ ] start_file_transfer
+- [ ] start_remote_delete
+- [ ] start_remote_move
 - [ ] start_server
 - [ ] stop_server
 - [ ] tag_resource
@@ -9586,13 +9662,13 @@
 
 ## wafv2
 <details>
-<summary>46% implemented</summary>
+<summary>55% implemented</summary>
 
 - [X] associate_web_acl
 - [ ] check_capacity
 - [ ] create_api_key
 - [X] create_ip_set
-- [ ] create_regex_pattern_set
+- [X] create_regex_pattern_set
 - [X] create_rule_group
 - [X] create_web_acl
 - [ ] delete_api_key
@@ -9600,7 +9676,7 @@
 - [X] delete_ip_set
 - [X] delete_logging_configuration
 - [ ] delete_permission_policy
-- [ ] delete_regex_pattern_set
+- [X] delete_regex_pattern_set
 - [X] delete_rule_group
 - [X] delete_web_acl
 - [ ] describe_all_managed_products
@@ -9615,7 +9691,7 @@
 - [ ] get_mobile_sdk_release
 - [ ] get_permission_policy
 - [ ] get_rate_based_statement_managed_keys
-- [ ] get_regex_pattern_set
+- [X] get_regex_pattern_set
 - [X] get_rule_group
 - [ ] get_sampled_requests
 - [X] get_web_acl
@@ -9627,7 +9703,7 @@
 - [X] list_logging_configurations
 - [ ] list_managed_rule_sets
 - [ ] list_mobile_sdk_releases
-- [ ] list_regex_pattern_sets
+- [X] list_regex_pattern_sets
 - [ ] list_resources_for_web_acl
 - [X] list_rule_groups
 - [X] list_tags_for_resource
@@ -9639,7 +9715,7 @@
 - [X] untag_resource
 - [X] update_ip_set
 - [ ] update_managed_rule_set_version_expiry_date
-- [ ] update_regex_pattern_set
+- [X] update_regex_pattern_set
 - [X] update_rule_group
 - [X] update_web_acl
 </details>
@@ -9867,7 +9943,6 @@
 - codeartifact
 - codecatalyst
 - codeconnections
-- codedeploy
 - codeguru-reviewer
 - codeguru-security
 - codeguruprofiler

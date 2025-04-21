@@ -40,8 +40,6 @@ from moto.s3.exceptions import (
     BucketNeedsToBeNew,
     CopyObjectMustChangeSomething,
     CrossLocationLoggingProhibitted,
-    DaysMustNotProvidedForSelectRequest,
-    DaysMustProvidedExceptForSelectRequest,
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
@@ -3124,12 +3122,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key = self.get_object(bucket_name, key_name)
         if not key:
             raise MissingKey
-
-        if days is None and type_ is None:
-            raise DaysMustProvidedExceptForSelectRequest()
-
-        if days and type_:
-            raise DaysMustNotProvidedForSelectRequest()
 
         if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
             raise InvalidObjectState(storage_class=key.storage_class)

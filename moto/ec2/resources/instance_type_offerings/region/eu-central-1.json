@@ -1128,6 +1128,14 @@
   "Location": "eu-central-1"
  },
  {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "eu-central-1"
+ },
+ {
   "InstanceType": "i7ie.xlarge",
   "Location": "eu-central-1"
  },

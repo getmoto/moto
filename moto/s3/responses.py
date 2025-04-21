@@ -3536,6 +3536,9 @@ S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </Filter>
   <Destination>
     <Bucket>{{ rule["Destination"]["Bucket"] }}</Bucket>
+    {% if rule["Destination"].get("Account") %}
+    <Account>{{ rule["Destination"]["Account"] }}</Account>
+    {% endif %}
   </Destination>
 </Rule>
 {% endfor %}
