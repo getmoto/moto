@@ -1070,6 +1070,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
+        self.inventory_configs: Dict[str, FakeBucketInventoryConfiguration] = {}
         s3_backends.bucket_accounts[name] = (self.partition, account_id)
 
     @property
@@ -3148,8 +3149,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         pass
 
     def put_bucket_inventory_configuration(
-        self, bucket: str, inventory_configuration: Dict[str, Any]
+        self, bucket_name: str, inventory_configuration: Dict[str, Any]
     ) -> None:
+        bucket = self.get_bucket(bucket_name)
         inv_config = FakeBucketInventoryConfiguration(
             id=inventory_configuration["Id"],
             destination=inventory_configuration["Destination"],
@@ -3159,16 +3161,24 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             optional_fields=inventory_configuration.get("OptionalFields"),
         )
 
-        self.inventory_configs[inv_config.id] = inv_config
+        bucket.inventory_configs[inv_config.id] = inv_config
         return
 
     def get_bucket_inventory_configuration(
-        self, bucket: str, id: str, expected_bucket_owner: Optional[str] = None
+        self, bucket_name: str, id: str, expected_bucket_owner: Optional[str] = None
     ) -> FakeBucketInventoryConfiguration:
-        inv_config = self.inventory_configs.get(id)
-        if inv_config is None:
-            raise MissingInventoryConfig()
-        return inv_config
+        bucket = self.get_bucket(bucket_name)
+
+        if id in bucket.inventory_configs:
+            return bucket.inventory_configs[id]
+
+        raise MissingInventoryConfig()
+
+    def list_bucket_inventory_configurations(
+        self, bucket_name: str
+    ) -> List[FakeBucketInventoryConfiguration]:
+        bucket = self.get_bucket(bucket_name)
+        return list(bucket.inventory_configs.values())
 
 
 class S3BackendDict(BackendDict[S3Backend]):
