@@ -4,9 +4,6 @@ import boto3
 
 from moto import mock_aws
 
-# See our Development Tips on writing tests for hints on how to write good tests:
-# http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
-
 
 @mock_aws
 def test_create_firewall():
@@ -17,22 +14,79 @@ def test_create_firewall():
     )["Firewall"]
 
     assert firewall["FirewallName"] == "test-firewall"
+    assert "FirewallArn" in firewall
 
 
 @mock_aws
 def test_describe_logging_configuration():
     client = boto3.client("network-firewall", region_name="eu-west-1")
-    resp = client.describe_logging_configuration()
+    firewall = client.create_firewall(
+        FirewallName="test-firewall",
+        FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+    )["Firewall"]
 
-    raise Exception("NotYetImplemented")
+    logging_config = {
+        "LogDestinationConfigs": [
+            {
+                "LogDestinationType": "S3",
+                "LogDestination": {
+                    "bucketName": "DOC-EXAMPLE-BUCKET",
+                    "prefix": "alerts",
+                },
+                "LogType": "FLOW",
+            },
+            {
+                "LogDestinationType": "CloudWatchLogs",
+                "LogDestination": {"logGroup": "alert-log-group"},
+                "LogType": "ALERT",
+            },
+        ]
+    }
+
+    # Create a logging configuration
+    client.update_logging_configuration(
+        FirewallArn=firewall["FirewallArn"], LoggingConfiguration=logging_config
+    )
+
+    # Describe the logging configuration
+    resp = client.describe_logging_configuration(FirewallArn=firewall["FirewallArn"])
+    assert resp["FirewallArn"] == firewall["FirewallArn"]
+    assert len(resp["LoggingConfiguration"]["LogDestinationConfigs"]) == 2
+    log_dest_configs = resp["LoggingConfiguration"]["LogDestinationConfigs"]
+    assert log_dest_configs[0]["LogDestinationType"] == "S3"
+    assert log_dest_configs[0]["LogType"] == "FLOW"
+    assert log_dest_configs[1]["LogDestinationType"] == "CloudWatchLogs"
+    assert log_dest_configs[1]["LogType"] == "ALERT"
 
 
 @mock_aws
 def test_update_logging_configuration():
     client = boto3.client("network-firewall", region_name="ap-southeast-1")
-    resp = client.update_logging_configuration()
+    firewall = client.create_firewall(
+        FirewallName="test-firewall",
+        FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+    )["Firewall"]
 
-    raise Exception("NotYetImplemented")
+    logging_config = {
+        "LogDestinationConfigs": [
+            {
+                "LogDestinationType": "S3",
+                "LogDestination": {
+                    "bucketName": "DOC-EXAMPLE-BUCKET",
+                    "prefix": "alerts",
+                },
+                "LogType": "FLOW",
+            }
+        ]
+    }
+
+    resp = client.update_logging_configuration(
+        FirewallArn=firewall["FirewallArn"], LoggingConfiguration=logging_config
+    )
+    assert resp["FirewallArn"] == firewall["FirewallArn"]
+    assert resp["FirewallName"] == "test-firewall"
+    assert len(resp["LoggingConfiguration"]["LogDestinationConfigs"]) == 1
+    assert resp["LoggingConfiguration"] == logging_config
 
 
 @mock_aws
@@ -60,6 +114,29 @@ def test_list_firewalls():
 @mock_aws
 def test_describe_firewall():
     client = boto3.client("network-firewall", region_name="ap-southeast-1")
-    resp = client.describe_firewall()
+    firewall = client.create_firewall(
+        FirewallName="test-firewall",
+        FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+        VpcId="vpc-12345678",
+        SubnetMappings=[{"SubnetId": "subnet-12345678"}],
+        DeleteProtection=False,
+        SubnetChangeProtection=False,
+        FirewallPolicyChangeProtection=False,
+        Description="Test firewall",
+        Tags=[{"Key": "Name", "Value": "test-firewall"}],
+    )["Firewall"]
 
-    raise Exception("NotYetImplemented")
+    # Describe the firewall using the ARN
+    resp = client.describe_firewall(FirewallArn=firewall["FirewallArn"])
+    assert resp["Firewall"]["FirewallName"] == "test-firewall"
+    assert resp["Firewall"]["VpcId"] == "vpc-12345678"
+    assert resp["Firewall"]["SubnetMappings"] == [{"SubnetId": "subnet-12345678"}]
+    assert resp["Firewall"]["DeleteProtection"] is False
+    assert resp["Firewall"]["SubnetChangeProtection"] is False
+    assert resp["Firewall"]["FirewallPolicyChangeProtection"] is False
+    assert resp["Firewall"]["Description"] == "Test firewall"
+    assert resp["Firewall"]["Tags"] == [{"Key": "Name", "Value": "test-firewall"}]
+
+    # Describe the firewall using the name
+    resp_name = client.describe_firewall(FirewallName="test-firewall")
+    assert resp_name["Firewall"]["FirewallName"] == "test-firewall"
