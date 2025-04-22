@@ -11,10 +11,15 @@ def test_create_firewall():
     firewall = client.create_firewall(
         FirewallName="test-firewall",
         FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+        DeleteProtection=False,
+        SubnetChangeProtection=False,
     )["Firewall"]
 
     assert firewall["FirewallName"] == "test-firewall"
     assert "FirewallArn" in firewall
+    assert firewall["DeleteProtection"] is False
+    assert firewall["SubnetChangeProtection"] is False
+    assert firewall["FirewallPolicyChangeProtection"] is True
 
 
 @mock_aws

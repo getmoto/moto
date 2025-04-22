@@ -39,9 +39,17 @@ class NetworkFirewallModel(BaseModel):
         self.firewall_policy_arn = firewall_policy_arn
         self.vpc_id = vpc_id
         self.subnet_mappings = subnet_mappings
-        self.delete_protection: bool = delete_protection
-        self.subnet_change_protection: bool = subnet_change_protection
-        self.firewall_policy_change_protection: bool = firewall_policy_change_protection
+        self.delete_protection: bool = (
+            delete_protection if delete_protection is not None else True
+        )
+        self.subnet_change_protection: bool = (
+            subnet_change_protection if subnet_change_protection is not None else True
+        )
+        self.firewall_policy_change_protection: bool = (
+            firewall_policy_change_protection
+            if firewall_policy_change_protection is not None
+            else True
+        )
         self.description = description
         self.tags = tags
         self.encryption_configuration = encryption_configuration
