@@ -1,6 +1,6 @@
 """NetworkFirewallBackend class with methods for supported APIs."""
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -21,19 +21,19 @@ PAGINATION_MODEL = {
 class NetworkFirewallModel(BaseModel):
     def __init__(
         self,
-        account_id,
-        region_name,
-        firewall_name,
-        firewall_policy_arn,
-        vpc_id,
-        subnet_mappings,
+        account_id: str,
+        region_name: str,
+        firewall_name: str,
+        firewall_policy_arn: str,
+        vpc_id: str,
+        subnet_mappings: List[str],
         delete_protection: bool,
         subnet_change_protection: bool,
         firewall_policy_change_protection: bool,
         description: str,
-        tags,
-        encryption_configuration,
-        enabled_analysis_types,
+        tags: List[Dict[str, str]],
+        encryption_configuration: Dict[str, str],
+        enabled_analysis_types: List[str],
     ):
         self.firewall_name = firewall_name
         self.firewall_policy_arn = firewall_policy_arn
@@ -55,7 +55,7 @@ class NetworkFirewallModel(BaseModel):
         }
         self.logging_configs: List[Dict[str, str]] = []
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "FirewallName": self.firewall_name,
             "FirewallArn": self.arn,
@@ -75,7 +75,7 @@ class NetworkFirewallModel(BaseModel):
 class NetworkFirewallBackend(BaseBackend):
     """Implementation of NetworkFirewall APIs."""
 
-    def __init__(self, region_name, account_id) -> None:
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.firewalls: Dict[str, NetworkFirewallModel] = {}
         self.tagger = TaggingService()
@@ -86,13 +86,13 @@ class NetworkFirewallBackend(BaseBackend):
         firewall_policy_arn: str,
         vpc_id: str,
         subnet_mappings: List[str],
-        delete_protection,
-        subnet_change_protection,
-        firewall_policy_change_protection,
-        description,
-        tags,
-        encryption_configuration,
-        enabled_analysis_types,
+        delete_protection: bool,
+        subnet_change_protection: bool,
+        firewall_policy_change_protection: bool,
+        description: str,
+        tags: List[Dict[str, str]],
+        encryption_configuration: Dict[str, str],
+        enabled_analysis_types: List[str],
     ) -> NetworkFirewallModel:
         firewall = NetworkFirewallModel(
             self.account_id,
@@ -125,7 +125,7 @@ class NetworkFirewallBackend(BaseBackend):
         for firewall in self.firewalls.values():
             if firewall.firewall_name == firewall_name:
                 return firewall
-        raise ResourceNotFound(firewall_name)
+        raise ResourceNotFound("NetworkFirewall", str(firewall_arn or firewall_name))
 
     def describe_logging_configuration(
         self, firewall_arn: str, firewall_name: str
@@ -137,7 +137,7 @@ class NetworkFirewallBackend(BaseBackend):
         self,
         firewall_arn: str,
         firewall_name: str,
-        logging_configuration: Dict[str, str],
+        logging_configuration: List[Dict[str, str]],
     ) -> NetworkFirewallModel:
         firewall: NetworkFirewallModel = self._get_firewall(firewall_arn, firewall_name)
         firewall.logging_configs = logging_configuration
