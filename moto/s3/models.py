@@ -452,10 +452,14 @@ class FakeMultipart(BaseModel):
         self, body: Iterator[Tuple[int, str]]
     ) -> Tuple[bytes, str, Optional[str]]:
         checksum_algo = self.metadata.get("x-amz-checksum-algorithm")
+        checksum_type = self.metadata.get("x-amz-checksum-type")
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
         checksum = bytearray()
+
+        if not checksum_type:
+            checksum_type = "FULL_OBJECT" if checksum_algo == "CRC64NVME" else "COMPOSITE"
 
         last = None
         count = 0
@@ -484,10 +488,13 @@ class FakeMultipart(BaseModel):
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
         if checksum_algo:
-            encoded_checksum = compute_checksum(checksum, checksum_algo).decode("utf-8")
+            if checksum_type == "COMPOSITE":
+                checksum_details = (checksum_type, compute_checksum(checksum, checksum_algo).decode("utf-8"), count)
+            else:
+                checksum_details = (checksum_type, compute_checksum(total, checksum_algo).decode("utf-8"), 1)
         else:
-            encoded_checksum = None
-        return total, f"{full_etag.hexdigest()}-{count}", encoded_checksum, count
+            checksum_details = None
+        return total, f"{full_etag.hexdigest()}-{count}", checksum_details
 
     def set_part(self, part_id: int, value: bytes) -> FakeKey:
         if part_id < 1:
@@ -2600,7 +2607,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Optional[FakeKey]:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
-        value, etag, checksum, parts = multipart.complete(body)
+        value, etag, checksum_details = multipart.complete(body)
         if value is not None:
             del bucket.multiparts[multipart_id]
 
@@ -2619,11 +2626,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
         key.set_metadata(multipart.metadata)
 
-        if checksum:
+        if checksum_details:
             key.checksum_algorithm = multipart.metadata.get("x-amz-checksum-algorithm")
-            key.checksum_value = checksum
-            key.checksum_type = 'COMPOSITE'
-            key.checksum_parts = parts
+            key.checksum_type = checksum_details[0]
+            key.checksum_value = checksum_details[1]
+            key.checksum_parts = checksum_details[2]
 
         self.put_object_tagging(key, multipart.tags)
         self.put_object_acl(

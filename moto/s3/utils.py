@@ -7,6 +7,7 @@ import sys
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from urllib.parse import urlparse
 
+from awscrt import checksums as crt_checksums
 from requests.structures import CaseInsensitiveDict
 
 from moto.settings import S3_IGNORE_SUBDOMAIN_BUCKETNAME
@@ -25,6 +26,7 @@ user_settable_fields = {
     "content-disposition",
     "x-robots-tag",
     "x-amz-checksum-algorithm",
+    "x-amz-checksum-type",
     "x-amz-content-sha256",
     "x-amz-content-crc32",
     "x-amz-content-crc32c",
@@ -208,6 +210,8 @@ def compute_checksum(body: bytes, algorithm: str, encode_base64: bool = True) ->
             hashed_body = binascii.crc32(body).to_bytes(4, "big")
     elif algorithm == "CRC32":
         hashed_body = binascii.crc32(body).to_bytes(4, "big")
+    elif algorithm == "CRC64NVME":
+        hashed_body = crt_checksums.crc64nvme(body).to_bytes(8, "big")
     else:
         hashed_body = _hash(hashlib.sha256, (body,))
     if encode_base64:

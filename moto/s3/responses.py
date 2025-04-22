@@ -3446,6 +3446,7 @@ S3_OBJECT_ATTRIBUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     {% if etag is not none %}<ETag>{{ etag }}</ETag>{% endif %}
     {% if checksum is not none %}
       <Checksum>
+      {% if "CRC64NVME" in checksum %}<ChecksumCRC64NVME>{{ checksum["CRC64NVME"] }}</ChecksumCRC64NVME>{% endif %}
       {% if "CRC32" in checksum %}<ChecksumCRC32>{{ checksum["CRC32"] }}</ChecksumCRC32>{% endif %}
       {% if "CRC32C" in checksum %}<ChecksumCRC32C>{{ checksum["CRC32C"] }}</ChecksumCRC32C>{% endif %}
       {% if "SHA1" in checksum %}<ChecksumSHA1>{{ checksum["SHA1"] }}</ChecksumSHA1>{% endif %}
