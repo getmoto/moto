@@ -1166,3 +1166,60 @@ def test_perform_role_based_action() -> None:
         attached_policy_name
         in iam_client.list_role_policies(RoleName=role_name)["PolicyNames"]
     )
+
+
+@set_initial_no_auth_action_count(4)
+@mock_aws
+def test_sts_assume_role_with_external_id_unsupported_operation_should_supress_error() -> (
+    None
+):
+    user_name = "test-user"
+    role_name = "test-role"
+
+    user_policy_doc = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Resource": f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+            }
+        ],
+    }
+
+    user_access_keys = create_user_with_access_key_and_inline_policy(
+        user_name, user_policy_doc
+    )
+
+    external_id = "test-external-id"
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sts:AssumeRole",
+                "Principal": {
+                    "AWS": f"arn:aws:iam::{ACCOUNT_ID}:user/{user_name}",
+                },
+                "Condition": {
+                    "UnsupportedOperation": {
+                        "sts:ExternalId": external_id,
+                    },
+                },
+            },
+        ],
+    }
+    create_role(role_name, trust_policy_document)
+
+    client = boto3.client(
+        "sts",
+        region_name="us-east-1",
+        aws_access_key_id=user_access_keys["AccessKeyId"],
+        aws_secret_access_key=user_access_keys["SecretAccessKey"],
+    )
+    # Not raising means success
+    client.assume_role(
+        RoleArn=f"arn:aws:iam::{ACCOUNT_ID}:role/{role_name}",
+        RoleSessionName="test-session",
+        ExternalId=external_id,
+    )
