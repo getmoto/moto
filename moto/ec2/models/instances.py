@@ -854,18 +854,20 @@ class InstanceBackend:
         :return: A list with instance objects
         """
         result = []
-
+        all_instance_ids = {}
         for reservation in self.all_reservations():
             for instance in reservation.instances:
-                if instance.id in instance_ids:
-                    if instance.applies(filters):
-                        result.append(instance)
-
-        if instance_ids and len(instance_ids) > len(result):
-            result_ids = [i.id for i in result]
-            missing_instance_ids = [i for i in instance_ids if i not in result_ids]
-            raise InvalidInstanceIdError(missing_instance_ids)
-
+                all_instance_ids[instance.id] = instance
+        not_found_instance_ids = []
+        for instance_id in instance_ids:
+            if instance_id not in all_instance_ids:
+                not_found_instance_ids.append(instance_id)
+                continue
+            instance = all_instance_ids[instance_id]
+            if instance.applies(filters):
+                result.append(instance)
+        if not_found_instance_ids:
+            raise InvalidInstanceIdError(not_found_instance_ids)
         return result
 
     def get_instance_by_id(self, instance_id: str) -> Optional[Instance]:
