@@ -917,7 +917,10 @@ class InstanceBackend:
         self, instance_ids: List[str], include_all_instances: bool, filters: Any
     ) -> List[Instance]:
         if instance_ids:
-            return self.get_multi_instances_by_id(instance_ids, filters)
+            instances = self.get_multi_instances_by_id(instance_ids, filters)
+            if include_all_instances:
+                return instances
+            return [instance for instance in instances if instance.is_running()]
         elif include_all_instances:
             return self.all_instances(filters)
         else:
