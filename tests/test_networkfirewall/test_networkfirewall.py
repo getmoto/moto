@@ -42,11 +42,19 @@ def test_list_firewalls():
         client.create_firewall(
             FirewallName=f"test-firewall-{i}",
             FirewallPolicyArn="arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/test-policy",
+            VpcId=f"vpc-1234567{i}",
         )
-    resp = client.list_firewalls()
 
+    # List all firewalls
+    resp = client.list_firewalls()
     assert len(resp["Firewalls"]) == 5
-    
+    assert resp["Firewalls"][0]["FirewallName"] == "test-firewall-0"
+    assert "FirewallArn" in resp["Firewalls"][0]
+
+    # List firewalls with a specific VPC ID
+    resp = client.list_firewalls(VpcIds=["vpc-12345671"])
+    assert len(resp["Firewalls"]) == 1
+    assert resp["Firewalls"][0]["FirewallName"] == "test-firewall-1"
 
 
 @mock_aws

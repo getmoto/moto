@@ -22,7 +22,7 @@ class NetworkFirewallResponse(BaseResponse):
         params = self._get_params()
         firewall_name = self._get_param("FirewallName")
         firewall_policy_arn = self._get_param("FirewallPolicyArn")
-        vpc_id = params.get("VpcId")
+        vpc_id = self._get_param("VpcId")
         subnet_mappings = params.get("SubnetMappings")
         delete_protection = params.get("DeleteProtection")
         subnet_change_protection = params.get("SubnetChangeProtection")
@@ -90,7 +90,7 @@ class NetworkFirewallResponse(BaseResponse):
     def list_firewalls(self):
         params = self._get_params()
         next_token = params.get("NextToken")
-        vpc_ids = params.get("VpcIds")
+        vpc_ids = self._get_param("VpcIds")
         max_results = params.get("MaxResults")
         firewalls, next_token = self.networkfirewall_backend.list_firewalls(
             next_token=next_token,

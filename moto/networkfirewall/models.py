@@ -1,6 +1,7 @@
 """NetworkFirewallBackend class with methods for supported APIs."""
 
 from typing import Dict, List
+
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.tagging_service import TaggingService
@@ -45,6 +46,7 @@ class NetworkFirewallModel(BaseModel):
     def to_dict(self):
         return {
             "FirewallName": self.firewall_name,
+            "FirewallArn": self.arn,
             "FirewallPolicyArn": self.firewall_policy_arn,
             "VpcId": self.vpc_id,
             "SubnetMappings": self.subnet_mappings,
@@ -61,9 +63,9 @@ class NetworkFirewallModel(BaseModel):
 class NetworkFirewallBackend(BaseBackend):
     """Implementation of NetworkFirewall APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name, account_id) -> None:
         super().__init__(region_name, account_id)
-        self.firewalls: Dict[str,NetworkFirewallModel] = {}
+        self.firewalls: Dict[str, NetworkFirewallModel] = {}
         self.tagger = TaggingService()
 
     def create_firewall(
@@ -112,8 +114,13 @@ class NetworkFirewallBackend(BaseBackend):
         # implement here
         return firewall_arn, firewall_name, logging_configuration
 
-    def list_firewalls(self, next_token, vpc_ids, max_results) -> List[NetworkFirewallModel]:
-        return self.firewalls.values(), next_token
+    def list_firewalls(
+        self, next_token, vpc_ids, max_results
+    ) -> List[NetworkFirewallModel]:
+        firewalls = self.firewalls.values()
+        if vpc_ids:
+            firewalls = [fw for fw in firewalls if fw.vpc_id in vpc_ids]
+        return firewalls, next_token
 
     def describe_firewall(self, firewall_name, firewall_arn):
         # implement here
