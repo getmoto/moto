@@ -261,7 +261,7 @@ class ConfigResponse(BaseResponse):
 
     def select_resource_config(self) -> str:
         params = self._get_params()
-        expression = params.get("Expression", "")  # Default to empty string if None
+        expression = params.get("Expression") 
         limit = params.get("Limit")
         next_token = params.get("NextToken")
         results, query_info, next_token = self.config_backend.select_resource_config(
