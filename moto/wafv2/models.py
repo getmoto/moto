@@ -19,7 +19,12 @@ from .exceptions import (
     WAFV2DuplicateItemException,
     WAFV2InsufficientInformationException,
 )
-from .utils import make_arn_for_ip_set, make_arn_for_rule_group, make_arn_for_wacl
+from .utils import (
+    make_arn_for_ip_set,
+    make_arn_for_regex_pattern_set,
+    make_arn_for_rule_group,
+    make_arn_for_wacl,
+)
 
 if TYPE_CHECKING:
     from moto.apigateway.models import Stage
@@ -40,6 +45,12 @@ PAGINATION_MODEL = {
         "unique_attribute": "arn",
     },
     "list_logging_configurations": {
+        "input_token": "next_marker",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_regex_pattern_sets": {
         "input_token": "next_marker",
         "limit_key": "limit",
         "limit_default": 100,
@@ -388,6 +399,61 @@ class FakeRuleGroup(BaseModel):
         }
 
 
+class FakeRegexPatternSet(BaseModel):
+    """
+    https://docs.aws.amazon.com/waf/latest/APIReference/API_RegexPatternSet.html
+    """
+
+    def __init__(
+        self,
+        name: str,
+        account: str,
+        id: str,
+        arn: str,
+        description: str,
+        regular_expressions: List[Dict[str, str]],
+        scope: str,
+    ):
+        self.name = name
+        self.account = account
+        self.id = id
+        self.arn = arn
+        self.description = description
+        self.regular_expressions = regular_expressions
+        self.scope = scope
+        self.lock_token = str(mock_random.uuid4())
+
+    def update(
+        self,
+        description: Optional[str],
+        regular_expressions: Optional[List[Dict[str, str]]],
+    ) -> None:
+        if description is not None:
+            self.description = description
+        if regular_expressions is not None:
+            self.regular_expressions = regular_expressions
+        self.lock_token = str(mock_random.uuid4())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Id": self.id,
+            "ARN": self.arn,
+            "Description": self.description,
+            "RegularExpressionList": self.regular_expressions,
+            "LockToken": self.lock_token,
+        }
+
+    def to_short_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Id": self.id,
+            "Description": self.description,
+            "ARN": self.arn,
+            "LockToken": self.lock_token,
+        }
+
+
 class WAFV2Backend(BaseBackend):
     """
     https://docs.aws.amazon.com/waf/latest/APIReference/API_Operations_AWS_WAFV2.html
@@ -399,6 +465,7 @@ class WAFV2Backend(BaseBackend):
         self.ip_sets: Dict[str, FakeIPSet] = OrderedDict()
         self.logging_configurations: Dict[str, FakeLoggingConfiguration] = OrderedDict()
         self.rule_groups: Dict[str, FakeRuleGroup] = OrderedDict()
+        self.regex_pattern_sets: Dict[str, FakeRegexPatternSet] = OrderedDict()
         self.tagging_service = TaggingService()
         # TODO: self.load_balancers = OrderedDict()
 
@@ -817,6 +884,114 @@ class WAFV2Backend(BaseBackend):
         if not (group := self.rule_groups.get(arn)):
             raise WAFNonexistentItemException()
         return group
+
+    def _is_duplicate_regex_pattern_set(self, name: str, scope: str) -> bool:
+        """Check if a regex pattern set with the same name exists in the same scope"""
+        return any(
+            pattern_set.name == name and pattern_set.scope == scope
+            for pattern_set in self.regex_pattern_sets.values()
+        )
+
+    def create_regex_pattern_set(
+        self,
+        name: str,
+        scope: str,
+        description: str,
+        regular_expressions: List[Dict[str, str]],
+        tags: List[Dict[str, str]],
+    ) -> FakeRegexPatternSet:
+        regex_pattern_set_id = self._generate_id()
+        arn = make_arn_for_regex_pattern_set(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=regex_pattern_set_id,
+            scope=scope,
+        )
+
+        if self._is_duplicate_regex_pattern_set(name, scope):
+            raise WAFV2DuplicateItemException()
+
+        new_regex_pattern_set = FakeRegexPatternSet(
+            name=name,
+            account=self.account_id,
+            id=regex_pattern_set_id,
+            arn=arn,
+            description=description,
+            regular_expressions=regular_expressions,
+            scope=scope,
+        )
+        self.regex_pattern_sets[arn] = new_regex_pattern_set
+        self.tag_resource(arn, tags)
+        return new_regex_pattern_set
+
+    def get_regex_pattern_set(
+        self,
+        name: str,
+        scope: str,
+        id: str,
+    ) -> FakeRegexPatternSet:
+        arn = make_arn_for_regex_pattern_set(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=id,
+            scope=scope,
+        )
+        if not (pattern_set := self.regex_pattern_sets.get(arn)):
+            raise WAFNonexistentItemException()
+        return pattern_set
+
+    def update_regex_pattern_set(
+        self,
+        name: str,
+        scope: str,
+        id: str,
+        description: Optional[str],
+        regular_expressions: Optional[List[Dict[str, str]]],
+        lock_token: str,
+    ) -> FakeRegexPatternSet:
+        arn = make_arn_for_regex_pattern_set(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=id,
+            scope=scope,
+        )
+        if not (pattern_set := self.regex_pattern_sets.get(arn)):
+            raise WAFNonexistentItemException()
+        if pattern_set.lock_token != lock_token:
+            raise WAFOptimisticLockException()
+        pattern_set.update(description, regular_expressions)
+        return pattern_set
+
+    def delete_regex_pattern_set(
+        self,
+        name: str,
+        scope: str,
+        id: str,
+        lock_token: str,
+    ) -> None:
+        arn = make_arn_for_regex_pattern_set(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            _id=id,
+            scope=scope,
+        )
+        if not (pattern_set := self.regex_pattern_sets.get(arn)):
+            raise WAFNonexistentItemException()
+        if pattern_set.lock_token != lock_token:
+            raise WAFOptimisticLockException()
+        self.regex_pattern_sets.pop(arn)
+
+    @paginate(PAGINATION_MODEL)
+    def list_regex_pattern_sets(self, scope: str) -> List[FakeRegexPatternSet]:
+        return [
+            pattern_set
+            for pattern_set in self.regex_pattern_sets.values()
+            if pattern_set.scope == scope
+        ]
 
 
 wafv2_backends = BackendDict(WAFV2Backend, "wafv2", additional_regions=PARTITION_NAMES)

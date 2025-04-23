@@ -20,6 +20,15 @@ def description_filter(secret: "FakeSecret", descriptions: List[str]) -> bool:
     )
 
 
+def owning_service_filter(secret: "FakeSecret", owning_services: List[str]) -> bool:
+    return _matcher(
+        owning_services,
+        [secret.owning_service] if secret.owning_service else [],
+        match_prefix=False,
+        case_sensitive=False,
+    )
+
+
 def tag_key(secret: "FakeSecret", tag_keys: List[str]) -> bool:
     if not secret.tags:
         return False

@@ -251,3 +251,31 @@ class AWSCertificateManagerResponse(BaseResponse):
                 PrivateKey=private_key,
             )
         )
+
+    def get_account_configuration(self) -> str:
+        config = self.acm_backend.get_account_configuration()
+        return json.dumps(config)
+
+    def put_account_configuration(self) -> str:
+        expiry_events = self._get_param("ExpiryEvents")
+        idempotency_token = self._get_param("IdempotencyToken")
+
+        if expiry_events is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (  # type: ignore
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
+
+        days_before_expiry = expiry_events.get("DaysBeforeExpiry")
+        if days_before_expiry is None:
+            msg = "DaysBeforeExpiry is required in ExpiryEvents."
+            return (  # type: ignore
+                json.dumps({"__type": "ValidationException", "message": msg}),
+                dict(status=400),
+            )
+
+        self.acm_backend.put_account_configuration(
+            days_before_expiry, idempotency_token
+        )
+        return "{}"

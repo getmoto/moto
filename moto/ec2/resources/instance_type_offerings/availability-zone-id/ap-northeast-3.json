@@ -244,6 +244,46 @@
   "Location": "apne3-az1"
  },
  {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
+  "Location": "apne3-az1"
+ },
+ {
   "InstanceType": "c7g.12xlarge",
   "Location": "apne3-az1"
  },
@@ -1173,6 +1213,46 @@
  },
  {
   "InstanceType": "c6i.xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
   "Location": "apne3-az2"
  },
  {
@@ -2141,6 +2221,46 @@
  },
  {
   "InstanceType": "c6i.xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.12xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.16xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.24xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.2xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.32xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.4xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.8xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.large",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.metal",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "c6in.xlarge",
   "Location": "apne3-az3"
  },
  {
