@@ -86,6 +86,8 @@ MAX_TAGS_IN_ARG = 50
 MANAGED_RULES = load_resource(__name__, "resources/aws_managed_rules.json")
 MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]
 
+DEFAULT_RETENTION_PERIOD = 30
+
 
 def datetime2int(date: datetime) -> int:
     return int(time.mktime(date.timetuple()))
@@ -911,9 +913,11 @@ class ConfigBackend(BaseBackend):
         self.config_aggregators: Dict[str, ConfigAggregator] = {}
         self.aggregation_authorizations: Dict[str, ConfigAggregationAuthorization] = {}
         self.organization_conformance_packs: Dict[str, OrganizationConformancePack] = {}
-        self.config_rules: Dict[str, ConfigRule] = {}
         self.config_schema: Optional[AWSServiceSpec] = None
-        self.retention_configuration: Optional[RetentionConfiguration] = None
+        self.query_results: Dict[str, List[Dict[str, Any]]] = {}
+        self.query_results_queue: List[List[Dict[str, Any]]] = []
+        default_retention = RetentionConfiguration(DEFAULT_RETENTION_PERIOD)
+        self.retention_configuration = default_retention
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
         if not self.config_schema:
@@ -2185,140 +2189,30 @@ class ConfigBackend(BaseBackend):
         next_token: Optional[str] = None,
     ) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, str]]], Optional[str]]:
         """
-        Executes a SQL query against resource configurations in AWS Config.
-
-        This is a simplified implementation that supports basic SELECT queries with WHERE clauses
-        for resource types that are supported in the RESOURCE_MAP.
-
-        Args:
-            expression: SQL SELECT statement
-            limit: Maximum number of results to return
-            next_token: Token for pagination
-
-        Returns:
-            Tuple of (results, query_info, next_token)
+        This method doesn't actually execute SQL but uses predefined results
+        that can be configured through the moto API. Modeled after AWS Athena's approach.
+        Also need to implement pagination.
         """
-        limit = limit or DEFAULT_PAGE_SIZE
-        if limit > DEFAULT_PAGE_SIZE:
-            raise InvalidLimitException(limit)
 
-        if not expression:
-            raise InvalidParameterValueException("Expression cannot be empty")
+        query_id = str(random.uuid4())
 
-        # Very basic SQL parsing - this is simplified and assumes well-formed queries
-        # A real implementation would use a proper SQL parser
-        expression = expression.strip()
+        self._store_predefined_query_results(query_id, expression)
 
-        # Basic validation that it's a SELECT statement
-        if not expression.upper().startswith("SELECT"):
-            raise ValidationException(
-                f"Invalid SQL expression: {expression}. Must be a SELECT statement."
-            )
+        if query_id in self.query_results:
+            results = self.query_results[query_id]
 
-        # Extract the resource type from the FROM clause
-        # This simple version assumes format: SELECT * FROM resourceType [WHERE conditions]
-        try:
-            from_parts = re.search(r"FROM\s+([^\s]+)", expression, re.IGNORECASE)
-            if not from_parts:
-                raise ValidationException(
-                    f"Invalid SQL expression: {expression}. Missing FROM clause."
-                )
+            columns = []
+            if results and isinstance(results[0], dict):
+                columns = [{"Name": key} for key in results[0].keys()]
 
-            resource_type = from_parts.group(1).strip()
+            query_info = {"SelectFields": columns}
+            return results, query_info, None
+        else:
+            return [], {"SelectFields": []}, None
 
-            # Check if this is a supported resource type
-            if resource_type not in RESOURCE_MAP:
-                raise ValidationException(
-                    f"Unsupported resource type in query: {resource_type}"
-                )
-
-            # Extract WHERE clause if present (very simplified parsing)
-            where_clause = None
-            where_match = re.search(
-                r"WHERE\s+(.*?)($|\s+ORDER\s+BY|\s+LIMIT)", expression, re.IGNORECASE
-            )
-            if where_match:
-                where_clause = where_match.group(1).strip()
-
-            # Extract fields from SELECT clause
-            select_fields = []
-            select_part = expression[: expression.upper().find("FROM")].strip()
-            select_part = select_part[len("SELECT") :].strip()
-
-            if select_part == "*":
-                select_fields = ["*"]  # All fields
-            else:
-                # Split fields by comma, handling quotes if needed (simplified)
-                select_fields = [f.strip() for f in select_part.split(",")]
-
-            # Get the configuration items
-            results = []
-            query_info = {"SelectFields": [{"Name": field} for field in select_fields]}
-
-            # Check if resource type exists in RESOURCE_MAP
-            if RESOURCE_MAP.get(resource_type):
-                # Is this a global resource type?
-                backend_query_region = self.region_name
-                if (
-                    RESOURCE_MAP[resource_type]
-                    .backends[self.account_id]
-                    .get(self.partition)
-                ):
-                    backend_region = self.partition
-                else:
-                    backend_region = self.region_name
-
-                # Get all resources of this type
-                resource_identifiers, new_token = RESOURCE_MAP[
-                    resource_type
-                ].list_config_service_resources(
-                    self.account_id,
-                    partition=self.partition,
-                    resource_ids=None,  # We'll filter based on the WHERE clause manually
-                    resource_name=None,
-                    limit=limit,
-                    next_token=next_token,
-                    backend_region=backend_query_region,
-                )
-
-                # Get the configuration items for each resource
-                for identifier in resource_identifiers:
-                    item = RESOURCE_MAP[resource_type].get_config_resource(
-                        self.account_id,
-                        partition=self.partition,
-                        resource_id=identifier["id"],
-                        backend_region=backend_query_region,
-                    )
-
-                    if item:
-                        # Apply very basic WHERE filtering (this is simplified)
-                        if where_clause:
-                            # This is a very simplistic approach and doesn't properly parse SQL conditions
-                            # Just checking if resource ID or name is mentioned in the WHERE clause
-                            if (
-                                "resourceId" in where_clause
-                                and identifier["id"] not in where_clause
-                            ):
-                                continue
-                            if (
-                                "resourceName" in where_clause
-                                and identifier.get("name", "") not in where_clause
-                            ):
-                                continue
-
-                        # Convert configuration to JSON string for the results
-                        # In a real implementation, would apply the SELECT fields here
-                        results.append(json.dumps(item))
-
-                        # Limit the results
-                        if len(results) >= limit:
-                            break
-
-            return results, query_info, new_token
-
-        except Exception as e:
-            # Convert any other exceptions to ValidationException
-            raise ValidationException(f"Error parsing SQL expression: {str(e)}")
+    def _store_predefined_query_results(self, query_id: str, expression: str) -> None:
+        if query_id not in self.query_results and self.query_results_queue:
+            self.query_results[query_id] = self.query_results_queue.pop(0)
 
     def put_resource_config(
         self,
@@ -2329,15 +2223,6 @@ class ConfigBackend(BaseBackend):
         configuration,
         tags,
     ):
-        """Records the configuration state for a custom resource.
-
-        This method stores the configuration for a custom resource type in AWS Config.
-        The resource_type must be registered with CloudFormation.
-
-        Note: In a real implementation, there would be validation against CloudFormation
-        schema registry, but for moto we'll just store the values.
-        """
-        # Check resource_type - AWS doesn't allow using certain organization names
         if resource_type.split("::")[0].lower() in [
             "amzn",
             "amazon",
@@ -2349,14 +2234,8 @@ class ConfigBackend(BaseBackend):
                 message=f"You cannot use the organization name '{resource_type.split('::')[0]}' with custom resource types.",
             )
 
-        # Store the resource configuration
-        # For moto, we'll just acknowledge receipt and store in memory
-        # A real implementation would validate against CloudFormation schema
-
-        # Create a unique key for this resource
         resource_key = f"{resource_type}:{resource_id}"
 
-        # Store the resource data
         if not hasattr(self, "_custom_resources"):
             self._custom_resources = {}
 
@@ -2372,21 +2251,14 @@ class ConfigBackend(BaseBackend):
         return
 
     def delete_resource_config(self, resource_type, resource_id):
-        """Deletes the configuration of a resource from AWS Config.
-
-        This method removes the configuration for a custom resource type from AWS Config.
-        """
-        # Create the resource key
         resource_key = f"{resource_type}:{resource_id}"
 
-        # If we have custom resources stored, remove this one if it exists
         if (
             hasattr(self, "_custom_resources")
             and resource_key in self._custom_resources
         ):
             del self._custom_resources[resource_key]
 
-        # AWS Config API always returns success, even if the resource doesn't exist
         return
 
 
