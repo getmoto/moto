@@ -918,6 +918,7 @@ class ConfigBackend(BaseBackend):
         self.query_results_queue: List[List[Dict[str, Any]]] = []
         default_retention = RetentionConfiguration(DEFAULT_RETENTION_PERIOD)
         self.retention_configuration = default_retention
+        self._custom_resources: Dict[str, Dict[str, Any]] = {}
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
         if not self.config_schema:
@@ -2236,9 +2237,6 @@ class ConfigBackend(BaseBackend):
 
         resource_key = f"{resource_type}:{resource_id}"
 
-        if not hasattr(self, "_custom_resources"):
-            self._custom_resources = {}
-
         self._custom_resources[resource_key] = {
             "ResourceType": resource_type,
             "SchemaVersionId": schema_version_id,
@@ -2253,10 +2251,7 @@ class ConfigBackend(BaseBackend):
     def delete_resource_config(self, resource_type, resource_id):
         resource_key = f"{resource_type}:{resource_id}"
 
-        if (
-            hasattr(self, "_custom_resources")
-            and resource_key in self._custom_resources
-        ):
+        if resource_key in self._custom_resources:
             del self._custom_resources[resource_key]
 
         return
