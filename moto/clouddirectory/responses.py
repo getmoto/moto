@@ -37,10 +37,10 @@ class CloudDirectoryResponse(BaseResponse):
 
     def list_directories(self) -> str:
         next_token = self._get_param("NextToken")
-        # max_results = self._get_param("MaxResults")
-        state = self._get_param("State")
-        directories = self.clouddirectory_backend.list_directories(
-            state=state,
+        max_results = self._get_param("MaxResults")
+        state = self._get_param("state")
+        directories, next_token = self.clouddirectory_backend.list_directories(
+            state=state, next_token=next_token, max_results=max_results
         )
         directory_list = [directory.to_dict() for directory in directories]
         return json.dumps(dict(Directories=directory_list, NextToken=next_token))

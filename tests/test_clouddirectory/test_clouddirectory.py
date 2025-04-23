@@ -41,6 +41,18 @@ def test_list_directories():
     assert "State" in directory
     assert "CreationDateTime" in directory
 
+    # Test pagination
+    resp = client.list_directories(MaxResults=1)
+    assert len(resp["Directories"]) == 1
+    assert "NextToken" in resp
+    resp = client.list_directories(NextToken=resp["NextToken"])
+    assert len(resp["Directories"]) == 2
+
+    # Test filtering by state
+    resp = client.list_directories(state="ENABLED")
+    assert len(resp["Directories"]) == 3
+    assert resp["Directories"][0]["State"] == "ENABLED"
+
 
 @mock_aws
 def test_tag_resource():
@@ -60,11 +72,15 @@ def test_tag_resource():
     resp = client.list_tags_for_resource(ResourceArn=directory_arn)
     assert len(resp["Tags"]) == 1
     assert resp["Tags"][0]["Key"] == "key1"
+    assert resp["Tags"][0]["Value"] == "value1"
 
     # Test resourcetaggingapi
     rtapi = boto3.client("resourcegroupstaggingapi", region_name=region)
     resp = rtapi.get_resources(ResourceTypeFilters=["clouddirectory"])
     assert len(resp["ResourceTagMappingList"]) == 1
+    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == directory_arn
+    assert resp["ResourceTagMappingList"][0]["Tags"][0]["Key"] == "key1"
+    assert resp["ResourceTagMappingList"][0]["Tags"][0]["Value"] == "value1"
 
 
 @mock_aws

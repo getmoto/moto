@@ -5,9 +5,19 @@ from typing import Dict, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import InvalidArnException
+
+PAGINATION_MODEL = {
+    "list_directories": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "directory_arn",
+    }
+}
 
 
 class Directory(BaseModel):
@@ -47,8 +57,13 @@ class CloudDirectoryBackend(BaseBackend):
         self.directories[directory.directory_arn] = directory
         return directory
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_directories(self, state: str) -> List[Directory]:
         directories = list(self.directories.values())
+        if state:
+            directories = [
+                directory for directory in directories if directory.state == state
+            ]
         return directories
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:

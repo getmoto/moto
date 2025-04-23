@@ -3,7 +3,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
-from moto.clouddirectory import clouddirectory_backends
+from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
@@ -176,6 +176,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             return lexv2models_backends[self.account_id][self.region_name]
         return None
 
+    @property
+    def clouddirectory_backend(self) -> Optional[CloudDirectoryBackend]:
+        if self.region_name in clouddirectory_backends[self.account_id].regions:
+            return clouddirectory_backends[self.account_id][self.region_name]
+        return None
+
     def _get_resources_generator(
         self,
         tag_filters: Optional[List[Dict[str, Any]]] = None,
@@ -267,8 +273,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": bucket.arn, "Tags": tags}
 
         # Cloud Directory
-        if not resource_type_filters or "clouddirectory" in resource_type_filters:
-            try:
+        if self.clouddirectory_backend:
+            if not resource_type_filters or "clouddirectory" in resource_type_filters:
                 clouddirectory_backend = clouddirectory_backends[self.account_id][
                     self.region_name
                 ]
@@ -279,8 +285,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tags or not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{directory.directory_arn}", "Tags": tags}
-            except Exception:
-                pass
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
