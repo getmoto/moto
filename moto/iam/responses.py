@@ -2,7 +2,9 @@ from xml.sax.saxutils import escape
 
 from moto.core.responses import BaseResponse
 
+from .exceptions import IAMNotFoundException
 from .models import IAMBackend, User, iam_backends
+from .utils import is_role_resource
 
 
 class IamResponse(BaseResponse):
@@ -12,6 +14,22 @@ class IamResponse(BaseResponse):
     @property
     def backend(self) -> IAMBackend:
         return iam_backends[self.current_account][self.partition]
+
+    def _determine_resource(self) -> str:
+        if is_role_resource(self.data):
+            role_name = self.data["RoleName"][0]
+            return self._resolve_resource_arn(role_name)
+
+        return "*"
+
+    def _resolve_resource_arn(self, role_name: str) -> str:
+        try:
+            self.backend.get_role(role_name)
+            role_object = self.backend.get_role(role_name)
+
+            return role_object.arn
+        except IAMNotFoundException:
+            return "*"
 
     def attach_role_policy(self) -> str:
         policy_arn = self._get_param("PolicyArn")

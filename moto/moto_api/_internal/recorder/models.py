@@ -136,6 +136,8 @@ class Recorder:
                 if parsed_url.query:
                     url = f"{url}?{parsed_url.query}"
             headers = row_loaded.get("headers")
+            if headers.get("Transfer-Encoding", "") == "chunked":
+                del headers["Transfer-Encoding"]
             requests.request(method=method, url=url, headers=headers, data=body)
 
         # restore the recording setting

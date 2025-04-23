@@ -183,11 +183,13 @@ class SESV2Response(BaseResponse):
     def list_configuration_sets(self) -> str:
         next_token = self._get_param("NextToken")
         page_size = self._get_param("PageSize")
-        configuration_sets = self.sesv2_backend.list_configuration_sets(
+        configuration_sets, next_token = self.sesv2_backend.list_configuration_sets(
             next_token=next_token, page_size=page_size
         )
+        config_set_names = [c.configuration_set_name for c in configuration_sets]
+
         return json.dumps(
-            dict(ConfigurationSets=configuration_sets, NextToken=next_token)
+            dict(ConfigurationSets=config_set_names, NextToken=next_token)
         )
 
     def create_dedicated_ip_pool(self) -> str:
@@ -224,3 +226,41 @@ class SESV2Response(BaseResponse):
             pool_name=pool_name,
         )
         return json.dumps(dict(DedicatedIpPool=dedicated_ip_pool.to_dict()))
+
+    def create_email_identity_policy(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policy_name = self._get_param("PolicyName")
+        policy = self._get_param("Policy")
+        self.sesv2_backend.create_email_identity_policy(
+            email_identity=email_identity,
+            policy_name=policy_name,
+            policy=policy,
+        )
+        return json.dumps({})
+
+    def delete_email_identity_policy(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policy_name = self._get_param("PolicyName")
+        self.sesv2_backend.delete_email_identity_policy(
+            email_identity=email_identity,
+            policy_name=policy_name,
+        )
+        return json.dumps({})
+
+    def update_email_identity_policy(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policy_name = self._get_param("PolicyName")
+        policy = self._get_param("Policy")
+        self.sesv2_backend.update_email_identity_policy(
+            email_identity=email_identity,
+            policy_name=policy_name,
+            policy=policy,
+        )
+        return json.dumps({})
+
+    def get_email_identity_policies(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        policies = self.sesv2_backend.get_email_identity_policies(
+            email_identity=email_identity,
+        )
+        return json.dumps({"Policies": policies})

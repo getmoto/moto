@@ -1,5 +1,6 @@
 import base64
 import datetime
+import ipaddress
 import re
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
@@ -7,7 +8,7 @@ import cryptography.hazmat.primitives.asymmetric.rsa
 import cryptography.x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.x509 import OID_COMMON_NAME, DNSName, NameOID
+from cryptography.x509 import OID_COMMON_NAME, DNSName, IPAddress, NameOID
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -48,6 +49,10 @@ RnGfN8j8KLDVmWyTYMk8V+6j0LI4+4zFh2upqGMQHL3VFVFWBek6vCDWhB/b
  -----END CERTIFICATE-----"""
 # Added aws root CA as AWS returns chain you gave it + root CA (provided or not)
 # so for now a cheap response is just give any old root CA
+
+IPV4_REGEX = re.compile(
+    r"(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}"
+)
 
 
 def datetime_to_epoch(date: datetime.datetime) -> float:
@@ -165,7 +170,14 @@ class CertBundle(BaseModel):
         unique_sans: Set[str] = set(sans) if sans else set()
 
         unique_sans.add(domain_name)
-        unique_dns_names = [DNSName(item) for item in unique_sans]
+        # SSL treats IP addresses differently from regular host names
+        # https://cabforum.org/working-groups/server/guidance-ip-addresses-certificates/
+        unique_dns_names = [
+            IPAddress(ipaddress.IPv4Address(name))
+            if IPV4_REGEX.match(name)
+            else DNSName(name)
+            for name in unique_sans
+        ]
 
         key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
             public_exponent=65537, key_size=2048, backend=default_backend()
@@ -217,7 +229,9 @@ class CertBundle(BaseModel):
             certificate=cert_armored,
             private_key=private_key,
             cert_type="PRIVATE" if cert_authority_arn is not None else "AMAZON_ISSUED",
-            cert_status="PENDING_VALIDATION",
+            cert_status="ISSUED"
+            if cert_authority_arn is not None
+            else "PENDING_VALIDATION",
             cert_authority_arn=cert_authority_arn,
             account_id=account_id,
             region=region,
@@ -305,6 +319,12 @@ class CertBundle(BaseModel):
             )
 
     def check(self) -> None:
+        # Check for certificate expiration
+        now = utcnow()
+        if self._not_valid_after(self._cert) <= now:
+            self.status = "EXPIRED"
+            return
+
         # Basically, if the certificate is pending, and then checked again after a
         # while, it will appear as if its been validated. The default wait time is 60
         # seconds but you can set an environment to change it.
@@ -334,7 +354,7 @@ class CertBundle(BaseModel):
             san_obj = None
         sans = []
         if san_obj is not None:
-            sans = [item.value for item in san_obj.value]
+            sans = [str(item.value) for item in san_obj.value]
 
         result: Dict[str, Any] = {
             "Certificate": {
@@ -415,6 +435,14 @@ class CertBundle(BaseModel):
         return "<Certificate>"
 
 
+class AccountConfiguration:
+    def __init__(self, days_before_expiry: int = 45):
+        self.days_before_expiry = days_before_expiry
+
+    def to_dict(self):  # type: ignore
+        return {"ExpiryEvents": {"DaysBeforeExpiry": self.days_before_expiry}}
+
+
 class AWSCertificateManagerBackend(BaseBackend):
     MIN_PASSPHRASE_LEN = 4
 
@@ -422,6 +450,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._certificates: Dict[str, CertBundle] = {}
         self._idempotency_tokens: Dict[str, Any] = {}
+        self._account_config = AccountConfiguration()
 
     def set_certificate_in_use_by(self, arn: str, load_balancer_name: str) -> None:
         if arn not in self._certificates:
@@ -583,6 +612,24 @@ class AWSCertificateManagerBackend(BaseBackend):
         private_key = cert_bundle.serialize_pk(passphrase_bytes)
 
         return certificate, certificate_chain, private_key
+
+    def get_account_configuration(self) -> Dict[str, Any]:
+        return self._account_config.to_dict()  # type: ignore
+
+    def put_account_configuration(
+        self, days_before_expiry: int, idempotency_token: str
+    ) -> None:
+        if idempotency_token is not None:
+            arn = self._get_arn_from_idempotency_token(idempotency_token)
+            if arn:
+                return
+
+        if days_before_expiry < 1 or days_before_expiry > 90:
+            raise AWSValidationException("DaysBeforeExpiry must be between 1 and 90")
+
+        self._account_config = AccountConfiguration(days_before_expiry)
+        if idempotency_token is not None:
+            self._set_idempotency_token_arn(idempotency_token, "account_config")
 
 
 acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

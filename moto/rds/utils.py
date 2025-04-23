@@ -3,24 +3,26 @@ from __future__ import annotations
 import copy
 import datetime
 import re
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from botocore.utils import merge_dicts
 
 SECONDS_IN_ONE_DAY = 24 * 60 * 60
-FilterDef = namedtuple(
-    "FilterDef",
-    [
-        # A list of object attributes to check against the filter values.
-        # Set to None if filter is not yet implemented in `moto`.
-        "attrs_to_check",
-        # Description of the filter, e.g. 'Object Identifiers'.
-        # Used in filter error messaging.
-        "description",
-    ],
-)
+
+
+@dataclass
+class FilterDef:
+    # A list of object attributes to check against the filter values.
+    # Set to None if filter is not yet implemented in `moto`.
+    attrs_to_check: list[str] | None
+    # Description of the filter, e.g. 'Object Identifiers'.
+    # Used in filter error messaging.
+    description: str
+    # Make comparison case-insensitive.
+    case_insensitive: bool = False
 
 
 class DbInstanceEngine(str, Enum):
@@ -156,7 +158,9 @@ def validate_filters(
             )
 
 
-def apply_filter(resources: Any, filters: Any, filter_defs: Any) -> Any:
+def apply_filter(
+    resources: Any, filters: Any, filter_defs: dict[str, FilterDef]
+) -> Any:
     """Apply an arbitrary filter to a group of resources.
 
     :param dict[str, object] resources:
@@ -175,7 +179,11 @@ def apply_filter(resources: Any, filters: Any, filter_defs: Any) -> Any:
         matches_filter = False
         for filter_name, filter_values in filters.items():
             filter_def = filter_defs.get(filter_name)
+            if filter_def is None or filter_def.attrs_to_check is None:
+                continue
             for attr in filter_def.attrs_to_check:
+                if filter_def.case_insensitive:
+                    filter_values = list(map(lambda x: x.lower(), filter_values))
                 if get_object_value(obj, attr) in filter_values:
                     matches_filter = True
                     break

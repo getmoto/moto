@@ -648,6 +648,54 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "c8g.12xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.16xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.24xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.2xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.48xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.4xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.8xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.large",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.medium",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.metal-24xl",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.metal-48xl",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "c8g.xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "ap-southeast-2"
  },
@@ -1728,6 +1776,54 @@
   "Location": "ap-southeast-2"
  },
  {
+  "InstanceType": "m8g.12xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.16xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.24xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.2xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.48xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.4xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.8xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.large",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.medium",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.metal-24xl",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.metal-48xl",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "m8g.xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "ap-southeast-2"
  },
@@ -1737,18 +1833,6 @@
  },
  {
   "InstanceType": "mac2-m2pro.metal",
-  "Location": "ap-southeast-2"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "ap-southeast-2"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "ap-southeast-2"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "ap-southeast-2"
  },
  {
@@ -1769,6 +1853,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "ap-southeast-2"
+ },
+ {
+  "InstanceType": "p5e.48xlarge",
   "Location": "ap-southeast-2"
  },
  {

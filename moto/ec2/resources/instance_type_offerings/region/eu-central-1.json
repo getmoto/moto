@@ -1128,6 +1128,14 @@
   "Location": "eu-central-1"
  },
  {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "eu-central-1"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "eu-central-1"
+ },
+ {
   "InstanceType": "i7ie.xlarge",
   "Location": "eu-central-1"
  },
@@ -2045,18 +2053,6 @@
  },
  {
   "InstanceType": "mac2-m2.metal",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p2.16xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p2.8xlarge",
-  "Location": "eu-central-1"
- },
- {
-  "InstanceType": "p2.xlarge",
   "Location": "eu-central-1"
  },
  {

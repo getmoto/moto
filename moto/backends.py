@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from moto.cloudwatch.models import CloudWatchBackend
     from moto.codebuild.models import CodeBuildBackend
     from moto.codecommit.models import CodeCommitBackend
+    from moto.codedeploy.models import CodeDeployBackend
     from moto.codepipeline.models import CodePipelineBackend
     from moto.cognitoidentity.models import CognitoIdentityBackend
     from moto.cognitoidp.models import CognitoIdpBackend
@@ -84,6 +85,7 @@ if TYPE_CHECKING:
     from moto.ivs.models import IVSBackend
     from moto.kafka.models import KafkaBackend
     from moto.kinesis.models import KinesisBackend
+    from moto.kinesisanalyticsv2.models import KinesisAnalyticsV2Backend
     from moto.kinesisvideo.models import KinesisVideoBackend
     from moto.kinesisvideoarchivedmedia.models import KinesisVideoArchivedMediaBackend
     from moto.kms.models import KmsBackend
@@ -219,6 +221,7 @@ SERVICE_NAMES = Union[
     "Literal['cloudwatch']",
     "Literal['codebuild']",
     "Literal['codecommit']",
+    "Literal['codedeploy']",
     "Literal['codepipeline']",
     "Literal['cognito-identity']",
     "Literal['cognito-idp']",
@@ -268,6 +271,7 @@ SERVICE_NAMES = Union[
     "Literal['ivs']",
     "Literal['kafka']",
     "Literal['kinesis']",
+    "Literal['kinesisanalyticsv2']",
     "Literal['kinesisvideo']",
     "Literal['kinesis-video-archived-media']",
     "Literal['kms']",
@@ -424,6 +428,8 @@ def get_backend(
     name: "Literal['codepipeline']",
 ) -> "BackendDict[CodePipelineBackend]": ...
 @overload
+def get_backend(name: "Literal['codedeploy']") -> "BackendDict[CodeDeployBackend]": ...
+@overload
 def get_backend(
     name: "Literal['cognito-identity']",
 ) -> "BackendDict[CognitoIdentityBackend]": ...
@@ -553,6 +559,10 @@ def get_backend(name: "Literal['kinesis']") -> "BackendDict[KinesisBackend]": ..
 def get_backend(
     name: "Literal['kinesisvideo']",
 ) -> "BackendDict[KinesisVideoBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['kinesisanalyticsv2']",
+) -> "BackendDict[KinesisAnalyticsV2Backend]": ...
 @overload
 def get_backend(
     name: "Literal['kinesis-video-archived-media']",

@@ -116,6 +116,9 @@ def test_update_distribution():
     assert cert["CloudFrontDefaultCertificate"] is True
     assert cert["MinimumProtocolVersion"] == "TLSv1"
     assert cert["CertificateSource"] == "cloudfront"
+    assert cert["IAMCertificateId"] == ""
+    assert cert["ACMCertificateArn"] == ""
+    assert cert["SSLSupportMethod"] == "sni-only"
 
     restriction = config["Restrictions"]["GeoRestriction"]
     assert restriction["RestrictionType"] == "none"
@@ -231,3 +234,47 @@ def test_update_distribution_applies_changes():
         "DistributionConfig"
     ]
     assert actual_dist_config["Enabled"]
+
+
+@mock_aws
+def test_update_distribution_trusted_signers():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+
+    dist = client.create_distribution(DistributionConfig=config)
+    dist_id = dist["Distribution"]["Id"]
+
+    # Assert that default TrustedSigners 'Enabled' value is false
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert (
+        actual_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Enabled"] is False
+    )
+
+    # Add an item to TrustedSigners
+    get_config_response = client.get_distribution_config(Id=dist_id)
+    actual_dist_config = get_config_response["DistributionConfig"]
+    etag = get_config_response["ETag"]
+    actual_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Items"] = [
+        "AwsAccountNumber123"
+    ]
+
+    client.update_distribution(
+        DistributionConfig=actual_dist_config, Id=dist_id, IfMatch=etag
+    )
+
+    # Assert that all TrustedSigners fields updated
+    updated_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert (
+        updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Quantity"] == 1
+    )
+    assert updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Enabled"]
+    assert (
+        "AwsAccountNumber123"
+        in updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Items"]
+    )

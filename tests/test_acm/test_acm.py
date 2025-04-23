@@ -1,10 +1,17 @@
+import datetime
 import os
 import uuid
+from ipaddress import IPv4Address
 from unittest import SkipTest, mock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from cryptography.x509 import (
+    IPAddress,
+    SubjectAlternativeName,
+    load_pem_x509_certificate,
+)
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -166,6 +173,29 @@ def test_delete_certificate():
 
 
 @mock_aws
+def test_request_certificate_for_ip():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = client.request_certificate(DomainName="10.0.0.1")["CertificateArn"]
+
+    try:
+        cert_arn = client.describe_certificate(CertificateArn=arn)["Certificate"][
+            "CertificateArn"
+        ]
+    except OverflowError:
+        pytest.skip("This test requires 64-bit time_t")
+
+    resp = client.get_certificate(CertificateArn=cert_arn)
+
+    cert = load_pem_x509_certificate(resp["Certificate"].encode("utf-8"))
+    san = cert.extensions[0].value
+    assert isinstance(san, SubjectAlternativeName)
+
+    ip_address = san.get_values_for_type(IPAddress)[0]
+    assert isinstance(ip_address, IPv4Address)
+    assert ip_address.compressed == "10.0.0.1"
+
+
+@mock_aws
 def test_describe_certificate():
     client = boto3.client("acm", region_name="eu-central-1")
     arn = client.request_certificate(DomainName=SERVER_COMMON_NAME)["CertificateArn"]
@@ -231,7 +261,7 @@ def test_describe_certificate_with_pca_cert():
     assert resp["Certificate"]["DomainName"] == SERVER_COMMON_NAME
     assert resp["Certificate"]["Issuer"] == "Amazon"
     assert resp["Certificate"]["KeyAlgorithm"] == "RSA_2048"
-    assert resp["Certificate"]["Status"] == "PENDING_VALIDATION"
+    assert resp["Certificate"]["Status"] == "ISSUED"
     assert resp["Certificate"]["Type"] == "PRIVATE"
     assert resp["Certificate"]["RenewalEligibility"] == "INELIGIBLE"
     assert "Options" in resp["Certificate"]
@@ -831,3 +861,53 @@ def test_elbv2_acm_in_use_by():
         _cert for _cert in certificates if _cert["CertificateArn"] == certificate_arn
     ][0]
     assert cert["InUse"]
+
+
+@mock_aws
+def test_certificate_expiration_status():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Cant manipulate time in server mode")
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+
+    resp = client.describe_certificate(CertificateArn=arn)
+    assert resp["Certificate"]["Status"] == "ISSUED"
+
+    expiry_time = resp["Certificate"]["NotAfter"]
+
+    # Test before expiry (1 second before)
+    with freeze_time(expiry_time - datetime.timedelta(seconds=1)):
+        resp = client.describe_certificate(CertificateArn=arn)
+        assert resp["Certificate"]["Status"] == "ISSUED"
+
+    # Test after expiry
+    with freeze_time(expiry_time + datetime.timedelta(days=1)):  # 1 day after
+        resp = client.describe_certificate(CertificateArn=arn)
+        assert resp["Certificate"]["Status"] == "EXPIRED"
+
+
+@mock_aws
+def test_account_configuration():
+    client = boto3.client("acm", region_name="eu-central-1")
+
+    # Test default configuration
+    response = client.get_account_configuration()
+    assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 45
+
+    # Test successful update
+    response = client.put_account_configuration(
+        ExpiryEvents={"DaysBeforeExpiry": 30}, IdempotencyToken="test-token"
+    )
+
+    # Verify the update was successful
+    response = client.get_account_configuration()
+    assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30
+
+    # Test idempotency token - trying to update with same token but different value
+    response = client.put_account_configuration(
+        ExpiryEvents={"DaysBeforeExpiry": 60}, IdempotencyToken="test-token"
+    )
+
+    # Should still be 30 due to idempotency token
+    response = client.get_account_configuration()
+    assert response["ExpiryEvents"]["DaysBeforeExpiry"] == 30

@@ -32,6 +32,7 @@ s3control
 - [ ] delete_access_point_for_object_lambda
 - [X] delete_access_point_policy
 - [ ] delete_access_point_policy_for_object_lambda
+- [ ] delete_access_point_scope
 - [ ] delete_bucket
 - [ ] delete_bucket_lifecycle_configuration
 - [ ] delete_bucket_policy
@@ -62,6 +63,7 @@ s3control
         
 
 - [ ] get_access_point_policy_status_for_object_lambda
+- [ ] get_access_point_scope
 - [ ] get_bucket
 - [ ] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
@@ -82,6 +84,7 @@ s3control
 - [ ] list_access_grants_instances
 - [ ] list_access_grants_locations
 - [ ] list_access_points
+- [ ] list_access_points_for_directory_buckets
 - [ ] list_access_points_for_object_lambda
 - [ ] list_caller_access_grants
 - [ ] list_jobs
@@ -94,6 +97,7 @@ s3control
 - [ ] put_access_point_configuration_for_object_lambda
 - [X] put_access_point_policy
 - [ ] put_access_point_policy_for_object_lambda
+- [ ] put_access_point_scope
 - [ ] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
 - [ ] put_bucket_replication
