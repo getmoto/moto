@@ -1,4 +1,5 @@
 import json
+from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
 
@@ -258,9 +259,9 @@ class ConfigResponse(BaseResponse):
         )
         return ""
 
-    def select_resource_config(self):
+    def select_resource_config(self) -> str:
         params = self._get_params()
-        expression = params.get("Expression")
+        expression = params.get("Expression", "")  # Default to empty string if None
         limit = params.get("Limit")
         next_token = params.get("NextToken")
         results, query_info, next_token = self.config_backend.select_resource_config(
@@ -269,7 +270,7 @@ class ConfigResponse(BaseResponse):
             next_token=next_token,
         )
 
-        response = {"Results": results}
+        response: Dict[str, Any] = {"Results": results}
         if query_info:
             response["QueryInfo"] = query_info
 
@@ -278,7 +279,7 @@ class ConfigResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def put_resource_config(self):
+    def put_resource_config(self) -> str:
         params = json.loads(self.body)
         resource_type = params.get("ResourceType")
         schema_version_id = params.get("SchemaVersionId")
@@ -297,7 +298,7 @@ class ConfigResponse(BaseResponse):
         # TODO: adjust response
         return json.dumps(dict())
 
-    def delete_resource_config(self):
+    def delete_resource_config(self) -> str:
         params = self._get_params()
         resource_type = params.get("ResourceType")
         resource_id = params.get("ResourceId")

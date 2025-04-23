@@ -919,6 +919,7 @@ class ConfigBackend(BaseBackend):
         self.retention_configuration: Optional[RetentionConfiguration] = None
         self._custom_resources: Dict[str, Dict[str, Any]] = {}
         self._expression_results: Dict[str, List[Dict[str, Any]]] = {}
+        self.config_rules: Dict[str, ConfigRule] = {}
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
         if not self.config_schema:
@@ -2219,13 +2220,13 @@ class ConfigBackend(BaseBackend):
 
     def put_resource_config(
         self,
-        resource_type,
-        schema_version_id,
-        resource_id,
-        resource_name,
-        configuration,
-        tags,
-    ):
+        resource_type: str,
+        schema_version_id: str,
+        resource_id: str,
+        resource_name: str,
+        configuration: str,
+        tags: Optional[Dict[str, str]],
+    ) -> None:
         if resource_type.split("::")[0].lower() in [
             "amzn",
             "amazon",
@@ -2250,7 +2251,7 @@ class ConfigBackend(BaseBackend):
 
         return
 
-    def delete_resource_config(self, resource_type, resource_id):
+    def delete_resource_config(self, resource_type: str, resource_id: str) -> None:
         resource_key = f"{resource_type}:{resource_id}"
 
         if resource_key in self._custom_resources:
