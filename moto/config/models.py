@@ -919,6 +919,7 @@ class ConfigBackend(BaseBackend):
         default_retention = RetentionConfiguration(DEFAULT_RETENTION_PERIOD)
         self.retention_configuration = default_retention
         self._custom_resources: Dict[str, Dict[str, Any]] = {}
+        self._expression_results: Dict[str, List[Dict[str, Any]]] = {}
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
         if not self.config_schema:
@@ -2212,7 +2213,9 @@ class ConfigBackend(BaseBackend):
             return [], {"SelectFields": []}, None
 
     def _store_predefined_query_results(self, query_id: str, expression: str) -> None:
-        if query_id not in self.query_results and self.query_results_queue:
+        if expression in self._expression_results:
+            self.query_results[query_id] = self._expression_results[expression]
+        elif query_id not in self.query_results and self.query_results_queue:
             self.query_results[query_id] = self.query_results_queue.pop(0)
 
     def put_resource_config(
