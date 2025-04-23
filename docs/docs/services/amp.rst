@@ -47,7 +47,6 @@ amp
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
-- [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
 - [X] list_rule_groups_namespaces
 - [ ] list_scrapers
@@ -68,5 +67,4 @@ amp
         The ClientToken-parameter is not yet implemented
         
 
-- [ ] update_workspace_configuration
 

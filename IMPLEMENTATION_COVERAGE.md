@@ -51,7 +51,7 @@
 
 ## amp
 <details>
-<summary>58% implemented</summary>
+<summary>62% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
@@ -68,7 +68,6 @@
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
-- [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
 - [X] list_rule_groups_namespaces
 - [ ] list_scrapers
@@ -81,7 +80,6 @@
 - [X] update_logging_configuration
 - [ ] update_scraper
 - [X] update_workspace_alias
-- [ ] update_workspace_configuration
 </details>
 
 ## apigateway
@@ -1849,7 +1847,7 @@
 
 ## config
 <details>
-<summary>36% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] associate_resource_types
 - [X] batch_get_aggregate_resource_config
@@ -1866,7 +1864,7 @@
 - [ ] delete_pending_aggregation_request
 - [ ] delete_remediation_configuration
 - [ ] delete_remediation_exceptions
-- [ ] delete_resource_config
+- [X] delete_resource_config
 - [X] delete_retention_configuration
 - [ ] delete_service_linked_configuration_recorder
 - [ ] delete_stored_query
@@ -1935,12 +1933,12 @@
 - [X] put_organization_conformance_pack
 - [ ] put_remediation_configurations
 - [ ] put_remediation_exceptions
-- [ ] put_resource_config
+- [X] put_resource_config
 - [X] put_retention_configuration
 - [ ] put_service_linked_configuration_recorder
 - [ ] put_stored_query
 - [ ] select_aggregate_resource_config
-- [ ] select_resource_config
+- [X] select_resource_config
 - [ ] start_config_rules_evaluation
 - [X] start_configuration_recorder
 - [ ] start_remediation_execution
@@ -2389,14 +2387,13 @@
 
 ## dsql
 <details>
-<summary>18% implemented</summary>
+<summary>20% implemented</summary>
 
 - [X] create_cluster
 - [ ] create_multi_region_clusters
 - [ ] delete_cluster
 - [ ] delete_multi_region_clusters
 - [X] get_cluster
-- [ ] get_vpc_endpoint_service_name
 - [ ] list_clusters
 - [ ] list_tags_for_resource
 - [ ] tag_resource
@@ -8036,7 +8033,7 @@
 
 ## s3tables
 <details>
-<summary>46% implemented</summary>
+<summary>53% implemented</summary>
 
 - [X] create_namespace
 - [X] create_table
@@ -8044,16 +8041,13 @@
 - [X] delete_namespace
 - [X] delete_table
 - [X] delete_table_bucket
-- [ ] delete_table_bucket_encryption
 - [ ] delete_table_bucket_policy
 - [ ] delete_table_policy
 - [X] get_namespace
 - [X] get_table
 - [X] get_table_bucket
-- [ ] get_table_bucket_encryption
 - [ ] get_table_bucket_maintenance_configuration
 - [ ] get_table_bucket_policy
-- [ ] get_table_encryption
 - [ ] get_table_maintenance_configuration
 - [ ] get_table_maintenance_job_status
 - [ ] get_table_metadata_location
@@ -8061,7 +8055,6 @@
 - [X] list_namespaces
 - [X] list_table_buckets
 - [X] list_tables
-- [ ] put_table_bucket_encryption
 - [ ] put_table_bucket_maintenance_configuration
 - [ ] put_table_bucket_policy
 - [ ] put_table_maintenance_configuration
