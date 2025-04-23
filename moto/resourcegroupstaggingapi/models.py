@@ -195,7 +195,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in clouddirectory_backends[self.account_id].regions:
             return clouddirectory_backends[self.account_id][self.region_name]
         return None
-    
+
     @property
     def cloudfront_backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.account_id][self.partition]
