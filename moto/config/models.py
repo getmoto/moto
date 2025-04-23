@@ -916,8 +916,7 @@ class ConfigBackend(BaseBackend):
         self.config_schema: Optional[AWSServiceSpec] = None
         self.query_results: Dict[str, List[Dict[str, Any]]] = {}
         self.query_results_queue: List[List[Dict[str, Any]]] = []
-        default_retention = RetentionConfiguration(DEFAULT_RETENTION_PERIOD)
-        self.retention_configuration = default_retention
+        self.retention_configuration: Optional[RetentionConfiguration] = None
         self._custom_resources: Dict[str, Dict[str, Any]] = {}
         self._expression_results: Dict[str, List[Dict[str, Any]]] = {}
 

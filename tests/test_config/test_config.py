@@ -2331,10 +2331,6 @@ def test_put_retention_configuration():
 def test_describe_retention_configurations():
     client = boto3.client("config", region_name="us-west-2")
 
-    # Delete the default retention configuration first since our implementation
-    # now creates one by default
-    client.delete_retention_configuration(RetentionConfigurationName="default")
-
     # Without any recorder configurations:
     result = client.describe_retention_configurations()
     assert not result["RetentionConfigurations"]
