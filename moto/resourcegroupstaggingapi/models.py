@@ -7,6 +7,7 @@ from moto.backup.models import BackupBackend, backup_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
+from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
@@ -60,6 +61,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def s3_backend(self) -> S3Backend:
         return s3_backends[self.account_id][self.partition]
+
+    @property
+    def dms_backend(self) -> DatabaseMigrationServiceBackend:
+        return dms_backends[self.account_id][self.region_name]
 
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
@@ -319,6 +324,28 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {"ResourceARN": f"{dist.arn}", "Tags": tags}
+
+        # DMS
+        if not resource_type_filters or "dms:endpoint" in resource_type_filters:
+            for endpoint in self.dms_backend.endpoints.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    endpoint.endpoint_arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{endpoint.endpoint_arn}", "Tags": tags}
+
+        if (
+            not resource_type_filters
+            or "dms:replication-instance" in resource_type_filters
+        ):
+            for replication_instance in self.dms_backend.replication_instances.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    replication_instance.arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{replication_instance.arn}", "Tags": tags}
 
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
