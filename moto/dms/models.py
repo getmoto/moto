@@ -237,7 +237,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         timestream_settings: Optional[Dict[str, Any]],
     ) -> "Endpoint":
         if endpoint_type not in ["source", "target"]:
-            ValidationError("Invalid endpoint type")
+            raise ValidationError("Invalid endpoint type")
 
         endpoint = Endpoint(
             endpoint_identifier=endpoint_identifier,
