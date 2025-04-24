@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
 
@@ -261,9 +261,9 @@ class ConfigResponse(BaseResponse):
 
     def select_resource_config(self) -> str:
         params = self._get_params()
-        expression: str = params.get("Expression")
-        limit: Optional[int] = params.get("Limit")
-        next_token: Optional[str] = params.get("NextToken")
+        expression: str = params.get("Expression", "")
+        limit: int = params.get("Limit", 0)
+        next_token: str = params.get("NextToken", "")
         results, query_info, next_token = self.config_backend.select_resource_config(
             expression=expression,
             limit=limit,
@@ -286,13 +286,15 @@ class ConfigResponse(BaseResponse):
         resource_id: str = params.get("ResourceId", "")
         resource_name: str = params.get("ResourceName", "")
         configuration = params.get("Configuration", {})
+        # Convert configuration dict to JSON string as expected by the backend
+        configuration_str: str = json.dumps(configuration) if configuration else ""
         tags: Dict[str, str] = params.get("Tags", {})
         self.config_backend.put_resource_config(
             resource_type=resource_type,
             schema_version_id=schema_version_id,
             resource_id=resource_id,
             resource_name=resource_name,
-            configuration=configuration,
+            configuration=configuration_str,
             tags=tags,
         )
         # TODO: adjust response
