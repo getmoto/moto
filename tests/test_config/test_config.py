@@ -2414,6 +2414,60 @@ def test_select_resource_config():
 
 
 @mock_aws
+def test_select_resource_config_with_results():
+    config_client = boto3.client("config", region_name="us-east-1")
+
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    s3_client.create_bucket(Bucket="test-bucket-1")
+    s3_client.create_bucket(Bucket="test-bucket-2")
+
+    response = config_client.select_resource_config(
+        Expression="SELECT resourceId, resourceType FROM AWS::S3::Bucket"
+    )
+
+    assert "Results" in response
+    assert "QueryInfo" in response
+    assert "SelectFields" in response["QueryInfo"]
+
+    if response["Results"]:
+        select_fields = response["QueryInfo"]["SelectFields"]
+        assert len(select_fields) > 0
+
+        for column in ["resourceId", "resourceType"]:
+            assert {"Name": column} in select_fields
+
+
+@mock_aws
+def test_select_resource_config_empty_results():
+    config_client = boto3.client("config", region_name="us-east-1")
+
+    response = config_client.select_resource_config(
+        Expression="SELECT resourceId FROM AWS::Lambda::Function WHERE resourceId = 'non-existent'"
+    )
+
+    assert "Results" in response
+    assert len(response["Results"]) == 0
+    assert "QueryInfo" in response
+    assert "SelectFields" in response["QueryInfo"]
+    assert len(response["QueryInfo"]["SelectFields"]) == 0
+    assert "NextToken" not in response
+
+
+@mock_aws
+def test_select_resource_config_with_limit_and_token():
+    config_client = boto3.client("config", region_name="us-east-1")
+    response = config_client.select_resource_config(
+        Expression="SELECT resourceId FROM AWS::S3::Bucket",
+        Limit=10,
+        NextToken="aws-token",
+    )
+
+    assert "Results" in response
+    assert "QueryInfo" in response
+    assert "SelectFields" in response["QueryInfo"]
+
+
+@mock_aws
 def test_put_resource_config():
     client = boto3.client("config", region_name="us-east-1")
 
