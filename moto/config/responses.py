@@ -262,8 +262,8 @@ class ConfigResponse(BaseResponse):
     def select_resource_config(self) -> str:
         params = self._get_params()
         expression: str = params.get("Expression", "")
-        limit: int = params.get("Limit", 0)
-        next_token: str = params.get("NextToken", "")
+        limit: int = params.get("Limit")
+        next_token: str = params.get("NextToken")
         results, query_info, next_token = self.config_backend.select_resource_config(
             expression=expression,
             limit=limit,
