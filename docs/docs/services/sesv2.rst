@@ -26,7 +26,7 @@ sesv2
 - [X] create_dedicated_ip_pool
 - [ ] create_deliverability_test_report
 - [X] create_email_identity
-- [ ] create_email_identity_policy
+- [X] create_email_identity_policy
 - [ ] create_email_template
 - [ ] create_export_job
 - [ ] create_import_job
@@ -38,7 +38,7 @@ sesv2
 - [ ] delete_custom_verification_email_template
 - [X] delete_dedicated_ip_pool
 - [ ] delete_email_identity
-- [ ] delete_email_identity_policy
+- [X] delete_email_identity_policy
 - [ ] delete_email_template
 - [ ] delete_multi_region_endpoint
 - [ ] delete_suppressed_destination
@@ -57,7 +57,7 @@ sesv2
 - [ ] get_domain_deliverability_campaign
 - [ ] get_domain_statistics_report
 - [X] get_email_identity
-- [ ] get_email_identity_policies
+- [X] get_email_identity_policies
 - [ ] get_email_template
 - [ ] get_export_job
 - [ ] get_import_job
@@ -111,6 +111,6 @@ sesv2
 - [ ] update_contact
 - [ ] update_contact_list
 - [ ] update_custom_verification_email_template
-- [ ] update_email_identity_policy
+- [X] update_email_identity_policy
 - [ ] update_email_template
 

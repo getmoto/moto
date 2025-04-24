@@ -71,6 +71,50 @@ Resources:
         - !Ref RootRole
 """
 
+TEMPLATE_ROLE_AND_PROFILE = """
+---
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: StandardTaskPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: AllowCloudwatchLogging
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Resource: '*'
+
+  Pol10:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AdditionalInlinePolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudwatchLogging
+            Effect: Allow
+            Action:
+              - logs:PutLogEvents
+            Resource: '*'
+      Roles:
+        - !Ref Role
+"""
+
 
 # AWS::IAM::User Tests
 @mock_aws
@@ -1089,6 +1133,28 @@ Resources:
     with pytest.raises(ClientError) as exc:
         iam_client.get_group_policy(GroupName=group_name, PolicyName=policy_name)
     assert exc.value.response["Error"]["Code"] == "NoSuchEntity"
+
+
+@mock_aws
+def test_delete_cfn_stack_with_policy_attached_to_role():
+    # The Stack has two resources, a Role and an InlinePolicy attached to this role.
+    # On deletion, there are two scenarios:
+    #
+    #    1. Policy is deleted first
+    #       a) removes policy from the roles it's attached to
+    #       b) removes the policy itself
+    #       c) removes the role last
+    #    2. Role is deleted first
+    #       a) removes the role
+    #       b) removes inline policy from the roles it's attached to
+    #       c) removes policy itself
+    #
+    # This test verifies that, at step 2b, we don't try to remove a policy from a role that no longer exist
+    cfn = boto3.client("cloudformation", region_name="us-east-1")
+
+    cfn.create_stack(StackName="stack1", TemplateBody=TEMPLATE_ROLE_AND_PROFILE)
+
+    cfn.delete_stack(StackName="stack1")
 
 
 # AWS::IAM::User AccessKeys

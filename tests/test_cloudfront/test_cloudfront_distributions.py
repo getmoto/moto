@@ -115,7 +115,7 @@ def test_create_distribution_s3_minimum(region, partition):
         "CloudFrontDefaultCertificate": True,
         "IAMCertificateId": "",
         "MinimumProtocolVersion": "TLSv1",
-        "SSLSupportMethod": "",
+        "SSLSupportMethod": "sni-only",
     }
 
     restriction = config["Restrictions"]["GeoRestriction"]

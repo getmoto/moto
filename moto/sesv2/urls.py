@@ -23,4 +23,6 @@ url_paths = {
     "{0}/v2/email/dedicated-ip-pools/(?P<PoolName>[^/]+)$": SESV2Response.dispatch,
     "{0}/v2/email/identities$": SESV2Response.dispatch,
     "{0}/v2/email/identities/(?P<EmailIdentity>[^/]+)$": SESV2Response.dispatch,
+    "{0}/v2/email/identities/(?P<EmailIdentity>[^/]+)/policies/(?P<PolicyName>[^/]+)$": SESV2Response.dispatch,
+    "{0}/v2/email/identities/(?P<EmailIdentity>[^/]+)/policies$": SESV2Response.dispatch,
 }

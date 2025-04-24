@@ -60,7 +60,6 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
-from .utils import PartitionFilter
 
 
 class FakeDevEndpoint(BaseModel):
@@ -200,6 +199,12 @@ class GlueBackend(BaseBackend):
             "limit_key": "max_results",
             "limit_default": 100,
             "unique_attribute": "endpoint_name",
+        },
+        "get_job_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "job_run_id",
         },
     }
 
@@ -519,6 +524,11 @@ class GlueBackend(BaseBackend):
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
         return job.get_job_run(run_id)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_job_runs(self, job_name: str) -> List["FakeJobRun"]:
+        job = self.get_job(job_name)
+        return job.get_job_runs()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self) -> List["FakeJob"]:
@@ -1353,6 +1363,9 @@ class FakeTable(BaseModel):
         self.partitions[str(partition.values)] = partition
 
     def get_partitions(self, expression: str) -> List["FakePartition"]:
+        # Only load pyparsing when necessary
+        from .utils import PartitionFilter
+
         return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values: str) -> "FakePartition":
@@ -1631,6 +1644,11 @@ class FakeJob:
                 job_run.advance()
                 return job_run
         raise JobRunNotFoundException(run_id)
+
+    def get_job_runs(self) -> List["FakeJobRun"]:
+        for job_run in self.job_runs:
+            job_run.advance()
+        return self.job_runs
 
 
 class FakeJobRun(ManagedState):

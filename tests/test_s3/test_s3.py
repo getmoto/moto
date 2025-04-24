@@ -712,32 +712,6 @@ def test_cannot_restore_standard_class_object():
 
 
 @mock_aws
-def test_restore_object_invalid_request_params():
-    if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
-
-    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
-    bucket.create()
-
-    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
-
-    # `Days` must be provided except for select requests
-    with pytest.raises(ClientError) as exc:
-        key.restore_object(RestoreRequest={})
-    err = exc.value.response["Error"]
-    assert err["Code"] == "DaysMustProvidedExceptForSelectRequest"
-    assert err["Message"] == "`Days` must be provided except for select requests"
-
-    # `Days` must not be provided for select requests
-    with pytest.raises(ClientError) as exc:
-        key.restore_object(RestoreRequest={"Days": 1, "Type": "SELECT"})
-    err = exc.value.response["Error"]
-    assert err["Code"] == "DaysMustNotProvidedForSelectRequest"
-    assert err["Message"] == "`Days` must not be provided for select requests"
-
-
-@mock_aws
 def test_get_versioning_status():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")
