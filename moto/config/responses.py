@@ -281,12 +281,12 @@ class ConfigResponse(BaseResponse):
 
     def put_resource_config(self) -> str:
         params = json.loads(self.body)
-        resource_type: str = params.get("ResourceType")
-        schema_version_id: str = params.get("SchemaVersionId")
-        resource_id: str = params.get("ResourceId")
-        resource_name: str = params.get("ResourceName")
-        configuration: Dict[str, Any] = params.get("Configuration")
-        tags: Dict[str, str] = params.get("Tags")
+        resource_type: str = params.get("ResourceType", "")
+        schema_version_id: str = params.get("SchemaVersionId", "")
+        resource_id: str = params.get("ResourceId", "")
+        resource_name: str = params.get("ResourceName", "")
+        configuration = params.get("Configuration", {})
+        tags: Dict[str, str] = params.get("Tags", {})
         self.config_backend.put_resource_config(
             resource_type=resource_type,
             schema_version_id=schema_version_id,
@@ -300,8 +300,8 @@ class ConfigResponse(BaseResponse):
 
     def delete_resource_config(self) -> str:
         params = self._get_params()
-        resource_type: str = params.get("ResourceType")
-        resource_id: str = params.get("ResourceId")
+        resource_type: str = params.get("ResourceType", "")
+        resource_id: str = params.get("ResourceId", "")
         self.config_backend.delete_resource_config(
             resource_type=resource_type,
             resource_id=resource_id,
