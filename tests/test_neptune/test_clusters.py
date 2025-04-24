@@ -56,6 +56,27 @@ def test_create_db_cluster__with_additional_params():
 
 
 @mock_aws
+def test_create_db_cluster_with_instance():
+    client = boto3.client("neptune", region_name="us-east-2")
+    resp = client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="neptune")[
+        "DBCluster"
+    ]
+    client.create_db_instance(
+        DBInstanceIdentifier="instance-id",
+        DBClusterIdentifier="cluster-id",
+        Engine="neptune",
+        DBInstanceClass="db.r5.large",
+    )
+    resp = client.describe_db_instances(DBInstanceIdentifier="instance-id")[
+        "DBInstances"
+    ]
+    assert resp[0]["DBInstanceIdentifier"] == "instance-id"
+    assert resp[0]["DBInstanceClass"] == "db.r5.large"
+    assert resp[0]["DBClusterIdentifier"] == "cluster-id"
+    assert resp[0]["Engine"] == "neptune"
+
+
+@mock_aws
 def test_describe_db_clusters():
     client = boto3.client("neptune", region_name="ap-southeast-1")
     assert client.describe_db_clusters()["DBClusters"] == []
