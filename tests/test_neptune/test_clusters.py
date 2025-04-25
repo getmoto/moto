@@ -103,6 +103,33 @@ def test_delete_db_cluster():
 
 
 @mock_aws
+def test_remove_db_instance():
+    client = boto3.client("neptune", region_name="us-east-2")
+    client.create_db_cluster(DBClusterIdentifier="cluster-id", Engine="neptune")[
+        "DBCluster"
+    ]
+    client.create_db_instance(
+        DBInstanceIdentifier="instance-id",
+        DBClusterIdentifier="cluster-id",
+        Engine="neptune",
+        DBInstanceClass="db.r5.large",
+    )
+
+    cluster = client.describe_db_clusters()["DBClusters"][0]
+    assert "DBClusterMembers" in cluster
+    assert len(cluster["DBClusterMembers"]) == 1
+
+    client.delete_db_instance(
+        DBInstanceIdentifier="instance-id",
+        SkipFinalSnapshot=True,
+    )
+
+    cluster = client.describe_db_clusters()["DBClusters"][0]
+    assert "DBClusterMembers" in cluster
+    assert len(cluster["DBClusterMembers"]) == 0
+
+
+@mock_aws
 def test_delete_unknown_db_cluster():
     client = boto3.client("neptune", region_name="ap-southeast-1")
 
