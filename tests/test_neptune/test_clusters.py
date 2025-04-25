@@ -74,6 +74,7 @@ def test_create_db_cluster_with_instance():
     assert resp[0]["DBInstanceClass"] == "db.r5.large"
     assert resp[0]["DBClusterIdentifier"] == "cluster-id"
     assert resp[0]["Engine"] == "neptune"
+    assert resp[0]["EngineVersion"] == "1.3.2.1"
 
 
 @mock_aws
