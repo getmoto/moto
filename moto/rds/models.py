@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import math
 import os
 import re
@@ -428,7 +429,7 @@ class MasterUserSecret:
         secret = self.secretsmanager.create_managed_secret(
             service_name="rds",
             secret_id=self._generate_secret_name(),
-            secret_string="P@55w0rd!",
+            secret_string=json.dumps({"username": "admin", "password": "P@55w0rd!"}),
             description=self._generate_secret_description(),
             kms_key_id=kms_key_id,
             tags=self._generate_secret_tags(),
