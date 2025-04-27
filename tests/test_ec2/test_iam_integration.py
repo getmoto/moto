@@ -272,12 +272,10 @@ def test_disassociate():
         a["IamInstanceProfile"]["Arn"] for a in associations
     ]
 
-    ec2_instances = [
-        instance
-        for reservation in client.describe_instances()["Reservations"]
-        for instance in reservation["Instances"]
-    ]
-    assert "IamInstanceProfile" in ec2_instances[0]
+    reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
+    instances = reservations[0]["Instances"]
+
+    assert "IamInstanceProfile" in instances[0]
 
     disassociation = client.disassociate_iam_instance_profile(
         AssociationId=association["IamInstanceProfileAssociation"]["AssociationId"]
@@ -295,12 +293,10 @@ def test_disassociate():
         a["IamInstanceProfile"]["Arn"] for a in associations
     ]
 
-    ec2_instances = [
-        instance
-        for reservation in client.describe_instances()["Reservations"]
-        for instance in reservation["Instances"]
-    ]
-    assert "IamInstanceProfile" not in ec2_instances[0]
+    reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
+    instances = reservations[0]["Instances"]
+
+    assert "IamInstanceProfile" not in instances[0]
 
 
 @mock_aws
