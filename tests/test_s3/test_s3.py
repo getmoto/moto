@@ -3561,3 +3561,132 @@ def enable_versioning(bucket_name, s3_client):
     while resp.get("Status") != "Enabled":
         sleep(0.1)
         resp = s3_client.get_bucket_versioning(Bucket=bucket_name)
+
+
+@mock_aws
+def test_put_and_get_bucket_inventory_configuration():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = "mybucket"
+    bucket2 = "mybucket2"
+    id = "my-inventory-config"
+    inventory_configuration = {
+        "Destination": {
+            "S3BucketDestination": {
+                "AccountId": DEFAULT_ACCOUNT_ID,
+                "Bucket": f"arn:aws:s3:::{bucket2}",
+                "Format": "CSV",
+                "Prefix": "test",
+                "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+            }
+        },
+        "IsEnabled": True,
+        "Filter": {"Prefix": "folder1/"},
+        "Id": id,
+        "IncludedObjectVersions": "All",
+        "OptionalFields": ["Size", "ETag"],
+        "Schedule": {"Frequency": "Daily"},
+    }
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+    resp = client.put_bucket_inventory_configuration(
+        Bucket=bucket,
+        Id=id,
+        InventoryConfiguration=inventory_configuration,
+        ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Retrieve the configuration
+    resp = client.get_bucket_inventory_configuration(Bucket=bucket, Id=id)
+    assert resp["InventoryConfiguration"]["Id"] == id
+    s3_bucket_dest = resp["InventoryConfiguration"]["Destination"][
+        "S3BucketDestination"
+    ]
+    assert s3_bucket_dest["AccountId"] == DEFAULT_ACCOUNT_ID
+    assert s3_bucket_dest["Bucket"] == f"arn:aws:s3:::{bucket2}"
+    assert s3_bucket_dest["Format"] == "CSV"
+    assert s3_bucket_dest["Prefix"] == "test"
+    assert s3_bucket_dest["Encryption"]["SSEKMS"]["KeyId"] == "key-12345"
+    assert resp["InventoryConfiguration"]["IsEnabled"] is True
+    assert resp["InventoryConfiguration"]["Filter"]["Prefix"] == "folder1/"
+    assert resp["InventoryConfiguration"]["IncludedObjectVersions"] == "All"
+    assert resp["InventoryConfiguration"]["OptionalFields"] == ["Size", "ETag"]
+    assert resp["InventoryConfiguration"]["Schedule"]["Frequency"] == "Daily"
+
+
+@mock_aws
+def test_list_bucket_inventory_configurations():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = "mybucket"
+    bucket2 = "mybucket2"
+    id = "my-inventory-config"
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    # Create three inventory configurations for the first
+    for i in range(3):
+        inventory_configuration = {
+            "Destination": {
+                "S3BucketDestination": {
+                    "AccountId": DEFAULT_ACCOUNT_ID,
+                    "Bucket": f"arn:aws:s3:::{bucket2}",
+                    "Format": "CSV",
+                    "Prefix": "test",
+                    "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+                }
+            },
+            "IsEnabled": True,
+            "Filter": {"Prefix": "folder1/"},
+            "Id": f"{id}-{bucket}-{i}",
+            "IncludedObjectVersions": "All",
+            "OptionalFields": ["Size", "ETag"],
+            "Schedule": {"Frequency": "Daily"},
+        }
+        client.put_bucket_inventory_configuration(
+            Bucket=bucket,
+            Id=id,
+            InventoryConfiguration=inventory_configuration,
+            ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+        )
+
+    # Create inventory configurations for the second bucket
+    for i in range(2):
+        inventory_configuration = {
+            "Destination": {
+                "S3BucketDestination": {
+                    "AccountId": DEFAULT_ACCOUNT_ID,
+                    "Bucket": f"arn:aws:s3:::{bucket}",
+                    "Format": "CSV",
+                    "Prefix": "test",
+                    "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+                }
+            },
+            "IsEnabled": True,
+            "Filter": {"Prefix": "folder1/"},
+            "Id": f"{id}-{bucket2}-{i}",
+            "IncludedObjectVersions": "All",
+            "OptionalFields": ["Size", "ETag"],
+            "Schedule": {"Frequency": "Daily"},
+        }
+        client.put_bucket_inventory_configuration(
+            Bucket=bucket2,
+            Id=id,
+            InventoryConfiguration=inventory_configuration,
+            ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+        )
+
+    resp = client.list_bucket_inventory_configurations(Bucket=bucket)
+    assert len(resp["InventoryConfigurationList"]) == 3
+
+    resp = client.list_bucket_inventory_configurations(Bucket=bucket2)
+    assert len(resp["InventoryConfigurationList"]) == 2
+    assert resp["InventoryConfigurationList"][0]["Id"] == f"{id}-{bucket2}-0"
+    assert resp["InventoryConfigurationList"][1]["Id"] == f"{id}-{bucket2}-1"
+    assert (
+        resp["InventoryConfigurationList"][0]["Destination"]["S3BucketDestination"][
+            "AccountId"
+        ]
+        == DEFAULT_ACCOUNT_ID
+    )

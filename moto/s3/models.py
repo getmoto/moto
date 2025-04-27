@@ -56,6 +56,7 @@ from moto.s3.exceptions import (
     MalformedXML,
     MethodNotAllowed,
     MissingBucket,
+    MissingInventoryConfig,
     MissingKey,
     NoSuchPublicAccessBlockConfiguration,
     NoSuchUpload,
@@ -1067,6 +1068,7 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
+        self.inventory_configs: Dict[str, FakeBucketInventoryConfiguration] = {}
         s3_backends.bucket_accounts[name] = (self.partition, account_id)
 
     @property
@@ -1648,6 +1650,24 @@ class FakeBucket(CloudFormationModel):
 class FakeTableStorageBucket(FakeBucket): ...
 
 
+class FakeBucketInventoryConfiguration(BaseModel):
+    def __init__(
+        self,
+        id: str,
+        destination: Dict[str, Any],
+        is_enabled: bool,
+        schedule: Dict[str, Any],
+        filters: Optional[Dict[str, Any]] = None,
+        optional_fields: Optional[List[str]] = None,
+    ):
+        self.id = id
+        self.destination = destination
+        self.is_enabled = is_enabled
+        self.schedule = schedule
+        self.filters = filters
+        self.optional_fields = optional_fields
+
+
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
     """
     Custom S3 endpoints are supported, if you are using a S3-compatible storage solution like Ceph.
@@ -1716,6 +1736,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self.table_buckets: Dict[str, FakeTableStorageBucket] = {}
         self.tagger = TaggingService()
         self._pagination_tokens: Dict[str, str] = {}
+        self.inventory_configs: Dict[str, FakeBucketInventoryConfiguration] = {}
 
     def reset(self) -> None:
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
@@ -3118,6 +3139,38 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # Listed for the implementation coverage
         # Implementation part of responses.py
         pass
+
+    def put_bucket_inventory_configuration(
+        self, bucket_name: str, inventory_configuration: Dict[str, Any]
+    ) -> None:
+        bucket = self.get_bucket(bucket_name)
+        inv_config = FakeBucketInventoryConfiguration(
+            id=inventory_configuration["Id"],
+            destination=inventory_configuration["Destination"],
+            is_enabled=inventory_configuration["IsEnabled"],
+            schedule=inventory_configuration["Schedule"],
+            filters=inventory_configuration.get("Filter"),
+            optional_fields=inventory_configuration.get("OptionalFields"),
+        )
+
+        bucket.inventory_configs[inv_config.id] = inv_config
+        return
+
+    def get_bucket_inventory_configuration(
+        self, bucket_name: str, id: str, expected_bucket_owner: Optional[str] = None
+    ) -> FakeBucketInventoryConfiguration:
+        bucket = self.get_bucket(bucket_name)
+
+        if id in bucket.inventory_configs:
+            return bucket.inventory_configs[id]
+
+        raise MissingInventoryConfig()
+
+    def list_bucket_inventory_configurations(
+        self, bucket_name: str
+    ) -> List[FakeBucketInventoryConfiguration]:
+        bucket = self.get_bucket(bucket_name)
+        return list(bucket.inventory_configs.values())
 
 
 class S3BackendDict(BackendDict[S3Backend]):

@@ -12587,6 +12587,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "security-ir": {
+                "Value": "security-ir",
+                "endpoint": {
+                  "Value": "security-ir.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -16482,7 +16491,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.ap-southeast-1.amazonaws.com"
+                  "Value": "repostspace.ap-southeast-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -19347,7 +19356,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.ap-southeast-2.amazonaws.com"
+                  "Value": "repostspace.ap-southeast-2.api.aws"
                 }
               },
               "resiliencehub": {
@@ -24682,6 +24691,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "savingsplans": {
                 "Value": "savingsplans",
                 "endpoint": {
@@ -24722,6 +24740,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "shield": {
+                "Value": "shield",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26696,7 +26723,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.ca-central-1.amazonaws.com"
+                  "Value": "repostspace.ca-central-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -33541,7 +33568,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.eu-central-1.amazonaws.com"
+                  "Value": "repostspace.eu-central-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -43250,7 +43277,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.eu-west-1.amazonaws.com"
+                  "Value": "repostspace.eu-west-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -48280,6 +48307,15 @@
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "security-ir": {
+                "Value": "security-ir",
+                "endpoint": {
+                  "Value": "security-ir.eu-west-3.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54012,6 +54048,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -54043,6 +54088,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "shield": {
+                "Value": "shield",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55933,6 +55987,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "security-ir": {
+                "Value": "security-ir",
+                "endpoint": {
+                  "Value": "security-ir.sa-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -57359,6 +57422,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.us-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -58924,7 +58996,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.us-east-1.amazonaws.com"
+                  "Value": "repostspace.us-east-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -60467,6 +60539,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.us-east-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -70168,7 +70249,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.us-west-2.amazonaws.com"
+                  "Value": "repostspace.us-west-2.api.aws"
                 }
               },
               "resiliencehub": {

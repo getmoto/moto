@@ -69,9 +69,11 @@ def test_create_graphql_api_advanced():
 @mock_aws
 def test_get_graphql_api():
     client = boto3.client("appsync", region_name="ap-southeast-1")
-    api_id = client.create_graphql_api(name="api1", authenticationType="API_KEY")[
-        "graphqlApi"
-    ]["apiId"]
+    api_id = client.create_graphql_api(
+        name="api1",
+        authenticationType="API_KEY",
+        tags={"key1": "value1", "key2": "value2"},
+    )["graphqlApi"]["apiId"]
 
     resp = client.get_graphql_api(apiId=api_id)
     assert "graphqlApi" in resp
@@ -81,6 +83,8 @@ def test_get_graphql_api():
     assert "apiId" in api
     assert api["authenticationType"] == "API_KEY"
     assert api["visibility"] == "GLOBAL"
+    assert "tags" in api
+    assert api["tags"] == {"key1": "value1", "key2": "value2"}
 
 
 @mock_aws
@@ -162,10 +166,14 @@ def test_list_graphql_apis():
     assert resp["graphqlApis"] == []
 
     for _ in range(3):
-        client.create_graphql_api(name="api1", authenticationType="API_KEY")
+        client.create_graphql_api(
+            name="api1", authenticationType="API_KEY", tags={"my_key": "value1"}
+        )
 
     resp = client.list_graphql_apis()
     assert len(resp["graphqlApis"]) == 3
+    assert "tags" in resp["graphqlApis"][0]
+    assert resp["graphqlApis"][0]["tags"] == {"my_key": "value1"}
 
 
 @mock_aws
