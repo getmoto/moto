@@ -2057,7 +2057,7 @@ def test_describe_instance_status_with_stopped_instance_filter_and_instance_ids(
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
-    instance1 = reservation
+    instance1 = reservation[0]
     instance1.stop()
 
     stopped_status = client.describe_instance_status(
