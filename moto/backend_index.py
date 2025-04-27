@@ -197,6 +197,10 @@ backend_url_patterns = [
     ("securityhub", re.compile("https?://securityhub\\.(.+)\\.amazonaws\\.com")),
     ("servicecatalog", re.compile("https?://servicecatalog\\.(.+)\\.amazonaws\\.com")),
     (
+        "servicecatalogappregistry",
+        re.compile("https?://servicecatalog-appregistry\\.(.+)\\.amazonaws\\.com"),
+    ),
+    (
         "servicediscovery",
         re.compile("https?://(data-)?servicediscovery\\.(.+)\\.amazonaws\\.com"),
     ),
