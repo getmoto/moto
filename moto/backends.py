@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from moto.bedrockagent.models import AgentsforBedrockBackend
     from moto.budgets.models import BudgetsBackend
     from moto.ce.models import CostExplorerBackend
+    from moto.clouddirectory.models import CloudDirectoryBackend
     from moto.cloudformation.models import CloudFormationBackend
     from moto.cloudfront.models import CloudFrontBackend
     from moto.cloudtrail.models import CloudTrailBackend
@@ -215,6 +216,7 @@ SERVICE_NAMES = Union[
     "Literal['bedrock-agent']",
     "Literal['budgets']",
     "Literal['ce']",
+    "Literal['clouddirectory']",
     "Literal['cloudformation']",
     "Literal['cloudfront']",
     "Literal['cloudtrail']",
@@ -407,6 +409,10 @@ def get_backend(
 def get_backend(name: "Literal['budgets']") -> "BackendDict[BudgetsBackend]": ...
 @overload
 def get_backend(name: "Literal['ce']") -> "BackendDict[CostExplorerBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['clouddirectory']",
+) -> "BackendDict[CloudDirectoryBackend]": ...
 @overload
 def get_backend(
     name: "Literal['cloudformation']",

@@ -4,6 +4,7 @@ from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
+from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
@@ -190,6 +191,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
+    def clouddirectory_backend(self) -> Optional[CloudDirectoryBackend]:
+        if self.region_name in clouddirectory_backends[self.account_id].regions:
+            return clouddirectory_backends[self.account_id][self.region_name]
+        return None
+
+    @property
     def cloudfront_backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.account_id][self.partition]
 
@@ -295,6 +302,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {"ResourceARN": bucket.arn, "Tags": tags}
+
+        # Cloud Directory
+        if self.clouddirectory_backend:
+            if not resource_type_filters or "clouddirectory" in resource_type_filters:
+                clouddirectory_backend = clouddirectory_backends[self.account_id][
+                    self.region_name
+                ]
+                for directory in clouddirectory_backend.directories.values():
+                    tags = clouddirectory_backend.tagger.list_tags_for_resource(
+                        directory.directory_arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{directory.directory_arn}", "Tags": tags}
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
