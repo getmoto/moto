@@ -1979,6 +1979,56 @@ def test_describe_instance_status_with_instance_filter():
     for _id in running_instance_ids:
         assert _id not in found_instance_ids
 
+    # Filter instance using the state code and state name
+    state_code_filter = {
+        "running_and_stopped": [
+            {"Name": "instance-state-code", "Values": ["16", "80"]},
+            {"Name": "instance-state-name", "Values": ["running", "stopped"]},
+        ],
+        "running": [
+            {"Name": "instance-state-code", "Values": ["16"]},
+            {"Name": "instance-state-name", "Values": ["running"]},
+        ],
+        "stopped": [
+            {"Name": "instance-state-code", "Values": ["80"]},
+            {"Name": "instance-state-name", "Values": ["stopped"]},
+        ],
+        "contradiction": [
+            {"Name": "instance-state-code", "Values": ["80"]},
+            {"Name": "instance-state-name", "Values": ["running"]},
+        ],
+    }
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running_and_stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    for _id in all_instance_ids:
+        assert _id in found_instance_ids
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    for _id in stopped_instance_ids:
+        assert _id not in found_instance_ids
+    for _id in running_instance_ids:
+        assert _id in found_instance_ids
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    for _id in stopped_instance_ids:
+        assert _id in found_instance_ids
+    for _id in running_instance_ids:
+        assert _id not in found_instance_ids
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["contradiction"]
+    )["InstanceStatuses"]
+    assert len(found_statuses) == 0
+
 
 @mock_aws
 def test_describe_instance_status_with_non_running_instances():
