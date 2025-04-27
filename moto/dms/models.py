@@ -4,14 +4,16 @@ from typing import Any, Dict, Iterable, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
     InvalidResourceStateFault,
     ResourceAlreadyExistsFault,
     ResourceNotFoundFault,
+    ValidationError,
 )
-from .utils import filter_tasks
+from .utils import filter_tasks, random_id
 
 
 class DatabaseMigrationServiceBackend(BaseBackend):
@@ -19,6 +21,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.replication_tasks: Dict[str, "FakeReplicationTask"] = {}
         self.replication_instances: Dict[str, "FakeReplicationInstance"] = {}
+        self.endpoints: Dict[str, "Endpoint"] = {}
+        self.tagger = TaggingService()
 
     def create_replication_task(
         self,
@@ -146,6 +150,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
             )
 
         self.replication_instances[replication_instance.arn] = replication_instance
+        if tags:
+            self.tagger.tag_resource(replication_instance.arn, tags)
 
         return replication_instance
 
@@ -191,6 +197,263 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                     ]
 
         return replication_instances
+
+    def create_endpoint(
+        self,
+        endpoint_identifier: str,
+        endpoint_type: str,
+        engine_name: str,
+        username: str,
+        password: str,
+        server_name: str,
+        port: int,
+        database_name: str,
+        extra_connection_attributes: str,
+        kms_key_id: str,
+        tags: Optional[List[Dict[str, str]]],
+        certificate_arn: str,
+        ssl_mode: str,
+        service_access_role_arn: str,
+        external_table_definition: str,
+        dynamo_db_settings: Optional[Dict[str, Any]],
+        s3_settings: Optional[Dict[str, Any]],
+        dms_transfer_settings: Optional[Dict[str, Any]],
+        mongo_db_settings: Optional[Dict[str, Any]],
+        kinesis_settings: Optional[Dict[str, Any]],
+        kafka_settings: Optional[Dict[str, Any]],
+        elasticsearch_settings: Optional[Dict[str, Any]],
+        neptune_settings: Optional[Dict[str, Any]],
+        redshift_settings: Optional[Dict[str, Any]],
+        postgre_sql_settings: Optional[Dict[str, Any]],
+        my_sql_settings: Optional[Dict[str, Any]],
+        oracle_settings: Optional[Dict[str, Any]],
+        sybase_settings: Optional[Dict[str, Any]],
+        microsoft_sql_server_settings: Optional[Dict[str, Any]],
+        ibm_db2_settings: Optional[Dict[str, Any]],
+        resource_identifier: Optional[str],
+        doc_db_settings: Optional[Dict[str, Any]],
+        redis_settings: Optional[Dict[str, Any]],
+        gcp_my_sql_settings: Optional[Dict[str, Any]],
+        timestream_settings: Optional[Dict[str, Any]],
+    ) -> "Endpoint":
+        if endpoint_type not in ["source", "target"]:
+            raise ValidationError("Invalid endpoint type")
+
+        endpoint = Endpoint(
+            endpoint_identifier=endpoint_identifier,
+            endpoint_type=endpoint_type,
+            engine_name=engine_name,
+            engine_display_name=engine_name,  # Assuming engine_display_name is same as engine_name
+            username=username,
+            password=password,
+            server_name=server_name,
+            port=port,
+            database_name=database_name,
+            extra_connection_attributes=extra_connection_attributes,
+            status="creating",  # Default status
+            kms_key_id=kms_key_id,
+            certificate_arn=certificate_arn,
+            ssl_mode=ssl_mode,
+            service_access_role_arn=service_access_role_arn,
+            external_table_definition=external_table_definition,
+            external_id=None,  # Default value
+            dynamo_db_settings=dynamo_db_settings,
+            s3_settings=s3_settings,
+            dms_transfer_settings=dms_transfer_settings,
+            mongo_db_settings=mongo_db_settings,
+            kinesis_settings=kinesis_settings,
+            kafka_settings=kafka_settings,
+            elasticsearch_settings=elasticsearch_settings,
+            neptune_settings=neptune_settings,
+            redshift_settings=redshift_settings,
+            postgre_sql_settings=postgre_sql_settings,
+            my_sql_settings=my_sql_settings,
+            oracle_settings=oracle_settings,
+            sybase_settings=sybase_settings,
+            microsoft_sql_server_settings=microsoft_sql_server_settings,
+            ibm_db2_settings=ibm_db2_settings,
+            resource_identifier=resource_identifier,
+            doc_db_settings=doc_db_settings,
+            redis_settings=redis_settings,
+            gcp_my_sql_settings=gcp_my_sql_settings,
+            timestream_settings=timestream_settings,
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+
+        if tags:
+            self.tagger.tag_resource(endpoint.endpoint_arn, tags)
+
+        self.endpoints[endpoint.endpoint_identifier] = endpoint
+        return endpoint
+
+    # TODO implement pagination
+    def describe_endpoints(
+        self,
+        filters: List[Dict[str, Any]],
+        max_records: Optional[int],
+        marker: Optional[str],
+    ) -> List["Endpoint"]:
+        endpoints = list(self.endpoints.values())
+        filter_map = {
+            "endpoint-arn": "endpoint_arn",
+            "endpoint-type": "endpoint_type",
+            "endpoint-id": "endpoint_identifier",
+            "engine-name": "engine_name",
+        }
+
+        for filter in filters:
+            filter_name = filter.get("Name")
+            filter_values = filter.get("Values", [])
+            if filter_name not in filter_map:
+                raise ValueError(f"Invalid filter name: {filter_name}")
+
+            attribute = filter_map[filter_name]
+            endpoints = [
+                endpoint
+                for endpoint in endpoints
+                if getattr(endpoint, attribute) in filter_values
+            ]
+
+        return endpoints
+
+    def list_tags_for_resource(
+        self, resource_arn_list: List[str]
+    ) -> List[Dict[str, Any]]:
+        result = []
+        for resource_arn in resource_arn_list:
+            tags = self.tagger.get_tag_dict_for_resource(resource_arn)
+            for key, value in tags.items():
+                result.append({"Key": key, "ResourceArn": resource_arn, "Value": value})
+        return result
+
+
+class Endpoint(BaseModel):
+    def __init__(
+        self,
+        endpoint_identifier: str,
+        endpoint_type: str,
+        engine_name: str,
+        engine_display_name: str,
+        username: str,
+        password: str,
+        server_name: str,
+        port: int,
+        database_name: str,
+        extra_connection_attributes: str,
+        status: str,
+        kms_key_id: str,
+        certificate_arn: Optional[str],
+        ssl_mode: Optional[str],
+        service_access_role_arn: Optional[str],
+        external_table_definition: Optional[str],
+        external_id: Optional[str],
+        dynamo_db_settings: Optional[Dict[str, Any]],
+        s3_settings: Optional[Dict[str, Any]],
+        dms_transfer_settings: Optional[Dict[str, Any]],
+        mongo_db_settings: Optional[Dict[str, Any]],
+        kinesis_settings: Optional[Dict[str, Any]],
+        kafka_settings: Optional[Dict[str, Any]],
+        elasticsearch_settings: Optional[Dict[str, Any]],
+        neptune_settings: Optional[Dict[str, Any]],
+        redshift_settings: Optional[Dict[str, Any]],
+        postgre_sql_settings: Optional[Dict[str, Any]],
+        my_sql_settings: Optional[Dict[str, Any]],
+        oracle_settings: Optional[Dict[str, Any]],
+        sybase_settings: Optional[Dict[str, Any]],
+        microsoft_sql_server_settings: Optional[Dict[str, Any]],
+        ibm_db2_settings: Optional[Dict[str, Any]],
+        resource_identifier: Optional[str],
+        doc_db_settings: Optional[Dict[str, Any]],
+        redis_settings: Optional[Dict[str, Any]],
+        gcp_my_sql_settings: Optional[Dict[str, Any]],
+        timestream_settings: Optional[Dict[str, Any]],
+        account_id: str,
+        region_name: str,
+    ):
+        self.endpoint_identifier = endpoint_identifier
+        self.endpoint_type = endpoint_type
+        self.engine_name = engine_name
+        self.engine_display_name = engine_display_name
+        self.username = username
+        self.password = password
+        self.server_name = server_name
+        self.port = port
+        self.database_name = database_name
+        self.extra_connection_attributes = extra_connection_attributes
+        self.status = status
+
+        # In real AWS, KMS key is used to encrypt connection parameters
+        # but just storing it here for now
+        self.kms_key_id = kms_key_id
+
+        self.id = resource_identifier if resource_identifier else random_id(True, 27)
+        self.endpoint_arn = f"arn:{get_partition(region_name)}:dms:{region_name}:{account_id}:endpoint:{self.id}"
+
+        self.certificate_arn = certificate_arn
+        self.ssl_mode = ssl_mode
+        self.service_access_role_arn = service_access_role_arn
+        self.external_table_definition = external_table_definition
+        self.external_id = external_id
+        self.dynamo_db_settings = dynamo_db_settings
+        self.s3_settings = s3_settings
+        self.dms_transfer_settings = dms_transfer_settings
+        self.mongo_db_settings = mongo_db_settings
+        self.kinesis_settings = kinesis_settings
+        self.kafka_settings = kafka_settings
+        self.elasticsearch_settings = elasticsearch_settings
+        self.neptune_settings = neptune_settings
+        self.redshift_settings = redshift_settings
+        self.postgre_sql_settings = postgre_sql_settings
+        self.my_sql_settings = my_sql_settings
+        self.oracle_settings = oracle_settings
+        self.sybase_settings = sybase_settings
+        self.microsoft_sql_server_settings = microsoft_sql_server_settings
+        self.ibm_db2_settings = ibm_db2_settings
+        self.doc_db_settings = doc_db_settings
+        self.redis_settings = redis_settings
+        self.gcp_my_sql_settings = gcp_my_sql_settings
+        self.timestream_settings = timestream_settings
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "EndpointIdentifier": self.endpoint_identifier,
+            "EndpointType": self.endpoint_type,
+            "EngineName": self.engine_name,
+            "EngineDisplayName": self.engine_display_name,
+            "Username": self.username,
+            "ServerName": self.server_name,
+            "Port": self.port,
+            "DatabaseName": self.database_name,
+            "ExtraConnectionAttributes": self.extra_connection_attributes,
+            "Status": self.status,
+            "KmsKeyId": self.kms_key_id,
+            "EndpointArn": self.endpoint_arn,
+            "CertificateArn": self.certificate_arn,
+            "SslMode": self.ssl_mode,
+            "ServiceAccessRoleArn": self.service_access_role_arn,
+            "ExternalTableDefinition": self.external_table_definition,
+            "ExternalId": self.external_id,
+            "DynamoDbSettings": self.dynamo_db_settings,
+            "S3Settings": self.s3_settings,
+            "DmsTransferSettings": self.dms_transfer_settings,
+            "MongoDbSettings": self.mongo_db_settings,
+            "KinesisSettings": self.kinesis_settings,
+            "KafkaSettings": self.kafka_settings,
+            "ElasticsearchSettings": self.elasticsearch_settings,
+            "NeptuneSettings": self.neptune_settings,
+            "RedshiftSettings": self.redshift_settings,
+            "PostgreSQLSettings": self.postgre_sql_settings,
+            "MySQLSettings": self.my_sql_settings,
+            "OracleSettings": self.oracle_settings,
+            "SybaseSettings": self.sybase_settings,
+            "MicrosoftSQLServerSettings": self.microsoft_sql_server_settings,
+            "IBMDb2Settings": self.ibm_db2_settings,
+            "DocDbSettings": self.doc_db_settings,
+            "RedisSettings": self.redis_settings,
+            "GcpMySQLSettings": self.gcp_my_sql_settings,
+            "TimestreamSettings": self.timestream_settings,
+        }
 
 
 class FakeReplicationTask(BaseModel):

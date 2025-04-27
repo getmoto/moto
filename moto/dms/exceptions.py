@@ -18,3 +18,8 @@ class InvalidResourceStateFault(DmsClientError):
 class ResourceAlreadyExistsFault(DmsClientError):
     def __init__(self, message: str):
         super().__init__("ResourceAlreadyExistsFault", message)
+
+
+class ValidationError(DmsClientError):
+    def __init__(self, message: str):
+        super().__init__("ValidationError", message)
