@@ -302,6 +302,7 @@ def test_disassociate():
     ]
     assert "IamInstanceProfile" not in ec2_instances[0]
 
+
 @mock_aws
 def test_invalid_disassociate():
     client = boto3.client("ec2", region_name="us-east-1")
