@@ -20915,6 +20915,32 @@
               }
             }
           },
+          "dsql": {
+            "Value": "dsql",
+            "longName": {
+              "Value": "Amazon Aurora DSQL"
+            },
+            "regions": {
+              "us-east-1": {
+                "Value": "us-east-1",
+                "endpoint": {
+                  "Value": "dsql.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-east-2": {
+                "Value": "us-east-2",
+                "endpoint": {
+                  "Value": "dsql.us-east-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              }
+            }
+          },
           "dynamodb": {
             "Value": "dynamodb",
             "longName": {
@@ -54414,43 +54440,43 @@
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
-                  "Value": "repostspace.ap-southeast-1.amazonaws.com"
+                  "Value": "repostspace.ap-southeast-1.api.aws"
                 }
               },
               "ap-southeast-2": {
                 "Value": "ap-southeast-2",
                 "endpoint": {
-                  "Value": "repostspace.ap-southeast-2.amazonaws.com"
+                  "Value": "repostspace.ap-southeast-2.api.aws"
                 }
               },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
-                  "Value": "repostspace.ca-central-1.amazonaws.com"
+                  "Value": "repostspace.ca-central-1.api.aws"
                 }
               },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
-                  "Value": "repostspace.eu-central-1.amazonaws.com"
+                  "Value": "repostspace.eu-central-1.api.aws"
                 }
               },
               "eu-west-1": {
                 "Value": "eu-west-1",
                 "endpoint": {
-                  "Value": "repostspace.eu-west-1.amazonaws.com"
+                  "Value": "repostspace.eu-west-1.api.aws"
                 }
               },
               "us-east-1": {
                 "Value": "us-east-1",
                 "endpoint": {
-                  "Value": "repostspace.us-east-1.amazonaws.com"
+                  "Value": "repostspace.us-east-1.api.aws"
                 }
               },
               "us-west-2": {
                 "Value": "us-west-2",
                 "endpoint": {
-                  "Value": "repostspace.us-west-2.amazonaws.com"
+                  "Value": "repostspace.us-west-2.api.aws"
                 }
               }
             }
@@ -59392,6 +59418,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -59522,6 +59557,15 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "runtime.sagemaker.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60880,6 +60924,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-south-1": {
+                "Value": "ap-south-1",
+                "endpoint": {
+                  "Value": "security-ir.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
@@ -60938,6 +60991,24 @@
                 "Value": "eu-west-2",
                 "endpoint": {
                   "Value": "security-ir.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-west-3": {
+                "Value": "eu-west-3",
+                "endpoint": {
+                  "Value": "security-ir.eu-west-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sa-east-1": {
+                "Value": "sa-east-1",
+                "endpoint": {
+                  "Value": "security-ir.sa-east-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -63295,6 +63366,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -63405,6 +63485,15 @@
               },
               "me-south-1": {
                 "Value": "me-south-1",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
                 "endpoint": {
                   "Value": "shield.us-east-1.amazonaws.com"
                 },
