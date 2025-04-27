@@ -115,7 +115,7 @@ class IamInstanceProfileAssociationBackend:
                 del self.iam_instance_profile_associations[association_key]
                 # Deleting once and avoiding `RuntimeError: dictionary changed size during iteration`
 
-                self.modify_instance_attribute(
+                iam_instance_profile_association.ec2_backend.modify_instance_attribute(
                     association_key, "iam_instance_profile", None
                 )
 
