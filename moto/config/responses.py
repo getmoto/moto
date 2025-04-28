@@ -286,7 +286,6 @@ class ConfigResponse(BaseResponse):
         resource_id: str = params.get("ResourceId", "")
         resource_name: str = params.get("ResourceName", "")
         configuration = params.get("Configuration", {})
-        # Convert configuration dict to JSON string as expected by the backend
         configuration_str: str = json.dumps(configuration) if configuration else ""
         tags: Dict[str, str] = params.get("Tags", {})
         self.config_backend.put_resource_config(
