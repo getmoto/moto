@@ -2510,34 +2510,107 @@ def test_put_resource_config():
 def test_delete_resource_config():
     client = boto3.client("config", region_name="us-east-1")
 
+    from moto.config.models import config_backends
+
+    backend = config_backends[boto3.client("sts").get_caller_identity()["Account"]][
+        "us-east-1"
+    ]
+
     resource_type = "AWS::S3::Bucket"
     resource_id = "test-resource-id"
     schema_version_id = "00000000-0000-0000-0000-000000000000"
+    resource_name = "test-bucket-name"
     configuration = json.dumps({"key1": "value1", "key2": "value2"})
+    tags = {"tag1": "value1", "tag2": "value2"}
 
     client.put_resource_config(
         ResourceType=resource_type,
         SchemaVersionId=schema_version_id,
         ResourceId=resource_id,
+        ResourceName=resource_name,
         Configuration=configuration,
+        Tags=tags,
     )
+
+    resource_key = f"{resource_type}:{resource_id}"
+    assert resource_key in backend._custom_resources
+    assert backend._custom_resources[resource_key]["ResourceType"] == resource_type
+    assert backend._custom_resources[resource_key]["ResourceId"] == resource_id
+    assert backend._custom_resources[resource_key]["Tags"] == tags
 
     response = client.delete_resource_config(
         ResourceType=resource_type, ResourceId=resource_id
     )
 
+    assert resource_key not in backend._custom_resources
+
     assert "ResponseMetadata" in response
-    response_without_metadata = {
-        k: v for k, v in response.items() if k != "ResponseMetadata"
-    }
-    assert response_without_metadata == {}
 
     response = client.delete_resource_config(
         ResourceType="Custom::NonExistentResource", ResourceId="non-existent-id"
     )
 
     assert "ResponseMetadata" in response
-    response_without_metadata = {
-        k: v for k, v in response.items() if k != "ResponseMetadata"
-    }
-    assert response_without_metadata == {}
+
+
+@mock_aws
+def test_select_resource_config_with_query_results_queue():
+    config_client = boto3.client("config", region_name="us-east-1")
+
+    from moto.config.models import config_backends
+
+    backend = config_backends[boto3.client("sts").get_caller_identity()["Account"]][
+        "us-east-1"
+    ]
+
+    example_results = [
+        {"resourceId": "queue-resource-1", "resourceType": "AWS::S3::Bucket"},
+        {"resourceId": "queue-resource-2", "resourceType": "AWS::S3::Bucket"},
+    ]
+    backend.query_results_queue.append(example_results)
+
+    response = config_client.select_resource_config(
+        Expression="SELECT resourceId, resourceType FROM AWS::S3::Bucket"
+    )
+
+    assert "Results" in response
+    assert response["Results"] == example_results
+    assert len(response["QueryInfo"]["SelectFields"]) == 2
+    assert {"Name": "resourceId"} in response["QueryInfo"]["SelectFields"]
+    assert {"Name": "resourceType"} in response["QueryInfo"]["SelectFields"]
+
+    assert len(backend.query_results_queue) == 0
+
+    response2 = config_client.select_resource_config(
+        Expression="SELECT resourceId, resourceType FROM AWS::S3::Bucket"
+    )
+
+    assert "Results" in response2
+    assert len(response2["Results"]) == 0
+
+
+@mock_aws
+def test_select_resource_config_with_expression_results():
+    config_client = boto3.client("config", region_name="us-east-1")
+
+    from moto.config.models import config_backends
+
+    backend = config_backends[boto3.client("sts").get_caller_identity()["Account"]][
+        "us-east-1"
+    ]
+
+    expression = "SELECT resourceId, resourceType FROM AWS::EC2::Instance"
+    predefined_results = [
+        {"resourceId": "i-12345678", "resourceType": "AWS::EC2::Instance"},
+        {"resourceId": "i-87654321", "resourceType": "AWS::EC2::Instance"},
+    ]
+
+    backend.query_results_queue.append(predefined_results)
+
+    response = config_client.select_resource_config(Expression=expression)
+
+    assert "Results" in response
+    assert response["Results"] == predefined_results
+    assert len(response["QueryInfo"]["SelectFields"]) == 2
+    assert {"Name": "resourceId"} in response["QueryInfo"]["SelectFields"]
+    assert {"Name": "resourceType"} in response["QueryInfo"]["SelectFields"]

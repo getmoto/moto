@@ -2198,7 +2198,10 @@ class ConfigBackend(BaseBackend):
 
         query_id = str(random.uuid4())
 
-        self._store_predefined_query_results(query_id, expression)
+        if expression in self._expression_results:
+            self.query_results[query_id] = self._expression_results[expression]
+        elif query_id not in self.query_results and self.query_results_queue:
+            self.query_results[query_id] = self.query_results_queue.pop(0)
 
         if query_id in self.query_results:
             results = self.query_results[query_id]
@@ -2211,12 +2214,6 @@ class ConfigBackend(BaseBackend):
             return results, query_info, None
         else:
             return [], {"SelectFields": []}, None
-
-    def _store_predefined_query_results(self, query_id: str, expression: str) -> None:
-        if expression in self._expression_results:
-            self.query_results[query_id] = self._expression_results[expression]
-        elif query_id not in self.query_results and self.query_results_queue:
-            self.query_results[query_id] = self.query_results_queue.pop(0)
 
     def put_resource_config(
         self,

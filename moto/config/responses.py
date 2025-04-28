@@ -297,16 +297,16 @@ class ConfigResponse(BaseResponse):
             configuration=configuration_str,
             tags=tags,
         )
-        # TODO: adjust response
         return json.dumps(dict())
 
     def delete_resource_config(self) -> str:
-        params = self._get_params()
-        resource_type: str = params.get("ResourceType", "")
-        resource_id: str = params.get("ResourceId", "")
+        params = json.loads(self.body)
+        resource_type = params.get("ResourceType", "")
+        resource_id = params.get("ResourceId", "")
+
         self.config_backend.delete_resource_config(
             resource_type=resource_type,
             resource_id=resource_id,
         )
-        # TODO: adjust response
+
         return json.dumps(dict())
