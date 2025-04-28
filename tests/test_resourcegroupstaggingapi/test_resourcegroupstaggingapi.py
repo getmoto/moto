@@ -136,6 +136,48 @@ def test_get_resources_backup():
 
 
 @mock_aws
+def test_get_resources_dms_endpoint():
+    client = boto3.client("dms", region_name="us-east-1")
+    endpoint = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        ResourceIdentifier="sample_identifier",
+        Tags=[{"Key": "tag", "Value": "a tag"}],
+    )
+    endpoint_arn = endpoint["Endpoint"]["EndpointArn"]
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["dms:endpoint"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert endpoint_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_aws
+def test_get_resources_dms_replication_instance():
+    client = boto3.client("dms", region_name="us-east-1")
+    replication_instance = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+        Tags=[{"Key": "tag", "Value": "a tag"}],
+    )
+
+    replication_instance_arn = replication_instance["ReplicationInstance"][
+        "ReplicationInstanceArn"
+    ]
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["dms:replication-instance"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert replication_instance_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_aws
 def test_get_resources_ecs():
     # ecs:cluster
     client = boto3.client("ecs", region_name="us-east-1")

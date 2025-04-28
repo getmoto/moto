@@ -1582,6 +1582,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sqs": {
                 "Value": "sqs",
                 "endpoint": {
@@ -3132,6 +3141,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.ap-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6032,6 +6050,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sqs": {
                 "Value": "sqs",
                 "endpoint": {
@@ -8574,6 +8601,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -12551,6 +12587,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "security-ir": {
+                "Value": "security-ir",
+                "endpoint": {
+                  "Value": "security-ir.ap-south-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -14191,6 +14236,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -16437,7 +16491,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.ap-southeast-1.amazonaws.com"
+                  "Value": "repostspace.ap-southeast-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -19038,15 +19092,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "opsworkscm": {
-                "Value": "opsworkscm",
-                "endpoint": {
-                  "Value": "opsworks-cm.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "opsworkspuppetenterprise": {
                 "Value": "opsworkspuppetenterprise",
                 "endpoint": {
@@ -19311,7 +19356,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.ap-southeast-2.amazonaws.com"
+                  "Value": "repostspace.ap-southeast-2.api.aws"
                 }
               },
               "resiliencehub": {
@@ -19657,6 +19702,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -23553,6 +23607,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -24012,6 +24075,15 @@
               },
               "artifact": {
                 "Value": "artifact"
+              },
+              "athena": {
+                "Value": "athena",
+                "endpoint": {
+                  "Value": "athena.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "aurora": {
                 "Value": "aurora",
@@ -24619,6 +24691,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "savingsplans": {
                 "Value": "savingsplans",
                 "endpoint": {
@@ -24659,6 +24740,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "shield": {
+                "Value": "shield",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26633,7 +26723,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.ca-central-1.amazonaws.com"
+                  "Value": "repostspace.ca-central-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -26952,6 +27042,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -33469,7 +33568,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.eu-central-1.amazonaws.com"
+                  "Value": "repostspace.eu-central-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -40744,6 +40843,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "sqs": {
                 "Value": "sqs",
                 "endpoint": {
@@ -42902,15 +43010,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "opsworkscm": {
-                "Value": "opsworkscm",
-                "endpoint": {
-                  "Value": "opsworks-cm.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "opsworkspuppetenterprise": {
                 "Value": "opsworkspuppetenterprise",
                 "endpoint": {
@@ -43178,7 +43277,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.eu-west-1.amazonaws.com"
+                  "Value": "repostspace.eu-west-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -48213,6 +48312,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "security-ir": {
+                "Value": "security-ir",
+                "endpoint": {
+                  "Value": "security-ir.eu-west-3.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -48589,6 +48697,9 @@
             "wavelength-zones": {
               "euw3-cmn1-wlz1": {
                 "Value": "euw3-cmn1-wlz1"
+              },
+              "euw3-dss1-wlz1": {
+                "Value": "euw3-dss1-wlz1"
               }
             }
           },
@@ -49672,6 +49783,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53322,6 +53442,15 @@
               "artifact": {
                 "Value": "artifact"
               },
+              "athena": {
+                "Value": "athena",
+                "endpoint": {
+                  "Value": "athena.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aurora": {
                 "Value": "aurora",
                 "endpoint": {
@@ -53919,6 +54048,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -53950,6 +54088,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "shield": {
+                "Value": "shield",
+                "endpoint": {
+                  "Value": "shield.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54031,6 +54178,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "transfer": {
+                "Value": "transfer",
+                "endpoint": {
+                  "Value": "transfer.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55831,6 +55987,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "security-ir": {
+                "Value": "security-ir",
+                "endpoint": {
+                  "Value": "security-ir.sa-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "securityhub": {
                 "Value": "securityhub",
                 "endpoint": {
@@ -55949,6 +56114,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "socialmessaging": {
+                "Value": "socialmessaging",
+                "endpoint": {
+                  "Value": "social-messaging.sa-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "sqs": {
@@ -57253,6 +57427,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -58510,15 +58693,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "opsworkscm": {
-                "Value": "opsworkscm",
-                "endpoint": {
-                  "Value": "opsworks-cm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "opsworkspuppetenterprise": {
                 "Value": "opsworkspuppetenterprise",
                 "endpoint": {
@@ -58822,7 +58996,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.us-east-1.amazonaws.com"
+                  "Value": "repostspace.us-east-1.api.aws"
                 }
               },
               "resiliencehub": {
@@ -60365,6 +60539,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.us-east-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -70066,7 +70249,7 @@
               "repostspace": {
                 "Value": "repostspace",
                 "endpoint": {
-                  "Value": "repostspace.us-west-2.amazonaws.com"
+                  "Value": "repostspace.us-west-2.api.aws"
                 }
               },
               "resiliencehub": {

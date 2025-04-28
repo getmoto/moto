@@ -175,3 +175,22 @@ class ACMPCAResponse(BaseResponse):
             tags=tags,
         )
         return "{}"
+
+    def put_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        policy = params.get("Policy")
+        self.acmpca_backend.put_policy(resource_arn=resource_arn, policy=policy)
+        return "{}"
+
+    def get_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        policy = self.acmpca_backend.get_policy(resource_arn=resource_arn)
+        return json.dumps({"Policy": policy})
+
+    def delete_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        self.acmpca_backend.delete_policy(resource_arn=resource_arn)
+        return "{}"

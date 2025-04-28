@@ -23,6 +23,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "IdentityName",
     },
+    "list_configuration_sets": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 100,
+        "unique_attribute": "configuration_set_name",
+    },
 }
 
 
@@ -309,10 +315,9 @@ class SESV2Backend(BaseBackend):
         )
         return config_set
 
-    def list_configuration_sets(self, next_token: str, page_size: int) -> List[str]:
-        return self.v1_backend.list_configuration_sets(
-            next_token=next_token, max_items=page_size
-        )
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_configuration_sets(self) -> List[ConfigurationSet]:
+        return self.v1_backend._list_all_configuration_sets()
 
     def create_dedicated_ip_pool(
         self, pool_name: str, tags: List[Dict[str, str]], scaling_mode: str

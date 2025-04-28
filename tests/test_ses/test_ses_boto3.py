@@ -1553,3 +1553,67 @@ def test_get_identity_verification_attributes():
         attributes["VerificationAttributes"]["foo@bar.com"]["VerificationStatus"]
         == "Success"
     )
+
+
+@mock_aws
+def test_update_configuration_set_reputation_metrics():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    # Create a configuration set first
+    conn.create_configuration_set(ConfigurationSet={"Name": "test-config-set"})
+
+    # Enable reputation metrics
+    response = conn.update_configuration_set_reputation_metrics_enabled(
+        ConfigurationSetName="test-config-set", Enabled=True
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Test with non-existent configuration set
+    with pytest.raises(ClientError) as e:
+        conn.update_configuration_set_reputation_metrics_enabled(
+            ConfigurationSetName="non-existent", Enabled=True
+        )
+    assert e.value.response["Error"]["Code"] == "ConfigurationSetDoesNotExist"
+
+
+@mock_aws
+def test_get_identity_dkim_attributes():
+    conn = boto3.client("ses", region_name="us-east-1")
+
+    # Create domain identity
+    domain = "example.com"
+    conn.verify_domain_identity(Domain=domain)
+
+    # Create email identity
+    email = "test@example.com"
+    conn.verify_email_identity(EmailAddress=email)
+
+    # Test getting DKIM attributes for both domain and email
+    response = conn.get_identity_dkim_attributes(Identities=[domain, email])
+
+    # Verify response structure
+    attributes = response["DkimAttributes"]
+    assert len(attributes) == 2
+
+    # Verify domain attributes
+    domain_attrs = attributes[domain]
+    assert domain_attrs["DkimEnabled"] is True
+    assert domain_attrs["DkimVerificationStatus"] == "Success"
+    assert len(domain_attrs["DkimTokens"]) == 3
+    for token in domain_attrs["DkimTokens"]:
+        assert isinstance(token, str)
+        assert len(token) > 0
+
+    # Verify email attributes
+    email_attrs = attributes[email]
+    assert email_attrs["DkimEnabled"] is True
+    assert email_attrs["DkimVerificationStatus"] == "Success"
+    assert "DkimTokens" not in email_attrs  # Email identities don't have DKIM tokens
+
+    # Test unverified identity
+    unverified = "unverified.com"
+    response = conn.get_identity_dkim_attributes(Identities=[unverified])
+    unverified_attrs = response["DkimAttributes"][unverified]
+    assert unverified_attrs["DkimEnabled"] is True
+    assert unverified_attrs["DkimVerificationStatus"] == "NotStarted"
+    assert "DkimTokens" not in unverified_attrs

@@ -25,7 +25,11 @@ acm-pca
 - [ ] create_permission
 - [X] delete_certificate_authority
 - [ ] delete_permission
-- [ ] delete_policy
+- [X] delete_policy
+  
+        Deletes the resource-based policy attached to a private CA.
+        
+
 - [X] describe_certificate_authority
 - [ ] describe_certificate_authority_audit_report
 - [X] get_certificate
@@ -35,7 +39,11 @@ acm-pca
 
 - [X] get_certificate_authority_certificate
 - [X] get_certificate_authority_csr
-- [ ] get_policy
+- [X] get_policy
+  
+        Retrieves the resource-based policy attached to a private CA.
+        
+
 - [X] import_certificate_authority_certificate
 - [X] issue_certificate
   
@@ -50,7 +58,11 @@ acm-pca
         Pagination is not yet implemented
         
 
-- [ ] put_policy
+- [X] put_policy
+  
+        Attaches a resource-based policy to a private CA.
+        
+
 - [ ] restore_certificate_authority
 - [X] revoke_certificate
   

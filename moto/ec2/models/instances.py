@@ -21,14 +21,17 @@ from moto.packages.boto.ec2.instance import Reservation
 
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
+    InvalidInputError,
     InvalidInstanceIdError,
     InvalidInstanceTypeError,
     InvalidParameterCombination,
     InvalidParameterValueErrorUnknownAttribute,
     InvalidSecurityGroupNotFoundError,
     InvalidSubnetIdError,
+    MissingInputError,
     OperationDisableApiStopNotPermitted,
     OperationNotPermitted4,
+    VPCIdNotSpecifiedError,
 )
 from ..utils import (
     convert_tag_spec,
@@ -528,10 +531,27 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     nic_subnet: Subnet = self.ec2_backend.get_subnet(nic["SubnetId"])
                 else:
                     # Get default Subnet
-                    zone = self._placement.zone
-                    nic_subnet = self.ec2_backend.get_default_subnet(
-                        availability_zone=zone
-                    )
+                    default_subnets = self.ec2_backend.get_default_subnets()
+
+                    default_subnet = None
+
+                    if self.subnet_id is None:
+                        default_vpc = self.ec2_backend.get_default_vpc()
+                        if default_vpc is None:
+                            raise VPCIdNotSpecifiedError()
+
+                        if not default_subnets:
+                            raise MissingInputError(
+                                f"No subnets found for the default VPC '{default_vpc.id}'. Please specify a subnet."
+                            )
+
+                        default_subnet = default_subnets.get(self._placement.zone)
+                        if default_subnet is None:
+                            raise InvalidInputError(
+                                f"No default subnet for availability zone: '{self._placement.zone}'."
+                            )
+
+                    nic_subnet = default_subnet or self.subnet_id  # type: ignore[assignment]
 
                 group_ids = nic.get("SecurityGroupId") or []
                 if security_groups:
@@ -597,16 +617,18 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     def applies(self, filters: List[Dict[str, Any]]) -> bool:
         if filters:
-            applicable = False
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_instances.html
+            # Filters Section in the boto3 documentation
+            # If you specify multiple filters, the filters are joined with an AND, and the request returns only results that match all of the specified filters.
             for f in filters:
                 acceptable_values = f["values"]
                 if f["name"] == "instance-state-name":
-                    if self._state.name in acceptable_values:
-                        applicable = True
+                    if self._state.name not in acceptable_values:
+                        return False
                 if f["name"] == "instance-state-code":
-                    if str(self._state.code) in acceptable_values:
-                        applicable = True
-            return applicable
+                    if str(self._state.code) not in acceptable_values:
+                        return False
+            return True
         # If there are no filters, all instances are valid
         return True
 

@@ -25,9 +25,6 @@ class TrustCondition:
         expected_value: List[Union[List[str], str]],
         expected_value_source: List[str],
     ) -> None:
-        if condition not in CONDITION_OPERATIONS:
-            raise NotImplementedError(f"Unsupported condition: {condition}")
-
         self._condition = condition
 
         self._expected_value_source = expected_value_source
@@ -38,7 +35,11 @@ class TrustCondition:
         return self._expected_value_source
 
     def verify_condition(self, actual_values: List[str]) -> bool:
-        verify_action = CONDITION_OPERATIONS[self._condition]
+        verify_action = CONDITION_OPERATIONS.get(self._condition)
+
+        # If the evaluation operation is not supported, ignore condition evaluation
+        if not verify_action:
+            return True
 
         for index, actual_value in enumerate(actual_values):
             if not verify_action(self._expected_value[index], actual_value):

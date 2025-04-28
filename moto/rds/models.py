@@ -1018,6 +1018,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     default_engine_versions = {
         "MySQL": "5.6.21",
         "mysql": "5.6.21",
+        "neptune": "1.3.2.1",
         "oracle-ee": "11.2.0.4.v3",
         "oracle-se": "11.2.0.4.v3",
         "oracle-se1": "11.2.0.4.v3",
@@ -1454,7 +1455,9 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.master_user_secret = MasterUserSecret(
                 self, master_user_secret_kms_key_id
             )
-        elif manage_master_user_password is False:
+        elif manage_master_user_password is False and hasattr(
+            self, "master_user_secret"
+        ):
             self.master_user_secret.delete_secret()
             del self.master_user_secret
 
@@ -1494,6 +1497,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             "aurora-postgresql": 5432,
             "mysql": 3306,
             "mariadb": 3306,
+            "neptune": 8182,
             "postgres": 5432,
             "oracle-ee": 1521,
             "oracle-se2": 1521,
@@ -3141,7 +3145,9 @@ class RDSBackend(BaseBackend):
             if manage_master_user_password:
                 kms_key_id = kwargs.pop("master_user_secret_kms_key_id", None)
                 cluster.master_user_secret = MasterUserSecret(cluster, kms_key_id)
-            else:
+            elif not manage_master_user_password and hasattr(
+                cluster, "master_user_secret"
+            ):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
 
