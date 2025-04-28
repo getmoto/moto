@@ -7,6 +7,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.sns import sns_backends
+from moto.sns.exceptions import TopicNotFound
 
 from .exceptions import InvalidJobIdException, InvalidParameterException
 
@@ -57,11 +58,14 @@ class TextractJob(BaseModel):
         }
 
         sns_backend = sns_backends[account_id][region_name]
-        sns_backend.publish(
-            message=json.dumps(notification),  # SNS requires message to be a string
-            arn=topic_arn,
-            subject="Amazon Textract Job Completion",
-        )
+        try:
+            sns_backend.publish(
+                message=json.dumps(notification),  # SNS requires message to be a string
+                arn=topic_arn,
+                subject="Amazon Textract Job Completion",
+            )
+        except TopicNotFound:
+            pass
 
 
 class TextractBackend(BaseBackend):
