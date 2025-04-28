@@ -353,7 +353,6 @@ class S3Response(BaseResponse):
     ) -> Union[str, TYPE_RESPONSE]:
         querystring = self._get_querystring(request, full_url)
         method = request.method
-
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
             # If no bucket specified, list all buckets
@@ -555,7 +554,12 @@ class S3Response(BaseResponse):
             return self.get_bucket_accelerate_configuration()
         elif "publicAccessBlock" in querystring:
             return self.get_public_access_block()
-
+        elif "inventory" in querystring:
+            # Only GET includes "id" in the querystring, LIST does not
+            if "id" in querystring:
+                return self.get_bucket_inventory_configuration()
+            else:
+                return self.list_bucket_inventory_configurations()
         elif "versions" in querystring:
             return self.list_object_versions()
         elif "encryption" in querystring:
@@ -886,7 +890,12 @@ class S3Response(BaseResponse):
                 bucket_name, ownership=ownership_rule
             )
             return ""
-
+        elif "inventory" in querystring:
+            inventory_config = self._inventory_config_from_body()
+            self.backend.put_bucket_inventory_configuration(
+                bucket_name, inventory_config
+            )
+            return ""
         else:
             # us-east-1, the default AWS region behaves a bit differently
             # - you should not use any location constraint
@@ -1082,6 +1091,29 @@ class S3Response(BaseResponse):
         public_block_config = self.backend.get_public_access_block(self.bucket_name)
         template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
         return template.render(public_block_config=public_block_config)
+
+    def get_bucket_inventory_configuration(self) -> str:
+        config_id = self.querystring["id"][0]
+        inventory_configuration = self.backend.get_bucket_inventory_configuration(
+            bucket_name=self.bucket_name, id=config_id
+        )
+        template = self.response_template(S3_BUCKET_INVENTORY_CONFIGURATION)
+        return template.render(
+            inventory_config=inventory_configuration,
+            s3_bucket_config=inventory_configuration.destination["S3BucketDestination"],
+        )
+
+    def list_bucket_inventory_configurations(self) -> str:
+        inventory_configuration_list = (
+            self.backend.list_bucket_inventory_configurations(
+                bucket_name=self.bucket_name,
+            )
+        )
+        template = self.response_template(LIST_BUCKET_INVENTORY_CONFIGURATIONS_TEMPLATE)
+        # TODO: Add support for pagination/ continuation tokens
+        return template.render(
+            inventory_configuration_list=inventory_configuration_list,
+        )
 
     def _bucket_response_delete(
         self, bucket_name: str, querystring: Dict[str, Any]
@@ -2468,6 +2500,11 @@ class S3Response(BaseResponse):
         config = parsed_xml["ReplicationConfiguration"]
         return config
 
+    def _inventory_config_from_body(self) -> Dict[str, Any]:
+        parsed_xml = xmltodict.parse(self.body)
+        config = parsed_xml["InventoryConfiguration"]
+        return config
+
     def _key_response_delete(
         self, bucket_name: str, query: Dict[str, Any], key_name: str
     ) -> TYPE_RESPONSE:
@@ -3344,6 +3381,97 @@ S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
 </PublicAccessBlockConfiguration>
 """
 
+S3_BUCKET_INVENTORY_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
+<InventoryConfiguration>
+   <Destination>
+      <S3BucketDestination>
+            {%if s3_bucket_config.get('AccountId') %}
+            <AccountId>{{s3_bucket_config['AccountId']}}</AccountId>
+            {% endif %}
+            <Bucket>{{s3_bucket_config['Bucket']}}</Bucket>
+            <Format>{{s3_bucket_config['Format']}}</Format>
+            {%if s3_bucket_config.get('Prefix') %}
+            <Prefix>{{s3_bucket_config['Prefix']}}</Prefix>
+            {% endif %}
+            {% if s3_bucket_config.get('Encryption') %}
+            <Encryption>
+                ## NOTE boto changes the key SSEKMS to SSE-KMS on put and SSE-KMS to SSEKMS on get
+                {% if s3_bucket_config['Encryption'].get('SSE-KMS') %}
+                <SSE-KMS>
+                    <KeyId>{{s3_bucket_config['Encryption']['SSE-KMS']['KeyId']}}</KeyId>
+                </SSE-KMS>
+                {% else %}
+                <SSES3/>
+                {% endif %}
+            </Encryption>
+            {% endif %}
+      </S3BucketDestination>
+   </Destination>
+   <IsEnabled>{{inventory_config.is_enabled}}</IsEnabled>
+   <Filter>
+      <Prefix>{{inventory_config.filters['Prefix']}}</Prefix>
+   </Filter>
+   <Id>{{inventory_config.id}}</Id>
+   <IncludedObjectVersions>All</IncludedObjectVersions>
+   <OptionalFields>
+        {% for field in inventory_config.optional_fields['Field'] %}
+        <Field>{{ field }}</Field>
+        {% endfor %}
+   </OptionalFields>
+   <Schedule>
+      <Frequency>{{inventory_config.schedule['Frequency']}}</Frequency>
+   </Schedule>
+</InventoryConfiguration>
+"""
+
+LIST_BUCKET_INVENTORY_CONFIGURATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListInventoryConfigurationsResult>
+    <IsTruncated>false</IsTruncated>
+    {% for inventory_config in inventory_configuration_list %}
+    <InventoryConfiguration>
+        <Destination>
+            <S3BucketDestination>
+                    {%if inventory_config.destination["S3BucketDestination"].get('AccountId') %}
+                    <AccountId>{{inventory_config.destination["S3BucketDestination"]['AccountId']}}</AccountId>
+                    {% endif %}
+                    <Bucket>{{inventory_config.destination["S3BucketDestination"]['Bucket']}}</Bucket>
+                    <Format>{{inventory_config.destination["S3BucketDestination"]['Format']}}</Format>
+                    {%if inventory_config.destination["S3BucketDestination"].get('Prefix') %}
+                    <Prefix>{{inventory_config.destination["S3BucketDestination"]['Prefix']}}</Prefix>
+                    {% endif %}
+                    {% if inventory_config.destination["S3BucketDestination"].get('Encryption') %}
+                    <Encryption>
+                        ## NOTE boto changes the key SSEKMS to SSE-KMS on put and SSE-KMS to SSEKMS on get
+                        {% if inventory_config.destination["S3BucketDestination"]['Encryption'].get('SSE-KMS') %}
+                        <SSE-KMS>
+                            <KeyId>{{inventory_config.destination["S3BucketDestination"]['Encryption']['SSE-KMS']['KeyId']}}</KeyId>
+                        </SSE-KMS>
+                        {% else %}
+                        <SSES3/>
+                        {% endif %}
+                    </Encryption>
+                    {% endif %}
+            </S3BucketDestination>
+        </Destination>
+        <IsEnabled>{{inventory_config.is_enabled}}</IsEnabled>
+        <Filter>
+            <Prefix>{{inventory_config.filters['Prefix']}}</Prefix>
+        </Filter>
+        <Id>{{inventory_config.id}}</Id>
+        <IncludedObjectVersions>All</IncludedObjectVersions>
+        <OptionalFields>
+                {% for field in inventory_config.optional_fields['Field'] %}
+                <Field>{{ field }}</Field>
+                {% endfor %}
+        </OptionalFields>
+        <Schedule>
+            <Frequency>{{inventory_config.schedule['Frequency']}}</Frequency>
+        </Schedule>
+    </InventoryConfiguration>
+    {% endfor %}
+</ListInventoryConfigurationsResult>
+"""
+
 S3_BUCKET_LOCK_CONFIGURATION = """
 <ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
     {%if lock_enabled %}
@@ -3408,6 +3536,9 @@ S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </Filter>
   <Destination>
     <Bucket>{{ rule["Destination"]["Bucket"] }}</Bucket>
+    {% if rule["Destination"].get("Account") %}
+    <Account>{{ rule["Destination"]["Account"] }}</Account>
+    {% endif %}
   </Destination>
 </Rule>
 {% endfor %}

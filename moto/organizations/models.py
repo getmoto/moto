@@ -257,6 +257,8 @@ class FakePolicy(BaseModel):
             self._arn_format = utils.AI_POLICY_ARN_FORMAT
         elif self.type == "SERVICE_CONTROL_POLICY":
             self._arn_format = utils.SCP_ARN_FORMAT
+        elif self.type == "TAG_POLICY":
+            self._arn_format = utils.TAG_POLICY_ARN_FORMAT
         else:
             raise NotImplementedError(
                 f"The {self.type} policy type has not been implemented"
@@ -778,7 +780,11 @@ class OrganizationsBackend(BaseBackend):
         if not FakePolicy.supported_policy_type(_filter):
             raise InvalidInputException("You specified an invalid value.")
 
-        if _filter not in ["AISERVICES_OPT_OUT_POLICY", "SERVICE_CONTROL_POLICY"]:
+        if _filter not in [
+            "AISERVICES_OPT_OUT_POLICY",
+            "SERVICE_CONTROL_POLICY",
+            "TAG_POLICY",
+        ]:
             raise NotImplementedError(
                 f"The {_filter} policy type has not been implemented"
             )

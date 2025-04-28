@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -33,6 +33,7 @@ class TextractBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.async_text_detection_jobs: Dict[str, TextractJob] = defaultdict()
+        self.async_document_analysis_jobs: Dict[str, TextractJob] = defaultdict()
 
     def get_document_text_detection(self, job_id: str) -> TextractJob:
         """
@@ -66,6 +67,33 @@ class TextractBackend(BaseBackend):
             }
         )
         return job_id
+
+    def start_document_analysis(
+        self, document_location: dict[str, Any], feature_types: List[str]
+    ) -> str:
+        """
+        The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
+        """
+        if not document_location or not feature_types:
+            raise InvalidParameterException()
+        job_id = str(mock_random.uuid4())
+        self.async_document_analysis_jobs[job_id] = TextractJob(
+            {
+                "Blocks": TextractBackend.BLOCKS,
+                "DetectDocumentTextModelVersion": "1.0",
+                "DocumentMetadata": {"Pages": TextractBackend.PAGES},
+                "JobStatus": TextractBackend.JOB_STATUS,
+            }
+        )
+        return job_id
+
+    def get_document_analysis(
+        self, job_id: str, max_results: Optional[int], next_token: Optional[str] = None
+    ) -> TextractJob:
+        job = self.async_document_analysis_jobs.get(job_id)
+        if not job:
+            raise InvalidJobIdException()
+        return job
 
 
 textract_backends = BackendDict(TextractBackend, "textract")

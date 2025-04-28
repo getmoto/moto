@@ -1140,6 +1140,14 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "i7ie.xlarge",
   "Location": "ap-northeast-1"
  },
@@ -1993,6 +2001,54 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.12xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.16xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.24xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.2xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.48xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.4xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.8xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.large",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.medium",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.metal-24xl",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.metal-48xl",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "m8g.xlarge",
   "Location": "ap-northeast-1"
  },
  {

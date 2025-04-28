@@ -4,9 +4,11 @@ from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
+from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
+from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ec2 import ec2_backends
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
@@ -19,6 +21,10 @@ from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
+from moto.kinesisanalyticsv2.models import (
+    KinesisAnalyticsV2Backend,
+    kinesisanalyticsv2_backends,
+)
 from moto.kms.models import KmsBackend, kms_backends
 from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
@@ -62,6 +68,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return s3_backends[self.account_id][self.partition]
 
     @property
+    def dms_backend(self) -> DatabaseMigrationServiceBackend:
+        return dms_backends[self.account_id][self.region_name]
+
+    @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
         return ec2_backends[self.account_id][self.region_name]
 
@@ -88,6 +98,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def kinesis_backend(self) -> KinesisBackend:
         return kinesis_backends[self.account_id][self.region_name]
+
+    @property
+    def kinesisanalyticsv2_backend(self) -> KinesisAnalyticsV2Backend:
+        return kinesisanalyticsv2_backends[self.account_id][self.region_name]
 
     @property
     def kms_backend(self) -> KmsBackend:
@@ -179,6 +193,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def lexv2_backend(self) -> Optional[LexModelsV2Backend]:
         if self.region_name in lexv2models_backends[self.account_id].regions:
             return lexv2models_backends[self.account_id][self.region_name]
+        return None
+
+    @property
+    def clouddirectory_backend(self) -> Optional[CloudDirectoryBackend]:
+        if self.region_name in clouddirectory_backends[self.account_id].regions:
+            return clouddirectory_backends[self.account_id][self.region_name]
         return None
 
     @property
@@ -288,6 +308,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": bucket.arn, "Tags": tags}
 
+        # Cloud Directory
+        if self.clouddirectory_backend:
+            if not resource_type_filters or "clouddirectory" in resource_type_filters:
+                clouddirectory_backend = clouddirectory_backends[self.account_id][
+                    self.region_name
+                ]
+                for directory in clouddirectory_backend.directories.values():
+                    tags = clouddirectory_backend.tagger.list_tags_for_resource(
+                        directory.directory_arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{directory.directory_arn}", "Tags": tags}
+
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
             try:
@@ -319,6 +353,28 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {"ResourceARN": f"{dist.arn}", "Tags": tags}
+
+        # DMS
+        if not resource_type_filters or "dms:endpoint" in resource_type_filters:
+            for endpoint in self.dms_backend.endpoints.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    endpoint.endpoint_arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{endpoint.endpoint_arn}", "Tags": tags}
+
+        if (
+            not resource_type_filters
+            or "dms:replication-instance" in resource_type_filters
+        ):
+            for replication_instance in self.dms_backend.replication_instances.values():
+                tags = self.dms_backend.tagger.list_tags_for_resource(
+                    replication_instance.arn
+                )["Tags"]
+                if not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{replication_instance.arn}", "Tags": tags}
 
         # ECS
         if not resource_type_filters or "ecs:service" in resource_type_filters:
@@ -510,6 +566,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # Kinesis
 
+        # KinesisAnalyticsV2
+        if self.kinesisanalyticsv2_backend and (
+            not resource_type_filters or "kinesisanalyticsv2" in resource_type_filters
+        ):
+            for application in self.kinesisanalyticsv2_backend.applications.values():
+                tags = self.kinesisanalyticsv2_backend.tagger.list_tags_for_resource(
+                    application.application_arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {
+                    "ResourceARN": application.application_arn,
+                    "Tags": tags,
+                }
+
         # KMS
         if not resource_type_filters or "kms" in resource_type_filters:
             for kms_key in self.kms_backend.list_keys():
@@ -535,7 +606,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     or resource_type in resource_type_filters
                 ):
                     for resource in resource_source.values():
-                        tags = format_tags(resource.tags)
+                        bot_tags = self.lexv2_backend.list_tags_for_resource(
+                            resource.arn
+                        )
+
+                        tags = format_tags(bot_tags)
                         if not tags or not tag_filter(tags):
                             continue
                         yield {

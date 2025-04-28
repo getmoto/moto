@@ -392,14 +392,33 @@ class EmailResponse(BaseResponse):
         params = self._get_params()
         next_token = params.get("NextToken")
         max_items = params.get("MaxItems")
-        configuration_sets = self.backend.list_configuration_sets(
+        configuration_sets, next_token = self.backend.list_configuration_sets(
             next_token=next_token,
             max_items=max_items,
         )
+        config_set_names = [c.configuration_set_name for c in configuration_sets]
         template = self.response_template(LIST_CONFIGURATION_SETS_TEMPLATE)
         return template.render(
-            configuration_sets=configuration_sets, next_token=next_token
+            configuration_sets=config_set_names, next_token=next_token
         )
+
+    def update_configuration_set_reputation_metrics_enabled(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        enabled = self._get_param("Enabled")
+        self.backend.update_configuration_set_reputation_metrics_enabled(
+            configuration_set_name=configuration_set_name,
+            enabled=enabled,
+        )
+        template = self.response_template(
+            UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE
+        )
+        return template.render()
+
+    def get_identity_dkim_attributes(self) -> str:
+        identities = self._get_multi_param("Identities.member.")
+        dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
+        template = self.response_template(GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE)
+        return template.render(dkim_attributes=dkim_attributes)
 
 
 VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
@@ -860,3 +879,36 @@ LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http
     <NextToken>{{ next_token }}</NextToken>
   </ListConfigurationSetsResult>
 </ListConfigurationSetsResponse>"""
+
+UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE = """<UpdateConfigurationSetReputationMetricsEnabledResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <UpdateConfigurationSetReputationMetricsEnabledResult/>
+  <ResponseMetadata>
+    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
+  </ResponseMetadata>
+</UpdateConfigurationSetReputationMetricsEnabledResponse>"""
+
+GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE = """<GetIdentityDkimAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
+  <GetIdentityDkimAttributesResult>
+    <DkimAttributes>
+      {% for identity, attributes in dkim_attributes.items() %}
+      <entry>
+        <key>{{ identity }}</key>
+        <value>
+          <DkimEnabled>{{ attributes.DkimEnabled|lower }}</DkimEnabled>
+          <DkimVerificationStatus>{{ attributes.DkimVerificationStatus }}</DkimVerificationStatus>
+          {% if attributes.get('DkimTokens') %}
+          <DkimTokens>
+            {% for token in attributes.DkimTokens %}
+            <member>{{ token }}</member>
+            {% endfor %}
+          </DkimTokens>
+          {% endif %}
+        </value>
+      </entry>
+      {% endfor %}
+    </DkimAttributes>
+  </GetIdentityDkimAttributesResult>
+  <ResponseMetadata>
+    <RequestId>9662c15b-c469-11e1-99d1-797d6ecd6414</RequestId>
+  </ResponseMetadata>
+</GetIdentityDkimAttributesResponse>"""

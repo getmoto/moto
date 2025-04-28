@@ -285,3 +285,158 @@ def test_describe_replication_instances():
     instances = response["ReplicationInstances"]
     assert len(instances) == 1
     assert instances[0]["ReplicationInstanceIdentifier"] == "test-instance-2"
+
+
+@mock_aws
+def test_create_endpoint():
+    region_name = "ap-southeast-1"
+    client = boto3.client("dms", region_name=region_name)
+
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        Username="admin",
+        ServerName="test-server",
+        Port=3306,
+        DatabaseName="test-db",
+        ExtraConnectionAttributes="",
+        KmsKeyId="test-kms-key-id",
+        CertificateArn="test-certificate-arn",
+        SslMode="require",
+        ServiceAccessRoleArn="test-service-role-arn",
+        ExternalTableDefinition="",
+    )
+
+    endpoint = response["Endpoint"]
+
+    # Assertions for the required fields
+    assert endpoint["EndpointIdentifier"] == "test-endpoint"
+    assert endpoint["EndpointType"] == "source"
+    assert endpoint["EngineName"] == "mysql"
+    assert endpoint["Username"] == "admin"
+    assert endpoint["ServerName"] == "test-server"
+    assert endpoint["Port"] == 3306
+    assert endpoint["DatabaseName"] == "test-db"
+    assert endpoint["Status"] == "creating"
+    assert endpoint["KmsKeyId"] == "test-kms-key-id"
+    assert (
+        f"arn:aws:dms:{region_name}:123456789012:endpoint:" in endpoint["EndpointArn"]
+    )
+    assert endpoint["SslMode"] == "require"
+
+
+@mock_aws
+def test_create_endpoint_resource_identifier():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    resource_identifier = "test-resource-identifier"
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        ResourceIdentifier=resource_identifier,
+    )
+
+    endpoint = response["Endpoint"]
+
+    # Assertions for the required fields
+    assert endpoint["EndpointIdentifier"] == "test-endpoint"
+    assert endpoint["EndpointType"] == "source"
+    assert endpoint["EngineName"] == "mysql"
+    assert resource_identifier == endpoint["EndpointArn"].split(":")[-1]
+
+
+@mock_aws
+def test_describe_endpoints():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+    num_endpoints = 3
+    for i in range(num_endpoints):
+        client.create_endpoint(
+            EndpointIdentifier=f"test-endpoint-{i}",
+            EndpointType="source",
+            EngineName="mysql",
+        )
+
+    resp = client.describe_endpoints()
+    assert len(resp["Endpoints"]) == num_endpoints
+
+
+@mock_aws
+def test_describe_endpoints_filter():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    for i in range(3):
+        client.create_endpoint(
+            EndpointIdentifier=f"test-endpoint-{i}",
+            EndpointType="source",
+            EngineName="mysql",
+        )
+
+    endpoint_filter = {"Name": "endpoint-id", "Values": ["test-endpoint-1"]}
+    resp = client.describe_endpoints(Filters=[endpoint_filter])
+    assert len(resp["Endpoints"]) == 1
+
+    engine_filter = {"Name": "engine-name", "Values": ["mysql"]}
+    resp = client.describe_endpoints(Filters=[engine_filter])
+    assert len(resp["Endpoints"]) == 3
+
+
+@mock_aws
+def test_list_tags_for_resource_replication_instance():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test",
+        ReplicationInstanceClass="dms.c4.large",
+        Tags=[{"Key": "Environment", "Value": "Production"}],
+    )
+
+    arn = response["ReplicationInstance"]["ReplicationInstanceArn"]
+
+    resp = client.list_tags_for_resource(ResourceArn=arn)
+    assert resp["TagList"] == [
+        {"Key": "Environment", "Value": "Production", "ResourceArn": arn}
+    ]
+
+
+@mock_aws
+def test_list_tags_for_resource_endpoint():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    arn = response["Endpoint"]["EndpointArn"]
+
+    resp = client.list_tags_for_resource(ResourceArn=arn)
+    assert resp["TagList"] == [
+        {"Key": "Name", "Value": "Test Endpoint", "ResourceArn": arn}
+    ]
+
+
+@mock_aws
+def test_list_tags_for_resource_endpoints():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_arn1 = response["Endpoint"]["EndpointArn"]
+
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        Tags=[{"Key": "Name", "Value": "Test Endpoint"}],
+    )
+    endpoint_arn2 = response["Endpoint"]["EndpointArn"]
+
+    resp = client.list_tags_for_resource(ResourceArnList=[endpoint_arn1, endpoint_arn2])
+    assert len(resp["TagList"]) == 2

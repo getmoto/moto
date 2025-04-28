@@ -130,6 +130,16 @@ class MissingVersion(S3ClientError):
         super().__init__("NoSuchVersion", "The specified version does not exist.")
 
 
+class MissingInventoryConfig(S3ClientError):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchInventoryConfig",
+            "The specified inventory configuration does not exist.",
+        )
+
+
 class InvalidVersion(S3ClientError):
     code = 400
 
@@ -618,26 +628,6 @@ class HeadOnDeleteMarker(Exception):
 
     def __init__(self, marker: "FakeDeleteMarker"):
         self.marker = marker
-
-
-class DaysMustNotProvidedForSelectRequest(S3ClientError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            "DaysMustNotProvidedForSelectRequest",
-            "`Days` must not be provided for select requests",
-        )
-
-
-class DaysMustProvidedExceptForSelectRequest(S3ClientError):
-    code = 400
-
-    def __init__(self) -> None:
-        super().__init__(
-            "DaysMustProvidedExceptForSelectRequest",
-            "`Days` must be provided except for select requests",
-        )
 
 
 class MethodNotAllowed(S3ClientError):

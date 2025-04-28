@@ -37,6 +37,7 @@ class DbInstanceEngine(str, Enum):
     CUSTOM_SQLSERVER_WEB = "custom-sqlserver-web"
     MARIADB = "mariadb"
     MYSQL = "mysql"
+    NEPTUNE = "neptune"
     ORACLE_EE = "oracle-ee"
     ORACLE_EE_CDB = "oracle-ee-cdb"
     ORACLE_SE2 = "oracle-se2"
