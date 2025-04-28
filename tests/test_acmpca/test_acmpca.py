@@ -11,7 +11,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import DNSName, NameOID
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.acmpca.models import acmpca_backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import utcnow
@@ -762,13 +762,16 @@ def test_revoke_certificate():
     )
 
     # Verify the certificate is revoked by checking the backend directly
-    backend = acmpca_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    ca = backend.describe_certificate_authority(ca_arn)
-    assert serial_number in ca.revoked_certificates
-    assert (
-        ca.revoked_certificates[serial_number]["revocation_reason"] == "KEY_COMPROMISE"
-    )
-    assert "revocation_time" in ca.revoked_certificates[serial_number]
+    if not settings.TEST_SERVER_MODE:
+        # Can't verify this in ServerMode
+        backend = acmpca_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
+        ca = backend.describe_certificate_authority(ca_arn)
+        assert serial_number in ca.revoked_certificates
+        assert (
+            ca.revoked_certificates[serial_number]["revocation_reason"]
+            == "KEY_COMPROMISE"
+        )
+        assert "revocation_time" in ca.revoked_certificates[serial_number]
 
     # Try to get the certificate after revocation - this should fail
     with pytest.raises(ClientError) as exc:
