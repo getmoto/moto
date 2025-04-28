@@ -2512,9 +2512,9 @@ def test_delete_resource_config():
 
     from moto.config.models import config_backends
 
-    backend = config_backends[boto3.client("sts").get_caller_identity()["Account"]][
-        "us-east-1"
-    ]
+    backend = config_backends[
+        boto3.client("sts", region_name="us-east-1").get_caller_identity()["Account"]
+    ]["us-east-1"]
 
     resource_type = "AWS::S3::Bucket"
     resource_id = "test-resource-id"
@@ -2559,9 +2559,9 @@ def test_select_resource_config_with_query_results_queue():
 
     from moto.config.models import config_backends
 
-    backend = config_backends[boto3.client("sts").get_caller_identity()["Account"]][
-        "us-east-1"
-    ]
+    backend = config_backends[
+        boto3.client("sts", region_name="us-east-1").get_caller_identity()["Account"]
+    ]["us-east-1"]
 
     example_results = [
         {"resourceId": "queue-resource-1", "resourceType": "AWS::S3::Bucket"},
@@ -2595,9 +2595,9 @@ def test_select_resource_config_with_expression_results():
 
     from moto.config.models import config_backends
 
-    backend = config_backends[boto3.client("sts").get_caller_identity()["Account"]][
-        "us-east-1"
-    ]
+    backend = config_backends[
+        boto3.client("sts", region_name="us-east-1").get_caller_identity()["Account"]
+    ]["us-east-1"]
 
     expression = "SELECT resourceId, resourceType FROM AWS::EC2::Instance"
     predefined_results = [
