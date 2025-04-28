@@ -1,6 +1,7 @@
 import datetime
 import json
 import pickle
+from unittest import SkipTest
 
 import boto3
 import cryptography.hazmat.primitives.asymmetric.rsa
@@ -700,6 +701,8 @@ def test_policy_operations():
 
 @mock_aws
 def test_revoke_certificate():
+    if settings.is_test_proxy_mode():
+        raise SkipTest("Cannot verify backend state in proxy mode")
     client = boto3.client("acm-pca", region_name="us-east-1")
 
     # Create and activate a CA
