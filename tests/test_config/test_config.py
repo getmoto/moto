@@ -9,7 +9,7 @@ import pytest
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -2508,6 +2508,11 @@ def test_put_resource_config():
 
 @mock_aws
 def test_delete_resource_config():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Test fails in server mode because the backend reference doesn't access the same instance that the client uses"
+        )
+
     client = boto3.client("config", region_name="us-east-1")
 
     from moto.config.models import config_backends
@@ -2555,6 +2560,11 @@ def test_delete_resource_config():
 
 @mock_aws
 def test_select_resource_config_with_query_results_queue():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Test fails in server mode because the backend reference doesn't access the same instance that the client uses"
+        )
+
     config_client = boto3.client("config", region_name="us-east-1")
 
     from moto.config.models import config_backends
@@ -2591,6 +2601,11 @@ def test_select_resource_config_with_query_results_queue():
 
 @mock_aws
 def test_select_resource_config_with_expression_results():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest(
+            "Test fails in server mode because the backend reference doesn't access the same instance that the client uses"
+        )
+
     config_client = boto3.client("config", region_name="us-east-1")
 
     from moto.config.models import config_backends
