@@ -697,3 +697,63 @@ def test_policy_operations():
     with pytest.raises(ClientError) as exc:
         client.get_policy(ResourceArn=ca_arn)
     assert exc.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_certificate_authorities():
+    client = boto3.client("acm-pca", region_name="us-east-1")
+    
+    # Create first CA
+    ca1_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "ca1.test"},
+        },
+        CertificateAuthorityType="SUBORDINATE",
+        IdempotencyToken="token1",
+    )["CertificateAuthorityArn"]
+    
+    # Create second CA
+    ca2_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "ca2.test"},
+        },
+        CertificateAuthorityType="ROOT",
+        IdempotencyToken="token2",
+    )["CertificateAuthorityArn"]
+    
+    # List all CAs
+    response = client.list_certificate_authorities()
+    
+    # Verify response structure and content
+    assert "CertificateAuthorities" in response
+    cas = response["CertificateAuthorities"]
+    assert len(cas) == 2
+    
+    # Verify CAs are returned with correct information
+    ca_arns = [ca["Arn"] for ca in cas]
+    assert ca1_arn in ca_arns
+    assert ca2_arn in ca_arns
+    
+    # Verify CA details
+    for ca in cas:
+        assert "Arn" in ca
+        assert "CreatedAt" in ca
+        assert "Status" in ca
+        assert "Type" in ca
+        if ca["Arn"] == ca1_arn:
+            assert ca["Type"] == "SUBORDINATE"
+            assert ca["Status"] == "PENDING_CERTIFICATE"
+            assert ca["CertificateAuthorityConfiguration"]["Subject"]["CommonName"] == "ca1.test"
+        else:
+            assert ca["Type"] == "ROOT"
+            assert ca["Status"] == "PENDING_CERTIFICATE"
+            assert ca["CertificateAuthorityConfiguration"]["Subject"]["CommonName"] == "ca2.test"
+
+    # Test with MaxResults parameter
+    response = client.list_certificate_authorities(MaxResults=1)
+    assert len(response["CertificateAuthorities"]) == 1
+    assert "NextToken" in response
