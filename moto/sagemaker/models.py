@@ -809,6 +809,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             endpoint_config_name=resource_name,
             production_variants=production_variants,
             data_capture_config=properties.get("DataCaptureConfig", {}),
+            async_inference_config=properties.get("AsyncInferenceConfig", {}),
             kms_key_id=properties.get("KmsKeyId"),
             tags=properties.get("Tags", []),
         )
@@ -1190,9 +1191,9 @@ class FeatureGroup(BaseObject):
             "Catalog": "AwsDataCatalog",
             "Database": "sagemaker_featurestore",
         }
-        offline_store_config["S3StorageConfig"]["ResolvedOutputS3Uri"] = (
-            f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
-        )
+        offline_store_config["S3StorageConfig"][
+            "ResolvedOutputS3Uri"
+        ] = f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
 
         self.offline_store_config = offline_store_config
         self.role_arn = role_arn
@@ -1260,9 +1261,11 @@ class ModelPackage(BaseObject):
             region_name=region_name,
             account_id=account_id,
             _type="model-package",
-            _id=f"{model_package_name.lower()}/{model_package_version}"
-            if model_package_version
-            else model_package_name.lower(),
+            _id=(
+                f"{model_package_name.lower()}/{model_package_version}"
+                if model_package_version
+                else model_package_name.lower()
+            ),
         )
         datetime_now = datetime.now(tzutc())
         self.model_package_name = model_package_name
@@ -2075,9 +2078,11 @@ class AutoMLJob(BaseObject):
         }
 
         self.model_deploy_result = {
-            "EndpointName": self.model_deploy_config["EndpointName"]
-            if self.model_deploy_config
-            else "endpoint_name",
+            "EndpointName": (
+                self.model_deploy_config["EndpointName"]
+                if self.model_deploy_config
+                else "endpoint_name"
+            ),
         }
 
     def describe(self) -> Dict[str, Any]:
@@ -3420,9 +3425,11 @@ class SageMakerModelBackend(BaseBackend):
             kms_key_id=kms_key_id,
             tags=tags,
             lifecycle_config_name=lifecycle_config_name,
-            direct_internet_access=direct_internet_access
-            if direct_internet_access is not None
-            else "Enabled",
+            direct_internet_access=(
+                direct_internet_access
+                if direct_internet_access is not None
+                else "Enabled"
+            ),
             volume_size_in_gb=volume_size_in_gb if volume_size_in_gb is not None else 5,
             accelerator_types=accelerator_types,
             default_code_repository=default_code_repository,
@@ -3765,12 +3772,12 @@ class SageMakerModelBackend(BaseBackend):
         for attr_key, attr_value in kwargs.items():
             if attr_value:
                 if attr_key == "pipeline_definition_s3_location":
-                    self.pipelines[
-                        pipeline_name
-                    ].pipeline_definition = load_pipeline_definition_from_s3(  # type: ignore
-                        attr_value,
-                        self.account_id,
-                        partition=self.partition,
+                    self.pipelines[pipeline_name].pipeline_definition = (
+                        load_pipeline_definition_from_s3(  # type: ignore
+                            attr_value,
+                            self.account_id,
+                            partition=self.partition,
+                        )
                     )
                     continue
                 setattr(self.pipelines[pipeline_name], attr_key, attr_value)
@@ -3808,12 +3815,12 @@ class SageMakerModelBackend(BaseBackend):
             client_request_token=client_request_token,
         )
 
-        self.pipelines[pipeline_name].pipeline_executions[pipeline_execution_arn] = (
-            fake_pipeline_execution
+        self.pipelines[pipeline_name].pipeline_executions[
+            pipeline_execution_arn
+        ] = fake_pipeline_execution
+        self.pipelines[pipeline_name].last_execution_time = (
+            fake_pipeline_execution.start_time
         )
-        self.pipelines[
-            pipeline_name
-        ].last_execution_time = fake_pipeline_execution.start_time
 
         return {"PipelineExecutionArn": pipeline_execution_arn}
 
