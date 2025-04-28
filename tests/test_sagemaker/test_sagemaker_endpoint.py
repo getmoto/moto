@@ -124,7 +124,7 @@ def test_create_endpoint_config_async(sagemaker_client):
         )
     assert e.value.response["Error"]["Message"].startswith("Could not find model")
 
-    # Testing serverless endpoint configuration
+    # Testing async inference endpoint configuration
     create_endpoint_config_helper(
         sagemaker_client,
         TEST_SERVERLESS_PRODUCTION_VARIANTS,
