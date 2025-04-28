@@ -51,7 +51,7 @@
 
 ## amp
 <details>
-<summary>58% implemented</summary>
+<summary>62% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
@@ -68,7 +68,6 @@
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
-- [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
 - [X] list_rule_groups_namespaces
 - [ ] list_scrapers
@@ -81,7 +80,6 @@
 - [X] update_logging_configuration
 - [ ] update_scraper
 - [X] update_workspace_alias
-- [ ] update_workspace_configuration
 </details>
 
 ## apigateway
@@ -1758,7 +1756,7 @@
 
 ## comprehend
 <details>
-<summary>12% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1769,24 +1767,24 @@
 - [ ] classify_document
 - [ ] contains_pii_entities
 - [ ] create_dataset
-- [ ] create_document_classifier
-- [ ] create_endpoint
+- [X] create_document_classifier
+- [X] create_endpoint
 - [X] create_entity_recognizer
-- [ ] create_flywheel
-- [ ] delete_document_classifier
-- [ ] delete_endpoint
+- [X] create_flywheel
+- [X] delete_document_classifier
+- [X] delete_endpoint
 - [X] delete_entity_recognizer
-- [ ] delete_flywheel
+- [X] delete_flywheel
 - [ ] delete_resource_policy
 - [ ] describe_dataset
 - [ ] describe_document_classification_job
-- [ ] describe_document_classifier
+- [X] describe_document_classifier
 - [ ] describe_dominant_language_detection_job
-- [ ] describe_endpoint
+- [X] describe_endpoint
 - [ ] describe_entities_detection_job
 - [X] describe_entity_recognizer
 - [ ] describe_events_detection_job
-- [ ] describe_flywheel
+- [X] describe_flywheel
 - [ ] describe_flywheel_iteration
 - [ ] describe_key_phrases_detection_job
 - [ ] describe_pii_entities_detection_job
@@ -1806,15 +1804,15 @@
 - [ ] list_datasets
 - [ ] list_document_classification_jobs
 - [ ] list_document_classifier_summaries
-- [ ] list_document_classifiers
+- [X] list_document_classifiers
 - [ ] list_dominant_language_detection_jobs
-- [ ] list_endpoints
+- [X] list_endpoints
 - [ ] list_entities_detection_jobs
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
 - [ ] list_events_detection_jobs
 - [ ] list_flywheel_iteration_history
-- [ ] list_flywheels
+- [X] list_flywheels
 - [ ] list_key_phrases_detection_jobs
 - [ ] list_pii_entities_detection_jobs
 - [ ] list_sentiment_detection_jobs
@@ -1826,7 +1824,7 @@
 - [ ] start_dominant_language_detection_job
 - [ ] start_entities_detection_job
 - [ ] start_events_detection_job
-- [ ] start_flywheel_iteration
+- [X] start_flywheel_iteration
 - [ ] start_key_phrases_detection_job
 - [ ] start_pii_entities_detection_job
 - [ ] start_sentiment_detection_job
@@ -1839,11 +1837,11 @@
 - [ ] stop_pii_entities_detection_job
 - [ ] stop_sentiment_detection_job
 - [ ] stop_targeted_sentiment_detection_job
-- [ ] stop_training_document_classifier
+- [X] stop_training_document_classifier
 - [X] stop_training_entity_recognizer
 - [X] tag_resource
 - [X] untag_resource
-- [ ] update_endpoint
+- [X] update_endpoint
 - [ ] update_flywheel
 </details>
 
@@ -2389,14 +2387,13 @@
 
 ## dsql
 <details>
-<summary>18% implemented</summary>
+<summary>20% implemented</summary>
 
 - [X] create_cluster
 - [ ] create_multi_region_clusters
 - [ ] delete_cluster
 - [ ] delete_multi_region_clusters
 - [X] get_cluster
-- [ ] get_vpc_endpoint_service_name
 - [ ] list_clusters
 - [ ] list_tags_for_resource
 - [ ] tag_resource
@@ -8036,7 +8033,7 @@
 
 ## s3tables
 <details>
-<summary>46% implemented</summary>
+<summary>53% implemented</summary>
 
 - [X] create_namespace
 - [X] create_table
@@ -8044,16 +8041,13 @@
 - [X] delete_namespace
 - [X] delete_table
 - [X] delete_table_bucket
-- [ ] delete_table_bucket_encryption
 - [ ] delete_table_bucket_policy
 - [ ] delete_table_policy
 - [X] get_namespace
 - [X] get_table
 - [X] get_table_bucket
-- [ ] get_table_bucket_encryption
 - [ ] get_table_bucket_maintenance_configuration
 - [ ] get_table_bucket_policy
-- [ ] get_table_encryption
 - [ ] get_table_maintenance_configuration
 - [ ] get_table_maintenance_job_status
 - [ ] get_table_metadata_location
@@ -8061,7 +8055,6 @@
 - [X] list_namespaces
 - [X] list_table_buckets
 - [X] list_tables
-- [ ] put_table_bucket_encryption
 - [ ] put_table_bucket_maintenance_configuration
 - [ ] put_table_bucket_policy
 - [ ] put_table_maintenance_configuration
@@ -9467,20 +9460,20 @@
 
 ## timestream-influxdb
 <details>
-<summary>41% implemented</summary>
+<summary>76% implemented</summary>
 
-- [ ] create_db_cluster
+- [X] create_db_cluster
 - [X] create_db_instance
-- [ ] create_db_parameter_group
+- [X] create_db_parameter_group
 - [ ] delete_db_cluster
 - [X] delete_db_instance
-- [ ] get_db_cluster
+- [X] get_db_cluster
 - [X] get_db_instance
-- [ ] get_db_parameter_group
-- [ ] list_db_clusters
+- [X] get_db_parameter_group
+- [X] list_db_clusters
 - [X] list_db_instances
 - [ ] list_db_instances_for_cluster
-- [ ] list_db_parameter_groups
+- [X] list_db_parameter_groups
 - [X] list_tags_for_resource
 - [X] tag_resource
 - [X] untag_resource

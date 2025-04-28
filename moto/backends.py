@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from moto.bedrockagent.models import AgentsforBedrockBackend
     from moto.budgets.models import BudgetsBackend
     from moto.ce.models import CostExplorerBackend
+    from moto.clouddirectory.models import CloudDirectoryBackend
     from moto.cloudformation.models import CloudFormationBackend
     from moto.cloudfront.models import CloudFrontBackend
     from moto.cloudtrail.models import CloudTrailBackend
@@ -101,6 +102,7 @@ if TYPE_CHECKING:
     from moto.meteringmarketplace.models import MeteringMarketplaceBackend
     from moto.moto_api._internal.models import MotoAPIBackend
     from moto.mq.models import MQBackend
+    from moto.networkfirewall.models import NetworkFirewallBackend
     from moto.networkmanager.models import NetworkManagerBackend
     from moto.opensearch.models import OpenSearchServiceBackend
     from moto.opensearchserverless.models import OpenSearchServiceServerlessBackend
@@ -214,6 +216,7 @@ SERVICE_NAMES = Union[
     "Literal['bedrock-agent']",
     "Literal['budgets']",
     "Literal['ce']",
+    "Literal['clouddirectory']",
     "Literal['cloudformation']",
     "Literal['cloudfront']",
     "Literal['cloudtrail']",
@@ -289,6 +292,7 @@ SERVICE_NAMES = Union[
     "Literal['moto_api']",
     "Literal['mq']",
     "Literal['neptune']",
+    "Literal['networkfirewall']",
     "Literal['networkmanager']",
     "Literal['opensearch']",
     "Literal['opensearchserverless']",
@@ -405,6 +409,10 @@ def get_backend(
 def get_backend(name: "Literal['budgets']") -> "BackendDict[BudgetsBackend]": ...
 @overload
 def get_backend(name: "Literal['ce']") -> "BackendDict[CostExplorerBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['clouddirectory']",
+) -> "BackendDict[CloudDirectoryBackend]": ...
 @overload
 def get_backend(
     name: "Literal['cloudformation']",
@@ -609,6 +617,10 @@ def get_backend(name: "Literal['moto_api']") -> "BackendDict[MotoAPIBackend]": .
 def get_backend(name: "Literal['mq']") -> "BackendDict[MQBackend]": ...
 @overload
 def get_backend(name: "Literal['neptune']") -> "BackendDict[RDSBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['networkfirewall']",
+) -> "BackendDict[NetworkFirewallBackend]": ...
 @overload
 def get_backend(
     name: "Literal['networkmanager']",

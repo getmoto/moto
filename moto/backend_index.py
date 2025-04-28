@@ -26,6 +26,7 @@ backend_url_patterns = [
     ("bedrockagent", re.compile("https?://bedrock-agent\\.(.+)\\.amazonaws\\.com")),
     ("budgets", re.compile("https?://budgets\\.amazonaws\\.com")),
     ("ce", re.compile("https?://ce\\.(.+)\\.amazonaws\\.com")),
+    ("clouddirectory", re.compile("https?://clouddirectory\\.(.+)\\.amazonaws\\.com")),
     ("cloudformation", re.compile("https?://cloudformation\\.(.+)\\.amazonaws\\.com")),
     ("cloudfront", re.compile("https?://cloudfront\\.amazonaws\\.com")),
     ("cloudfront", re.compile("https?://cloudfront\\.(.+)\\.amazonaws\\.com")),
@@ -139,6 +140,10 @@ backend_url_patterns = [
     ),
     ("moto_api._internal", re.compile("https?://motoapi\\.amazonaws\\.com")),
     ("mq", re.compile("https?://mq\\.(.+)\\.amazonaws\\.com")),
+    (
+        "networkfirewall",
+        re.compile("https?://network-firewall\\.(.+)\\.amazonaws\\.com"),
+    ),
     ("networkmanager", re.compile("https?://networkmanager\\.(.+)\\.amazonaws\\.com")),
     ("opensearchserverless", re.compile("https?://aoss\\.(.+)\\.amazonaws\\.com")),
     ("opsworks", re.compile("https?://opsworks\\.us-east-1\\.amazonaws.com")),

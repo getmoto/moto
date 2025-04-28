@@ -103,7 +103,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         multi_az = params.get("MultiAZ")
         engine_version = params.get("EngineVersion")
         auto_minor_version_upgrade = params.get("AutoMinorVersionUpgrade")
-        tags = self._get_list_prefix("Tags.member")
+        tags = params.get("Tags")
         kms_key_id = params.get("KmsKeyId")
         publicly_accessible = params.get("PubliclyAccessible")
         dns_name_servers = params.get("DnsNameServers")
@@ -147,3 +147,122 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
         # TODO: Add Marker (optional) to the response
         return json.dumps({"ReplicationInstances": instances_dict})
+
+    def create_endpoint(self) -> str:
+        params = json.loads(self.body)
+        endpoint_identifier = params.get("EndpointIdentifier")
+        endpoint_type = params.get("EndpointType")
+        engine_name = params.get("EngineName")
+        username = params.get("Username")
+        password = params.get("Password")
+        server_name = params.get("ServerName")
+        port = params.get("Port")
+        database_name = params.get("DatabaseName")
+        extra_connection_attributes = params.get("ExtraConnectionAttributes")
+        kms_key_id = params.get("KmsKeyId")
+        tags = params.get("Tags")
+        certificate_arn = params.get("CertificateArn")
+        ssl_mode = params.get("SslMode")
+        service_access_role_arn = params.get("ServiceAccessRoleArn")
+        external_table_definition = params.get("ExternalTableDefinition")
+        dynamo_db_settings = params.get("DynamoDbSettings")
+        s3_settings = params.get("S3Settings")
+        dms_transfer_settings = params.get("DmsTransferSettings")
+        mongo_db_settings = params.get("MongoDbSettings")
+        kinesis_settings = params.get("KinesisSettings")
+        kafka_settings = params.get("KafkaSettings")
+        elasticsearch_settings = params.get("ElasticsearchSettings")
+        neptune_settings = params.get("NeptuneSettings")
+        redshift_settings = params.get("RedshiftSettings")
+        postgre_sql_settings = params.get("PostgreSQLSettings")
+        my_sql_settings = params.get("MySQLSettings")
+        oracle_settings = params.get("OracleSettings")
+        sybase_settings = params.get("SybaseSettings")
+        microsoft_sql_server_settings = params.get("MicrosoftSQLServerSettings")
+        ibm_db2_settings = params.get("IBMDb2Settings")
+        resource_identifier = params.get("ResourceIdentifier")
+        doc_db_settings = params.get("DocDbSettings")
+        redis_settings = params.get("RedisSettings")
+        gcp_my_sql_settings = params.get("GcpMySQLSettings")
+        timestream_settings = params.get("TimestreamSettings")
+        endpoint = self.dms_backend.create_endpoint(
+            endpoint_identifier=endpoint_identifier,
+            endpoint_type=endpoint_type,
+            engine_name=engine_name,
+            username=username,
+            password=password,
+            server_name=server_name,
+            port=port,
+            database_name=database_name,
+            extra_connection_attributes=extra_connection_attributes,
+            kms_key_id=kms_key_id,
+            tags=tags,
+            certificate_arn=certificate_arn,
+            ssl_mode=ssl_mode,
+            service_access_role_arn=service_access_role_arn,
+            external_table_definition=external_table_definition,
+            dynamo_db_settings=dynamo_db_settings,
+            s3_settings=s3_settings,
+            dms_transfer_settings=dms_transfer_settings,
+            mongo_db_settings=mongo_db_settings,
+            kinesis_settings=kinesis_settings,
+            kafka_settings=kafka_settings,
+            elasticsearch_settings=elasticsearch_settings,
+            neptune_settings=neptune_settings,
+            redshift_settings=redshift_settings,
+            postgre_sql_settings=postgre_sql_settings,
+            my_sql_settings=my_sql_settings,
+            oracle_settings=oracle_settings,
+            sybase_settings=sybase_settings,
+            microsoft_sql_server_settings=microsoft_sql_server_settings,
+            ibm_db2_settings=ibm_db2_settings,
+            resource_identifier=resource_identifier,
+            doc_db_settings=doc_db_settings,
+            redis_settings=redis_settings,
+            gcp_my_sql_settings=gcp_my_sql_settings,
+            timestream_settings=timestream_settings,
+        )
+
+        return json.dumps(
+            dict(
+                Endpoint={k: v for k, v in endpoint.to_dict().items() if v is not None}
+            )
+        )
+
+    def describe_endpoints(self) -> str:
+        params = json.loads(self.body)
+        filters = params.get("Filters", [])
+        max_records = params.get("MaxRecords")
+        marker = params.get("Marker")
+        endpoints = self.dms_backend.describe_endpoints(
+            filters=filters, max_records=max_records, marker=marker
+        )
+        return json.dumps(
+            dict(
+                Endpoints=[
+                    {k: v for k, v in endpoint.to_dict().items() if v is not None}
+                    for endpoint in endpoints
+                ]
+            )
+        )
+
+    def list_tags_for_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        resource_arn_list = params.get("ResourceArnList")
+
+        if resource_arn and resource_arn_list:
+            raise ValueError(
+                "Both ResourceArn and ResourceArnList cannot be specified."
+            )
+        if not resource_arn and not resource_arn_list:
+            raise ValueError(
+                "Either ResourceArn or ResourceArnList should be specified."
+            )
+
+        if resource_arn:
+            tag_list = self.dms_backend.list_tags_for_resource([resource_arn])
+        else:
+            tag_list = self.dms_backend.list_tags_for_resource(resource_arn_list)
+
+        return json.dumps(dict(TagList=tag_list))

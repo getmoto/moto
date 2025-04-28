@@ -1,6 +1,7 @@
 """ComprehendBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, Iterable, List
+import random
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -107,6 +108,125 @@ class EntityRecognizer(BaseModel):
         }
 
 
+class DocumentClassifier(BaseModel):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        language_code: str,
+        version_name: str,
+        input_data_config: Dict[str, Any],
+        output_data_config: Dict[str, Any],
+        data_access_role_arn: str,
+        document_classifier_name: str,
+        volume_kms_key_id: str,
+        client_request_token: str,
+        mode: str,
+        vpc_config: Dict[str, List[str]],
+        model_kms_key_id: str,
+        model_policy: str,
+    ):
+        self.name = document_classifier_name
+        self.arn = f"arn:{get_partition(region_name)}:comprehend:{region_name}:{account_id}:document-classifier/{document_classifier_name}/{version_name}"
+        self.language_code = language_code
+        self.version_name = version_name
+        self.input_data_config = input_data_config
+        self.output_data_config = output_data_config
+        self.data_access_role_arn = data_access_role_arn
+        self.volume_kms_key_id = volume_kms_key_id
+        self.client_request_token = client_request_token
+        self.mode = mode
+        self.vpc_config = vpc_config
+        self.model_kms_key_id = model_kms_key_id
+        self.model_policy = model_policy
+        self.status = "TRAINING"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "DocumentClassifierArn": self.arn,
+            "LanguageCode": self.language_code,
+            "Status": self.status,
+            "InputDataConfig": self.input_data_config,
+            "DataAccessRoleArn": self.data_access_role_arn,
+            "VolumeKmsKeyId": self.volume_kms_key_id,
+            "Mode": self.mode,
+            "VpcConfig": self.vpc_config,
+            "ModelKmsKeyId": self.model_kms_key_id,
+            "ModelPolicy": self.model_policy,
+        }
+
+
+class Endpoint(BaseModel):
+    def __init__(
+        self,
+        endpoint_name: str,
+        region_name: str,
+        account_id: str,
+        model_arn: str,
+        client_request_token: str,
+        data_access_role_arn: str,
+        flywheel_arn: str,
+        desired_inference_units: int,
+    ):
+        self.name = endpoint_name
+        self.arn = f"arn:{get_partition(region_name)}:comprehend:{region_name}:{account_id}:endpoint/{endpoint_name}/{model_arn}"
+        self.model_arn = model_arn
+        self.client_request_token = client_request_token
+        self.data_access_role_arn = data_access_role_arn
+        self.flywheel_arn = flywheel_arn
+        self.desired_inference_units = desired_inference_units
+        self.status = "IN_SERVICE"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "EndpointArn": self.arn,
+            "ModelArn": self.model_arn,
+            "ClientRequestToken": self.client_request_token,
+            "DataAccessRoleArn": self.data_access_role_arn,
+            "FlywheelArn": self.flywheel_arn,
+            "DesiredInferenceUnits": self.desired_inference_units,
+            "Status": self.status,
+        }
+
+
+class Flywheel(BaseModel):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        flywheel_name: str,
+        active_model_arn: str,
+        data_access_role_arn: str,
+        task_config: Dict[str, Any],
+        model_type: str,
+        data_lake_s3_uri: str,
+        data_security_config: Dict[str, Any],
+        client_request_token: str,
+    ):
+        self.name = flywheel_name
+        self.arn = f"arn:{get_partition(region_name)}:comprehend:{region_name}:{account_id}:flywheel/{flywheel_name}"
+        self.active_model_arn = active_model_arn
+        self.data_access_role_arn = data_access_role_arn
+        self.task_config = task_config
+        self.model_type = model_type
+        self.data_lake_s3_uri = data_lake_s3_uri
+        self.data_security_config = data_security_config
+        self.client_request_token = client_request_token
+        self.status = "ACTIVE"
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "FlywheelArn": self.arn,
+            "ActiveModelArn": self.active_model_arn,
+            "DataAccessRoleArn": self.data_access_role_arn,
+            "TaskConfig": self.task_config,
+            "ModelType": self.model_type,
+            "DataLakeS3Uri": self.data_lake_s3_uri,
+            "DataSecurityConfig": self.data_security_config,
+            "ClientRequestToken": self.client_request_token,
+        }
+
+
 class ComprehendBackend(BaseBackend):
     """Implementation of Comprehend APIs."""
 
@@ -132,6 +252,9 @@ class ComprehendBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.recognizers: Dict[str, EntityRecognizer] = dict()
         self.tagger = TaggingService()
+        self.endpoints: Dict[str, Endpoint] = dict()
+        self.classifiers: Dict[str, DocumentClassifier] = dict()
+        self.flywheels: Dict[str, Flywheel] = dict()
 
     def list_entity_recognizers(
         self, _filter: Dict[str, Any]
@@ -234,6 +357,231 @@ class ComprehendBackend(BaseBackend):
         if text_size > 5000:
             raise TextSizeLimitExceededException(text_size)
         return CANNED_SENTIMENT_RESPONSE
+
+    def create_document_classifier(
+        self,
+        document_classifier_name: str,
+        version_name: str,
+        data_access_role_arn: str,
+        tags: List[Dict[str, str]],
+        input_data_config: Dict[str, Any],
+        output_data_config: Dict[str, Any],
+        client_request_token: str,
+        language_code: str,
+        volume_kms_key_id: str,
+        vpc_config: Dict[str, List[str]],
+        mode: str,
+        model_kms_key_id: str,
+        model_policy: str,
+    ) -> str:
+        classifier = DocumentClassifier(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            language_code=language_code,
+            version_name=version_name,
+            input_data_config=input_data_config,
+            output_data_config=output_data_config,
+            client_request_token=client_request_token,
+            data_access_role_arn=data_access_role_arn,
+            document_classifier_name=document_classifier_name,
+            volume_kms_key_id=volume_kms_key_id,
+            mode=mode,
+            vpc_config=vpc_config,
+            model_kms_key_id=model_kms_key_id,
+            model_policy=model_policy,
+        )
+        self.classifiers[classifier.arn] = classifier
+        self.tagger.tag_resource(classifier.arn, tags)
+        return classifier.arn
+
+    def create_endpoint(
+        self,
+        endpoint_name: str,
+        model_arn: str,
+        desired_inference_units: int,
+        client_request_token: str,
+        tags: List[Dict[str, str]],
+        data_access_role_arn: str,
+        flywheel_arn: str,
+    ) -> Tuple[str, str]:
+        endpoint = Endpoint(
+            endpoint_name=endpoint_name,
+            region_name=self.region_name,
+            account_id=self.account_id,
+            model_arn=model_arn,
+            client_request_token=client_request_token,
+            data_access_role_arn=data_access_role_arn,
+            flywheel_arn=flywheel_arn,
+            desired_inference_units=desired_inference_units,
+        )
+        self.endpoints[endpoint.arn] = endpoint
+        self.tagger.tag_resource(endpoint.arn, tags)
+        return endpoint.arn, model_arn
+
+    def create_flywheel(
+        self,
+        flywheel_name: str,
+        active_model_arn: str,
+        data_access_role_arn: str,
+        task_config: Dict[str, Any],
+        model_type: str,
+        data_lake_s3_uri: str,
+        data_security_config: Dict[str, Any],
+        client_request_token: str,
+        tags: List[Dict[str, str]],
+    ) -> Tuple[str, str]:
+        flywheel = Flywheel(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            flywheel_name=flywheel_name,
+            active_model_arn=active_model_arn,
+            data_access_role_arn=data_access_role_arn,
+            task_config=task_config,
+            model_type=model_type,
+            data_lake_s3_uri=data_lake_s3_uri,
+            data_security_config=data_security_config,
+            client_request_token=client_request_token,
+        )
+        self.flywheels[flywheel.arn] = flywheel
+        self.tagger.tag_resource(flywheel.arn, tags)
+        return flywheel.arn, active_model_arn
+
+    def describe_document_classifier(
+        self, document_classifier_arn: str
+    ) -> DocumentClassifier:
+        if document_classifier_arn not in self.classifiers:
+            raise ResourceNotFound
+        return self.classifiers[document_classifier_arn]
+
+    def describe_endpoint(self, endpoint_arn: str) -> Endpoint:
+        if endpoint_arn not in self.endpoints:
+            raise ResourceNotFound
+        return self.endpoints[endpoint_arn]
+
+    def describe_flywheel(self, flywheel_arn: str) -> Flywheel:
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        return self.flywheels[flywheel_arn]
+
+    def delete_document_classifier(self, document_classifier_arn: str) -> None:
+        self.classifiers.pop(document_classifier_arn, None)
+
+    def delete_endpoint(self, endpoint_arn: str) -> None:
+        self.endpoints.pop(endpoint_arn, None)
+
+    def delete_flywheel(self, flywheel_arn: str) -> None:
+        self.flywheels.pop(flywheel_arn, None)
+
+    def list_document_classifiers(
+        self,
+        filter: Optional[Dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> Tuple[List[Dict[str, Any]], None]:
+        """
+        List document classifiers with optional filtering.
+        Pagination is not yet implemented.
+        """
+        filter = filter or {}
+
+        if "DocumentClassifierName" in filter:
+            classifiers = [
+                classifier.to_dict()
+                for classifier in self.classifiers.values()
+                if classifier.name == filter["DocumentClassifierName"]
+            ]
+        elif "Status" in filter:
+            classifiers = [
+                classifier.to_dict()
+                for classifier in self.classifiers.values()
+                if classifier.status == filter["Status"]
+            ]
+        else:
+            classifiers = [
+                classifier.to_dict() for classifier in self.classifiers.values()
+            ]
+
+        return classifiers, None
+
+    def list_endpoints(
+        self,
+        filter: Optional[Dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> Tuple[List[Dict[str, Any]], None]:
+        """
+        List endpoints with optional filtering.
+        Pagination is not yet implemented.
+        """
+        filter = filter or {}
+
+        if "ModelArn" in filter:
+            endpoints = [
+                endpoint.to_dict()
+                for endpoint in self.endpoints.values()
+                if endpoint.model_arn == filter["ModelArn"]
+            ]
+        elif "Status" in filter:
+            endpoints = [
+                endpoint.to_dict()
+                for endpoint in self.endpoints.values()
+                if endpoint.status == filter["Status"]
+            ]
+        else:
+            endpoints = [endpoint.to_dict() for endpoint in self.endpoints.values()]
+
+        return endpoints, None
+
+    def list_flywheels(
+        self,
+        filter: Optional[Dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> Tuple[List[Dict[str, Any]], None]:
+        """
+        List flywheels with optional filtering.
+        Pagination is not yet implemented.
+        """
+        # Ensure filter is not None
+        filter = filter or {}
+
+        # Apply filtering based on Status
+        if "Status" in filter:
+            flywheels = [
+                flywheel.to_dict()
+                for flywheel in self.flywheels.values()
+                if flywheel.status == filter["Status"]
+            ]
+        else:
+            flywheels = [flywheel.to_dict() for flywheel in self.flywheels.values()]
+
+        # Return the list of flywheels and a placeholder for next_token
+        return flywheels, None
+
+    def stop_training_document_classifier(self, document_classifier_arn: str) -> None:
+        if document_classifier_arn not in self.classifiers:
+            raise ResourceNotFound
+        classifier = self.describe_document_classifier(document_classifier_arn)
+        if classifier.status == "TRAINING":
+            classifier.status = "STOP_REQUESTED"
+
+    def start_flywheel_iteration(
+        self, flywheel_arn: str, client_request_token: str
+    ) -> Tuple[str, int]:
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        flywheel_iteration_id = int(random.randint(0, 1000000))
+        return flywheel_arn, flywheel_iteration_id
+
+    def update_endpoint(
+        self,
+        endpoint_arn: str,
+        desired_model_arn: str,
+        desired_inference_units: str,
+        desired_data_access_role_arn: str,
+        flywheel_arn: str,
+    ) -> str:
+        return desired_model_arn
 
 
 comprehend_backends = BackendDict(ComprehendBackend, "comprehend")
