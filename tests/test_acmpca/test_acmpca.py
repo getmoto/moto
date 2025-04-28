@@ -1,6 +1,7 @@
 import datetime
 import json
 import pickle
+from unittest import SkipTest
 
 import boto3
 import cryptography.hazmat.primitives.asymmetric.rsa
@@ -11,7 +12,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509 import DNSName, NameOID
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -701,6 +702,9 @@ def test_policy_operations():
 
 @mock_aws
 def test_list_certificate_authorities():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot verify backend state in server mode")
+
     client = boto3.client("acm-pca", region_name="us-east-1")
 
     # Create first CA
