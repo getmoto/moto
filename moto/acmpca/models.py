@@ -13,9 +13,9 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
-from moto.core.paginator import paginate
 
 from .exceptions import (
     InvalidS3ObjectAclInCrlConfiguration,
@@ -503,16 +503,14 @@ class ACMPCABackend(BaseBackend):
         Lists the private certificate authorities that you created by using the CreateCertificateAuthority action.
         """
         cas = list(self.certificate_authorities.values())
-        
-        # Filter by resource owner if specified
+
         if resource_owner == "OTHER_ACCOUNTS":
             cas = [ca for ca in cas if ca.account_id != self.account_id]
         elif resource_owner == "SELF" or resource_owner is None:
             cas = [ca for ca in cas if ca.account_id == self.account_id]
-        
-        # Sort CAs by creation date in descending order
+
         cas.sort(key=lambda x: x.created_at, reverse=True)
-        
+
         return cas
 
 
