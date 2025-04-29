@@ -1018,6 +1018,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     default_engine_versions = {
         "MySQL": "5.6.21",
         "mysql": "5.6.21",
+        "neptune": "1.3.2.1",
         "oracle-ee": "11.2.0.4.v3",
         "oracle-se": "11.2.0.4.v3",
         "oracle-se1": "11.2.0.4.v3",
@@ -1496,6 +1497,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             "aurora-postgresql": 5432,
             "mysql": 3306,
             "mariadb": 3306,
+            "neptune": 8182,
             "postgres": 5432,
             "oracle-ee": 1521,
             "oracle-se2": 1521,
