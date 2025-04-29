@@ -549,7 +549,7 @@ DIST_CONFIG_TEMPLATE = """
       <PriceClass>{{ distribution.distribution_config.price_class }}</PriceClass>
       <Enabled>{{ distribution.distribution_config.enabled }}</Enabled>
       <ViewerCertificate>
-        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate else 'false' }}</CloudFrontDefaultCertificate>
+        <CloudFrontDefaultCertificate>{{ distribution.distribution_config.viewer_certificate.cloud_front_default_certificate }}</CloudFrontDefaultCertificate>
         <IAMCertificateId>{{ distribution.distribution_config.viewer_certificate.iam_certificate_id }}</IAMCertificateId>
         <ACMCertificateArn>{{ distribution.distribution_config.viewer_certificate.acm_certificate_arn }}</ACMCertificateArn>
         <SSLSupportMethod>{{ distribution.distribution_config.viewer_certificate.ssl_support_method }}</SSLSupportMethod>
