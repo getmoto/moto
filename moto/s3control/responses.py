@@ -115,8 +115,48 @@ class S3ControlResponse(BaseResponse):
         name = self.path.split("/")[-2]
         return account_id, name
 
+    def put_storage_lens_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        request = xmltodict.parse(self.body)["PutStorageLensConfigurationRequest"]
+        storage_lens_configuration = request.get("StorageLensConfiguration")
+        tags = request.get("Tags")
+        self.backend.put_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+            storage_lens_configuration=storage_lens_configuration,
+            tags=tags,
+        )
+        return ""
+
+    def get_storage_lens_configuration(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        params = self._get_params()
+        config_id = params.get("ConfigId")
+        account_id = params.get("AccountId")
+        storage_lens_configuration = (
+            self.s3control_backend.get_storage_lens_configuration(
+                config_id=config_id,
+                account_id=account_id,
+            )
+        )
+        template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
+        return template.render(storage_lens_configuration=storage_lens_configuration)
+
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
+    
+    def list_storage_lens_configurations(self, request, full_url, headers):
+        self.setup_class(request, full_url, headers)
+        params = self._get_params()
+        account_id = params.get("AccountId")
+        next_token = params.get("NextToken")
+        next_token, storage_lens_configuration_list = self.s3control_backend.list_storage_lens_configurations(
+            account_id=account_id,
+            next_token=next_token,
+        )
+        template = self.response_template(LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE)
+        return template.render(next_token=next_token, storage_lens_configuration_list=storage_lens_configuration_list)
   <ResponseMetadata>
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
