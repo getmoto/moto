@@ -129,19 +129,17 @@ class S3ControlResponse(BaseResponse):
         )
         return ""
 
-    def get_storage_lens_configuration(self, request, full_url, headers):
-        self.setup_class(request, full_url, headers)
-        params = self._get_params()
-        config_id = params.get("ConfigId")
-        account_id = params.get("AccountId")
-        storage_lens_configuration = (
-            self.s3control_backend.get_storage_lens_configuration(
-                config_id=config_id,
-                account_id=account_id,
-            )
+    def get_storage_lens_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        storage_lens_configuration = self.backend.get_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
         )
+        # TODO: Add support for all fields in the response
+        # https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_GetStorageLensConfiguration.html
         template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
-        return template.render(storage_lens_configuration=storage_lens_configuration)
+        return template.render(config=storage_lens_configuration)
 
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
@@ -226,4 +224,35 @@ GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE = """<GetAccessPointPolicyResult>
       <IsPublic>true</IsPublic>
   </PolicyStatus>
 </GetAccessPointPolicyResult>
+"""
+
+
+GET_STORAGE_LENS_CONFIGURATION_TEMPLATE = """
+<StorageLensConfiguration>
+   <Id>{{config.get("Id")}}</Id>
+   {% if config.get("DataExport") %}
+   <DataExport>
+      {% if config["DataExport"]["S3BucketDestination"] %}
+      <S3BucketDestination>
+         <AccountId>{{config["DataExport"]["S3BucketDestination"]["AccountId"]}}</AccountId>
+         <Arn>{{config["DataExport"]["S3BucketDestination"]["Arn"]}}</Arn>
+         {% if config["DataExport"]["S3BucketDestination"].get("Encryption") %}
+         <Encryption>
+            {% if config["DataExport"]["S3BucketDestination"]["Encryption"].get("SSEKMS") %}
+            <SSE-KMS>
+               <KeyId>config["DataExport"]["S3BucketDestination"]["Encryption"]["KeyId"]</KeyId>
+            </SSE-KMS>
+            {% endif %}
+            {% if "SSE-S3" in config["DataExport"]["S3BucketDestination"]["Encryption"] %}
+            <SSE-S3>
+            </SSE-S3>
+            {% endif %}
+         </Encryption>
+         {% endif %}
+      </S3BucketDestination>
+      {% endif %}
+   </DataExport>
+   {% endif %}
+   <IsEnabled>{{config["IsEnabled"]}}</IsEnabled>
+</StorageLensConfiguration>
 """

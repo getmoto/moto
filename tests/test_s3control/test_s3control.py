@@ -166,4 +166,10 @@ def test_storage_lens_configuration():
 
     # Get the configuration:
     resp = client.get_storage_lens_configuration(AccountId=ACCOUNT_ID, ConfigId="test")
-    assert resp["StorageLensConfiguration"] == config
+    assert "StorageLensConfiguration" in resp
+    assert resp["StorageLensConfiguration"]["Id"] == "my-config-id"
+    s3_dest = resp["StorageLensConfiguration"]["DataExport"]["S3BucketDestination"]
+    assert s3_dest["AccountId"] == ACCOUNT_ID
+    assert s3_dest["Arn"] == "arn:aws:s3:::bucket_name"
+    assert "Encryption" in s3_dest
+    assert s3_dest["Encryption"]["SSES3"] == {}

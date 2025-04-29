@@ -157,10 +157,12 @@ class S3ControlBackend(BaseBackend):
             )
 
         # Create a new Storage Lens configuration
-        storage_lens_configuration[config_id] = storage_lens_configuration
+        self.storage_lens_configs[config_id] = storage_lens_configuration
 
-    def get_storage_lens_configuration(self, config_id, account_id):
-        # implement here
+    def get_storage_lens_configuration(self, config_id: str, account_id: str):
+        if config_id not in self.storage_lens_configs:
+            raise AccessPointNotFound(config_id)
+        storage_lens_configuration = self.storage_lens_configs[config_id]
         return storage_lens_configuration
 
     def list_storage_lens_configurations(self, account_id, next_token):
