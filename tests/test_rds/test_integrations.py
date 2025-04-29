@@ -206,6 +206,15 @@ def test_db_instance_managed_master_user_password_lifecycle():
     master_user_secret = db_instance["MasterUserSecret"]
     assert master_user_secret["SecretStatus"] == "active"
 
+    # check that managed secret has correct structure
+    master_user_secret_value = secretsmanager.get_secret_value(SecretId=secret_arn)[
+        "SecretString"
+    ]
+    assert json.loads(master_user_secret_value) == {
+        "username": "admin",
+        "password": "P@55w0rd!",
+    }
+
     # Disable password management
     resp = rds.modify_db_instance(
         DBInstanceIdentifier=db_instance_identifier,
