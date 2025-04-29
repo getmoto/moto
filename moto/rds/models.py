@@ -2669,18 +2669,26 @@ class RDSBackend(BaseBackend):
         return self.create_db_cluster(new_cluster_props)
 
     def failover_db_cluster(
-        self, db_cluster_identifier: str, target_db_instance_identifier: str = ""
+        self,
+        db_cluster_identifier: str,
+        target_db_instance_identifier: str = "",
     ) -> DBCluster:
         cluster = self.clusters[db_cluster_identifier]
 
-        if not target_db_instance_identifier:
-            for instance_id, instance in self.databases.items():
-                if not instance.is_cluster_writer:
-                    target_db_instance_identifier = instance_id
+        if len(cluster.members) == 1:
+            raise InvalidDBClusterStateFault(
+                f"Database cluster:{cluster.db_cluster_identifier} should have at least two database instances for failover"
+            )
 
-        instance = self.databases[target_db_instance_identifier]
-        assert isinstance(instance, DBInstanceClustered)
-        cluster.failover(instance)
+        if not target_db_instance_identifier:
+            for instance in cluster.members:
+                if not instance.is_cluster_writer:
+                    target_db_instance_identifier = instance.db_instance_identifier
+                    break
+
+        target_instance = self.databases[target_db_instance_identifier]
+        assert isinstance(target_instance, DBInstanceClustered)
+        cluster.failover(target_instance)
         return cluster
 
     def stop_db_instance(

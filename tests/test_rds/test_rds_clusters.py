@@ -1875,6 +1875,33 @@ def test_failover_db_cluster_without_target_instance_specified(client):
 
 
 @mock_aws
+def test_failover_db_cluster_with_single_instance_cluster(client):
+    cluster_identifier = "cluster-1"
+    create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-primary",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)[
+        "DBClusters"
+    ][0]
+    cluster_members = cluster["DBClusterMembers"]
+    assert len(cluster_members) == 1
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is True
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier=cluster_identifier,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidDBClusterStateFault"
+
+
+@mock_aws
 def test_db_cluster_writer_promotion(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-1",
