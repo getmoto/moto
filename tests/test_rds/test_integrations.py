@@ -1,5 +1,6 @@
 """RDS tests covering integrations with other service backends."""
 
+import json
 import uuid
 
 import boto3
@@ -62,6 +63,15 @@ def test_db_cluster_managed_master_user_password_lifecycle():
     db_cluster = resp["DBClusters"][0]
     master_user_secret = db_cluster["MasterUserSecret"]
     assert master_user_secret["SecretStatus"] == "active"
+
+    # check that managed secret has correct structure
+    master_user_secret_value = secretsmanager.get_secret_value(SecretId=secret_arn)[
+        "SecretString"
+    ]
+    assert json.loads(master_user_secret_value) == {
+        "username": "admin",
+        "password": "P@55w0rd!",
+    }
 
     # Disable password management
     resp = rds.modify_db_cluster(
