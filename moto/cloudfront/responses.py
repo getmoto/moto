@@ -556,7 +556,7 @@ DIST_CONFIG_TEMPLATE = """
         <Certificate>{{ distribution.distribution_config.viewer_certificate.certificate }}</Certificate>
         <CertificateSource>{{ distribution.distribution_config.viewer_certificate.certificate_source }}</CertificateSource>
       </ViewerCertificate>
-      <Restrictions>qu
+      <Restrictions>
         <GeoRestriction>
           <RestrictionType>{{ distribution.distribution_config.geo_restriction._type }}</RestrictionType>
           <Quantity>{{ distribution.distribution_config.geo_restriction.restrictions|length }}</Quantity>
