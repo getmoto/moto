@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -11,10 +11,19 @@ from moto.s3.exceptions import (
     WrongPublicAccessBlockAccountIdError,
 )
 from moto.s3.models import PublicAccessBlock
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .exceptions import AccessPointNotFound, AccessPointPolicyNotFound
+
+PAGINATION_MODEL = {
+    "list_storage_lens_configurations": {
+        "input_token": "next_token",
+        "limit_default": 100,
+        "unique_attribute": "id",
+    },
+}
 
 
 class AccessPoint(BaseModel):
@@ -58,7 +67,7 @@ class S3ControlBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.public_access_block: Optional[PublicAccessBlock] = None
         self.access_points: Dict[str, Dict[str, AccessPoint]] = defaultdict(dict)
-        self.storage_lens_configs: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        self.storage_lens_configs: Dict[str, Dict[str, Any]] = {}
         self.tagger = TaggingService()
 
     def get_public_access_block(self, account_id: str) -> PublicAccessBlock:
@@ -145,29 +154,30 @@ class S3ControlBackend(BaseBackend):
 
     def put_storage_lens_configuration(
         self, config_id, account_id, storage_lens_configuration, tags
-    ):
+    ) -> None:
         # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
             raise WrongPublicAccessBlockAccountIdError()
 
-        # Check if the configuration ID already exists
-        if config_id in self.storage_lens_configs[account_id]:
-            raise InvalidPublicAccessBlockConfiguration(
-                "Storage Lens configuration ID already exists"
-            )
-
         # Create a new Storage Lens configuration
         self.storage_lens_configs[config_id] = storage_lens_configuration
 
-    def get_storage_lens_configuration(self, config_id: str, account_id: str):
+    def get_storage_lens_configuration(
+        self, config_id: str, account_id: str
+    ) -> Dict[str, Any]:
         if config_id not in self.storage_lens_configs:
             raise AccessPointNotFound(config_id)
         storage_lens_configuration = self.storage_lens_configs[config_id]
         return storage_lens_configuration
 
-    def list_storage_lens_configurations(self, account_id, next_token):
-        # implement here
-        return next_token, storage_lens_configuration_list
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_storage_lens_configurations(self, account_id) -> List[Dict[str, Any]]:
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != self.account_id:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        storage_lens_configuration_list = list(self.storage_lens_configs.values())
+        return storage_lens_configuration_list
 
 
 s3control_backends = BackendDict(

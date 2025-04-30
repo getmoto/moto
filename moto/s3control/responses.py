@@ -141,20 +141,23 @@ class S3ControlResponse(BaseResponse):
         template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
         return template.render(config=storage_lens_configuration)
 
-
-CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
-    
-    def list_storage_lens_configurations(self, request, full_url, headers):
-        self.setup_class(request, full_url, headers)
+    def list_storage_lens_configurations(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
         params = self._get_params()
-        account_id = params.get("AccountId")
-        next_token = params.get("NextToken")
-        next_token, storage_lens_configuration_list = self.s3control_backend.list_storage_lens_configurations(
-            account_id=account_id,
-            next_token=next_token,
+        next_token = params.get("nextToken")
+        storage_lens_configuration_list, next_token = (
+            self.backend.list_storage_lens_configurations(
+                account_id=account_id,
+                next_token=next_token,
+            )
         )
         template = self.response_template(LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE)
-        return template.render(next_token=next_token, storage_lens_configuration_list=storage_lens_configuration_list)
+        return template.render(
+            next_token=next_token, configs=storage_lens_configuration_list
+        )
+
+
+CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
@@ -255,4 +258,21 @@ GET_STORAGE_LENS_CONFIGURATION_TEMPLATE = """
    {% endif %}
    <IsEnabled>{{config["IsEnabled"]}}</IsEnabled>
 </StorageLensConfiguration>
+"""
+
+
+LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE = """
+<ListStorageLensConfigurationsResult>
+   {% if next_token %}
+   <NextToken>{{ next_token }}</NextToken>
+   {% endif %}
+   {% for config in configs %}
+   <StorageLensConfiguration>
+      <HomeRegion></HomeRegion>
+      <Id>{{ config.get("Id") }}</Id>
+      <IsEnabled>{{ config.get("IsEnabled") }}</IsEnabled>
+      <StorageLensArn>{{ config.get("StorageLensArn") }}</StorageLensArn>
+    </StorageLensConfiguration>
+    {% endfor %}
+</ListStorageLensConfigurationsResult>
 """

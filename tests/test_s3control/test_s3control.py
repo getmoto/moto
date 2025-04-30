@@ -173,3 +173,8 @@ def test_storage_lens_configuration():
     assert s3_dest["Arn"] == "arn:aws:s3:::bucket_name"
     assert "Encryption" in s3_dest
     assert s3_dest["Encryption"]["SSES3"] == {}
+
+    # List the configurations
+    resp = client.list_storage_lens_configurations(AccountId=ACCOUNT_ID)
+    assert len(resp["StorageLensConfigurationList"]) == 1
+    assert resp["StorageLensConfigurationList"][0]["Id"] == "my-config-id"
