@@ -997,12 +997,6 @@
       "Resource Types": "AWS::ElasticBeanstalk::Environment",
       "Trigger type": "Configuration changes"
     },
-    "BEANSTALK_LOGS_TO_CLOUDWATCH": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Asia Pacific (Jakarta), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Malaysia), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
-      "Parameters": [],
-      "Resource Types": "AWS::ElasticBeanstalk::Environment",
-      "Trigger type": "Configuration changes"
-    },
     "CASSANDRA_KEYSPACE_TAGGED": {
       "AWS Region": "Only available in Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Mumbai), Europe (Paris), US East (Ohio), Europe (Ireland), Europe (Frankfurt), South America (Sao Paulo), Asia Pacific (Hong Kong), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), US West (N. California), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
       "Parameters": [
@@ -1556,6 +1550,18 @@
       "Resource Types": "AWS::Cognito::UserPool",
       "Trigger type": "Configuration changes"
     },
+    "COGNITO_USER_POOL_TAGGED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Asia Pacific (Malaysia), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::Cognito::UserPool",
+      "Trigger type": "Configuration changes"
+    },
     "CONNECT_INSTANCE_LOGGING_ENABLED": {
       "AWS Region": "Only available in Africa (Cape Town), Europe (Frankfurt), US East (N. Virginia), Asia Pacific (Seoul), Europe (London), Asia Pacific (Tokyo), US West (Oregon), Asia Pacific (Singapore), Asia Pacific (Sydney), Canada (Central) Region",
       "Parameters": [],
@@ -1822,7 +1828,13 @@
     },
     "DOCDB_CLUSTER_ENCRYPTED_IN_TRANSIT": {
       "AWS Region": "All supported AWS regions except Europe (Stockholm), Middle East (Bahrain), Asia Pacific (Thailand), Asia Pacific (Jakarta), Africa (Cape Town), Asia Pacific (Osaka), Asia Pacific (Malaysia), Asia Pacific (Melbourne), Mexico (Central), US West (N. California), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
-      "Parameters": [],
+      "Parameters": [
+        {
+          "Name": "excludeTlsParameters",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
       "Resource Types": "AWS::RDS::DBCluster",
       "Trigger type": "Periodic"
     },
@@ -2757,9 +2769,15 @@
       "Resource Types": "AWS::ECR::Repository",
       "Trigger type": "Configuration changes"
     },
-    "ECR_REPOSITORY_LIFECYCLE_POLICY_CONFIGURED": {
-      "AWS Region": "All supported AWS regions except Asia Pacific (Thailand), Asia Pacific (Hyderabad), Asia Pacific (Malaysia), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), Europe (Zurich) Region",
-      "Parameters": [],
+    "ECR_REPOSITORY_TAGGED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Asia Pacific (Malaysia), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
       "Resource Types": "AWS::ECR::Repository",
       "Trigger type": "Configuration changes"
     },
@@ -3261,12 +3279,6 @@
       "Resource Types": "AWS::Elasticsearch::Domain",
       "Trigger type": "Configuration changes"
     },
-    "ELASTICSEARCH_UPDATE_CHECK": {
-      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Africa (Cape Town), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Malaysia), Asia Pacific (Melbourne), Europe (Milan), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
-      "Parameters": [],
-      "Resource Types": "AWS::Elasticsearch::Domain",
-      "Trigger type": "Configuration changes"
-    },
     "ELASTIC_BEANSTALK_LOGS_TO_CLOUDWATCH": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Malaysia), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
       "Parameters": [
@@ -3542,85 +3554,6 @@
         }
       ],
       "Resource Types": "AWS::FIS::ExperimentTemplate",
-      "Trigger type": "Configuration changes"
-    },
-    "FMS_NETWORK_FIREWALL_RESOURCE_CHECK": {
-      "AWS Region": "All supported AWS regions",
-      "Parameters": [
-        {
-          "Name": "policyId",
-          "Optional": false,
-          "Type": "String"
-        },
-        {
-          "Name": "policyVersion",
-          "Optional": false,
-          "Type": "String"
-        },
-        {
-          "Name": "resourceTags",
-          "Optional": true,
-          "Type": "String"
-        },
-        {
-          "Name": "excludeResourceTags",
-          "Optional": true,
-          "Type": "boolean"
-        },
-        {
-          "Name": "resourceTagLogicalOperator",
-          "Optional": true,
-          "Type": "String"
-        }
-      ],
-      "Resource Types": "AWS::NetworkFirewall::Firewall, AWS::NetworkFirewall::FirewallPolicy, AWS::NetworkFirewall::RuleGroup, AWS::EC2::RouteTable, AWS::EC2::Subnet, AWS::EC2::InternetGateway, AWS::EC2::VPC, AWS::EC2::VPCEndpoint, AWS::EC2::NetworkAcl",
-      "Trigger type": "Configuration changes"
-    },
-    "FMS_SECURITY_GROUP_AUDIT_POLICY_CHECK": {
-      "AWS Region": "All supported AWS regions",
-      "Parameters": [
-        {
-          "Name": "masterSecurityGroupsIds",
-          "Optional": false,
-          "Type": "String"
-        },
-        {
-          "Name": "inScope",
-          "Optional": false,
-          "Type": "String"
-        },
-        {
-          "Name": "resourceTags",
-          "Optional": false,
-          "Type": "String"
-        },
-        {
-          "Name": "excludeResourceTags",
-          "Optional": false,
-          "Type": "boolean"
-        },
-        {
-          "Name": "resourceTypes",
-          "Optional": false,
-          "Type": "String"
-        },
-        {
-          "Name": "fmsRemediationEnabled",
-          "Optional": false,
-          "Type": "boolean"
-        },
-        {
-          "Name": "allowSecurityGroup",
-          "Optional": false,
-          "Type": "boolean"
-        },
-        {
-          "Name": "resourceTagLogicalOperator",
-          "Optional": true,
-          "Type": "String"
-        }
-      ],
-      "Resource Types": "AWS::EC2::SecurityGroup, AWS::EC2::Instance, AWS::EC2::NetworkInterface",
       "Trigger type": "Configuration changes"
     },
     "FMS_SHIELD_RESOURCE_POLICY_CHECK": {
@@ -5635,6 +5568,18 @@
       "Resource Types": "AWS::Redshift::Cluster, AWS::Redshift::ClusterParameterGroup",
       "Trigger type": "Configuration changes"
     },
+    "REDSHIFT_SERVERLESS_DEFAULT_ADMIN_CHECK": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Asia Pacific (Thailand), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Malaysia), Asia Pacific (Melbourne), Europe (Milan), Mexico (Central), Canada West (Calgary) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::RedshiftServerless::Namespace",
+      "Trigger type": "Periodic"
+    },
+    "REDSHIFT_SERVERLESS_DEFAULT_DB_NAME_CHECK": {
+      "AWS Region": "All supported AWS regions except Middle East (Bahrain), Asia Pacific (Thailand), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Malaysia), Asia Pacific (Melbourne), Europe (Milan), Mexico (Central), Canada West (Calgary) Region",
+      "Parameters": [],
+      "Resource Types": "AWS::RedshiftServerless::Namespace",
+      "Trigger type": "Periodic"
+    },
     "REDSHIFT_SERVERLESS_NAMESPACE_CMK_ENCRYPTION": {
       "AWS Region": "All supported AWS regions except Middle East (Bahrain), Asia Pacific (Thailand), Africa (Cape Town), Asia Pacific (Hyderabad), Asia Pacific (Osaka), Asia Pacific (Malaysia), Asia Pacific (Melbourne), Europe (Milan), Mexico (Central), Canada West (Calgary) Region",
       "Parameters": [
@@ -6036,6 +5981,18 @@
       "Resource Types": "AWS::S3::Bucket",
       "Trigger type": "Configuration changes"
     },
+    "S3_BUCKET_TAGGED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Asia Pacific (Malaysia), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), China (Ningxia) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::S3::Bucket",
+      "Trigger type": "Configuration changes"
+    },
     "S3_BUCKET_VERSIONING_ENABLED": {
       "AWS Region": "All supported AWS regions",
       "Parameters": [
@@ -6261,6 +6218,18 @@
       "Resource Types": "AWS::SageMaker::Domain",
       "Trigger type": "Configuration changes"
     },
+    "SAGEMAKER_DOMAIN_TAGGED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Malaysia), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Israel (Tel Aviv), Canada West (Calgary), Europe (Spain), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::SageMaker::Domain",
+      "Trigger type": "Configuration changes"
+    },
     "SAGEMAKER_ENDPOINT_CONFIGURATION_KMS_KEY_CONFIGURED": {
       "AWS Region": "All supported AWS regions except Asia Pacific (Thailand), Asia Pacific (Malaysia), Asia Pacific (Melbourne), Mexico (Central) Region",
       "Parameters": [
@@ -6278,6 +6247,18 @@
       "Parameters": [],
       "Resource Types": "AWS::SageMaker::EndpointConfig",
       "Trigger type": "Periodic"
+    },
+    "SAGEMAKER_FEATURE_GROUP_TAGGED": {
+      "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Middle East (UAE), Asia Pacific (Hyderabad), Asia Pacific (Malaysia), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Canada West (Calgary), China (Ningxia), Europe (Zurich) Region",
+      "Parameters": [
+        {
+          "Name": "requiredKeyTags",
+          "Optional": true,
+          "Type": "CSV"
+        }
+      ],
+      "Resource Types": "AWS::SageMaker::FeatureGroup",
+      "Trigger type": "Configuration changes"
     },
     "SAGEMAKER_IMAGE_DESCRIPTION": {
       "AWS Region": "All supported AWS regions except China (Beijing), Asia Pacific (Thailand), Asia Pacific (Hyderabad), Asia Pacific (Malaysia), Asia Pacific (Melbourne), AWS GovCloud (US-East), AWS GovCloud (US-West), Mexico (Central), Canada West (Calgary), China (Ningxia), Europe (Zurich) Region",
@@ -6838,6 +6819,11 @@
         },
         {
           "Name": "vpcIds",
+          "Optional": true,
+          "Type": "CSV"
+        },
+        {
+          "Name": "scopeConfigResourceTypes",
           "Optional": true,
           "Type": "CSV"
         }
