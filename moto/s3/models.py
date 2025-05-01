@@ -450,16 +450,14 @@ class FakeMultipart(BaseModel):
 
     def complete(
         self, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[bytes, str, Optional[str]]:
+    ) -> Tuple[bytes, str, Tuple[str, str, int]]:
         checksum_algo = self.metadata.get("x-amz-checksum-algorithm")
         checksum_type = self.metadata.get("x-amz-checksum-type")
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
-        checksum = bytearray()
 
-        if not checksum_type:
-            checksum_type = "FULL_OBJECT" if checksum_algo == "CRC64NVME" else "COMPOSITE"
+        checksum_builder = MultipartChecksumBuilder(checksum_algo, checksum_type)
 
         last = None
         count = 0
@@ -475,10 +473,7 @@ class FakeMultipart(BaseModel):
                 raise EntityTooSmall()
             md5s.extend(decode_hex(part_etag)[0])  # type: ignore
             total.extend(part.value)
-            if checksum_algo:
-                checksum.extend(
-                    compute_checksum(part.value, checksum_algo, encode_base64=False)
-                )
+            checksum_builder.addPart(part.value)
             last = part
             count += 1
 
@@ -487,14 +482,7 @@ class FakeMultipart(BaseModel):
 
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
-        if checksum_algo:
-            if checksum_type == "COMPOSITE":
-                checksum_details = (checksum_type, compute_checksum(checksum, checksum_algo).decode("utf-8"), count)
-            else:
-                checksum_details = (checksum_type, compute_checksum(total, checksum_algo).decode("utf-8"), 1)
-        else:
-            checksum_details = None
-        return total, f"{full_etag.hexdigest()}-{count}", checksum_details
+        return total, f"{full_etag.hexdigest()}-{count}", checksum_builder.build()
 
     def set_part(self, part_id: int, value: bytes) -> FakeKey:
         if part_id < 1:
@@ -524,6 +512,44 @@ class FakeMultipart(BaseModel):
     def dispose(self) -> None:
         for part in self.parts.values():
             part.dispose()
+
+
+class MultipartChecksumBuilder:
+    def __init__(
+            self,
+            checksum_algorithm : str,
+            checksum_type : str
+    ):
+        self.checksum_algorithm = checksum_algorithm
+        self.checksum_type = checksum_type
+
+        self.complete_object = bytearray()
+        self.checksum = bytearray()
+
+        self.part_count = 0
+
+        # Checksum type defaults to COMPOSITE except for CRC64NVME which only supports FULL_OBJECT
+        if not self.checksum_type:
+            self.checksum_type = "FULL_OBJECT" if self.checksum_algorithm == "CRC64NVME" else "COMPOSITE"
+        
+    def addPart(self, part: bytes) -> None:
+        if self.checksum_type == "COMPOSITE":
+            self.checksum.extend(
+                compute_checksum(part, self.checksum_algorithm, encode_base64=False)
+            )
+        else:
+            self.complete_object.extend(part)
+
+        self.part_count += 1
+
+    def build(self) -> Tuple[str, str, int]:
+        if not self.checksum_algorithm:
+            return None
+        
+        if self.checksum_type == "COMPOSITE":
+            return (self.checksum_type, compute_checksum(self.checksum, self.checksum_algorithm).decode("utf-8"), self.part_count)
+        
+        return (self.checksum_type, compute_checksum(self.complete_object, self.checksum_algorithm).decode("utf-8"), 1)
 
 
 class FakeGrantee(BaseModel):

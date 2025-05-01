@@ -439,69 +439,6 @@ def test_multipart_etag_quotes_stripped():
     assert response["Body"].read() == part1 + b"key_"
 
 
-@mock_aws
-@reduced_min_part_size
-def test_multipart_checksum():
-    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-
-    bucketName, keyName = "foobar", "the-key"
-    s3_resource.create_bucket(Bucket=bucketName)
-
-    part1 = b"0" * REDUCED_PART_SIZE
-    part1_checksum = "iInetw=="
-    part2 = b"1" * REDUCED_PART_SIZE
-    part2_checksum = "5C3cKQ=="
-    composite_checksum = "dBZW3w=="
-    multipart = client.create_multipart_upload(
-        Bucket=bucketName, Key=keyName, ChecksumAlgorithm="CRC32"
-    )
-    up1 = client.upload_part(
-        Body=BytesIO(part1),
-        PartNumber=1,
-        Bucket=bucketName,
-        Key=keyName,
-        UploadId=multipart["UploadId"],
-        ChecksumCRC32=part1_checksum,
-    )
-    up2 = client.upload_part(
-        Body=BytesIO(part2),
-        PartNumber=2,
-        Bucket=bucketName,
-        Key=keyName,
-        UploadId=multipart["UploadId"],
-        ChecksumCRC32=part2_checksum,
-    )
-
-    client.complete_multipart_upload(
-        Bucket=bucketName,
-        Key=keyName,
-        MultipartUpload={
-            "Parts": [
-                {"ETag": up1["ETag"], "PartNumber": 1, "ChecksumCRC32": part1_checksum},
-                {"ETag": up2["ETag"], "PartNumber": 2, "ChecksumCRC32": part2_checksum},
-            ]
-        },
-        UploadId=multipart["UploadId"],
-    )
-
-    # assert object attributes response contains composite checksum *without* the -2 suffix
-    object_attributes_response = client.get_object_attributes(
-        Bucket=bucketName, Key=keyName, ObjectAttributes=["Checksum"]
-    )
-    object_attributes_response.pop("ResponseMetadata")
-    assert set(object_attributes_response.keys()) == {"Checksum", "LastModified"}
-    assert object_attributes_response["Checksum"] == {
-        "ChecksumCRC32": composite_checksum,
-        "ChecksumType": "COMPOSITE",
-    }
-
-    # assert get object response contains composite checksum *with* the -2 suffix
-    get_response = client.get_object(Bucket=bucketName, Key=keyName)
-    assert get_response["ChecksumCRC32"] == f"{composite_checksum}-2"
-    assert get_response["ChecksumType"] == "COMPOSITE"
-
-
 @pytest.mark.parametrize(
     "part_count,expected_composite_checksum,expected_checksum_qualified",
     [
@@ -588,7 +525,7 @@ def test_multipart_composite_checksum_reports_parts_correctly(part_count, expect
 )
 @mock_aws
 @reduced_min_part_size
-def test_composite_and_full_object_multipart_checksums(checksum_algorithm, specified_type, part_1_checksum, part_2_checksum, expected_type, expected_checksum):
+def test_multipart_checksums(checksum_algorithm, specified_type, part_1_checksum, part_2_checksum, expected_type, expected_checksum):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
