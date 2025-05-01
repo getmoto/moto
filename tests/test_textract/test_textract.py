@@ -1,3 +1,4 @@
+import json
 from random import randint
 from unittest import SkipTest
 
@@ -85,6 +86,61 @@ def test_detect_document_text():
     )
     assert isinstance(result["Blocks"], list)
     assert result["DetectDocumentTextModelVersion"] == "1.0"
+
+
+@mock_aws
+def test_start_document_text_detection_with_sns_notification():
+    # Create SNS topic
+    sns = boto3.client("sns", region_name="us-east-1")
+    topic = sns.create_topic(Name="test-topic")
+    topic_arn = topic["TopicArn"]
+
+    # Create SQS queue and subscribe to SNS topic to verify notifications
+    sqs = boto3.client("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+    queue_url = queue["QueueUrl"]
+
+    # Get queue ARN
+    queue_attrs = sqs.get_queue_attributes(
+        QueueUrl=queue_url, AttributeNames=["QueueArn"]
+    )
+    queue_arn = queue_attrs["Attributes"]["QueueArn"]
+
+    # Subscribe SQS to SNS
+    sns.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_arn)
+
+    # Start Textract job with notification
+    client = boto3.client("textract", region_name="us-east-1")
+    document_location = {"S3Object": {"Bucket": "bucket", "Name": "name"}}
+    resp = client.start_document_text_detection(
+        DocumentLocation=document_location,
+        NotificationChannel={
+            "SNSTopicArn": topic_arn,
+            "RoleArn": "arn:aws:iam::123456789012:role/service-role/TextractRole",
+        },
+    )
+
+    assert "JobId" in resp
+    job_id = resp["JobId"]
+
+    # Check if notification was sent to SQS
+    messages = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=1)
+    assert "Messages" in messages
+    message = messages["Messages"][0]
+
+    # Parse SNS message from SQS
+    body = json.loads(message["Body"])
+    notification = json.loads(body["Message"])
+
+    # Verify notification contents
+    assert notification["JobId"] == job_id
+    assert notification["Status"] == "SUCCEEDED"
+    assert notification["API"] == "StartDocumentTextDetection"
+    assert "Timestamp" in notification
+    assert notification["DocumentLocation"] == {
+        "S3Bucket": document_location["S3Object"]["Bucket"],
+        "S3ObjectName": document_location["S3Object"]["Name"],
+    }
 
 
 @mock_aws
