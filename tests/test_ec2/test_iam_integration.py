@@ -272,6 +272,11 @@ def test_disassociate():
         a["IamInstanceProfile"]["Arn"] for a in associations
     ]
 
+    reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
+    instances = reservations[0]["Instances"]
+
+    assert "IamInstanceProfile" in instances[0]
+
     disassociation = client.disassociate_iam_instance_profile(
         AssociationId=association["IamInstanceProfileAssociation"]["AssociationId"]
     )
@@ -287,6 +292,11 @@ def test_disassociate():
     assert instance_profile_arn not in [
         a["IamInstanceProfile"]["Arn"] for a in associations
     ]
+
+    reservations = client.describe_instances(InstanceIds=[instance_id])["Reservations"]
+    instances = reservations[0]["Instances"]
+
+    assert "IamInstanceProfile" not in instances[0]
 
 
 @mock_aws
