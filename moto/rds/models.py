@@ -429,7 +429,7 @@ class MasterUserSecret:
         secret = self.secretsmanager.create_managed_secret(
             service_name="rds",
             secret_id=self._generate_secret_name(),
-            secret_string=json.dumps({"username": "admin", "password": "P@55w0rd!"}),
+            secret_string=self._generate_secret_string(),
             description=self._generate_secret_description(),
             kms_key_id=kms_key_id,
             tags=self._generate_secret_tags(),
@@ -445,6 +445,11 @@ class MasterUserSecret:
         resource_type = self.resource.__class__.__name__[2:].lower()
         description = f"The secret associated with the primary RDS DB {resource_type}: {self.resource.arn}"
         return description
+
+    def _generate_secret_string(self) -> str:
+        credentials = {"username": "admin", "password": "P@55w0rd!"}
+        secret_string = json.dumps(credentials)
+        return secret_string
 
     def _generate_secret_tags(self) -> list[dict[str, str]]:
         resource_type = self.resource.__class__.__name__
