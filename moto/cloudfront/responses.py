@@ -72,7 +72,6 @@ class CloudFrontResponse(BaseResponse):
         params = self._get_xml_body()
         dist_config = params.get("DistributionConfig")
         if_match = self.headers["If-Match"]
-
         dist, location, e_tag = self.backend.update_distribution(
             dist_config=dist_config,  # type: ignore[arg-type]
             _id=dist_id,
@@ -549,7 +548,7 @@ DIST_CONFIG_TEMPLATE = """
       <PriceClass>{{ distribution.distribution_config.price_class }}</PriceClass>
       <Enabled>{{ distribution.distribution_config.enabled }}</Enabled>
       <ViewerCertificate>
-        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate else 'false' }}</CloudFrontDefaultCertificate>
+        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate == True else 'false' }}</CloudFrontDefaultCertificate>
         <IAMCertificateId>{{ distribution.distribution_config.viewer_certificate.iam_certificate_id }}</IAMCertificateId>
         <ACMCertificateArn>{{ distribution.distribution_config.viewer_certificate.acm_certificate_arn }}</ACMCertificateArn>
         <SSLSupportMethod>{{ distribution.distribution_config.viewer_certificate.ssl_support_method }}</SSLSupportMethod>

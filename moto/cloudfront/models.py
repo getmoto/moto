@@ -130,9 +130,13 @@ class Logging:
 
 class ViewerCertificate:
     def __init__(self, config: Dict[str, Any]) -> None:
-        self.cloud_front_default_certificate = (
-            config.get("CloudFrontDefaultCertificate") or True
+        self.cloud_front_default_certificate = config.get(
+            "CloudFrontDefaultCertificate", True
         )
+        if isinstance(self.cloud_front_default_certificate, str):
+            self.cloud_front_default_certificate = (
+                self.cloud_front_default_certificate.lower() == "true"
+            )
         self.iam_certificate_id = config.get("IAMCertificateId") or ""
         self.acm_certificate_arn = config.get("ACMCertificateArn") or ""
         self.ssl_support_method = config.get("SSLSupportMethod") or "sni-only"
