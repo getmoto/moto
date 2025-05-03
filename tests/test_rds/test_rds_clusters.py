@@ -1921,6 +1921,18 @@ def test_failover_db_cluster_exceptions(client):
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "DBClusterNotFoundFault"
+    # Real AWS seems to check for the target instance being in a valid state
+    # before checking if it is actually part of the cluster, so we can put
+    # this non-clustered instance into a stopped state to simulate the error
+    # that AWS would return for a target instance in a non-valid state.
+    client.stop_db_instance(DBInstanceIdentifier="now-existent-instance")
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="now-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidDBInstanceState"
 
 
 @mock_aws
