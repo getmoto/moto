@@ -1754,6 +1754,7 @@ class S3Response(BaseResponse):
         storage_class = self.headers.get("x-amz-storage-class", "STANDARD")
         encryption = self.headers.get("x-amz-server-side-encryption")
         kms_key_id = self.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
+        if_match = self.headers.get("If-Match")
         if_none_match = self.headers.get("If-None-Match")
         bucket_key_enabled = self.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled"
@@ -1761,6 +1762,12 @@ class S3Response(BaseResponse):
         if bucket_key_enabled is not None:
             bucket_key_enabled = str(bucket_key_enabled).lower()
 
+        if if_match:
+            if not (obj := self.backend.get_object(self.bucket_name, key_name)):
+                raise MissingKey
+            # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
+            elif if_match.replace('"', "") != obj.etag.replace('"', ""):
+                raise PreconditionFailed("If-Match")
         if (
             if_none_match == "*"
             and self.backend.get_object(self.bucket_name, key_name) is not None
