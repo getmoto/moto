@@ -1847,7 +1847,7 @@
 
 ## config
 <details>
-<summary>36% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] associate_resource_types
 - [X] batch_get_aggregate_resource_config
@@ -1864,7 +1864,7 @@
 - [ ] delete_pending_aggregation_request
 - [ ] delete_remediation_configuration
 - [ ] delete_remediation_exceptions
-- [ ] delete_resource_config
+- [X] delete_resource_config
 - [X] delete_retention_configuration
 - [ ] delete_service_linked_configuration_recorder
 - [ ] delete_stored_query
@@ -1933,12 +1933,12 @@
 - [X] put_organization_conformance_pack
 - [ ] put_remediation_configurations
 - [ ] put_remediation_exceptions
-- [ ] put_resource_config
+- [X] put_resource_config
 - [X] put_retention_configuration
 - [ ] put_service_linked_configuration_recorder
 - [ ] put_stored_query
 - [ ] select_aggregate_resource_config
-- [ ] select_resource_config
+- [X] select_resource_config
 - [ ] start_config_rules_evaluation
 - [X] start_configuration_recorder
 - [ ] start_remediation_execution

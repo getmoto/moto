@@ -1,4 +1,5 @@
 import json
+from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
 
@@ -257,3 +258,54 @@ class ConfigResponse(BaseResponse):
             self._get_param("RetentionConfigurationName")
         )
         return ""
+
+    def select_resource_config(self) -> str:
+        params = self._get_params()
+        expression: str = params.get("Expression", "")
+        limit = params.get("Limit")
+        next_token = params.get("NextToken")
+        results, query_info, next_token = self.config_backend.select_resource_config(
+            expression=expression,
+            limit=limit,
+            next_token=next_token,
+        )
+
+        response: Dict[str, Any] = {"Results": results}
+        if query_info:
+            response["QueryInfo"] = query_info
+
+        if next_token:
+            response["NextToken"] = next_token
+
+        return json.dumps(response)
+
+    def put_resource_config(self) -> str:
+        params = json.loads(self.body)
+        resource_type: str = params.get("ResourceType", "")
+        schema_version_id: str = params.get("SchemaVersionId", "")
+        resource_id: str = params.get("ResourceId", "")
+        resource_name: str = params.get("ResourceName", "")
+        configuration = params.get("Configuration", {})
+        configuration_str: str = json.dumps(configuration) if configuration else ""
+        tags: Dict[str, str] = params.get("Tags", {})
+        self.config_backend.put_resource_config(
+            resource_type=resource_type,
+            schema_version_id=schema_version_id,
+            resource_id=resource_id,
+            resource_name=resource_name,
+            configuration=configuration_str,
+            tags=tags,
+        )
+        return json.dumps(dict())
+
+    def delete_resource_config(self) -> str:
+        params = json.loads(self.body)
+        resource_type = params.get("ResourceType", "")
+        resource_id = params.get("ResourceId", "")
+
+        self.config_backend.delete_resource_config(
+            resource_type=resource_type,
+            resource_id=resource_id,
+        )
+
+        return json.dumps(dict())
