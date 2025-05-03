@@ -10,6 +10,7 @@ import xmltodict
 
 from moto import settings
 from moto.core.common_types import TYPE_RESPONSE
+from moto.core.mime_types import APP_XML
 from moto.core.responses import BaseResponse
 from moto.core.utils import (
     ALT_DOMAIN_SUFFIXES,
@@ -338,15 +339,19 @@ class S3Response(BaseResponse):
         return self._send_response(response)
 
     @staticmethod
-    def _send_response(response: Any) -> TYPE_RESPONSE:  # type: ignore
-        if isinstance(response, str):
-            return 200, {}, response.encode("utf-8")
+    def _send_response(response: Union[TYPE_RESPONSE, str, bytes]) -> TYPE_RESPONSE:  # type: ignore
+        if isinstance(response, (str, bytes)):
+            status_code = 200
+            headers: dict[str, Any] = {}
         else:
-            status_code, headers, response_content = response
-            if not isinstance(response_content, bytes):
-                response_content = response_content.encode("utf-8")
+            status_code, headers, response = response
+        if not isinstance(response, bytes):
+            response = response.encode("utf-8")
 
-            return status_code, headers, response_content
+        if response and "content-type" not in headers:
+            headers["content-type"] = APP_XML
+
+        return status_code, headers, response
 
     def _bucket_response(
         self, request: Any, full_url: str
@@ -411,7 +416,8 @@ class S3Response(BaseResponse):
             # raises NoSuchBucket, leading to inconsistency in
             # error response between real and mocked responses.
             return 404, {}, ""
-        return 200, {"x-amz-bucket-region": bucket.region_name}, ""
+        headers = {"x-amz-bucket-region": bucket.region_name, "content-type": APP_XML}
+        return 200, headers, ""
 
     def _set_cors_headers_options(
         self, headers: Dict[str, str], bucket: FakeBucket
@@ -1336,7 +1342,7 @@ class S3Response(BaseResponse):
 
         if (begin is None and end == 0) or (begin is not None and begin > last):
             if request.method == "HEAD":
-                return 416, {"Content-Type": "application/xml"}, b""
+                return 416, {"Content-Type": APP_XML}, b""
             raise InvalidRange(
                 actual_size=str(length), range_requested=request.headers.get("range")
             )
@@ -1409,18 +1415,13 @@ class S3Response(BaseResponse):
         self.setup_class(request, full_url, headers)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.backend.log_incoming_request(request, bucket_name)
-        response_headers: Dict[str, Any] = {}
 
         try:
             response = self._key_response(request, full_url)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
-        if isinstance(response, str):
-            status_code = 200
-            response_content = response
-        else:
-            status_code, response_headers, response_content = response
+        status_code, response_headers, response_content = self._send_response(response)
 
         if (
             status_code == 200
@@ -2109,7 +2110,7 @@ class S3Response(BaseResponse):
             headers = {
                 "x-amz-delete-marker": "true",
                 "x-amz-version-id": version_id,
-                "content-type": "application/xml",
+                "content-type": APP_XML,
             }
             if version_id:
                 headers["allow"] = "DELETE"
