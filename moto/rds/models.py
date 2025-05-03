@@ -58,6 +58,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBInstanceStateFault,
     InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
@@ -2671,22 +2672,38 @@ class RDSBackend(BaseBackend):
     def failover_db_cluster(
         self,
         db_cluster_identifier: str,
-        target_db_instance_identifier: str = "",
+        target_db_instance_identifier: Optional[str] = None,
     ) -> DBCluster:
+        target_instance = None
+        if target_db_instance_identifier is not None:
+            if target_db_instance_identifier not in self.databases:
+                raise InvalidParameterValue(
+                    f"Cannot find target instance: {target_db_instance_identifier}"
+                )
+            target_instance = self.databases[target_db_instance_identifier]
+            if target_instance.status != "available":
+                raise InvalidDBInstanceStateFault(
+                    f"Instance {target_db_instance_identifier} should be in valid state for failover."
+                )
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(
+                db_cluster_identifier,
+                f"The source cluster could not be found or cannot be accessed: {db_cluster_identifier}",
+            )
         cluster = self.clusters[db_cluster_identifier]
-
-        if len(cluster.members) == 1:
+        if len(cluster.members) < 2:
             raise InvalidDBClusterStateFault(
                 f"Database cluster:{cluster.db_cluster_identifier} should have at least two database instances for failover"
             )
-
-        if not target_db_instance_identifier:
+        if target_instance is None:
             for instance in cluster.members:
-                if not instance.is_cluster_writer:
-                    target_db_instance_identifier = instance.db_instance_identifier
+                if not instance.is_cluster_writer and instance.status == "available":
+                    target_instance = instance
                     break
-
-        target_instance = self.databases[target_db_instance_identifier]
+            else:
+                raise InvalidDBClusterStateFault(
+                    f"Database cluster:{db_cluster_identifier} should have at least two database instances in valid states or a valid target instance for failover."
+                )
         assert isinstance(target_instance, DBInstanceClustered)
         cluster.failover(target_instance)
         return cluster

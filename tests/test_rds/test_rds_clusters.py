@@ -1902,6 +1902,28 @@ def test_failover_db_cluster_with_single_instance_cluster(client):
 
 
 @mock_aws
+def test_failover_db_cluster_exceptions(client):
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="non-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    create_db_instance(
+        DBInstanceIdentifier="now-existent-instance",
+        Engine="postgres",
+    )
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="now-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "DBClusterNotFoundFault"
+
+
+@mock_aws
 def test_db_cluster_writer_promotion(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-1",
