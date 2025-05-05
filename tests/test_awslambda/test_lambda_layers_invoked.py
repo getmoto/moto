@@ -28,10 +28,16 @@ def lambda_handler(event, context):
 def test_invoke_local_lambda_layers():
     conn = boto3.client("lambda", _lambda_region)
     lambda_name = str(uuid4())[0:6]
+    #
+    # Info about KLayers, including ARNs
     # https://api.klayers.cloud/api/v2/p3.11/layers/latest/us-east-1/json
-    requests_location = (
-        "resources/Klayers-p311-requests-a637a171-679b-4057-8a62-0a274b260710.zip"
-    )
+    #
+    # Get all info about a specific layer
+    # aws lambda get-layer-version-by-arn --arn "..."
+    #
+    # Download layer as a ZIP file
+    # curl $(aws lambda get-layer-version-by-arn --arn "..." --query "Content.Location" --output text) --output klayer.zip
+    requests_location = "resources/klayer_311_16.zip"
     requests_layer = pkgutil.get_data(__name__, requests_location)
 
     layer_arn = conn.publish_layer_version(
@@ -64,4 +70,4 @@ def test_invoke_local_lambda_layers():
         FunctionName=function_arn, Payload="{}", LogType="Tail"
     )
     msg = success_result["Payload"].read().decode("utf-8")
-    assert msg == '"2.31.0"'
+    assert msg == '"2.32.3"'

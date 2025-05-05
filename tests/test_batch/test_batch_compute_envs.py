@@ -9,10 +9,16 @@ from . import _get_clients, _setup
 
 
 @mock_aws
-def test_create_managed_compute_environment():
+@pytest.mark.parametrize("use_arn_for_instance_role", [True, False])
+def test_create_managed_compute_environment(use_arn_for_instance_role):
     ec2_client, iam_client, ecs_client, _, batch_client = _get_clients()
     _, subnet_id, sg_id, iam_arn = _setup(ec2_client, iam_client)
 
+    instance_role = (
+        iam_arn.replace("role", "instance-profile")
+        if use_arn_for_instance_role
+        else iam_arn.split("/")[-1]
+    )
     compute_name = str(uuid4())
     resp = batch_client.create_compute_environment(
         computeEnvironmentName=compute_name,
@@ -28,7 +34,7 @@ def test_create_managed_compute_environment():
             "subnets": [subnet_id],
             "securityGroupIds": [sg_id],
             "ec2KeyPair": "string",
-            "instanceRole": iam_arn.replace("role", "instance-profile"),
+            "instanceRole": instance_role,
             "tags": {"string": "string"},
             "bidPercentage": 123,
             "spotIamFleetRole": "string",

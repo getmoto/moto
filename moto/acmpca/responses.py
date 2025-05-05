@@ -1,6 +1,7 @@
 """Handles incoming acmpca requests, invokes methods, returns responses."""
 
 import base64
+import binascii
 import json
 
 from moto.core.responses import BaseResponse
@@ -54,12 +55,18 @@ class ACMPCAResponse(BaseResponse):
         ) = self.acmpca_backend.get_certificate_authority_certificate(
             certificate_authority_arn=certificate_authority_arn,
         )
-        return json.dumps(
-            dict(
-                Certificate=certificate.decode("utf-8"),
-                CertificateChain=certificate_chain,
-            )
-        )
+        response = dict(Certificate=certificate.decode("utf-8"))
+        if certificate_chain:
+            try:
+                decoded_chain = base64.b64decode(certificate_chain)
+                response["CertificateChain"] = decoded_chain.decode("utf-8")
+            except (binascii.Error, AttributeError):
+                response["CertificateChain"] = (
+                    certificate_chain.decode("utf-8")
+                    if isinstance(certificate_chain, bytes)
+                    else certificate_chain
+                )
+        return json.dumps(response)
 
     def get_certificate_authority_csr(self) -> str:
         params = json.loads(self.body)
@@ -168,3 +175,45 @@ class ACMPCAResponse(BaseResponse):
             tags=tags,
         )
         return "{}"
+
+    def put_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        policy = params.get("Policy")
+        self.acmpca_backend.put_policy(resource_arn=resource_arn, policy=policy)
+        return "{}"
+
+    def get_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        policy = self.acmpca_backend.get_policy(resource_arn=resource_arn)
+        return json.dumps({"Policy": policy})
+
+    def delete_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        self.acmpca_backend.delete_policy(resource_arn=resource_arn)
+        return "{}"
+
+    def list_certificate_authorities(self) -> str:
+        """
+        Handler for ListCertificateAuthorities API request
+        """
+        params = json.loads(self.body)
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        resource_owner = params.get("ResourceOwner")
+
+        # Get paginated results and next token from backend
+        cas, next_token = self.acmpca_backend.list_certificate_authorities(
+            max_results=max_results,
+            next_token=next_token,
+            resource_owner=resource_owner,
+        )
+
+        response = {"CertificateAuthorities": [ca.to_json() for ca in cas]}
+
+        if next_token:
+            response["NextToken"] = next_token
+
+        return json.dumps(response)

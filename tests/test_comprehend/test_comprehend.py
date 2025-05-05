@@ -23,6 +23,45 @@ INPUT_DATA_CONFIG = {
     "EntityTypes": [{"Type": "ENGINEER"}, {"Type": "MANAGER"}],
 }
 
+OUTPUT_DATA_CONFIG = {
+    "S3Uri": "string",
+    "KmsKeyId": "string",
+    "FlywheelStatsS3Prefix": "string",
+}
+
+DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG = {
+    "DataFormat": "COMPREHEND_CSV",
+    "S3Uri": "s3://fake-bucket/documents.csv",
+    "TestS3Uri": "s3://fake-bucket/test-documents.csv",
+    "LabelDelimiter": ",",
+    "AugmentedManifests": [
+        {
+            "S3Uri": "s3://fake-bucket/augmented-manifest.json",
+            "Split": "TRAIN",
+            "AttributeNames": [
+                "Attribute1",
+                "Attribute2",
+            ],
+            "AnnotationDataS3Uri": "s3://fake-bucket/annotations.json",
+            "SourceDocumentsS3Uri": "s3://fake-bucket/source-documents/",
+            "DocumentType": "PLAIN_TEXT_DOCUMENT",
+        },
+    ],
+    "DocumentType": "PLAIN_TEXT_DOCUMENT",
+    "Documents": {
+        "S3Uri": "s3://fake-bucket/documents/",
+        "TestS3Uri": "s3://fake-bucket/test-documents/",
+    },
+    "DocumentReaderConfig": {
+        "DocumentReadAction": "TEXTRACT_DETECT_DOCUMENT_TEXT",
+        "DocumentReadMode": "SERVICE_DEFAULT",
+        "FeatureTypes": [
+            "TABLES",
+            "FORMS",
+        ],
+    },
+}
+
 
 @mock_aws
 def test_list_entity_recognizers():
@@ -369,4 +408,470 @@ def test_detect_sentiment_text_too_large():
         err["Message"]
         == "Input text size exceeds limit. Max length of request text allowed is 100000 bytes while "
         f"in this request the text size is {size} bytes"
+    )
+
+
+@mock_aws
+def test_create_document_classifier():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    resp = client.create_document_classifier(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        DocumentClassifierName="tf-acc-test-1726651689102157637",
+        VersionName="terraform-20221003201727469000000002",
+        OutputDataConfig=OUTPUT_DATA_CONFIG,
+        ClientRequestToken="unique-token",
+        VolumeKmsKeyId="kms-key-id",
+        VpcConfig={"SecurityGroupIds": ["sg-12345678"], "Subnets": ["subnet-12345678"]},
+        Mode="MULTI_CLASS",
+        ModelKmsKeyId="model-kms-key-id",
+        ModelPolicy="model-policy",
+    )
+
+    assert "DocumentClassifierArn" in resp
+
+
+@mock_aws
+def test_create_endpoint():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    resp = client.create_endpoint(
+        EndpointName="tf-acc-test-1726651689102157637",
+        ModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DesiredInferenceUnits=123,
+        ClientRequestToken="unique-token",
+        FlywheelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+    )
+
+    assert "EndpointArn" in resp
+
+
+@mock_aws
+def test_create_flywheel():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    resp = client.create_flywheel(
+        FlywheelName="test-flywheel",
+        ActiveModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DataAccessRoleArn="iam_role_with_20_chars",
+        TaskConfig={
+            "LanguageCode": "en",
+            "DocumentClassificationConfig": {
+                "Mode": "MULTI_CLASS",
+                "Labels": ["Label1", "Label2"],
+            },
+        },
+        ModelType="DOCUMENT_CLASSIFIER",
+        DataLakeS3Uri="s3://tf-acc-test-1726651689102157637/documents.txt",
+        DataSecurityConfig={
+            "ModelKmsKeyId": "model-kms-key-id",
+            "VolumeKmsKeyId": "volume-kms-key-id",
+            "DataLakeKmsKeyId": "data-lake-kms-key-id",
+            "VpcConfig": {
+                "SecurityGroupIds": ["sg-12345678"],
+                "Subnets": ["subnet-12345678"],
+            },
+        },
+        ClientRequestToken="unique-token",
+    )
+
+    assert "FlywheelArn" in resp
+
+
+@mock_aws
+def test_describe_document_classifier():
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    resp = client.create_document_classifier(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        DocumentClassifierName="tf-acc-test-1726651689102157637",
+        VersionName="terraform-20221003201727469000000002",
+        OutputDataConfig=OUTPUT_DATA_CONFIG,
+        ClientRequestToken="unique-token",
+        VolumeKmsKeyId="kms-key-id",
+        VpcConfig={"SecurityGroupIds": ["sg-12345678"], "Subnets": ["subnet-12345678"]},
+        Mode="MULTI_CLASS",
+        ModelKmsKeyId="model-kms-key-id",
+        ModelPolicy="model-policy",
+    )
+    arn = resp["DocumentClassifierArn"]
+    resp = client.describe_document_classifier(DocumentClassifierArn=arn)
+    assert "DocumentClassifierProperties" in resp
+    props = resp["DocumentClassifierProperties"]
+
+    assert props["DocumentClassifierArn"] == arn
+    assert props["LanguageCode"] == "en"
+    assert props["Status"] == "TRAINING"
+    assert props["InputDataConfig"] == DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG
+    assert props["DataAccessRoleArn"] == "iam_role_with_20_chars"
+
+
+@mock_aws
+def test_describe_endpoint():
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    arn = client.create_endpoint(
+        ModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DesiredInferenceUnits=123,
+        EndpointName="tf-acc-test-1726651689102157637",
+        ClientRequestToken="unique-token",
+        FlywheelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+    )["EndpointArn"]
+
+    resp = client.describe_endpoint(EndpointArn=arn)
+    assert "EndpointProperties" in resp
+    props = resp["EndpointProperties"]
+
+    assert props["EndpointArn"] == arn
+    assert (
+        props["ModelArn"]
+        == "arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637"
+    )
+    assert props["Status"] == "IN_SERVICE"
+    assert props["DesiredInferenceUnits"] == 123
+    assert (
+        props["FlywheelArn"]
+        == "arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637"
+    )
+
+
+@mock_aws
+def test_describe_flywheel():
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    arn = client.create_flywheel(
+        FlywheelName="test-flywheel",
+        ActiveModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DataAccessRoleArn="iam_role_with_20_chars",
+        TaskConfig={
+            "LanguageCode": "en",
+            "DocumentClassificationConfig": {
+                "Mode": "MULTI_CLASS",
+                "Labels": ["Label1", "Label2"],
+            },
+        },
+        ModelType="DOCUMENT_CLASSIFIER",
+        DataLakeS3Uri="s3://tf-acc-test-1726651689102157637/documents.txt",
+        DataSecurityConfig={
+            "ModelKmsKeyId": "model-kms-key-id",
+            "VolumeKmsKeyId": "volume-kms-key-id",
+            "DataLakeKmsKeyId": "data-lake-kms-key-id",
+            "VpcConfig": {
+                "SecurityGroupIds": ["sg-12345678"],
+                "Subnets": ["subnet-12345678"],
+            },
+        },
+        ClientRequestToken="unique-token",
+    )["FlywheelArn"]
+
+    resp = client.describe_flywheel(FlywheelArn=arn)
+    assert "FlywheelProperties" in resp
+    props = resp["FlywheelProperties"]
+    assert props["FlywheelArn"] == arn
+    assert (
+        props["ActiveModelArn"]
+        == "arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637"
+    )
+    assert props["DataAccessRoleArn"] == "iam_role_with_20_chars"
+    assert props["ModelType"] == "DOCUMENT_CLASSIFIER"
+    assert (
+        props["DataLakeS3Uri"] == "s3://tf-acc-test-1726651689102157637/documents.txt"
+    )
+    assert props["DataSecurityConfig"] == {
+        "ModelKmsKeyId": "model-kms-key-id",
+        "VolumeKmsKeyId": "volume-kms-key-id",
+        "DataLakeKmsKeyId": "data-lake-kms-key-id",
+        "VpcConfig": {
+            "SecurityGroupIds": ["sg-12345678"],
+            "Subnets": ["subnet-12345678"],
+        },
+    }
+
+
+@mock_aws
+def test_delete_document_classifier():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    arn = client.create_document_classifier(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        DocumentClassifierName="tf-acc-test-1726651689102157637",
+        VersionName="terraform-20221003201727469000000002",
+        OutputDataConfig=OUTPUT_DATA_CONFIG,
+        ClientRequestToken="unique-token",
+        VolumeKmsKeyId="kms-key-id",
+        VpcConfig={"SecurityGroupIds": ["sg-12345678"], "Subnets": ["subnet-12345678"]},
+        Mode="MULTI_CLASS",
+        ModelKmsKeyId="model-kms-key-id",
+        ModelPolicy="model-policy",
+    )["DocumentClassifierArn"]
+
+    client.delete_document_classifier(DocumentClassifierArn=arn)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_document_classifier(DocumentClassifierArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
+
+
+@mock_aws
+def test_delete_endpoint():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    arn = client.create_endpoint(
+        ModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DesiredInferenceUnits=123,
+        EndpointName="tf-acc-test-1726651689102157637",
+        ClientRequestToken="unique-token",
+        FlywheelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+    )["EndpointArn"]
+
+    client.delete_endpoint(EndpointArn=arn)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_endpoint(EndpointArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
+
+
+@mock_aws
+def test_delete_flywheel():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    arn = client.create_flywheel(
+        FlywheelName="test-flywheel",
+        ActiveModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DataAccessRoleArn="iam_role_with_20_chars",
+        TaskConfig={
+            "LanguageCode": "en",
+            "DocumentClassificationConfig": {
+                "Mode": "MULTI_CLASS",
+                "Labels": ["Label1", "Label2"],
+            },
+        },
+        ModelType="DOCUMENT_CLASSIFIER",
+        DataLakeS3Uri="s3://tf-acc-test-1726651689102157637/documents.txt",
+        DataSecurityConfig={
+            "ModelKmsKeyId": "model-kms-key-id",
+            "VolumeKmsKeyId": "volume-kms-key-id",
+            "DataLakeKmsKeyId": "data-lake-kms-key-id",
+            "VpcConfig": {
+                "SecurityGroupIds": ["sg-12345678"],
+                "Subnets": ["subnet-12345678"],
+            },
+        },
+        ClientRequestToken="unique-token",
+    )["FlywheelArn"]
+
+    client.delete_flywheel(FlywheelArn=arn)
+    with pytest.raises(ClientError) as exc:
+        client.describe_endpoint(EndpointArn=arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_list_document_classifiers():
+    client = boto3.client("comprehend", region_name="us-east-2")
+    resp = client.list_document_classifiers(
+        Filter={"DocumentClassifierName": "unknown"}, MaxResults=10, NextToken="token"
+    )
+    assert resp["DocumentClassifierPropertiesList"] == []
+
+    client.create_document_classifier(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        DocumentClassifierName="myname",
+        VersionName="version1",
+    )
+
+    resp = client.list_document_classifiers(
+        Filter={"DocumentClassifierName": "myname"}, MaxResults=10, NextToken="token"
+    )
+    assert len(resp["DocumentClassifierPropertiesList"]) == 1
+    assert (
+        resp["DocumentClassifierPropertiesList"][0]["DocumentClassifierArn"]
+        == "arn:aws:comprehend:us-east-2:123456789012:document-classifier/myname/version1"
+    )
+
+    resp = client.list_document_classifiers(
+        Filter={"DocumentClassifierName": "unknown"}, MaxResults=10, NextToken="token"
+    )
+    assert resp["DocumentClassifierPropertiesList"] == []
+
+    resp = client.list_document_classifiers(
+        Filter={"DocumentClassifierName": "myname"}, MaxResults=10, NextToken="token"
+    )
+    assert len(resp["DocumentClassifierPropertiesList"]) == 1
+    client.create_document_classifier(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        DocumentClassifierName="myname",
+        VersionName="version2",
+    )
+
+    resp = client.list_document_classifiers(
+        Filter={"DocumentClassifierName": "myname"}, MaxResults=10, NextToken="token"
+    )
+
+    assert len(resp["DocumentClassifierPropertiesList"]) == 2
+
+
+@mock_aws
+def test_list_endpoints():
+    client = boto3.client("comprehend", region_name="us-east-2")
+
+    resp = client.list_endpoints(
+        Filter={"Status": "IN_SERVICE"}, MaxResults=10, NextToken="token"
+    )
+    assert resp["EndpointPropertiesList"] == []
+
+    client.create_endpoint(
+        ModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DesiredInferenceUnits=123,
+        EndpointName="myname",
+        ClientRequestToken="unique-token",
+        FlywheelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+    )
+
+    resp = client.list_endpoints(
+        Filter={"Status": "FAILED"}, MaxResults=10, NextToken="token"
+    )
+    assert resp["EndpointPropertiesList"] == []
+
+    resp = client.list_endpoints(
+        Filter={"Status": "IN_SERVICE"}, MaxResults=10, NextToken="token"
+    )
+    assert len(resp["EndpointPropertiesList"]) == 1
+
+    client.create_endpoint(
+        ModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-17266516891021576372",
+        DesiredInferenceUnits=123,
+        EndpointName="myname",
+        ClientRequestToken="unique-token",
+        FlywheelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-17266516891021576372",
+    )
+
+    resp = client.list_endpoints(
+        Filter={"Status": "IN_SERVICE"}, MaxResults=10, NextToken="token"
+    )
+    assert len(resp["EndpointPropertiesList"]) == 2
+
+
+@mock_aws
+def test_list_flywheels():
+    client = boto3.client("comprehend", region_name="us-east-2")
+
+    resp = client.list_flywheels(
+        Filter={"Status": "ACTIVE"}, MaxResults=10, NextToken="token"
+    )
+    assert resp["FlywheelSummaryList"] == []
+
+    client.create_flywheel(
+        FlywheelName="test-flywheel",
+        ActiveModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DataAccessRoleArn="iam_role_with_20_chars",
+        TaskConfig={
+            "LanguageCode": "en",
+            "DocumentClassificationConfig": {
+                "Mode": "MULTI_CLASS",
+                "Labels": ["Label1", "Label2"],
+            },
+        },
+        ModelType="DOCUMENT_CLASSIFIER",
+        DataLakeS3Uri="s3://tf-acc-test-1726651689102157637/documents.txt",
+        DataSecurityConfig={
+            "ModelKmsKeyId": "model-kms-key-id",
+            "VolumeKmsKeyId": "volume-kms-key-id",
+            "DataLakeKmsKeyId": "data-lake-kms-key-id",
+            "VpcConfig": {
+                "SecurityGroupIds": ["sg-12345678"],
+                "Subnets": ["subnet-12345678"],
+            },
+        },
+        ClientRequestToken="unique-token",
+    )
+
+    resp = client.list_flywheels(
+        Filter={"Status": "CREATING"}, MaxResults=10, NextToken="token"
+    )
+    assert resp["FlywheelSummaryList"] == []
+
+    resp = client.list_flywheels(
+        Filter={"Status": "ACTIVE"}, MaxResults=10, NextToken="token"
+    )
+    assert len(resp["FlywheelSummaryList"]) == 1
+
+
+@mock_aws
+def test_stop_training_document_classifier():
+    client = boto3.client("comprehend", region_name="eu-west-1")
+    arn = client.create_document_classifier(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        DocumentClassifierName="myname",
+        VersionName="version1",
+    )["DocumentClassifierArn"]
+    client.stop_training_document_classifier(DocumentClassifierArn=arn)
+
+    props = client.describe_document_classifier(DocumentClassifierArn=arn)[
+        "DocumentClassifierProperties"
+    ]
+    assert props["Status"] == "STOP_REQUESTED"
+
+
+@mock_aws
+def test_start_flywheel_iteration():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    arn = client.create_flywheel(
+        FlywheelName="test-flywheel",
+        ActiveModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DataAccessRoleArn="iam_role_with_20_chars",
+        TaskConfig={
+            "LanguageCode": "en",
+            "DocumentClassificationConfig": {
+                "Mode": "MULTI_CLASS",
+                "Labels": ["Label1", "Label2"],
+            },
+        },
+        ModelType="DOCUMENT_CLASSIFIER",
+        DataLakeS3Uri="s3://tf-acc-test-1726651689102157637/documents.txt",
+        DataSecurityConfig={
+            "ModelKmsKeyId": "model-kms-key-id",
+            "VolumeKmsKeyId": "volume-kms-key-id",
+            "DataLakeKmsKeyId": "data-lake-kms-key-id",
+            "VpcConfig": {
+                "SecurityGroupIds": ["sg-12345678"],
+                "Subnets": ["subnet-12345678"],
+            },
+        },
+        ClientRequestToken="unique-token",
+    )["FlywheelArn"]
+
+    resp = client.start_flywheel_iteration(FlywheelArn=arn)
+    assert "FlywheelIterationId" in resp
+
+
+@mock_aws
+def test_update_endpoint():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    arn = client.create_endpoint(
+        ModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+        DesiredInferenceUnits=123,
+        EndpointName="tf-acc-test-1726651689102157637",
+        ClientRequestToken="unique-token",
+        DataAccessRoleArn="iam_role_with_20_chars",
+        FlywheelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+    )["EndpointArn"]
+
+    resp = client.update_endpoint(
+        EndpointArn=arn,
+        DesiredInferenceUnits=456,
+        DesiredModelArn="arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637",
+    )
+
+    assert (
+        resp["DesiredModelArn"]
+        == "arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637"
     )

@@ -42,7 +42,7 @@ ses
 - [X] describe_receipt_rule_set
 - [ ] get_account_sending_enabled
 - [ ] get_custom_verification_email_template
-- [ ] get_identity_dkim_attributes
+- [X] get_identity_dkim_attributes
 - [X] get_identity_mail_from_domain_attributes
 - [X] get_identity_notification_attributes
 - [ ] get_identity_policies
@@ -77,7 +77,7 @@ ses
 - [ ] test_render_template
 - [ ] update_account_sending_enabled
 - [ ] update_configuration_set_event_destination
-- [ ] update_configuration_set_reputation_metrics_enabled
+- [X] update_configuration_set_reputation_metrics_enabled
 - [ ] update_configuration_set_sending_enabled
 - [ ] update_configuration_set_tracking_options
 - [ ] update_custom_verification_email_template

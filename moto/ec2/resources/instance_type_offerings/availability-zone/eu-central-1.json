@@ -580,6 +580,42 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "c7gd.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.medium",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.metal",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "c7gd.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "eu-central-1a"
  },
@@ -1025,6 +1061,14 @@
  },
  {
   "InstanceType": "i7ie.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
   "Location": "eu-central-1a"
  },
  {
@@ -2600,6 +2644,42 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "r7gd.12xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.16xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.2xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.4xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.8xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.large",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.medium",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.metal",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "r7gd.xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "r7i.12xlarge",
   "Location": "eu-central-1a"
  },
@@ -4049,6 +4129,14 @@
  },
  {
   "InstanceType": "i7ie.large",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
   "Location": "eu-central-1b"
  },
  {
@@ -7089,6 +7177,14 @@
  },
  {
   "InstanceType": "i7ie.large",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
   "Location": "eu-central-1c"
  },
  {

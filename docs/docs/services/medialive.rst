@@ -44,6 +44,7 @@ medialive
 - [ ] create_node
 - [ ] create_node_registration_script
 - [ ] create_partner_input
+- [ ] create_sdi_source
 - [ ] create_signal_map
 - [ ] create_tags
 - [X] delete_channel
@@ -61,6 +62,7 @@ medialive
 - [ ] delete_node
 - [ ] delete_reservation
 - [ ] delete_schedule
+- [ ] delete_sdi_source
 - [ ] delete_signal_map
 - [ ] delete_tags
 - [ ] describe_account_configuration
@@ -78,6 +80,7 @@ medialive
 - [ ] describe_offering
 - [ ] describe_reservation
 - [ ] describe_schedule
+- [ ] describe_sdi_source
 - [ ] describe_thumbnails
 - [ ] get_cloud_watch_alarm_template
 - [ ] get_cloud_watch_alarm_template_group
@@ -101,6 +104,7 @@ medialive
 - [ ] list_nodes
 - [ ] list_offerings
 - [ ] list_reservations
+- [ ] list_sdi_sources
 - [ ] list_signal_maps
 - [ ] list_tags_for_resource
 - [ ] list_versions
@@ -137,4 +141,5 @@ medialive
 - [ ] update_node
 - [ ] update_node_state
 - [ ] update_reservation
+- [ ] update_sdi_source
 

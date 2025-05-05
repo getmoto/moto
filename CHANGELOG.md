@@ -2,6 +2,111 @@ Moto Changelog
 ==============
 
 
+5.1.4
+-----
+Docker Digest for 5.1.4: _sha256:32d7805d8bd4c81db789c4fff2c36f96a8837cbd8e7a3853116b6516b9490dde_
+
+    New Services:
+        * CodeDeploy:
+            * batch_get_applications()
+            * batch_get_deployments()
+            * create_application()
+            * create_deployment()
+            * create_deployment_group()
+            * get_application()
+            * get_deployment()
+            * get_deployment_group()
+            * list_applications()
+            * list_deployments()
+            * list_deployment_groups()
+
+    New Methods:
+        * ACM:
+            * get_account_configuration()
+            * put_account_configuration()
+
+        * ACM PCA:
+            * get_policy()
+            * delete_policy()
+            * put_policy()
+
+        * EC2:
+            * create_default_subnet()
+
+        * Glue:
+            * get_job_runs()
+
+        * Route53 Resolver:
+            * associate_resolver_query_log_config()
+            * create_resolver_query_log_config()
+            * get_resolver_query_log_config()
+
+        * SES:
+            * create_email_identity_policy()
+            * delete_email_identity_policy()
+            * get_email_identity_policies()
+            * get_identity_dkim_attributes()
+            * update_configuration_set_reputation_metrics_enabled()
+            * update_email_identity_policy()
+
+        * Textract:
+            * get_document_analysis()
+            * start_document_analysis()
+
+        * WAFv2:
+            * create_regex_pattern_set()
+            * delete_regex_pattern_set()
+            * get_regex_pattern_set()
+            * list_regex_pattern_sets()
+            * update_regex_pattern_set()
+
+
+    Miscellaneous:
+        * If IAM validation is enabled, Moto now also validates the principal and ExternalId for assumed roles
+        * ACM: describe_certificate() now return status=Expired if appropriate
+        * ACM: describe_certificate() now always set status=Issued if the issuer=Amazon
+        * ACM PCA: get_certificate_authority_certificate() now returns the CertificateChain in the correct format
+        * Batch: create_compute_environment() now supports adding the instanceRole using the role name only, instead of the full ARN
+        * Batch: create_job_queue() now supports adding the computeEnvironment using just the name, instead of the full ARN
+        * CloudFormation: update_stack() now allows removal of resources in any order, regardless of dependencies
+        * CloudFront now supports additional ViewerCertificate fields (IAMCertificateId, ACMCertificateARN, SSLSupportMethod)
+        * CloudFront now supports TrustedSigners in the DefaultCacheBehaviour
+        * CognitoIdentity: get_id() now supports identity pools in non-standard regions when using the CLI
+        * EC2: create_fleet() now propagates instance-tags of type=instant
+        * EC2: describe_security_group_rules() now correctly filters by group-id and tags
+        * EC2: delete_vpc() now validates that all Subnets are deleted first
+        * ECS: The pendingTasksCount and runningTasksCount-properties of a cluster are now updated accordingly when creating/updating services
+        * ResourceGroupsTaggingAPI: get_resources() now supports KinesisAnalyticsV2' Applications
+        * RDS: Identifiers of all resources are now case-insensitive
+        * RDS: stop_db_instance() now creates a snapshot of type=manual, instead of automatic
+        * S3: get_bucket_replication() now returns Destination.Account for cross-account replication
+        * S3: get_object() can now retrieve objects in GLACIER_IR; support for EXPRESS_ONEZONE
+        * SES, SESv2: list_configuration_sets() now supports pagination
+        * SecretsManager: list_secrets() now supports the owning-service filter
+
+
+5.1.3
+-----
+Docker Digest for 5.1.3: _sha256:c96adff67d2bf82c3a61a6f1155db5300be44d82a9403919a6ff994d0e5438b7_
+
+    New Methods:
+        * DMS:
+            * create_replication_instance()
+            * describe_replication_instances()
+
+        * Service Catalog:
+            * describe_portfolio()
+
+    Miscellaneous:
+        * ACM: request_certificate() now correctly handles IPv4-addresses
+        * DynamoDB: update_item(): Fixed a bug where the PathOverlap-exception was thrown erroneously
+        * EC2: Improved the behaviour of SecurityGroupRules with multiple IP ranges
+        * MediaConnect: create_flow() now supports the Maintenance-parameter
+        * RDS: Managed Secrets are now actually created in Secrets Manager
+        * S3: delete_objects(): The BypassGovernanceMode-parameter is now compatible with botocore==1.27.25
+        * SNS: SMS messages are now exposed via the Moto API
+
+
 5.1.2
 -----
 Docker Digest for 5.1.2: _sha256:3144ffd311b381594efde7ed4a41fb8fe2d66829ae5f3bf493f93f2ca1a8c82b_
