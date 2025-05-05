@@ -200,7 +200,7 @@ class DeploymentInfo(BaseModel):
         self.related_deployments: Dict[str, Any] = {}
         self.override_alarm_configuration = override_alarm_configuration
         # Add tags attribute to deployments
-        self.tags = []
+        self.tags: List[Dict[str, str]] = []
 
     def to_dict(self) -> Dict[str, Any]:
         return {
