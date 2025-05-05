@@ -515,11 +515,7 @@ class FakeMultipart(BaseModel):
 
 
 class MultipartChecksumBuilder:
-    def __init__(
-            self,
-            checksum_algorithm : str,
-            checksum_type : str
-    ):
+    def __init__(self, checksum_algorithm: str, checksum_type: str):
         self.checksum_algorithm = checksum_algorithm
         self.checksum_type = checksum_type
 
@@ -530,8 +526,10 @@ class MultipartChecksumBuilder:
 
         # Checksum type defaults to COMPOSITE except for CRC64NVME which only supports FULL_OBJECT
         if not self.checksum_type:
-            self.checksum_type = "FULL_OBJECT" if self.checksum_algorithm == "CRC64NVME" else "COMPOSITE"
-        
+            self.checksum_type = (
+                "FULL_OBJECT" if self.checksum_algorithm == "CRC64NVME" else "COMPOSITE"
+            )
+
     def addPart(self, part: bytes) -> None:
         if self.checksum_type == "COMPOSITE":
             self.checksum.extend(
@@ -545,11 +543,23 @@ class MultipartChecksumBuilder:
     def build(self) -> Tuple[str, str, int]:
         if not self.checksum_algorithm:
             return None
-        
+
         if self.checksum_type == "COMPOSITE":
-            return (self.checksum_type, compute_checksum(self.checksum, self.checksum_algorithm).decode("utf-8"), self.part_count)
-        
-        return (self.checksum_type, compute_checksum(self.complete_object, self.checksum_algorithm).decode("utf-8"), 1)
+            return (
+                self.checksum_type,
+                compute_checksum(self.checksum, self.checksum_algorithm).decode(
+                    "utf-8"
+                ),
+                self.part_count,
+            )
+
+        return (
+            self.checksum_type,
+            compute_checksum(self.complete_object, self.checksum_algorithm).decode(
+                "utf-8"
+            ),
+            1,
+        )
 
 
 class FakeGrantee(BaseModel):
