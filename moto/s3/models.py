@@ -450,9 +450,9 @@ class FakeMultipart(BaseModel):
 
     def complete(
         self, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[bytes, str, Tuple[str, str, int]]:
-        checksum_algo = self.metadata.get("x-amz-checksum-algorithm")
-        checksum_type = self.metadata.get("x-amz-checksum-type")
+    ) -> Tuple[bytearray, str, Optional[Tuple[str, str, int]]]:
+        checksum_algo: Optional[str] = self.metadata.get("x-amz-checksum-algorithm")
+        checksum_type: Optional[str] = self.metadata.get("x-amz-checksum-type")
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
@@ -515,16 +515,17 @@ class FakeMultipart(BaseModel):
 
 
 class MultipartChecksumBuilder:
-    def __init__(self, checksum_algorithm: str, checksum_type: str):
-        self.checksum_algorithm = checksum_algorithm
-        self.checksum_type = checksum_type
-
+    def __init__(self, checksum_algorithm: Optional[str], checksum_type: Optional[str]):
         self.complete_object = bytearray()
         self.checksum = bytearray()
 
         self.part_count = 0
 
+        # Checksum algorithm defaults to CRC64NVME when none specified
+        self.checksum_algorithm: str = checksum_algorithm or "CRC64NVME"
+
         # Checksum type defaults to COMPOSITE except for CRC64NVME which only supports FULL_OBJECT
+        self.checksum_type: str = checksum_type or ""
         if not self.checksum_type:
             self.checksum_type = (
                 "FULL_OBJECT" if self.checksum_algorithm == "CRC64NVME" else "COMPOSITE"
@@ -540,10 +541,7 @@ class MultipartChecksumBuilder:
 
         self.part_count += 1
 
-    def build(self) -> Tuple[str, str, int]:
-        if not self.checksum_algorithm:
-            return None
-
+    def build(self) -> Optional[Tuple[str, str, int]]:
         if self.checksum_type == "COMPOSITE":
             return (
                 self.checksum_type,
