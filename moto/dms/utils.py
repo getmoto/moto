@@ -1,4 +1,15 @@
+import random
+import string
 from typing import Any, Dict, Iterable, List
+
+
+def random_id(uppercase: bool = True, length: int = 13) -> str:
+    ascii_set = string.ascii_uppercase if uppercase else string.ascii_lowercase
+    chars = list(range(10)) + list(ascii_set)
+    resource_id = random.choice(ascii_set) + "".join(
+        str(random.choice(chars)) for _ in range(length - 1)
+    )
+    return resource_id
 
 
 def match_task_arn(task: Dict[str, Any], arns: List[str]) -> bool:

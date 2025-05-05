@@ -1361,6 +1361,9 @@ def test_update_stack_deleted_resources_can_reference_deleted_resources():
             "AWSTemplateFormatVersion": "2010-09-09",
             "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
             "Resources": {
+                # Note that we're listing the VPC first on purpose, even though the dependency between them
+                # means that the Subnet should be deleted first, before the VPC can be deleted
+                # Our implementation needs to handle deletion of resources regardless of the order
                 "VPC": {
                     "Type": "AWS::EC2::VPC",
                     "Properties": {"CidrBlock": "10.0.0.0/16"},

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import math
 import os
 import re
@@ -17,6 +18,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    MutableMapping,
     Optional,
     Protocol,
     Tuple,
@@ -30,7 +32,7 @@ from moto.ec2.models import ec2_backends
 from moto.kms.models import KmsBackend, kms_backends
 from moto.moto_api._internal import mock_random as random
 from moto.secretsmanager.models import FakeSecret, SecretsManagerBackend
-from moto.utilities.utils import ARN_PARTITION_REGEX, load_resource
+from moto.utilities.utils import ARN_PARTITION_REGEX, CaseInsensitiveDict, load_resource
 
 from .exceptions import (
     DBClusterNotFoundError,
@@ -57,6 +59,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBInstanceStateFault,
     InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
@@ -331,6 +334,14 @@ class GlobalCluster(RDSBaseModel):
         self.status = "available"
 
     @property
+    def global_cluster_identifier(self) -> str:
+        return self._global_cluster_identifier
+
+    @global_cluster_identifier.setter
+    def global_cluster_identifier(self, value: str) -> None:
+        self._global_cluster_identifier = value.lower()
+
+    @property
     def resource_id(self) -> str:
         return self.global_cluster_identifier
 
@@ -419,7 +430,7 @@ class MasterUserSecret:
         secret = self.secretsmanager.create_managed_secret(
             service_name="rds",
             secret_id=self._generate_secret_name(),
-            secret_string="P@55w0rd!",
+            secret_string=self._generate_secret_string(),
             description=self._generate_secret_description(),
             kms_key_id=kms_key_id,
             tags=self._generate_secret_tags(),
@@ -436,6 +447,11 @@ class MasterUserSecret:
         description = f"The secret associated with the primary RDS DB {resource_type}: {self.resource.arn}"
         return description
 
+    def _generate_secret_string(self) -> str:
+        credentials = {"username": "admin", "password": "P@55w0rd!"}
+        secret_string = json.dumps(credentials)
+        return secret_string
+
     def _generate_secret_tags(self) -> list[dict[str, str]]:
         resource_type = self.resource.__class__.__name__
         tags = [
@@ -447,7 +463,9 @@ class MasterUserSecret:
 class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
-            ["db_cluster_arn", "db_cluster_identifier"], "DB Cluster Identifiers"
+            ["db_cluster_arn", "db_cluster_identifier"],
+            "DB Cluster Identifiers",
+            case_insensitive=True,
         ),
         "engine": FilterDef(["engine"], "Engine Names"),
     }
@@ -627,6 +645,14 @@ class DBCluster(RDSBaseModel):
                     "IAM Authentication is currently not supported by Multi-AZ DB clusters."
                 )
         self.license_model = license_model
+
+    @property
+    def db_cluster_identifier(self) -> str:
+        return self._db_cluster_identifier
+
+    @db_cluster_identifier.setter
+    def db_cluster_identifier(self, value: str) -> None:
+        self._db_cluster_identifier = value.lower()
 
     @property
     def db_subnet_group(self) -> str:
@@ -886,9 +912,12 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         "db-cluster-id": FilterDef(
             ["db_cluster_arn", "db_cluster_identifier"],
             "DB Cluster Identifiers",
+            case_insensitive=True,
         ),
         "db-cluster-snapshot-id": FilterDef(
-            ["db_cluster_snapshot_identifier"], "DB Cluster Snapshot Identifiers"
+            ["db_cluster_snapshot_identifier"],
+            "DB Cluster Snapshot Identifiers",
+            case_insensitive=True,
         ),
         "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
         "engine": FilterDef(["cluster.engine"], "Engine Names"),
@@ -934,6 +963,14 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
         self.storage_encrypted = self.cluster.storage_encrypted
 
     @property
+    def db_cluster_snapshot_identifier(self) -> str:
+        return self._db_cluster_snapshot_identifier
+
+    @db_cluster_snapshot_identifier.setter
+    def db_cluster_snapshot_identifier(self, value: str) -> None:
+        self._db_cluster_snapshot_identifier = value.lower()
+
+    @property
     def resource_id(self) -> str:
         return self.db_cluster_snapshot_identifier
 
@@ -972,9 +1009,13 @@ class DBLogFile(XFormedAttributeAccessMixin):
 class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     BOTOCORE_MODEL = "DBInstance"
     SUPPORTED_FILTERS = {
-        "db-cluster-id": FilterDef(["db_cluster_identifier"], "DB Cluster Identifiers"),
+        "db-cluster-id": FilterDef(
+            ["db_cluster_identifier"], "DB Cluster Identifiers", case_insensitive=True
+        ),
         "db-instance-id": FilterDef(
-            ["db_instance_arn", "db_instance_identifier"], "DB Instance Identifiers"
+            ["db_instance_arn", "db_instance_identifier"],
+            "DB Instance Identifiers",
+            case_insensitive=True,
         ),
         "dbi-resource-id": FilterDef(["dbi_resource_id"], "Dbi Resource Ids"),
         "domain": FilterDef(None, ""),
@@ -984,6 +1025,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     default_engine_versions = {
         "MySQL": "5.6.21",
         "mysql": "5.6.21",
+        "neptune": "1.3.2.1",
         "oracle-ee": "11.2.0.4.v3",
         "oracle-se": "11.2.0.4.v3",
         "oracle-se1": "11.2.0.4.v3",
@@ -1139,6 +1181,14 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
                 option_suffix = option_suffix + "-" + semantic[1]
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
+
+    @property
+    def db_instance_identifier(self) -> str:
+        return self._db_instance_identifier
+
+    @db_instance_identifier.setter
+    def db_instance_identifier(self, value: str) -> None:
+        self._db_instance_identifier = value.lower()
 
     @property
     def db_subnet_group_name(self) -> Optional[str]:
@@ -1412,7 +1462,9 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.master_user_secret = MasterUserSecret(
                 self, master_user_secret_kms_key_id
             )
-        elif manage_master_user_password is False:
+        elif manage_master_user_password is False and hasattr(
+            self, "master_user_secret"
+        ):
             self.master_user_secret.delete_secret()
             del self.master_user_secret
 
@@ -1452,6 +1504,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             "aurora-postgresql": 5432,
             "mysql": 3306,
             "mariadb": 3306,
+            "neptune": 8182,
             "postgres": 5432,
             "oracle-ee": 1521,
             "oracle-se2": 1521,
@@ -1578,7 +1631,7 @@ class DBInstanceClustered(DBInstance):
                 f"The source cluster could not be found or cannot be accessed: {db_cluster_identifier}",
             )
         self.cluster = self.backend.clusters[db_cluster_identifier]
-        self.db_cluster_identifier: str = db_cluster_identifier
+        self.db_cluster_identifier: str = self.cluster.db_cluster_identifier
         self.is_cluster_writer = True if not self.cluster.members else False
         self.promotion_tier = promotion_tier
         self.manage_master_user_password = False
@@ -1711,9 +1764,10 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         "db-instance-id": FilterDef(
             ["database.db_instance_arn", "database.db_instance_identifier"],
             "DB Instance Identifiers",
+            case_insensitive=True,
         ),
         "db-snapshot-id": FilterDef(
-            ["db_snapshot_identifier"], "DB Snapshot Identifiers"
+            ["db_snapshot_identifier"], "DB Snapshot Identifiers", case_insensitive=True
         ),
         "dbi-resource-id": FilterDef(["database.dbi_resource_id"], "Dbi Resource Ids"),
         "snapshot-type": FilterDef(["snapshot_type"], "Snapshot Types"),
@@ -1762,6 +1816,14 @@ class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
         self.instance_create_time = database.created
         self.master_username = database.master_username
         self.port = database.port
+
+    @property
+    def db_snapshot_identifier(self) -> str:
+        return self._db_snapshot_identifier
+
+    @db_snapshot_identifier.setter
+    def db_snapshot_identifier(self, value: str) -> None:
+        self._db_snapshot_identifier = value.lower()
 
     @property
     def resource_id(self) -> str:
@@ -1950,6 +2012,14 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
         self.vpc_id = self._subnets[0].vpc_id
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
+
+    @property
     def resource_id(self) -> str:
         return self.name
 
@@ -2120,18 +2190,24 @@ class RDSBackend(BaseBackend):
             ARN_PARTITION_REGEX
             + r":rds:.*:[0-9]*:(db|cluster|es|og|pg|ri|secgrp|snapshot|cluster-snapshot|subgrp|db-proxy):.*$"
         )
-        self.clusters: Dict[str, DBCluster] = OrderedDict()
-        self.global_clusters: Dict[str, GlobalCluster] = OrderedDict()
-        self.databases: Dict[str, DBInstance] = OrderedDict()
-        self.database_snapshots: Dict[str, DBSnapshot] = OrderedDict()
-        self.cluster_snapshots: Dict[str, DBClusterSnapshot] = OrderedDict()
+        self.clusters: MutableMapping[str, DBCluster] = CaseInsensitiveDict()
+        self.global_clusters: MutableMapping[str, GlobalCluster] = CaseInsensitiveDict()
+        self.databases: MutableMapping[str, DBInstance] = CaseInsensitiveDict()
+        self.database_snapshots: MutableMapping[str, DBSnapshot] = CaseInsensitiveDict()
+        self.cluster_snapshots: MutableMapping[str, DBClusterSnapshot] = (
+            CaseInsensitiveDict()
+        )
         self.export_tasks: Dict[str, ExportTask] = OrderedDict()
         self.event_subscriptions: Dict[str, EventSubscription] = OrderedDict()
-        self.db_parameter_groups: Dict[str, DBParameterGroup] = {}
-        self.db_cluster_parameter_groups: Dict[str, DBClusterParameterGroup] = {}
-        self.option_groups: Dict[str, OptionGroup] = {}
+        self.db_parameter_groups: MutableMapping[str, DBParameterGroup] = (
+            CaseInsensitiveDict()
+        )
+        self.db_cluster_parameter_groups: MutableMapping[
+            str, DBClusterParameterGroup
+        ] = CaseInsensitiveDict()
+        self.option_groups: MutableMapping[str, OptionGroup] = CaseInsensitiveDict()
         self.security_groups: Dict[str, DBSecurityGroup] = {}
-        self.subnet_groups: Dict[str, DBSubnetGroup] = {}
+        self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
         self.events: List[Event] = []
@@ -2602,12 +2678,42 @@ class RDSBackend(BaseBackend):
         return self.create_db_cluster(new_cluster_props)
 
     def failover_db_cluster(
-        self, db_cluster_identifier: str, target_db_instance_identifier: str
+        self,
+        db_cluster_identifier: str,
+        target_db_instance_identifier: Optional[str] = None,
     ) -> DBCluster:
+        target_instance = None
+        if target_db_instance_identifier is not None:
+            if target_db_instance_identifier not in self.databases:
+                raise InvalidParameterValue(
+                    f"Cannot find target instance: {target_db_instance_identifier}"
+                )
+            target_instance = self.databases[target_db_instance_identifier]
+            if target_instance.status != "available":
+                raise InvalidDBInstanceStateFault(
+                    f"Instance {target_db_instance_identifier} should be in valid state for failover."
+                )
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(
+                db_cluster_identifier,
+                f"The source cluster could not be found or cannot be accessed: {db_cluster_identifier}",
+            )
         cluster = self.clusters[db_cluster_identifier]
-        instance = self.databases[target_db_instance_identifier]
-        assert isinstance(instance, DBInstanceClustered)
-        cluster.failover(instance)
+        if len(cluster.members) < 2:
+            raise InvalidDBClusterStateFault(
+                f"Database cluster:{cluster.db_cluster_identifier} should have at least two database instances for failover"
+            )
+        if target_instance is None:
+            for instance in cluster.members:
+                if not instance.is_cluster_writer and instance.status == "available":
+                    target_instance = instance
+                    break
+            else:
+                raise InvalidDBClusterStateFault(
+                    f"Database cluster:{db_cluster_identifier} should have at least two database instances in valid states or a valid target instance for failover."
+                )
+        assert isinstance(target_instance, DBInstanceClustered)
+        cluster.failover(target_instance)
         return cluster
 
     def stop_db_instance(
@@ -2625,7 +2731,7 @@ class RDSBackend(BaseBackend):
         if database.status != "available":
             raise InvalidDBInstanceStateError(db_instance_identifier, "stop")
         if db_snapshot_identifier:
-            self.create_auto_snapshot(db_instance_identifier, db_snapshot_identifier)
+            self.create_db_snapshot(db_instance_identifier, db_snapshot_identifier)
         database.status = "stopped"
         return database
 
@@ -3076,11 +3182,13 @@ class RDSBackend(BaseBackend):
             if manage_master_user_password:
                 kms_key_id = kwargs.pop("master_user_secret_kms_key_id", None)
                 cluster.master_user_secret = MasterUserSecret(cluster, kms_key_id)
-            else:
+            elif not manage_master_user_password and hasattr(
+                cluster, "master_user_secret"
+            ):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
 
-        kwargs["db_cluster_identifier"] = kwargs.pop("new_db_cluster_identifier", None)
+        kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
             if k == "db_cluster_parameter_group_name":
                 k = "parameter_group"
@@ -3822,6 +3930,14 @@ class OptionGroup(RDSBaseModel):
         self.tags = tags or []
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
+
+    @property
     def resource_id(self) -> str:
         return self.name
 
@@ -3864,9 +3980,17 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
         super().__init__(backend)
         self.name = db_parameter_group_name
         self.description = description
-        self.family = db_parameter_group_family
+        self.family: str | None = db_parameter_group_family
         self.tags = tags or []
         self.parameters: Dict[str, Any] = defaultdict(dict)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
 
     @property
     def resource_id(self) -> str:
@@ -3932,6 +4056,14 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
         self.description = description
         self.db_parameter_group_family = family
         self.parameters: Dict[str, Any] = defaultdict(dict)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value.lower()
 
     @property
     def resource_id(self) -> str:

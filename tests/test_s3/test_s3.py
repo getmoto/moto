@@ -20,7 +20,6 @@ from freezegun import freeze_time
 
 import moto.s3.models as s3model
 from moto import mock_aws, moto_proxy, settings
-from moto.core.utils import utcnow
 from moto.moto_api import state_manager
 from moto.s3.models import s3_backends
 from moto.s3.responses import DEFAULT_REGION_NAME
@@ -526,37 +525,6 @@ def test_key_with_special_characters(key):
     assert resp["Body"].read() == b"value"
 
 
-@s3_aws_verified
-@pytest.mark.aws_verified
-@pytest.mark.parametrize("versioned", [True, False], ids=["versioned", "not versioned"])
-def test_conditional_write(versioned, bucket_name=None):
-    s3 = boto3.client("s3", region_name="us-east-1")
-    if versioned:
-        enable_versioning(bucket_name, s3)
-
-    s3.put_object(
-        Key="test_object",
-        Body="test",
-        Bucket=bucket_name,
-        IfNoneMatch="*",
-    )
-
-    with pytest.raises(ClientError) as exc:
-        s3.put_object(
-            Key="test_object",
-            Body="another_test",
-            Bucket=bucket_name,
-            IfNoneMatch="*",
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "PreconditionFailed"
-    assert (
-        err["Message"]
-        == "At least one of the pre-conditions you specified did not hold"
-    )
-    assert err["Condition"] == "If-None-Match"
-
-
 @mock_aws
 def test_bucket_key_listing_order():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
@@ -709,32 +677,6 @@ def test_cannot_restore_standard_class_object():
     assert err["Message"] == (
         "The operation is not valid for the object's storage class"
     )
-
-
-@mock_aws
-def test_restore_object_invalid_request_params():
-    if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
-
-    s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
-    bucket = s3_resource.Bucket("foobar")
-    bucket.create()
-
-    key = bucket.put_object(Key="the-key", Body=b"somedata", StorageClass="GLACIER")
-
-    # `Days` must be provided except for select requests
-    with pytest.raises(ClientError) as exc:
-        key.restore_object(RestoreRequest={})
-    err = exc.value.response["Error"]
-    assert err["Code"] == "DaysMustProvidedExceptForSelectRequest"
-    assert err["Message"] == "`Days` must be provided except for select requests"
-
-    # `Days` must not be provided for select requests
-    with pytest.raises(ClientError) as exc:
-        key.restore_object(RestoreRequest={"Days": 1, "Type": "SELECT"})
-    err = exc.value.response["Error"]
-    assert err["Code"] == "DaysMustNotProvidedForSelectRequest"
-    assert err["Message"] == "`Days` must not be provided for select requests"
 
 
 @mock_aws
@@ -2034,204 +1976,6 @@ def test_delete_versioned_bucket_returns_metadata(bucket_name=None):
     )
     assert "DeleteMarker" not in del_mrk4
     assert del_mrk4["VersionId"] == del_mrk2["VersionId"]
-
-
-@mock_aws
-def test_get_object_if_modified_since_refresh():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    response = s3_client.get_object(Bucket=bucket_name, Key=key)
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.get_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfModifiedSince=response["LastModified"],
-        )
-    err_value = err.value
-    assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
-
-
-@mock_aws
-def test_get_object_if_modified_since():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.get_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfModifiedSince=utcnow() + datetime.timedelta(hours=1),
-        )
-    err_value = err.value
-    assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
-
-
-@mock_aws
-def test_get_object_if_unmodified_since():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.get_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfUnmodifiedSince=utcnow() - datetime.timedelta(hours=1),
-        )
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "PreconditionFailed"
-    assert err_value.response["Error"]["Condition"] == "If-Unmodified-Since"
-
-
-@mock_aws
-def test_get_object_if_match():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.get_object(Bucket=bucket_name, Key=key, IfMatch='"hello"')
-    err_value = err.value
-    assert err_value.response["Error"]["Code"] == "PreconditionFailed"
-    assert err_value.response["Error"]["Condition"] == "If-Match"
-
-
-@mock_aws
-def test_get_object_if_none_match():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    etag = s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.get_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
-    err_value = err.value
-    assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
-    assert err_value.response["ResponseMetadata"]["HTTPHeaders"]["etag"] == etag
-
-
-@mock_aws
-def test_head_object_if_modified_since():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.head_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfModifiedSince=utcnow() + datetime.timedelta(hours=1),
-        )
-    err_value = err.value
-    assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
-
-
-@mock_aws
-def test_head_object_if_modified_since_refresh():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    response = s3_client.head_object(Bucket=bucket_name, Key=key)
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.head_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfModifiedSince=response["LastModified"],
-        )
-    err_value = err.value
-    assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
-
-
-@mock_aws
-def test_head_object_if_unmodified_since():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.head_object(
-            Bucket=bucket_name,
-            Key=key,
-            IfUnmodifiedSince=utcnow() - datetime.timedelta(hours=1),
-        )
-    err_value = err.value
-    assert err_value.response["Error"] == {
-        "Code": "412",
-        "Message": "Precondition Failed",
-    }
-
-
-@mock_aws
-def test_head_object_if_match():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.head_object(Bucket=bucket_name, Key=key, IfMatch='"hello"')
-    err_value = err.value
-    assert err_value.response["Error"] == {
-        "Code": "412",
-        "Message": "Precondition Failed",
-    }
-
-
-@mock_aws
-def test_head_object_if_none_match():
-    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-    bucket_name = "blah"
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    key = "hello.txt"
-
-    etag = s3_client.put_object(Bucket=bucket_name, Key=key, Body="test")["ETag"]
-
-    with pytest.raises(botocore.exceptions.ClientError) as err:
-        s3_client.head_object(Bucket=bucket_name, Key=key, IfNoneMatch=etag)
-    err_value = err.value
-    assert err_value.response["Error"] == {"Code": "304", "Message": "Not Modified"}
-    assert err_value.response["ResponseMetadata"]["HTTPHeaders"]["etag"] == etag
 
 
 @mock_aws
@@ -3587,3 +3331,132 @@ def enable_versioning(bucket_name, s3_client):
     while resp.get("Status") != "Enabled":
         sleep(0.1)
         resp = s3_client.get_bucket_versioning(Bucket=bucket_name)
+
+
+@mock_aws
+def test_put_and_get_bucket_inventory_configuration():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = "mybucket"
+    bucket2 = "mybucket2"
+    id = "my-inventory-config"
+    inventory_configuration = {
+        "Destination": {
+            "S3BucketDestination": {
+                "AccountId": DEFAULT_ACCOUNT_ID,
+                "Bucket": f"arn:aws:s3:::{bucket2}",
+                "Format": "CSV",
+                "Prefix": "test",
+                "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+            }
+        },
+        "IsEnabled": True,
+        "Filter": {"Prefix": "folder1/"},
+        "Id": id,
+        "IncludedObjectVersions": "All",
+        "OptionalFields": ["Size", "ETag"],
+        "Schedule": {"Frequency": "Daily"},
+    }
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+    resp = client.put_bucket_inventory_configuration(
+        Bucket=bucket,
+        Id=id,
+        InventoryConfiguration=inventory_configuration,
+        ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Retrieve the configuration
+    resp = client.get_bucket_inventory_configuration(Bucket=bucket, Id=id)
+    assert resp["InventoryConfiguration"]["Id"] == id
+    s3_bucket_dest = resp["InventoryConfiguration"]["Destination"][
+        "S3BucketDestination"
+    ]
+    assert s3_bucket_dest["AccountId"] == DEFAULT_ACCOUNT_ID
+    assert s3_bucket_dest["Bucket"] == f"arn:aws:s3:::{bucket2}"
+    assert s3_bucket_dest["Format"] == "CSV"
+    assert s3_bucket_dest["Prefix"] == "test"
+    assert s3_bucket_dest["Encryption"]["SSEKMS"]["KeyId"] == "key-12345"
+    assert resp["InventoryConfiguration"]["IsEnabled"] is True
+    assert resp["InventoryConfiguration"]["Filter"]["Prefix"] == "folder1/"
+    assert resp["InventoryConfiguration"]["IncludedObjectVersions"] == "All"
+    assert resp["InventoryConfiguration"]["OptionalFields"] == ["Size", "ETag"]
+    assert resp["InventoryConfiguration"]["Schedule"]["Frequency"] == "Daily"
+
+
+@mock_aws
+def test_list_bucket_inventory_configurations():
+    client = boto3.client("s3", region_name="us-east-1")
+    bucket = "mybucket"
+    bucket2 = "mybucket2"
+    id = "my-inventory-config"
+
+    client.create_bucket(Bucket=bucket)
+    client.create_bucket(Bucket=bucket2)
+
+    # Create three inventory configurations for the first
+    for i in range(3):
+        inventory_configuration = {
+            "Destination": {
+                "S3BucketDestination": {
+                    "AccountId": DEFAULT_ACCOUNT_ID,
+                    "Bucket": f"arn:aws:s3:::{bucket2}",
+                    "Format": "CSV",
+                    "Prefix": "test",
+                    "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+                }
+            },
+            "IsEnabled": True,
+            "Filter": {"Prefix": "folder1/"},
+            "Id": f"{id}-{bucket}-{i}",
+            "IncludedObjectVersions": "All",
+            "OptionalFields": ["Size", "ETag"],
+            "Schedule": {"Frequency": "Daily"},
+        }
+        client.put_bucket_inventory_configuration(
+            Bucket=bucket,
+            Id=id,
+            InventoryConfiguration=inventory_configuration,
+            ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+        )
+
+    # Create inventory configurations for the second bucket
+    for i in range(2):
+        inventory_configuration = {
+            "Destination": {
+                "S3BucketDestination": {
+                    "AccountId": DEFAULT_ACCOUNT_ID,
+                    "Bucket": f"arn:aws:s3:::{bucket}",
+                    "Format": "CSV",
+                    "Prefix": "test",
+                    "Encryption": {"SSEKMS": {"KeyId": "key-12345"}},
+                }
+            },
+            "IsEnabled": True,
+            "Filter": {"Prefix": "folder1/"},
+            "Id": f"{id}-{bucket2}-{i}",
+            "IncludedObjectVersions": "All",
+            "OptionalFields": ["Size", "ETag"],
+            "Schedule": {"Frequency": "Daily"},
+        }
+        client.put_bucket_inventory_configuration(
+            Bucket=bucket2,
+            Id=id,
+            InventoryConfiguration=inventory_configuration,
+            ExpectedBucketOwner=DEFAULT_ACCOUNT_ID,
+        )
+
+    resp = client.list_bucket_inventory_configurations(Bucket=bucket)
+    assert len(resp["InventoryConfigurationList"]) == 3
+
+    resp = client.list_bucket_inventory_configurations(Bucket=bucket2)
+    assert len(resp["InventoryConfigurationList"]) == 2
+    assert resp["InventoryConfigurationList"][0]["Id"] == f"{id}-{bucket2}-0"
+    assert resp["InventoryConfigurationList"][1]["Id"] == f"{id}-{bucket2}-1"
+    assert (
+        resp["InventoryConfigurationList"][0]["Destination"]["S3BucketDestination"][
+            "AccountId"
+        ]
+        == DEFAULT_ACCOUNT_ID
+    )

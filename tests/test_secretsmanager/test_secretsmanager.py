@@ -2193,9 +2193,18 @@ def test_aws_managed_secret(set_custom_id):
     # would be managed by RDS, and wouldn't be able to be created via the
     # public API (due to the restricted 'aws' tag prefix).
     backend = secretsmanager_backends[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    secret = backend.create_managed_secret("rds", "secret-managed-by-rds")
+    secret = backend.create_managed_secret("rds", "secret-managed-by-rds", "53cr3t")
     assert secret.kms_key_id == "alias/aws/secretsmanager"
     client = boto3.client("secretsmanager", region_name="us-east-1")
     resp = client.describe_secret(SecretId=secret.arn)
     assert "KmsKeyId" not in resp
     assert resp["OwningService"] == "rds"
+    owning_service_filter = {"Key": "owning-service", "Values": ["rds"]}
+    resp = client.list_secrets(Filters=[owning_service_filter])
+    assert len(resp["SecretList"]) == 1
+    assert resp["SecretList"][0]["ARN"] == secret.arn
+    assert resp["SecretList"][0]["OwningService"] == secret.owning_service
+    resp = client.batch_get_secret_value(Filters=[owning_service_filter])
+    assert len(resp["SecretValues"]) == 1
+    assert resp["SecretValues"][0]["ARN"] == secret.arn
+    assert resp["SecretValues"][0]["SecretString"] == "53cr3t"

@@ -141,6 +141,7 @@ class SageMakerResponse(BaseResponse):
     def create_endpoint_config(self) -> TYPE_RESPONSE:
         endpoint_config = self.sagemaker_backend.create_endpoint_config(
             endpoint_config_name=self._get_param("EndpointConfigName"),
+            async_inference_config=self._get_param("AsyncInferenceConfig"),
             production_variants=self._get_param("ProductionVariants"),
             data_capture_config=self._get_param("DataCaptureConfig"),
             tags=self._get_param("Tags"),

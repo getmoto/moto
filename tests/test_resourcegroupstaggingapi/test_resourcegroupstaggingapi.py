@@ -136,6 +136,48 @@ def test_get_resources_backup():
 
 
 @mock_aws
+def test_get_resources_dms_endpoint():
+    client = boto3.client("dms", region_name="us-east-1")
+    endpoint = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        ResourceIdentifier="sample_identifier",
+        Tags=[{"Key": "tag", "Value": "a tag"}],
+    )
+    endpoint_arn = endpoint["Endpoint"]["EndpointArn"]
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["dms:endpoint"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert endpoint_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_aws
+def test_get_resources_dms_replication_instance():
+    client = boto3.client("dms", region_name="us-east-1")
+    replication_instance = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+        Tags=[{"Key": "tag", "Value": "a tag"}],
+    )
+
+    replication_instance_arn = replication_instance["ReplicationInstance"][
+        "ReplicationInstanceArn"
+    ]
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["dms:replication-instance"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert replication_instance_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_aws
 def test_get_resources_ecs():
     # ecs:cluster
     client = boto3.client("ecs", region_name="us-east-1")
@@ -471,7 +513,7 @@ def test_get_tag_values_event_bus():
 
 @mock_aws
 def test_get_tag_values_cloudfront():
-    client = boto3.client("cloudfront")
+    client = boto3.client("cloudfront", "us-east-1")
     for i in range(1, 3):
         caller_reference = f"distribution{i}"
         origin_id = f"origin{i}"
@@ -506,7 +548,7 @@ def test_get_tag_values_cloudfront():
                 "Tags": {"Items": [{"Key": "Test", "Value": f"Test{i}"}]},
             }
         )
-    rtapi = boto3.client("resourcegroupstaggingapi")
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
 
     # Test tag filtering
     resp = rtapi.get_resources(
@@ -515,6 +557,50 @@ def test_get_tag_values_cloudfront():
     )
     assert len(resp["ResourceTagMappingList"]) == 1
     assert {"Key": "Test", "Value": "Test1"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
+def test_get_tag_values_lexv2_models():
+    client = boto3.client("lexv2-models", "us-east-1")
+    # Create a bot
+    bot = client.create_bot(
+        botName="TestBot",
+        description="A test bot",
+        roleArn="arn:aws:iam::123456789012:role/service-role/AmazonLexV2BotRole",
+        dataPrivacy={"childDirected": False},
+        idleSessionTTLInSeconds=300,
+        botTags={"Test": "Test1"},
+    )
+    bot_id = bot["botId"]
+    # Create a bot alias with tags
+    client.create_bot_alias(
+        botAliasName="TestBotAlias",
+        botId=bot_id,
+        description="A test bot alias",
+        tags={"Test": "Test2"},
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+
+    # Test bot tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["lexv2:bot"],
+        TagFilters=[{"Key": "Test", "Values": ["Test1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "Test1"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    # Test bot-alias tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["lexv2:bot-alias"],
+        TagFilters=[{"Key": "Test", "Values": ["Test2"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "Test2"} in resp["ResourceTagMappingList"][0][
         "Tags"
     ]
 
