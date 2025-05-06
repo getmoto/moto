@@ -377,3 +377,156 @@ def test_enable_sharing_with_aws_organization_errors():
         "following error message: "
         "You don't have permissions to access this resource."
     )
+
+
+@mock_aws
+def test_get_resource_share_associations_with_principals():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+    response = client.create_resource_share(
+        name="test",
+        principals=["123456789012"],
+        resourceArns=[
+            f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+        ],
+    )
+    resource_share_arn = response["resourceShare"]["resourceShareArn"]
+
+    # when
+    response = client.get_resource_share_associations(
+        associationType="PRINCIPAL", resourceShareArns=[resource_share_arn]
+    )
+
+    # then
+    assert len(response["resourceShareAssociations"]) == 1
+    association = response["resourceShareAssociations"][0]
+    assert association["resourceShareArn"] == resource_share_arn
+    assert association["resourceShareName"] == "test"
+    assert association["associatedEntity"] == "123456789012"
+    assert association["associationType"] == "PRINCIPAL"
+    assert association["status"] == "ASSOCIATED"
+    assert isinstance(association["creationTime"], datetime)
+    assert isinstance(association["lastUpdatedTime"], datetime)
+    assert association["external"] is False
+
+
+@mock_aws
+def test_get_resource_share_associations_with_resources():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+    resource_arn = f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+    response = client.create_resource_share(
+        name="test",
+        principals=["123456789012"],
+        resourceArns=[resource_arn],
+    )
+    resource_share_arn = response["resourceShare"]["resourceShareArn"]
+
+    # when
+    response = client.get_resource_share_associations(
+        associationType="RESOURCE", resourceShareArns=[resource_share_arn]
+    )
+
+    # then
+    assert len(response["resourceShareAssociations"]) == 1
+    association = response["resourceShareAssociations"][0]
+    assert association["resourceShareArn"] == resource_share_arn
+    assert association["resourceShareName"] == "test"
+    assert association["associatedEntity"] == resource_arn
+    assert association["associationType"] == "RESOURCE"
+    assert association["status"] == "ASSOCIATED"
+    assert isinstance(association["creationTime"], datetime)
+    assert isinstance(association["lastUpdatedTime"], datetime)
+    assert association["external"] is False
+
+
+@mock_aws
+def test_get_resource_share_associations_with_filters():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+    resource_arn = f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+    response = client.create_resource_share(
+        name="test",
+        principals=["123456789012"],
+        resourceArns=[resource_arn],
+    )
+
+    # when filtering by principal
+    response = client.get_resource_share_associations(
+        associationType="PRINCIPAL", principal="123456789012"
+    )
+
+    # then
+    assert len(response["resourceShareAssociations"]) == 1
+    assert (
+        response["resourceShareAssociations"][0]["associatedEntity"] == "123456789012"
+    )
+
+    # when filtering by resource
+    response = client.get_resource_share_associations(
+        associationType="RESOURCE", resourceArn=resource_arn
+    )
+
+    # then
+    assert len(response["resourceShareAssociations"]) == 1
+    assert response["resourceShareAssociations"][0]["associatedEntity"] == resource_arn
+
+
+@mock_aws
+def test_get_resource_share_associations_errors():
+    # given
+    client = boto3.client("ram", region_name="us-east-1")
+    resource_arn = f"arn:aws:ec2:us-east-1:{ACCOUNT_ID}:transit-gateway/tgw-123456789"
+    client.create_resource_share(
+        name="test",
+        principals=["123456789012"],
+        resourceArns=[resource_arn],
+    )
+
+    # when invalid association type
+    with pytest.raises(ClientError) as e:
+        client.get_resource_share_associations(associationType="INVALID")
+    ex = e.value
+    assert ex.operation_name == "GetResourceShareAssociations"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterException" in ex.response["Error"]["Code"]
+    assert "is not a valid association type" in ex.response["Error"]["Message"]
+
+    # when invalid association status
+    with pytest.raises(ClientError) as e:
+        client.get_resource_share_associations(
+            associationType="PRINCIPAL", associationStatus="INVALID"
+        )
+    ex = e.value
+    assert ex.operation_name == "GetResourceShareAssociations"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterException" in ex.response["Error"]["Code"]
+    assert "is not a valid association status" in ex.response["Error"]["Message"]
+
+    # when resource ARN with PRINCIPAL type
+    with pytest.raises(ClientError) as e:
+        client.get_resource_share_associations(
+            associationType="PRINCIPAL", resourceArn=resource_arn
+        )
+    ex = e.value
+    assert ex.operation_name == "GetResourceShareAssociations"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterException" in ex.response["Error"]["Code"]
+    assert (
+        "You cannot specify a resource ARN when the association type is PRINCIPAL"
+        in ex.response["Error"]["Message"]
+    )
+
+    # when principal with RESOURCE type
+    with pytest.raises(ClientError) as e:
+        client.get_resource_share_associations(
+            associationType="RESOURCE", principal="123456789012"
+        )
+    ex = e.value
+    assert ex.operation_name == "GetResourceShareAssociations"
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "InvalidParameterException" in ex.response["Error"]["Code"]
+    assert (
+        "You cannot specify a principal when the association type is RESOURCE"
+        in ex.response["Error"]["Message"]
+    )

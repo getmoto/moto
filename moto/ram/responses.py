@@ -36,3 +36,8 @@ class ResourceAccessManagerResponse(BaseResponse):
 
     def enable_sharing_with_aws_organization(self) -> str:
         return json.dumps(self.ram_backend.enable_sharing_with_aws_organization())
+
+    def get_resource_share_associations(self) -> str:
+        return json.dumps(
+            self.ram_backend.get_resource_share_associations(**self.request_params)
+        )
