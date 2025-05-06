@@ -1847,7 +1847,7 @@
 
 ## config
 <details>
-<summary>36% implemented</summary>
+<summary>39% implemented</summary>
 
 - [ ] associate_resource_types
 - [X] batch_get_aggregate_resource_config
@@ -1864,7 +1864,7 @@
 - [ ] delete_pending_aggregation_request
 - [ ] delete_remediation_configuration
 - [ ] delete_remediation_exceptions
-- [ ] delete_resource_config
+- [X] delete_resource_config
 - [X] delete_retention_configuration
 - [ ] delete_service_linked_configuration_recorder
 - [ ] delete_stored_query
@@ -1933,12 +1933,12 @@
 - [X] put_organization_conformance_pack
 - [ ] put_remediation_configurations
 - [ ] put_remediation_exceptions
-- [ ] put_resource_config
+- [X] put_resource_config
 - [X] put_retention_configuration
 - [ ] put_service_linked_configuration_recorder
 - [ ] put_stored_query
 - [ ] select_aggregate_resource_config
-- [ ] select_resource_config
+- [X] select_resource_config
 - [ ] start_config_rules_evaluation
 - [X] start_configuration_recorder
 - [ ] start_remediation_execution
@@ -8713,6 +8713,36 @@
 - [ ] update_tag_option
 </details>
 
+## servicecatalog-appregistry
+<details>
+<summary>12% implemented</summary>
+
+- [ ] associate_attribute_group
+- [X] associate_resource
+- [X] create_application
+- [ ] create_attribute_group
+- [ ] delete_application
+- [ ] delete_attribute_group
+- [ ] disassociate_attribute_group
+- [ ] disassociate_resource
+- [ ] get_application
+- [ ] get_associated_resource
+- [ ] get_attribute_group
+- [ ] get_configuration
+- [X] list_applications
+- [ ] list_associated_attribute_groups
+- [ ] list_associated_resources
+- [ ] list_attribute_groups
+- [ ] list_attribute_groups_for_application
+- [ ] list_tags_for_resource
+- [ ] put_configuration
+- [ ] sync_resource
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_application
+- [ ] update_attribute_group
+</details>
+
 ## servicediscovery
 <details>
 <summary>90% implemented</summary>
@@ -10106,7 +10136,6 @@
 - security-ir
 - securitylake
 - serverlessrepo
-- servicecatalog-appregistry
 - simspaceweaver
 - sms
 - sms-voice

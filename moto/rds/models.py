@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import math
 import os
 import re
@@ -58,6 +59,7 @@ from .exceptions import (
     InvalidDBInstanceEngine,
     InvalidDBInstanceIdentifier,
     InvalidDBInstanceStateError,
+    InvalidDBInstanceStateFault,
     InvalidDBSnapshotIdentifier,
     InvalidExportSourceStateError,
     InvalidGlobalClusterStateFault,
@@ -428,7 +430,7 @@ class MasterUserSecret:
         secret = self.secretsmanager.create_managed_secret(
             service_name="rds",
             secret_id=self._generate_secret_name(),
-            secret_string="P@55w0rd!",
+            secret_string=self._generate_secret_string(),
             description=self._generate_secret_description(),
             kms_key_id=kms_key_id,
             tags=self._generate_secret_tags(),
@@ -444,6 +446,11 @@ class MasterUserSecret:
         resource_type = self.resource.__class__.__name__[2:].lower()
         description = f"The secret associated with the primary RDS DB {resource_type}: {self.resource.arn}"
         return description
+
+    def _generate_secret_string(self) -> str:
+        credentials = {"username": "admin", "password": "P@55w0rd!"}
+        secret_string = json.dumps(credentials)
+        return secret_string
 
     def _generate_secret_tags(self) -> list[dict[str, str]]:
         resource_type = self.resource.__class__.__name__
@@ -2671,12 +2678,42 @@ class RDSBackend(BaseBackend):
         return self.create_db_cluster(new_cluster_props)
 
     def failover_db_cluster(
-        self, db_cluster_identifier: str, target_db_instance_identifier: str
+        self,
+        db_cluster_identifier: str,
+        target_db_instance_identifier: Optional[str] = None,
     ) -> DBCluster:
+        target_instance = None
+        if target_db_instance_identifier is not None:
+            if target_db_instance_identifier not in self.databases:
+                raise InvalidParameterValue(
+                    f"Cannot find target instance: {target_db_instance_identifier}"
+                )
+            target_instance = self.databases[target_db_instance_identifier]
+            if target_instance.status != "available":
+                raise InvalidDBInstanceStateFault(
+                    f"Instance {target_db_instance_identifier} should be in valid state for failover."
+                )
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(
+                db_cluster_identifier,
+                f"The source cluster could not be found or cannot be accessed: {db_cluster_identifier}",
+            )
         cluster = self.clusters[db_cluster_identifier]
-        instance = self.databases[target_db_instance_identifier]
-        assert isinstance(instance, DBInstanceClustered)
-        cluster.failover(instance)
+        if len(cluster.members) < 2:
+            raise InvalidDBClusterStateFault(
+                f"Database cluster:{cluster.db_cluster_identifier} should have at least two database instances for failover"
+            )
+        if target_instance is None:
+            for instance in cluster.members:
+                if not instance.is_cluster_writer and instance.status == "available":
+                    target_instance = instance
+                    break
+            else:
+                raise InvalidDBClusterStateFault(
+                    f"Database cluster:{db_cluster_identifier} should have at least two database instances in valid states or a valid target instance for failover."
+                )
+        assert isinstance(target_instance, DBInstanceClustered)
+        cluster.failover(target_instance)
         return cluster
 
     def stop_db_instance(

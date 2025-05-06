@@ -392,3 +392,10 @@ class NoSuchRetentionConfigurationException(JsonRESTError):
             f"Cannot find retention configuration with the specified name '{name}'."
         )
         super().__init__("NoSuchRetentionConfigurationException", message)
+
+
+class InvalidResourceType(JsonRESTError):
+    code = 400
+
+    def __init__(self, resource_type: str, message: str):
+        super().__init__("InvalidResourceType", message)

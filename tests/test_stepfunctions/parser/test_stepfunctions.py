@@ -44,7 +44,9 @@ def test_state_machine_with_simple_failure_state():
         assert len(executions) == 1
         assert executions[0]["executionArn"] == execution_arn
         assert executions[0]["stateMachineArn"] == state_machine_arn
-        assert executions[0]["status"] == "FAILED"
+        # AWS can be a little slow to catch up, and list_executions will still return this as RUNNING
+        # Return False to indicate we should retry this
+        return executions[0]["status"] == "FAILED"
 
     verify_execution_result(_verify_result, "FAILED", "failure")
 
