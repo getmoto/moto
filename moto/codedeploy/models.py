@@ -199,7 +199,6 @@ class DeploymentInfo(BaseModel):
         self.external_id = ""
         self.related_deployments: Dict[str, Any] = {}
         self.override_alarm_configuration = override_alarm_configuration
-        # Add tags attribute to deployments
         self.tags: List[Dict[str, str]] = []
 
     def to_dict(self) -> Dict[str, Any]:
@@ -444,7 +443,6 @@ class CodeDeployBackend(BaseBackend):
             self.deployment_groups[application_name] = {}
         self.deployment_groups[application_name][dg.deployment_group_name] = dg
 
-        # Tag the deployment group
         if tags:
             dg_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:deploymentgroup:{application_name}/{deployment_group_name}"
             self.tagger.tag_resource(dg_arn, tags)
