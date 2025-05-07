@@ -166,7 +166,7 @@ glue
 - [ ] get_plan
 - [X] get_registry
 - [ ] get_resource_policies
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [X] get_schema
 - [X] get_schema_by_definition
 - [X] get_schema_version
@@ -222,7 +222,7 @@ glue
 - [ ] modify_integration
 - [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [X] put_schema_version_metadata
 - [ ] put_workflow_run_properties
 - [ ] query_schema_version_metadata
