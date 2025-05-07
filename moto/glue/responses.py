@@ -16,7 +16,7 @@ from .models import (
 
 
 class DateTimeEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o: Any) -> Any:
         if isinstance(o, datetime):
             return o.isoformat()
         return super().default(o)
@@ -884,7 +884,7 @@ class GlueResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def put_resource_policy(self):
+    def put_resource_policy(self) -> str:
         params = json.loads(self.body)
         policy_in_json = params.get("PolicyInJson")
         resource_arn = params.get("ResourceArn")
@@ -902,7 +902,7 @@ class GlueResponse(BaseResponse):
 
         return json.dumps(policy_hash, cls=DateTimeEncoder)
 
-    def get_resource_policy(self):
+    def get_resource_policy(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
         response = self.glue_backend.get_resource_policy(
