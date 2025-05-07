@@ -194,3 +194,26 @@ class ACMPCAResponse(BaseResponse):
         resource_arn = params.get("ResourceArn")
         self.acmpca_backend.delete_policy(resource_arn=resource_arn)
         return "{}"
+
+    def list_certificate_authorities(self) -> str:
+        """
+        Handler for ListCertificateAuthorities API request
+        """
+        params = json.loads(self.body)
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        resource_owner = params.get("ResourceOwner")
+
+        # Get paginated results and next token from backend
+        cas, next_token = self.acmpca_backend.list_certificate_authorities(
+            max_results=max_results,
+            next_token=next_token,
+            resource_owner=resource_owner,
+        )
+
+        response = {"CertificateAuthorities": [ca.to_json() for ca in cas]}
+
+        if next_token:
+            response["NextToken"] = next_token
+
+        return json.dumps(response)

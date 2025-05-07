@@ -4,8 +4,6 @@ import datetime
 import re
 from typing import Any, Dict, List
 
-from moto.cloudformation.exceptions import ValidationError
-from moto.cloudformation.models import cloudformation_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -63,6 +61,9 @@ class AssociatedResource(BaseBackend):
         region_name: str,
     ):
         if resource_type == "CFN_STACK":
+            from moto.cloudformation.exceptions import ValidationError
+            from moto.cloudformation.models import cloudformation_backends
+
             self.resource = resource
             match = re.search(
                 r"^arn:aws:cloudformation:(us(-gov)?|ap|ca|cn|eu|sa)-(central|(north|south)?(east|west)?)-\d:\d{12}:stack/\w[a-zA-Z0-9\-]{0,127}/[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$",

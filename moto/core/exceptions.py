@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from jinja2 import DictLoader, Environment
 from werkzeug.exceptions import HTTPException
 
+from moto.core.mime_types import APP_XML
+
 
 class ServiceException(Exception):
     """
@@ -117,7 +119,7 @@ class RESTError(HTTPException):
                 include_type_sender=self.include_type_sender,
                 **kwargs,
             )
-            self.content_type = "application/xml"
+            self.content_type = APP_XML
 
     def get_headers(
         self,

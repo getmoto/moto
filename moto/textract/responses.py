@@ -31,8 +31,10 @@ class TextractResponse(BaseResponse):
     def start_document_text_detection(self) -> str:
         params = json.loads(self.body)
         document_location = params.get("DocumentLocation")
+        notification_channel = params.get("NotificationChannel")
         job_id = self.textract_backend.start_document_text_detection(
-            document_location=document_location
+            document_location=document_location,
+            notification_channel=notification_channel,
         )
         return json.dumps(dict(JobId=job_id))
 

@@ -104,6 +104,11 @@ class InvalidDBInstanceStateError(RDSClientError):
         )
 
 
+class InvalidDBInstanceStateFault(RDSClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidDBInstanceStateFault", message)
+
+
 class SnapshotQuotaExceededFault(RDSClientError):
     # This is used for both DBSnapshots and DBClusterSnapshots
     def __init__(self) -> None:
