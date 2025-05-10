@@ -342,3 +342,48 @@ def test_delta_calculation(
     res = client.get_thing_shadow(thingName=name)
     payload = json.loads(res["payload"].read())
     assert payload["state"] == delta_after_report
+
+
+@iot_aws_verified()
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "initial_state,updated_state",
+    [
+        # Insert new dicts
+        (
+            {"a": 1, "b": {"c": 3}},
+            {"a": 1, "b": {"c": 3}, "d": {}},
+        ),
+        # Update existing value with new dicts
+        (
+            {"a": 1, "b": {"c": 3}, "d": {}},
+            {"a": 1, "b": {"c": {}}, "d": {}},
+        ),
+        # Update existing value with full dicts
+        (
+            {"a": 1, "b": {"c": 3}},
+            {"a": 1, "b": {"c": {"d": 3}}},
+        ),
+    ],
+)
+def test_update_desired(
+    initial_state: dict[str, str],
+    updated_state: dict[str, str],
+    name: Optional[str] = None,
+) -> None:
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+
+    # CREATE
+    payload = json.dumps({"state": {"desired": initial_state}}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=payload)
+
+    # UPDATE
+    payload = json.dumps({"state": {"desired": updated_state}}).encode("utf-8")
+    client.update_thing_shadow(thingName=name, payload=payload)
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+
+    assert result_payload["state"]["delta"] == updated_state
+    assert result_payload["state"]["desired"] == updated_state
