@@ -274,22 +274,46 @@ class TransitGatewayRouteTableBackend:
             transit_gateway_route_tables = [
                 transit_gateway_route_table
                 for transit_gateway_route_table in transit_gateway_route_tables
-                if transit_gateway_route_table.id in transit_gateway_route_table_id
+                if transit_gateway_route_table.id == transit_gateway_route_table_id
             ]
 
-        attr_pairs = (
-            ("resource-id", "route_table_propagation", "resourceId"),
-            ("resource-type", "route_table_propagation", "resourceType"),
-            (
-                "transit-gateway-attachment-id",
-                "route_table_propagation",
-                "transitGatewayAttachmentId",
-            ),
-        )
+        # Custom filter function for route table propagations
+        def filter_propagations(
+            resource: Any, filter_name: str, filter_values: List[str]
+        ) -> bool:
+            if not resource.route_table_propagation:
+                return False
+            for prop in resource.route_table_propagation:
+                if (
+                    filter_name == "resource-id"
+                    and prop.get("resourceId") in filter_values
+                ):
+                    return True
+                if (
+                    filter_name == "resource-type"
+                    and prop.get("resourceType") in filter_values
+                ):
+                    return True
+                if (
+                    filter_name == "transit-gateway-attachment-id"
+                    and prop.get("transitGatewayAttachmentId") in filter_values
+                ):
+                    return True
+            return False
 
         result = transit_gateway_route_tables
         if filters:
-            result = filter_resources(transit_gateway_route_tables, filters, attr_pairs)
+            filtered_resources = []
+            for resource in result:
+                matches_all_filters = True
+                for filter_name, filter_values in filters.items():
+                    if not filter_propagations(resource, filter_name, filter_values):
+                        matches_all_filters = False
+                        break
+                if matches_all_filters:
+                    filtered_resources.append(resource)
+            result = filtered_resources
+
         return result
 
     def associate_transit_gateway_route_table(
