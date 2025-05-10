@@ -1001,6 +1001,78 @@
 - [X] update_cost_category_definition
 </details>
 
+## clouddirectory
+<details>
+<summary>10% implemented</summary>
+
+- [ ] add_facet_to_object
+- [ ] apply_schema
+- [ ] attach_object
+- [ ] attach_policy
+- [ ] attach_to_index
+- [ ] attach_typed_link
+- [ ] batch_read
+- [ ] batch_write
+- [X] create_directory
+- [ ] create_facet
+- [ ] create_index
+- [ ] create_object
+- [ ] create_schema
+- [ ] create_typed_link_facet
+- [X] delete_directory
+- [ ] delete_facet
+- [ ] delete_object
+- [ ] delete_schema
+- [ ] delete_typed_link_facet
+- [ ] detach_from_index
+- [ ] detach_object
+- [ ] detach_policy
+- [ ] detach_typed_link
+- [ ] disable_directory
+- [ ] enable_directory
+- [ ] get_applied_schema_version
+- [X] get_directory
+- [ ] get_facet
+- [ ] get_link_attributes
+- [ ] get_object_attributes
+- [ ] get_object_information
+- [ ] get_schema_as_json
+- [ ] get_typed_link_facet_information
+- [ ] list_applied_schema_arns
+- [ ] list_attached_indices
+- [ ] list_development_schema_arns
+- [X] list_directories
+- [ ] list_facet_attributes
+- [ ] list_facet_names
+- [ ] list_incoming_typed_links
+- [ ] list_index
+- [ ] list_managed_schema_arns
+- [ ] list_object_attributes
+- [ ] list_object_children
+- [ ] list_object_parent_paths
+- [ ] list_object_parents
+- [ ] list_object_policies
+- [ ] list_outgoing_typed_links
+- [ ] list_policy_attachments
+- [ ] list_published_schema_arns
+- [X] list_tags_for_resource
+- [ ] list_typed_link_facet_attributes
+- [ ] list_typed_link_facet_names
+- [ ] lookup_policy
+- [ ] publish_schema
+- [ ] put_schema_from_json
+- [ ] remove_facet_from_object
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_facet
+- [ ] update_link_attributes
+- [ ] update_object_attributes
+- [ ] update_schema
+- [ ] update_typed_link_facet
+- [ ] upgrade_applied_schema
+- [ ] upgrade_published_schema
+</details>
+
 ## cloudformation
 <details>
 <summary>37% implemented</summary>
@@ -2193,7 +2265,7 @@
 
 ## dms
 <details>
-<summary>6% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2201,7 +2273,7 @@
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_data_migration
 - [ ] create_data_provider
-- [ ] create_endpoint
+- [X] create_endpoint
 - [ ] create_event_subscription
 - [ ] create_fleet_advisor_collector
 - [ ] create_instance_profile
@@ -2234,7 +2306,7 @@
 - [ ] describe_data_providers
 - [ ] describe_endpoint_settings
 - [ ] describe_endpoint_types
-- [ ] describe_endpoints
+- [X] describe_endpoints
 - [ ] describe_engine_versions
 - [ ] describe_event_categories
 - [ ] describe_event_subscriptions
@@ -2271,7 +2343,7 @@
 - [ ] describe_table_statistics
 - [ ] export_metadata_model_assessment
 - [ ] import_certificate
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] modify_conversion_configuration
 - [ ] modify_data_migration
 - [ ] modify_data_provider
@@ -4194,7 +4266,7 @@
 - [ ] get_plan
 - [X] get_registry
 - [ ] get_resource_policies
-- [ ] get_resource_policy
+- [X] get_resource_policy
 - [X] get_schema
 - [X] get_schema_by_definition
 - [X] get_schema_version
@@ -4250,7 +4322,7 @@
 - [ ] modify_integration
 - [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
-- [ ] put_resource_policy
+- [X] put_resource_policy
 - [X] put_schema_version_metadata
 - [ ] put_workflow_run_properties
 - [ ] query_schema_version_metadata
@@ -6109,6 +6181,57 @@
 - [X] stop_db_cluster
 </details>
 
+## network-firewall
+<details>
+<summary>11% implemented</summary>
+
+- [ ] associate_firewall_policy
+- [ ] associate_subnets
+- [X] create_firewall
+- [ ] create_firewall_policy
+- [ ] create_rule_group
+- [ ] create_tls_inspection_configuration
+- [ ] delete_firewall
+- [ ] delete_firewall_policy
+- [ ] delete_resource_policy
+- [ ] delete_rule_group
+- [ ] delete_tls_inspection_configuration
+- [X] describe_firewall
+- [ ] describe_firewall_policy
+- [ ] describe_flow_operation
+- [X] describe_logging_configuration
+- [ ] describe_resource_policy
+- [ ] describe_rule_group
+- [ ] describe_rule_group_metadata
+- [ ] describe_tls_inspection_configuration
+- [ ] disassociate_subnets
+- [ ] get_analysis_report_results
+- [ ] list_analysis_reports
+- [ ] list_firewall_policies
+- [X] list_firewalls
+- [ ] list_flow_operation_results
+- [ ] list_flow_operations
+- [ ] list_rule_groups
+- [ ] list_tags_for_resource
+- [ ] list_tls_inspection_configurations
+- [ ] put_resource_policy
+- [ ] start_analysis_report
+- [ ] start_flow_capture
+- [ ] start_flow_flush
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_firewall_analysis_settings
+- [ ] update_firewall_delete_protection
+- [ ] update_firewall_description
+- [ ] update_firewall_encryption_configuration
+- [ ] update_firewall_policy
+- [ ] update_firewall_policy_change_protection
+- [X] update_logging_configuration
+- [ ] update_rule_group
+- [ ] update_subnet_change_protection
+- [ ] update_tls_inspection_configuration
+</details>
+
 ## networkmanager
 <details>
 <summary>20% implemented</summary>
@@ -7820,7 +7943,7 @@
 
 ## s3
 <details>
-<summary>69% implemented</summary>
+<summary>72% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -7853,7 +7976,7 @@
 - [X] get_bucket_cors
 - [X] get_bucket_encryption
 - [ ] get_bucket_intelligent_tiering_configuration
-- [ ] get_bucket_inventory_configuration
+- [X] get_bucket_inventory_configuration
 - [X] get_bucket_lifecycle
 - [ ] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
@@ -7883,7 +8006,7 @@
 - [X] head_object
 - [ ] list_bucket_analytics_configurations
 - [ ] list_bucket_intelligent_tiering_configurations
-- [ ] list_bucket_inventory_configurations
+- [X] list_bucket_inventory_configurations
 - [ ] list_bucket_metrics_configurations
 - [X] list_buckets
 - [ ] list_directory_buckets
@@ -7898,7 +8021,7 @@
 - [X] put_bucket_cors
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
-- [ ] put_bucket_inventory_configuration
+- [X] put_bucket_inventory_configuration
 - [X] put_bucket_lifecycle
 - [ ] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
@@ -9957,7 +10080,6 @@
 - cleanroomsml
 - cloud9
 - cloudcontrol
-- clouddirectory
 - cloudfront-keyvaluestore
 - cloudhsm
 - cloudsearch
@@ -10086,7 +10208,6 @@
 - mwaa
 - neptune-graph
 - neptunedata
-- network-firewall
 - networkflowmonitor
 - networkmonitor
 - notifications
