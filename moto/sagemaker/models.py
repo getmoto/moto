@@ -917,6 +917,7 @@ class FakeTransformJob(BaseObject):
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["TransformJobArn"] = response.pop("Arn")
         return response
 
     @property
