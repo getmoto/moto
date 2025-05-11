@@ -12,10 +12,10 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     BadRequestException,
+    EventsAPINotFound,
     GraphqlAPICacheNotFound,
     GraphqlAPINotFound,
     GraphQLSchemaException,
-    EventsAPINotFound,
 )
 
 # AWS custom scalars and directives
@@ -88,6 +88,7 @@ class APICache(BaseModel):
             "healthMetricsConfig": self.health_metrics_config,
             "status": self.status,
         }
+
 
 # endregion
 
@@ -183,7 +184,7 @@ class GraphqlAPIKey(BaseModel):
             "expires": self.expires,
             "deletes": self.expires,
         }
-    
+
 
 class GraphqlAPI(BaseModel):
     def __init__(
@@ -331,6 +332,7 @@ class GraphqlAPI(BaseModel):
             "tags": self.backend.list_tags_for_resource(self.arn),
         }
 
+
 # endregion
 
 
@@ -362,7 +364,7 @@ class EventsAPIKey(BaseModel):
             "expires": self.expires,
             "deletes": self.expires,
         }
-    
+
 
 class ChannelNamespace(BaseModel):
     def __init__(
@@ -383,13 +385,13 @@ class ChannelNamespace(BaseModel):
         self.publish_auth_modes = publish_auth_modes
         self.code_handlers = code_handlers or []
         self.handler_configs = handler_configs or {}
-        
+
         self.channel_namespace_arn = f"arn:{get_partition(region)}:appsync:{region}:{account_id}:apis/{api_id}/channelNamespace/{name}"
-        
+
         now = datetime.now(timezone.utc).isoformat()
         self.created = now
         self.last_modified = now
-        
+
         self.backend = backend
 
     def to_json(self) -> Dict[str, Any]:
@@ -403,13 +405,15 @@ class ChannelNamespace(BaseModel):
             "lastModified": self.last_modified,
             "handlerConfigs": self.handler_configs,
         }
-        
+
         if self.code_handlers:
             response["codeHandlers"] = self.code_handlers
-            
+
         if self.backend:
-            response["tags"] = self.backend.list_tags_for_resource(self.channel_namespace_arn)
-            
+            response["tags"] = self.backend.list_tags_for_resource(
+                self.channel_namespace_arn
+            )
+
         return response
 
 
@@ -428,20 +432,20 @@ class EventsAPI(BaseModel):
         self.api_id = str(mock_random.get_random_string(length=26))
         self.owner_contact = owner_contact
         self.event_config = event_config
-        
+
         self.api_arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
 
         self.api_keys: Dict[str, EventsAPIKey] = dict()
         self.channel_namespaces: List[ChannelNamespace] = list()
-        
+
         dns_prefix = str(mock_random.get_random_string(length=26))
         self.dns = {
             "REALTIME": f"{dns_prefix}.appsync-realtime-api.{self.region}.amazonaws.com",
-            "HTTP": f"{dns_prefix}.appsync-api.{self.region}.amazonaws.com"
+            "HTTP": f"{dns_prefix}.appsync-api.{self.region}.amazonaws.com",
         }
-        
+
         self.created = datetime.now(timezone.utc).isoformat()
-        
+
         self.backend = backend
 
     def to_json(self) -> Dict[str, Any]:
@@ -464,17 +468,20 @@ class EventsAPI(BaseModel):
         api_key = EventsAPIKey(description, expires)
         self.api_keys[api_key.key_id] = api_key
         return api_key
-    
+
     def list_api_keys(self) -> Iterable[EventsAPIKey]:
         return self.api_keys.values()
-    
+
     def delete_api_key(self, api_key_id: str) -> None:
         self.api_keys.pop(api_key_id)
 
-    def update_api_key(self, api_key_id: str, description: str, expires: Optional[int]) -> EventsAPIKey:
+    def update_api_key(
+        self, api_key_id: str, description: str, expires: Optional[int]
+    ) -> EventsAPIKey:
         api_key = self.api_keys[api_key_id]
         api_key.update(description, expires)
         return api_key
+
 
 # endregion
 
@@ -584,7 +591,9 @@ class AppSyncBackend(BaseBackend):
         else:
             self.events_apis[api_id].delete_api_key(api_key_id)
 
-    def list_api_keys(self, api_id: str) -> Iterable[Union[GraphqlAPIKey, EventsAPIKey]]:
+    def list_api_keys(
+        self, api_id: str
+    ) -> Iterable[Union[GraphqlAPIKey, EventsAPIKey]]:
         """
         Pagination or the maxResults-parameter have not yet been implemented.
         """
@@ -697,7 +706,7 @@ class AppSyncBackend(BaseBackend):
         if self.graphql_apis[api_id].api_cache is None:
             raise GraphqlAPICacheNotFound("flush")
         return
-    
+
     def create_api(
         self,
         name: str,
@@ -713,25 +722,24 @@ class AppSyncBackend(BaseBackend):
             event_config=event_config,
             backend=self,
         )
-        
+
         self.events_apis[events_api.api_id] = events_api
-        
+
         self.tagger.tag_resource(
-            events_api.api_arn, 
-            TaggingService.convert_dict_to_tags_input(tags)
+            events_api.api_arn, TaggingService.convert_dict_to_tags_input(tags)
         )
-        
+
         return events_api
-    
+
     def list_apis(self) -> Iterable[EventsAPI]:
         """
         Pagination or the maxResults-parameter have not yet been implemented.
         """
         return self.events_apis.values()
-    
-    def delete_api(self, api_id):
+
+    def delete_api(self, api_id: str) -> None:
         self.events_apis.pop(api_id)
-    
+
     def create_channel_namespace(
         self,
         api_id: str,
@@ -745,7 +753,7 @@ class AppSyncBackend(BaseBackend):
         # Check if API exists
         if api_id not in self.events_apis:
             raise EventsAPINotFound(api_id)
-            
+
         channel_namespace = ChannelNamespace(
             api_id=api_id,
             name=name,
@@ -765,17 +773,17 @@ class AppSyncBackend(BaseBackend):
         if tags:
             self.tagger.tag_resource(
                 channel_namespace.channel_namespace_arn,
-                TaggingService.convert_dict_to_tags_input(tags)
+                TaggingService.convert_dict_to_tags_input(tags),
             )
-        
+
         return channel_namespace
-    
+
     def list_channel_namespaces(self, api_id: str) -> Iterable[ChannelNamespace]:
         if api_id not in self.events_apis:
             raise EventsAPINotFound(api_id)
         return self.events_apis[api_id].channel_namespaces
-    
-    def delete_channel_namespace(self, api_id, name):
+
+    def delete_channel_namespace(self, api_id: str, name: str) -> None:
         if api_id not in self.events_apis:
             raise EventsAPINotFound(api_id)
         for channel_namespace in self.events_apis[api_id].channel_namespaces:
@@ -783,11 +791,12 @@ class AppSyncBackend(BaseBackend):
                 self.events_apis[api_id].channel_namespaces.remove(channel_namespace)
                 return
 
-    def get_api(self, api_id):
+    def get_api(self, api_id: str) -> EventsAPI:
         if api_id not in self.events_apis:
             raise EventsAPINotFound(api_id)
         return self.events_apis[api_id]
-    
+
+
 # endregion
 
 
