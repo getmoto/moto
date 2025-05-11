@@ -34,6 +34,14 @@ class GraphqlAPICacheNotFound(AppSyncExceptions):
         self.description = json.dumps({"message": self.message})
 
 
+class EventsAPINotFound(AppSyncExceptions):
+    code = 404
+
+    def __init__(self, api_id: str):
+        super().__init__("NotFoundException", f"Events API {api_id} not found.")
+        self.description = json.dumps({"message": self.message})
+
+
 class BadRequestException(AppSyncExceptions):
     def __init__(self, message: str):
         super().__init__("BadRequestException", message)

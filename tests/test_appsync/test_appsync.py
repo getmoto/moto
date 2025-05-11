@@ -470,3 +470,238 @@ def test_flush_api_cache():
         type="T2_SMALL",
     )["apiCache"]
     client.flush_api_cache(apiId=api_id)
+
+
+@mock_aws
+def test_create_api():
+    client = boto3.client("appsync", region_name="eu-west-1")
+    resp = client.create_api(
+        name="api1",
+        eventConfig={
+            'authProviders': [
+                {'authType': 'API_KEY'},
+            ],
+            'connectionAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultPublishAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultSubscribeAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+        }
+    )
+
+    assert "api" in resp
+    api = resp["api"]
+    assert api["name"] == "api1"
+    assert "apiId" in api
+    assert api["apiArn"] == f"arn:aws:appsync:eu-west-1:{ACCOUNT_ID}:apis/{api['apiId']}"
+    assert "dns" in api
+    assert "REALTIME" in api["dns"]
+    assert "HTTP" in api["dns"]
+    assert api["dns"]["REALTIME"].endswith(".appsync-realtime-api.eu-west-1.amazonaws.com")
+    assert api["dns"]["HTTP"].endswith(".appsync-api.eu-west-1.amazonaws.com")
+    assert "created" in api
+    assert api["eventConfig"]["authProviders"][0]["authType"] == "API_KEY"
+    assert api["tags"] == {}
+
+
+@mock_aws
+def test_create_api_with_all_params():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    event_config = {
+        "authProviders": [
+            {
+                "authType": "AWS_IAM",
+            },
+        ],
+        "connectionAuthModes": [
+            {
+                "authType": "AWS_IAM"
+            }
+        ],
+        "defaultPublishAuthModes": [
+            {
+                "authType": "AWS_IAM"
+            }
+        ],
+        "defaultSubscribeAuthModes": [
+            {
+                "authType": "API_KEY"
+            }
+        ],
+        "logConfig": {
+            "logLevel": "ALL",
+            "cloudWatchLogsRoleArn": "arn:aws:iam::123456789012:role/MyRole"
+        }
+    }
+    
+    resp = client.create_api(
+        name="MyEventsAPI",
+        ownerContact="owner@example.com",
+        tags={"key1": "value1", "key2": "value2"},
+        eventConfig=event_config
+    )
+
+    api = resp["api"]
+
+    assert api["name"] == "MyEventsAPI"
+    assert api["ownerContact"] == "owner@example.com"
+    assert api["tags"] == {"key1": "value1", "key2": "value2"}
+    assert api["eventConfig"] == event_config
+    assert api["eventConfig"]["authProviders"][0]["authType"] == "AWS_IAM"
+    assert api["eventConfig"]["defaultPublishAuthModes"][0]["authType"] == "AWS_IAM"
+    assert api["eventConfig"]["defaultSubscribeAuthModes"][0]["authType"] == "API_KEY"
+    assert api["eventConfig"]["logConfig"]["logLevel"] == "ALL"
+
+@mock_aws
+def test_delete_api():
+    client = boto3.client("appsync", region_name="ap-southeast-1")
+
+    resp = client.create_api(
+        name="api1",
+        eventConfig={
+            'authProviders': [
+                {'authType': 'API_KEY'},
+            ],
+            'connectionAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultPublishAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultSubscribeAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+        }
+    )
+    api_id = resp["api"]["apiId"]
+
+    resp = client.list_apis()
+    assert len(resp["apis"]) == 1
+
+    client.delete_api(apiId=api_id)
+
+    resp = client.list_apis()
+    assert len(resp["apis"]) == 0
+
+
+@mock_aws
+def test_create_channel_namespace():
+    client = boto3.client("appsync", region_name="us-east-2")
+    resp = client.create_api(
+        name="api1",
+        eventConfig={
+            'authProviders': [
+                {'authType': 'API_KEY'},
+            ],
+            'connectionAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultPublishAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultSubscribeAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+        }
+    )
+    api_id = resp["api"]["apiId"]
+    
+    channel_response = client.create_channel_namespace(
+        apiId=api_id,
+        name="testChannel",
+        subscribeAuthModes=[{"authType": "API_KEY"}],
+        publishAuthModes=[{"authType": "API_KEY"}],
+        tags={"key1": "value1", "key2": "value2"},
+        handlerConfigs={}
+    )
+    
+    assert "channelNamespace" in channel_response
+    
+    channel = channel_response["channelNamespace"]
+    assert channel["apiId"] == api_id
+    assert channel["name"] == "testChannel"
+    assert channel["subscribeAuthModes"] == [{"authType": "API_KEY"}]
+    assert channel["publishAuthModes"] == [{"authType": "API_KEY"}]
+    assert channel["tags"] == {"key1": "value1", "key2": "value2"}
+    assert "channelNamespaceArn" in channel
+    assert channel["channelNamespaceArn"].endswith(f":apis/{api_id}/channelNamespace/testChannel")
+    assert "created" in channel
+    assert "lastModified" in channel
+    assert "handlerConfigs" in channel
+
+
+@mock_aws
+def test_delete_channel_namespace():
+    client = boto3.client("appsync", region_name="us-east-2")
+    resp = client.create_api(
+        name="api1",
+        eventConfig={
+            'authProviders': [
+                {'authType': 'API_KEY'},
+            ],
+            'connectionAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultPublishAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+            'defaultSubscribeAuthModes': [
+                {'authType': 'API_KEY'},
+            ],
+        }
+    )
+    api_id = resp["api"]["apiId"]
+
+    resp = client.create_channel_namespace(
+        apiId=api_id,
+        name="testChannel",
+        subscribeAuthModes=[{"authType": "API_KEY"}],
+        publishAuthModes=[{"authType": "API_KEY"}]
+    )
+
+    assert len(client.list_channel_namespaces(apiId=api_id)["channelNamespaces"]) == 1
+
+    client.delete_channel_namespace(
+        apiId=api_id,
+        name="testChannel"
+    )
+
+    assert len(client.list_channel_namespaces(apiId=api_id)["channelNamespaces"]) == 0
+    
+
+@mock_aws
+def test_get_api():
+    client = boto3.client("appsync", region_name="ap-southeast-1")
+    api_id = client.create_api(name="api1", eventConfig={
+        "authProviders": [
+            {
+                "authType": "API_KEY"
+            }
+        ],
+        "connectionAuthModes": [
+            {
+                "authType": "API_KEY"
+            }
+        ],
+        "defaultPublishAuthModes": [
+            {
+                "authType": "API_KEY"
+            }
+        ],
+        "defaultSubscribeAuthModes": [
+            {
+                "authType": "API_KEY"
+            }
+        ]
+    })["api"]["apiId"]
+
+    resp = client.get_api(apiId=api_id)
+    assert "api" in resp
+    api = resp["api"]
+    assert api["name"] == "api1"
+    assert api["apiId"] == api_id

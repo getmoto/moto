@@ -251,3 +251,75 @@ class AppSyncResponse(BaseResponse):
             api_id=api_id,
         )
         return "{}"
+        
+    def create_api(self) -> str:
+        params = json.loads(self.body)
+        name = params.get("name")
+        owner_contact = params.get("ownerContact")
+        tags = params.get("tags", {})
+        event_config = params.get("eventConfig")
+        
+        api = self.appsync_backend.create_api(
+            name=name,
+            owner_contact=owner_contact,
+            tags=tags,
+            event_config=event_config,
+        )
+        
+        response = api.to_json()
+        return json.dumps({"api": response})
+    
+    def list_apis(self) -> str:
+        apis = self.appsync_backend.list_apis()
+        return json.dumps(dict(apis=[api.to_json() for api in apis]))
+        
+    def delete_api(self):
+        api_id = self.path.split("/")[-1]
+        self.appsync_backend.delete_api(api_id=api_id)
+        return "{}"
+    
+    def create_channel_namespace(self) -> str:
+        params = json.loads(self.body)
+        api_id = self.path.split("/")[-2]
+        name = params.get("name")
+        subscribe_auth_modes = params.get("subscribeAuthModes")
+        publish_auth_modes = params.get("publishAuthModes")
+        code_handlers = params.get("codeHandlers")
+        tags = params.get("tags", {})
+        handler_configs = params.get("handlerConfigs", {})
+        
+        channel_namespace = self.appsync_backend.create_channel_namespace(
+            api_id=api_id,
+            name=name,
+            subscribe_auth_modes=subscribe_auth_modes,
+            publish_auth_modes=publish_auth_modes,
+            code_handlers=code_handlers,
+            tags=tags,
+            handler_configs=handler_configs,
+        )
+        
+        return json.dumps({"channelNamespace": channel_namespace.to_json()})
+
+    def list_channel_namespaces(self) -> str:
+        api_id = self.path.split("/")[-2]
+        channel_namespaces = self.appsync_backend.list_channel_namespaces(api_id=api_id)
+        return json.dumps(dict(channelNamespaces=[channel_namespace.to_json() for channel_namespace in channel_namespaces]))
+    
+    def delete_channel_namespace(self) -> str:
+        path_parts = self.path.split("/")
+        api_id = path_parts[-3]
+        name = path_parts[-1]
+        
+        self.appsync_backend.delete_channel_namespace(
+            api_id=api_id,
+            name=name,
+        )
+        return "{}"
+        
+    def get_api(self):
+        api_id = self.path.split("/")[-1]
+
+        api = self.appsync_backend.get_api(api_id=api_id)
+        response = api.to_json()
+        response["tags"] = self.appsync_backend.list_tags_for_resource(api.api_arn)
+        return json.dumps(dict(api=response))

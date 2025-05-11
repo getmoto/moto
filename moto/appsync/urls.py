@@ -20,4 +20,8 @@ url_paths = {
     "{0}/v1/apis/(?P<apiId>.*)/ApiCaches$": AppSyncResponse.dispatch,
     "{0}/v1/apis/(?P<apiId>.*)/ApiCaches/update$": AppSyncResponse.dispatch,
     "{0}/v1/apis/(?P<apiId>.*)/FlushCache$": AppSyncResponse.dispatch,
+    "{0}/v2/apis$": AppSyncResponse.dispatch,
+    "{0}/v2/apis/(?P<apiId>[^/]+)$": AppSyncResponse.dispatch,
+    "{0}/v2/apis/(?P<apiId>[^/]+)/channelNamespaces$": AppSyncResponse.dispatch,
+    "{0}/v2/apis/(?P<apiId>[^/]+)/channelNamespaces/(?P<name>[^/]+)$": AppSyncResponse.dispatch,
 }
