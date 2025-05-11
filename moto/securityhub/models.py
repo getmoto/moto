@@ -1,5 +1,6 @@
 """SecurityHubBackend class with methods for supported APIs."""
 
+import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -28,6 +29,17 @@ class SecurityHubBackend(BaseBackend):
             "unique_attribute": "Id",
             "fail_on_invalid_token": True,
         }
+    }
+
+    org_admin_account_details = {
+        "admin_account_id": None,
+        "auto_enable": False,
+        "auto_enable_standards": "DEFAULT",
+        "organization_configuration": {
+            "ConfigurationType": "LOCAL",
+            "Status": "ENABLED",
+            "StatusMessage": "",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -117,6 +129,64 @@ class SecurityHubBackend(BaseBackend):
                 )
 
         return failed_count, success_count, failed_findings
+
+    def enable_organization_admin_account(self, admin_account_id: str) -> None:
+        SecurityHubBackend.org_admin_account_details["admin_account_id"] = (
+            admin_account_id
+        )
+
+    def update_organization_configuration(
+        self,
+        auto_enable: bool,
+        auto_enable_standards: Optional[str] = None,
+        organization_configuration: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        SecurityHubBackend.org_admin_account_details["auto_enable"] = auto_enable
+
+        if auto_enable_standards is not None:
+            SecurityHubBackend.org_admin_account_details["auto_enable_standards"] = (
+                auto_enable_standards
+            )
+
+        if organization_configuration is not None:
+            SecurityHubBackend.org_admin_account_details[
+                "organization_configuration"
+            ] = organization_configuration
+
+    def get_administrator_account(self) -> Dict[str, Any]:
+        admin_account_id = SecurityHubBackend.org_admin_account_details[
+            "admin_account_id"
+        ]
+        auto_enable = SecurityHubBackend.org_admin_account_details["auto_enable"]
+
+        if not admin_account_id:
+            return {}
+
+        if self.account_id == admin_account_id:
+            pass
+        elif not auto_enable:
+            return {}
+
+        return {
+            "Administrator": {
+                "AccountId": admin_account_id,
+                "MemberStatus": "ENABLED",
+                "InvitationId": f"invitation-{admin_account_id}",
+                "InvitedAt": datetime.datetime.now().isoformat(),
+            }
+        }
+
+    def describe_organization_configuration(self) -> Dict[str, Any]:
+        return {
+            "AutoEnable": SecurityHubBackend.org_admin_account_details["auto_enable"],
+            "MemberAccountLimitReached": False,
+            "AutoEnableStandards": SecurityHubBackend.org_admin_account_details[
+                "auto_enable_standards"
+            ],
+            "OrganizationConfiguration": SecurityHubBackend.org_admin_account_details[
+                "organization_configuration"
+            ],
+        }
 
 
 securityhub_backends = BackendDict(SecurityHubBackend, "securityhub")
