@@ -311,7 +311,7 @@ def test_create_internet_gateway_with_tags():
     assert igw.tags == [{"Key": "test", "Value": "TestRouteTable"}]
 
 
-def retrieve_all(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all(client, filters=[]):
     resp = client.describe_internet_gateways(Filters=filters)
     all_igws = resp["InternetGateways"]
     token = resp.get("NextToken")

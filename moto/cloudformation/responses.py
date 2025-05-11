@@ -3,8 +3,8 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
-from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
-from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
+from yaml.parser import ParserError
+from yaml.scanner import ScannerError
 
 from moto.core.responses import BaseResponse
 from moto.s3.exceptions import S3ClientError
@@ -47,7 +47,7 @@ class CloudFormationResponse(BaseResponse):
         return cloudformation_backends[self.current_account][self.region]
 
     @classmethod
-    def cfnresponse(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]  # pylint: disable=unused-argument
+    def cfnresponse(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         request, full_url, headers = args
         full_url += "&Action=ProcessCfnResponse"
         return cls.dispatch(request=request, full_url=full_url, headers=headers)

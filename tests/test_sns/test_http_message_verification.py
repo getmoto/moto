@@ -114,15 +114,15 @@ class TestHTTPMessageVerification:
         msg = TestHTTPMessageVerification.MESSAGES_RECEIVED[topic_arn]
 
         string_to_sign = f"""Message
-{msg['Message']}
+{msg["Message"]}
 MessageId
-{msg['MessageId']}
+{msg["MessageId"]}
 Timestamp
-{msg['Timestamp']}
+{msg["Timestamp"]}
 TopicArn
-{msg['TopicArn']}
+{msg["TopicArn"]}
 Type
-{msg['Type']}
+{msg["Type"]}
 """
 
         signature = base64.b64decode(msg["Signature"])

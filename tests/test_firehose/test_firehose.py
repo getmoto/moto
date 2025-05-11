@@ -368,7 +368,7 @@ def test_list_delivery_streams():
         )
     for idx in range(5):
         client.create_delivery_stream(
-            DeliveryStreamName=f"{stream_name}-{idx+5}",
+            DeliveryStreamName=f"{stream_name}-{idx + 5}",
             DeliveryStreamType="KinesisStreamAsSource",
             S3DestinationConfiguration=s3_dest_config,
         )
@@ -392,7 +392,7 @@ def test_list_delivery_streams():
 
     hoses = client.list_delivery_streams(DeliveryStreamType="KinesisStreamAsSource")
     assert len(hoses["DeliveryStreamNames"]) == 5
-    expected_kinesis_stream_list = [f"{stream_name}-{x+5}" for x in range(5)]
+    expected_kinesis_stream_list = [f"{stream_name}-{x + 5}" for x in range(5)]
     assert hoses["DeliveryStreamNames"] == expected_kinesis_stream_list
     assert hoses["HasMoreDeliveryStreams"] is False
 
@@ -401,7 +401,7 @@ def test_list_delivery_streams():
         ExclusiveStartDeliveryStreamName=f"{stream_name}-5"
     )
     assert len(hoses["DeliveryStreamNames"]) == 4
-    expected_stream_list = [f"{stream_name}-{x+5}" for x in range(1, 5)]
+    expected_stream_list = [f"{stream_name}-{x + 5}" for x in range(1, 5)]
     assert hoses["DeliveryStreamNames"] == expected_stream_list
     assert hoses["HasMoreDeliveryStreams"] is False
 
@@ -509,9 +509,7 @@ def test_lookup_name_from_arn():
         DeliveryStreamName=stream_name, S3DestinationConfiguration=s3_dest_config
     )["DeliveryStreamARN"]
 
-    from moto.firehose.models import (  # pylint: disable=import-outside-toplevel
-        firehose_backends,
-    )
+    from moto.firehose.models import firehose_backends
 
     delivery_stream = firehose_backends[ACCOUNT_ID][TEST_REGION].lookup_name_from_arn(
         arn

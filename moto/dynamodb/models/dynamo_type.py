@@ -62,7 +62,7 @@ class DynamoType(object):
     """
 
     def __init__(self, type_as_dict: Union["DynamoType", Dict[str, Any]]):
-        if type(type_as_dict) == DynamoType:
+        if type(type_as_dict) is DynamoType:
             self.type: str = type_as_dict.type
             self.value: Any = type_as_dict.value
         else:
@@ -277,12 +277,12 @@ class LimitedSizeDict(Dict[str, Any]):
     def __setitem__(self, key: str, value: Any) -> None:
         current_item_size = sum(
             [
-                item.size() if type(item) == DynamoType else bytesize(str(item))
+                item.size() if type(item) is DynamoType else bytesize(str(item))
                 for item in (list(self.keys()) + list(self.values()))
             ]
         )
         new_item_size = bytesize(key) + (
-            value.size() if type(value) == DynamoType else bytesize(str(value))
+            value.size() if type(value) is DynamoType else bytesize(str(value))
         )
         # Official limit is set to 400000 (400KB)
         # Manual testing confirms that the actual limit is between 409 and 410KB

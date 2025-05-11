@@ -132,7 +132,7 @@ def test_create_query_logging_config_bad_args():
 
 @mock_aws
 @pytest.mark.parametrize("route53_region", ["us-west-1", TEST_REGION])
-def test_create_query_logging_config_good_args(moto_server, route53_region):  # pylint: disable=redefined-outer-name
+def test_create_query_logging_config_good_args(moto_server, route53_region):
     """Test a valid create_logging_config() request."""
     client_kwargs = {"region_name": route53_region}
     if route53_region != TEST_REGION:

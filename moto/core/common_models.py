@@ -8,7 +8,7 @@ class BaseModel(metaclass=InstanceTrackerMeta):
     def __new__(
         cls,
         *args: Any,
-        **kwargs: Any,  # pylint: disable=unused-argument
+        **kwargs: Any,
     ) -> "BaseModel":
         instance = super(BaseModel, cls).__new__(cls)
         cls.instances.append(instance)  # type: ignore[attr-defined]
@@ -35,7 +35,7 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
-    def has_cfn_attr(cls, attr: str) -> bool:  # pylint: disable=unused-argument
+    def has_cfn_attr(cls, attr: str) -> bool:
         # Used for validation
         # If a template creates an Output for an attribute that does not exist, an error should be thrown
         return True

@@ -1092,7 +1092,7 @@ class InstanceProfile(CloudFormationModel):
             "path": self.path,
             "instanceProfileName": self.name,
             "instanceProfileId": self.id,
-            "arn": f"arn:{self.partition}:iam::{self.account_id}:instance-profile/{role.name}",  # pylint: disable=W0631
+            "arn": f"arn:{self.partition}:iam::{self.account_id}:instance-profile/{role.name}",
             "createDate": str(self.create_date),
             "roles": roles,
         }

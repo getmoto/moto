@@ -748,7 +748,7 @@ def test_flow_logs_by_ids():
     assert fl3 not in all_ids
 
 
-def retrieve_all_logs(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_logs(client, filters=[]):
     resp = client.describe_flow_logs(Filters=filters)
     all_logs = resp["FlowLogs"]
     token = resp.get("NextToken")

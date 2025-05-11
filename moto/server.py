@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 from werkzeug.serving import run_simple
 
 # Expose ThreadedMotoServer as a public symbol according to PEP-561
-from moto.moto_server.threaded_moto_server import (  # pylint: disable=unused-import
+from moto.moto_server.threaded_moto_server import (
     ThreadedMotoServer as ThreadedMotoServer,
 )
 from moto.moto_server.werkzeug_app import (
@@ -16,7 +16,7 @@ from moto.moto_server.werkzeug_app import (
 )
 
 
-def signal_handler(signum: Any, frame: Any) -> None:  # pylint: disable=unused-argument
+def signal_handler(signum: Any, frame: Any) -> None:
     sys.exit(0)
 
 

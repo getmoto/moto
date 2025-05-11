@@ -28,40 +28,40 @@ from typing import (
 # the subclass's module hasn't been imported yet - then that subclass
 # doesn't exist yet, and __subclasses__ won't find it.
 # So we import here to populate the list of subclasses.
-from moto.apigateway import models as apigw_models  # noqa  # pylint: disable=all
-from moto.autoscaling import models as as_models  # noqa  # pylint: disable=all
-from moto.awslambda import models as lambda_models  # noqa  # pylint: disable=all
-from moto.batch import models as batch_models  # noqa  # pylint: disable=all
+from moto.apigateway import models as apigw_models  # noqa
+from moto.autoscaling import models as as_models  # noqa
+from moto.awslambda import models as lambda_models  # noqa
+from moto.batch import models as batch_models  # noqa
 from moto.cloudformation.custom_model import CustomModel
-from moto.cloudwatch import models as cw_models  # noqa  # pylint: disable=all
+from moto.cloudwatch import models as cw_models  # noqa
 from moto.core.common_models import CloudFormationModel
-from moto.datapipeline import models as data_models  # noqa  # pylint: disable=all
-from moto.dynamodb import models as ddb_models  # noqa  # pylint: disable=all
+from moto.datapipeline import models as data_models  # noqa
+from moto.dynamodb import models as ddb_models  # noqa
 from moto.ec2 import models as ec2_models
 from moto.ec2.models.core import TaggedEC2Resource
-from moto.ecr import models as ecr_models  # noqa  # pylint: disable=all
-from moto.ecs import models as ecs_models  # noqa  # pylint: disable=all
-from moto.efs import models as efs_models  # noqa  # pylint: disable=all
-from moto.elb import models as elb_models  # noqa  # pylint: disable=all
-from moto.elbv2 import models as elbv2_models  # noqa  # pylint: disable=all
-from moto.emr import models as emr_models  # noqa  # pylint: disable=all
-from moto.events import models as events_models  # noqa  # pylint: disable=all
-from moto.iam import models as iam_models  # noqa  # pylint: disable=all
-from moto.iot import models as iot_models  # noqa  # pylint: disable=all
-from moto.kinesis import models as kinesis_models  # noqa  # pylint: disable=all
-from moto.kms import models as kms_models  # noqa  # pylint: disable=all
-from moto.rds import models as rds_models  # noqa  # pylint: disable=all
-from moto.redshift import models as redshift_models  # noqa  # pylint: disable=all
-from moto.route53 import models as route53_models  # noqa  # pylint: disable=all
-from moto.s3 import models as s3_models  # noqa  # pylint: disable=all
+from moto.ecr import models as ecr_models  # noqa
+from moto.ecs import models as ecs_models  # noqa
+from moto.efs import models as efs_models  # noqa
+from moto.elb import models as elb_models  # noqa
+from moto.elbv2 import models as elbv2_models  # noqa
+from moto.emr import models as emr_models  # noqa
+from moto.events import models as events_models  # noqa
+from moto.iam import models as iam_models  # noqa
+from moto.iot import models as iot_models  # noqa
+from moto.kinesis import models as kinesis_models  # noqa
+from moto.kms import models as kms_models  # noqa
+from moto.rds import models as rds_models  # noqa
+from moto.redshift import models as redshift_models  # noqa
+from moto.route53 import models as route53_models  # noqa
+from moto.s3 import models as s3_models  # noqa
 from moto.s3.models import s3_backends
 from moto.s3.utils import bucket_and_name_from_url
-from moto.sagemaker import models as sagemaker_models  # noqa  # pylint: disable=all
-from moto.sns import models as sns_models  # noqa  # pylint: disable=all
-from moto.sqs import models as sqs_models  # noqa  # pylint: disable=all
-from moto.ssm import models as ssm_models  # noqa  # pylint: disable=all
+from moto.sagemaker import models as sagemaker_models  # noqa
+from moto.sns import models as sns_models  # noqa
+from moto.sqs import models as sqs_models  # noqa
+from moto.ssm import models as ssm_models  # noqa
 from moto.ssm import ssm_backends
-from moto.stepfunctions import models as sfn_models  # noqa  # pylint: disable=all
+from moto.stepfunctions import models as sfn_models  # noqa
 from moto.utilities.utils import get_partition
 
 # End ugly list of imports

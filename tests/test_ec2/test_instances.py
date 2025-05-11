@@ -2803,7 +2803,7 @@ def test_instance_iam_instance_profile():
     assert retrieve_all_instances(ec2_client, filters) == []
 
 
-def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_reservations(client, filters=[]):
     resp = client.describe_instances(Filters=filters)
     all_reservations = resp["Reservations"]
     next_token = resp.get("NextToken")
@@ -2814,7 +2814,7 @@ def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
     return all_reservations
 
 
-def retrieve_all_instances(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_instances(client, filters=[]):
     reservations = retrieve_all_reservations(client, filters)
     return [i for r in reservations for i in r["Instances"]]
 

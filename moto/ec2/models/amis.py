@@ -30,7 +30,7 @@ else:
 
 
 class Ami(TaggedEC2Resource):
-    def __init__(  # pylint: disable=dangerous-default-value
+    def __init__(
         self,
         ec2_backend: Any,
         ami_id: str,

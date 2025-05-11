@@ -94,7 +94,7 @@ class Trust(BaseModel):
         }
 
 
-class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
+class Directory(BaseModel):
     """Representation of a Simple AD Directory.
 
     When the "create" API for a Simple AD or a Microsoft AD directory is
@@ -131,7 +131,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         short_name: Optional[str] = None,
         description: Optional[str] = None,
         edition: Optional[str] = None,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.account_id = account_id
         self.region = region
         self.name = name
@@ -340,7 +340,7 @@ class DirectoryServiceBackend(BaseBackend):
         size: str,
         connect_settings: Dict[str, Any],
         tags: List[Dict[str, str]],
-    ) -> str:  # pylint: disable=too-many-arguments
+    ) -> str:
         """Create a fake AD Connector."""
         if len(self.directories) > Directory.CONNECTED_DIRECTORIES_LIMIT:
             raise DirectoryLimitExceededException(
@@ -400,7 +400,7 @@ class DirectoryServiceBackend(BaseBackend):
         size: str,
         vpc_settings: Dict[str, Any],
         tags: List[Dict[str, str]],
-    ) -> str:  # pylint: disable=too-many-arguments
+    ) -> str:
         """Create a fake Simple Ad Directory."""
         if len(self.directories) > Directory.CLOUDONLY_DIRECTORIES_LIMIT:
             raise DirectoryLimitExceededException(
@@ -484,7 +484,7 @@ class DirectoryServiceBackend(BaseBackend):
         vpc_settings: Dict[str, Any],
         edition: str,
         tags: List[Dict[str, str]],
-    ) -> str:  # pylint: disable=too-many-arguments
+    ) -> str:
         """Create a fake Microsoft Ad Directory."""
         if len(self.directories) > Directory.CLOUDONLY_MICROSOFT_AD_LIMIT:
             raise DirectoryLimitExceededException(
