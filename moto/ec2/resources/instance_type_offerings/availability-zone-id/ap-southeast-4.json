@@ -708,6 +708,22 @@
   "Location": "apse4-az1"
  },
  {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "apse4-az1"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "apse4-az2"
  },
@@ -1409,6 +1425,22 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "x2idn.metal",
   "Location": "apse4-az2"
  },
  {

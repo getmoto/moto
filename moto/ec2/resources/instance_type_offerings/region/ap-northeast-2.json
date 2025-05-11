@@ -788,6 +788,10 @@
   "Location": "ap-northeast-2"
  },
  {
+  "InstanceType": "inf2.xlarge",
+  "Location": "ap-northeast-2"
+ },
+ {
   "InstanceType": "m4.10xlarge",
   "Location": "ap-northeast-2"
  },

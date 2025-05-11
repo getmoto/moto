@@ -3688,6 +3688,10 @@
   "Location": "usw1-az3"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "usw1-az3"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "usw1-az3"
  },
