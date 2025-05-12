@@ -199,7 +199,6 @@ class DeploymentInfo(BaseModel):
         self.external_id = ""
         self.related_deployments: Dict[str, Any] = {}
         self.override_alarm_configuration = override_alarm_configuration
-        self.tags: List[Dict[str, str]] = []
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -515,27 +514,16 @@ class CodeDeployBackend(BaseBackend):
     def list_tags_for_resource(
         self, resource_arn: str
     ) -> Dict[str, List[Dict[str, str]]]:
-        try:
-            return self.tagger.list_tags_for_resource(resource_arn)
-        except Exception:
-            return {"Tags": []}
+        return self.tagger.list_tags_for_resource(resource_arn)
 
     def tag_resource(
         self, resource_arn: str, tags: List[Dict[str, str]]
     ) -> Dict[str, Any]:
-        try:
-            self.tagger.tag_resource(resource_arn, tags)
-        except Exception:
-            pass
-
+        self.tagger.tag_resource(resource_arn, tags)
         return {}
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> Dict[str, Any]:
-        try:
-            self.tagger.untag_resource_using_names(resource_arn, tag_keys)
-        except Exception:
-            pass
-
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return {}
 
 
