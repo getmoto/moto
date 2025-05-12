@@ -24,7 +24,11 @@ from .exceptions import (
     ValidationError,
 )
 from .metric_data_expression_parser import parse_expression
-from .utils import make_arn_for_alarm, make_arn_for_dashboard
+from .utils import (
+    make_arn_for_alarm,
+    make_arn_for_dashboard,
+    make_arn_for_rule,
+)
 
 _EMPTY_LIST: Any = tuple()
 
@@ -431,6 +435,21 @@ class Statistics:
         return sum(self.metric_single_values_list) + sum(
             [s.sum for s in self.metric_aggregated_list]
         )
+
+
+class InsightRule(BaseModel):
+    def __init__(self,account_id: str, region_name: str, definition: str, name: str, state: str, schema: Optional[str], managed_rule: Optional[bool]):
+        self.definition = definition
+        self.name = name
+        self.schema = schema or '{"Name" : "CloudWatchLogRule", "Version" : 1}'
+        self.state = state
+        self.managed_rule = managed_rule or False
+        self.rule_arn = make_arn_for_rule(region_name, account_id, name)
+
+        # Add logic here (will probably always be user created case in moto) not sure if a user can technically override the name?
+        # User {"Name" : "CloudWatchLogRule", "Version" : 1}
+        # Service {"Name" : "ServiceLogRule", "Version" : 1}
+        # If "service" in schema managed_rule is true
 
 
 class CloudWatchBackend(BaseBackend):
@@ -1012,5 +1031,24 @@ class CloudWatchBackend(BaseBackend):
                         f'Missing required parameter in MetricData[{query_num}].StatisticValues: "{stat}"'
                     )
 
+    def put_insight_rule(
+        self,
+        name: str,
+        state: str,
+        definition: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+                ) -> InsightRule:
+
+        rule = InsightRule (
+            account_id=self.account_id,
+            region_name=self.region_name,
+            definition = definition,
+            name = name,
+            state = state,
+            schema = None,
+            managed_rule = None
+        )
+        if tags:
+            self.tagger.tag_resource(rule.rule_arn, tags)
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

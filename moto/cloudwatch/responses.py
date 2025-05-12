@@ -340,6 +340,33 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(UNTAG_RESOURCE_TEMPLATE)
         return template.render()
 
+    def put_insight_rule(self) -> str:
+        name = self._get_param("RuleName")
+        state = self._get_param("RuleState")
+        definition = self._get_param("RuleDefinition")
+        tags = self._get_multi_param("Tags.member")
+
+        rule = self.cloudwatch_backend.put_insight_rule(
+            name=name,
+            state=state,
+            definition=definition,
+            tags=tags,
+        )
+
+        template = self.response_template(PUT_INSIGHT_RULE_TEMPLATE)
+        return template.render(rule=rule)
+
+    def describe_insight_rules(self) -> str:
+        rules = self.cloudwatch_backend.get_insight_rules()
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        alarm_names = self._get_multi_param("AlarmNames.member")
+        state_value = self._get_param("StateValue")
+
+        template = self.response_template(DESCRIBE_INSIGHT_RULES_TEMPLATE)
+        return template.render(
+            rules=rules
+        )
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
@@ -736,3 +763,63 @@ UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://monitoring.ama
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </UntagResourceResponse>"""
+
+PUT_INSIGHT_RULE_TEMPLATE = """<PutInsightRuleResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+   <PutInsightRuleResult></PutInsightRuleResult>
+   <ResponseMetadata>
+      <RequestId>{{ request_id }}</RequestId>
+   </ResponseMetadata>
+</PutInsightRuleResponse>"""
+
+DESCRIBE_INSIGHT_RULES_TEMPLATE = """<DescribeInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <DescribeAlarmsForMetricResult>
+        <MetricAlarms>
+            {% for alarm in alarms %}
+            <member>
+                <ActionsEnabled>{{ "true" if alarm.actions_enabled else "false" }}</ActionsEnabled>
+                <AlarmActions>
+                    {% for action in alarm.alarm_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </AlarmActions>
+                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
+                <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
+                <AlarmDescription>{{ alarm.description }}</AlarmDescription>
+                <AlarmName>{{ alarm.name }}</AlarmName>
+                <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
+                <Dimensions>
+                    {% for dimension in alarm.dimensions %}
+                    <member>
+                        <Name>{{ dimension.name }}</Name>
+                        <Value>{{ dimension.value }}</Value>
+                    </member>
+                    {% endfor %}
+                </Dimensions>
+                <EvaluationPeriods>{{ alarm.evaluation_periods }}</EvaluationPeriods>
+                <InsufficientDataActions>
+                    {% for action in alarm.insufficient_data_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </InsufficientDataActions>
+                <MetricName>{{ alarm.metric_name }}</MetricName>
+                <Namespace>{{ alarm.namespace }}</Namespace>
+                <OKActions>
+                    {% for action in alarm.ok_actions %}
+                    <member>{{ action }}</member>
+                    {% endfor %}
+                </OKActions>
+                <Period>{{ alarm.period }}</Period>
+                <StateReason>{{ alarm.state_reason }}</StateReason>
+                <StateReasonData>{{ alarm.state_reason_data }}</StateReasonData>
+                <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
+                <StateValue>{{ alarm.state_value }}</StateValue>
+                <Statistic>{{ alarm.statistic }}</Statistic>
+                {% if alarm.threshold is not none %}
+                <Threshold>{{ alarm.threshold }}</Threshold>
+                {% endif %}
+                <Unit>{{ alarm.unit }}</Unit>
+            </member>
+            {% endfor %}
+        </MetricAlarms>
+    </DescribeAlarmsForMetricResult>
+</DescribeAlarmsForMetricResponse>"""
