@@ -60,13 +60,22 @@ class FakeShadow(BaseModel):
             shadow = FakeShadow(None, None, None, version, deleted=True)
             return shadow
 
+        desired_payload = payload.get("state", {}).get("desired")
+        reported_payload = payload.get("state", {}).get("reported")
+
+        state_document = previous_payload.copy()
+
+        desired = state_document.get("state", {}).get("desired", {})
+        reported = state_document.get("state", {}).get("reported", {})
+
         # Updates affect only the fields specified in the request state document.
         # Any field with a value of None is removed from the device's shadow.
-        state_document = previous_payload.copy()
-        merge_dicts(state_document, payload, remove_nulls=True)
-        desired = state_document.get("state", {}).get("desired")
-        reported = state_document.get("state", {}).get("reported")
-        return FakeShadow(desired, reported, payload, version)
+        if desired_payload:
+            merge_dicts(desired, desired_payload, remove_nulls=True)
+        if reported_payload:
+            merge_dicts(reported, reported_payload, remove_nulls=True)
+
+        return FakeShadow(desired or None, reported or None, payload, version)
 
     @classmethod
     def parse_payload(cls, desired: Any, reported: Any) -> Any:  # type: ignore[misc]

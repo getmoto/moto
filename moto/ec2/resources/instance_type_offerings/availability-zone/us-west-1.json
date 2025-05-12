@@ -3688,6 +3688,10 @@
   "Location": "us-west-1b"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "us-west-1b"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-west-1b"
  },

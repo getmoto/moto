@@ -20,7 +20,7 @@ dms
 - [ ] cancel_replication_task_assessment_run
 - [ ] create_data_migration
 - [ ] create_data_provider
-- [ ] create_endpoint
+- [X] create_endpoint
 - [ ] create_event_subscription
 - [ ] create_fleet_advisor_collector
 - [ ] create_instance_profile
@@ -58,7 +58,7 @@ dms
 - [ ] describe_data_providers
 - [ ] describe_endpoint_settings
 - [ ] describe_endpoint_types
-- [ ] describe_endpoints
+- [X] describe_endpoints
 - [ ] describe_engine_versions
 - [ ] describe_event_categories
 - [ ] describe_event_subscriptions
@@ -101,7 +101,7 @@ dms
 - [ ] describe_table_statistics
 - [ ] export_metadata_model_assessment
 - [ ] import_certificate
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] modify_conversion_configuration
 - [ ] modify_data_migration
 - [ ] modify_data_provider

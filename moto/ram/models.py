@@ -225,5 +225,82 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(returnValue=True)
 
+    def get_resource_share_associations(self, **kwargs: Any) -> Dict[str, Any]:
+        association_type = kwargs["associationType"]
+        if association_type not in ["PRINCIPAL", "RESOURCE"]:
+            raise InvalidParameterException(
+                f"{association_type} is not a valid association type. "
+                "Specify either PRINCIPAL or RESOURCE and try again."
+            )
+
+        association_status = kwargs.get("associationStatus")
+        if association_status and association_status not in [
+            "ASSOCIATING",
+            "ASSOCIATED",
+            "FAILED",
+            "DISASSOCIATING",
+            "DISASSOCIATED",
+        ]:
+            raise InvalidParameterException(
+                f"{association_status} is not a valid association status."
+            )
+
+        resource_share_arns = kwargs.get("resourceShareArns", [])
+        resource_arn = kwargs.get("resourceArn")
+        principal = kwargs.get("principal")
+
+        if association_type == "PRINCIPAL" and resource_arn:
+            raise InvalidParameterException(
+                "You cannot specify a resource ARN when the association type is PRINCIPAL."
+            )
+        if association_type == "RESOURCE" and principal:
+            raise InvalidParameterException(
+                "You cannot specify a principal when the association type is RESOURCE."
+            )
+
+        associations = []
+        for resource_share in self.resource_shares:
+            if resource_share_arns and resource_share.arn not in resource_share_arns:
+                continue
+
+            if association_type == "PRINCIPAL":
+                for principal_id in resource_share.principals:
+                    if principal and principal != principal_id:
+                        continue
+                    associations.append(
+                        {
+                            "resourceShareArn": resource_share.arn,
+                            "resourceShareName": resource_share.name,
+                            "associatedEntity": principal_id,
+                            "associationType": "PRINCIPAL",
+                            "status": association_status or "ASSOCIATED",
+                            "creationTime": unix_time(resource_share.creation_time),
+                            "lastUpdatedTime": unix_time(
+                                resource_share.last_updated_time
+                            ),
+                            "external": False,
+                        }
+                    )
+            else:  # RESOURCE
+                for resource_id in resource_share.resource_arns:
+                    if resource_arn and resource_arn != resource_id:
+                        continue
+                    associations.append(
+                        {
+                            "resourceShareArn": resource_share.arn,
+                            "resourceShareName": resource_share.name,
+                            "associatedEntity": resource_id,
+                            "associationType": "RESOURCE",
+                            "status": association_status or "ASSOCIATED",
+                            "creationTime": unix_time(resource_share.creation_time),
+                            "lastUpdatedTime": unix_time(
+                                resource_share.last_updated_time
+                            ),
+                            "external": False,
+                        }
+                    )
+
+        return dict(resourceShareAssociations=associations)
+
 
 ram_backends = BackendDict(ResourceAccessManagerBackend, "ram")

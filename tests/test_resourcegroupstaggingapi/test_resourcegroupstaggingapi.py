@@ -937,9 +937,7 @@ def test_get_resources_workspaces():
 
     # Create two tagged Workspaces
     directory_id = create_directory()
-    workspaces.register_workspace_directory(
-        DirectoryId=directory_id, EnableWorkDocs=False
-    )
+    workspaces.register_workspace_directory(DirectoryId=directory_id)
     workspaces.create_workspaces(
         Workspaces=[
             {
@@ -986,10 +984,7 @@ def test_get_resources_workspace_directories():
         directory_id = create_directory()
         workspaces.register_workspace_directory(
             DirectoryId=directory_id,
-            EnableWorkDocs=False,
-            Tags=[
-                {"Key": "Test", "Value": i_str},
-            ],
+            Tags=[{"Key": "Test", "Value": i_str}],
         )
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
@@ -1013,9 +1008,7 @@ def test_get_resources_workspace_images():
 
     # Create two tagged Workspace Images
     directory_id = create_directory()
-    workspaces.register_workspace_directory(
-        DirectoryId=directory_id, EnableWorkDocs=False
-    )
+    workspaces.register_workspace_directory(DirectoryId=directory_id)
     resp = workspaces.create_workspaces(
         Workspaces=[
             {
