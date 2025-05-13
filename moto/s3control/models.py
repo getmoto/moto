@@ -153,7 +153,11 @@ class S3ControlBackend(BaseBackend):
         return True
 
     def put_storage_lens_configuration(
-        self, config_id, account_id, storage_lens_configuration, tags
+        self,
+        config_id: str,
+        account_id: str,
+        storage_lens_configuration: Dict[str, Any],
+        tags: Optional[Dict[str, str]] = None,
     ) -> None:
         # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
@@ -171,11 +175,7 @@ class S3ControlBackend(BaseBackend):
         return storage_lens_configuration
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_storage_lens_configurations(self, account_id) -> List[Dict[str, Any]]:
-        # The account ID should equal the account id that is set for Moto:
-        if account_id != self.account_id:
-            raise WrongPublicAccessBlockAccountIdError()
-
+    def list_storage_lens_configurations(self, account_id: str) -> List[Dict[str, Any]]:
         storage_lens_configuration_list = list(self.storage_lens_configs.values())
         return storage_lens_configuration_list
 
