@@ -239,7 +239,21 @@ class EventsHandler(BaseResponse):
         name = self._get_param("Name")
 
         event_bus = self.events_backend.describe_event_bus(name)
-        response = {"Name": event_bus.name, "Arn": event_bus.arn}
+        response = {
+            "Arn": event_bus.arn,
+            "CreationTime": event_bus.creation_time,
+            "Name": event_bus.name,
+            "LastModifiedTime": event_bus.last_modified_time,
+        }
+
+        if event_bus.dead_letter_config:
+            response["DeadLetterConfig"] = event_bus.dead_letter_config
+
+        if event_bus.description:
+            response["Description"] = event_bus.description
+
+        if event_bus.kms_key_identifier:
+            response["KmsKeyIdentifier"] = event_bus.kms_key_identifier
 
         if event_bus.policy:
             response["Policy"] = event_bus.policy

@@ -384,6 +384,12 @@ class EventBus(CloudFormationModel):
         self.arn = f"arn:{get_partition(self.region)}:events:{self.region}:{account_id}:event-bus/{name}"
         self.tags = tags or []
 
+        self.creation_time = unix_time()
+        self.last_modified_time = self.creation_time
+        self.description = None
+        self.kms_key_identifier = None
+        self.dead_letter_config = None
+
         self._statements: Dict[str, EventBusPolicyStatement] = {}
         self.rules: Dict[str, Rule] = OrderedDict()
 
@@ -1552,14 +1558,12 @@ class EventsBackend(BaseBackend):
         return self.event_buses[name]
 
     def list_event_buses(self, name_prefix: Optional[str]) -> List[EventBus]:
-        if name_prefix:
-            return [
-                event_bus
-                for event_bus in self.event_buses.values()
-                if event_bus.name.startswith(name_prefix)
-            ]
-
-        return list(self.event_buses.values())
+        return [
+            event_bus
+            for event_bus in self.event_buses.values()
+            if event_bus.name != "default"
+            and (name_prefix is None or event_bus.name.startswith(name_prefix))
+        ]
 
     def delete_event_bus(self, name: str) -> None:
         if name == "default":
