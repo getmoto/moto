@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.events.models import events_backends
 from tests import allow_aws_request, aws_verified
 
 RULES = [
@@ -876,7 +877,6 @@ def test_describe_event_bus():
     )
     assert "CreationTime" in response
     assert "LastModifiedTime" in response
-
     assert json.loads(response["Policy"]) == {
         "Version": "2012-10-17",
         "Statement": [
@@ -888,6 +888,18 @@ def test_describe_event_bus():
                 "Resource": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/test-bus",
             }
         ],
+    }
+
+    event_bus = events_backends[ACCOUNT_ID]["us-east-1"].event_buses["test-bus"]
+    event_bus.description = "Test description"
+    event_bus.kms_key_identifier = "arn:aws:kms:us-east-1:123456789012:key/test"
+    event_bus.dead_letter_config = {"Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"}
+
+    response = client.describe_event_bus(Name="test-bus")
+    assert response["Description"] == "Test description"
+    assert response["KmsKeyIdentifier"] == "arn:aws:kms:us-east-1:123456789012:key/test"
+    assert response["DeadLetterConfig"] == {
+        "Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"
     }
 
 
