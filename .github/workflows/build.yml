@@ -80,6 +80,10 @@ jobs:
     needs: lint
     uses: ./.github/workflows/tests_sdk_cpp.yml
 
+  sagemaker_client_test:
+    needs: lint
+    uses: ./.github/workflows/tests_sdk_sagemaker.yml
+
   javatest:
     needs: lint
     uses: ./.github/workflows/tests_sdk_java.yml
