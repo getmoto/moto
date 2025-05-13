@@ -139,7 +139,7 @@ class S3ControlResponse(BaseResponse):
         # TODO: Add support for all fields in the response
         # https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_GetStorageLensConfiguration.html
         template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
-        return template.render(config=storage_lens_configuration)
+        return template.render(config=storage_lens_configuration.config)
 
     def list_storage_lens_configurations(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
@@ -269,9 +269,9 @@ LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE = """
    {% for config in configs %}
    <StorageLensConfiguration>
       <HomeRegion></HomeRegion>
-      <Id>{{ config.get("Id") }}</Id>
-      <IsEnabled>{{ config.get("IsEnabled") }}</IsEnabled>
-      <StorageLensArn>{{ config.get("StorageLensArn") }}</StorageLensArn>
+      <Id>{{ config.config.get("Id") }}</Id>
+      <IsEnabled>{{ config.config.get("IsEnabled") }}</IsEnabled>
+      <StorageLensArn>{{ config.arn }}</StorageLensArn>
     </StorageLensConfiguration>
     {% endfor %}
 </ListStorageLensConfigurationsResult>

@@ -62,12 +62,27 @@ class AccessPoint(BaseModel):
         return self.policy is not None
 
 
+class StorageLensConfiguration(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        config_id: str,
+        storage_lens_configuration: Dict[str, Any],
+        tags: Optional[Dict[str, str]] = None,
+    ):
+        self.account_id = account_id
+        self.config_id = config_id
+        self.config = storage_lens_configuration
+        self.tags = tags or {}
+        self.arn = f"arn:{get_partition('us-east-1')}:s3:us-east-1:{account_id}:storage-lens/{config_id}"
+
+
 class S3ControlBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.public_access_block: Optional[PublicAccessBlock] = None
         self.access_points: Dict[str, Dict[str, AccessPoint]] = defaultdict(dict)
-        self.storage_lens_configs: Dict[str, Dict[str, Any]] = {}
+        self.storage_lens_configs: Dict[str, StorageLensConfiguration] = {}
         self.tagger = TaggingService()
 
     def get_public_access_block(self, account_id: str) -> PublicAccessBlock:
@@ -164,18 +179,26 @@ class S3ControlBackend(BaseBackend):
             raise WrongPublicAccessBlockAccountIdError()
 
         # Create a new Storage Lens configuration
-        self.storage_lens_configs[config_id] = storage_lens_configuration
+        storage_lens = StorageLensConfiguration(
+            account_id=account_id,
+            config_id=config_id,
+            storage_lens_configuration=storage_lens_configuration,
+            tags=tags,
+        )
+        self.storage_lens_configs[config_id] = storage_lens
 
     def get_storage_lens_configuration(
         self, config_id: str, account_id: str
-    ) -> Dict[str, Any]:
+    ) -> StorageLensConfiguration:
         if config_id not in self.storage_lens_configs:
             raise AccessPointNotFound(config_id)
         storage_lens_configuration = self.storage_lens_configs[config_id]
         return storage_lens_configuration
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_storage_lens_configurations(self, account_id: str) -> List[Dict[str, Any]]:
+    def list_storage_lens_configurations(
+        self, account_id: str
+    ) -> List[StorageLensConfiguration]:
         storage_lens_configuration_list = list(self.storage_lens_configs.values())
         return storage_lens_configuration_list
 

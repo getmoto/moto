@@ -84,8 +84,9 @@ def test_get_public_access_block_for_account():
 @mock_aws
 def test_storage_lens_configuration():
     client = boto3.client("s3control", region_name="us-east-2")
+    config_id = "my-test-config-id"
     config = {
-        "Id": "my-config-id",
+        "Id": "id-test",
         "AccountLevel": {
             "ActivityMetrics": {"IsEnabled": True},
             "BucketLevel": {
@@ -158,16 +159,18 @@ def test_storage_lens_configuration():
 
     resp = client.put_storage_lens_configuration(
         AccountId=ACCOUNT_ID,
-        ConfigId="test",
+        ConfigId=config_id,
         StorageLensConfiguration=config,
         Tags=tags,
     )
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     # Get the configuration:
-    resp = client.get_storage_lens_configuration(AccountId=ACCOUNT_ID, ConfigId="test")
+    resp = client.get_storage_lens_configuration(
+        AccountId=ACCOUNT_ID, ConfigId=config_id
+    )
     assert "StorageLensConfiguration" in resp
-    assert resp["StorageLensConfiguration"]["Id"] == "my-config-id"
+    assert resp["StorageLensConfiguration"]["Id"] == "id-test"
     s3_dest = resp["StorageLensConfiguration"]["DataExport"]["S3BucketDestination"]
     assert s3_dest["AccountId"] == ACCOUNT_ID
     assert s3_dest["Arn"] == "arn:aws:s3:::bucket_name"
@@ -177,4 +180,8 @@ def test_storage_lens_configuration():
     # List the configurations
     resp = client.list_storage_lens_configurations(AccountId=ACCOUNT_ID)
     assert len(resp["StorageLensConfigurationList"]) == 1
-    assert resp["StorageLensConfigurationList"][0]["Id"] == "my-config-id"
+    # Note the ID is NOT the config ID from the put request
+    # but the ID from the config itself
+    assert resp["StorageLensConfigurationList"][0]["Id"] == "id-test"
+    assert "StorageLensArn" in resp["StorageLensConfigurationList"][0]
+    assert resp["StorageLensConfigurationList"][0]["IsEnabled"] is True
