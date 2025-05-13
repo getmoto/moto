@@ -1838,6 +1838,104 @@ def test_failover_db_cluster(client):
 
 
 @mock_aws
+def test_failover_db_cluster_without_target_instance_specified(client):
+    cluster_identifier = "cluster-1"
+    create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-primary",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-replica",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)[
+        "DBClusters"
+    ][0]
+    cluster_members = cluster["DBClusterMembers"]
+    assert len(cluster_members) == 2
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is True
+    assert cluster_members[1]["DBInstanceIdentifier"] == "test-instance-replica"
+    assert cluster_members[1]["IsClusterWriter"] is False
+    cluster_failed_over = client.failover_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+    )["DBCluster"]
+    cluster_members = cluster_failed_over["DBClusterMembers"]
+    assert len(cluster_members) == 2
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is False
+    assert cluster_members[1]["DBInstanceIdentifier"] == "test-instance-replica"
+    assert cluster_members[1]["IsClusterWriter"] is True
+
+
+@mock_aws
+def test_failover_db_cluster_with_single_instance_cluster(client):
+    cluster_identifier = "cluster-1"
+    create_db_cluster(
+        DBClusterIdentifier=cluster_identifier,
+        Engine="aurora-postgresql",
+    )
+    create_db_instance(
+        DBInstanceIdentifier="test-instance-primary",
+        Engine="aurora-postgresql",
+        DBClusterIdentifier=cluster_identifier,
+    )
+    cluster = client.describe_db_clusters(DBClusterIdentifier=cluster_identifier)[
+        "DBClusters"
+    ][0]
+    cluster_members = cluster["DBClusterMembers"]
+    assert len(cluster_members) == 1
+    assert cluster_members[0]["DBInstanceIdentifier"] == "test-instance-primary"
+    assert cluster_members[0]["IsClusterWriter"] is True
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier=cluster_identifier,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidDBClusterStateFault"
+
+
+@mock_aws
+def test_failover_db_cluster_exceptions(client):
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="non-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    create_db_instance(
+        DBInstanceIdentifier="now-existent-instance",
+        Engine="postgres",
+    )
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="now-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "DBClusterNotFoundFault"
+    # Real AWS seems to check for the target instance being in a valid state
+    # before checking if it is actually part of the cluster, so we can put
+    # this non-clustered instance into a stopped state to simulate the error
+    # that AWS would return for a target instance in a non-valid state.
+    client.stop_db_instance(DBInstanceIdentifier="now-existent-instance")
+    with pytest.raises(ClientError) as ex:
+        client.failover_db_cluster(
+            DBClusterIdentifier="non-existent-cluster",
+            TargetDBInstanceIdentifier="now-existent-instance",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidDBInstanceState"
+
+
+@mock_aws
 def test_db_cluster_writer_promotion(client):
     client.create_db_cluster(
         DBClusterIdentifier="cluster-1",

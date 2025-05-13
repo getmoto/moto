@@ -47,7 +47,7 @@ s3
 - [X] get_bucket_cors
 - [X] get_bucket_encryption
 - [ ] get_bucket_intelligent_tiering_configuration
-- [ ] get_bucket_inventory_configuration
+- [X] get_bucket_inventory_configuration
 - [X] get_bucket_lifecycle
 - [ ] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
@@ -81,7 +81,7 @@ s3
 - [X] head_object
 - [ ] list_bucket_analytics_configurations
 - [ ] list_bucket_intelligent_tiering_configurations
-- [ ] list_bucket_inventory_configurations
+- [X] list_bucket_inventory_configurations
 - [ ] list_bucket_metrics_configurations
 - [X] list_buckets
 - [ ] list_directory_buckets
@@ -124,7 +124,7 @@ s3
 
 - [X] put_bucket_encryption
 - [ ] put_bucket_intelligent_tiering_configuration
-- [ ] put_bucket_inventory_configuration
+- [X] put_bucket_inventory_configuration
 - [X] put_bucket_lifecycle
 - [ ] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
