@@ -366,6 +366,14 @@ class CloudWatchResponse(BaseResponse):
             rules=rules
         )
 
+    def delete_insight_rules(self) -> str:
+        failures = self.cloudwatch_backend.delete_insight_rules()
+
+        template = self.response_template(DELETE_INSIGHT_RULES_TEMPLATE)
+        return template.render(
+            failures=failures
+        )
+
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
       <RequestId>
@@ -785,3 +793,18 @@ DESCRIBE_INSIGHT_RULES_TEMPLATE = """<DescribeInsightRulesResponse xmlns="http:/
         </InsightRules>
     </DescribeInsightRulesResult>
 </DescribeInsightRulesResponse>"""
+
+DELETE_INSIGHT_RULES_TEMPLATE = """<DeleteInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <DeleteInsightRulesResult>
+        <Failures>
+            {% for failure in failures %}
+            <member>
+                <FailureResource>{{ failure.name }}</FailureResource>
+                <ExceptionType>{{ failure.state }}</ExceptionType>
+                <FailureCode>{{ failure.schema }}</FailureCode>
+                <FailureDescription>{{ failure.definition }}</FailureDescription>
+            </member>
+            {% endfor %}
+        </Failures>
+    </DeleteInsightRulesResult>
+</DeleteInsightRulesResponse>"""

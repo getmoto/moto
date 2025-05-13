@@ -1074,5 +1074,30 @@ class CloudWatchBackend(BaseBackend):
         
         return response
 
+    def delete_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
+        existing_names = {rule["Name"] for rule in self.insight_rules}
+        rules_to_keep = [rule for rule in self.insight_rules if rule["Name"] not in rule_names]
+        self.rules = rules_to_keep
+
+        failures = []
+        for rule in self.insight_rules:
+            name = rule.get("Name")
+
+            if name in rule_names:
+                # Cannot delete built-in rules
+                if rule.get("managed_rule") is True:
+                    failures.append({
+                        "FailureResource": name,
+                        "ExceptionType": "InvalidParameterValue",
+                        "FailureCode": 400,  
+                        "FailureDescription": "The value of an input parameter is bad or out-of-range."
+                    })
+                else:
+                    del self.insight_rules[name]
+
+        return {
+            "Failures": failures
+        }
+
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")
