@@ -357,14 +357,12 @@ class CloudWatchResponse(BaseResponse):
         return template.render(rule=rule)
 
     def describe_insight_rules(self) -> str:
-        rules = self.cloudwatch_backend.get_insight_rules()
+        rules = self.cloudwatch_backend.describe_insight_rules()
         next_token = self._get_param("NextToken")
-        max_results = self._get_param("MaxResults")
-        alarm_names = self._get_multi_param("AlarmNames.member")
-        state_value = self._get_param("StateValue")
 
         template = self.response_template(DESCRIBE_INSIGHT_RULES_TEMPLATE)
         return template.render(
+            next_token=next_token,
             rules=rules
         )
 
@@ -772,54 +770,18 @@ PUT_INSIGHT_RULE_TEMPLATE = """<PutInsightRuleResponse xmlns="http://monitoring.
 </PutInsightRuleResponse>"""
 
 DESCRIBE_INSIGHT_RULES_TEMPLATE = """<DescribeInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <DescribeAlarmsForMetricResult>
-        <MetricAlarms>
-            {% for alarm in alarms %}
+    <DescribeInsightRulesResult>
+        <NextToken> {{next_token}} </NextToken>
+        <InsightRules>
+            {% for rule in rules %}
             <member>
-                <ActionsEnabled>{{ "true" if alarm.actions_enabled else "false" }}</ActionsEnabled>
-                <AlarmActions>
-                    {% for action in alarm.alarm_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </AlarmActions>
-                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
-                <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
-                <AlarmDescription>{{ alarm.description }}</AlarmDescription>
-                <AlarmName>{{ alarm.name }}</AlarmName>
-                <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
-                <Dimensions>
-                    {% for dimension in alarm.dimensions %}
-                    <member>
-                        <Name>{{ dimension.name }}</Name>
-                        <Value>{{ dimension.value }}</Value>
-                    </member>
-                    {% endfor %}
-                </Dimensions>
-                <EvaluationPeriods>{{ alarm.evaluation_periods }}</EvaluationPeriods>
-                <InsufficientDataActions>
-                    {% for action in alarm.insufficient_data_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </InsufficientDataActions>
-                <MetricName>{{ alarm.metric_name }}</MetricName>
-                <Namespace>{{ alarm.namespace }}</Namespace>
-                <OKActions>
-                    {% for action in alarm.ok_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </OKActions>
-                <Period>{{ alarm.period }}</Period>
-                <StateReason>{{ alarm.state_reason }}</StateReason>
-                <StateReasonData>{{ alarm.state_reason_data }}</StateReasonData>
-                <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
-                <StateValue>{{ alarm.state_value }}</StateValue>
-                <Statistic>{{ alarm.statistic }}</Statistic>
-                {% if alarm.threshold is not none %}
-                <Threshold>{{ alarm.threshold }}</Threshold>
-                {% endif %}
-                <Unit>{{ alarm.unit }}</Unit>
+                <Name>{{ rule.name }}</Name>
+                <State>{{ rule.state }}</State>
+                <Schema>{{ rule.schema }}</Schema>
+                <Definition>{{ rule.definition }}</Definition>
+                <ManagedRule>{{ rule.managed_rule }}</ManagedRule>
             </member>
             {% endfor %}
-        </MetricAlarms>
-    </DescribeAlarmsForMetricResult>
-</DescribeAlarmsForMetricResponse>"""
+        </InsightRules>
+    </DescribeInsightRulesResult>
+</DescribeInsightRulesResponse>"""

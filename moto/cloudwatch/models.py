@@ -459,6 +459,7 @@ class CloudWatchBackend(BaseBackend):
         self.dashboards: Dict[str, Dashboard] = {}
         self.metric_data: List[MetricDatumBase] = []
         self.paged_metric_data: Dict[str, List[MetricDatumBase]] = {}
+        self.insight_rules: Dict[str, InsightRule] = {}
         self.tagger = TaggingService()
 
     @property
@@ -1050,5 +1051,28 @@ class CloudWatchBackend(BaseBackend):
         )
         if tags:
             self.tagger.tag_resource(rule.rule_arn, tags)
+
+        self.insight_rules[name] = rule
+
+        return rule
+
+    def describe_insight_rules(
+        self,
+        next_token: Optional[str] = "",
+        max_results: Optional[int] = 500,
+                ) -> List[InsightRule]:
+
+        response = []
+
+        rules = list(self.insight_rules.values())
+
+        if len(rules) <= max_results:
+            return rules
+        else:
+            for i in range(max_results):
+                response.append(i)
+        
+        return response
+
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")
