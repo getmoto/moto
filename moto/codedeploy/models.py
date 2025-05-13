@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (
     ApplicationAlreadyExistsException,
@@ -109,7 +110,7 @@ class DeploymentGroup(BaseModel):
         self.ec2_tag_set = ec2_tag_set or {}
         self.ecs_services = ecs_services or []
         self.on_premises_tag_set = on_premises_tag_set or {}
-        self.tags = tags
+        self.tags = tags or []
         self.termination_hook_enabled = termination_hook_enabled
         self.deployment_group_id = str(uuid.uuid4())
 
@@ -242,6 +243,7 @@ class CodeDeployBackend(BaseBackend):
         self.applications: Dict[str, Application] = {}
         self.deployments: Dict[str, DeploymentInfo] = {}
         self.deployment_groups: Dict[str, Dict[str, DeploymentGroup]] = {}
+        self.tagger = TaggingService()
 
     def get_application(self, application_name: str) -> Application:
         if application_name not in self.applications:
@@ -302,6 +304,11 @@ class CodeDeployBackend(BaseBackend):
 
         app = Application(application_name, compute_platform, tags)
         self.applications[app.application_name] = app
+
+        if tags:
+            app_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:application:{application_name}"
+            self.tagger.tag_resource(app_arn, tags)
+
         return app.id
 
     def create_deployment(
@@ -362,6 +369,14 @@ class CodeDeployBackend(BaseBackend):
         )
 
         self.deployments[deployment.deployment_id] = deployment
+
+        deployment_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:deployment:{deployment.deployment_id}"
+        if self.deployment_groups[application_name][deployment_group_name].tags:
+            self.tagger.tag_resource(
+                deployment_arn,
+                self.deployment_groups[application_name][deployment_group_name].tags,
+            )
+
         return deployment.deployment_id
 
     # TODO support all optional fields
@@ -427,6 +442,10 @@ class CodeDeployBackend(BaseBackend):
             self.deployment_groups[application_name] = {}
         self.deployment_groups[application_name][dg.deployment_group_name] = dg
 
+        if tags:
+            dg_arn = f"arn:aws:codedeploy:{self.region_name}:{self.account_id}:deploymentgroup:{application_name}/{deployment_group_name}"
+            self.tagger.tag_resource(dg_arn, tags)
+
         return dg.deployment_group_id
 
     # TODO: implement pagination
@@ -491,6 +510,21 @@ class CodeDeployBackend(BaseBackend):
             deployment_group.deployment_group_id
             for deployment_group in self.deployment_groups[application_name].values()
         ]
+
+    def list_tags_for_resource(
+        self, resource_arn: str
+    ) -> Dict[str, List[Dict[str, str]]]:
+        return self.tagger.list_tags_for_resource(resource_arn)
+
+    def tag_resource(
+        self, resource_arn: str, tags: List[Dict[str, str]]
+    ) -> Dict[str, Any]:
+        self.tagger.tag_resource(resource_arn, tags)
+        return {}
+
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> Dict[str, Any]:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+        return {}
 
 
 codedeploy_backends = BackendDict(CodeDeployBackend, "codedeploy")
