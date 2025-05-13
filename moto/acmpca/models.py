@@ -1,6 +1,7 @@
 """ACMPCABackend class with methods for supported APIs."""
 
 import base64
+import contextlib
 import datetime
 from typing import Any, Dict, List, Optional, Tuple, cast
 
@@ -246,13 +247,16 @@ class CertificateAuthority(BaseModel):
                 ]
             )
 
-        cn = csr.subject.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
-        if cn:
+        # Subject Alternative Name passthrough from CSR to the new certificate
+        with contextlib.suppress(x509.ExtensionNotFound):
+            san = csr.extensions.get_extension_for_oid(
+                x509.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+            )
             extensions.append(
                 (
-                    x509.SubjectAlternativeName([x509.DNSName(cn[0].value)]),  # type: ignore[arg-type]
-                    False,
-                ),
+                    san.value,
+                    san.critical,
+                )
             )
 
         return extensions
