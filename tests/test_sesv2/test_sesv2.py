@@ -19,7 +19,7 @@ def ses_v1():
 
 
 @mock_aws
-def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
+def test_send_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     kwargs = dict(
@@ -60,7 +60,7 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
 
 
 @mock_aws
-def test_send_html_email(ses_v1):  # pylint: disable=redefined-outer-name
+def test_send_html_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     ses_v1.verify_domain_identity(Domain="example.com")
@@ -93,7 +93,7 @@ def test_send_html_email(ses_v1):  # pylint: disable=redefined-outer-name
 
 
 @mock_aws
-def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
+def test_send_raw_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     message = get_raw_email()
@@ -119,7 +119,7 @@ def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
 @mock_aws
 def test_send_raw_email__with_specific_message(
     ses_v1,
-):  # pylint: disable=redefined-outer-name
+):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     message = get_raw_email()
@@ -150,7 +150,7 @@ def test_send_raw_email__with_specific_message(
 @mock_aws
 def test_send_raw_email__with_to_address_display_name(
     ses_v1,
-):  # pylint: disable=redefined-outer-name
+):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     message = get_raw_email()

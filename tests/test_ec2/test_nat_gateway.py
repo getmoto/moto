@@ -260,7 +260,7 @@ def test_describe_nat_gateway_filter_vpc_id():
     )
 
 
-def retrieve_all_gateways(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_gateways(client, filters=[]):
     resp = client.describe_nat_gateways(Filters=filters)
     all_gws = resp["NatGateways"]
     token = resp.get("NextToken")

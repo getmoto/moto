@@ -266,7 +266,7 @@ def create_peering_attachment(
     )["TransitGatewayPeeringAttachment"]["TransitGatewayAttachmentId"]
 
 
-def retrieve_all_attachments(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_attachments(client, filters=[]):
     resp = client.describe_transit_gateway_peering_attachments(Filters=filters)
     attmnts = resp["TransitGatewayPeeringAttachments"]
     token = resp.get("NextToken")

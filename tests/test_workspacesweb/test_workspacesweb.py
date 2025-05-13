@@ -183,15 +183,15 @@ def test_get_portal():
     )["portalArn"]
     resp = client.get_portal(portalArn=arn)["portal"]
     assert resp["portalArn"] == arn, f"Expected ARN {arn} in response"
-    assert (
-        resp["authenticationType"] == "Standard"
-    ), "Expected authentication type in response"
-    assert (
-        resp["instanceType"] == "TestInstanceType"
-    ), "Expected instance type in response"
-    assert (
-        resp["maxConcurrentSessions"] == 5
-    ), "Expected max concurrent sessions in response"
+    assert resp["authenticationType"] == "Standard", (
+        "Expected authentication type in response"
+    )
+    assert resp["instanceType"] == "TestInstanceType", (
+        "Expected instance type in response"
+    )
+    assert resp["maxConcurrentSessions"] == 5, (
+        "Expected max concurrent sessions in response"
+    )
 
 
 @mock_aws

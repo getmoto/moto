@@ -23,7 +23,7 @@ def create_test_ad_connector(
     customer_dns_ips=None,
     customer_user_name="Admin",
     tags=None,
-):  # pylint: disable=too-many-arguments
+):
     """Return ID of a newly created valid directory."""
     if not vpc_settings:
         good_vpc_id = create_vpc(ec2_client)

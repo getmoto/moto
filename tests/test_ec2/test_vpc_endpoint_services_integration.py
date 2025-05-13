@@ -102,14 +102,13 @@ def validate_s3_service_endpoint_interface(details):
 @mock_aws
 def test_describe_vpc_endpoint_services_filters():
     """Verify that different type of filters return the expected results."""
-    from moto.ec2.models import ec2_backends  # pylint: disable=import-outside-toplevel
+    from moto.ec2.models import ec2_backends
 
     ec2_backend = ec2_backends[ACCOUNT_ID]["us-west-1"]
     test_data = fake_endpoint_services()
 
     # Allow access to _filter_endpoint_services as it provides the best
     # means of testing this logic.
-    # pylint: disable=protected-access
 
     # Test a service name filter, using s3 as the service name.
     filtered_services = ec2_backend._filter_endpoint_services(

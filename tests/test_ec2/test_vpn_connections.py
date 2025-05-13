@@ -109,7 +109,7 @@ def test_describe_vpn_connections_unknown():
     assert err["Code"] == "InvalidVpnConnectionID.NotFound"
 
 
-def retrieve_all_vpncs(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_vpncs(client, filters=[]):
     resp = client.describe_vpn_connections(Filters=filters)
     all_vpncs = resp["VpnConnections"]
     token = resp.get("NextToken")

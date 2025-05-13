@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests.test_efs.junk_drawer import has_status_code
 
-from . import fixture_ec2, fixture_efs  # noqa # pylint: disable=unused-import
+from . import fixture_ec2, fixture_efs  # noqa
 
 
 @pytest.fixture(scope="function", name="file_system")
@@ -66,9 +66,9 @@ def test_create_mount_target_aws_sample_2(efs, ec2, file_system, subnet):
         ip_addr = ip_addr_obj.exploded
         break
     else:
-        assert (
-            False
-        ), f"Could not generate an IP address from CIDR block: {subnet['CidrBlock']}"
+        assert False, (
+            f"Could not generate an IP address from CIDR block: {subnet['CidrBlock']}"
+        )
     desc_sg_resp = ec2.describe_security_groups()
     security_group = desc_sg_resp["SecurityGroups"][0]
     security_group_id = security_group["GroupId"]
@@ -206,7 +206,7 @@ def test_create_mount_target_too_many_security_groups(efs, ec2, file_system, sub
     assert "SecurityGroupLimitExceeded" == resp["Error"]["Code"]
 
 
-def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet):  # pylint: disable=unused-argument
+def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet):
     efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
@@ -217,7 +217,7 @@ def test_delete_file_system_mount_targets_attached(efs, ec2, file_system, subnet
     assert "FileSystemInUse" == resp["Error"]["Code"]
 
 
-def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):  # pylint: disable=unused-argument
+def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):
     create_resp = efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )
@@ -238,7 +238,7 @@ def test_describe_mount_targets_minimal_case(efs, ec2, file_system, subnet):  # 
     assert mount_target == create_resp
 
 
-def test_describe_mount_targets__by_access_point_id(efs, ec2, file_system, subnet):  # pylint: disable=unused-argument
+def test_describe_mount_targets__by_access_point_id(efs, ec2, file_system, subnet):
     create_resp = efs.create_mount_target(
         FileSystemId=file_system["FileSystemId"], SubnetId=subnet["SubnetId"]
     )

@@ -1946,9 +1946,9 @@ def test_delete_message_batch_with_invalid_receipt_id():
     ]
     response = client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
 
-    assert response["Successful"] == [
-        {"Id": messages[0]["MessageId"]}
-    ], "delete ok for real message"
+    assert response["Successful"] == [{"Id": messages[0]["MessageId"]}], (
+        "delete ok for real message"
+    )
 
     assert response["Failed"] == [
         {
@@ -2102,8 +2102,7 @@ def test_send_message_batch_errors(queue_name=None, queue_url=None):
             QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 262145}]
         )
     assert client_error.value.response["Error"]["Message"] == (
-        "Batch requests cannot be longer than 262144 bytes. "
-        "You have sent 262145 bytes."
+        "Batch requests cannot be longer than 262144 bytes. You have sent 262145 bytes."
     )
 
     with pytest.raises(ClientError) as client_error:

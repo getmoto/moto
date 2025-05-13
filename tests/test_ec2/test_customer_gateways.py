@@ -66,9 +66,9 @@ def test_describe_customer_gateways():
     assert cgw["Type"] == "ipsec.1"
 
     all_cgws = ec2.describe_customer_gateways()["CustomerGateways"]
-    assert (
-        len(all_cgws) >= 1
-    ), "Should have at least the one CustomerGateway we just created"
+    assert len(all_cgws) >= 1, (
+        "Should have at least the one CustomerGateway we just created"
+    )
 
 
 @mock_aws

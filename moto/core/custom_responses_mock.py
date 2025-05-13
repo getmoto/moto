@@ -106,9 +106,7 @@ class CallbackResponse(responses.CallbackResponse):
             return False
 
 
-def not_implemented_callback(
-    request: Any,  # pylint: disable=unused-argument
-) -> TYPE_RESPONSE:
+def not_implemented_callback(request: Any) -> TYPE_RESPONSE:
     status = 400
     headers: Dict[str, str] = {}
     response = "The method is not implemented"
