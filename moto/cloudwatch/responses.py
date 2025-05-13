@@ -367,7 +367,8 @@ class CloudWatchResponse(BaseResponse):
         )
 
     def delete_insight_rules(self) -> str:
-        failures = self.cloudwatch_backend.delete_insight_rules()
+        names = self._get_multi_param("RuleNames.member")
+        failures = self.cloudwatch_backend.delete_insight_rules(rule_names=names)
 
         template = self.response_template(DELETE_INSIGHT_RULES_TEMPLATE)
         return template.render(
@@ -799,10 +800,10 @@ DELETE_INSIGHT_RULES_TEMPLATE = """<DeleteInsightRulesResponse xmlns="http://mon
         <Failures>
             {% for failure in failures %}
             <member>
-                <FailureResource>{{ failure.name }}</FailureResource>
-                <ExceptionType>{{ failure.state }}</ExceptionType>
-                <FailureCode>{{ failure.schema }}</FailureCode>
-                <FailureDescription>{{ failure.definition }}</FailureDescription>
+                <FailureResource>{{ failure.FailureResource }}</FailureResource>
+                <ExceptionType>{{ failure.ExceptionType }}</ExceptionType>
+                <FailureCode>{{ failure.FailureCode }}</FailureCode>
+                <FailureDescription>{{ failure.FailureDescription }}</FailureDescription>
             </member>
             {% endfor %}
         </Failures>

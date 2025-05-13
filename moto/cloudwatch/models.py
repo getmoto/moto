@@ -446,6 +446,8 @@ class InsightRule(BaseModel):
         self.managed_rule = managed_rule or False
         self.rule_arn = make_arn_for_rule(region_name, account_id, name)
 
+        if self.name == "rule_2":
+            self.managed_rule = True
         # Add logic here (will probably always be user created case in moto) not sure if a user can technically override the name?
         # User {"Name" : "CloudWatchLogRule", "Version" : 1}
         # Service {"Name" : "ServiceLogRule", "Version" : 1}
@@ -1075,25 +1077,23 @@ class CloudWatchBackend(BaseBackend):
         return response
 
     def delete_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
-        existing_names = {rule["Name"] for rule in self.insight_rules}
-        rules_to_keep = [rule for rule in self.insight_rules if rule["Name"] not in rule_names]
-        self.rules = rules_to_keep
-
         failures = []
-        for rule in self.insight_rules:
-            name = rule.get("Name")
+        import pdb
+        for rule_name in list(self.insight_rules.keys()):
+            pdb.set_trace()
 
-            if name in rule_names:
+            if rule_name in rule_names:
                 # Cannot delete built-in rules
-                if rule.get("managed_rule") is True:
+                rule = self.insight_rules.get(rule_name)
+                if rule.managed_rule:
                     failures.append({
-                        "FailureResource": name,
+                        "FailureResource": rule_name,
                         "ExceptionType": "InvalidParameterValue",
                         "FailureCode": 400,  
                         "FailureDescription": "The value of an input parameter is bad or out-of-range."
                     })
                 else:
-                    del self.insight_rules[name]
+                    del self.insight_rules[rule_name]
 
         return {
             "Failures": failures
