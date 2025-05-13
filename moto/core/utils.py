@@ -331,19 +331,17 @@ def merge_dicts(
     :param dict dict1: the dictionary to be updated.
     :param dict dict2: a dictionary of keys/values to be merged into dict1.
 
-    :param bool remove_nulls: If true, updated values equal to None or an empty dictionary
+    :param bool remove_nulls: If true, updated values equal to None
         will be removed from dict1.
     """
     for key in dict2:
         if isinstance(dict2[key], dict):
-            if key in dict1 and key in dict2:
+            if key in dict1 and isinstance(dict1[key], dict):
                 merge_dicts(dict1[key], dict2[key], remove_nulls)
             else:
                 dict1[key] = dict2[key]
                 if isinstance(dict1[key], dict):
                     remove_null_from_dict(dict1)
-            if dict1[key] == {} and remove_nulls:
-                dict1.pop(key)
         else:
             dict1[key] = dict2[key]
             if dict1[key] is None and remove_nulls:

@@ -1480,6 +1480,10 @@
   "Location": "us-west-1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "us-west-1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-west-1"
  },
