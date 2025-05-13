@@ -116,12 +116,12 @@ class MemoryDBCluster(BaseModel):
     def get_shard_details(self) -> List[Dict[str, Any]]:
         shards = []
         for i in range(self.num_shards):
-            shard_name = f"{i+1:04}"
+            shard_name = f"{i + 1:04}"
             num_nodes = self.num_replicas_per_shard + 1
             nodes = []
             azs = ["a", "b", "c", "d"]
             for n in range(num_nodes):
-                node_name = f"{self.cluster_name}-{shard_name}-{n+1:03}"
+                node_name = f"{self.cluster_name}-{shard_name}-{n + 1:03}"
                 node = {
                     "Name": node_name,
                     "Status": "available",
@@ -140,7 +140,7 @@ class MemoryDBCluster(BaseModel):
                 "Name": shard_name,
                 # Set to 'available', other options are 'creating', 'modifying' , 'deleting'.
                 "Status": "available",
-                "Slots": f"0-{str(random.randint(10000,99999))}",
+                "Slots": f"0-{str(random.randint(10000, 99999))}",
                 "Nodes": nodes,
                 "NumberOfNodes": num_nodes,
             }

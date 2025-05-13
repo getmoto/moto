@@ -26,9 +26,9 @@ def test_snapshots_for_initial_amis():
     snapshot_descs = [s["Description"] for s in snapshots]
     initial_ami_count = len(AMIS)
 
-    assert (
-        len(snapshots) >= initial_ami_count
-    ), "Should have at least as many snapshots as AMIs"
+    assert len(snapshots) >= initial_ami_count, (
+        "Should have at least as many snapshots as AMIs"
+    )
 
     for ami in AMIS:
         ami_id = ami["ami_id"]
@@ -434,9 +434,9 @@ def test_ami_filters():
         Filters=[{"Name": "architecture", "Values": ["x86_64"]}]
     )["Images"]
     assert imageB_id in [ami["ImageId"] for ami in amis_by_architecture]
-    assert (
-        len(amis_by_architecture) >= 40
-    ), "Should have at least 40 AMI's of type x86_64"
+    assert len(amis_by_architecture) >= 40, (
+        "Should have at least 40 AMI's of type x86_64"
+    )
 
     amis_by_kernel = ec2.describe_images(
         Filters=[{"Name": "kernel-id", "Values": [kernel_value_B]}]

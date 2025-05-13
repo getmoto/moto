@@ -5,5 +5,4 @@ pytest-cov
 pytest-order
 pytest-xdist
 freezegun
-pylint
 pyotp

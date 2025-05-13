@@ -1042,7 +1042,7 @@ class VPCBackend:
                 if zone.name.startswith(region)
             ]
 
-            from moto import backends  # pylint: disable=import-outside-toplevel
+            from moto import backends
 
             for implemented_service in IMPLEMENTED_ENDPOINT_SERVICES:
                 _backends = backends.get_backend(implemented_service)  # type: ignore[call-overload]
@@ -1172,7 +1172,7 @@ class VPCBackend:
         max_results: int,
         next_token: Optional[str],
         region: str,
-    ) -> Dict[str, Any]:  # pylint: disable=too-many-arguments
+    ) -> Dict[str, Any]:
         """Return info on services to which you can create a VPC endpoint.
 
         Currently only the default endpoint services are returned.  When

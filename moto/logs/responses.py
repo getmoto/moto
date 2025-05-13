@@ -115,15 +115,15 @@ class LogsResponse(BaseResponse):
 
         if metric_name and not metric_namespace:
             raise InvalidParameterException(
-                constraint=f'{"If you include the metricName parameter in your request, "}'
-                f'{"you must also include the metricNamespace parameter."}',
+                constraint=f"{'If you include the metricName parameter in your request, '}"
+                f"{'you must also include the metricNamespace parameter.'}",
                 parameter="metricNamespace",
                 value=metric_namespace,
             )
         if metric_namespace and not metric_name:
             raise InvalidParameterException(
-                constraint=f'{"If you include the metricNamespace parameter in your request, "}'
-                f'{"you must also include the metricName parameter."}',
+                constraint=f"{'If you include the metricNamespace parameter in your request, '}"
+                f"{'you must also include the metricName parameter.'}",
                 parameter="metricName",
                 value=metric_name,
             )

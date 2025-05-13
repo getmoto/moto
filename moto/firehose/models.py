@@ -108,7 +108,7 @@ def create_s3_destination_config(
     return destination
 
 
-class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods,too-many-instance-attributes
+class DeliveryStream(BaseModel):
     """Represents a delivery stream, its source and destination configs."""
 
     STATES = {"CREATING", "ACTIVE", "CREATING_FAILED"}
@@ -132,7 +132,7 @@ class DeliveryStream(BaseModel):  # pylint: disable=too-few-public-methods,too-m
         kinesis_stream_source_configuration: Dict[str, Any],
         destination_name: str,
         destination_config: Dict[str, Any],
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.delivery_stream_status = "CREATING"
         self.delivery_stream_name = delivery_stream_name
         self.delivery_stream_type = (
@@ -188,7 +188,7 @@ class FirehoseBackend(BaseBackend):
             service_region, zones, "firehose", special_service_name="kinesis-firehose"
         )
 
-    def create_delivery_stream(  # pylint: disable=unused-argument
+    def create_delivery_stream(
         self,
         region: str,
         delivery_stream_name: str,
@@ -590,7 +590,7 @@ class FirehoseBackend(BaseBackend):
 
         delivery_stream.delivery_stream_encryption_configuration["Status"] = "DISABLED"
 
-    def update_destination(  # pylint: disable=unused-argument
+    def update_destination(
         self,
         delivery_stream_name: str,
         current_delivery_stream_version_id: str,

@@ -576,7 +576,7 @@ class CloudWatchBackend(BaseBackend):
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
-            if timestamp is not None and type(timestamp) != datetime:
+            if timestamp is not None and type(timestamp) is not datetime:
                 timestamp = parser.parse(timestamp)
             metric_name = metric_member["MetricName"]
             dimension = metric_member.get("Dimensions.member", _EMPTY_LIST)
@@ -590,7 +590,7 @@ class CloudWatchBackend(BaseBackend):
                 for i in range(0, len(values)):
                     value = values[i]
                     timestamp = metric_member.get("Timestamp")
-                    if timestamp is not None and type(timestamp) != datetime:
+                    if timestamp is not None and type(timestamp) is not datetime:
                         timestamp = parser.parse(timestamp)
 
                     # add the value count[i] times

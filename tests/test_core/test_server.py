@@ -45,6 +45,6 @@ def moto_server() -> Iterable[str]:
     server.stop()
 
 
-def test_s3_using_moto_fixture(moto_server: str) -> None:  # pylint: disable=redefined-outer-name
+def test_s3_using_moto_fixture(moto_server: str) -> None:
     client = boto3.client("s3", endpoint_url=moto_server)
     client.list_buckets()

@@ -8,7 +8,6 @@ from moto.core import DEFAULT_ACCOUNT_ID
 from moto.dynamodb.models import Table
 
 
-# pylint: disable=redefined-outer-name
 @pytest.fixture(scope="function")
 def aws_credentials():
     """Mocked AWS Credentials for moto."""

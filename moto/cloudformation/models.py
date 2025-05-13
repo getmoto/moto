@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import yaml
-from yaml.parser import ParserError  # pylint:disable=c-extension-no-member
-from yaml.scanner import ScannerError  # pylint:disable=c-extension-no-member
+from yaml.parser import ParserError
+from yaml.scanner import ScannerError
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -557,7 +557,7 @@ class FakeStack(CloudFormationModel):
         return "AWS::CloudFormation::Stack"
 
     @classmethod
-    def has_cfn_attr(cls, attr: str) -> bool:  # pylint: disable=unused-argument
+    def has_cfn_attr(cls, attr: str) -> bool:
         return True
 
     @property

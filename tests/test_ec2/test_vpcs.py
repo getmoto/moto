@@ -160,7 +160,7 @@ def test_vpc_state_available_filter():
     assert vpc2.id in [v["VpcId"] for v in available]
 
 
-def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_vpcs(client, filters=[]):
     resp = client.describe_vpcs(Filters=filters)
     all_vpcs = resp["Vpcs"]
     token = resp.get("NextToken")

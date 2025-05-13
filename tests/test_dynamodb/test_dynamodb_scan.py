@@ -515,7 +515,7 @@ def test_scan_gsi_order_range_key(table_name=None):
         table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": f"{i}"})
 
     for i in range(3, 5):
-        table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": f"{7-i}"})
+        table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": f"{7 - i}"})
 
     page = table.scan(IndexName="test_gsi")
     items = page["Items"]
@@ -534,7 +534,7 @@ def test_scan_gsi_exlusive_start_key(table_name=None):
     table = dynamodb.Table(table_name)
 
     for i in range(1, 5):
-        table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": f"{5-i}"})
+        table.put_item(Item={"pk": f"{i}", "gsi_pk": "john", "gsi_sk": f"{5 - i}"})
 
     page = table.scan(IndexName="test_gsi", Limit=3)
     assert len(page["Items"]) == 3
@@ -780,7 +780,7 @@ class TestFilterExpression:
 @pytest.mark.aws_verified
 class TestParallelScan(BaseTest):
     @staticmethod
-    def setup_class(cls):  # pylint: disable=arguments-renamed
+    def setup_class(cls):
         super().setup_class(add_range=True)
 
     def test_segment_only(self):
