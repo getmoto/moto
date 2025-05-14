@@ -8,7 +8,7 @@ from moto import mock_aws
 
 @mock_aws
 class TestS3ObjectAttributes:
-    def setup_method(self, *args) -> None:  # pylint: disable=unused-argument
+    def setup_method(self, *args) -> None:
         self.bucket_name = str(uuid4())
         self.s3_resource = boto3.resource("s3", region_name="us-east-1")
         self.client = boto3.client("s3", region_name="us-east-1")

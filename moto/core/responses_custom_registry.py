@@ -92,7 +92,7 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
             #  - Callbacks created by APIGateway to intercept URL requests to *.execute-api.amazonaws.com
             #
             for match in implemented_matches:
-                if type(match) == responses.CallbackResponse:
+                if type(match) is responses.CallbackResponse:
                     return match, match_failed_reasons
             # Return moto.core.custom_responses_mock.CallbackResponse otherwise
             return implemented_matches[0], match_failed_reasons

@@ -390,7 +390,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def delete(
         self,
         account_id: str,
-        region: str,  # pylint: disable=unused-argument
+        region: str,
     ) -> None:
         self.terminate()
 

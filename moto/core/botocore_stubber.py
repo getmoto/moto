@@ -18,7 +18,7 @@ class MockRawResponse(BytesIO):
             response_input = response_input.encode("utf-8")
         super().__init__(response_input)
 
-    def stream(self, **kwargs: Any) -> Any:  # pylint: disable=unused-argument
+    def stream(self, **kwargs: Any) -> Any:
         contents = self.read()
         while contents:
             yield contents

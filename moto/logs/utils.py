@@ -35,7 +35,7 @@ class SingleTermFilterPattern(FilterPattern):
 
 
 class UnsupportedFilterPattern(FilterPattern):
-    def matches(self, message: str) -> bool:  # pylint: disable=unused-argument
+    def matches(self, message: str) -> bool:
         return True
 
 

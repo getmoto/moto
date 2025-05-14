@@ -46,7 +46,7 @@ def yaml_tag_constructor(loader: Any, tag: Any, node: Any) -> Any:
             if isinstance(node.value, list):
                 return node.value
             return node.value.split(".")
-        elif type(node) == yaml.SequenceNode:
+        elif type(node) is yaml.SequenceNode:
             return loader.construct_sequence(node)
         else:
             return node.value

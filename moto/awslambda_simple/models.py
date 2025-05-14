@@ -14,7 +14,6 @@ class LambdaSimpleBackend(LambdaBackend):
         super().__init__(region_name, account_id)
         self.lambda_simple_results_queue: List[str] = []
 
-    # pylint: disable=unused-argument
     def invoke(
         self,
         function_name: str,

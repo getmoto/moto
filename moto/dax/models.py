@@ -30,7 +30,7 @@ class DaxParameterGroup(BaseModel):
 
 class DaxNode:
     def __init__(self, endpoint: "DaxEndpoint", name: str, index: int):
-        self.node_id = f"{name}-{chr(ord('a')+index)}"  # name-a, name-b, etc
+        self.node_id = f"{name}-{chr(ord('a') + index)}"  # name-a, name-b, etc
         self.node_endpoint = {
             "Address": f"{self.node_id}.{endpoint.cluster_hex}.nodes.dax-clusters.{endpoint.region}.amazonaws.com",
             "Port": endpoint.port,

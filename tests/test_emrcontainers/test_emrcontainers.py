@@ -204,7 +204,7 @@ class TestListVirtualClusters:
     tomorrow = today + timedelta(days=1)
 
     @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, virtual_cluster_factory):  # pylint: disable=unused-argument
+    def _setup_environment(self, client, virtual_cluster_factory):
         self.client = client
 
     @pytest.mark.parametrize(
@@ -417,7 +417,7 @@ class TestListJobRuns:
     tomorrow = today + timedelta(days=1)
 
     @pytest.fixture(autouse=True)
-    def _setup_environment(self, client, virtual_cluster_factory, job_factory):  # pylint: disable=unused-argument
+    def _setup_environment(self, client, virtual_cluster_factory, job_factory):
         self.client = client
         self.virtual_cluster_id = virtual_cluster_factory[0]
 

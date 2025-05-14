@@ -1068,7 +1068,7 @@ def test_security_group_filter_ip_permission():
     assert describe[0]["GroupName"] == sg_name
 
 
-def retrieve_all_sgs(conn, filters=[]):  # pylint: disable=W0102
+def retrieve_all_sgs(conn, filters=[]):
     res = conn.describe_security_groups(Filters=filters)
     all_groups = res["SecurityGroups"]
     next_token = res.get("NextToken")

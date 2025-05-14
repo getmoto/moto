@@ -726,12 +726,12 @@ def test_failed_dependencies():
         assert resp["jobs"][1]["status"] != "SUCCEEDED", "Job 3 cannot succeed"
 
         if resp["jobs"][1]["status"] == "FAILED":
-            assert (
-                "logStreamName" in resp["jobs"][0]["container"]
-            ), "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
-            assert (
-                "logStreamName" not in resp["jobs"][1]["container"]
-            ), "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
+            assert "logStreamName" in resp["jobs"][0]["container"], (
+                "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
+            )
+            assert "logStreamName" not in resp["jobs"][1]["container"], (
+                "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
+            )
 
             break
 

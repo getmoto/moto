@@ -163,9 +163,9 @@ def test_put_subscription_filter_with_lambda():
     msg_showed_up, received_message = _wait_for_log_msg(
         client_logs, "/aws/lambda/test", "awslogs"
     )
-    assert (
-        msg_showed_up
-    ), f"CloudWatch log event was not found. All logs: {received_message}"
+    assert msg_showed_up, (
+        f"CloudWatch log event was not found. All logs: {received_message}"
+    )
 
     data = json.loads(received_message)["awslogs"]["data"]
     response = json.loads(
@@ -234,9 +234,9 @@ def test_subscription_filter_applies_to_new_streams():
     msg_showed_up, received_message = _wait_for_log_msg(
         client_logs, "/aws/lambda/test", "awslogs"
     )
-    assert (
-        msg_showed_up
-    ), f"CloudWatch log event was not found. All logs: {received_message}"
+    assert msg_showed_up, (
+        f"CloudWatch log event was not found. All logs: {received_message}"
+    )
 
     data = json.loads(received_message)["awslogs"]["data"]
     response = json.loads(

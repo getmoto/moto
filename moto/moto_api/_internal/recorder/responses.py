@@ -11,7 +11,7 @@ class RecorderResponse(BaseResponse):
         self,
         req: Any,
         url: str,
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         recorder.reset_recording()
         return 200, {}, ""
@@ -20,7 +20,7 @@ class RecorderResponse(BaseResponse):
         self,
         req: Any,
         url: str,
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         recorder.start_recording()
         return 200, {}, "Recording is set to True"
@@ -29,7 +29,7 @@ class RecorderResponse(BaseResponse):
         self,
         req: Any,
         url: str,
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         recorder.stop_recording()
         return 200, {}, "Recording is set to False"
@@ -38,7 +38,7 @@ class RecorderResponse(BaseResponse):
         self,
         req: Any,
         url: str,
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         data = req.data
         recorder.upload_recording(data)
@@ -48,7 +48,7 @@ class RecorderResponse(BaseResponse):
         self,
         req: Any,
         url: str,
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         data = recorder.download_recording()
         return 200, {}, data
@@ -59,7 +59,7 @@ class RecorderResponse(BaseResponse):
         self,
         req: Any,
         url: str,
-        headers: Any,  # pylint: disable=unused-argument
+        headers: Any,
     ) -> TYPE_RESPONSE:
         recorder.replay_recording(target_host=url)
         return 200, {}, ""

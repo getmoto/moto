@@ -272,7 +272,7 @@ class Image(BaseModel):
             )
         else:
             random_sha = hashlib.sha256(
-                f"{random.randint(0,100)}".encode("utf-8")
+                f"{random.randint(0, 100)}".encode("utf-8")
             ).hexdigest()
             self._image_digest = f"sha256:{random_sha}"
 

@@ -36,7 +36,7 @@ def test_backend_dict_does_not_contain_unknown_regions() -> None:
 def test_backend_dict_fails_when_retrieving_unknown_regions() -> None:
     backend_dict = BackendDict(ExampleBackend, "ec2")
     with pytest.raises(KeyError):
-        backend_dict["account"]["mars-south-1"]  # pylint: disable=pointless-statement
+        backend_dict["account"]["mars-south-1"]
 
 
 def test_backend_dict_can_retrieve_for_specific_account() -> None:
@@ -157,26 +157,26 @@ def _create_asb(
 def test_multiple_backends_cache_behaviour() -> None:
     ec2 = BackendDict(EC2Backend, "ec2")
     ec2_useast1 = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(ec2_useast1) == EC2Backend
+    assert type(ec2_useast1) is EC2Backend
 
     autoscaling = BackendDict(AutoScalingBackend, "autoscaling")
     as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(as_1) == AutoScalingBackend
+    assert type(as_1) is AutoScalingBackend
 
     from moto.elbv2 import elbv2_backends
 
     elbv2_useast = elbv2_backends["00000000"]["us-east-1"]
-    assert type(elbv2_useast) == ELBv2Backend
+    assert type(elbv2_useast) is ELBv2Backend
     elbv2_useast2 = elbv2_backends[DEFAULT_ACCOUNT_ID]["us-east-2"]
-    assert type(elbv2_useast2) == ELBv2Backend
+    assert type(elbv2_useast2) is ELBv2Backend
 
     ec2_useast1 = ec2[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(ec2_useast1) == EC2Backend
+    assert type(ec2_useast1) is EC2Backend
     ec2_useast2 = ec2[DEFAULT_ACCOUNT_ID]["us-east-2"]
-    assert type(ec2_useast2) == EC2Backend
+    assert type(ec2_useast2) is EC2Backend
 
     as_1 = autoscaling[DEFAULT_ACCOUNT_ID]["us-east-1"]
-    assert type(as_1) == AutoScalingBackend
+    assert type(as_1) is AutoScalingBackend
 
 
 def test_global_region_defaults_to_aws() -> None:

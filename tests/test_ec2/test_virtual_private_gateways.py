@@ -289,7 +289,7 @@ def test_detach_vpn_gateway_boto3():
     assert attachments == [{"State": "detached", "VpcId": vpc.id}]
 
 
-def retrieve_all(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all(client, filters=[]):
     resp = client.describe_vpn_gateways(Filters=filters)
     all_gateways = resp["VpnGateways"]
     token = resp.get("NextToken")

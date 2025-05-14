@@ -121,11 +121,7 @@ class RESTError(HTTPException):
             )
             self.content_type = APP_XML
 
-    def get_headers(
-        self,
-        *args: Any,
-        **kwargs: Any,  # pylint: disable=unused-argument
-    ) -> List[Tuple[str, str]]:
+    def get_headers(self, *args: Any, **kwargs: Any) -> List[Tuple[str, str]]:
         return [
             ("X-Amzn-ErrorType", self.relative_error_type or "UnknownError"),
             ("Content-Type", self.content_type),
@@ -135,11 +131,7 @@ class RESTError(HTTPException):
     def relative_error_type(self) -> str:
         return self.error_type
 
-    def get_body(
-        self,
-        *args: Any,
-        **kwargs: Any,  # pylint: disable=unused-argument
-    ) -> str:
+    def get_body(self, *args: Any, **kwargs: Any) -> str:
         return self.description
 
     def to_json(self) -> "JsonRESTError":

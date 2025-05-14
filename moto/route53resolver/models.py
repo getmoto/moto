@@ -29,7 +29,7 @@ from moto.utilities.utils import get_partition
 CAMEL_TO_SNAKE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
 
 
-class ResolverRuleAssociation(BaseModel):  # pylint: disable=too-few-public-methods
+class ResolverRuleAssociation(BaseModel):
     """Representation of a fake Route53 Resolver Rules Association."""
 
     MAX_TAGS_PER_RESOLVER_ENDPOINT = 200
@@ -51,14 +51,14 @@ class ResolverRuleAssociation(BaseModel):  # pylint: disable=too-few-public-meth
         resolver_rule_id: str,
         vpc_id: str,
         name: str,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.region = region
         self.resolver_rule_id = resolver_rule_id
         self.name = name
         self.vpc_id = vpc_id
 
         # Constructed members.
-        self.id = resolver_rule_association_id  # pylint: disable=invalid-name
+        self.id = resolver_rule_association_id
         self.status = "COMPLETE"
         self.status_message = ""
 
@@ -74,7 +74,7 @@ class ResolverRuleAssociation(BaseModel):  # pylint: disable=too-few-public-meth
         }
 
 
-class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
+class ResolverRule(BaseModel):
     """Representation of a fake Route53 Resolver Rule."""
 
     MAX_TAGS_PER_RESOLVER_RULE = 200
@@ -102,7 +102,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         target_ips: Optional[List[Dict[str, Any]]],
         resolver_endpoint_id: Optional[str],
         name: str,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.account_id = account_id
         self.region = region
         self.creator_request_id = creator_request_id
@@ -114,7 +114,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.resolver_endpoint_id = resolver_endpoint_id
 
         # Constructed members.
-        self.id = rule_id  # pylint: disable=invalid-name
+        self.id = rule_id
         self.status = "COMPLETE"
 
         # The status message should contain a trace Id which is the value
@@ -152,7 +152,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         }
 
 
-class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attributes
+class ResolverEndpoint(BaseModel):
     """Representation of a fake Route53 Resolver Endpoint."""
 
     MAX_TAGS_PER_RESOLVER_ENDPOINT = 200
@@ -180,7 +180,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         direction: str,
         ip_addresses: List[Dict[str, Any]],
         name: str,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.account_id = account_id
         self.region = region
         self.creator_request_id = creator_request_id
@@ -191,7 +191,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.ec2_backend = ec2_backends[self.account_id][self.region]
 
         # Constructed members.
-        self.id = endpoint_id  # pylint: disable=invalid-name
+        self.id = endpoint_id
 
         # NOTE; This currently doesn't reflect IPv6 addresses.
         self.subnets = self._build_subnet_info()
@@ -568,7 +568,7 @@ class Route53ResolverBackend(BaseBackend):
         direction: str,
         ip_addresses: List[Dict[str, Any]],
         tags: List[Dict[str, str]],
-    ) -> ResolverEndpoint:  # pylint: disable=too-many-arguments
+    ) -> ResolverEndpoint:
         """
         Return description for a newly created resolver endpoint.
 
@@ -640,7 +640,7 @@ class Route53ResolverBackend(BaseBackend):
         target_ips: List[Dict[str, Any]],
         resolver_endpoint_id: str,
         tags: List[Dict[str, str]],
-    ) -> ResolverRule:  # pylint: disable=too-many-arguments
+    ) -> ResolverRule:
         """Return description for a newly created resolver rule."""
         validate_args(
             [

@@ -347,7 +347,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def delete(
         self,
         account_id: str,
-        region_name: str,  # pylint: disable=unused-argument
+        region_name: str,
     ) -> None:
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
@@ -795,7 +795,7 @@ class SecurityGroupBackend:
         sgrule_tags: Dict[str, str] = {},
         source_groups: Optional[List[Dict[str, str]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> Tuple[List[SecurityRule], SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -915,7 +915,7 @@ class SecurityGroupBackend:
         sgrule_tags: Dict[str, str] = {},
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> Tuple[List[SecurityRule], SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -1051,7 +1051,7 @@ class SecurityGroupBackend:
         ip_ranges: List[str],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -1106,7 +1106,7 @@ class SecurityGroupBackend:
         ip_ranges: List[str],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)

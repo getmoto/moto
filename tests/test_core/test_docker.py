@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 @pytest.mark.order(0)
 def test_docker_package_is_available() -> None:
     try:
-        import docker  # noqa: F401   # pylint: disable=unused-import
+        import docker  # noqa: F401
     except ImportError as err:
         logger.error("error running docker: %s", err)
         assert False, (

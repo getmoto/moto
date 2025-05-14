@@ -128,7 +128,7 @@ class BaseBackend:
     @staticmethod
     def default_vpc_endpoint_service(
         service_region: str,
-        zones: List[str],  # pylint: disable=unused-argument
+        zones: List[str],
     ) -> List[Dict[str, str]]:
         """Invoke the factory method for any VPC endpoint(s) services."""
         return []
@@ -150,7 +150,7 @@ class BaseBackend:
         special_service_name: str = "",
         policy_supported: bool = True,
         base_endpoint_dns_names: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:  # pylint: disable=too-many-arguments
+    ) -> List[Dict[str, Any]]:
         """List of dicts representing default VPC endpoints for this service."""
         if special_service_name:
             service_name = f"com.amazonaws.{service_region}.{special_service_name}"

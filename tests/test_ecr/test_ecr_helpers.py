@@ -5,7 +5,7 @@ import random
 
 
 def _generate_random_sha():
-    random_sha = hashlib.sha256(f"{random.randint(0,100)}".encode("utf-8")).hexdigest()
+    random_sha = hashlib.sha256(f"{random.randint(0, 100)}".encode("utf-8")).hexdigest()
     return f"sha256:{random_sha}"
 
 
