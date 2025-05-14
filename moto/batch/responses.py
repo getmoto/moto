@@ -30,6 +30,7 @@ class BatchResponse(BaseResponse):
         service_role = self._get_param("serviceRole")
         state = self._get_param("state")
         _type = self._get_param("type")
+        tags = self._get_param("tags")
 
         env = self.batch_backend.create_compute_environment(
             compute_environment_name=compute_env_name,
@@ -37,6 +38,7 @@ class BatchResponse(BaseResponse):
             state=state,
             compute_resources=compute_resource,
             service_role=service_role,
+            tags=tags,
         )
 
         result = {"computeEnvironmentArn": env.arn, "computeEnvironmentName": env.name}
