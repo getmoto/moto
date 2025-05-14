@@ -753,7 +753,7 @@ def test_events_api_direct_http_request_entire_flow():
         timeout=10,
     )
     assert response.status_code == 200
-    assert response.text == response_content
+    assert response.json() == json.loads(response_content)
 
     get_api_resp = client.get_api(apiId=api_id)
     assert get_api_resp["api"]["apiId"] == api_id
