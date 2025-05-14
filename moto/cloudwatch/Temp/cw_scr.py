@@ -26,9 +26,7 @@ def create_insight_rule(rule_name: str, log_group_name: str):
     """
 
     #############################
-    # TODO: Test managed_rules, want to add logic in the model for the json
-    # Want to make sure it errors out if it is a managed_rule and we try to delete
-    # Want to ensure the count of remaining (and correct) insight rules exists
+    # TODO: Test tagging
     try:
         response = cloudwatch.put_insight_rule(
             RuleName=rule_name,
@@ -43,13 +41,25 @@ def create_insight_rule(rule_name: str, log_group_name: str):
         cloudwatch.put_insight_rule(
             RuleName="rule_3",
             RuleDefinition=rule_body,
-            RuleState='ENABLED'
+            RuleState='ENABLED',
+            Tags=[{"Key":"ThisIsAKey", "Value":"ThisIsAValue"}]
         )
-        response_two = cloudwatch.describe_insight_rules()
+        response = cloudwatch.describe_insight_rules()
+        print(f"Response: {len(response["InsightRules"])}")
 
-        print("Response Two")
-        print(response_two)
-        print(len(response_two["InsightRules"]))
+        # DELTE
+        delete_resp = cloudwatch.delete_insight_rules(RuleNames=["rule_3"])
+        response = cloudwatch.describe_insight_rules()
+        print(f"EXPECTING TWO HERE: {len(response["InsightRules"])}")
+
+        # TAGS
+        arn = f"arn:aws:cloudwatch:us-east-1:123456789012:insight-rule/rule_3"
+        resp = cloudwatch.list_tags_for_resource(ResourceARN=arn)
+        print(resp)
+
+        # ENABLE STATE
+
+        # DISABLE STATE
     except Exception as e:
         print(f"Error creating rule '{rule_name}': {e}")
 

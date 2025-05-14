@@ -446,13 +446,6 @@ class InsightRule(BaseModel):
         self.managed_rule = managed_rule or False
         self.rule_arn = make_arn_for_rule(region_name, account_id, name)
 
-        if self.name == "rule_2":
-            self.managed_rule = True
-        # Add logic here (will probably always be user created case in moto) not sure if a user can technically override the name?
-        # User {"Name" : "CloudWatchLogRule", "Version" : 1}
-        # Service {"Name" : "ServiceLogRule", "Version" : 1}
-        # If "service" in schema managed_rule is true
-
 
 class CloudWatchBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
@@ -1048,8 +1041,8 @@ class CloudWatchBackend(BaseBackend):
             definition = definition,
             name = name,
             state = state,
-            schema = None,
-            managed_rule = None
+            schema = '{"Name" : "CloudWatchLogRule", "Version" : 1}',
+            managed_rule = False
         )
         if tags:
             self.tagger.tag_resource(rule.rule_arn, tags)
@@ -1078,12 +1071,9 @@ class CloudWatchBackend(BaseBackend):
 
     def delete_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
         failures = []
-        import pdb
         for rule_name in list(self.insight_rules.keys()):
-            pdb.set_trace()
 
             if rule_name in rule_names:
-                # Cannot delete built-in rules
                 rule = self.insight_rules.get(rule_name)
                 if rule.managed_rule:
                     failures.append({
@@ -1095,9 +1085,43 @@ class CloudWatchBackend(BaseBackend):
                 else:
                     del self.insight_rules[rule_name]
 
-        return {
-            "Failures": failures
-        }
+        return failures
+
+    def disable_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
+        failures = []
+        for rule_name in list(self.insight_rules.keys()):
+
+            if rule_name in rule_names:
+                rule = self.insight_rules.get(rule_name)
+                if rule.managed_rule:
+                    failures.append({
+                        "FailureResource": rule_name,
+                        "ExceptionType": "InvalidParameterValue",
+                        "FailureCode": 400,  
+                        "FailureDescription": "The value of an input parameter is bad or out-of-range."
+                    })
+                else:
+                    self.insight_rules[rule_name].state = "DISABLED"
+
+        return failures
+
+    def enable_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
+        failures = []
+        for rule_name in list(self.insight_rules.keys()):
+
+            if rule_name in rule_names:
+                rule = self.insight_rules.get(rule_name)
+                if rule.managed_rule:
+                    failures.append({
+                        "FailureResource": rule_name,
+                        "ExceptionType": "InvalidParameterValue",
+                        "FailureCode": 400,  
+                        "FailureDescription": "The value of an input parameter is bad or out-of-range."
+                    })
+                else:
+                    self.insight_rules[rule_name].state = "ENABLED"
+
+        return failures
 
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")
