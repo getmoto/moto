@@ -438,7 +438,16 @@ class Statistics:
 
 
 class InsightRule(BaseModel):
-    def __init__(self,account_id: str, region_name: str, definition: str, name: str, state: str, schema: Optional[str], managed_rule: Optional[bool]):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        definition: str,
+        name: str,
+        state: str,
+        schema: Optional[str],
+        managed_rule: Optional[bool],
+    ):
         self.definition = definition
         self.name = name
         self.schema = schema or '{"Name" : "CloudWatchLogRule", "Version" : 1}'
@@ -1033,16 +1042,15 @@ class CloudWatchBackend(BaseBackend):
         state: str,
         definition: str,
         tags: Optional[List[Dict[str, str]]] = None,
-                ) -> InsightRule:
-
-        rule = InsightRule (
+    ) -> InsightRule:
+        rule = InsightRule(
             account_id=self.account_id,
             region_name=self.region_name,
-            definition = definition,
-            name = name,
-            state = state,
-            schema = '{"Name" : "CloudWatchLogRule", "Version" : 1}',
-            managed_rule = False
+            definition=definition,
+            name=name,
+            state=state,
+            schema='{"Name" : "CloudWatchLogRule", "Version" : 1}',
+            managed_rule=False,
         )
         if tags:
             self.tagger.tag_resource(rule.rule_arn, tags)
@@ -1055,8 +1063,7 @@ class CloudWatchBackend(BaseBackend):
         self,
         next_token: Optional[str] = "",
         max_results: Optional[int] = 500,
-                ) -> List[InsightRule]:
-
+    ) -> List[InsightRule]:
         response = []
 
         rules = list(self.insight_rules.values())
@@ -1066,22 +1073,23 @@ class CloudWatchBackend(BaseBackend):
         else:
             for i in range(max_results):
                 response.append(i)
-        
+
         return response
 
     def delete_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
-
             if rule_name in rule_names:
                 rule = self.insight_rules.get(rule_name)
                 if rule.managed_rule:
-                    failures.append({
-                        "FailureResource": rule_name,
-                        "ExceptionType": "InvalidParameterValue",
-                        "FailureCode": 400,  
-                        "FailureDescription": "The value of an input parameter is bad or out-of-range."
-                    })
+                    failures.append(
+                        {
+                            "FailureResource": rule_name,
+                            "ExceptionType": "InvalidParameterValue",
+                            "FailureCode": 400,
+                            "FailureDescription": "The value of an input parameter is bad or out-of-range.",
+                        }
+                    )
                 else:
                     del self.insight_rules[rule_name]
 
@@ -1090,16 +1098,17 @@ class CloudWatchBackend(BaseBackend):
     def disable_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
-
             if rule_name in rule_names:
                 rule = self.insight_rules.get(rule_name)
                 if rule.managed_rule:
-                    failures.append({
-                        "FailureResource": rule_name,
-                        "ExceptionType": "InvalidParameterValue",
-                        "FailureCode": 400,  
-                        "FailureDescription": "The value of an input parameter is bad or out-of-range."
-                    })
+                    failures.append(
+                        {
+                            "FailureResource": rule_name,
+                            "ExceptionType": "InvalidParameterValue",
+                            "FailureCode": 400,
+                            "FailureDescription": "The value of an input parameter is bad or out-of-range.",
+                        }
+                    )
                 else:
                     self.insight_rules[rule_name].state = "DISABLED"
 
@@ -1108,16 +1117,17 @@ class CloudWatchBackend(BaseBackend):
     def enable_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
-
             if rule_name in rule_names:
                 rule = self.insight_rules.get(rule_name)
                 if rule.managed_rule:
-                    failures.append({
-                        "FailureResource": rule_name,
-                        "ExceptionType": "InvalidParameterValue",
-                        "FailureCode": 400,  
-                        "FailureDescription": "The value of an input parameter is bad or out-of-range."
-                    })
+                    failures.append(
+                        {
+                            "FailureResource": rule_name,
+                            "ExceptionType": "InvalidParameterValue",
+                            "FailureCode": 400,
+                            "FailureDescription": "The value of an input parameter is bad or out-of-range.",
+                        }
+                    )
                 else:
                     self.insight_rules[rule_name].state = "ENABLED"
 

@@ -362,10 +362,7 @@ class CloudWatchResponse(BaseResponse):
 
         template = self.response_template(DESCRIBE_INSIGHT_RULES_TEMPLATE)
 
-        return template.render(
-            next_token=next_token,
-            rules=rules
-        )
+        return template.render(next_token=next_token, rules=rules)
 
     def delete_insight_rules(self) -> str:
         names = self._get_multi_param("RuleNames.member")
@@ -373,9 +370,7 @@ class CloudWatchResponse(BaseResponse):
 
         template = self.response_template(DELETE_INSIGHT_RULES_TEMPLATE)
 
-        return template.render(
-            failures=failures
-        )
+        return template.render(failures=failures)
 
     def disable_insight_rules(self) -> str:
         names = self._get_multi_param("RuleNames.member")
@@ -383,9 +378,7 @@ class CloudWatchResponse(BaseResponse):
 
         template = self.response_template(DISABLE_INSIGHT_RULES_TEMPLATE)
 
-        return template.render(
-            rule_names=rule_names
-        )
+        return template.render(rule_names=rule_names)
 
     def enable_insight_rules(self) -> str:
         names = self._get_multi_param("RuleNames.member")
@@ -393,9 +386,8 @@ class CloudWatchResponse(BaseResponse):
 
         template = self.response_template(ENABLE_INSIGHT_RULES_TEMPLATE)
 
-        return template.render(
-            rule_names=rule_names
-        )
+        return template.render(rule_names=rule_names)
+
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
