@@ -1,9 +1,16 @@
+import json
+import uuid
+from datetime import datetime, timedelta
+
 import boto3
 import pytest
+import requests
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.models import responses_mock
+from moto.core.utils import unix_time
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -684,3 +691,78 @@ def test_get_api():
     api = resp["api"]
     assert api["name"] == "api1"
     assert api["apiId"] == api_id
+
+
+@mock_aws
+def test_events_api_direct_http_request_entire_flow():
+    client = boto3.client("appsync", region_name="us-east-1")
+    api_resp = client.create_api(
+        name="events-api",
+        eventConfig={
+            "authProviders": [
+                {"authType": "API_KEY"},
+            ],
+            "connectionAuthModes": [
+                {"authType": "API_KEY"},
+            ],
+            "defaultPublishAuthModes": [
+                {"authType": "API_KEY"},
+            ],
+            "defaultSubscribeAuthModes": [
+                {"authType": "API_KEY"},
+            ],
+        },
+    )
+    api_id = api_resp["api"]["apiId"]
+    api_http_url = api_resp["api"]["dns"]["HTTP"]
+
+    channel_name = "test-channel/"
+    client.create_channel_namespace(
+        apiId=api_id,
+        name=channel_name,
+        subscribeAuthModes=[{"authType": "API_KEY"}],
+        publishAuthModes=[{"authType": "API_KEY"}],
+    )
+
+    tomorrow = datetime.now() + timedelta(days=1)
+    tomorrow_in_secs = int(unix_time(tomorrow))
+    key_resp = client.create_api_key(
+        apiId=api_id, description="test api key", expires=tomorrow_in_secs
+    )
+    api_key = key_resp["apiKey"]["id"]
+
+    foo_content = "test-foo-123"
+    bar_content = "test-bar-456"
+    event_payload = {
+        "channel": channel_name,
+        "events": [json.dumps({"foo": foo_content, "bar": bar_content}, default=str)],
+    }
+
+    endpoint_url = f"https://{api_http_url}/event"
+    response_content = json.dumps(
+        {"failed": [], "successful": [{"identifier": str(uuid.uuid4()), "index": 0}]}
+    )
+    responses_mock.add(responses_mock.POST, endpoint_url, body=response_content)
+    registered = responses_mock.registered()
+    assert isinstance(registered, list) and len(registered) > 1
+
+    response = requests.post(
+        endpoint_url,
+        headers={"Content-Type": "application/json", "x-api-key": api_key},
+        json=event_payload,
+        timeout=10,
+    )
+    assert response.status_code == 200
+    assert response.text == response_content
+
+    get_api_resp = client.get_api(apiId=api_id)
+    assert get_api_resp["api"]["apiId"] == api_id
+    assert get_api_resp["api"]["dns"]["HTTP"] == api_http_url
+
+    list_channels_resp = client.list_channel_namespaces(apiId=api_id)
+    assert len(list_channels_resp["channelNamespaces"]) == 1
+    assert list_channels_resp["channelNamespaces"][0]["name"] == channel_name
+
+    list_keys_resp = client.list_api_keys(apiId=api_id)
+    assert len(list_keys_resp["apiKeys"]) == 1
+    assert list_keys_resp["apiKeys"][0]["id"] == api_key
