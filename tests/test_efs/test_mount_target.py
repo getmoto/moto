@@ -66,9 +66,9 @@ def test_create_mount_target_aws_sample_2(efs, ec2, file_system, subnet):
         ip_addr = ip_addr_obj.exploded
         break
     else:
-        assert False, (
-            f"Could not generate an IP address from CIDR block: {subnet['CidrBlock']}"
-        )
+        assert (
+            False
+        ), f"Could not generate an IP address from CIDR block: {subnet['CidrBlock']}"
     desc_sg_resp = ec2.describe_security_groups()
     security_group = desc_sg_resp["SecurityGroups"][0]
     security_group_id = security_group["GroupId"]
