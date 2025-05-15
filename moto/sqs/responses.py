@@ -531,6 +531,8 @@ class SQSResponse(BaseResponse):
             message_attributes = self._get_multi_param("message_attributes")
         if not message_attributes:
             message_attributes = extract_input_message_attributes(self.querystring)
+        if self.is_json():
+            message_system_attributes = self._get_param("MessageSystemAttributeNames")
 
         if self.is_json():
             attribute_names = self._get_param("AttributeNames", [])
@@ -587,14 +589,28 @@ class SQSResponse(BaseResponse):
         )
 
         attributes = {
-            "approximate_first_receive_timestamp": False,
-            "approximate_receive_count": False,
-            "message_deduplication_id": False,
-            "message_group_id": False,
-            "sender_id": False,
-            "sent_timestamp": False,
-            "sequence_number": False,
+            "approximate_first_receive_timestamp": "ApproximateFirstReceiveTimestamp"
+            in message_system_attributes,
+            "approximate_receive_count": "ApproximateReceiveCount"
+            in message_system_attributes,
+            "message_deduplication_id": "MessageDeduplicationId"
+            in message_system_attributes,
+            "message_group_id": "MessageGroupId" in message_system_attributes,
+            "sender_id": "SenderId" in message_system_attributes,
+            "sent_timestamp": "SentTimestamp" in message_system_attributes,
+            "sequence_number": "SequenceNumber" in message_system_attributes,
         }
+
+        if "All" in message_system_attributes:
+            attributes = {
+                "approximate_first_receive_timestamp": True,
+                "approximate_receive_count": True,
+                "message_deduplication_id": True,
+                "message_group_id": True,
+                "sender_id": True,
+                "sent_timestamp": True,
+                "sequence_number": True,
+            }
 
         for attribute in attributes:
             pascalcase_name = camelcase_to_pascal(underscores_to_camelcase(attribute))
@@ -627,9 +643,9 @@ class SQSResponse(BaseResponse):
                         message.approximate_first_receive_timestamp
                     )
                 if attributes["message_deduplication_id"]:
-                    msg["Attributes"]["MessageDeduplicationId"] = (
-                        message.deduplication_id
-                    )
+                    msg["Attributes"][
+                        "MessageDeduplicationId"
+                    ] = message.deduplication_id
                 if attributes["message_group_id"] and message.group_id is not None:
                     msg["Attributes"]["MessageGroupId"] = message.group_id
                 if message.system_attributes and message.system_attributes.get(
