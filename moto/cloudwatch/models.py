@@ -1068,9 +1068,8 @@ class CloudWatchBackend(BaseBackend):
 
         if max_results is None or len(rules) <= max_results:
             return rules
-        else:
-            for i in range(max_results):
-                return rules[:max_results]
+
+        return rules[:max_results]
 
     def delete_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
         failures = []
