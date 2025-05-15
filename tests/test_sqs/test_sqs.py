@@ -1,6 +1,5 @@
 import hashlib
 import json
-from mailbox import Message
 import os
 import re
 import sys
