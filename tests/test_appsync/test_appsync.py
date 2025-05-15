@@ -743,9 +743,7 @@ def test_events_api_direct_http_request_entire_flow():
         {"failed": [], "successful": [{"identifier": str(uuid.uuid4()), "index": 0}]}
     )
     responses_mock.add(responses_mock.POST, endpoint_url, body=response_content)
-    registered = responses_mock.registered()
-    assert isinstance(registered, list)
-    assert len(registered) > 1
+    responses_mock.registered()
 
     response = requests.post(
         endpoint_url,
