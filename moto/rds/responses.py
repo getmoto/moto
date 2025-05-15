@@ -261,6 +261,16 @@ class RDSResponse(BaseResponse):
         result = {"DBSecurityGroup": security_group}
         return ActionResult(result)
 
+    def create_db_shard_group(self) -> ActionResult:
+        shard_group_identifier = self.parameters.get("DBShardIdentifier")
+        cluster_identifier = self.parameters.get("DBClusterIdentifier")
+        tags = self.parameters.get("Tags", [])
+        shard_group = self.backend.create_db_shard_group(
+            shard_group_identifier, cluter_identifier, tags
+        )
+        result = {"DBShardGroup": shard_group}
+        return result
+
     def create_db_subnet_group(self) -> ActionResult:
         subnet_name = self.parameters.get("DBSubnetGroupName")
         description = self.parameters.get("DBSubnetGroupDescription")
