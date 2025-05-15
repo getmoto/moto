@@ -1064,24 +1064,20 @@ class CloudWatchBackend(BaseBackend):
         next_token: Optional[str] = "",
         max_results: Optional[int] = 500,
     ) -> List[InsightRule]:
-        response = []
-
         rules = list(self.insight_rules.values())
 
-        if len(rules) <= max_results:
+        if max_results is None or len(rules) <= max_results:
             return rules
         else:
             for i in range(max_results):
-                response.append(i)
+                return rules[:max_results]
 
-        return response
-
-    def delete_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
+    def delete_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
             if rule_name in rule_names:
                 rule = self.insight_rules.get(rule_name)
-                if rule.managed_rule:
+                if rule and rule.managed_rule:
                     failures.append(
                         {
                             "FailureResource": rule_name,
@@ -1095,12 +1091,12 @@ class CloudWatchBackend(BaseBackend):
 
         return failures
 
-    def disable_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
+    def disable_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
             if rule_name in rule_names:
                 rule = self.insight_rules.get(rule_name)
-                if rule.managed_rule:
+                if rule and rule.managed_rule:
                     failures.append(
                         {
                             "FailureResource": rule_name,
@@ -1114,12 +1110,12 @@ class CloudWatchBackend(BaseBackend):
 
         return failures
 
-    def enable_insight_rules(self, rule_names: List[str]) -> Tuple[str]:
+    def enable_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
             if rule_name in rule_names:
                 rule = self.insight_rules.get(rule_name)
-                if rule.managed_rule:
+                if rule and rule.managed_rule:
                     failures.append(
                         {
                             "FailureResource": rule_name,
