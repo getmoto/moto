@@ -2832,6 +2832,17 @@ class RDSBackend(BaseBackend):
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
+    def create_db_shard_group(
+        self,
+        db_shard_group_identifier: str,
+        db_cluster_identifier: str,
+        compute_redundancy: Optional[int],
+        max_acu: int,
+        min_acu: Optional[int],
+        publicly_accessible: Optional[bool],
+    ) -> DBShardGroup:
+        pass
+
     def create_subnet_group(
         self,
         subnet_name: str,
