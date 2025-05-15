@@ -643,9 +643,9 @@ class SQSResponse(BaseResponse):
                         message.approximate_first_receive_timestamp
                     )
                 if attributes["message_deduplication_id"]:
-                    msg["Attributes"][
-                        "MessageDeduplicationId"
-                    ] = message.deduplication_id
+                    msg["Attributes"]["MessageDeduplicationId"] = (
+                        message.deduplication_id
+                    )
                 if attributes["message_group_id"] and message.group_id is not None:
                     msg["Attributes"]["MessageGroupId"] = message.group_id
                 if message.system_attributes and message.system_attributes.get(
