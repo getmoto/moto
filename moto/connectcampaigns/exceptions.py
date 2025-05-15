@@ -8,7 +8,7 @@ class ResourceNotFoundException(JsonRESTError):
 
     code = 404
 
-    def __init__(self, message):
+    def __init__(self, message: str) -> None:
         super().__init__("ResourceNotFoundException", message)
 
 
@@ -17,5 +17,5 @@ class ValidationException(JsonRESTError):
 
     code = 400
 
-    def __init__(self, message):
+    def __init__(self, message: str) -> None:
         super().__init__("ValidationException", message)

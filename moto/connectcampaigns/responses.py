@@ -5,20 +5,21 @@ import json
 from moto.core.responses import BaseResponse
 
 from .exceptions import ValidationException
-from .models import connectcampaigns_backends
+from .models import ConnectCampaignServiceBackend, connectcampaigns_backends
 
 
 class ConnectCampaignServiceResponse(BaseResponse):
     """Handler for ConnectCampaignService requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="connectcampaigns")
 
     @property
-    def connectcampaigns_backend(self):
+    def connectcampaigns_backend(self) -> ConnectCampaignServiceBackend:
+        """Return backend instance specific for this region."""
         return connectcampaigns_backends[self.current_account][self.region]
 
-    def create_campaign(self):
+    def create_campaign(self) -> str:
         params = json.loads(self.body)
         name = params.get("name")
         connect_instance_id = params.get("connectInstanceId")
@@ -38,7 +39,7 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def delete_campaign(self):
+    def delete_campaign(self) -> str:
         id = self.path.split("/")[-1]
 
         if not id:
@@ -50,7 +51,7 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
         return "{}"
 
-    def describe_campaign(self):
+    def describe_campaign(self) -> str:
         id = self.path.split("/")[-1]
 
         if not id:
@@ -64,10 +65,8 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def get_connect_instance_config(self):
-        connect_instance_id = self.path.split("/")[
-            -2
-        ]  # Format: /connect-instance/{connectInstanceId}/config
+    def get_connect_instance_config(self) -> str:
+        connect_instance_id = self.path.split("/")[-2]
 
         if not connect_instance_id:
             raise ValidationException("connectInstanceId is a required parameter")
@@ -82,7 +81,7 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def start_instance_onboarding_job(self):
+    def start_instance_onboarding_job(self) -> str:
         connect_instance_id = self.path.split("/")[-2]
 
         params = json.loads(self.body) if self.body else {}

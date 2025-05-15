@@ -1,6 +1,7 @@
 """ConnectCampaignServiceBackend class with methods for supported APIs."""
 
 import uuid
+from typing import Any, Dict, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -11,13 +12,13 @@ from .exceptions import ResourceNotFoundException, ValidationException
 class ConnectCampaign(BaseModel):
     def __init__(
         self,
-        name,
-        connect_instance_id,
-        dialer_config,
-        outbound_call_config,
-        region,
-        tags=None,
-    ):
+        name: str,
+        connect_instance_id: str,
+        dialer_config: Dict[str, Any],
+        outbound_call_config: Dict[str, Any],
+        region: str,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> None:
         self.id = str(uuid.uuid4())
         self.name = name
         self.connect_instance_id = connect_instance_id
@@ -27,7 +28,7 @@ class ConnectCampaign(BaseModel):
         self.tags = tags or {}
         self.arn = f"arn:aws:connectcampaigns:{self.region}:123456789012:campaign/{self.id}"  # TODO: Fix accot id thing
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
             "arn": self.arn,
@@ -40,7 +41,9 @@ class ConnectCampaign(BaseModel):
 
 
 class ConnectInstanceConfig(BaseModel):
-    def __init__(self, connect_instance_id, region, encryption_enabled=False):
+    def __init__(
+        self, connect_instance_id: str, region: str, encryption_enabled: bool = False
+    ) -> None:
         self.connect_instance_id = connect_instance_id
         self.region = region
         self.service_linked_role_arn = "arn:aws:iam::123456789012:role/aws-service-role/connectcampaigns.amazonaws.com/AWSServiceRoleForConnectCampaigns"
@@ -55,7 +58,7 @@ class ConnectInstanceConfig(BaseModel):
                 f"arn:aws:kms:{region}:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab"
             )
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "connectInstanceId": self.connect_instance_id,
             "serviceLinkedRoleArn": self.service_linked_role_arn,
@@ -64,12 +67,17 @@ class ConnectInstanceConfig(BaseModel):
 
 
 class ConnectInstanceOnboardingJobStatus(BaseModel):
-    def __init__(self, connect_instance_id, status="SUCCEEDED", failure_code=None):
+    def __init__(
+        self,
+        connect_instance_id: str,
+        status: str = "SUCCEEDED",
+        failure_code: Optional[str] = None,
+    ) -> None:
         self.connect_instance_id = connect_instance_id
         self.status = status
         self.failure_code = failure_code
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         result = {"connectInstanceId": self.connect_instance_id, "status": self.status}
 
         if self.failure_code and self.status == "FAILED":
@@ -79,15 +87,20 @@ class ConnectInstanceOnboardingJobStatus(BaseModel):
 
 
 class ConnectCampaignServiceBackend(BaseBackend):
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.campaigns = {}
-        self.instance_configs = {}
-        self.onboarding_jobs = {}
+        self.campaigns: Dict[str, ConnectCampaign] = {}
+        self.instance_configs: Dict[str, ConnectInstanceConfig] = {}
+        self.onboarding_jobs: Dict[str, ConnectInstanceOnboardingJobStatus] = {}
 
     def create_campaign(
-        self, name, connect_instance_id, dialer_config, outbound_call_config, tags
-    ):
+        self,
+        name: str,
+        connect_instance_id: str,
+        dialer_config: Dict[str, Any],
+        outbound_call_config: Dict[str, Any],
+        tags: Optional[Dict[str, str]],
+    ) -> Tuple[str, str, Dict[str, str]]:
         campaign = ConnectCampaign(
             name=name,
             connect_instance_id=connect_instance_id,
@@ -99,18 +112,17 @@ class ConnectCampaignServiceBackend(BaseBackend):
         self.campaigns[campaign.id] = campaign
         return campaign.id, campaign.arn, campaign.tags
 
-    def delete_campaign(self, id):
+    def delete_campaign(self, id: str) -> None:
         del self.campaigns[id]
-        return
 
-    def describe_campaign(self, id):
+    def describe_campaign(self, id: str) -> Dict[str, Any]:
         if id not in self.campaigns:
             raise ResourceNotFoundException(f"Campaign with id {id} not found")
 
         campaign = self.campaigns[id]
         return campaign.to_dict()
 
-    def get_connect_instance_config(self, connect_instance_id):
+    def get_connect_instance_config(self, connect_instance_id: str) -> Dict[str, Any]:
         if not connect_instance_id:
             raise ValidationException("connectInstanceId is a required parameter")
 
@@ -129,7 +141,9 @@ class ConnectCampaignServiceBackend(BaseBackend):
 
         return instance_config.to_dict()
 
-    def start_instance_onboarding_job(self, connect_instance_id, encryption_config):
+    def start_instance_onboarding_job(
+        self, connect_instance_id: str, encryption_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         if not connect_instance_id:
             raise ValidationException("connectInstanceId is a required parameter")
 
