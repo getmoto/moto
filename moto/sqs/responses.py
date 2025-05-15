@@ -533,6 +533,10 @@ class SQSResponse(BaseResponse):
             message_attributes = extract_input_message_attributes(self.querystring)
         if self.is_json():
             message_system_attributes = self._get_param("MessageSystemAttributeNames")
+        else:
+            message_system_attributes = self._get_multi_param(
+                "message_system_attributes"
+            )
 
         if self.is_json():
             attribute_names = self._get_param("AttributeNames", [])
