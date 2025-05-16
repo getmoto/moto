@@ -606,6 +606,59 @@ def test_get_tag_values_lexv2_models():
 
 
 @mock_aws
+def test_get_tag_values_cloudwatch():
+    cloudwatch = boto3.client("cloudwatch", "us-east-1")
+
+    name = "tester"
+    cloudwatch.put_metric_alarm(
+        AlarmActions=["arn:alarm"],
+        AlarmDescription="A test",
+        AlarmName=name,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        Dimensions=[{"Name": "InstanceId", "Value": "i-0123457"}],
+        EvaluationPeriods=5,
+        InsufficientDataActions=["arn:insufficient"],
+        Namespace=f"{name}_namespace",
+        MetricName=f"{name}_metric",
+        OKActions=["arn:ok"],
+        Period=60,
+        Statistic="Average",
+        Threshold=2,
+        Unit="Seconds",
+        Tags=[{"Key": "key-1", "Value": "value-1"}],
+    )
+
+    cloudwatch.put_insight_rule(
+        RuleName=name,
+        RuleDefinition="""{"Schema": "CloudWatchLogRule}""",
+        RuleState="ENABLED",
+        Tags=[{"Key": "key-2", "Value": "value-2"}],
+    )
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+
+    # Test alarm tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["cloudwatch:alarm"],
+        TagFilters=[{"Key": "key-1", "Values": ["value-1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "key-1", "Value": "value-1"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    # Test insight-rule tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["cloudwatch:insight-rule"],
+        TagFilters=[{"Key": "key-2", "Values": ["value-2"]}],
+    )
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "key-2", "Value": "value-2"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
 def test_get_many_resources():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
