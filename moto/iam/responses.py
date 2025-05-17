@@ -540,11 +540,11 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
         path = self._get_param("Path")
         tags = self._get_multi_param("Tags.member")
-        user, user_tags = self.backend.create_user(
+        user = self.backend.create_user(
             self.region, user_name=user_name, path=path, tags=tags
         )
         template = self.response_template(USER_TEMPLATE)
-        return template.render(action="Create", user=user, tags=user_tags["Tags"])
+        return template.render(action="Create", user=user, tags=tags)
 
     def get_user(self) -> str:
         user_name = self._get_param("UserName")

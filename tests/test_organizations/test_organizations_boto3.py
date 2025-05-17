@@ -920,22 +920,22 @@ def test_detach_policy():
     # Attach/List/Detach policy
     for name, target in [("OU", ou_id), ("Root", root_id), ("Account", account_id)]:
         #
-        assert (
-            len(get_nonaws_policies(target, client)) == 0
-        ), "We should start with 0 policies"
+        assert len(get_nonaws_policies(target, client)) == 0, (
+            "We should start with 0 policies"
+        )
 
         #
         client.attach_policy(PolicyId=policy_id, TargetId=target)
-        assert (
-            len(get_nonaws_policies(target, client)) == 1
-        ), f"Expecting 1 policy after creation of target={name}"
+        assert len(get_nonaws_policies(target, client)) == 1, (
+            f"Expecting 1 policy after creation of target={name}"
+        )
 
         #
         response = client.detach_policy(PolicyId=policy_id, TargetId=target)
         assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-        assert (
-            len(get_nonaws_policies(target, client)) == 0
-        ), f"Expecting 0 policies after deletion of target={name}"
+        assert len(get_nonaws_policies(target, client)) == 0, (
+            f"Expecting 0 policies after deletion of target={name}"
+        )
 
 
 def get_nonaws_policies(account_id, client):

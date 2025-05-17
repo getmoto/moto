@@ -740,7 +740,7 @@ class ConfigRule(ConfigEmptyDictable):
                 "ConfigRule Arn or Id"
             )
 
-        self.maximum_execution_frequency = None  # keeps pylint happy
+        self.maximum_execution_frequency = None
         self.modify_fields(region, config_rule, tags)
         self.config_rule_id = f"config-rule-{random_string():.6}"
         self.config_rule_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:config-rule/{self.config_rule_id}"
@@ -782,7 +782,7 @@ class ConfigRule(ConfigEmptyDictable):
                 # are actually needed.
                 self.input_parameters_dict = json.loads(self.input_parameters)
             except ValueError:
-                raise InvalidParameterValueException(  # pylint: disable=raise-missing-from
+                raise InvalidParameterValueException(
                     f"Invalid json {self.input_parameters} passed in the "
                     f"InputParameters field"
                 )

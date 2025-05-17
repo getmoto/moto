@@ -17,7 +17,7 @@ class InstanceMetadataResponse(BaseResponse):
 
     @staticmethod
     def metadata_response(  # type: ignore
-        request: Any,  # pylint: disable=unused-argument
+        request: Any,
         full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:

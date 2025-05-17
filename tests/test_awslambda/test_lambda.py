@@ -454,7 +454,7 @@ def test_create_function_from_stubbed_ecr():
 @mock_aws
 def test_create_function_from_mocked_ecr_image_tag(
     with_ecr_mock,
-):  # pylint: disable=unused-argument
+):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
@@ -498,7 +498,7 @@ def test_create_function_from_mocked_ecr_image_tag(
 @mock_aws
 def test_create_function_from_mocked_ecr_image_digest(
     with_ecr_mock,
-):  # pylint: disable=unused-argument
+):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
@@ -527,7 +527,7 @@ def test_create_function_from_mocked_ecr_image_digest(
 @mock_aws
 def test_create_function_from_mocked_ecr_missing_image(
     with_ecr_mock,
-):  # pylint: disable=unused-argument
+):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:

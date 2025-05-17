@@ -805,7 +805,7 @@ class ApiKey(BaseModel):
         name: Optional[str] = None,
         description: Optional[str] = None,
         enabled: bool = False,
-        generateDistinctId: bool = False,  # pylint: disable=unused-argument
+        generateDistinctId: bool = False,
         value: Optional[str] = None,
         stageKeys: Optional[Any] = None,
         tags: Optional[List[Dict[str, str]]] = None,

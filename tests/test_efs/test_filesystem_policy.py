@@ -1,7 +1,7 @@
 import pytest
 from botocore.exceptions import ClientError
 
-from . import fixture_efs  # noqa # pylint: disable=unused-import
+from . import fixture_efs  # noqa
 
 
 def test_describe_file_system_policy__initial(efs):

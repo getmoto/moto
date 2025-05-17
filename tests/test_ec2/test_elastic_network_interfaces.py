@@ -1051,7 +1051,7 @@ def test_recreate_instance_with_same_ip_address():
         ec2_client.get_waiter("instance_terminated").wait(InstanceIds=[instance_id])
 
 
-def setup_vpc(boto3):  # pylint: disable=W0621
+def setup_vpc(boto3):
     ec2resource = boto3.resource("ec2", region_name="us-east-1")
     ec2client = boto3.client("ec2", "us-east-1")
 

@@ -929,7 +929,7 @@ class Route53Backend(BaseBackend):
         # logging doesn't grant Route 53 sufficient permission to create
         # a log stream in the specified log group."
 
-        from moto.logs import logs_backends  # pylint: disable=import-outside-toplevel
+        from moto.logs import logs_backends
 
         log_groups = logs_backends[self.account_id][
             LOGS_GROUP_REGION

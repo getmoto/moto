@@ -129,16 +129,16 @@ def test_list_model_cards_basic():
     resp = client.list_model_cards().get("ModelCardSummaries")
     assert len(resp) == 3
     for i, r in enumerate(resp):
-        assert (
-            r["ModelCardName"] == f"my-{cards_to_create[i]}-model-card"
-        ), "model card name didn't match expected"
+        assert r["ModelCardName"] == f"my-{cards_to_create[i]}-model-card", (
+            "model card name didn't match expected"
+        )
         assert (
             r["ModelCardArn"]
             == f"arn:aws:sagemaker:us-east-1:{ACCOUNT_ID}:model-card/my-{cards_to_create[i]}-model-card"
         ), "model_card_arn didn't match expected"
-        assert (
-            r["ModelCardStatus"] == "Draft"
-        ), "model card status didn't match expected"
+        assert r["ModelCardStatus"] == "Draft", (
+            "model card status didn't match expected"
+        )
 
 
 @mock_aws

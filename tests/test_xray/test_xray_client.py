@@ -7,7 +7,7 @@ import aws_xray_sdk.core.patcher as xray_core_patcher
 import boto3
 import botocore.client
 import botocore.endpoint
-import requests  # noqa # pylint: disable=all
+import requests
 
 from moto import mock_aws
 from moto.utilities.distutils_version import LooseVersion
