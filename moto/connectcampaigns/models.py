@@ -3,6 +3,7 @@
 import uuid
 from typing import Any, Dict, Optional, Tuple
 
+from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 
@@ -26,7 +27,7 @@ class ConnectCampaign(BaseModel):
         self.outbound_call_config = outbound_call_config
         self.region = region
         self.tags = tags or {}
-        self.arn = f"arn:aws:connectcampaigns:{self.region}:123456789012:campaign/{self.id}"  # TODO: Fix accot id thing
+        self.arn = f"arn:aws:connectcampaigns:{self.region}:{DEFAULT_ACCOUNT_ID}:campaign/{self.id}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -46,7 +47,7 @@ class ConnectInstanceConfig(BaseModel):
     ) -> None:
         self.connect_instance_id = connect_instance_id
         self.region = region
-        self.service_linked_role_arn = "arn:aws:iam::123456789012:role/aws-service-role/connectcampaigns.amazonaws.com/AWSServiceRoleForConnectCampaigns"
+        self.service_linked_role_arn = f"arn:aws:iam::{DEFAULT_ACCOUNT_ID}:role/aws-service-role/connectcampaigns.amazonaws.com/AWSServiceRoleForConnectCampaigns"
 
         self.encryption_config = {
             "enabled": encryption_enabled,
@@ -55,7 +56,7 @@ class ConnectInstanceConfig(BaseModel):
 
         if encryption_enabled:
             self.encryption_config["keyArn"] = (
-                f"arn:aws:kms:{region}:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab"
+                f"arn:aws:kms:{region}:{DEFAULT_ACCOUNT_ID}:key/1234abcd-12ab-34cd-56ef-1234567890ab"
             )
 
     def to_dict(self) -> Dict[str, Any]:

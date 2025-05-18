@@ -4,7 +4,6 @@ import json
 
 from moto.core.responses import BaseResponse
 
-from .exceptions import ValidationException
 from .models import ConnectCampaignServiceBackend, connectcampaigns_backends
 
 
@@ -42,9 +41,6 @@ class ConnectCampaignServiceResponse(BaseResponse):
     def delete_campaign(self) -> str:
         id = self.path.split("/")[-1]
 
-        if not id:
-            raise ValidationException("id is a required parameter")
-
         self.connectcampaigns_backend.delete_campaign(
             id=id,
         )
@@ -53,9 +49,6 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
     def describe_campaign(self) -> str:
         id = self.path.split("/")[-1]
-
-        if not id:
-            raise ValidationException("id is a required parameter")
 
         campaign_details = self.connectcampaigns_backend.describe_campaign(
             id=id,
@@ -67,9 +60,6 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
     def get_connect_instance_config(self) -> str:
         connect_instance_id = self.path.split("/")[-2]
-
-        if not connect_instance_id:
-            raise ValidationException("connectInstanceId is a required parameter")
 
         connect_instance_config = (
             self.connectcampaigns_backend.get_connect_instance_config(
@@ -86,9 +76,6 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
         params = json.loads(self.body) if self.body else {}
         encryption_config = params.get("encryptionConfig", {})
-
-        if not connect_instance_id:
-            raise ValidationException("connectInstanceId is a required parameter")
 
         job_status = self.connectcampaigns_backend.start_instance_onboarding_job(
             connect_instance_id=connect_instance_id,

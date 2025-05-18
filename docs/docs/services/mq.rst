@@ -21,6 +21,7 @@ mq
 - [X] create_tags
 - [X] create_user
 - [X] delete_broker
+- [ ] delete_configuration
 - [X] delete_tags
 - [X] delete_user
 - [X] describe_broker
