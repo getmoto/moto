@@ -1032,6 +1032,10 @@
   "Location": "eus2-az1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "eus2-az1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eus2-az1"
  },
