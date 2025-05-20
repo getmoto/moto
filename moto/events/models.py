@@ -1573,12 +1573,14 @@ class EventsBackend(BaseBackend):
         return self.event_buses[name]
 
     def list_event_buses(self, name_prefix: Optional[str]) -> List[EventBus]:
-        return [
-            event_bus
-            for event_bus in self.event_buses.values()
-            if event_bus.name != "default"
-            and (name_prefix is None or event_bus.name.startswith(name_prefix))
-        ]
+        if name_prefix:
+            return [
+                event_bus
+                for event_bus in self.event_buses.values()
+                if event_bus.name.startswith(name_prefix)
+            ]
+
+        return list(self.event_buses.values())
 
     def delete_event_bus(self, name: str) -> None:
         if name == "default":

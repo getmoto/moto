@@ -922,9 +922,12 @@ def test_list_event_buses():
 
     response = client.list_event_buses()
 
-    assert len(response["EventBuses"]) == 4
-
+    assert len(response["EventBuses"]) == 5
     assert sorted(response["EventBuses"], key=lambda i: i["Name"]) == [
+        {
+            "Name": "default",
+            "Arn": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/default",
+        },
         {
             "Name": "other-bus-1",
             "Arn": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/other-bus-1",
@@ -964,20 +967,20 @@ def test_delete_event_bus():
     client.create_event_bus(Name="test-bus")
 
     response = client.list_event_buses()
-    assert len(response["EventBuses"]) == 1
-    assert response["EventBuses"][0]["Name"] == "test-bus"
+    assert len(response["EventBuses"]) == 2
 
     client.delete_event_bus(Name="test-bus")
 
     response = client.list_event_buses()
-    assert len(response["EventBuses"]) == 0
+    assert len(response["EventBuses"]) == 1
+    assert response["EventBuses"] == [
+        {
+            "Name": "default",
+            "Arn": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/default",
+        }
+    ]
 
-    default_bus = client.describe_event_bus()
-    assert default_bus["Name"] == "default"
-    assert (
-        default_bus["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/default"
-    )
-
+    # deleting non existing event bus should be successful
     client.delete_event_bus(Name="non-existing")
 
 
