@@ -12548,6 +12548,10 @@
   "Location": "us-west-2d"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "us-west-2d"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "us-west-2d"
  },

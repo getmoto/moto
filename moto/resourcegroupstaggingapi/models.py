@@ -6,6 +6,7 @@ from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
+from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
@@ -205,6 +206,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def cloudfront_backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.account_id][self.partition]
 
+    @property
+    def cloudwatch_backend(self) -> CloudWatchBackend:
+        return cloudwatch_backends[self.account_id][self.region_name]
+
     def _get_resources_generator(
         self,
         tag_filters: Optional[List[Dict[str, Any]]] = None,
@@ -353,6 +358,35 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {"ResourceARN": f"{dist.arn}", "Tags": tags}
+
+        if self.cloudwatch_backend:
+            cloudwatch_resource_map: Dict[str, Dict[str, Any]] = {
+                "cloudwatch:alarm": self.cloudwatch_backend.alarms,
+                "cloudwatch:insight-rule": self.cloudwatch_backend.insight_rules,
+            }
+            for resource_type, resource_source in cloudwatch_resource_map.items():
+                if (
+                    not resource_type_filters
+                    or "cloudwatch" in resource_type_filters
+                    or resource_type in resource_type_filters
+                ):
+                    for resource in resource_source.values():
+                        if resource_type == "cloudwatch:alarm":
+                            end_of_arn = f"alarm:{resource.name}"
+                        elif resource_type == "cloudwatch:insight-rule":
+                            end_of_arn = f"insight-rule/{resource.name}"
+
+                        arn = f"arn:{get_partition(self.region_name)}:cloudwatch:{self.region_name}:{self.account_id}:{end_of_arn}"
+
+                        cw_tags = self.cloudwatch_backend.list_tags_for_resource(arn)
+
+                        tags = format_tags(cw_tags)
+                        if not tags or not tag_filter(tags):
+                            continue
+                        yield {
+                            "ResourceARN": arn,
+                            "Tags": tags,
+                        }
 
         # DMS
         if not resource_type_filters or "dms:endpoint" in resource_type_filters:

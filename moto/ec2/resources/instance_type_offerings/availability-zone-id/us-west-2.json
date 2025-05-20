@@ -12548,6 +12548,10 @@
   "Location": "usw2-az4"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "usw2-az4"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "usw2-az4"
  },
