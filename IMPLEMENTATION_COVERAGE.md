@@ -1017,7 +1017,7 @@
 - [ ] create_facet
 - [ ] create_index
 - [ ] create_object
-- [ ] create_schema
+- [X] create_schema
 - [ ] create_typed_link_facet
 - [X] delete_directory
 - [ ] delete_facet
