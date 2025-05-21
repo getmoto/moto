@@ -1946,9 +1946,9 @@ def test_delete_message_batch_with_invalid_receipt_id():
     ]
     response = client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
 
-    assert response["Successful"] == [
-        {"Id": messages[0]["MessageId"]}
-    ], "delete ok for real message"
+    assert response["Successful"] == [{"Id": messages[0]["MessageId"]}], (
+        "delete ok for real message"
+    )
 
     assert response["Failed"] == [
         {

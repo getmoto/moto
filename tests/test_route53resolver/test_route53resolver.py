@@ -86,9 +86,9 @@ def test_associate_resolver_query_log_config_with_nonexistent_vpc():
         client.associate_resolver_query_log_config(
             ResolverQueryLogConfigId=config_id, ResourceId="vpc-nonexistent"
         )
-        assert (
-            False
-        ), "Expected an InvalidParameterException but no exception was raised"
+        assert False, (
+            "Expected an InvalidParameterException but no exception was raised"
+        )
     except client.exceptions.InvalidParameterException as e:
         assert "vpc ID 'vpc-nonexistent' does not exist" in str(e)
 

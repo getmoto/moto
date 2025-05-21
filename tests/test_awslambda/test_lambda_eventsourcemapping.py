@@ -278,9 +278,9 @@ def test_invoke_function_from_dynamodb_update():
         expected_msg + " was not found after updating DDB. All logs: " + str(all_logs)
     )
     assert "Nr_of_records(1)" in all_logs, "Only one item should be updated"
-    assert (
-        "Nr_of_records(2)" not in all_logs
-    ), "The inserted item should not show up again"
+    assert "Nr_of_records(2)" not in all_logs, (
+        "The inserted item should not show up again"
+    )
 
 
 @pytest.mark.network
