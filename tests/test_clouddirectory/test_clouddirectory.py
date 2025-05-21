@@ -10,9 +10,8 @@ from tests import DEFAULT_ACCOUNT_ID
 def test_create_directory():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)
-    schema_arn = (
-        f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:directory/test-schema/1"
-    )
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
     resp = client.create_directory(SchemaArn=schema_arn, Name="test-directory")
     assert (
         resp["DirectoryArn"]
@@ -20,6 +19,18 @@ def test_create_directory():
     )
     assert resp["Name"] == "test-directory"
     assert "ObjectIdentifier" in resp
+    assert resp["AppliedSchemaArn"] == schema_arn
+
+
+@mock_aws
+def test_create_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    resp = client.create_schema(Name="test-schema")
+    assert (
+        resp["SchemaArn"]
+        == f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/test-schema"
+    )
 
 
 @mock_aws

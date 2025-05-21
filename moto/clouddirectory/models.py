@@ -57,6 +57,12 @@ class CloudDirectoryBackend(BaseBackend):
         self.directories[directory.directory_arn] = directory
         return directory
 
+    def create_schema(self, name: str) -> dict[str, str]:
+        self.schema_arn = (
+            f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/{name}"
+        )
+        return {"SchemaArn": self.schema_arn}
+
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_directories(self, state: str) -> List[Directory]:
         directories = list(self.directories.values())
