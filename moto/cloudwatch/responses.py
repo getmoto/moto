@@ -340,6 +340,54 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(UNTAG_RESOURCE_TEMPLATE)
         return template.render()
 
+    def put_insight_rule(self) -> str:
+        name = self._get_param("RuleName")
+        state = self._get_param("RuleState")
+        definition = self._get_param("RuleDefinition")
+        tags = self._get_multi_param("Tags.member")
+
+        rule = self.cloudwatch_backend.put_insight_rule(
+            name=name,
+            state=state,
+            definition=definition,
+            tags=tags,
+        )
+
+        template = self.response_template(PUT_INSIGHT_RULE_TEMPLATE)
+        return template.render(rule=rule)
+
+    def describe_insight_rules(self) -> str:
+        rules = self.cloudwatch_backend.describe_insight_rules()
+        next_token = self._get_param("NextToken")
+
+        template = self.response_template(DESCRIBE_INSIGHT_RULES_TEMPLATE)
+
+        return template.render(next_token=next_token, rules=rules)
+
+    def delete_insight_rules(self) -> str:
+        names = self._get_multi_param("RuleNames.member")
+        failures = self.cloudwatch_backend.delete_insight_rules(rule_names=names)
+
+        template = self.response_template(DELETE_INSIGHT_RULES_TEMPLATE)
+
+        return template.render(failures=failures)
+
+    def disable_insight_rules(self) -> str:
+        names = self._get_multi_param("RuleNames.member")
+        rule_names = self.cloudwatch_backend.disable_insight_rules(rule_names=names)
+
+        template = self.response_template(DISABLE_INSIGHT_RULES_TEMPLATE)
+
+        return template.render(rule_names=rule_names)
+
+    def enable_insight_rules(self) -> str:
+        names = self._get_multi_param("RuleNames.member")
+        rule_names = self.cloudwatch_backend.enable_insight_rules(rule_names=names)
+
+        template = self.response_template(ENABLE_INSIGHT_RULES_TEMPLATE)
+
+        return template.render(rule_names=rule_names)
+
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <ResponseMetadata>
@@ -736,3 +784,72 @@ UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://monitoring.ama
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </UntagResourceResponse>"""
+
+PUT_INSIGHT_RULE_TEMPLATE = """<PutInsightRuleResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+   <PutInsightRuleResult></PutInsightRuleResult>
+   <ResponseMetadata>
+      <RequestId>{{ request_id }}</RequestId>
+   </ResponseMetadata>
+</PutInsightRuleResponse>"""
+
+DESCRIBE_INSIGHT_RULES_TEMPLATE = """<DescribeInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <DescribeInsightRulesResult>
+        <NextToken> {{next_token}} </NextToken>
+        <InsightRules>
+            {% for rule in rules %}
+            <member>
+                <Name>{{ rule.name }}</Name>
+                <State>{{ rule.state }}</State>
+                <Schema>{{ rule.schema }}</Schema>
+                <Definition>{{ rule.definition }}</Definition>
+                <ManagedRule>{{ rule.managed_rule }}</ManagedRule>
+            </member>
+            {% endfor %}
+        </InsightRules>
+    </DescribeInsightRulesResult>
+</DescribeInsightRulesResponse>"""
+
+DELETE_INSIGHT_RULES_TEMPLATE = """<DeleteInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <DeleteInsightRulesResult>
+        <Failures>
+            {% for failure in failures %}
+            <member>
+                <FailureResource>{{ failure.FailureResource }}</FailureResource>
+                <ExceptionType>{{ failure.ExceptionType }}</ExceptionType>
+                <FailureCode>{{ failure.FailureCode }}</FailureCode>
+                <FailureDescription>{{ failure.FailureDescription }}</FailureDescription>
+            </member>
+            {% endfor %}
+        </Failures>
+    </DeleteInsightRulesResult>
+</DeleteInsightRulesResponse>"""
+
+DISABLE_INSIGHT_RULES_TEMPLATE = """<DisableInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <DisableInsightRulesResult>
+        <Failures>
+            {% for failure in failures %}
+            <member>
+                <FailureResource>{{ failure.FailureResource }}</FailureResource>
+                <ExceptionType>{{ failure.ExceptionType }}</ExceptionType>
+                <FailureCode>{{ failure.FailureCode }}</FailureCode>
+                <FailureDescription>{{ failure.FailureDescription }}</FailureDescription>
+            </member>
+            {% endfor %}
+        </Failures>
+    </DisableInsightRulesResult>
+</DisableInsightRulesResponse>"""
+
+ENABLE_INSIGHT_RULES_TEMPLATE = """<EnableInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
+    <EnableInsightRulesResult>
+        <Failures>
+            {% for failure in failures %}
+            <member>
+                <FailureResource>{{ failure.FailureResource }}</FailureResource>
+                <ExceptionType>{{ failure.ExceptionType }}</ExceptionType>
+                <FailureCode>{{ failure.FailureCode }}</FailureCode>
+                <FailureDescription>{{ failure.FailureDescription }}</FailureDescription>
+            </member>
+            {% endfor %}
+        </Failures>
+    </EnableInsightRulesResult>
+</EnableInsightRulesResponse>"""
