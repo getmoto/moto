@@ -688,6 +688,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "entityresolution": {
+                "Value": "entityresolution",
+                "endpoint": {
+                  "Value": "entityresolution.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -10020,6 +10029,15 @@
                 "Value": "oam",
                 "endpoint": {
                   "Value": "oam.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24511,6 +24529,42 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -24551,6 +24605,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50148,6 +50211,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -54069,6 +54141,42 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -54100,6 +54208,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -69212,6 +69329,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.us-west-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
