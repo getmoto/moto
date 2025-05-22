@@ -150,6 +150,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
 
+        self.metadata_options = kwargs.get("metadata_options")
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
         if isinstance(self.user_data, list) and len(self.user_data) > 0:
@@ -820,6 +821,22 @@ class InstanceBackend:
     ) -> Instance:
         instance = self.get_instance(instance_id)
         setattr(instance, key, value)
+        return instance
+    
+    def modify_instance_metadata_options(
+        self, 
+        instance_id: str,
+        tokens: Optional[str] = 'optional',
+        hop_limit: Optional[int] = 1,
+        endpoint: Optional[str] = 'enabled',
+        dry_run: Optional[bool] = False,
+        protocol: Optional[str] = 'disabled',
+        metadata_tags: Optional[str] = 'disabled',
+    ) -> Instance:
+        instance = self.get_instance(instance_id)
+        import pdb
+        pdb.set_trace()
+        # setattr(instance, key, value)
         return instance
 
     def modify_instance_security_groups(

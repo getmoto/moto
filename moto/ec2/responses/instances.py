@@ -92,6 +92,7 @@ class InstanceResponse(EC2BaseResponse):
             if self._get_param("Monitoring.Enabled") == "true"
             else "disabled",
             "ipv6_address_count": self._get_int_param("Ipv6AddressCount"),
+            "metadata_options": self._get_multi_param_dict("MetadataOptions")
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -271,6 +272,32 @@ class InstanceResponse(EC2BaseResponse):
             " https://github.com/getmoto/moto/issues"
         )
         raise NotImplementedError(msg)
+
+    def modify_instance_metadata_options(self) -> str:
+        import pdb
+        pdb.set_trace()
+        instance_id = self._get_param("InstanceId")
+        tokens= self._get_param("InstanceId")
+        hop_limit= self._get_param("InstanceId")
+        endpoint= self._get_param("InstanceId")
+        dry_run=False
+        http_protocol= self._get_param("InstanceId")
+        metadata_tags= self._get_param("InstanceId")
+
+        # If dryrun we don't render.. not really a point in mock env
+        options = self.ec2_backend.modify_instance_metadata_options(
+          instance_id = instance_id
+          tokens= tokens
+          hop_limit= hop_limit
+          endpoint= endpoint
+          dry_run=dry_run
+          http_protocol= http_protocol
+          metadata_tags= metadata_tags
+        )
+
+        template = self.response_template(EC2_MODIFY_INSTANCE_METADATA_OPTIONS)
+
+        return template.render(instance_id=instance_id, options=options)
 
     def _block_device_mapping_handler(self) -> Optional[str]:
         """
@@ -550,6 +577,11 @@ INSTANCE_TEMPLATE = """<item>
           <hibernationOptions>
             <configured>{{ instance.hibernation_options.get("Configured") }}</configured>
           </hibernationOptions>
+          {% endif %}
+          {% if instance.metadata_options %}
+          <metadataOptions>
+            <configured>{{ instance.metadata_options.get("HttpEndpoint") }}</configured>
+          </metadataOptions>
           {% endif %}
           {% if instance.get_tags() %}
           <tagSet>
@@ -962,7 +994,6 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     </instanceTypeSet>
 </DescribeInstanceTypesResponse>"""
 
-
 EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
 <DescribeInstanceTypeOfferingsResponse xmlns="http://api.outscale.com/wsdl/fcuext/2014-04-15/">
     <requestId>f8b86168-d034-4e65-b48d-3b84c78e64af</requestId>
@@ -976,3 +1007,16 @@ EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
     {% endfor %}
     </instanceTypeOfferingSet>
 </DescribeInstanceTypeOfferingsResponse>"""
+
+EC2_MODIFY_INSTANCE_METADATA_OPTIONS =  """<ModifyInstanceMetadataOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <instanceId>{{ instance.id }}</instanceId>
+  <instanceMetadataOptions>
+    <state>{{ options.state }}</state>
+    <httpTokens>{{ options.httpTokens }}</httpTokens>
+    <httpPutResponseHopLimit>{{ options.hopLimit }}</httpPutResponseHopLimit>
+    <httpEndpoint>{{ options.endpoint }}</httpEndpoint>
+    <httpProtocolIpv6>{{ options.protocol }}</httpProtocolIpv6>
+    <instanceMetadataTags>{{ options.tags }}</instanceMetadataTags>
+  </instanceMetadataOptions>
+</ModifyInstanceMetadataOptionsResponse>"""
