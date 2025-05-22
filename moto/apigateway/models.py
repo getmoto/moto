@@ -2204,6 +2204,8 @@ class APIGatewayBackend(BaseBackend):
         return key.update_operations(patch_operations)
 
     def delete_api_key(self, api_key_id: str) -> None:
+        if api_key_id not in self.keys:
+            raise ApiKeyNotFoundException()
         self.keys.pop(api_key_id)
 
     def create_usage_plan(self, payload: Any) -> UsagePlan:
