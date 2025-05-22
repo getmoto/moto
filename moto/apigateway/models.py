@@ -2198,6 +2198,8 @@ class APIGatewayBackend(BaseBackend):
         return self.keys[api_key_id]
 
     def update_api_key(self, api_key_id: str, patch_operations: Any) -> ApiKey:
+        if api_key_id not in self.keys:
+            raise ApiKeyNotFoundException()
         key = self.keys[api_key_id]
         return key.update_operations(patch_operations)
 
