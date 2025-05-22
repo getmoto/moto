@@ -277,21 +277,22 @@ class InstanceResponse(EC2BaseResponse):
         import pdb
         pdb.set_trace()
         instance_id = self._get_param("InstanceId")
-        tokens= self._get_param("InstanceId")
-        hop_limit= self._get_param("InstanceId")
-        endpoint= self._get_param("InstanceId")
+        tokens= self._get_param("HttpTokens")
+        hop_limit= self._get_int_param("HttpPutResponseHopLimit")
+        endpoint= self._get_param("HttpEndpoint")
         dry_run=False
-        http_protocol= self._get_param("InstanceId")
-        metadata_tags= self._get_param("InstanceId")
-
+        http_protocol= self._get_param("HttpProtocolIpv6")
+        metadata_tags= self._get_param("InstanceMetadataTags")
+        import pdb
+        pdb.set_trace()
         # If dryrun we don't render.. not really a point in mock env
         options = self.ec2_backend.modify_instance_metadata_options(
-          instance_id = instance_id
-          tokens= tokens
-          hop_limit= hop_limit
-          endpoint= endpoint
-          dry_run=dry_run
-          http_protocol= http_protocol
+          instance_id = instance_id,
+          http_tokens= tokens,
+          hop_limit= hop_limit,
+          http_endpoint= endpoint,
+          dry_run=dry_run,
+          http_protocol= http_protocol,
           metadata_tags= metadata_tags
         )
 
@@ -1010,13 +1011,13 @@ EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
 
 EC2_MODIFY_INSTANCE_METADATA_OPTIONS =  """<ModifyInstanceMetadataOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instanceId>{{ instance.id }}</instanceId>
+  <instanceId>{{ instance_id }}</instanceId>
   <instanceMetadataOptions>
     <state>{{ options.state }}</state>
-    <httpTokens>{{ options.httpTokens }}</httpTokens>
-    <httpPutResponseHopLimit>{{ options.hopLimit }}</httpPutResponseHopLimit>
+    <httpTokens>{{ options.http_tokens }}</httpTokens>
+    <httpPutResponseHopLimit>{{ options.hop_limit }}</httpPutResponseHopLimit>
     <httpEndpoint>{{ options.endpoint }}</httpEndpoint>
-    <httpProtocolIpv6>{{ options.protocol }}</httpProtocolIpv6>
-    <instanceMetadataTags>{{ options.tags }}</instanceMetadataTags>
+    <httpProtocolIpv6>{{ options.http_protocol }}</httpProtocolIpv6>
+    <instanceMetadataTags>{{ options.metadata_tags }}</instanceMetadataTags>
   </instanceMetadataOptions>
 </ModifyInstanceMetadataOptionsResponse>"""

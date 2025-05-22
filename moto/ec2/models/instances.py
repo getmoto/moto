@@ -56,6 +56,23 @@ class StateReason:
         self.message = message
         self.code = code
 
+class MetadataOptions:
+    def __init__(self, options=None):
+        options = options or {}
+        self.http_tokens = options.get("HttpTokens", "optional")
+        self.hop_limit = int(options.get("HttpPutResponseHopLimit", 1))
+        self.http_endpoint = options.get("HttpEndpoint", "enabled")
+        self.http_protocol = options.get("HttpProtocolIpv6", "disabled")
+        self.instance_metadata_tags = options.get("InstanceMetadataTags", "disabled")
+
+    def to_dict(self):
+        return {
+            "HttpTokens": str(self.http_tokens),
+            "HttpPutResponseHopLimit": int(self.hop_limit),
+            "HttpEndpoint": str(self.http_endpoint),
+            "HttpProtocolIpv6": str(self.http_protocol),
+            "InstanceMetadataTags": str(self.instance_metadata_tags),
+        }
 
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     VALID_ATTRIBUTES = {
@@ -149,8 +166,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.root_device_name = ami.root_device_name if ami else None
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
+ 
+        self.metadata_options = MetadataOptions(kwargs.get("metadata_options", {})).to_dict()
 
-        self.metadata_options = kwargs.get("metadata_options")
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
         if isinstance(self.user_data, list) and len(self.user_data) > 0:
@@ -826,17 +844,26 @@ class InstanceBackend:
     def modify_instance_metadata_options(
         self, 
         instance_id: str,
-        tokens: Optional[str] = 'optional',
-        hop_limit: Optional[int] = 1,
-        endpoint: Optional[str] = 'enabled',
+        http_tokens: Optional[str] = None,
+        hop_limit: Optional[int] = None,
+        http_endpoint: Optional[str] = None,
         dry_run: Optional[bool] = False,
-        protocol: Optional[str] = 'disabled',
-        metadata_tags: Optional[str] = 'disabled',
+        http_protocol: Optional[str] = None,
+        metadata_tags: Optional[str] = None,
     ) -> Instance:
         instance = self.get_instance(instance_id)
         import pdb
         pdb.set_trace()
-        # setattr(instance, key, value)
+        instance.metadata_options = {
+            "HttpTokens": http_tokens,
+            "HttpPutResponseHopLimit": hop_limit,
+            "HttpEndpoint": http_endpoint,
+            "HttpProtocolIpv6": http_protocol,
+            "InstanceMetadataTags": metadata_tags,
+        }
+
+        # You can use dry_run elsewhere if needed — it's not part of metadata_options
+
         return instance
 
     def modify_instance_security_groups(

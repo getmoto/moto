@@ -34,9 +34,16 @@ def test_modify_instance_metadata_options():
         MetadataOptions={"HttpEndpoint": "Enabled"}
     ).get("Instances")
     instance_id = [i["InstanceId"] for i in instances]
-
+    import pdb
+    pdb.set_trace()
+    # To test(changing the defaults)
     ec2.modify_instance_metadata_options(
         InstanceId=instance_id[0],
-        HttpEndpoint="disabled"
+        HttpTokens='required',
+        HttpPutResponseHopLimit=2,
+        HttpEndpoint='disabled',
+        DryRun=False,
+        HttpProtocolIpv6='enabled',
+        InstanceMetadataTags='enabled'
     )
 
