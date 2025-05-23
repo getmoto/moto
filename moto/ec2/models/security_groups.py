@@ -17,7 +17,8 @@ from ..exceptions import (
     InvalidSecurityGroupRuleIdNotFoundError,
     MissingParameterError,
     MotoNotImplementedError,
-    RulesPerSecurityGroupLimitExceededError,
+    RulesPerSecurityGroupLimitExceededError, GenericInvalidParameterValueError, InvalidParameterValueError,
+    MissingParameter,
 )
 from ..utils import (
     is_tag_filter,
@@ -524,6 +525,13 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             return self.id
         raise UnformattedGetAttTemplateException()
 
+    def get_rule(self, rule_id: str) -> Optional[SecurityRule]:
+        """Retrieve a security group rule by its ID."""
+        for rule in list(itertools.chain(self.egress_rules, self.ingress_rules)):
+            if rule.id == rule_id:
+                return rule
+        return None
+
     def add_ingress_rule(self, rule: SecurityRule) -> None:
         if rule in self.ingress_rules:
             raise InvalidPermissionDuplicateError()
@@ -784,6 +792,53 @@ class SecurityGroupBackend:
                 is_egress=is_egress,
                 tags=tags,
             )
+
+    def modify_security_group_rules(
+        self,
+        group_id: str,
+        rules: dict[str, dict],
+    ) -> None:
+        group = self.get_security_group_by_name_or_id(group_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_id)
+
+        for rule_id, new_rule in rules.items():
+            existing_rule = group.get_rule(rule_id)
+            if existing_rule is None:
+                raise InvalidSecurityGroupRuleIdNotFoundError(rule_id)
+
+            ip_protocol = new_rule.get('IpProtocol')
+            if ip_protocol is None:
+                raise InvalidParameterValueError("Invalid value 'null' for protocol. VPC security group rules must specify protocols explicitly.")
+            existing_rule.ip_protocol = ip_protocol
+
+            from_port = new_rule.get('FromPort')
+            if from_port is None:
+                raise InvalidParameterValueError("Invalid value for portRange. Must specify both from and to ports with TCP/UDP.")
+            existing_rule.from_port = from_port
+
+            to_port = new_rule.get('ToPort')
+            if to_port is None:
+                raise InvalidParameterValueError("Invalid value for portRange. Must specify both from and to ports with TCP/UDP.")
+            existing_rule.to_port = to_port
+
+            description = new_rule.get('Description')
+            if description is not None:
+                existing_rule.description = description
+
+            cidr_ipv4 = new_rule.get('CidrIpv4')
+            cidr_ipv6 = new_rule.get('CidrIpv6')
+            prefix_list_id = new_rule.get('PrefixListId')
+            reference_group_id = new_rule.get('ReferenceGroupId')
+
+            # FIXME
+            if all([cidr_ipv4, cidr_ipv6, prefix_list_id, reference_group_id]):
+                raise MissingParameter('The request must contain exactly one of: cidrIp, cidrIpv6, prefixListId, or referencedGroupId')
+
+            if cidr_ipv4 is not None:
+                existing_rule.ip_range['CidrIp'] = cidr_ipv4
+
+
 
     def authorize_security_group_ingress(
         self,
