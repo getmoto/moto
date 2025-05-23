@@ -48,6 +48,8 @@ from .exceptions import (
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
+    DBShardGroupAlredyExistsError,
+    DBShardGroupNotFoundError,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundFault,
     DBSubnetGroupNotFoundError,
@@ -1992,6 +1994,31 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
         backend.delete_security_group(self.group_name)
 
 
+class DBShardGroup(RDSBaseModel):
+    resource_type = "shard-group"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_shard_group_identifier: str,
+        db_cluster_identifier: str,
+        compute_redundancy: Optional[int],
+        max_acu: float,
+        min_acu: Optional[float] = None,
+        publicly_accessible: Optional[bool] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_shard_group_identifier = db_shard_group_identifier
+        self.db_cluster_identifier = db_cluster_identifier
+        self.compute_redundancy = compute_redundancy
+        self.max_acu = max_acu
+        self.min_acu = min_acu
+        self.publicly_accessible = publicly_accessible
+        self.tags = tags or []
+
+
+
 class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
     resource_type = "subgrp"
 
@@ -2207,6 +2234,7 @@ class RDSBackend(BaseBackend):
         ] = CaseInsensitiveDict()
         self.option_groups: MutableMapping[str, OptionGroup] = CaseInsensitiveDict()
         self.security_groups: Dict[str, DBSecurityGroup] = {}
+        self.shard_groups: Dict[str, DBShardGroup] = {}
         self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
@@ -2219,6 +2247,7 @@ class RDSBackend(BaseBackend):
             DBParameterGroup: self.db_parameter_groups,
             DBProxy: self.db_proxies,
             DBSecurityGroup: self.security_groups,
+            DBShardGroup: self.shard_groups,
             DBSnapshot: self.database_snapshots,
             DBSubnetGroup: self.subnet_groups,
             EventSubscription: self.event_subscriptions,
@@ -2832,17 +2861,80 @@ class RDSBackend(BaseBackend):
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
-    def create_db_shard_group(
-        self,
-        db_shard_group_identifier: str,
-        db_cluster_identifier: str,
-        compute_redundancy: Optional[int],
-        max_acu: int,
-        min_acu: Optional[int],
-        publicly_accessible: Optional[bool],
-    ) -> DBShardGroup:
-        pass
+    # def create_db_shard_group(
+    #     self,
+    #     db_shard_group_identifier: str,
+    #     db_cluster_identifier: str,
+    #     max_acu: float,
+    #     compute_redundancy: Optional[int],
+    #     min_acu: Optional[float] = None,
+    #     publicly_accessible: Optional[bool] = None,
+    #     tags: Optional[List[Dict[str, str]]] = None,
+    # ) -> DBShardGroup:
+    #     if db_shard_group_identifier in self.shard_groups:
+    #         raise DBShardGroupAlredyExistsError(db_shard_group_identifier)
+    #     if db_cluster_identifier not in self.clusters:
+    #         raise DBClusterNotFoundError(db_cluster_identifier)
+    #     if compute_redundancy not in (None, 0, 1, 2):
+    #         raise InvalidParameterValue(
+    #             f"Invalid ComputeRedundancy value '{compute_redundancy}'. "
+    #             "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
+    #         )
+    #     if min_acu is not None and min_acu >= max_acu:
+    #         raise InvalidParameterValue("min_acu cannot be larger than mac_acu")
+    #     shard_group = DBShardGroup(
+    #         self,
+    #         db_shard_group_identifier,
+    #         db_cluster_identifier,
+    #         compute_redundancy,
+    #         max_acu,
+    #         min_acu,
+    #         publicly_accessible,
+    #         tags,
+    #     )
+    #     self.shard_groups[db_shard_group_identifier] = shard_group
+    #     return shard_group
 
+    def create_db_shard_group(self, kwargs: Any) -> DBShardGroup:
+        # # db_shard_group_identifier = kwargs["db_shard_group_identifier"]
+        # # db_cluster_identifier = kwargs["db_cluster_identifier"]
+        # # compute_redundancy = kwargs["compute_redundancy"]
+
+
+        db_shard_group_identifier = kwargs["db_shard_group_identifier"]
+        # db_cluster_identifier = kwargs["db_cluster_identifier"]
+        # compute_redundancy = kwargs.get("compute_redundancy")
+        # # max_acu = kwargs["max_acu"]
+        # # min_acu = kwargs.get("min_acu")
+        # # publicly_accessible = kwargs.get("publicly_accessible")
+        # # tags = kwargs.get("tags", [])
+
+        # if db_shard_group_identifier in self.shard_groups:
+        #     raise DBShardGroupAlredyExistsError(db_shard_group_identifier)
+        # if db_cluster_identifier not in self.clusters:
+        #     raise DBClusterNotFoundError(db_cluster_identifier)
+        # if compute_redundancy not in (None, 0, 1, 2):
+        #     raise InvalidParameterValue(
+        #         f"Invalid ComputeRedundancy value '{compute_redundancy}'. "
+        #         "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
+        #     )
+        # if "min_acu" in kwargs and kwargs.get("min_acu") >= kwargs.get("max_acu"):
+        #     raise InvalidParameterValue("min_acu cannot be larger than mac_acu")
+        
+        print("MODEL WAS CALLED")
+        shard_group = DBShardGroup(self, **kwargs)
+        self.shard_groups[db_shard_group_identifier] = shard_group
+        print("DBG model:", shard_group.db_shard_group_identifier)
+        return shard_group
+    
+    def describe_db_shard_groups(self, shard_group_name: str) -> List[DBShardGroup]:
+        if shard_group_name:
+            if shard_group_name in self.shard_groups:
+                return [self.shard_groups[shard_group_name]]
+            else:
+                raise DBShardGroupNotFoundError(shard_group_name)
+        return list(self.shard_groups.values())
+    
     def create_subnet_group(
         self,
         subnet_name: str,
