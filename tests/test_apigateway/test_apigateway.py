@@ -1954,6 +1954,27 @@ def test_get_api_key_unknown_apikey():
 
 
 @mock_aws
+def test_update_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    patch_operations = [{"op": "replace", "path": "/name", "value": "test"}]
+    with pytest.raises(ClientError) as ex:
+        client.update_api_key(apiKey="unknown", patchOperations=patch_operations)
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid API Key identifier specified"
+    assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_delete_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_api_key(apiKey="unknown")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid API Key identifier specified"
+    assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
 def test_get_rest_api_without_id():
     client = boto3.client("apigateway", region_name="us-east-1")
     resp = client.get_rest_api(restApiId="")
