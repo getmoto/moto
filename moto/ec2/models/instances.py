@@ -56,23 +56,27 @@ class StateReason:
         self.message = message
         self.code = code
 
+
 class MetadataOptions:
-    def __init__(self, options=None):
+    def __init__(self, options: Optional[Dict[str, Any]] = None):
         options = options or {}
+        self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
         self.hop_limit = int(options.get("HttpPutResponseHopLimit", 1))
         self.http_endpoint = options.get("HttpEndpoint", "enabled")
         self.http_protocol = options.get("HttpProtocolIpv6", "disabled")
         self.instance_metadata_tags = options.get("InstanceMetadataTags", "disabled")
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
+            "State": str(self.state),
             "HttpTokens": str(self.http_tokens),
             "HttpPutResponseHopLimit": int(self.hop_limit),
             "HttpEndpoint": str(self.http_endpoint),
             "HttpProtocolIpv6": str(self.http_protocol),
             "InstanceMetadataTags": str(self.instance_metadata_tags),
         }
+
 
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     VALID_ATTRIBUTES = {
@@ -166,8 +170,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.root_device_name = ami.root_device_name if ami else None
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
- 
-        self.metadata_options = MetadataOptions(kwargs.get("metadata_options", {})).to_dict()
+
+        self.metadata_options = MetadataOptions(
+            kwargs.get("metadata_options", {})
+        ).to_dict()
 
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
@@ -840,9 +846,9 @@ class InstanceBackend:
         instance = self.get_instance(instance_id)
         setattr(instance, key, value)
         return instance
-    
+
     def modify_instance_metadata_options(
-        self, 
+        self,
         instance_id: str,
         http_tokens: Optional[str] = None,
         hop_limit: Optional[int] = None,
@@ -850,11 +856,11 @@ class InstanceBackend:
         dry_run: Optional[bool] = False,
         http_protocol: Optional[str] = None,
         metadata_tags: Optional[str] = None,
-    ) -> Instance:
+    ) -> MetadataOptions:
         instance = self.get_instance(instance_id)
-        import pdb
-        pdb.set_trace()
-        instance.metadata_options = {
+
+        metadata_dict = {
+            "State": "applied",
             "HttpTokens": http_tokens,
             "HttpPutResponseHopLimit": hop_limit,
             "HttpEndpoint": http_endpoint,
@@ -862,9 +868,11 @@ class InstanceBackend:
             "InstanceMetadataTags": metadata_tags,
         }
 
-        # You can use dry_run elsewhere if needed — it's not part of metadata_options
+        metadata_options = MetadataOptions(metadata_dict)
 
-        return instance
+        instance.metadata_options = metadata_options.to_dict()
+
+        return metadata_options
 
     def modify_instance_security_groups(
         self, instance_id: str, new_group_id_list: List[str]

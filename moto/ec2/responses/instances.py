@@ -92,7 +92,7 @@ class InstanceResponse(EC2BaseResponse):
             if self._get_param("Monitoring.Enabled") == "true"
             else "disabled",
             "ipv6_address_count": self._get_int_param("Ipv6AddressCount"),
-            "metadata_options": self._get_multi_param_dict("MetadataOptions")
+            "metadata_options": self._get_multi_param_dict("MetadataOptions"),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -274,30 +274,25 @@ class InstanceResponse(EC2BaseResponse):
         raise NotImplementedError(msg)
 
     def modify_instance_metadata_options(self) -> str:
-        import pdb
-        pdb.set_trace()
         instance_id = self._get_param("InstanceId")
-        tokens= self._get_param("HttpTokens")
-        hop_limit= self._get_int_param("HttpPutResponseHopLimit")
-        endpoint= self._get_param("HttpEndpoint")
-        dry_run=False
-        http_protocol= self._get_param("HttpProtocolIpv6")
-        metadata_tags= self._get_param("InstanceMetadataTags")
-        import pdb
-        pdb.set_trace()
-        # If dryrun we don't render.. not really a point in mock env
+        tokens = self._get_param("HttpTokens")
+        hop_limit = self._get_int_param("HttpPutResponseHopLimit")
+        endpoint = self._get_param("HttpEndpoint")
+        dry_run = False
+        http_protocol = self._get_param("HttpProtocolIpv6")
+        metadata_tags = self._get_param("InstanceMetadataTags")
+
         options = self.ec2_backend.modify_instance_metadata_options(
-          instance_id = instance_id,
-          http_tokens= tokens,
-          hop_limit= hop_limit,
-          http_endpoint= endpoint,
-          dry_run=dry_run,
-          http_protocol= http_protocol,
-          metadata_tags= metadata_tags
+            instance_id=instance_id,
+            http_tokens=tokens,
+            hop_limit=hop_limit,
+            http_endpoint=endpoint,
+            dry_run=dry_run,
+            http_protocol=http_protocol,
+            metadata_tags=metadata_tags,
         )
 
         template = self.response_template(EC2_MODIFY_INSTANCE_METADATA_OPTIONS)
-
         return template.render(instance_id=instance_id, options=options)
 
     def _block_device_mapping_handler(self) -> Optional[str]:
@@ -432,9 +427,9 @@ class InstanceResponse(EC2BaseResponse):
         from botocore import __version__ as botocore_version
 
         if "no_device" in device_mapping:
-            assert isinstance(device_mapping["no_device"], str), (
-                f"botocore {botocore_version} isn't limiting NoDevice to str type anymore, it is type:{type(device_mapping['no_device'])}"
-            )
+            assert isinstance(
+                device_mapping["no_device"], str
+            ), f"botocore {botocore_version} isn't limiting NoDevice to str type anymore, it is type:{type(device_mapping['no_device'])}"
             if device_mapping["no_device"] == "":
                 # the only legit value it can have is empty string
                 # and none of the other checks here matter if NoDevice
@@ -581,7 +576,11 @@ INSTANCE_TEMPLATE = """<item>
           {% endif %}
           {% if instance.metadata_options %}
           <metadataOptions>
-            <configured>{{ instance.metadata_options.get("HttpEndpoint") }}</configured>
+            <httpTokens>{{ instance.metadata_options.get("HttpTokens") }}</httpTokens>
+            <httpPutResponseHopLimit>{{ instance.metadata_options.get("HttpPutResponseHopLimit") }}</httpPutResponseHopLimit>
+            <httpEndpoint>{{ instance.metadata_options.get("HttpEndpoint") }}</httpEndpoint>
+            <httpProtocolIpv6>{{ instance.metadata_options.get("HttpProtocolIpv6") }}</httpProtocolIpv6>
+            <instanceMetadataTags>{{ instance.metadata_options.get("InstanceMetadataTags") }}</instanceMetadataTags>
           </metadataOptions>
           {% endif %}
           {% if instance.get_tags() %}
@@ -1009,15 +1008,15 @@ EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
     </instanceTypeOfferingSet>
 </DescribeInstanceTypeOfferingsResponse>"""
 
-EC2_MODIFY_INSTANCE_METADATA_OPTIONS =  """<ModifyInstanceMetadataOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+EC2_MODIFY_INSTANCE_METADATA_OPTIONS = """<ModifyInstanceMetadataOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance_id }}</instanceId>
   <instanceMetadataOptions>
     <state>{{ options.state }}</state>
     <httpTokens>{{ options.http_tokens }}</httpTokens>
     <httpPutResponseHopLimit>{{ options.hop_limit }}</httpPutResponseHopLimit>
-    <httpEndpoint>{{ options.endpoint }}</httpEndpoint>
+    <httpEndpoint>{{ options.http_endpoint }}</httpEndpoint>
     <httpProtocolIpv6>{{ options.http_protocol }}</httpProtocolIpv6>
-    <instanceMetadataTags>{{ options.metadata_tags }}</instanceMetadataTags>
+    <instanceMetadataTags>{{ options.instance_metadata_tags }}</instanceMetadataTags>
   </instanceMetadataOptions>
 </ModifyInstanceMetadataOptionsResponse>"""
