@@ -2,10 +2,11 @@
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Callable
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.tagging_service import TaggingService
 
 from .enums import (
     ConnectionStateType,
@@ -63,6 +64,7 @@ class Connection(BaseModel):
     tags: Optional[List[Dict[str, str]]]
     vlan: int
     connection_id: str = field(default="", init=False)
+    tag_fn: Callable[[str], List[Dict[str, str]]]
 
     def __post_init__(self) -> None:
         if self.connection_id == "":
@@ -91,7 +93,7 @@ class Connection(BaseModel):
             "portEncryptionStatus": self.port_encryption_status,
             "providerName": self.provider_name,
             "region": self.region,
-            "tags": self.tags,
+            "tags": self.tag_fn(self.connection_id),
             "vlan": self.vlan,
         }
 
@@ -158,6 +160,7 @@ class DirectConnectBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.connections: Dict[str, Connection] = {}
         self.lags: Dict[str, LAG] = {}
+        self.tagger = TaggingService(key_name="key", value_name="value")
 
     def describe_connections(self, connection_id: Optional[str]) -> List[Connection]:
         if connection_id and connection_id not in self.connections:
@@ -173,7 +176,7 @@ class DirectConnectBackend(BaseBackend):
         bandwidth: str,
         connection_name: str,
         lag_id: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[Dict[str, str]],
         provider_name: Optional[str],
         request_mac_sec: Optional[bool],
     ) -> Connection:
@@ -211,9 +214,37 @@ class DirectConnectBackend(BaseBackend):
             region=self.region_name,
             tags=tags,
             vlan=0,
+            tag_fn=self.list_tags_for_resource,
         )
+        if tags:
+            self.tag_resource(connection.connection_id, tags)
         self.connections[connection.connection_id] = connection
         return connection
+
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+        self.tagger.tag_resource(
+            resource_arn,
+            tags=tags if tags else [],
+        )
+
+    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+        tags = self.tagger.get_tag_dict_for_resource(resource_arn)
+        if not tags:
+            return []
+        return [{"key": k, "value": v} for (k, v) in tags.items()]
+
+    def list_tags_for_resources(self, resource_arns: List[str]) -> dict[str, list[Any]]:
+        response = {'resourceTags': []}
+        for resource_arn in resource_arns:
+            response['resourceTags'].append({
+                'resourceArn': resource_arn,
+                'tags': self.list_tags_for_resource(resource_arn),
+            })
+
+        return response
+
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def delete_connection(self, connection_id: str) -> Connection:
         if not connection_id:
