@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.5
 -----
-Docker Digest for 5.1.5: <autopopulateddigest>
+Docker Digest for 5.1.5: _sha256:b9dbd12d211c88e5799d023db15ec809bca4cc6df93a8aa78f26ccbfb073d18a_
 
     New Services:
         * Connect Campaign:
