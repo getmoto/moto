@@ -45,6 +45,7 @@ kinesis
         
 
 - [X] list_streams
+- [ ] list_tags_for_resource
 - [X] list_tags_for_stream
 - [X] merge_shards
 - [X] put_record
@@ -60,6 +61,8 @@ kinesis
 - [X] start_stream_encryption
 - [X] stop_stream_encryption
 - [ ] subscribe_to_shard
+- [ ] tag_resource
+- [ ] untag_resource
 - [X] update_shard_count
 - [X] update_stream_mode
 
