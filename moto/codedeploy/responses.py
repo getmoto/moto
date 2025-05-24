@@ -185,3 +185,23 @@ class CodeDeployResponse(BaseResponse):
                 nextToken=next_token,
             )
         )
+
+    def list_tags_for_resource(self) -> str:
+        """Handler for list_tags_for_resource API call."""
+        resource_arn = self._get_param("ResourceArn")
+        tags_response = self.codedeploy_backend.list_tags_for_resource(resource_arn)
+        return json.dumps(tags_response)
+
+    def tag_resource(self) -> str:
+        """Handler for tag_resource API call."""
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags")
+        response = self.codedeploy_backend.tag_resource(resource_arn, tags)
+        return json.dumps(response)
+
+    def untag_resource(self) -> str:
+        """Handler for untag_resource API call."""
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self._get_param("TagKeys")
+        response = self.codedeploy_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps(response)
