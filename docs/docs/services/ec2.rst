@@ -87,6 +87,7 @@ ec2
 - [X] create_customer_gateway
 - [X] create_default_subnet
 - [X] create_default_vpc
+- [ ] create_delegate_mac_volume_ownership_task
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
 - [X] create_fleet
@@ -111,6 +112,7 @@ ec2
 - [ ] create_local_gateway_route_table_vpc_association
 - [ ] create_local_gateway_virtual_interface
 - [ ] create_local_gateway_virtual_interface_group
+- [ ] create_mac_system_integrity_protection_modification_task
 - [X] create_managed_prefix_list
 - [X] create_nat_gateway
 - [X] create_network_acl
@@ -352,6 +354,7 @@ ec2
 - [ ] describe_local_gateways
 - [ ] describe_locked_snapshots
 - [ ] describe_mac_hosts
+- [ ] describe_mac_modification_tasks
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -609,7 +612,7 @@ ec2
 - [ ] modify_instance_event_window
 - [ ] modify_instance_maintenance_options
 - [ ] modify_instance_metadata_defaults
-- [ ] modify_instance_metadata_options
+- [X] modify_instance_metadata_options
 - [ ] modify_instance_network_performance_options
 - [ ] modify_instance_placement
 - [ ] modify_ipam
@@ -622,6 +625,7 @@ ec2
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
+- [ ] modify_public_ip_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_route_server
 - [ ] modify_security_group_rules

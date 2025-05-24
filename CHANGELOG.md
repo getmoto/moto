@@ -1,6 +1,133 @@
 Moto Changelog
 ==============
 
+5.1.5
+-----
+Docker Digest for 5.1.5: <autopopulateddigest>
+
+    New Services:
+        * Connect Campaign:
+            * create_campaign()
+            * delete_campaign()
+            * describe_campaign()
+            * get_connect_instance_config()
+            * start_instance_onboarding_job()
+
+        * CloudDirectory:
+            * create_directory()
+            * delete_directory()
+            * get_directory()
+            * list_directories()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * Network Firewall:
+            * create_firewall()
+            * describe_firewall()
+            * describe_logging_configuration()
+            * list_firewalls()
+            * update_logging_configuration()
+
+        * ServiceCatalog-AppRegistry:
+            * associate_resource()
+            * create_application()
+            * list_applications()
+            * list_associated_resources()
+
+    New Methods:
+        * ACM PCA:
+            * list_certificate_authorities()
+
+        * CloudWatch:
+            * delete_insight_rules()
+            * describe_insight_rules()
+            * disable_insight_rules()
+            * enable_insight_rules()
+            * put_insight_rule()
+
+        * CodeDeploy:
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+        * Comprehend:
+            * create_document_classifier()
+            * create_endpoint()
+            * create_flywheel()
+            * describe_document_classifier()
+            * describe_endpoint()
+            * describe_flywheel()
+            * delete_document_classifier()
+            * delete_endpoint()
+            * delete_flywheel()
+            * list_document_classifiers()
+            * list_endpoints()
+            * list_flywheels()
+            * start_flywheel_iteration()
+            * stop_training_document_classifier()
+            * update_endpoint()
+
+        * Config:
+            * delete_resource_config()
+            * put_resource_config()
+            * select_resource_config()
+
+        * DMS:
+            * create_endpoint()
+            * describe_endpoints()
+            * list_tags_for_resource()
+
+        * EC2:
+            * modify_instance_metadata_options()
+
+        * Glue:
+            * get_resource_policy()
+            * put_resource_policy()
+
+        * RAM:
+            * get_resource_share_associations()
+
+        * S3:
+            * get_bucket_inventory_configuration()
+            * get_storage_lens_configuration()
+            * list_bucket_inventory_configuration()
+            * list_storage_lens_configurations()
+            * put_bucket_inventory_configurations()
+            * put_storage_lens_configuration()
+
+        * Timestream InfluxDB:
+            * create_db_cluster()
+            * create_db_parameter_group()
+            * get_db_cluster()
+            * get_db_parameter_group()
+            * list_db_clusters()
+            * list_db_parameter_groups()
+
+    Miscellaneous:
+        * ACMPCA: All SAN's are now passed through from the CSR to the certificate
+        * APIGateway: delete_api_key()/update_api_key() now throw a ApiKeyNotFoundException (instead of a KeyError)
+        * AppSync: create_graphql_api() now supports the tags-parameter
+        * CloudFront: create_distribution() now correctly handles the CloudFrontDefaultCertificate-parameter
+        * CodeDeploy: create_application() now supports the tags-parameter
+        * CodeDeploy: create_deployment_group() now supports the tags-parameter
+        * EC2: describe_instance_status() now correctly handles multiple filters and scenarios where both filters and InstanceIds are supplied
+        * EC2: disassociate_iam_instance_profile() now actually removes the IAMInstanceProfile from the Instances
+        * EC2: run_instances() now throws an error if now default Subnet is available and no SubnetId is supplied
+        * EventBridge: describe_event_bus() now returns additional fields (CreationTime, LastModifiedTime, DeadLetterConfig, Description, KmsKeyIdentifier)
+        * IOTData: update_thing_shadow() now correctly handles empty dicts
+        * Neptune: create_db_instance() now supports the Neptune-engine
+        * Organizations: create_policy() now supports TYPE=TAG_POLICY
+        * ResourceGroups: delete_group()/get_group() now support ARNs as the GroupName-parameter
+        * ResourceGroupsTaggingApi: get_resources now supports CloudWatch Alarms and InsightRules
+        * S3: Calls now return Content-Type=application/xml headers where appropriate
+        * S3: put_object() - IfMatch is now supported
+        * SageMaker: create_endpoint_config() now supports the AsyncInferenceConfig-parameter
+        * SageMaker: describe_transform_job() now returns the Arn-attribute
+        * SQS: receive_message() now supports the MessageSystemAttributeNames-parameter
+        * Textract: start_document_text_detection() now supports the NotificationChannel-parameter and integrates with SNS
+
+
 
 5.1.4
 -----
