@@ -20,7 +20,7 @@ class CloudDirectoryResponse(BaseResponse):
 
     def create_directory(self) -> str:
         name = self._get_param("Name")
-        schema_arn = self._get_param("SchemaArn")
+        schema_arn = self.headers.get("x-amz-data-partition")
         directory = self.clouddirectory_backend.create_directory(
             name=name,
             schema_arn=schema_arn,
@@ -34,6 +34,13 @@ class CloudDirectoryResponse(BaseResponse):
                 AppliedSchemaArn=directory.schema_arn,
             )
         )
+
+    def create_schema(self) -> str:
+        name = self._get_param("Name")
+        schema = self.clouddirectory_backend.create_schema(
+            name=name,
+        )
+        return json.dumps(dict(SchemaArn=schema["SchemaArn"]))
 
     def list_directories(self) -> str:
         next_token = self._get_param("NextToken")

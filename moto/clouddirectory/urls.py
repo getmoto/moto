@@ -8,6 +8,7 @@ url_bases = [
 
 url_paths = {
     "{0}/amazonclouddirectory/2017-01-11/directory/create$": CloudDirectoryResponse.dispatch,
+    "{0}/amazonclouddirectory/2017-01-11/schema/create$": CloudDirectoryResponse.dispatch,
     "{0}/amazonclouddirectory/2017-01-11/directory/list$": CloudDirectoryResponse.dispatch,
     "{0}/amazonclouddirectory/2017-01-11/tags/add$": CloudDirectoryResponse.dispatch,
     "{0}/amazonclouddirectory/2017-01-11/tags/remove$": CloudDirectoryResponse.dispatch,
