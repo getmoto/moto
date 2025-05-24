@@ -6,7 +6,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
-from .exceptions import BadRequestException
+from .exceptions import BadRequestException, NotFoundException
 
 
 class FakeResourceGroup(BaseModel):
@@ -209,15 +209,22 @@ class ResourceGroups:
         self.by_arn: Dict[str, FakeResourceGroup] = {}
 
     def __contains__(self, item: str) -> bool:
-        return item in self.by_name
+        return item in self.by_name or item in self.by_arn
+
+    def __getitem__(self, item: str) -> FakeResourceGroup:
+        if item in self.by_name:
+            return self.by_name[item]
+        if item in self.by_arn:
+            return self.by_arn[item]
+        raise KeyError(f"Resource group '{item}' not found")
 
     def append(self, resource_group: FakeResourceGroup) -> None:
         self.by_name[resource_group.name] = resource_group
         self.by_arn[resource_group.arn] = resource_group
 
     def delete(self, name: str) -> FakeResourceGroup:
-        group = self.by_name[name]
-        del self.by_name[name]
+        group = self[name]
+        del self.by_name[group.name]
         del self.by_arn[group.arn]
         return group
 
@@ -330,10 +337,15 @@ class ResourceGroupsBackend(BaseBackend):
         return group
 
     def delete_group(self, group_name: str) -> FakeResourceGroup:
-        return self.groups.delete(name=group_name)
+        group = self.get_group(group_name)
+        return self.groups.delete(name=group.name)
 
     def get_group(self, group_name: str) -> FakeResourceGroup:
-        return self.groups.by_name[group_name]
+        try:
+            group = self.groups[group_name]
+        except KeyError:
+            raise NotFoundException()
+        return group
 
     def get_tags(self, arn: str) -> Dict[str, str]:
         return self.groups.by_arn[arn].tags
