@@ -1,8 +1,11 @@
 """Handles incoming appsync requests, invokes methods, returns responses."""
 
 import json
+from typing import Any
 from urllib.parse import unquote
+from uuid import uuid4
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import AppSyncBackend, appsync_backends
@@ -13,6 +16,16 @@ class AppSyncResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="appsync")
+
+    @staticmethod
+    def dns_event_response(request: Any, url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        data = json.loads(request.data.decode("utf-8"))
+
+        response: dict[str, list[Any]] = {"failed": [], "successful": []}
+        for idx in range(len(data.get("events", []))):
+            response["successful"].append({"identifier": str(uuid4()), "index": idx})
+
+        return 200, {}, json.dumps(response).encode("utf-8")
 
     @property
     def appsync_backend(self) -> AppSyncBackend:

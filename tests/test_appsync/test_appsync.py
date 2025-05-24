@@ -1,15 +1,14 @@
 import json
-import uuid
 from datetime import datetime, timedelta
+from unittest import SkipTest
 
 import boto3
 import pytest
 import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.models import responses_mock
 from moto.core.utils import unix_time
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -695,6 +694,8 @@ def test_get_api():
 
 @mock_aws
 def test_events_api_direct_http_request_entire_flow():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only test this flow in DecoratorMode")
     client = boto3.client("appsync", region_name="us-east-1")
     api_resp = client.create_api(
         name="events-api",
@@ -739,11 +740,6 @@ def test_events_api_direct_http_request_entire_flow():
     }
 
     endpoint_url = f"https://{api_http_url}/event"
-    response_content = json.dumps(
-        {"failed": [], "successful": [{"identifier": str(uuid.uuid4()), "index": 0}]}
-    )
-    responses_mock.add(responses_mock.POST, endpoint_url, body=response_content)
-    responses_mock.registered()
 
     response = requests.post(
         endpoint_url,
@@ -752,7 +748,8 @@ def test_events_api_direct_http_request_entire_flow():
         timeout=10,
     )
     assert response.status_code == 200
-    assert response.json() == json.loads(response_content)
+    assert response.json()["failed"] == []
+    assert len(response.json()["successful"]) == 1
 
     get_api_resp = client.get_api(apiId=api_id)
     assert get_api_resp["api"]["apiId"] == api_id

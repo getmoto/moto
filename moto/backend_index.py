@@ -17,6 +17,12 @@ backend_url_patterns = [
     ),
     ("appmesh", re.compile("https?://appmesh\\.(.+)\\.amazonaws\\.com")),
     ("appsync", re.compile("https?://appsync\\.(.+)\\.amazonaws\\.com")),
+    (
+        "appsync",
+        re.compile(
+            "https?://([a-zA-Z0-9\\-_]+)\\.appsync-api\\.(.+)\\.amazonaws\\.com"
+        ),
+    ),
     ("athena", re.compile("https?://athena\\.(.+)\\.amazonaws\\.com")),
     ("autoscaling", re.compile("https?://autoscaling\\.(.+)\\.amazonaws\\.com")),
     ("awslambda", re.compile("https?://lambda\\.(.+)\\.amazonaws\\.com")),
