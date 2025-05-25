@@ -67,6 +67,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -154,6 +155,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -241,6 +243,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -328,6 +331,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -414,6 +418,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -501,6 +506,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -591,6 +597,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -690,6 +697,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -791,6 +799,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -902,6 +911,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1009,6 +1019,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1117,6 +1128,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1225,6 +1237,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1322,6 +1335,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1419,6 +1433,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1520,6 +1535,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1622,6 +1638,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1716,6 +1733,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -1816,6 +1834,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -1927,6 +1946,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2043,6 +2063,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2166,6 +2187,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2267,6 +2289,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2370,6 +2393,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2478,6 +2502,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2572,6 +2597,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -2664,6 +2690,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2764,6 +2791,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2872,6 +2900,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -2982,6 +3011,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3096,6 +3126,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3199,6 +3230,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3303,6 +3335,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3409,6 +3442,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3509,6 +3543,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3622,6 +3657,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3742,6 +3778,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3864,6 +3901,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -3990,6 +4028,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4105,6 +4144,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4221,6 +4261,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4339,6 +4380,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4451,6 +4493,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4564,6 +4607,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4687,6 +4731,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4815,6 +4860,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -4950,6 +4996,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5063,6 +5110,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5178,6 +5226,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5298,6 +5347,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5404,6 +5454,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -5508,6 +5559,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5611,6 +5663,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5727,6 +5780,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5828,6 +5882,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -5934,6 +5989,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6042,6 +6098,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6139,6 +6196,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -6231,6 +6289,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6334,6 +6393,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6446,6 +6506,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6553,6 +6614,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6664,6 +6726,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6767,6 +6830,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6877,6 +6941,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -6988,6 +7053,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -7098,6 +7164,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -7207,6 +7274,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -7304,6 +7372,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -7399,6 +7468,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -7500,6 +7570,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -7645,6 +7716,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -7806,6 +7878,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -7911,6 +7984,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8024,6 +8098,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8153,6 +8228,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8252,6 +8328,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8338,6 +8415,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8430,6 +8508,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8543,6 +8622,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8700,6 +8780,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8873,6 +8954,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -8990,6 +9072,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9115,6 +9198,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9256,6 +9340,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9367,6 +9452,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9465,6 +9551,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9569,6 +9656,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9670,6 +9758,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9818,6 +9907,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -9979,6 +10069,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -10084,6 +10175,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -10197,6 +10289,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -10326,6 +10419,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -10425,6 +10519,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -10523,6 +10618,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -10626,6 +10722,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -10739,6 +10836,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -10856,6 +10954,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -10981,6 +11080,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11087,6 +11187,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11220,6 +11321,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11325,6 +11427,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11434,6 +11537,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11532,6 +11636,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -11626,6 +11731,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11741,6 +11847,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11866,6 +11973,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -11995,6 +12103,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -12132,6 +12241,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -12250,6 +12360,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -12395,6 +12506,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -12512,6 +12624,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -12633,6 +12746,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -12743,6 +12857,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -12849,6 +12964,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -12952,6 +13068,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13077,6 +13194,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13210,6 +13328,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13334,6 +13453,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13452,6 +13572,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13584,6 +13705,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13693,6 +13815,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13810,6 +13933,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -13915,6 +14039,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -14009,6 +14134,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14110,6 +14236,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14221,6 +14348,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14334,6 +14462,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14451,6 +14580,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14557,6 +14687,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14672,6 +14803,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14788,6 +14920,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -14895,6 +15028,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -15004,6 +15138,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -15104,6 +15239,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -15194,6 +15330,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -15286,6 +15423,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -15388,6 +15526,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -15536,6 +15675,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -15697,6 +15837,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -15802,6 +15943,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -15915,6 +16057,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16044,6 +16187,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16143,6 +16287,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16232,6 +16377,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16324,6 +16470,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16437,6 +16584,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16597,6 +16745,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16770,6 +16919,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -16887,6 +17037,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17012,6 +17163,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17153,6 +17305,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17264,6 +17417,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17365,6 +17519,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17469,6 +17624,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17570,6 +17726,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17718,6 +17875,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17879,6 +18037,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -17984,6 +18143,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -18097,6 +18257,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -18226,6 +18387,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -18325,6 +18487,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -18414,6 +18577,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -18506,6 +18670,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -18606,6 +18771,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -18728,6 +18894,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -18858,6 +19025,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -18960,6 +19128,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19066,6 +19235,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19180,6 +19350,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19279,6 +19450,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19380,6 +19552,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19503,6 +19676,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19634,6 +19808,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19781,6 +19956,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -19887,6 +20063,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -20033,6 +20210,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -20140,6 +20318,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -20255,6 +20434,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -20349,6 +20529,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -20438,6 +20619,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -20530,6 +20712,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -20636,6 +20819,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -20786,6 +20970,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -20955,6 +21140,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -21153,6 +21339,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -21266,6 +21453,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -21463,6 +21651,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -21581,6 +21770,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -21715,6 +21905,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -21819,6 +22010,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -21913,6 +22105,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -22007,6 +22200,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -22104,6 +22298,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -22222,6 +22417,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -22384,6 +22580,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -22565,6 +22762,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -22775,6 +22973,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -22900,6 +23099,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23109,6 +23309,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23239,6 +23440,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23385,6 +23587,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23501,6 +23704,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23607,6 +23811,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23713,6 +23918,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23822,6 +24028,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -23930,6 +24137,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -24040,6 +24248,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -24154,6 +24363,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -24269,6 +24479,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -24382,6 +24593,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -24495,6 +24707,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -24610,6 +24823,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -24729,6 +24943,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -24842,6 +25057,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -24965,6 +25181,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -25078,6 +25295,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -25193,6 +25411,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -25310,6 +25529,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -25429,6 +25649,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -25577,6 +25798,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -25710,6 +25932,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -25852,6 +26075,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -25985,6 +26209,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -26106,6 +26331,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -26237,6 +26463,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -26374,6 +26601,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -26510,6 +26738,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -26635,6 +26864,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -26758,6 +26988,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -26878,6 +27109,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -26999,6 +27231,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -27121,6 +27354,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -27248,6 +27482,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -27387,6 +27622,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -27527,6 +27763,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -27653,6 +27890,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -27784,6 +28022,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -27913,6 +28152,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -28030,6 +28270,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28158,6 +28399,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28279,6 +28521,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28400,6 +28643,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28518,6 +28762,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28639,6 +28884,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28757,6 +29003,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28878,6 +29125,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -28996,6 +29244,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -29097,6 +29346,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -29266,6 +29516,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -29379,6 +29630,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -29500,6 +29752,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -29636,6 +29889,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -29736,6 +29990,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -29865,6 +30120,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30002,6 +30258,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30140,6 +30397,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30277,6 +30535,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30408,6 +30667,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30544,6 +30804,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30679,6 +30940,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30812,6 +31074,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -30941,6 +31204,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -31076,6 +31340,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -31219,6 +31484,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -31351,6 +31617,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -31506,6 +31773,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -31638,6 +31906,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -31773,6 +32042,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -31905,6 +32175,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -32031,6 +32302,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -32166,6 +32438,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -32281,6 +32554,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -32402,6 +32676,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -32511,6 +32786,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -32624,6 +32900,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -32741,6 +33018,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -32856,6 +33134,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -32990,6 +33269,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -33088,6 +33368,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -33186,6 +33467,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -33284,6 +33566,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -33374,6 +33657,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -33463,6 +33747,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -33552,6 +33837,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -33650,6 +33936,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -33760,6 +34047,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -33866,6 +34154,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -33980,6 +34269,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34088,6 +34378,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34209,6 +34500,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34318,6 +34610,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34431,6 +34724,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34552,6 +34846,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34657,6 +34952,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34756,6 +35052,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -34871,6 +35168,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -34997,6 +35295,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -35132,6 +35431,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -35245,6 +35545,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -35359,6 +35660,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -35476,6 +35778,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -35585,6 +35888,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -35689,6 +35993,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -35800,6 +36105,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -35968,6 +36274,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -36080,6 +36387,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -36200,6 +36508,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -36336,6 +36645,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -36442,6 +36752,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -36555,6 +36866,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -36690,6 +37002,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -36817,6 +37130,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -36952,6 +37266,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -37070,6 +37385,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -37213,6 +37529,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -37332,6 +37649,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -37459,6 +37777,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -37568,6 +37887,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -37672,6 +37992,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -37785,6 +38106,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -37920,6 +38242,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -38066,6 +38389,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -38225,6 +38549,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -38343,6 +38668,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -38501,6 +38827,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -38620,6 +38947,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -38747,6 +39075,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -38853,6 +39182,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -38954,6 +39284,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -39058,6 +39389,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -39171,6 +39503,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -39306,6 +39639,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -39453,6 +39787,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -39612,6 +39947,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -39727,6 +40063,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -39847,6 +40184,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -40005,6 +40343,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -40128,6 +40467,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -40234,6 +40574,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -40335,6 +40676,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -40439,6 +40781,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -40552,6 +40895,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -40709,6 +41053,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -40882,6 +41227,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41087,6 +41433,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41207,6 +41554,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41411,6 +41759,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41536,6 +41885,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41677,6 +42027,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41782,6 +42133,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41886,6 +42238,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -41997,6 +42350,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -42165,6 +42519,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -42277,6 +42632,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -42397,6 +42753,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -42533,6 +42890,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -42639,6 +42997,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -42772,6 +43131,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -42924,6 +43284,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -43054,6 +43415,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -43188,6 +43550,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -43317,6 +43680,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -43454,6 +43818,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -43592,6 +43957,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -43727,6 +44093,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -43835,6 +44202,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -43947,6 +44315,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -44067,6 +44436,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -44203,6 +44573,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -44309,6 +44680,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -44414,6 +44786,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -44520,6 +44893,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -44612,6 +44986,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -44704,6 +45079,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -44803,6 +45179,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -44902,6 +45279,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45010,6 +45388,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45114,6 +45493,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45221,6 +45601,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45323,6 +45704,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45422,6 +45804,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45522,6 +45905,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45619,6 +46003,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45722,6 +46107,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45831,6 +46217,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -45928,6 +46315,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -46029,6 +46417,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -46123,6 +46512,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -46223,6 +46613,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -46334,6 +46725,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -46449,6 +46841,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -46571,6 +46964,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -46672,6 +47066,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -46775,6 +47170,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -46882,6 +47278,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -46976,6 +47373,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -47068,6 +47466,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47168,6 +47567,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47271,6 +47671,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47383,6 +47784,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47487,6 +47889,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47588,6 +47991,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47691,6 +48095,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47797,6 +48202,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -47897,6 +48303,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48009,6 +48416,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48124,6 +48532,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48248,6 +48657,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48364,6 +48774,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48477,6 +48888,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48592,6 +49004,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48710,6 +49123,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48822,6 +49236,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -48934,6 +49349,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49057,6 +49473,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49184,6 +49601,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49318,6 +49736,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49431,6 +49850,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49546,6 +49966,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49665,6 +50086,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49771,6 +50193,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -49875,6 +50298,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -49987,6 +50411,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -50110,6 +50535,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -50240,6 +50666,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -50375,6 +50802,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -50488,6 +50916,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -50603,6 +51032,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -50722,6 +51152,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -50831,6 +51262,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -50935,6 +51367,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51036,6 +51469,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51147,6 +51581,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51265,6 +51700,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51388,6 +51824,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51489,6 +51926,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51592,6 +52030,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51699,6 +52138,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51796,6 +52236,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -51888,6 +52329,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -51992,6 +52434,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52103,6 +52546,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52204,6 +52648,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52306,6 +52751,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52411,6 +52857,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52508,6 +52955,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -52600,6 +53048,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52701,6 +53150,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52810,6 +53260,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -52917,6 +53368,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53028,6 +53480,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53131,6 +53584,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53241,6 +53695,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53352,6 +53807,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53462,6 +53918,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53571,6 +54028,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53668,6 +54126,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -53763,6 +54222,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -53864,6 +54324,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54009,6 +54470,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54170,6 +54632,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54275,6 +54738,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54388,6 +54852,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54517,6 +54982,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54616,6 +55082,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54702,6 +55169,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54794,6 +55262,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -54907,6 +55376,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55064,6 +55534,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55237,6 +55708,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55354,6 +55826,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55479,6 +55952,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55620,6 +56094,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55731,6 +56206,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55829,6 +56305,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -55933,6 +56410,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -56036,6 +56514,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56149,6 +56628,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56266,6 +56746,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56391,6 +56872,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56497,6 +56979,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56630,6 +57113,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56735,6 +57219,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56844,6 +57329,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -56942,6 +57428,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -57036,6 +57523,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -57151,6 +57639,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -57276,6 +57765,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -57405,6 +57895,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -57542,6 +58033,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -57660,6 +58152,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -57805,6 +58298,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -57922,6 +58416,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -58043,6 +58538,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -58153,6 +58649,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -58259,6 +58756,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -58374,6 +58872,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -58511,6 +59010,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -58656,6 +59156,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -58792,6 +59293,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -58922,6 +59424,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -59066,6 +59569,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -59187,6 +59691,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -59316,6 +59821,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -59433,6 +59939,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -59539,6 +60046,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -59642,6 +60150,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -59767,6 +60276,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -59900,6 +60410,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60024,6 +60535,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60142,6 +60654,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60274,6 +60787,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60383,6 +60897,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60500,6 +61015,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60605,6 +61121,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -60699,6 +61216,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60800,6 +61318,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -60911,6 +61430,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61024,6 +61544,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61141,6 +61662,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61247,6 +61769,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61362,6 +61885,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61478,6 +62002,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61585,6 +62110,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61694,6 +62220,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61794,6 +62321,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -61884,6 +62412,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -61976,6 +62505,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -62078,6 +62608,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -62226,6 +62757,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -62387,6 +62919,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -62492,6 +63025,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -62605,6 +63139,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -62734,6 +63269,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -62833,6 +63369,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -62922,6 +63459,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63014,6 +63552,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63127,6 +63666,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63287,6 +63827,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63460,6 +64001,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63577,6 +64119,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63702,6 +64245,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63843,6 +64387,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -63954,6 +64499,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -64055,6 +64601,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -64159,6 +64706,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -64259,6 +64807,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -64381,6 +64930,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -64511,6 +65061,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -64613,6 +65164,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -64719,6 +65271,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -64833,6 +65386,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -64932,6 +65486,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65033,6 +65588,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65156,6 +65712,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65287,6 +65844,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65434,6 +65992,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65540,6 +66099,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65686,6 +66246,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65793,6 +66354,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -65908,6 +66470,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -66002,6 +66565,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -66091,6 +66655,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -66183,6 +66748,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -66289,6 +66855,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -66439,6 +67006,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -66608,6 +67176,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -66806,6 +67375,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -66919,6 +67489,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67116,6 +67687,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67234,6 +67806,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67368,6 +67941,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67472,6 +68046,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67566,6 +68141,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67660,6 +68236,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67757,6 +68334,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -67875,6 +68453,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -68037,6 +68616,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -68218,6 +68798,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -68428,6 +69009,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -68553,6 +69135,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -68762,6 +69345,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -68892,6 +69476,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -69038,6 +69623,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -69154,6 +69740,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -69260,6 +69847,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -69366,6 +69954,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -69475,6 +70064,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -69569,6 +70159,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -69653,6 +70244,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -69737,6 +70329,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -69821,6 +70414,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -69905,6 +70499,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -70003,6 +70598,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -70124,6 +70720,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -70233,6 +70830,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -70370,6 +70968,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -70539,6 +71138,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -70709,6 +71309,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -71103,6 +71704,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -71486,6 +72088,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -71742,6 +72345,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -71973,6 +72577,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -72127,6 +72732,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72237,6 +72843,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72343,6 +72950,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72449,6 +73057,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72556,6 +73165,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72652,6 +73262,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72761,6 +73372,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72858,6 +73470,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -72959,6 +73572,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -73068,6 +73682,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -73162,6 +73777,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -73262,6 +73878,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -73373,6 +73990,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -73488,6 +74106,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -73610,6 +74229,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -73711,6 +74331,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -73814,6 +74435,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -73921,6 +74543,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74015,6 +74638,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -74107,6 +74731,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74207,6 +74832,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74310,6 +74936,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74422,6 +75049,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74526,6 +75154,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74627,6 +75256,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74730,6 +75360,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74836,6 +75467,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -74936,6 +75568,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75048,6 +75681,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75163,6 +75797,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75287,6 +75922,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75403,6 +76039,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75516,6 +76153,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75631,6 +76269,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75749,6 +76388,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75861,6 +76501,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -75961,6 +76602,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76072,6 +76714,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76187,6 +76830,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76310,6 +76954,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76411,6 +77056,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76514,6 +77160,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76621,6 +77268,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76715,6 +77363,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -76807,6 +77456,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -76920,6 +77570,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77043,6 +77694,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77170,6 +77822,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77304,6 +77957,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77417,6 +78071,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77532,6 +78187,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77651,6 +78307,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77757,6 +78414,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -77861,6 +78519,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -77973,6 +78632,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -78096,6 +78756,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -78226,6 +78887,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -78361,6 +79023,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -78474,6 +79137,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -78589,6 +79253,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -78708,6 +79373,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -78817,6 +79483,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -78921,6 +79588,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79022,6 +79690,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79133,6 +79802,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79251,6 +79921,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79374,6 +80045,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79475,6 +80147,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79578,6 +80251,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79685,6 +80359,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79782,6 +80457,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -79874,6 +80550,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -79975,6 +80652,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80084,6 +80762,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80191,6 +80870,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80302,6 +80982,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80405,6 +81086,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80515,6 +81197,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80626,6 +81309,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80733,6 +81417,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80842,6 +81527,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -80939,6 +81625,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -81034,6 +81721,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -81135,6 +81823,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -81280,6 +81969,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -81441,6 +82131,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -81546,6 +82237,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -81659,6 +82351,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -81788,6 +82481,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -81887,6 +82581,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -81973,6 +82668,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -82065,6 +82761,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -82178,6 +82875,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -82335,6 +83033,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -82508,6 +83207,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -82625,6 +83325,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -82750,6 +83451,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -82891,6 +83593,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -83002,6 +83705,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -83100,6 +83804,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -83204,6 +83909,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -83307,6 +84013,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -83420,6 +84127,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -83537,6 +84245,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -83662,6 +84371,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -83768,6 +84478,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -83901,6 +84612,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84006,6 +84718,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84115,6 +84828,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84213,6 +84927,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -84307,6 +85022,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84422,6 +85138,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84547,6 +85264,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84676,6 +85394,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84813,6 +85532,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -84931,6 +85651,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -85076,6 +85797,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -85193,6 +85915,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -85314,6 +86037,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -85424,6 +86148,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -85530,6 +86255,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -85645,6 +86371,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -85782,6 +86509,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -85927,6 +86655,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -86063,6 +86792,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -86193,6 +86923,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -86337,6 +87068,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -86458,6 +87190,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -86587,6 +87320,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -86704,6 +87438,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -86810,6 +87545,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -86913,6 +87649,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87038,6 +87775,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87171,6 +87909,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87295,6 +88034,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87413,6 +88153,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87545,6 +88286,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87654,6 +88396,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87771,6 +88514,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -87876,6 +88620,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -87970,6 +88715,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88071,6 +88817,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88182,6 +88929,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88295,6 +89043,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88412,6 +89161,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88518,6 +89268,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88633,6 +89384,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88749,6 +89501,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88856,6 +89609,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -88965,6 +89719,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -89065,6 +89820,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -89155,6 +89911,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -89247,6 +90004,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -89349,6 +90107,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -89497,6 +90256,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -89658,6 +90418,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -89763,6 +90524,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -89876,6 +90638,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90005,6 +90768,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90104,6 +90868,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90193,6 +90958,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90285,6 +91051,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90398,6 +91165,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90558,6 +91326,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90731,6 +91500,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90848,6 +91618,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -90973,6 +91744,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -91114,6 +91886,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -91225,6 +91998,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -91326,6 +92100,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -91430,6 +92205,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.6
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -91531,6 +92307,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -91654,6 +92431,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -91785,6 +92563,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -91932,6 +92711,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -92038,6 +92818,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -92184,6 +92965,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -92291,6 +93073,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -92406,6 +93189,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -92500,6 +93284,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -92589,6 +93374,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -92681,6 +93467,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -92782,6 +93569,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -92905,6 +93693,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -93036,6 +93825,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -93142,6 +93932,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -93272,6 +94063,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -93379,6 +94171,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -93494,6 +94287,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -93588,6 +94382,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -93677,6 +94472,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -93769,6 +94565,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -93875,6 +94672,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -94025,6 +94823,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -94194,6 +94993,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -94392,6 +95192,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -94505,6 +95306,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -94702,6 +95504,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -94820,6 +95623,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -94954,6 +95758,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -95058,6 +95863,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -95152,6 +95958,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -95246,6 +96053,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -95343,6 +96151,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -95461,6 +96270,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -95623,6 +96433,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -95804,6 +96615,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96014,6 +96826,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96139,6 +96952,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96348,6 +97162,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96478,6 +97293,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96624,6 +97440,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96740,6 +97557,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96846,6 +97664,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -96952,6 +97771,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -97061,6 +97881,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -97148,6 +97969,7 @@
     "x86_64"
    ]
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97227,6 +98049,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97305,6 +98128,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97384,6 +98208,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97463,6 +98288,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97542,6 +98368,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.4
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97620,6 +98447,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97698,6 +98526,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -97789,6 +98618,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -97889,6 +98719,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -97988,6 +98819,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98087,6 +98919,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98186,6 +99019,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98285,6 +99119,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98384,6 +99219,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98483,6 +99319,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98583,6 +99420,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98682,6 +99520,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98781,6 +99620,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98880,6 +99720,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -98979,6 +99820,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -99078,6 +99920,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.2
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -99177,6 +100020,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -99281,6 +100125,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -99379,6 +100224,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -99477,6 +100323,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -99575,6 +100422,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -99673,6 +100521,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -99771,6 +100620,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -99895,6 +100745,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -100077,6 +100928,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -100354,6 +101206,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -100618,6 +101471,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -100759,6 +101613,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -100878,6 +101733,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -100997,6 +101853,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -101116,6 +101973,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -101235,6 +102093,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -101354,6 +102213,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -101472,6 +102332,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.1
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -101599,6 +102460,7 @@
    ],
    "SustainedClockSpeedInGhz": 1.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -101755,6 +102617,7 @@
    ],
    "SustainedClockSpeedInGhz": 1.9
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -101911,6 +102774,7 @@
    ],
    "SustainedClockSpeedInGhz": 1.9
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -102075,6 +102939,7 @@
    ],
    "SustainedClockSpeedInGhz": 1.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -102239,6 +103104,7 @@
    ],
    "SustainedClockSpeedInGhz": 1.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -102403,6 +103269,7 @@
    ],
    "SustainedClockSpeedInGhz": 1.9
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -102566,6 +103433,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -102674,6 +103542,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -102780,6 +103649,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -102887,6 +103757,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103009,6 +103880,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103131,6 +104003,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103252,6 +104125,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103361,6 +104235,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103482,6 +104357,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103595,6 +104471,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103716,6 +104593,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.3
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -103823,6 +104701,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -103975,6 +104854,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104143,6 +105023,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104255,6 +105136,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104375,6 +105257,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104511,6 +105394,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104617,6 +105501,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104715,6 +105600,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104814,6 +105700,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -104927,6 +105814,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -105054,6 +105942,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -105192,6 +106081,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -105332,6 +106222,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -105436,6 +106327,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -105563,6 +106455,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -105698,6 +106591,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -105814,6 +106708,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -105957,6 +106852,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106072,6 +106968,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106188,6 +107085,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -106292,6 +107190,7 @@
    ],
    "SustainedClockSpeedInGhz": 3.5
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106396,6 +107295,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106507,6 +107407,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106608,6 +107509,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106711,6 +107613,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106816,6 +107719,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -106920,6 +107824,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.5
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -107017,6 +107922,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -107167,6 +108073,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -107336,6 +108243,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -107534,6 +108442,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -107647,6 +108556,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -107844,6 +108754,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -107962,6 +108873,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -108096,6 +109008,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -108200,6 +109113,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -108294,6 +109208,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -108388,6 +109303,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.7
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -108485,6 +109401,7 @@
    ],
    "SustainedClockSpeedInGhz": 2.8
   },
+  "RebootMigrationSupport": "supported",
   "SupportedBootModes": [
    "uefi"
   ],
@@ -108598,6 +109515,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -108720,6 +109638,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -108833,6 +109752,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -108947,6 +109867,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -109064,6 +109985,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
@@ -109170,6 +110092,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios"
   ],
@@ -109274,6 +110197,7 @@
    ],
    "SustainedClockSpeedInGhz": 4.0
   },
+  "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
    "legacy-bios",
    "uefi"
