@@ -798,7 +798,7 @@ class SecurityGroupBackend:
     def modify_security_group_rules(
         self,
         group_id: str,
-        rules: dict[str, dict],
+        rules: dict[str, dict[str, Any]],
     ) -> None:
         group = self.get_security_group_by_name_or_id(group_id)
         if group is None:
