@@ -834,13 +834,8 @@ class SecurityGroupBackend:
                 )
 
             from_port = new_rule.get("FromPort")
-            if from_port is None:
-                raise InvalidParameterValue(
-                    "Invalid value for portRange. Must specify both from and to ports with TCP/UDP."
-                )
-
             to_port = new_rule.get("ToPort")
-            if to_port is None:
+            if from_port is None or to_port is None:
                 raise InvalidParameterValue(
                     "Invalid value for portRange. Must specify both from and to ports with TCP/UDP."
                 )
