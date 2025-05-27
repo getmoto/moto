@@ -3140,6 +3140,10 @@
   "Location": "use2-az1"
  },
  {
+  "InstanceType": "u-18tb1.112xlarge",
+  "Location": "use2-az1"
+ },
+ {
   "InstanceType": "u-24tb1.112xlarge",
   "Location": "use2-az1"
  },

@@ -221,6 +221,19 @@ class SecurityGroups(EC2BaseResponse):
             self.ec2_backend.revoke_security_group_ingress(**args)
         return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
 
+    def modify_security_group_rules(self) -> str:
+        self.error_on_dryrun()
+
+        rules = {}
+        security_group_rules_param = self._get_params()["SecurityGroupRule"]
+        for idx, sgr in security_group_rules_param.items():
+            rules[sgr["SecurityGroupRuleId"]] = sgr["SecurityGroupRule"]
+
+        group_id = self._get_param("GroupId")
+        self.ec2_backend.modify_security_group_rules(group_id, rules)
+
+        return MODIFY_SECURITY_GROUP_RULES_RESPONSE
+
     def update_security_group_rule_descriptions_ingress(self) -> str:
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
@@ -576,6 +589,13 @@ REVOKE_SECURITY_GROUP_EGRESS_RESPONSE = """<RevokeSecurityGroupEgressResponse xm
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </RevokeSecurityGroupEgressResponse>"""
+
+MODIFY_SECURITY_GROUP_RULES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ModifySecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>04d8f970-9213-41fa-81d2-50825EXAMPLE</requestId>
+  <return>true</return>
+</ModifySecurityGroupRulesResponse>
+"""
 
 UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS = """<UpdateSecurityGroupRuleDescriptionsIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

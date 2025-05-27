@@ -28,7 +28,7 @@ ram
 - [X] enable_sharing_with_aws_organization
 - [ ] get_permission
 - [ ] get_resource_policies
-- [ ] get_resource_share_associations
+- [X] get_resource_share_associations
 - [ ] get_resource_share_invitations
 - [X] get_resource_shares
 - [ ] list_pending_invitation_resources

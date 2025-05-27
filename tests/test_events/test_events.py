@@ -853,25 +853,35 @@ def test_describe_event_bus():
     client = boto3.client("events", "us-east-1")
 
     response = client.describe_event_bus()
-
     assert response["Name"] == "default"
     assert response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/default"
     assert "Policy" not in response
+    assert "CreationTime" in response
+    assert "LastModifiedTime" in response
 
-    client.create_event_bus(Name="test-bus")
+    bus_name = "test-bus"
+    client.create_event_bus(
+        Name=bus_name,
+        Description="Test description",
+        KmsKeyIdentifier="arn:aws:kms:us-east-1:123456789012:key/test",
+        DeadLetterConfig={"Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"},
+    )
+
     client.put_permission(
-        EventBusName="test-bus",
+        EventBusName=bus_name,
         Action="events:PutEvents",
         Principal="111111111111",
         StatementId="test",
     )
 
-    response = client.describe_event_bus(Name="test-bus")
+    response = client.describe_event_bus(Name=bus_name)
 
-    assert response["Name"] == "test-bus"
+    assert response["Name"] == bus_name
     assert (
-        response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/test-bus"
+        response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/{bus_name}"
     )
+    assert "CreationTime" in response
+    assert "LastModifiedTime" in response
     assert json.loads(response["Policy"]) == {
         "Version": "2012-10-17",
         "Statement": [
@@ -880,9 +890,15 @@ def test_describe_event_bus():
                 "Effect": "Allow",
                 "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
                 "Action": "events:PutEvents",
-                "Resource": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/test-bus",
+                "Resource": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/{bus_name}",
             }
         ],
+    }
+
+    assert response["Description"] == "Test description"
+    assert response["KmsKeyIdentifier"] == "arn:aws:kms:us-east-1:123456789012:key/test"
+    assert response["DeadLetterConfig"] == {
+        "Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"
     }
 
 

@@ -153,7 +153,7 @@ def write_documentation(supported):
         file.write("\n\n")
 
         max_resource_name_length = max([len(cf.resource_name) for cf in supported]) + 2
-        max_fn_att_length = 40
+        max_fn_att_length = 75
 
         file.write(".. table:: \n\n")
         file.write(
