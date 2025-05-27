@@ -1028,7 +1028,7 @@
 - [X] delete_directory
 - [ ] delete_facet
 - [ ] delete_object
-- [ ] delete_schema
+- [X] delete_schema
 - [ ] delete_typed_link_facet
 - [ ] detach_from_index
 - [ ] detach_object
