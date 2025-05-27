@@ -20,7 +20,19 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "directory_arn",
-    }
+    },
+    "list_development_schema_arns": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "schema_arn",
+    },
+    "list_published_schema_arns": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "schema_arn",
+    },
 }
 
 
@@ -67,8 +79,6 @@ class CloudDirectoryBackend(BaseBackend):
             raise ResourceNotFoundException(directory_arn)
         if published_schema_arn not in self.schemas_states["published"]:
             raise ResourceNotFoundException(published_schema_arn)
-        # if directory.schema_arn != None:
-        #     raise SchemaAlreadyExistsException(published_schema_arn)
         directory.schema_arn = published_schema_arn
         return
 
@@ -94,6 +104,27 @@ class CloudDirectoryBackend(BaseBackend):
         self.schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/development/{name}"
         self.schemas_states["development"].append(self.schema_arn)
         return self.schema_arn
+
+    def delete_schema(self, schema_arn: str) -> None:
+        if schema_arn in self.schemas_states["development"]:
+            self.schemas_states["development"].remove(schema_arn)
+        elif schema_arn in self.schemas_states["published"]:
+            self.schemas_states["published"].remove(schema_arn)
+        else:
+            raise ResourceNotFoundException(schema_arn)
+        return
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_development_schema_arns(
+        self, next_token=None, max_results=None
+    ) -> List[str]:
+        return self.schemas_states["development"]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_published_schema_arns(
+        self, next_token=None, max_results=None
+    ) -> List[str]:
+        return self.schemas_states["published"]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_directories(self, state: str) -> List[Directory]:

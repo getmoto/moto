@@ -1040,7 +1040,7 @@
 - [ ] get_typed_link_facet_information
 - [ ] list_applied_schema_arns
 - [ ] list_attached_indices
-- [ ] list_development_schema_arns
+- [X] list_development_schema_arns
 - [X] list_directories
 - [ ] list_facet_attributes
 - [ ] list_facet_names
@@ -1054,7 +1054,7 @@
 - [ ] list_object_policies
 - [ ] list_outgoing_typed_links
 - [ ] list_policy_attachments
-- [ ] list_published_schema_arns
+- [X] list_published_schema_arns
 - [X] list_tags_for_resource
 - [ ] list_typed_link_facet_attributes
 - [ ] list_typed_link_facet_names

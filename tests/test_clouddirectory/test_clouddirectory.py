@@ -74,6 +74,57 @@ def test_create_schema():
 
 
 @mock_aws
+def test_list_development_schema_arns():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn1 = client.create_schema(Name="test-schema1")["SchemaArn"]
+    schema_arn2 = client.create_schema(Name="test-schema2")["SchemaArn"]
+
+    resp = client.list_development_schema_arns()
+    assert len(resp["SchemaArns"]) == 2
+    assert schema_arn1 in resp["SchemaArns"]
+    assert schema_arn2 in resp["SchemaArns"]
+
+
+@mock_aws
+def test_list_published_schema_arns():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn1 = client.create_schema(Name="test-schema1")["SchemaArn"]
+    schema_arn2 = client.create_schema(Name="test-schema2")["SchemaArn"]
+
+    published_arn1 = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn1,
+        Name="test-schema1",
+        Version="1",
+        MinorVersion="0",
+    )["PublishedSchemaArn"]
+
+    published_arn2 = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn2,
+        Name="test-schema2",
+        Version="1",
+        MinorVersion="0",
+    )["PublishedSchemaArn"]
+
+    resp = client.list_published_schema_arns()
+    assert len(resp["SchemaArns"]) == 2
+    assert published_arn1 in resp["SchemaArns"]
+    assert published_arn2 in resp["SchemaArns"]
+
+
+@mock_aws
+def test_delete_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn = client.create_schema(Name="test-schema")["SchemaArn"]
+    client.create_directory(SchemaArn=schema_arn, Name="test-directory")
+    client.delete_schema(SchemaArn=schema_arn)
+    resp = client.list_development_schema_arns()
+    assert len(resp["SchemaArns"]) == 0
+
+
+@mock_aws
 def test_list_directories():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)

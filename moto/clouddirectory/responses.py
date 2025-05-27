@@ -106,6 +106,33 @@ class CloudDirectoryResponse(BaseResponse):
         )
         return json.dumps(dict(DirectoryArn=directory_arn))
 
+    def delete_schema(self) -> str:
+        # Retrieve arn from headers
+        # https://docs.aws.amazon.com/clouddirectory/latest/APIReference/API_DeleteSchema.html
+        arn = self.headers.get("x-amz-data-partition")
+        self.clouddirectory_backend.delete_schema(
+            schema_arn=arn,
+        )
+        return json.dumps(dict(SchemaArn=arn))
+
+    def list_development_schema_arns(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        schemas, next_token = self.clouddirectory_backend.list_development_schema_arns(
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(dict(SchemaArns=schemas, NextToken=next_token))
+
+    def list_published_schema_arns(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        schemas, next_token = self.clouddirectory_backend.list_published_schema_arns(
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(dict(SchemaArns=schemas, NextToken=next_token))
+
     def get_directory(self) -> str:
         # Retrieve arn from headers
         # https://docs.aws.amazon.com/clouddirectory/latest/APIReference/API_GetDirectory.html
