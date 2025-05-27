@@ -8,7 +8,11 @@ from moto.core.common_models import BaseModel
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import InvalidArnException
+from .exceptions import (
+    InvalidArnException,
+    ResourceNotFoundException,
+    SchemaAlreadyExistsException,
+)
 
 PAGINATION_MODEL = {
     "list_directories": {
@@ -50,7 +54,27 @@ class CloudDirectoryBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.directories: Dict[str, Directory] = {}
+        self.schemas_states: Dict[str, List[str]] = {
+            "published": [],
+            "development": [],
+            "applied": [],
+        }
         self.tagger = TaggingService()
+
+    def apply_schema(self, directory_arn: str, published_schema_arn: str) -> None:
+        directory = self.directories.get(directory_arn)
+        if not directory:
+            raise ResourceNotFoundException(directory_arn)
+        if published_schema_arn not in self.schemas_states["published"]:
+            raise ResourceNotFoundException(published_schema_arn)
+        if directory.schema_arn:
+            raise SchemaAlreadyExistsException(published_schema_arn)
+        published_schema_arn = (
+            directory.directory_arn.split("directoryId")[0]
+            + published_schema_arn.split("published")[1]
+        )
+        directory.schema_arn = published_schema_arn
+        return
 
     def create_directory(self, name: str, schema_arn: str) -> Directory:
         directory = Directory(self.account_id, self.region_name, name, schema_arn)

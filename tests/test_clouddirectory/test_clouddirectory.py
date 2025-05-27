@@ -7,6 +7,28 @@ from tests import DEFAULT_ACCOUNT_ID
 
 
 @mock_aws
+def test_apply_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
+    directory = client.create_directory(SchemaArn=schema_arn, Name="test-directory")
+    directory_arn = directory["DirectoryArn"]
+    pub_schema = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn,
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+    pub_schema_arn = pub_schema["PublishedSchemaArn"]
+    resp = client.apply_schema(
+        PublishedSchemaArn=pub_schema_arn, DirectoryArn=directory_arn
+    )
+    assert resp["AppliedSchemaArn"] == pub_schema_arn
+    assert resp["DirectoryArn"] == directory_arn
+
+
+@mock_aws
 def test_create_directory():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)

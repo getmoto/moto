@@ -18,6 +18,20 @@ class CloudDirectoryResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return clouddirectory_backends[self.current_account][self.region]
 
+    def apply_schema(self) -> str:
+        directory_arn = self.headers.get("x-amz-data-partition")
+        published_schema_arn = self._get_param("PublishedSchemaArn")
+        self.clouddirectory_backend.apply_schema(
+            directory_arn=directory_arn,
+            published_schema_arn=published_schema_arn,
+        )
+        return json.dumps(
+            {
+                "AppliedSchemaArn": published_schema_arn,
+                "DirectoryArn": directory_arn,
+            }
+        )
+
     def create_directory(self) -> str:
         name = self._get_param("Name")
         schema_arn = self.headers.get("x-amz-data-partition")
