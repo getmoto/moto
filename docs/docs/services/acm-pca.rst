@@ -51,7 +51,11 @@ acm-pca
         Some fields of the resulting certificate will have default values, instead of using the CSR
         
 
-- [ ] list_certificate_authorities
+- [X] list_certificate_authorities
+  
+        Lists the private certificate authorities that you created by using the CreateCertificateAuthority action.
+        
+
 - [ ] list_permissions
 - [X] list_tags
   

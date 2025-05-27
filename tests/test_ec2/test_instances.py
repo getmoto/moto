@@ -3018,3 +3018,52 @@ def test_instance_without_default_subnet():
     client.run_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SubnetId=subnet["SubnetId"]
     )
+
+
+@mock_aws
+def test_modify_instance_metadata_options():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+
+    instances = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t2.micro",
+    ).get("Instances")
+
+    instance_id = [i["InstanceId"] for i in instances]
+
+    # Verify the original
+    metadata_options = instances[0]["MetadataOptions"]
+    assert metadata_options == {
+        "HttpTokens": "optional",
+        "HttpPutResponseHopLimit": 1,
+        "HttpEndpoint": "enabled",
+        "HttpProtocolIpv6": "disabled",
+        "InstanceMetadataTags": "disabled",
+    }
+
+    # Change the defaults
+    ec2.modify_instance_metadata_options(
+        InstanceId=instance_id[0],
+        HttpTokens="required",
+        HttpPutResponseHopLimit=2,
+        HttpEndpoint="disabled",
+        DryRun=False,
+        HttpProtocolIpv6="enabled",
+        InstanceMetadataTags="enabled",
+    )
+
+    response = ec2.describe_instances(InstanceIds=instance_id)
+
+    # Verify the updated fields
+    updated_metadata_options = response["Reservations"][0]["Instances"][0][
+        "MetadataOptions"
+    ]
+    assert updated_metadata_options == {
+        "HttpTokens": "required",
+        "HttpPutResponseHopLimit": 2,
+        "HttpEndpoint": "disabled",
+        "HttpProtocolIpv6": "enabled",
+        "InstanceMetadataTags": "enabled",
+    }
