@@ -3185,7 +3185,7 @@
 - [ ] modify_public_ip_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_route_server
-- [ ] modify_security_group_rules
+- [X] modify_security_group_rules
 - [ ] modify_snapshot_attribute
 - [ ] modify_snapshot_tier
 - [X] modify_spot_fleet_request
