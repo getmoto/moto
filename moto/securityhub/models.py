@@ -7,6 +7,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.exceptions import RESTError
 from moto.organizations.exceptions import AWSOrganizationsNotInUseException
+from moto.organizations.models import organizations_backends
 from moto.securityhub.exceptions import InvalidInputException
 from moto.utilities.paginator import paginate
 
@@ -33,20 +34,34 @@ class SecurityHubBackend(BaseBackend):
         }
     }
 
-    # Organization-wide configurations
-    _org_admin_account_id: Optional[str] = None
-    _org_auto_enable: bool = False
-    _org_auto_enable_standards: str = "DEFAULT"
-    _org_configuration: Dict[str, Any] = {
-        "ConfigurationType": "LOCAL",
-        "Status": "ENABLED",
-        "StatusMessage": "",
-    }
+    _org_configs: Dict[str, Dict[str, Any]] = {}
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.findings: List[Finding] = []
         self.region_name = region_name
+        self.org_backend = organizations_backends[self.account_id]["aws"]
+
+    def _get_org_config(self) -> Dict[str, Any]:
+        """Get organization config for the current account."""
+        try:
+            org = self.org_backend.describe_organization()
+            org_id = org["Organization"]["Id"]
+        except RESTError:
+            raise AWSOrganizationsNotInUseException()
+
+        if org_id not in SecurityHubBackend._org_configs:
+            SecurityHubBackend._org_configs[org_id] = {
+                "admin_account_id": None,
+                "auto_enable": False,
+                "auto_enable_standards": "DEFAULT",
+                "configuration": {
+                    "ConfigurationType": "LOCAL",
+                    "Status": "ENABLED",
+                    "StatusMessage": "",
+                },
+            }
+        return SecurityHubBackend._org_configs[org_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_findings(
@@ -133,12 +148,9 @@ class SecurityHubBackend(BaseBackend):
         return failed_count, success_count, failed_findings
 
     def enable_organization_admin_account(self, admin_account_id: str) -> None:
-        from moto.organizations.models import organizations_backends
-
-        org_backend = organizations_backends[self.account_id]["aws"]
-
         try:
-            org = org_backend.describe_organization()
+            org = self.org_backend.describe_organization()
+            org_id = org["Organization"]["Id"]
         except RESTError:
             raise AWSOrganizationsNotInUseException()
 
@@ -149,14 +161,15 @@ class SecurityHubBackend(BaseBackend):
             )
 
         try:
-            org_backend.get_account_by_id(admin_account_id)
+            self.org_backend.get_account_by_id(admin_account_id)
         except RESTError:
             raise RESTError(
                 "ValidationException",
-                f"Account {admin_account_id} is not part of organization {org['Organization']['Id']}",
+                f"Account {admin_account_id} is not part of organization {org_id}",
             )
 
-        SecurityHubBackend._org_admin_account_id = admin_account_id
+        org_config = self._get_org_config()
+        org_config["admin_account_id"] = admin_account_id
 
     def update_organization_configuration(
         self,
@@ -164,12 +177,13 @@ class SecurityHubBackend(BaseBackend):
         auto_enable_standards: Optional[str] = None,
         organization_configuration: Optional[Dict[str, Any]] = None,
     ) -> None:
-        if not SecurityHubBackend._org_admin_account_id:
+        org_config = self._get_org_config()
+        if not org_config["admin_account_id"]:
             raise RESTError(
                 "AccessDeniedException", "No administrator account has been designated"
             )
 
-        if self.account_id != SecurityHubBackend._org_admin_account_id:
+        if self.account_id != org_config["admin_account_id"]:
             raise RESTError(
                 "AccessDeniedException",
                 "You do not have sufficient access to perform this action.",
@@ -202,9 +216,9 @@ class SecurityHubBackend(BaseBackend):
                         "AutoEnableStandards must be NONE when ConfigurationType is CENTRAL",
                     )
 
-            SecurityHubBackend._org_configuration = organization_configuration
+            org_config["configuration"] = organization_configuration
 
-        SecurityHubBackend._org_auto_enable = auto_enable
+        org_config["auto_enable"] = auto_enable
 
         if auto_enable_standards is not None:
             if auto_enable_standards not in ["NONE", "DEFAULT"]:
@@ -212,63 +226,60 @@ class SecurityHubBackend(BaseBackend):
                     "ValidationException",
                     "AutoEnableStandards must be either NONE or DEFAULT",
                 )
-            SecurityHubBackend._org_auto_enable_standards = auto_enable_standards
+            org_config["auto_enable_standards"] = auto_enable_standards
 
     def get_administrator_account(self) -> Dict[str, Any]:
-        if not SecurityHubBackend._org_admin_account_id:
-            return {}
-
-        from moto.organizations.models import organizations_backends
-
-        org_backend = organizations_backends[self.account_id]["aws"]
-
         try:
-            org = org_backend.describe_organization()
+            org = self.org_backend.describe_organization()
             management_account_id = org["Organization"]["MasterAccountId"]
         except RESTError:
             return {}
 
+        org_config = self._get_org_config()
+        admin_account_id = org_config["admin_account_id"]
+
+        if not admin_account_id:
+            return {}
+
         if (
             self.account_id == management_account_id
-            or self.account_id == SecurityHubBackend._org_admin_account_id
+            or self.account_id == admin_account_id
         ):
             return {}
 
         return {
             "Administrator": {
-                "AccountId": SecurityHubBackend._org_admin_account_id,
+                "AccountId": admin_account_id,
                 "MemberStatus": "ENABLED",
-                "InvitationId": f"invitation-{SecurityHubBackend._org_admin_account_id}",
+                "InvitationId": f"invitation-{admin_account_id}",
                 "InvitedAt": datetime.datetime.now().isoformat(),
             }
         }
 
     def describe_organization_configuration(self) -> Dict[str, Any]:
-        from moto.organizations.models import organizations_backends
-
-        org_backend = organizations_backends[self.account_id]["aws"]
-
         try:
-            org_backend.describe_organization()
+            self.org_backend.describe_organization()
         except RESTError:
             raise AWSOrganizationsNotInUseException()
 
-        if not SecurityHubBackend._org_admin_account_id:
+        org_config = self._get_org_config()
+        if not org_config["admin_account_id"]:
             raise RESTError(
-                "AccessDeniedException", "No administrator account has been designated"
+                "AccessDeniedException",
+                "You do not have sufficient access to perform this action.",
             )
 
-        if self.account_id != SecurityHubBackend._org_admin_account_id:
+        if self.account_id != org_config["admin_account_id"]:
             raise RESTError(
                 "AccessDeniedException",
                 "You do not have sufficient access to perform this action.",
             )
 
         return {
-            "AutoEnable": SecurityHubBackend._org_auto_enable,
+            "AutoEnable": org_config["auto_enable"],
             "MemberAccountLimitReached": False,
-            "AutoEnableStandards": SecurityHubBackend._org_auto_enable_standards,
-            "OrganizationConfiguration": SecurityHubBackend._org_configuration,
+            "AutoEnableStandards": org_config["auto_enable_standards"],
+            "OrganizationConfiguration": org_config["configuration"],
         }
 
 

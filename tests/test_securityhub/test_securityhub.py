@@ -499,3 +499,81 @@ def test_describe_organization_configuration_access_control():
         assert (
             "You do not have sufficient access to perform this action" in err["Message"]
         )
+
+
+@mock_aws
+def test_multiple_admin_member_relationships():
+    """Different accounts can be admins of different member accounts.
+    - Account A is admin of Account B
+    - Account C is admin of Account D
+    """
+    org_client_1 = boto3.client("organizations", region_name="us-east-1")
+    org_client_1.create_organization(FeatureSet="ALL")
+
+    org_client_1.create_account(
+        AccountName="AdminA",
+        Email="admin.a@bestcompany.com",
+    )
+    org_client_1.create_account(
+        AccountName="MemberB",
+        Email="member.b@bestcompany.com",
+    )
+
+    accounts_1 = org_client_1.list_accounts()["Accounts"]
+    admin_a = next(acc for acc in accounts_1 if acc["Name"] == "AdminA")
+    member_b = next(acc for acc in accounts_1 if acc["Name"] == "MemberB")
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": "999999999999"}):
+        org_client_2 = boto3.client("organizations", region_name="us-east-1")
+        org_client_2.create_organization(FeatureSet="ALL")
+
+        # Create accounts C and D
+        org_client_2.create_account(
+            AccountName="AdminC",
+            Email="admin.c@bestcompany.com",
+        )
+        org_client_2.create_account(
+            AccountName="MemberD",
+            Email="member.d@bestcompany.com",
+        )
+
+        accounts_2 = org_client_2.list_accounts()["Accounts"]
+        admin_c = next(acc for acc in accounts_2 if acc["Name"] == "AdminC")
+        member_d = next(acc for acc in accounts_2 if acc["Name"] == "MemberD")
+
+    # Setup A as admin of B
+    client_1 = boto3.client("securityhub", region_name="us-east-1")
+    client_1.enable_organization_admin_account(AdminAccountId=admin_a["Id"])
+
+    # Setup C as admin of D
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": "999999999999"}):
+        client_2 = boto3.client("securityhub", region_name="us-east-1")
+        client_2.enable_organization_admin_account(AdminAccountId=admin_c["Id"])
+
+    # Verify B sees A as its admin
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_b["Id"]}):
+        member_b_client = boto3.client("securityhub", region_name="us-east-1")
+        admin_response_b = member_b_client.get_administrator_account()
+        assert "Administrator" in admin_response_b
+        assert admin_response_b["Administrator"]["AccountId"] == admin_a["Id"]
+
+    # Verify D sees C as its admin
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_d["Id"]}):
+        member_d_client = boto3.client("securityhub", region_name="us-east-1")
+        admin_response_d = member_d_client.get_administrator_account()
+        assert "Administrator" in admin_response_d
+        assert admin_response_d["Administrator"]["AccountId"] == admin_c["Id"]
+
+    # Verify B doesn't see C as its admin
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_b["Id"]}):
+        member_b_client = boto3.client("securityhub", region_name="us-east-1")
+        admin_response_b = member_b_client.get_administrator_account()
+        assert "Administrator" in admin_response_b
+        assert admin_response_b["Administrator"]["AccountId"] != admin_c["Id"]
+
+    # Verify D doesn't see A as its admin
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_d["Id"]}):
+        member_d_client = boto3.client("securityhub", region_name="us-east-1")
+        admin_response_d = member_d_client.get_administrator_account()
+        assert "Administrator" in admin_response_d
+        assert admin_response_d["Administrator"]["AccountId"] != admin_a["Id"]
