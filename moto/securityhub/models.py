@@ -33,7 +33,7 @@ class SecurityHubBackend(BaseBackend):
         }
     }
 
-    # Class-level variables to store organization-wide configuration
+    # Organization-wide configurations
     _org_admin_account_id: Optional[str] = None
     _org_auto_enable: bool = False
     _org_auto_enable_standards: str = "DEFAULT"
@@ -133,13 +133,8 @@ class SecurityHubBackend(BaseBackend):
         return failed_count, success_count, failed_findings
 
     def enable_organization_admin_account(self, admin_account_id: str) -> None:
-        """
-        Designates the Security Hub administrator account for an organization.
-        Can only be called by the organization management account.
-        """
         from moto.organizations.models import organizations_backends
 
-        # Organizations is a global service, so we use 'aws' as the region
         org_backend = organizations_backends[self.account_id]["aws"]
 
         try:
@@ -147,14 +142,12 @@ class SecurityHubBackend(BaseBackend):
         except RESTError:
             raise AWSOrganizationsNotInUseException()
 
-        # Verify this is being called by the management account
         if self.account_id != org["Organization"]["MasterAccountId"]:
             raise RESTError(
                 "AccessDeniedException",
                 "You do not have sufficient access to perform this action.",
             )
 
-        # Verify the admin account exists in the organization
         try:
             org_backend.get_account_by_id(admin_account_id)
         except RESTError:
@@ -171,21 +164,6 @@ class SecurityHubBackend(BaseBackend):
         auto_enable_standards: Optional[str] = None,
         organization_configuration: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """
-        Updates Security Hub configuration settings for an organization.
-        Can only be called by the Security Hub administrator account.
-        """
-        from moto.organizations.models import organizations_backends
-
-        # Organizations is a global service, so we use 'aws' as the region
-        org_backend = organizations_backends[self.account_id]["aws"]
-
-        try:
-            org = org_backend.describe_organization()
-        except RESTError:
-            raise AWSOrganizationsNotInUseException()
-
-        # Verify this is being called by the admin account
         if not SecurityHubBackend._org_admin_account_id:
             raise RESTError(
                 "AccessDeniedException", "No administrator account has been designated"
@@ -197,7 +175,6 @@ class SecurityHubBackend(BaseBackend):
                 "You do not have sufficient access to perform this action.",
             )
 
-        # If organization_configuration is provided, validate and apply it
         if organization_configuration:
             config_type = organization_configuration.get("ConfigurationType")
             if config_type not in ["CENTRAL", "LOCAL"]:
@@ -213,7 +190,6 @@ class SecurityHubBackend(BaseBackend):
                     "Status must be one of PENDING, ENABLED, or FAILED",
                 )
 
-            # If ConfigurationType is CENTRAL, enforce restrictions
             if config_type == "CENTRAL":
                 if auto_enable:
                     raise RESTError(
@@ -228,10 +204,8 @@ class SecurityHubBackend(BaseBackend):
 
             SecurityHubBackend._org_configuration = organization_configuration
 
-        # Update auto_enable setting
         SecurityHubBackend._org_auto_enable = auto_enable
 
-        # Update auto_enable_standards if provided
         if auto_enable_standards is not None:
             if auto_enable_standards not in ["NONE", "DEFAULT"]:
                 raise RESTError(
@@ -241,16 +215,11 @@ class SecurityHubBackend(BaseBackend):
             SecurityHubBackend._org_auto_enable_standards = auto_enable_standards
 
     def get_administrator_account(self) -> Dict[str, Any]:
-        """
-        Returns details about the Security Hub administrator account for the current member account.
-        Can be used by both member accounts that are managed using Organizations and accounts that were invited manually.
-        """
         if not SecurityHubBackend._org_admin_account_id:
             return {}
 
         from moto.organizations.models import organizations_backends
 
-        # Organizations is a global service, so we use 'aws' as the region
         org_backend = organizations_backends[self.account_id]["aws"]
 
         try:
@@ -259,14 +228,12 @@ class SecurityHubBackend(BaseBackend):
         except RESTError:
             return {}
 
-        # Return empty response if this is the management account or admin account
         if (
             self.account_id == management_account_id
             or self.account_id == SecurityHubBackend._org_admin_account_id
         ):
             return {}
 
-        # Return administrator details for member accounts
         return {
             "Administrator": {
                 "AccountId": SecurityHubBackend._org_admin_account_id,
@@ -277,21 +244,15 @@ class SecurityHubBackend(BaseBackend):
         }
 
     def describe_organization_configuration(self) -> Dict[str, Any]:
-        """
-        Returns details about the Security Hub organization configuration.
-        Only the Security Hub administrator account can invoke this operation.
-        """
         from moto.organizations.models import organizations_backends
 
-        # Organizations is a global service, so we use 'aws' as the region
         org_backend = organizations_backends[self.account_id]["aws"]
 
         try:
-            org = org_backend.describe_organization()
+            org_backend.describe_organization()
         except RESTError:
             raise AWSOrganizationsNotInUseException()
 
-        # Verify this is being called by the admin account
         if not SecurityHubBackend._org_admin_account_id:
             raise RESTError(
                 "AccessDeniedException", "No administrator account has been designated"
