@@ -87,4 +87,5 @@ neptune
 - [X] restore_db_cluster_to_point_in_time
 - [X] start_db_cluster
 - [X] stop_db_cluster
+- [ ] switchover_global_cluster
 

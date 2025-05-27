@@ -480,10 +480,24 @@ def test_end_entity_certificate_issuance():
     )
     builder = cryptography.x509.verification.PolicyBuilder().store(store)
     verifier = builder.build_server_verifier(DNSName("bezoscorp.com"))
-    chain = verifier.verify(
-        cryptography.x509.load_pem_x509_certificate(ee_cert.encode("utf-8")), []
-    )
+    ee_x509 = cryptography.x509.load_pem_x509_certificate(ee_cert.encode("utf-8"))
+    chain = verifier.verify(ee_x509, [])
     assert len(chain) == 2
+
+    # Ensure extensions are passed through
+    san_extension = ee_x509.extensions.get_extension_for_oid(
+        cryptography.x509.oid.ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+    )
+    assert san_extension.value.get_values_for_type(cryptography.x509.OtherName)
+    assert san_extension.value.get_values_for_type(cryptography.x509.RFC822Name) == [
+        "hello@moto.com"
+    ]
+    assert san_extension.value.get_values_for_type(cryptography.x509.DNSName) == [
+        "bezoscorp.com"
+    ]
+    assert san_extension.value.get_values_for_type(
+        cryptography.x509.UniformResourceIdentifier
+    ) == ["https://github.com/getmoto/moto"]
 
 
 @mock_aws
@@ -596,6 +610,22 @@ def create_csr(private_key, country, state, org, cn):
         .add_extension(
             cryptography.x509.BasicConstraints(ca=False, path_length=None),
             critical=True,
+        )
+        .add_extension(
+            cryptography.x509.SubjectAlternativeName(
+                [
+                    cryptography.x509.DNSName(cn),
+                    cryptography.x509.RFC822Name("hello@moto.com"),
+                    cryptography.x509.OtherName(
+                        type_id=cryptography.x509.ObjectIdentifier("2.5.4.3"),
+                        value=b"\x13\x02mo",
+                    ),
+                    cryptography.x509.UniformResourceIdentifier(
+                        "https://github.com/getmoto/moto"
+                    ),
+                ]
+            ),
+            critical=False,
         )
         .sign(private_key, hashes.SHA256())
     )

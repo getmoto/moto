@@ -15,10 +15,13 @@ cloudfront
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_alias
+- [ ] associate_distribution_tenant_web_acl
+- [ ] associate_distribution_web_acl
 - [ ] copy_distribution
 - [ ] create_anycast_ip_list
 - [ ] create_cache_policy
 - [ ] create_cloud_front_origin_access_identity
+- [ ] create_connection_group
 - [ ] create_continuous_deployment_policy
 - [X] create_distribution
   
@@ -27,11 +30,13 @@ cloudfront
         use-case.
         
 
+- [ ] create_distribution_tenant
 - [X] create_distribution_with_tags
 - [ ] create_field_level_encryption_config
 - [ ] create_field_level_encryption_profile
 - [ ] create_function
 - [X] create_invalidation
+- [ ] create_invalidation_for_distribution_tenant
 - [X] create_key_group
 - [ ] create_key_value_store
 - [ ] create_monitoring_subscription
@@ -46,6 +51,7 @@ cloudfront
 - [ ] delete_anycast_ip_list
 - [ ] delete_cache_policy
 - [ ] delete_cloud_front_origin_access_identity
+- [ ] delete_connection_group
 - [ ] delete_continuous_deployment_policy
 - [X] delete_distribution
   
@@ -53,6 +59,7 @@ cloudfront
         Calling this function without a value is invalid, per AWS' behaviour
         
 
+- [ ] delete_distribution_tenant
 - [ ] delete_field_level_encryption_config
 - [ ] delete_field_level_encryption_profile
 - [ ] delete_function
@@ -76,23 +83,31 @@ cloudfront
 - [ ] delete_vpc_origin
 - [ ] describe_function
 - [ ] describe_key_value_store
+- [ ] disassociate_distribution_tenant_web_acl
+- [ ] disassociate_distribution_web_acl
 - [ ] get_anycast_ip_list
 - [ ] get_cache_policy
 - [ ] get_cache_policy_config
 - [ ] get_cloud_front_origin_access_identity
 - [ ] get_cloud_front_origin_access_identity_config
+- [ ] get_connection_group
+- [ ] get_connection_group_by_routing_endpoint
 - [ ] get_continuous_deployment_policy
 - [ ] get_continuous_deployment_policy_config
 - [X] get_distribution
 - [X] get_distribution_config
+- [ ] get_distribution_tenant
+- [ ] get_distribution_tenant_by_domain
 - [ ] get_field_level_encryption
 - [ ] get_field_level_encryption_config
 - [ ] get_field_level_encryption_profile
 - [ ] get_field_level_encryption_profile_config
 - [ ] get_function
 - [X] get_invalidation
+- [ ] get_invalidation_for_distribution_tenant
 - [X] get_key_group
 - [ ] get_key_group_config
+- [ ] get_managed_certificate_details
 - [ ] get_monitoring_subscription
 - [X] get_origin_access_control
 - [ ] get_origin_access_control_config
@@ -110,7 +125,10 @@ cloudfront
 - [ ] list_cache_policies
 - [ ] list_cloud_front_origin_access_identities
 - [ ] list_conflicting_aliases
+- [ ] list_connection_groups
 - [ ] list_continuous_deployment_policies
+- [ ] list_distribution_tenants
+- [ ] list_distribution_tenants_by_customization
 - [X] list_distributions
   
         Pagination is not supported yet.
@@ -118,12 +136,14 @@ cloudfront
 
 - [ ] list_distributions_by_anycast_ip_list_id
 - [ ] list_distributions_by_cache_policy_id
+- [ ] list_distributions_by_connection_mode
 - [ ] list_distributions_by_key_group
 - [ ] list_distributions_by_origin_request_policy_id
 - [ ] list_distributions_by_realtime_log_config
 - [ ] list_distributions_by_response_headers_policy_id
 - [ ] list_distributions_by_vpc_origin_id
 - [ ] list_distributions_by_web_acl_id
+- [ ] list_domain_conflicts
 - [ ] list_field_level_encryption_configs
 - [ ] list_field_level_encryption_profiles
 - [ ] list_functions
@@ -132,6 +152,7 @@ cloudfront
         Pagination is not yet implemented
         
 
+- [ ] list_invalidations_for_distribution_tenant
 - [X] list_key_groups
   
         Pagination is not yet implemented
@@ -160,6 +181,7 @@ cloudfront
 - [ ] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
+- [ ] update_connection_group
 - [ ] update_continuous_deployment_policy
 - [X] update_distribution
   
@@ -167,7 +189,9 @@ cloudfront
         Calling this function without a value is invalid, per AWS' behaviour
         
 
+- [ ] update_distribution_tenant
 - [ ] update_distribution_with_staging_config
+- [ ] update_domain_association
 - [ ] update_field_level_encryption_config
 - [ ] update_field_level_encryption_profile
 - [ ] update_function
@@ -184,4 +208,5 @@ cloudfront
 - [ ] update_response_headers_policy
 - [ ] update_streaming_distribution
 - [ ] update_vpc_origin
+- [ ] verify_dns_configuration
 

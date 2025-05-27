@@ -688,6 +688,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "entityresolution": {
+                "Value": "entityresolution",
+                "endpoint": {
+                  "Value": "entityresolution.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -4410,6 +4419,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-northeast-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10025,6 +10043,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "organizations": {
                 "Value": "organizations",
                 "endpoint": {
@@ -13972,6 +13999,15 @@
                 "Value": "oam",
                 "endpoint": {
                   "Value": "oam.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23829,6 +23865,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "route53profiles": {
+                "Value": "route53profiles",
+                "endpoint": {
+                  "Value": "route53profiles.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "route53resolver": {
                 "Value": "route53resolver",
                 "endpoint": {
@@ -24511,6 +24556,42 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -24551,6 +24632,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24794,6 +24884,15 @@
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
                   "Value": "route53-recovery-control-config.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53profiles": {
+                "Value": "route53profiles",
+                "endpoint": {
+                  "Value": "route53profiles.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42086,6 +42185,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-west-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -45072,6 +45180,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-west-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -47479,6 +47596,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-west-3.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -50143,6 +50269,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54069,6 +54204,42 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -54100,6 +54271,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54220,6 +54400,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-ad": {
+                "Value": "pca-connector-ad",
+                "endpoint": {
+                  "Value": "pca-connector-ad.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54352,6 +54541,15 @@
                 "Value": "route53-recovery-control-config",
                 "endpoint": {
                   "Value": "route53-recovery-control-config.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "route53profiles": {
+                "Value": "route53profiles",
+                "endpoint": {
+                  "Value": "route53profiles.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -69212,6 +69410,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.us-west-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
