@@ -157,15 +157,18 @@ class SecurityHubBackend(BaseBackend):
         if self.account_id != org["Organization"]["MasterAccountId"]:
             raise RESTError(
                 "AccessDeniedException",
-                "You do not have sufficient access to perform this action.",
+                "The request was rejected because you don't have sufficient permissions "
+                "to perform this operation. The security token included in the request "
+                "is for an account that isn't authorized to perform this operation.",
             )
 
         try:
             self.org_backend.get_account_by_id(admin_account_id)
         except RESTError:
             raise RESTError(
-                "ValidationException",
-                f"Account {admin_account_id} is not part of organization {org_id}",
+                "InvalidInputException",
+                f"The request was rejected because the account {admin_account_id} is not "
+                f"a member of organization {org_id}.",
             )
 
         org_config = self._get_org_config()
@@ -177,43 +180,59 @@ class SecurityHubBackend(BaseBackend):
         auto_enable_standards: Optional[str] = None,
         organization_configuration: Optional[Dict[str, Any]] = None,
     ) -> None:
+        try:
+            self.org_backend.describe_organization()
+        except RESTError:
+            raise RESTError(
+                "ResourceNotFoundException",
+                "The request was rejected because AWS Organizations is not in use or not "
+                "configured for this account.",
+            )
+
         org_config = self._get_org_config()
         if not org_config["admin_account_id"]:
             raise RESTError(
-                "AccessDeniedException", "No administrator account has been designated"
+                "ResourceNotFoundException",
+                "The request was rejected because no administrator account has been designated.",
             )
 
         if self.account_id != org_config["admin_account_id"]:
             raise RESTError(
                 "AccessDeniedException",
-                "You do not have sufficient access to perform this action.",
+                "The request was rejected because you don't have permission to perform "
+                "this action. Only the designated administrator account can update the "
+                "organization configuration.",
             )
 
         if organization_configuration:
             config_type = organization_configuration.get("ConfigurationType")
             if config_type not in ["CENTRAL", "LOCAL"]:
                 raise RESTError(
-                    "ValidationException",
-                    "ConfigurationType must be either CENTRAL or LOCAL",
+                    "InvalidInputException",
+                    "The request was rejected because the ConfigurationType value must be "
+                    "either CENTRAL or LOCAL.",
                 )
 
             status = organization_configuration.get("Status")
             if status not in ["PENDING", "ENABLED", "FAILED"]:
                 raise RESTError(
-                    "ValidationException",
-                    "Status must be one of PENDING, ENABLED, or FAILED",
+                    "InvalidInputException",
+                    "The request was rejected because the Status value must be one of "
+                    "PENDING, ENABLED, or FAILED.",
                 )
 
             if config_type == "CENTRAL":
                 if auto_enable:
                     raise RESTError(
                         "ValidationException",
-                        "AutoEnable must be false when ConfigurationType is CENTRAL",
+                        "The request was rejected because AutoEnable must be false when "
+                        "ConfigurationType is CENTRAL.",
                     )
                 if auto_enable_standards != "NONE":
                     raise RESTError(
                         "ValidationException",
-                        "AutoEnableStandards must be NONE when ConfigurationType is CENTRAL",
+                        "The request was rejected because AutoEnableStandards must be NONE "
+                        "when ConfigurationType is CENTRAL.",
                     )
 
             org_config["configuration"] = organization_configuration
@@ -223,8 +242,9 @@ class SecurityHubBackend(BaseBackend):
         if auto_enable_standards is not None:
             if auto_enable_standards not in ["NONE", "DEFAULT"]:
                 raise RESTError(
-                    "ValidationException",
-                    "AutoEnableStandards must be either NONE or DEFAULT",
+                    "InvalidInputException",
+                    "The request was rejected because AutoEnableStandards must be either "
+                    "NONE or DEFAULT.",
                 )
             org_config["auto_enable_standards"] = auto_enable_standards
 
@@ -260,7 +280,10 @@ class SecurityHubBackend(BaseBackend):
         try:
             self.org_backend.describe_organization()
         except RESTError:
-            raise AWSOrganizationsNotInUseException()
+            raise RESTError(
+                "AccessDeniedException",
+                "You do not have sufficient access to perform this action.",
+            )
 
         org_config = self._get_org_config()
         if not org_config["admin_account_id"]:
