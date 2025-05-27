@@ -82,7 +82,10 @@ class SecurityHubResponse(BaseResponse):
 
     def get_administrator_account(self) -> str:
         administrator = self.securityhub_backend.get_administrator_account()
-        return json.dumps(dict(administrator))
+        # Return empty JSON object without wrapping in dict() if response is empty
+        if not administrator:
+            return "{}"
+        return json.dumps(administrator)
 
     def describe_organization_configuration(self) -> str:
         response = self.securityhub_backend.describe_organization_configuration()
