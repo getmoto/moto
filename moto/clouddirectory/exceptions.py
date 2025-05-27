@@ -30,6 +30,16 @@ class ResourceNotFoundException(JsonRESTError):
         self.description = json.dumps(body)
 
 
+class SchemaAlreadyPublishedException(JsonRESTError):
+    def __init__(self, schema_arn: str):
+        super().__init__("SchemaAlreadyPublishedException", "Schema already published")
+        body = {
+            "SchemaArn": schema_arn,
+            "Message": "Schema already published",
+        }
+        self.description = json.dumps(body)
+
+
 class SchemaAlreadyExistsException(JsonRESTError):
     def __init__(self, schema_arn: str):
         super().__init__("SchemaAlreadyExistsException", "Schema already exists")

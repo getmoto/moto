@@ -11,7 +11,7 @@ from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
     InvalidArnException,
     ResourceNotFoundException,
-    SchemaAlreadyExistsException,
+    SchemaAlreadyPublishedException,
 )
 
 PAGINATION_MODEL = {
@@ -55,8 +55,8 @@ class CloudDirectoryBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.directories: Dict[str, Directory] = {}
         self.schemas_states: Dict[str, List[str]] = {
-            "published": [],
             "development": [],
+            "published": [],
             "applied": [],
         }
         self.tagger = TaggingService()
@@ -67,14 +67,23 @@ class CloudDirectoryBackend(BaseBackend):
             raise ResourceNotFoundException(directory_arn)
         if published_schema_arn not in self.schemas_states["published"]:
             raise ResourceNotFoundException(published_schema_arn)
-        if directory.schema_arn:
-            raise SchemaAlreadyExistsException(published_schema_arn)
-        published_schema_arn = (
-            directory.directory_arn.split("directoryId")[0]
-            + published_schema_arn.split("published")[1]
-        )
+        # if directory.schema_arn != None:
+        #     raise SchemaAlreadyExistsException(published_schema_arn)
         directory.schema_arn = published_schema_arn
         return
+
+    def publish_schema(
+        self, name: str, version: str, development_schema_arn: str, minor_version: str
+    ) -> Dict[str, str]:
+        schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/published/{name}/{version}/{minor_version}"
+        if development_schema_arn in self.schemas_states["published"]:
+            raise SchemaAlreadyPublishedException(development_schema_arn)
+        if development_schema_arn in self.schemas_states["development"]:
+            self.schemas_states["development"].remove(development_schema_arn)
+            self.schemas_states["published"].append(schema_arn)
+        else:
+            raise ResourceNotFoundException(development_schema_arn)
+        return schema_arn
 
     def create_directory(self, name: str, schema_arn: str) -> Directory:
         directory = Directory(self.account_id, self.region_name, name, schema_arn)
@@ -82,9 +91,8 @@ class CloudDirectoryBackend(BaseBackend):
         return directory
 
     def create_schema(self, name: str) -> dict[str, str]:
-        self.schema_arn = (
-            f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/{name}"
-        )
+        self.schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/development/{name}"
+        self.schemas_states["development"].append(self.schema_arn)
         return {"SchemaArn": self.schema_arn}
 
     @paginate(pagination_model=PAGINATION_MODEL)

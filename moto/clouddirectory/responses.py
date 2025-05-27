@@ -32,6 +32,19 @@ class CloudDirectoryResponse(BaseResponse):
             }
         )
 
+    def publish_schema(self) -> str:
+        development_schema_arn = self.headers.get("x-amz-data-partition")
+        version = self._get_param("Version")
+        minor_version = self._get_param("MinorVersion")
+        name = self._get_param("Name")
+        schema = self.clouddirectory_backend.publish_schema(
+            name=name,
+            version=version,
+            minor_version=minor_version,
+            development_schema_arn=development_schema_arn,
+        )
+        return json.dumps({"PublishedSchemaArn": schema})
+
     def create_directory(self) -> str:
         name = self._get_param("Name")
         schema_arn = self.headers.get("x-amz-data-partition")

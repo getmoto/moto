@@ -16,4 +16,5 @@ url_paths = {
     "{0}/amazonclouddirectory/2017-01-11/directory/get$": CloudDirectoryResponse.dispatch,
     "{0}/amazonclouddirectory/2017-01-11/tags$": CloudDirectoryResponse.dispatch,
     "{0}/amazonclouddirectory/2017-01-11/schema/apply$": CloudDirectoryResponse.dispatch,
+    "{0}/amazonclouddirectory/2017-01-11/schema/publish$": CloudDirectoryResponse.dispatch,
 }

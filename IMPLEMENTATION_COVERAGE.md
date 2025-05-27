@@ -1006,7 +1006,7 @@
 <summary>10% implemented</summary>
 
 - [ ] add_facet_to_object
-- [ ] apply_schema
+- [X] apply_schema
 - [ ] attach_object
 - [ ] attach_policy
 - [ ] attach_to_index
@@ -1059,7 +1059,7 @@
 - [ ] list_typed_link_facet_attributes
 - [ ] list_typed_link_facet_names
 - [ ] lookup_policy
-- [ ] publish_schema
+- [X] publish_schema
 - [ ] put_schema_from_json
 - [ ] remove_facet_from_object
 - [X] tag_resource

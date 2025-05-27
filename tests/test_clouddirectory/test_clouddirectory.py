@@ -12,8 +12,6 @@ def test_apply_schema():
     client = boto3.client("clouddirectory", region_name=region)
     schema = client.create_schema(Name="test-schema")
     schema_arn = schema["SchemaArn"]
-    directory = client.create_directory(SchemaArn=schema_arn, Name="test-directory")
-    directory_arn = directory["DirectoryArn"]
     pub_schema = client.publish_schema(
         DevelopmentSchemaArn=schema_arn,
         Name="test-schema",
@@ -21,11 +19,31 @@ def test_apply_schema():
         MinorVersion="0",
     )
     pub_schema_arn = pub_schema["PublishedSchemaArn"]
+    directory = client.create_directory(SchemaArn=pub_schema_arn, Name="test-directory")
+    directory_arn = directory["DirectoryArn"]
     resp = client.apply_schema(
         PublishedSchemaArn=pub_schema_arn, DirectoryArn=directory_arn
     )
     assert resp["AppliedSchemaArn"] == pub_schema_arn
     assert resp["DirectoryArn"] == directory_arn
+
+
+@mock_aws
+def test_publish_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
+    resp = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn,
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+    assert (
+        resp["PublishedSchemaArn"]
+        == f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/published/test-schema/1/0"
+    )
 
 
 @mock_aws
@@ -51,7 +69,7 @@ def test_create_schema():
     resp = client.create_schema(Name="test-schema")
     assert (
         resp["SchemaArn"]
-        == f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/test-schema"
+        == f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/development/test-schema"
     )
 
 
