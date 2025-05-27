@@ -297,7 +297,7 @@ class StepFunctionResponse(BaseResponse):
         )
         return 200, {}, "{}"
 
-    def create_activity(self):
+    def create_activity(self) -> TYPE_RESPONSE:
         name = self._get_param("name")
         tags = self._get_param("tags")
         encryption_configuration = self._get_param("encryptionConfiguration")
@@ -310,7 +310,7 @@ class StepFunctionResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    def describe_activity(self):
+    def describe_activity(self) -> TYPE_RESPONSE:
         activity_arn = self._get_param("activityArn")
         activity = self.stepfunction_backend.describe_activity(activity_arn)
 
@@ -322,12 +322,12 @@ class StepFunctionResponse(BaseResponse):
         }
         return 200, {}, json.dumps(response)
 
-    def delete_activity(self):
+    def delete_activity(self) -> TYPE_RESPONSE:
         activity_arn = self._get_param("activityArn")
         self.stepfunction_backend.delete_activity(activity_arn)
         return 200, {}, "{}"
 
-    def list_activities(self):
+    def list_activities(self) -> TYPE_RESPONSE:
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
         results, next_token = self.stepfunction_backend.list_activities(

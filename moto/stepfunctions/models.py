@@ -86,10 +86,10 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         name: str,
         definition: str,
         roleArn: str,
+        backend: "StepFunctionBackend",
         encryptionConfiguration: Optional[Dict[str, Any]] = None,
         loggingConfiguration: Optional[Dict[str, Any]] = None,
         tracingConfiguration: Optional[Dict[str, Any]] = None,
-        backend: "StepFunctionBackend" = None,
     ):
         StateMachineInstance.__init__(
             self,
@@ -612,10 +612,10 @@ class StepFunctionBackend(BaseBackend):
                 name,
                 definition,
                 roleArn,
+                self,
                 encryptionConfiguration,
                 loggingConfiguration,
                 tracingConfiguration,
-                backend=self,
             )
             if publish:
                 state_machine.publish(description=version_description)
@@ -825,8 +825,8 @@ class StepFunctionBackend(BaseBackend):
             raise InvalidArn(invalid_msg)
 
     def _validate_encryption_configuration(
-        self, encryption_configuration: Optional[Dict[str, Any]]
-    ):
+        self, encryption_configuration: Dict[str, Any]
+    ) -> None:
         encryption_type = encryption_configuration.get("type")
         if not encryption_type:
             raise InvalidEncryptionConfiguration(
@@ -889,7 +889,7 @@ class StepFunctionBackend(BaseBackend):
         else:
             raise ActivityDoesNotExist(activity_arn)
 
-    def delete_activity(self, activity_arn: str):
+    def delete_activity(self, activity_arn: str) -> None:
         self._validate_activity_arn(activity_arn)
         if activity_arn in self.activities:
             del self.activities[activity_arn]
