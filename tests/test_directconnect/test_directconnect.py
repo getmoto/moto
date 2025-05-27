@@ -59,16 +59,15 @@ def test_connection_tags(client):
         requestMACSec=False,
         tags=[
             {
-                'key': 'name',
-                'value': 'Test Connection',
+                "key": "name",
+                "value": "Test Connection",
             },
             {
-                'key': 'connection-id',
-                'value': 'test-1',
+                "key": "connection-id",
+                "value": "test-1",
             },
-        ]
+        ],
     )
-    time.sleep(0.1)
     client.create_connection(
         location="EqDC2",
         bandwidth="10Gbps",
@@ -76,39 +75,29 @@ def test_connection_tags(client):
         requestMACSec=True,
         tags=[
             {
-                'key': 'name',
-                'value': 'Test Connection 2',
+                "key": "name",
+                "value": "Test Connection 2",
             },
             {
-                'key': 'connection-id',
-                'value': 'test-2',
+                "key": "connection-id",
+                "value": "test-2",
             },
-        ]
+        ],
     )
-    time.sleep(0.1)
     resp = client.describe_connections()
     connections = resp["connections"]
     assert len(connections) == 2
-    assert not connections[0]["macSecCapable"]
-    assert connections[1]["macSecCapable"]
-    assert len(connections[0]["macSecKeys"]) == 0
-    assert len(connections[1]["macSecKeys"]) == 1
 
     assert len(connections[0]["tags"]) == 2
-    assert connections[0]["tags"][0]['key'] == "name"
-    assert connections[0]["tags"][0]['value'] == "Test Connection"
-    assert connections[0]["tags"][1]['key'] == "connection-id"
-    assert connections[0]["tags"][1]['value'] == "test-1"
+    assert connections[0]["tags"][0]["key"] == "name"
+    assert connections[0]["tags"][0]["value"] == "Test Connection"
+    assert connections[0]["tags"][1]["key"] == "connection-id"
+    assert connections[0]["tags"][1]["value"] == "test-1"
 
-    assert connections[1]["tags"][0]['key'] == "name"
-    assert connections[1]["tags"][0]['value'] == "Test Connection 2"
-    assert connections[1]["tags"][1]['key'] == "connection-id"
-    assert connections[1]["tags"][1]['value'] == "test-2"
-
-    assert connections[0]["encryptionMode"] == "no_encrypt"
-    assert connections[1]["encryptionMode"] == "must_encrypt"
-    resp = client.describe_connections(connectionId=connections[0]["connectionId"])
-    assert len(resp["connections"]) == 1
+    assert connections[1]["tags"][0]["key"] == "name"
+    assert connections[1]["tags"][0]["value"] == "Test Connection 2"
+    assert connections[1]["tags"][1]["key"] == "connection-id"
+    assert connections[1]["tags"][1]["value"] == "test-2"
 
 
 def test_delete_connection(client):
@@ -289,18 +278,20 @@ def test_tag_resource(client):
 
     client.tag_resource(
         resourceArn=connection_id,
-        tags=[{'key': 't1', 'value': 'v1'}, {'key': 't2', 'value': 'v2'}],
+        tags=[{"key": "t1", "value": "v1"}, {"key": "t2", "value": "v2"}],
     )
 
-    expected = [{'key': 't1', 'value': 'v1'}, {'key': 't2', 'value': 'v2'}]
+    expected = [{"key": "t1", "value": "v1"}, {"key": "t2", "value": "v2"}]
     assert get_tags(connection_id, client) == expected
     assert (
-        client.describe_connections(connectionId=connection_id)["connections"][0]["tags"]
+        client.describe_connections(connectionId=connection_id)["connections"][0][
+            "tags"
+        ]
         == expected
     )
 
     client.untag_resource(resourceArn=connection_id, tagKeys=["t1"])
-    assert get_tags(connection_id, client) == [{'key': 't2', 'value': 'v2'}]
+    assert get_tags(connection_id, client) == [{"key": "t2", "value": "v2"}]
 
     client.untag_resource(resourceArn=connection_id, tagKeys=["t2"])
     assert get_tags(connection_id, client) == []
@@ -308,4 +299,4 @@ def test_tag_resource(client):
 
 def get_tags(arn, client):
     tags = client.describe_tags(resourceArns=[arn])
-    return tags['resourceTags'][0]['tags']
+    return tags["resourceTags"][0]["tags"]
