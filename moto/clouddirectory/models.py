@@ -93,7 +93,7 @@ class CloudDirectoryBackend(BaseBackend):
     def create_schema(self, name: str) -> dict[str, str]:
         self.schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/development/{name}"
         self.schemas_states["development"].append(self.schema_arn)
-        return {"SchemaArn": self.schema_arn}
+        return self.schema_arn
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_directories(self, state: str) -> List[Directory]:
