@@ -101,6 +101,7 @@ logs
 - [ ] list_anomalies
 - [ ] list_integrations
 - [ ] list_log_anomaly_detectors
+- [ ] list_log_groups
 - [ ] list_log_groups_for_query
 - [X] list_tags_for_resource
 - [X] list_tags_log_group

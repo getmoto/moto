@@ -17,6 +17,7 @@ service-quotas
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] associate_service_quota_template
+- [ ] create_support_case
 - [ ] delete_service_quota_increase_request_from_template
 - [ ] disassociate_service_quota_template
 - [ ] get_association_for_service_quota_template

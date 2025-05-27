@@ -1,6 +1,8 @@
 import json
 
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -49,13 +51,34 @@ def test_delete_group():
 
 
 @mock_aws
+def test_delete_group_by_arn():
+    resource_groups = boto3.client("resource-groups", region_name="us-east-1")
+
+    response = create_group(client=resource_groups)
+    group_arn = response["Group"]["GroupArn"]
+
+    response = resource_groups.delete_group(GroupName=group_arn)
+    assert group_arn == response["Group"]["GroupArn"]
+
+    with pytest.raises(ClientError) as exc:
+        resource_groups.get_group(GroupName=group_arn)
+    error = exc.value.response["Error"]
+    assert error["Code"] == "NotFoundException"
+
+
+@mock_aws
 def test_get_group():
     resource_groups = boto3.client("resource-groups", region_name="us-east-1")
 
-    create_group(client=resource_groups)
+    response = create_group(client=resource_groups)
+    group_name = response["Group"]["Name"]
+    group_arn = response["Group"]["GroupArn"]
 
-    response = resource_groups.get_group(GroupName="test_resource_group")
-    assert "description" in response["Group"]["Description"]
+    response = resource_groups.get_group(GroupName=group_name)
+    assert response["Group"]["GroupArn"] == group_arn
+
+    response = resource_groups.get_group(GroupName=group_arn)
+    assert response["Group"]["Name"] == group_name
 
 
 @mock_aws
