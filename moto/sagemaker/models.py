@@ -627,6 +627,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         region_name: str,
         endpoint_config_name: str,
         production_variants: List[Dict[str, Any]],
+        async_inference_config: Dict[str, Any],
         data_capture_config: Dict[str, Any],
         tags: List[Dict[str, Any]],
         kms_key_id: str,
@@ -639,6 +640,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
         )
         self.arn = (self.endpoint_config_arn,)
         self.production_variants = production_variants or []
+        self.async_inference_config = async_inference_config
         self.data_capture_config = data_capture_config or {}
         self.tags = tags or []
         self.kms_key_id = kms_key_id
@@ -807,6 +809,7 @@ class FakeEndpointConfig(BaseObject, CloudFormationModel):
             endpoint_config_name=resource_name,
             production_variants=production_variants,
             data_capture_config=properties.get("DataCaptureConfig", {}),
+            async_inference_config=properties.get("AsyncInferenceConfig", {}),
             kms_key_id=properties.get("KmsKeyId"),
             tags=properties.get("Tags", []),
         )
@@ -914,6 +917,7 @@ class FakeTransformJob(BaseObject):
         response = {
             k: v for k, v in response_object.items() if v is not None and v != [None]
         }
+        response["TransformJobArn"] = response.pop("Arn")
         return response
 
     @property
@@ -1181,7 +1185,7 @@ class FeatureGroup(BaseObject):
         self.feature_definitions = feature_definitions
 
         table_name = (
-            f"{feature_group_name.replace('-','_')}_{int(datetime.now().timestamp())}"
+            f"{feature_group_name.replace('-', '_')}_{int(datetime.now().timestamp())}"
         )
         offline_store_config["DataCatalogConfig"] = {
             "TableName": table_name,
@@ -1189,7 +1193,7 @@ class FeatureGroup(BaseObject):
             "Database": "sagemaker_featurestore",
         }
         offline_store_config["S3StorageConfig"]["ResolvedOutputS3Uri"] = (
-            f'{offline_store_config["S3StorageConfig"]["S3Uri"]}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data'
+            f"{offline_store_config['S3StorageConfig']['S3Uri']}/{account_id}/{region_name}/offline-store/{feature_group_name}-{int(datetime.now().timestamp())}/data"
         )
 
         self.offline_store_config = offline_store_config
@@ -1258,9 +1262,11 @@ class ModelPackage(BaseObject):
             region_name=region_name,
             account_id=account_id,
             _type="model-package",
-            _id=f"{model_package_name.lower()}/{model_package_version}"
-            if model_package_version
-            else model_package_name.lower(),
+            _id=(
+                f"{model_package_name.lower()}/{model_package_version}"
+                if model_package_version
+                else model_package_name.lower()
+            ),
         )
         datetime_now = datetime.now(tzutc())
         self.model_package_name = model_package_name
@@ -2073,9 +2079,11 @@ class AutoMLJob(BaseObject):
         }
 
         self.model_deploy_result = {
-            "EndpointName": self.model_deploy_config["EndpointName"]
-            if self.model_deploy_config
-            else "endpoint_name",
+            "EndpointName": (
+                self.model_deploy_config["EndpointName"]
+                if self.model_deploy_config
+                else "endpoint_name"
+            ),
         }
 
     def describe(self) -> Dict[str, Any]:
@@ -3418,9 +3426,11 @@ class SageMakerModelBackend(BaseBackend):
             kms_key_id=kms_key_id,
             tags=tags,
             lifecycle_config_name=lifecycle_config_name,
-            direct_internet_access=direct_internet_access
-            if direct_internet_access is not None
-            else "Enabled",
+            direct_internet_access=(
+                direct_internet_access
+                if direct_internet_access is not None
+                else "Enabled"
+            ),
             volume_size_in_gb=volume_size_in_gb if volume_size_in_gb is not None else 5,
             accelerator_types=accelerator_types,
             default_code_repository=default_code_repository,
@@ -3559,6 +3569,7 @@ class SageMakerModelBackend(BaseBackend):
         endpoint_config_name: str,
         production_variants: List[Dict[str, Any]],
         data_capture_config: Dict[str, Any],
+        async_inference_config: Dict[str, Any],
         tags: List[Dict[str, str]],
         kms_key_id: str,
     ) -> FakeEndpointConfig:
@@ -3567,6 +3578,7 @@ class SageMakerModelBackend(BaseBackend):
             region_name=self.region_name,
             endpoint_config_name=endpoint_config_name,
             production_variants=production_variants,
+            async_inference_config=async_inference_config,
             data_capture_config=data_capture_config,
             tags=tags,
             kms_key_id=kms_key_id,

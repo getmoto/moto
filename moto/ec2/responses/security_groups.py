@@ -196,20 +196,10 @@ class SecurityGroups(EC2BaseResponse):
         return template.render(groups=groups)
 
     def describe_security_group_rules(self) -> str:
-        group_id = self._get_param("GroupId")
-        sg_rule_ids = self._get_param("SecurityGroupRuleId.1")
-        filters = self._filters_from_querystring()
-
         self.error_on_dryrun()
-
-        # if sg rule ids are not None then wrap in a list
-        # as expected by ec2_backend.describe_security_group_rules
-        if sg_rule_ids:
-            sg_rule_ids = [sg_rule_ids]
-
-        rules = self.ec2_backend.describe_security_group_rules(
-            group_id, sg_rule_ids, filters
-        )
+        sg_rule_ids = self._get_multi_param("SecurityGroupRuleId")
+        filters = self._filters_from_querystring()
+        rules = self.ec2_backend.describe_security_group_rules(sg_rule_ids, filters)
         template = self.response_template(DESCRIBE_SECURITY_GROUP_RULES_RESPONSE)
         return template.render(rules=rules)
 
@@ -230,6 +220,19 @@ class SecurityGroups(EC2BaseResponse):
             del args["sgrule_tags"]
             self.ec2_backend.revoke_security_group_ingress(**args)
         return REVOKE_SECURITY_GROUP_INGRESS_RESPONSE
+
+    def modify_security_group_rules(self) -> str:
+        self.error_on_dryrun()
+
+        rules = {}
+        security_group_rules_param = self._get_params()["SecurityGroupRule"]
+        for idx, sgr in security_group_rules_param.items():
+            rules[sgr["SecurityGroupRuleId"]] = sgr["SecurityGroupRule"]
+
+        group_id = self._get_param("GroupId")
+        self.ec2_backend.modify_security_group_rules(group_id, rules)
+
+        return MODIFY_SECURITY_GROUP_RULES_RESPONSE
 
     def update_security_group_rule_descriptions_ingress(self) -> str:
         for args in self._process_rules_from_querystring():
@@ -586,6 +589,13 @@ REVOKE_SECURITY_GROUP_EGRESS_RESPONSE = """<RevokeSecurityGroupEgressResponse xm
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <return>true</return>
 </RevokeSecurityGroupEgressResponse>"""
+
+MODIFY_SECURITY_GROUP_RULES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ModifySecurityGroupRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>04d8f970-9213-41fa-81d2-50825EXAMPLE</requestId>
+  <return>true</return>
+</ModifySecurityGroupRulesResponse>
+"""
 
 UPDATE_SECURITY_GROUP_RULE_DESCRIPTIONS_INGRESS = """<UpdateSecurityGroupRuleDescriptionsIngressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>

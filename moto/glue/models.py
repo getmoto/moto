@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import time
@@ -60,7 +61,6 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
-from .utils import PartitionFilter
 
 
 class FakeDevEndpoint(BaseModel):
@@ -201,10 +201,18 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "endpoint_name",
         },
+        "get_job_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "job_run_id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.region_name = region_name
+        self.account_id = account_id
         self.databases: Dict[str, FakeDatabase] = OrderedDict()
         self.crawlers: Dict[str, FakeCrawler] = OrderedDict()
         self.connections: Dict[str, FakeConnection] = OrderedDict()
@@ -218,6 +226,8 @@ class GlueBackend(BaseBackend):
         self.num_schema_versions = 0
         self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
         self.data_catalog_encryption_settings: Dict[str, Dict[str, Any]] = {}
+        self.resource_policies: Dict[str, Dict[str, Any]] = {}
+        self.default_catalog_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:catalog"
 
     def create_database(
         self,
@@ -519,6 +529,11 @@ class GlueBackend(BaseBackend):
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
         return job.get_job_run(run_id)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_job_runs(self, job_name: str) -> List["FakeJobRun"]:
+        job = self.get_job(job_name)
+        return job.get_job_runs()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self) -> List["FakeJob"]:
@@ -1266,6 +1281,85 @@ class GlueBackend(BaseBackend):
 
         return response
 
+    def put_resource_policy(
+        self,
+        policy_in_json: str,
+        resource_arn: Optional[str] = None,
+        policy_hash_condition: Optional[str] = None,
+        policy_exists_condition: Optional[str] = None,
+        enable_hybrid: Optional[str] = None,
+    ) -> Dict[str, str]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        policy_dict = self.resource_policies.get(resource_arn, {})
+
+        if policy_exists_condition and policy_exists_condition != "NONE":
+            if policy_exists_condition == "MUST_EXIST" and not policy_dict:
+                raise JsonRESTError(
+                    "ResourceNumberLimitExceededException", "Policy does not exist"
+                )
+            elif policy_exists_condition == "NOT_EXIST" and policy_dict:
+                raise JsonRESTError(
+                    "ResourceNumberLimitExceededException", "Policy already exists"
+                )
+
+        if (
+            policy_hash_condition
+            and policy_dict
+            and policy_hash_condition != policy_dict.get("PolicyHash")
+        ):
+            raise JsonRESTError(
+                "ConcurrentModificationException", "Policy hash condition not met"
+            )
+
+        policy_hash = hashlib.md5(policy_in_json.encode()).hexdigest()
+
+        if not policy_dict:
+            policy_dict = {
+                "PolicyInJson": policy_in_json,
+                "PolicyHash": policy_hash,
+                "CreateTime": utcnow(),
+                "UpdateTime": utcnow(),
+            }
+        else:
+            policy_dict.update(
+                {
+                    "PolicyInJson": policy_in_json,
+                    "PolicyHash": policy_hash,
+                    "UpdateTime": utcnow(),
+                }
+            )
+
+        if enable_hybrid in ("TRUE", "FALSE"):
+            policy_dict["EnableHybrid"] = enable_hybrid
+
+        self.resource_policies[resource_arn] = policy_dict
+
+        return {"PolicyHash": policy_hash}
+
+    def get_resource_policy(self, resource_arn: Optional[str] = None) -> Dict[str, Any]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        if resource_arn not in self.resource_policies:
+            return {}
+
+        policy = self.resource_policies[resource_arn]
+
+        response = {
+            "PolicyInJson": policy["PolicyInJson"],
+            "PolicyHash": policy["PolicyHash"],
+            "CreateTime": policy["CreateTime"].isoformat()
+            if isinstance(policy["CreateTime"], datetime)
+            else policy["CreateTime"],
+            "UpdateTime": policy["UpdateTime"].isoformat()
+            if isinstance(policy["UpdateTime"], datetime)
+            else policy["UpdateTime"],
+        }
+
+        return response
+
 
 class FakeDatabase(BaseModel):
     def __init__(
@@ -1353,6 +1447,9 @@ class FakeTable(BaseModel):
         self.partitions[str(partition.values)] = partition
 
     def get_partitions(self, expression: str) -> List["FakePartition"]:
+        # Only load pyparsing when necessary
+        from .utils import PartitionFilter
+
         return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values: str) -> "FakePartition":
@@ -1631,6 +1728,11 @@ class FakeJob:
                 job_run.advance()
                 return job_run
         raise JobRunNotFoundException(run_id)
+
+    def get_job_runs(self) -> List["FakeJobRun"]:
+        for job_run in self.job_runs:
+            job_run.advance()
+        return self.job_runs
 
 
 class FakeJobRun(ManagedState):

@@ -670,7 +670,7 @@ def test_delete_launch_template__by_id():
     )
 
 
-def retrieve_all_templates(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_templates(client, filters=[]):
     resp = client.describe_launch_templates(Filters=filters)
     all_templates = resp["LaunchTemplates"]
     next_token = resp.get("NextToken")

@@ -23,6 +23,11 @@ def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)
     for vpc in all_vpcs:
+        subnets = client.describe_subnets(
+            Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
+        )["Subnets"]
+        for subnet in subnets:
+            client.delete_subnet(SubnetId=subnet["SubnetId"])
         client.delete_vpc(VpcId=vpc["VpcId"])
     # create vpc
     client.create_vpc(CidrBlock="10.0.0.0/16")
@@ -40,6 +45,11 @@ def test_create_default_vpc():
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)
     for vpc in all_vpcs:
+        subnets = client.describe_subnets(
+            Filters=[{"Name": "vpc-id", "Values": [vpc["VpcId"]]}]
+        )["Subnets"]
+        for subnet in subnets:
+            client.delete_subnet(SubnetId=subnet["SubnetId"])
         client.delete_vpc(VpcId=vpc["VpcId"])
     # create default vpc
     client.create_default_vpc()
@@ -150,7 +160,7 @@ def test_vpc_state_available_filter():
     assert vpc2.id in [v["VpcId"] for v in available]
 
 
-def retrieve_all_vpcs(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_vpcs(client, filters=[]):
     resp = client.describe_vpcs(Filters=filters)
     all_vpcs = resp["Vpcs"]
     token = resp.get("NextToken")
@@ -1238,3 +1248,21 @@ def test_describe_prefix_lists():
         ]
     )
     assert len(result_filtered["PrefixLists"]) == 1
+
+
+@mock_aws
+def test_delete_vpc_with_subnet_dependency():
+    client = boto3.client("ec2", region_name="us-east-1")
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+    assert exc.value.response["Error"]["Code"] == "DependencyViolation"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"The vpc '{vpc['VpcId']}' has dependencies and cannot be deleted."
+    )
+
+    client.delete_subnet(SubnetId=subnet["SubnetId"])
+    client.delete_vpc(VpcId=vpc["VpcId"])

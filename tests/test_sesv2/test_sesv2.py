@@ -1,3 +1,5 @@
+import json
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -17,7 +19,7 @@ def ses_v1():
 
 
 @mock_aws
-def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
+def test_send_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     kwargs = dict(
@@ -58,7 +60,7 @@ def test_send_email(ses_v1):  # pylint: disable=redefined-outer-name
 
 
 @mock_aws
-def test_send_html_email(ses_v1):  # pylint: disable=redefined-outer-name
+def test_send_html_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     ses_v1.verify_domain_identity(Domain="example.com")
@@ -91,7 +93,7 @@ def test_send_html_email(ses_v1):  # pylint: disable=redefined-outer-name
 
 
 @mock_aws
-def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
+def test_send_raw_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     message = get_raw_email()
@@ -117,7 +119,7 @@ def test_send_raw_email(ses_v1):  # pylint: disable=redefined-outer-name
 @mock_aws
 def test_send_raw_email__with_specific_message(
     ses_v1,
-):  # pylint: disable=redefined-outer-name
+):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     message = get_raw_email()
@@ -148,7 +150,7 @@ def test_send_raw_email__with_specific_message(
 @mock_aws
 def test_send_raw_email__with_to_address_display_name(
     ses_v1,
-):  # pylint: disable=redefined-outer-name
+):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     message = get_raw_email()
@@ -711,7 +713,7 @@ def test_list_configuration_sets():
     # Validate
     assert len(config_sets["ConfigurationSets"]) == 2
     for c in config_sets["ConfigurationSets"]:
-        assert c in {name_v1, name_v2}
+        assert c in [name_v1, name_v2]
 
 
 @mock_aws
@@ -815,3 +817,169 @@ def test_delete_dedicated_ip_pool():
     with pytest.raises(ClientError) as e:
         client.get_dedicated_ip_pool(PoolName=target_pool_name)
     assert e.value.response["Error"]["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_create_email_identity_policy():
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+    policy_name = "MyPolicy"
+    policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                    "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+                    "Resource": f"arn:aws:ses:us-east-1:123456789012:identity/{email_identity}",
+                }
+            ],
+        }
+    )
+
+    client.create_email_identity(EmailIdentity=email_identity)
+
+    response = client.create_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName=policy_name, Policy=policy
+    )
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+def test_delete_email_identity_policy():
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+    policy_name = "MyPolicy"
+    policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                    "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+                    "Resource": f"arn:aws:ses:us-east-1:123456789012:identity/{email_identity}",
+                }
+            ],
+        }
+    )
+
+    client.create_email_identity(EmailIdentity=email_identity)
+    client.create_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName=policy_name, Policy=policy
+    )
+
+    policies_before = client.get_email_identity_policies(EmailIdentity=email_identity)
+    assert policy_name in policies_before["Policies"]
+
+    response = client.delete_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName=policy_name
+    )
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    policies_after = client.get_email_identity_policies(EmailIdentity=email_identity)
+    assert policy_name not in policies_after["Policies"]
+
+    response = client.delete_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName="NonExistentPolicy"
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+def test_update_email_identity_policy():
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+    policy_name = "MyPolicy"
+
+    initial_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                    "Action": ["ses:SendEmail"],
+                    "Resource": f"arn:aws:ses:us-east-1:123456789012:identity/{email_identity}",
+                }
+            ],
+        }
+    )
+
+    updated_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                    "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+                    "Resource": f"arn:aws:ses:us-east-1:123456789012:identity/{email_identity}",
+                }
+            ],
+        }
+    )
+
+    client.create_email_identity(EmailIdentity=email_identity)
+    client.create_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName=policy_name, Policy=initial_policy
+    )
+
+    initial_policies = client.get_email_identity_policies(EmailIdentity=email_identity)
+    assert policy_name in initial_policies["Policies"]
+    assert initial_policies["Policies"][policy_name] == initial_policy
+
+    response = client.update_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName=policy_name, Policy=updated_policy
+    )
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    updated_policies = client.get_email_identity_policies(EmailIdentity=email_identity)
+    assert policy_name in updated_policies["Policies"]
+    assert updated_policies["Policies"][policy_name] == updated_policy
+    assert updated_policies["Policies"][policy_name] != initial_policy
+
+    new_policy_name = "NewPolicy"
+    response = client.update_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName=new_policy_name, Policy=initial_policy
+    )
+
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    final_policies = client.get_email_identity_policies(EmailIdentity=email_identity)
+    assert new_policy_name in final_policies["Policies"]
+    assert final_policies["Policies"][new_policy_name] == initial_policy
+
+
+@mock_aws
+def test_get_email_identity_policies():
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+    policy_name = "MyPolicy"
+    policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                    "Action": ["ses:SendEmail", "ses:SendRawEmail"],
+                    "Resource": f"arn:aws:ses:ap-southeast-1:123456789012:identity/{email_identity}",
+                }
+            ],
+        }
+    )
+
+    client.create_email_identity(EmailIdentity=email_identity)
+    client.create_email_identity_policy(
+        EmailIdentity=email_identity, PolicyName=policy_name, Policy=policy
+    )
+
+    response = client.get_email_identity_policies(EmailIdentity=email_identity)
+
+    assert policy_name in response["Policies"]
+    assert response["Policies"][policy_name] == policy

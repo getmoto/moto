@@ -1,5 +1,6 @@
 """Unit tests for glue-supported APIs."""
 
+import json
 from random import randint
 from uuid import uuid4
 
@@ -1063,3 +1064,226 @@ def test_put_data_catalog_encryption_settings():
     )
 
     assert catalog_get_response["DataCatalogEncryptionSettings"] == catalog_settings
+
+
+@mock_aws
+def test_put_resource_policy():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+
+    response = client.put_resource_policy(PolicyInJson=policy_json)
+
+    assert "PolicyHash" in response
+    policy_hash = response["PolicyHash"]
+
+    get_response = client.get_resource_policy()
+    assert "PolicyInJson" in get_response
+    assert get_response["PolicyInJson"] == policy_json
+    assert "PolicyHash" in get_response
+    assert get_response["PolicyHash"] == policy_hash
+    assert "CreateTime" in get_response
+    assert "UpdateTime" in get_response
+
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json,
+        PolicyHashCondition=policy_hash,
+    )
+
+    assert "PolicyHash" in response
+
+    resource_arn = "arn:aws:glue:us-east-2:123456789012:catalog"
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json, ResourceArn=resource_arn
+    )
+
+    assert "PolicyHash" in response
+
+    get_resource_response = client.get_resource_policy(ResourceArn=resource_arn)
+    assert "PolicyInJson" in get_resource_response
+    assert get_resource_response["PolicyInJson"] == policy_json
+
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json,
+        ResourceArn=resource_arn,
+        PolicyExistsCondition="MUST_EXIST",
+    )
+    assert "PolicyHash" in response
+
+    unique_arn = "arn:aws:glue:us-east-2:123456789012:unique-resource"
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json, ResourceArn=unique_arn, PolicyExistsCondition="NONE"
+    )
+    assert "PolicyHash" in response
+
+    response = client.put_resource_policy(PolicyInJson=policy_json, EnableHybrid="TRUE")
+    assert "PolicyHash" in response
+
+
+@mock_aws
+def test_get_resource_policy():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    response = client.get_resource_policy()
+    assert "PolicyInJson" not in response
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+
+    put_response = client.put_resource_policy(PolicyInJson=policy_json)
+
+    response = client.get_resource_policy()
+
+    assert "PolicyInJson" in response
+    assert response["PolicyInJson"] == policy_json
+    assert "PolicyHash" in response
+
+    if (
+        isinstance(put_response["PolicyHash"], dict)
+        and "PolicyHash" in put_response["PolicyHash"]
+    ):
+        assert response["PolicyHash"] == put_response["PolicyHash"]["PolicyHash"]
+    else:
+        assert response["PolicyHash"] == put_response["PolicyHash"]
+
+    assert "CreateTime" in response
+    assert "UpdateTime" in response
+
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+    database_arn = "arn:aws:glue:us-east-1:123456789012:database/mydb"
+    table_arn = "arn:aws:glue:us-east-1:123456789012:table/mydb/mytable"
+
+    catalog_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                    "Action": ["glue:*"],
+                    "Resource": [catalog_arn],
+                }
+            ],
+        }
+    )
+    client.put_resource_policy(PolicyInJson=catalog_policy, ResourceArn=catalog_arn)
+
+    database_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:role/GlueRole"},
+                    "Action": ["glue:GetDatabase", "glue:UpdateDatabase"],
+                    "Resource": [database_arn],
+                }
+            ],
+        }
+    )
+    client.put_resource_policy(PolicyInJson=database_policy, ResourceArn=database_arn)
+
+    table_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::987654321098:root"},
+                    "Action": ["glue:GetTable"],
+                    "Resource": [table_arn],
+                }
+            ],
+        }
+    )
+    client.put_resource_policy(PolicyInJson=table_policy, ResourceArn=table_arn)
+
+    catalog_response = client.get_resource_policy(ResourceArn=catalog_arn)
+    assert catalog_response["PolicyInJson"] == catalog_policy
+
+    database_response = client.get_resource_policy(ResourceArn=database_arn)
+    assert database_response["PolicyInJson"] == database_policy
+
+    table_response = client.get_resource_policy(ResourceArn=table_arn)
+    assert table_response["PolicyInJson"] == table_policy
+
+    nonexistent_response = client.get_resource_policy(
+        ResourceArn="arn:aws:glue:us-east-1:123456789012:nonexistent"
+    )
+    assert "PolicyInJson" not in nonexistent_response
+
+
+@mock_aws
+def test_put_resource_policy_error_conditions():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+
+    resource_arn = "arn:aws:glue:us-west-2:123456789012:catalog"
+
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json,
+        ResourceArn=resource_arn,
+        PolicyExistsCondition="NOT_EXIST",
+    )
+    assert "PolicyHash" in response
+
+    with pytest.raises(ClientError) as excinfo:
+        client.put_resource_policy(
+            PolicyInJson=policy_json,
+            ResourceArn=resource_arn,
+            PolicyExistsCondition="NOT_EXIST",
+        )
+    assert "ResourceNumberLimitExceededException" in str(excinfo.value)
+
+    with pytest.raises(ClientError) as excinfo:
+        client.put_resource_policy(
+            PolicyInJson=policy_json,
+            ResourceArn=resource_arn,
+            PolicyHashCondition="incorrect-hash",
+        )
+    assert "ConcurrentModificationException" in str(excinfo.value)
+
+    nonexistent_arn = "arn:aws:glue:us-west-2:123456789012:nonexistent-resource"
+    with pytest.raises(ClientError) as excinfo:
+        client.put_resource_policy(
+            PolicyInJson=policy_json,
+            ResourceArn=nonexistent_arn,
+            PolicyExistsCondition="MUST_EXIST",
+        )
+    assert "ResourceNumberLimitExceededException" in str(excinfo.value)

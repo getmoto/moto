@@ -23,6 +23,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "IdentityName",
     },
+    "list_configuration_sets": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 100,
+        "unique_attribute": "configuration_set_name",
+    },
 }
 
 
@@ -309,10 +315,9 @@ class SESV2Backend(BaseBackend):
         )
         return config_set
 
-    def list_configuration_sets(self, next_token: str, page_size: int) -> List[str]:
-        return self.v1_backend.list_configuration_sets(
-            next_token=next_token, max_items=page_size
-        )
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_configuration_sets(self) -> List[ConfigurationSet]:
+        return self.v1_backend._list_all_configuration_sets()
 
     def create_dedicated_ip_pool(
         self, pool_name: str, tags: List[Dict[str, str]], scaling_mode: str
@@ -339,6 +344,45 @@ class SESV2Backend(BaseBackend):
         if email_identity not in self.email_identities:
             raise NotFoundException(email_identity)
         return self.email_identities[email_identity]
+
+    def create_email_identity_policy(
+        self, email_identity: str, policy_name: str, policy: str
+    ) -> None:
+        email_id = self.get_email_identity(email_identity)
+
+        email_id.policies[policy_name] = policy
+
+        return
+
+    def delete_email_identity_policy(
+        self, email_identity: str, policy_name: str
+    ) -> None:
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+
+        email_id = self.email_identities[email_identity]
+
+        if policy_name in email_id.policies:
+            del email_id.policies[policy_name]
+
+        return
+
+    def update_email_identity_policy(
+        self, email_identity: str, policy_name: str, policy: str
+    ) -> None:
+        if email_identity not in self.email_identities:
+            raise NotFoundException(email_identity)
+
+        email_id = self.email_identities[email_identity]
+
+        email_id.policies[policy_name] = policy
+
+        return
+
+    def get_email_identity_policies(self, email_identity: str) -> Dict[str, Any]:
+        email_id = self.get_email_identity(email_identity)
+
+        return email_id.policies
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

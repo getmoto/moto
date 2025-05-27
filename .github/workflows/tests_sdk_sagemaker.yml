@@ -1,0 +1,32 @@
+name: SageMaker SDK test
+on: [workflow_call]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install Moto
+      run: |
+        pip install .[sagemaker]
+    - name: Install dependencies
+      run: |
+        pip install boto3 pytest sagemaker
+        # https://github.com/aws/sagemaker-python-sdk/issues/5116
+        pip install graphene
+    - name: Run tests
+      run: |
+        mkdir ~/.aws
+        touch ~/.aws/credentials
+        echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
+        touch ~/.aws/config
+        echo -e "[default]\nregion = us-east-1" > ~/.aws/config
+        cd other_langs/tests_sagemaker_client
+        pytest -sv .

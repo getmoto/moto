@@ -2145,7 +2145,7 @@ def test_parameter_version_limit():
     for i in range(PARAMETER_VERSION_LIMIT + 1):
         client.put_parameter(
             Name=parameter_name,
-            Value=f"value-{(i+1)}",
+            Value=f"value-{(i + 1)}",
             Type="String",
             Overwrite=True,
         )
@@ -2170,7 +2170,7 @@ def test_parameter_overwrite_fails_when_limit_reached_and_oldest_version_has_lab
     for i in range(PARAMETER_VERSION_LIMIT):
         client.put_parameter(
             Name=parameter_name,
-            Value=f"value-{(i+1)}",
+            Value=f"value-{(i + 1)}",
             Type="String",
             Overwrite=True,
         )
@@ -2205,7 +2205,7 @@ def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_versi
     for i in range(versions_to_create):
         client.put_parameter(
             Name=parameter_name,
-            Value=f"value-{(i+1)}",
+            Value=f"value-{(i + 1)}",
             Type="String",
             Overwrite=True,
         )
@@ -2235,7 +2235,7 @@ def test_get_parameters_includes_invalid_parameter_when_requesting_invalid_label
     for i in range(versions_to_create):
         client.put_parameter(
             Name=parameter_name,
-            Value=f"value-{(i+1)}",
+            Value=f"value-{(i + 1)}",
             Type="String",
             Overwrite=True,
         )

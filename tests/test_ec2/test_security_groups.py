@@ -633,6 +633,42 @@ def test_security_group_rule_filtering_group_id():
 
 
 @mock_aws
+def test_describe_security_group_rules_by_id():
+    ec2 = boto3.resource("ec2", region_name=REGION)
+    conn = boto3.client("ec2", region_name=REGION)
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    sg = conn.create_security_group(
+        GroupName="sg1", Description="Test security group sg1", VpcId=vpc.id
+    )
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 27017,
+            "ToPort": 27018,
+            "IpRanges": [
+                {"CidrIp": "1.2.3.4/32"},
+                {"CidrIp": "2.3.4.5/32"},
+            ],
+        }
+    ]
+    conn.authorize_security_group_ingress(
+        GroupId=sg["GroupId"], IpPermissions=ip_permissions
+    )
+    result = conn.describe_security_group_rules(
+        Filters=[{"Name": "group-id", "Values": [sg["GroupId"]]}]
+    )
+    assert len(result["SecurityGroupRules"]) == 3
+    sgr_ids = [sgr["SecurityGroupRuleId"] for sgr in result["SecurityGroupRules"]]
+    sgr_id_not_included = sgr_ids.pop(0)
+    result = conn.describe_security_group_rules(SecurityGroupRuleIds=sgr_ids)
+    sgr_ids_returned = [
+        sgr["SecurityGroupRuleId"] for sgr in result["SecurityGroupRules"]
+    ]
+    assert sgr_ids_returned == sgr_ids
+    assert sgr_id_not_included not in sgr_ids_returned
+
+
+@mock_aws
 def test_security_group_rule_filtering_tags():
     # Setup
     ec2 = boto3.resource("ec2", REGION)
@@ -670,11 +706,29 @@ def test_security_group_rule_filtering_tags():
         Filters=[{"Name": "tag:Partner", "Values": ["test"]}]
     )
 
+    response3 = client.describe_security_group_rules(
+        Filters=[{"Name": "tag-key", "Values": ["Partner"]}]
+    )
+
+    response4 = client.describe_security_group_rules(
+        Filters=[
+            {"Name": "group-id", "Values": [sg["GroupId"]]},
+            {"Name": "tag-key", "Values": ["Partner"]},
+        ]
+    )
+
     # Verify
     assert response1["SecurityGroupRules"][0]["Tags"] == tags
     assert "Tags" in response2["SecurityGroupRules"][0]
     assert response2["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
     assert response2["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
+    assert len(response3["SecurityGroupRules"]) == 1
+    assert response3["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
+    assert response3["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
+    assert len(response4["SecurityGroupRules"]) == 1
+    assert response4["SecurityGroupRules"][0]["GroupId"] == sg["GroupId"]
+    assert response4["SecurityGroupRules"][0]["Tags"][1]["Key"] == "Partner"
+    assert response4["SecurityGroupRules"][0]["Tags"][1]["Value"] == "test"
 
 
 @mock_aws
@@ -712,6 +766,256 @@ def test_create_and_describe_security_grp_rule():
     )
     rules = response["SecurityGroupRules"]
     _verify_egress_rule(rules[0])
+
+
+@ec2_aws_verified(create_vpc=True, create_sg=True)
+@pytest.mark.aws_verified
+def test_modify_security_group_rules(ec2_client=None, vpc_id=None, sg_id=None):
+    client = ec2_client
+    group_id = sg_id
+
+    ip_permissions = [
+        {
+            "IpProtocol": "tcp",
+            "FromPort": 30900,
+            "ToPort": 31000,
+            "IpRanges": [
+                {"CidrIp": "1.2.3.4/32", "Description": "original rule"},
+            ],
+        }
+    ]
+    rule_id = client.authorize_security_group_ingress(
+        GroupId=group_id, IpPermissions=ip_permissions
+    )["SecurityGroupRules"][0]["SecurityGroupRuleId"]
+
+    # Ensure bad group ID raises
+    with pytest.raises(ClientError) as ex:
+        client.modify_security_group_rules(
+            GroupId="sg-00000000",
+            SecurityGroupRules=[
+                {
+                    "SecurityGroupRuleId": rule_id,
+                    "SecurityGroupRule": {
+                        "IpProtocol": "udp",
+                        "FromPort": 27010,
+                        "ToPort": 27011,
+                        "CidrIpv4": "2.3.4.5/32",
+                        "Description": "modification that should fail",
+                    },
+                }
+            ],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidGroup.NotFound"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The security group 'sg-00000000' does not exist"
+    )
+
+    # Ensure bad rule ID raises
+    with pytest.raises(ClientError) as ex:
+        client.modify_security_group_rules(
+            GroupId=group_id,
+            SecurityGroupRules=[
+                {
+                    "SecurityGroupRuleId": "sgr-00000000",
+                    "SecurityGroupRule": {
+                        "IpProtocol": "udp",
+                        "FromPort": 27010,
+                        "ToPort": 27011,
+                        "CidrIpv4": "2.3.4.5/32",
+                        "Description": "modification that should fail",
+                    },
+                }
+            ],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidSecurityGroupRuleId.NotFound"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The security group rule ID 'sgr-00000000' does not exist"
+    )
+
+    # Ensure missing protocol raises
+    with pytest.raises(ClientError) as ex:
+        client.modify_security_group_rules(
+            GroupId=group_id,
+            SecurityGroupRules=[
+                {
+                    "SecurityGroupRuleId": rule_id,
+                    "SecurityGroupRule": {
+                        "FromPort": 27010,
+                        "ToPort": 27011,
+                        "CidrIpv4": "2.3.4.5/32",
+                        "Description": "modification that should fail",
+                    },
+                }
+            ],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid value 'null' for protocol. VPC security group rules must specify protocols explicitly."
+    )
+
+    # Ensure missing port range raises
+    with pytest.raises(ClientError) as ex:
+        client.modify_security_group_rules(
+            GroupId=group_id,
+            SecurityGroupRules=[
+                {
+                    "SecurityGroupRuleId": rule_id,
+                    "SecurityGroupRule": {
+                        "IpProtocol": "udp",
+                        "ToPort": 27011,
+                        "CidrIpv4": "2.3.4.5/32",
+                        "Description": "modification that should fail",
+                    },
+                }
+            ],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Invalid value for portRange. Must specify both from and to ports with TCP/UDP."
+    )
+
+    # Ensure missing cidr raises
+    with pytest.raises(ClientError) as ex:
+        client.modify_security_group_rules(
+            GroupId=group_id,
+            SecurityGroupRules=[
+                {
+                    "SecurityGroupRuleId": rule_id,
+                    "SecurityGroupRule": {
+                        "IpProtocol": "udp",
+                        "FromPort": 27010,
+                        "ToPort": 27011,
+                        "Description": "modification that should fail",
+                    },
+                }
+            ],
+        )
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request must contain exactly one of: cidrIp, cidrIpv6, prefixListId, or referencedGroupId"
+    )
+
+    # Ensure multiple cidr raises
+    with pytest.raises(ClientError) as ex:
+        client.modify_security_group_rules(
+            GroupId=group_id,
+            SecurityGroupRules=[
+                {
+                    "SecurityGroupRuleId": rule_id,
+                    "SecurityGroupRule": {
+                        "IpProtocol": "udp",
+                        "FromPort": 27010,
+                        "ToPort": 27011,
+                        "CidrIpv4": "2.3.4.5/32",
+                        "CidrIpv6": "2001:db8::/32",
+                        "Description": "modification that should fail ",
+                    },
+                }
+            ],
+        )
+    assert ex.value.response["Error"]["Code"] == "InvalidParameterCombination"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Only one of cidrIp, cidrIpv6, prefixListId, or referencedGroupId can be specified"
+    )
+
+    # Happy path: Ensure all attributes can be modified
+    response = client.modify_security_group_rules(
+        GroupId=group_id,
+        SecurityGroupRules=[
+            {
+                "SecurityGroupRuleId": rule_id,
+                "SecurityGroupRule": {
+                    "IpProtocol": "udp",
+                    "FromPort": 26000,
+                    "ToPort": 26500,
+                    "CidrIpv4": "2.3.4.5/32",
+                    "Description": "first modification",
+                },
+            }
+        ],
+    )
+    assert response["Return"] is True
+
+    response = client.describe_security_group_rules(
+        Filters=[
+            {"Name": "group-id", "Values": [group_id]},
+            {"Name": "security-group-rule-id", "Values": [rule_id]},
+        ]
+    )
+    assert len(response["SecurityGroupRules"]) == 1
+    assert response["SecurityGroupRules"][0]["IpProtocol"] == "udp"
+    assert response["SecurityGroupRules"][0]["FromPort"] == 26000
+    assert response["SecurityGroupRules"][0]["ToPort"] == 26500
+    assert response["SecurityGroupRules"][0]["CidrIpv4"] == "2.3.4.5/32"
+    assert response["SecurityGroupRules"][0]["Description"] == "first modification"
+    assert "CidrIpv6" not in response["SecurityGroupRules"][0]
+
+    # Add another rule
+    rule_id_2 = client.authorize_security_group_egress(
+        GroupId=group_id, IpPermissions=ip_permissions
+    )["SecurityGroupRules"][0]["SecurityGroupRuleId"]
+
+    # Ensure multiple sg rules can be modified together
+    response = client.modify_security_group_rules(
+        GroupId=group_id,
+        SecurityGroupRules=[
+            {
+                "SecurityGroupRuleId": rule_id,
+                "SecurityGroupRule": {
+                    "IpProtocol": "tcp",
+                    "FromPort": 10,
+                    "ToPort": 11,
+                    "CidrIpv4": "1.1.1.1/32",
+                    "Description": "second modification",
+                },
+            },
+            {
+                "SecurityGroupRuleId": rule_id_2,
+                "SecurityGroupRule": {
+                    "IpProtocol": "udp",
+                    "FromPort": 20,
+                    "ToPort": 21,
+                    "CidrIpv4": "2.2.2.2/32",
+                    "Description": "first modification",
+                },
+            },
+        ],
+    )
+    assert response["Return"] is True
+
+    # Ensure first rule
+    response = client.describe_security_group_rules(
+        Filters=[
+            {"Name": "group-id", "Values": [group_id]},
+            {"Name": "security-group-rule-id", "Values": [rule_id]},
+        ]
+    )
+    assert len(response["SecurityGroupRules"]) == 1
+    assert response["SecurityGroupRules"][0]["IpProtocol"] == "tcp"
+    assert response["SecurityGroupRules"][0]["FromPort"] == 10
+    assert response["SecurityGroupRules"][0]["ToPort"] == 11
+    assert response["SecurityGroupRules"][0]["CidrIpv4"] == "1.1.1.1/32"
+    assert response["SecurityGroupRules"][0]["Description"] == "second modification"
+
+    # Ensure second rule
+    response = client.describe_security_group_rules(
+        Filters=[
+            {"Name": "group-id", "Values": [group_id]},
+            {"Name": "security-group-rule-id", "Values": [rule_id_2]},
+        ]
+    )
+    assert len(response["SecurityGroupRules"]) == 1
+    assert response["SecurityGroupRules"][0]["IpProtocol"] == "udp"
+    assert response["SecurityGroupRules"][0]["FromPort"] == 20
+    assert response["SecurityGroupRules"][0]["ToPort"] == 21
+    assert response["SecurityGroupRules"][0]["CidrIpv4"] == "2.2.2.2/32"
+    assert response["SecurityGroupRules"][0]["Description"] == "first modification"
 
 
 @mock_aws
@@ -885,21 +1189,21 @@ def test_description_in_ip_permissions():
     )
     assert len(result["SecurityGroupRules"]) == 3
 
-    assert result["SecurityGroupRules"][0]["Description"] == "austin"
-    assert result["SecurityGroupRules"][0]["CidrIpv4"] == "1.2.3.4/32"
-    assert result["SecurityGroupRules"][0]["IsEgress"] is False
-    assert result["SecurityGroupRules"][0]["FromPort"] == 27017
-    assert result["SecurityGroupRules"][0]["ToPort"] == 27018
+    assert result["SecurityGroupRules"][0]["IsEgress"] is True
+    assert result["SecurityGroupRules"][0]["FromPort"] == -1
+    assert result["SecurityGroupRules"][0]["ToPort"] == -1
 
-    assert result["SecurityGroupRules"][1]["Description"] == "powers"
-    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "2.3.4.5/32"
+    assert result["SecurityGroupRules"][1]["Description"] == "austin"
+    assert result["SecurityGroupRules"][1]["CidrIpv4"] == "1.2.3.4/32"
     assert result["SecurityGroupRules"][1]["IsEgress"] is False
     assert result["SecurityGroupRules"][1]["FromPort"] == 27017
     assert result["SecurityGroupRules"][1]["ToPort"] == 27018
 
-    assert result["SecurityGroupRules"][2]["IsEgress"] is True
-    assert result["SecurityGroupRules"][2]["FromPort"] == -1
-    assert result["SecurityGroupRules"][2]["ToPort"] == -1
+    assert result["SecurityGroupRules"][2]["Description"] == "powers"
+    assert result["SecurityGroupRules"][2]["CidrIpv4"] == "2.3.4.5/32"
+    assert result["SecurityGroupRules"][2]["IsEgress"] is False
+    assert result["SecurityGroupRules"][2]["FromPort"] == 27017
+    assert result["SecurityGroupRules"][2]["ToPort"] == 27018
 
     result = conn.describe_security_groups(GroupIds=[sg["GroupId"]])
     group = result["SecurityGroups"][0]
@@ -1014,7 +1318,7 @@ def test_security_group_filter_ip_permission():
     assert describe[0]["GroupName"] == sg_name
 
 
-def retrieve_all_sgs(conn, filters=[]):  # pylint: disable=W0102
+def retrieve_all_sgs(conn, filters=[]):
     res = conn.describe_security_groups(Filters=filters)
     all_groups = res["SecurityGroups"]
     next_token = res.get("NextToken")
@@ -2014,6 +2318,7 @@ def test_revoke_security_group_ingress(ec2_client=None, vpc_id=None, sg_id=None)
 
 
 @ec2_aws_verified(create_vpc=True, create_sg=True)
+@pytest.mark.aws_verified
 def test_invalid_security_group_id_in_rules_search(
     ec2_client=None, vpc_id=None, sg_id=None
 ):
@@ -2025,6 +2330,19 @@ def test_invalid_security_group_id_in_rules_search(
     error = e.value.response["Error"]
     assert "InvalidGroupId.Malformed" == error["Code"]
     assert "The security group ID 'foobar' is malformed" in error["Message"]
+
+    # assert error with non-existent sgr id
+    non_existent_sgr_id = "sgr-0f80c7e764c18b3c0"
+    with pytest.raises(ClientError) as e:
+        ec2_client.describe_security_group_rules(
+            SecurityGroupRuleIds=[non_existent_sgr_id]
+        )
+    error = e.value.response["Error"]
+    assert "InvalidSecurityGroupRuleId.NotFound" == error["Code"]
+    assert (
+        f"The security group rule ID '{non_existent_sgr_id}' does not exist"
+        in error["Message"]
+    )
 
     # assert with non-existent sg
     response = ec2_client.describe_security_group_rules(

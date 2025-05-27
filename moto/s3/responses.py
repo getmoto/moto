@@ -10,6 +10,7 @@ import xmltodict
 
 from moto import settings
 from moto.core.common_types import TYPE_RESPONSE
+from moto.core.mime_types import APP_XML
 from moto.core.responses import BaseResponse
 from moto.core.utils import (
     ALT_DOMAIN_SUFFIXES,
@@ -338,22 +339,25 @@ class S3Response(BaseResponse):
         return self._send_response(response)
 
     @staticmethod
-    def _send_response(response: Any) -> TYPE_RESPONSE:  # type: ignore
-        if isinstance(response, str):
-            return 200, {}, response.encode("utf-8")
+    def _send_response(response: Union[TYPE_RESPONSE, str, bytes]) -> TYPE_RESPONSE:  # type: ignore
+        if isinstance(response, (str, bytes)):
+            status_code = 200
+            headers: dict[str, Any] = {}
         else:
-            status_code, headers, response_content = response
-            if not isinstance(response_content, bytes):
-                response_content = response_content.encode("utf-8")
+            status_code, headers, response = response
+        if not isinstance(response, bytes):
+            response = response.encode("utf-8")
 
-            return status_code, headers, response_content
+        if response and "content-type" not in headers:
+            headers["content-type"] = APP_XML
+
+        return status_code, headers, response
 
     def _bucket_response(
         self, request: Any, full_url: str
     ) -> Union[str, TYPE_RESPONSE]:
         querystring = self._get_querystring(request, full_url)
         method = request.method
-
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
             # If no bucket specified, list all buckets
@@ -412,7 +416,8 @@ class S3Response(BaseResponse):
             # raises NoSuchBucket, leading to inconsistency in
             # error response between real and mocked responses.
             return 404, {}, ""
-        return 200, {"x-amz-bucket-region": bucket.region_name}, ""
+        headers = {"x-amz-bucket-region": bucket.region_name, "content-type": APP_XML}
+        return 200, headers, ""
 
     def _set_cors_headers_options(
         self, headers: Dict[str, str], bucket: FakeBucket
@@ -555,7 +560,12 @@ class S3Response(BaseResponse):
             return self.get_bucket_accelerate_configuration()
         elif "publicAccessBlock" in querystring:
             return self.get_public_access_block()
-
+        elif "inventory" in querystring:
+            # Only GET includes "id" in the querystring, LIST does not
+            if "id" in querystring:
+                return self.get_bucket_inventory_configuration()
+            else:
+                return self.list_bucket_inventory_configurations()
         elif "versions" in querystring:
             return self.list_object_versions()
         elif "encryption" in querystring:
@@ -886,7 +896,12 @@ class S3Response(BaseResponse):
                 bucket_name, ownership=ownership_rule
             )
             return ""
-
+        elif "inventory" in querystring:
+            inventory_config = self._inventory_config_from_body()
+            self.backend.put_bucket_inventory_configuration(
+                bucket_name, inventory_config
+            )
+            return ""
         else:
             # us-east-1, the default AWS region behaves a bit differently
             # - you should not use any location constraint
@@ -1082,6 +1097,29 @@ class S3Response(BaseResponse):
         public_block_config = self.backend.get_public_access_block(self.bucket_name)
         template = self.response_template(S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION)
         return template.render(public_block_config=public_block_config)
+
+    def get_bucket_inventory_configuration(self) -> str:
+        config_id = self.querystring["id"][0]
+        inventory_configuration = self.backend.get_bucket_inventory_configuration(
+            bucket_name=self.bucket_name, id=config_id
+        )
+        template = self.response_template(S3_BUCKET_INVENTORY_CONFIGURATION)
+        return template.render(
+            inventory_config=inventory_configuration,
+            s3_bucket_config=inventory_configuration.destination["S3BucketDestination"],
+        )
+
+    def list_bucket_inventory_configurations(self) -> str:
+        inventory_configuration_list = (
+            self.backend.list_bucket_inventory_configurations(
+                bucket_name=self.bucket_name,
+            )
+        )
+        template = self.response_template(LIST_BUCKET_INVENTORY_CONFIGURATIONS_TEMPLATE)
+        # TODO: Add support for pagination/ continuation tokens
+        return template.render(
+            inventory_configuration_list=inventory_configuration_list,
+        )
 
     def _bucket_response_delete(
         self, bucket_name: str, querystring: Dict[str, Any]
@@ -1304,7 +1342,7 @@ class S3Response(BaseResponse):
 
         if (begin is None and end == 0) or (begin is not None and begin > last):
             if request.method == "HEAD":
-                return 416, {"Content-Type": "application/xml"}, b""
+                return 416, {"Content-Type": APP_XML}, b""
             raise InvalidRange(
                 actual_size=str(length), range_requested=request.headers.get("range")
             )
@@ -1377,18 +1415,13 @@ class S3Response(BaseResponse):
         self.setup_class(request, full_url, headers)
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         self.backend.log_incoming_request(request, bucket_name)
-        response_headers: Dict[str, Any] = {}
 
         try:
             response = self._key_response(request, full_url)
         except S3ClientError as s3error:
             response = s3error.code, {}, s3error.description
 
-        if isinstance(response, str):
-            status_code = 200
-            response_content = response
-        else:
-            status_code, response_headers, response_content = response
+        status_code, response_headers, response_content = self._send_response(response)
 
         if (
             status_code == 200
@@ -1722,6 +1755,7 @@ class S3Response(BaseResponse):
         storage_class = self.headers.get("x-amz-storage-class", "STANDARD")
         encryption = self.headers.get("x-amz-server-side-encryption")
         kms_key_id = self.headers.get("x-amz-server-side-encryption-aws-kms-key-id")
+        if_match = self.headers.get("If-Match")
         if_none_match = self.headers.get("If-None-Match")
         bucket_key_enabled = self.headers.get(
             "x-amz-server-side-encryption-bucket-key-enabled"
@@ -1729,6 +1763,12 @@ class S3Response(BaseResponse):
         if bucket_key_enabled is not None:
             bucket_key_enabled = str(bucket_key_enabled).lower()
 
+        if if_match:
+            if not (obj := self.backend.get_object(self.bucket_name, key_name)):
+                raise MissingKey
+            # Check if the ETags are the same. S3 doesn't seem to care about quotes, so we shouldn't either
+            elif if_match.replace('"', "") != obj.etag.replace('"', ""):
+                raise PreconditionFailed("If-Match")
         if (
             if_none_match == "*"
             and self.backend.get_object(self.bucket_name, key_name) is not None
@@ -2070,7 +2110,7 @@ class S3Response(BaseResponse):
             headers = {
                 "x-amz-delete-marker": "true",
                 "x-amz-version-id": version_id,
-                "content-type": "application/xml",
+                "content-type": APP_XML,
             }
             if version_id:
                 headers["allow"] = "DELETE"
@@ -2111,7 +2151,7 @@ class S3Response(BaseResponse):
                     if part_number > 1:
                         raise RangeNotSatisfiable
                     response_headers["content-range"] = (
-                        f"bytes 0-{full_key.size -1}/{full_key.size}"  # type: ignore
+                        f"bytes 0-{full_key.size - 1}/{full_key.size}"  # type: ignore
                     )
                     return 206, response_headers, ""
 
@@ -2466,6 +2506,11 @@ class S3Response(BaseResponse):
     def _replication_config_from_xml(self, xml: str) -> Dict[str, Any]:
         parsed_xml = xmltodict.parse(xml, dict_constructor=dict)
         config = parsed_xml["ReplicationConfiguration"]
+        return config
+
+    def _inventory_config_from_body(self) -> Dict[str, Any]:
+        parsed_xml = xmltodict.parse(self.body)
+        config = parsed_xml["InventoryConfiguration"]
         return config
 
     def _key_response_delete(
@@ -3344,6 +3389,97 @@ S3_PUBLIC_ACCESS_BLOCK_CONFIGURATION = """
 </PublicAccessBlockConfiguration>
 """
 
+S3_BUCKET_INVENTORY_CONFIGURATION = """<?xml version="1.0" encoding="UTF-8"?>
+<InventoryConfiguration>
+   <Destination>
+      <S3BucketDestination>
+            {%if s3_bucket_config.get('AccountId') %}
+            <AccountId>{{s3_bucket_config['AccountId']}}</AccountId>
+            {% endif %}
+            <Bucket>{{s3_bucket_config['Bucket']}}</Bucket>
+            <Format>{{s3_bucket_config['Format']}}</Format>
+            {%if s3_bucket_config.get('Prefix') %}
+            <Prefix>{{s3_bucket_config['Prefix']}}</Prefix>
+            {% endif %}
+            {% if s3_bucket_config.get('Encryption') %}
+            <Encryption>
+                ## NOTE boto changes the key SSEKMS to SSE-KMS on put and SSE-KMS to SSEKMS on get
+                {% if s3_bucket_config['Encryption'].get('SSE-KMS') %}
+                <SSE-KMS>
+                    <KeyId>{{s3_bucket_config['Encryption']['SSE-KMS']['KeyId']}}</KeyId>
+                </SSE-KMS>
+                {% else %}
+                <SSES3/>
+                {% endif %}
+            </Encryption>
+            {% endif %}
+      </S3BucketDestination>
+   </Destination>
+   <IsEnabled>{{inventory_config.is_enabled}}</IsEnabled>
+   <Filter>
+      <Prefix>{{inventory_config.filters['Prefix']}}</Prefix>
+   </Filter>
+   <Id>{{inventory_config.id}}</Id>
+   <IncludedObjectVersions>All</IncludedObjectVersions>
+   <OptionalFields>
+        {% for field in inventory_config.optional_fields['Field'] %}
+        <Field>{{ field }}</Field>
+        {% endfor %}
+   </OptionalFields>
+   <Schedule>
+      <Frequency>{{inventory_config.schedule['Frequency']}}</Frequency>
+   </Schedule>
+</InventoryConfiguration>
+"""
+
+LIST_BUCKET_INVENTORY_CONFIGURATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListInventoryConfigurationsResult>
+    <IsTruncated>false</IsTruncated>
+    {% for inventory_config in inventory_configuration_list %}
+    <InventoryConfiguration>
+        <Destination>
+            <S3BucketDestination>
+                    {%if inventory_config.destination["S3BucketDestination"].get('AccountId') %}
+                    <AccountId>{{inventory_config.destination["S3BucketDestination"]['AccountId']}}</AccountId>
+                    {% endif %}
+                    <Bucket>{{inventory_config.destination["S3BucketDestination"]['Bucket']}}</Bucket>
+                    <Format>{{inventory_config.destination["S3BucketDestination"]['Format']}}</Format>
+                    {%if inventory_config.destination["S3BucketDestination"].get('Prefix') %}
+                    <Prefix>{{inventory_config.destination["S3BucketDestination"]['Prefix']}}</Prefix>
+                    {% endif %}
+                    {% if inventory_config.destination["S3BucketDestination"].get('Encryption') %}
+                    <Encryption>
+                        ## NOTE boto changes the key SSEKMS to SSE-KMS on put and SSE-KMS to SSEKMS on get
+                        {% if inventory_config.destination["S3BucketDestination"]['Encryption'].get('SSE-KMS') %}
+                        <SSE-KMS>
+                            <KeyId>{{inventory_config.destination["S3BucketDestination"]['Encryption']['SSE-KMS']['KeyId']}}</KeyId>
+                        </SSE-KMS>
+                        {% else %}
+                        <SSES3/>
+                        {% endif %}
+                    </Encryption>
+                    {% endif %}
+            </S3BucketDestination>
+        </Destination>
+        <IsEnabled>{{inventory_config.is_enabled}}</IsEnabled>
+        <Filter>
+            <Prefix>{{inventory_config.filters['Prefix']}}</Prefix>
+        </Filter>
+        <Id>{{inventory_config.id}}</Id>
+        <IncludedObjectVersions>All</IncludedObjectVersions>
+        <OptionalFields>
+                {% for field in inventory_config.optional_fields['Field'] %}
+                <Field>{{ field }}</Field>
+                {% endfor %}
+        </OptionalFields>
+        <Schedule>
+            <Frequency>{{inventory_config.schedule['Frequency']}}</Frequency>
+        </Schedule>
+    </InventoryConfiguration>
+    {% endfor %}
+</ListInventoryConfigurationsResult>
+"""
+
 S3_BUCKET_LOCK_CONFIGURATION = """
 <ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
     {%if lock_enabled %}
@@ -3408,6 +3544,9 @@ S3_REPLICATION_CONFIG = """<?xml version="1.0" encoding="UTF-8"?>
   </Filter>
   <Destination>
     <Bucket>{{ rule["Destination"]["Bucket"] }}</Bucket>
+    {% if rule["Destination"].get("Account") %}
+    <Account>{{ rule["Destination"]["Account"] }}</Account>
+    {% endif %}
   </Destination>
 </Rule>
 {% endfor %}

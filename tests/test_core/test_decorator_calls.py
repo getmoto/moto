@@ -32,7 +32,7 @@ def fixture_aws_credentials(monkeypatch: Any) -> None:  # type: ignore[misc]
 
 
 @pytest.mark.network
-def test_context_manager(aws_credentials: Any) -> None:  # type: ignore[misc]  # pylint: disable=unused-argument
+def test_context_manager(aws_credentials: Any) -> None:  # type: ignore[misc]
     client = boto3.client("ec2", region_name="us-west-1")
     with pytest.raises(ClientError) as exc:
         client.describe_addresses()
@@ -144,7 +144,7 @@ class TestWithSetup_UppercaseU(unittest.TestCase):
 
 @mock_aws
 class TestWithSetup_LowercaseU:
-    def setup_method(self, *args: Any) -> None:  # pylint: disable=unused-argument
+    def setup_method(self, *args: Any) -> None:
         # This method will be executed automatically using pytest
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
@@ -161,7 +161,7 @@ class TestWithSetup_LowercaseU:
 
 @mock_aws
 class TestWithSetupMethod:
-    def setup_method(self, *args: Any) -> None:  # pylint: disable=unused-argument
+    def setup_method(self, *args: Any) -> None:
         # This method will be executed automatically using pytest
         s3 = boto3.client("s3", region_name="us-east-1")
         s3.create_bucket(Bucket="mybucket")
@@ -178,7 +178,7 @@ class TestWithSetupMethod:
 
 @mock_aws
 class TestKinesisUsingSetupMethod:
-    def setup_method(self, *args: Any) -> None:  # pylint: disable=unused-argument
+    def setup_method(self, *args: Any) -> None:
         self.stream_name = "test_stream"
         self.boto3_kinesis_client = boto3.client("kinesis", region_name="us-east-1")
         self.boto3_kinesis_client.create_stream(

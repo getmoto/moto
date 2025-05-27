@@ -72,7 +72,6 @@ class CloudFrontResponse(BaseResponse):
         params = self._get_xml_body()
         dist_config = params.get("DistributionConfig")
         if_match = self.headers["If-Match"]
-
         dist, location, e_tag = self.backend.update_distribution(
             dist_config=dist_config,  # type: ignore[arg-type]
             _id=dist_id,
@@ -325,10 +324,10 @@ DIST_CONFIG_TEMPLATE = """
       <DefaultCacheBehavior>
         <TargetOriginId>{{ distribution.distribution_config.default_cache_behavior.target_origin_id }}</TargetOriginId>
         <TrustedSigners>
-          <Enabled>{{ distribution.distribution_config.default_cache_behavior.trusted_signers_enabled }}</Enabled>
-          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers|length }}</Quantity>
+          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>          
+          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length }}</Quantity>
           <Items>
-            {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers %}
+            {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums %}
               <AwsAccountNumber>{{ aws_account_number }}</AwsAccountNumber>
             {% endfor %}
           </Items>
@@ -432,10 +431,10 @@ DIST_CONFIG_TEMPLATE = """
                 <PathPattern>{{ behaviour.path_pattern }}</PathPattern>
                 <TargetOriginId>{{ behaviour.target_origin_id }}</TargetOriginId>
                 <TrustedSigners>
-                  <Enabled>{{ behaviour.trusted_signers.enabled }}</Enabled>
-                  <Quantity>{{ behaviour.trusted_signers | length }}</Quantity>
+                  <Enabled>{{ 'true' if behaviour.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>
+                  <Quantity>{{ behaviour.trusted_signers.acct_nums | length }}</Quantity>
                   <Items>
-                    {% for account_nr  in behaviour.trusted_signers %}
+                    {% for account_nr  in behaviour.trusted_signers.acct_nums %}
                       <AwsAccountNumber>{{ account_nr }}</AwsAccountNumber>
                     {% endfor %}
                   </Items>
@@ -549,10 +548,10 @@ DIST_CONFIG_TEMPLATE = """
       <PriceClass>{{ distribution.distribution_config.price_class }}</PriceClass>
       <Enabled>{{ distribution.distribution_config.enabled }}</Enabled>
       <ViewerCertificate>
-        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate else 'false' }}</CloudFrontDefaultCertificate>
+        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate == True else 'false' }}</CloudFrontDefaultCertificate>
         <IAMCertificateId>{{ distribution.distribution_config.viewer_certificate.iam_certificate_id }}</IAMCertificateId>
         <ACMCertificateArn>{{ distribution.distribution_config.viewer_certificate.acm_certificate_arn }}</ACMCertificateArn>
-        <SSLSupportMethod>{{ SSLSupportMethod }}</SSLSupportMethod>
+        <SSLSupportMethod>{{ distribution.distribution_config.viewer_certificate.ssl_support_method }}</SSLSupportMethod>
         <MinimumProtocolVersion>{{ distribution.distribution_config.viewer_certificate.min_protocol_version }}</MinimumProtocolVersion>
         <Certificate>{{ distribution.distribution_config.viewer_certificate.certificate }}</Certificate>
         <CertificateSource>{{ distribution.distribution_config.viewer_certificate.certificate_source }}</CertificateSource>

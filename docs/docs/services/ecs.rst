@@ -86,6 +86,7 @@ ecs
 - [X] register_task_definition
 - [X] run_task
 - [X] start_task
+- [ ] stop_service_deployment
 - [X] stop_task
 - [ ] submit_attachment_state_changes
 - [ ] submit_container_state_change

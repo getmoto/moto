@@ -1,12 +1,18 @@
 """Unit tests for workspaces-supported APIs."""
 
+import sys
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.utilities.distutils_version import LooseVersion
 from tests.test_ds.test_ds_simple_ad_directory import create_test_directory
+
+botocore_version = sys.modules["botocore"].__version__
 
 
 def create_directory():
@@ -28,7 +34,7 @@ def create_security_group(client):
 def test_create_workspaces():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.create_workspaces(
         Workspaces=[
             {
@@ -108,7 +114,7 @@ def test_create_workspaces_with_unknown_directory_id():
 def test_create_workspaces_with_auto_stop_timeout_and_alwayson():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.create_workspaces(
         Workspaces=[
             {
@@ -134,7 +140,7 @@ def test_create_workspaces_with_auto_stop_timeout_and_alwayson():
 def test_create_workspaces_with_auto_stop_timeout_and_manual():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.create_workspaces(
         Workspaces=[
             {
@@ -160,7 +166,7 @@ def test_create_workspaces_with_auto_stop_timeout_and_manual():
 def test_describe_workspaces():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     for _ in range(2):
         client.create_workspaces(
             Workspaces=[
@@ -185,7 +191,7 @@ def test_describe_workspaces():
 def test_describe_workspaces_with_directory_and_username():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     client.create_workspaces(
         Workspaces=[
             {
@@ -208,7 +214,7 @@ def test_describe_workspaces_with_directory_and_username():
 def test_describe_workspaces_invalid_parameters():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     response = client.create_workspaces(
         Workspaces=[
             {
@@ -243,7 +249,7 @@ def test_describe_workspaces_invalid_parameters():
 def test_describe_workspaces_only_user_name_used():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     client.create_workspaces(
         Workspaces=[
             {
@@ -262,15 +268,36 @@ def test_describe_workspaces_only_user_name_used():
 
 
 @mock_aws
+@pytest.mark.parametrize("enable_work_docs", [True, False])
+def test_register_workspace_directory_with_workdocs(enable_work_docs):
+    # The WorkDocs-service has been deprecated:
+    # https://www.reddit.com/r/aws/comments/1cd1iqb/workdocsamazon_has_decided_to_end_support_for_the/
+    # Botocore 1.38.13 has removed support for the EnableWorkdocs-parameter,
+    # so we can only test this on older versions of botocore
+    if LooseVersion(botocore_version) >= LooseVersion("1.38.13"):
+        raise SkipTest("Parameter EnableWorkdocs is only available in older versions")
+
+    client = boto3.client("workspaces", region_name="eu-west-1")
+    directory_id = create_directory()
+    client.register_workspace_directory(
+        DirectoryId=directory_id, EnableWorkDocs=enable_work_docs
+    )
+
+    resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
+    assert (
+        resp["Directories"][0]["WorkspaceCreationProperties"]["EnableWorkDocs"]
+        is enable_work_docs
+    )
+
+
+@mock_aws
 def test_register_workspace_directory():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
     assert "RegistrationCode" in resp["Directories"][0]
-    assert (
-        resp["Directories"][0]["WorkspaceCreationProperties"]["EnableWorkDocs"] is False
-    )
+    assert "EnableWorkDocs" not in resp["Directories"][0]["WorkspaceCreationProperties"]
     assert resp["Directories"][0]["Tenancy"] == "SHARED"
 
 
@@ -280,16 +307,12 @@ def test_register_workspace_directory_enable_self_service():
     directory_id = create_directory()
     client.register_workspace_directory(
         DirectoryId=directory_id,
-        EnableWorkDocs=True,
         EnableSelfService=True,
         Tenancy="DEDICATED",
     )
     resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
     self_service_permissions = resp["Directories"][0]["SelfservicePermissions"]
     assert "RegistrationCode" in resp["Directories"][0]
-    assert (
-        resp["Directories"][0]["WorkspaceCreationProperties"]["EnableWorkDocs"] is True
-    )
     assert self_service_permissions["IncreaseVolumeSize"] == "ENABLED"
     assert self_service_permissions["ChangeComputeType"] == "ENABLED"
     assert self_service_permissions["SwitchRunningMode"] == "ENABLED"
@@ -298,27 +321,11 @@ def test_register_workspace_directory_enable_self_service():
 
 
 @mock_aws
-def test_register_workspace_directory_with_subnets():
-    client = boto3.client("workspaces", region_name="eu-west-1")
-    directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
-    resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
-    assert "RegistrationCode" in resp["Directories"][0]
-    assert (
-        resp["Directories"][0]["WorkspaceCreationProperties"]["EnableWorkDocs"] is False
-    )
-    assert resp["Directories"][0]["Tenancy"] == "SHARED"
-
-
-@mock_aws
 def test_describe_workspace_directories():
     client = boto3.client("workspaces", region_name="eu-west-1")
     for _ in range(2):
         directory_id = create_directory()
-        client.register_workspace_directory(
-            DirectoryId=directory_id,
-            EnableWorkDocs=True,
-        )
+        client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.describe_workspace_directories()
     assert len(resp["Directories"]) == 2
     directory = resp["Directories"][0]
@@ -344,10 +351,7 @@ def test_describe_workspace_directories():
 def test_describe_workspace_directories_with_directory_id():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(
-        DirectoryId=directory_id,
-        EnableWorkDocs=True,
-    )
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
     assert len(resp["Directories"]) == 1
     directory = resp["Directories"][0]
@@ -369,11 +373,10 @@ def test_modify_workspace_creation_properties():
     ec2_client = boto3.client("ec2", region_name="eu-west-1")
     directory_id = create_directory()
     sg = create_security_group(client=ec2_client)
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     client.modify_workspace_creation_properties(
         ResourceId=directory_id,
         WorkspaceCreationProperties={
-            "EnableWorkDocs": False,
             "CustomSecurityGroupId": sg["GroupId"],
         },
     )
@@ -394,7 +397,6 @@ def test_modify_workspace_creation_properties_invalid_request():
         client.modify_workspace_creation_properties(
             ResourceId="d-9067f6c44b",  # Invalid DirectoryID
             WorkspaceCreationProperties={
-                "EnableWorkDocs": False,
                 "CustomSecurityGroupId": sg["GroupId"],
             },
         )
@@ -408,16 +410,11 @@ def test_create_tags():
     directory_id = create_directory()
     client.register_workspace_directory(
         DirectoryId=directory_id,
-        EnableWorkDocs=True,
-        Tags=[
-            {"Key": "foo1", "Value": "bar1"},
-        ],
+        Tags=[{"Key": "foo1", "Value": "bar1"}],
     )
     client.create_tags(
         ResourceId=directory_id,
-        Tags=[
-            {"Key": "foo2", "Value": "bar2"},
-        ],
+        Tags=[{"Key": "foo2", "Value": "bar2"}],
     )
     resp = client.describe_tags(ResourceId=directory_id)
     assert resp["TagList"][1]["Key"] == "foo2"
@@ -429,10 +426,7 @@ def test_describe_tags():
     directory_id = create_directory()
     client.register_workspace_directory(
         DirectoryId=directory_id,
-        EnableWorkDocs=True,
-        Tags=[
-            {"Key": "foo", "Value": "bar"},
-        ],
+        Tags=[{"Key": "foo", "Value": "bar"}],
     )
     resp = client.describe_tags(ResourceId=directory_id)
     assert resp["TagList"][0]["Key"] == "foo"
@@ -442,10 +436,7 @@ def test_describe_tags():
 def test_describe_client_properties():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(
-        DirectoryId=directory_id,
-        EnableWorkDocs=True,
-    )
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.describe_client_properties(ResourceIds=[directory_id])
     assert "ClientProperties" in resp["ClientPropertiesList"][0]
 
@@ -454,10 +445,7 @@ def test_describe_client_properties():
 def test_modify_client_properties():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(
-        DirectoryId=directory_id,
-        EnableWorkDocs=True,
-    )
+    client.register_workspace_directory(DirectoryId=directory_id)
     client.modify_client_properties(
         ResourceId=directory_id,
         ClientProperties={
@@ -475,7 +463,7 @@ def test_modify_client_properties():
 def test_create_workspace_image():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     workspace = client.create_workspaces(
         Workspaces=[
             {
@@ -517,7 +505,7 @@ def test_create_workspace_image_invalid_workspace():
 def test_create_workspace_image_already_exists():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     workspace = client.create_workspaces(
         Workspaces=[
             {
@@ -547,7 +535,7 @@ def test_create_workspace_image_already_exists():
 def test_describe_workspace_images():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     workspace = client.create_workspaces(
         Workspaces=[
             {
@@ -578,7 +566,7 @@ def test_describe_workspace_images():
 def test_update_workspace_image_permission():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     workspace = client.create_workspaces(
         Workspaces=[
             {
@@ -611,7 +599,7 @@ def test_update_workspace_image_permission():
 def test_describe_workspace_image_permissions():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     workspace = client.create_workspaces(
         Workspaces=[
             {
@@ -648,7 +636,7 @@ def test_describe_workspace_image_permissions_with_invalid_image_id():
 def test_deregister_workspace_directory():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(DirectoryId=directory_id, EnableWorkDocs=False)
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
     assert len(resp["Directories"]) > 0
     client.deregister_workspace_directory(DirectoryId=directory_id)
@@ -661,10 +649,7 @@ def test_modify_selfservice_permissions():
     client = boto3.client("workspaces", region_name="eu-west-1")
 
     directory_id = create_directory()
-    client.register_workspace_directory(
-        DirectoryId=directory_id,
-        EnableWorkDocs=True,
-    )
+    client.register_workspace_directory(DirectoryId=directory_id)
     resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
     assert (
         resp["Directories"][0]["SelfservicePermissions"]["IncreaseVolumeSize"]

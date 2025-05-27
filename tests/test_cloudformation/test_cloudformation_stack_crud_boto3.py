@@ -1361,6 +1361,9 @@ def test_update_stack_deleted_resources_can_reference_deleted_resources():
             "AWSTemplateFormatVersion": "2010-09-09",
             "Parameters": {"TimeoutParameter": {"Default": 61, "Type": "String"}},
             "Resources": {
+                # Note that we're listing the VPC first on purpose, even though the dependency between them
+                # means that the Subnet should be deleted first, before the VPC can be deleted
+                # Our implementation needs to handle deletion of resources regardless of the order
                 "VPC": {
                     "Type": "AWS::EC2::VPC",
                     "Properties": {"CidrBlock": "10.0.0.0/16"},
@@ -1575,9 +1578,9 @@ def test_describe_change_set(stack_template, change_template):
     assert change_set["Status"] == "CREATE_COMPLETE"
     assert change_set["ExecutionStatus"] == "AVAILABLE"
     two_secs_ago = datetime.now(tz=timezone.utc) - timedelta(seconds=2)
-    assert (
-        two_secs_ago < change_set["CreationTime"] < datetime.now(tz=timezone.utc)
-    ), "Change set should have been created recently"
+    assert two_secs_ago < change_set["CreationTime"] < datetime.now(tz=timezone.utc), (
+        "Change set should have been created recently"
+    )
     assert len(change_set["Changes"]) == 1
     assert change_set["Changes"][0] == {
         "Type": "Resource",
@@ -1729,9 +1732,9 @@ def test_describe_stack_by_name():
     stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
     assert stack["StackName"] == TEST_STACK_NAME
     two_secs_ago = datetime.now(tz=timezone.utc) - timedelta(seconds=2)
-    assert (
-        two_secs_ago < stack["CreationTime"] < datetime.now(tz=timezone.utc)
-    ), "Stack should have been created recently"
+    assert two_secs_ago < stack["CreationTime"] < datetime.now(tz=timezone.utc), (
+        "Stack should have been created recently"
+    )
 
 
 @mock_aws

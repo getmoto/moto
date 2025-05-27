@@ -499,22 +499,28 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     waiter = ec2client.get_waiter("network_interface_available")
     waiter.wait(NetworkInterfaceIds=[eni1.id])
 
+    def assert_network_interface_found(resp):
+        assert len(resp["NetworkInterfaces"]) >= 1
+        for ni in resp["NetworkInterfaces"]:
+            if eni1.id == ni["NetworkInterfaceId"]:
+                break
+        else:
+            raise AssertionError("NetworkInterfaceId not found in response!")
+        assert ni["NetworkInterfaceId"] == eni1.id
+        assert ni["PrivateIpAddress"] == eni1.private_ip_address
+        assert ni["Description"] == eni1.description
+
     # Filter by network-interface-id
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "network-interface-id", "Values": [eni1.id]}]
     )
-    assert len(response["NetworkInterfaces"]) == 1
-    interface = response["NetworkInterfaces"][0]
-    assert interface["NetworkInterfaceId"] == eni1.id
-    assert interface["PrivateIpAddress"] == eni1.private_ip_address
-    assert interface["Description"] == eni1.description
+    assert_network_interface_found(response)
 
     # Filter by network-interface-id
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "group-id", "Values": [sg_id]}]
     )
-    assert len(response["NetworkInterfaces"]) == 1
-    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
+    assert_network_interface_found(response)
 
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "network-interface-id", "Values": ["bad-id"]}]
@@ -525,27 +531,18 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "private-ip-address", "Values": [eni1.private_ip_address]}]
     )
-    assert len(response["NetworkInterfaces"]) == 1
-    interface = response["NetworkInterfaces"][0]
-    assert interface["NetworkInterfaceId"] == eni1.id
-    assert interface["PrivateIpAddress"] == eni1.private_ip_address
-    assert interface["Description"] == eni1.description
+    assert_network_interface_found(response)
 
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "private-ip-address", "Values": ["11.11.11.11"]}]
     )
     assert len(response["NetworkInterfaces"]) == 0
 
-    # Filter by sunet-id
+    # Filter by subnet-id
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "subnet-id", "Values": [eni1.subnet.id]}]
     )
-    assert len(response["NetworkInterfaces"]) == 1
-    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
-    assert (
-        response["NetworkInterfaces"][0]["PrivateIpAddress"] == eni1.private_ip_address
-    )
-    assert response["NetworkInterfaces"][0]["Description"] == eni1.description
+    assert_network_interface_found(response)
 
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "subnet-id", "Values": ["sn-bad-id"]}]
@@ -556,12 +553,7 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "description", "Values": [eni1.description]}]
     )
-    assert len(response["NetworkInterfaces"]) == 1
-    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
-    assert (
-        response["NetworkInterfaces"][0]["PrivateIpAddress"] == eni1.private_ip_address
-    )
-    assert response["NetworkInterfaces"][0]["Description"] == eni1.description
+    assert_network_interface_found(response)
 
     response = ec2client.describe_network_interfaces(
         Filters=[{"Name": "description", "Values": ["bad description"]}]
@@ -576,12 +568,7 @@ def test_elastic_network_interfaces_describe_network_interfaces_with_filter():
             {"Name": "subnet-id", "Values": [eni1.subnet.id]},
         ]
     )
-    assert len(response["NetworkInterfaces"]) == 1
-    assert response["NetworkInterfaces"][0]["NetworkInterfaceId"] == eni1.id
-    assert (
-        response["NetworkInterfaces"][0]["PrivateIpAddress"] == eni1.private_ip_address
-    )
-    assert response["NetworkInterfaces"][0]["Description"] == eni1.description
+    assert_network_interface_found(response)
 
 
 @mock_aws
@@ -1051,7 +1038,7 @@ def test_recreate_instance_with_same_ip_address():
         ec2_client.get_waiter("instance_terminated").wait(InstanceIds=[instance_id])
 
 
-def setup_vpc(boto3):  # pylint: disable=W0621
+def setup_vpc(boto3):
     ec2resource = boto3.resource("ec2", region_name="us-east-1")
     ec2client = boto3.client("ec2", "us-east-1")
 

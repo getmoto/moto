@@ -24,7 +24,11 @@ from .exceptions import (
     ValidationError,
 )
 from .metric_data_expression_parser import parse_expression
-from .utils import make_arn_for_alarm, make_arn_for_dashboard
+from .utils import (
+    make_arn_for_alarm,
+    make_arn_for_dashboard,
+    make_arn_for_rule,
+)
 
 _EMPTY_LIST: Any = tuple()
 
@@ -433,6 +437,25 @@ class Statistics:
         )
 
 
+class InsightRule(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        definition: str,
+        name: str,
+        state: str,
+        schema: Optional[str],
+        managed_rule: Optional[bool],
+    ):
+        self.definition = definition
+        self.name = name
+        self.schema = schema or '{"Name" : "CloudWatchLogRule", "Version" : 1}'
+        self.state = state
+        self.managed_rule = managed_rule or False
+        self.rule_arn = make_arn_for_rule(region_name, account_id, name)
+
+
 class CloudWatchBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -440,6 +463,7 @@ class CloudWatchBackend(BaseBackend):
         self.dashboards: Dict[str, Dashboard] = {}
         self.metric_data: List[MetricDatumBase] = []
         self.paged_metric_data: Dict[str, List[MetricDatumBase]] = {}
+        self.insight_rules: Dict[str, InsightRule] = {}
         self.tagger = TaggingService()
 
     @property
@@ -576,7 +600,7 @@ class CloudWatchBackend(BaseBackend):
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
-            if timestamp is not None and type(timestamp) != datetime:
+            if timestamp is not None and type(timestamp) is not datetime:
                 timestamp = parser.parse(timestamp)
             metric_name = metric_member["MetricName"]
             dimension = metric_member.get("Dimensions.member", _EMPTY_LIST)
@@ -590,7 +614,7 @@ class CloudWatchBackend(BaseBackend):
                 for i in range(0, len(values)):
                     value = values[i]
                     timestamp = metric_member.get("Timestamp")
-                    if timestamp is not None and type(timestamp) != datetime:
+                    if timestamp is not None and type(timestamp) is not datetime:
                         timestamp = parser.parse(timestamp)
 
                     # add the value count[i] times
@@ -1011,6 +1035,98 @@ class CloudWatchBackend(BaseBackend):
                     raise InvalidParameterValue(
                         f'Missing required parameter in MetricData[{query_num}].StatisticValues: "{stat}"'
                     )
+
+    def put_insight_rule(
+        self,
+        name: str,
+        state: str,
+        definition: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> InsightRule:
+        rule = InsightRule(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            definition=definition,
+            name=name,
+            state=state,
+            schema='{"Name" : "CloudWatchLogRule", "Version" : 1}',
+            managed_rule=False,
+        )
+        if tags:
+            self.tagger.tag_resource(rule.rule_arn, tags)
+
+        self.insight_rules[name] = rule
+
+        return rule
+
+    def describe_insight_rules(
+        self,
+        next_token: Optional[str] = "",
+        max_results: Optional[int] = 500,
+    ) -> List[InsightRule]:
+        rules = list(self.insight_rules.values())
+
+        if max_results is None or len(rules) <= max_results:
+            return rules
+
+        return rules[:max_results]
+
+    def delete_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
+        failures = []
+        for rule_name in list(self.insight_rules.keys()):
+            if rule_name in rule_names:
+                rule = self.insight_rules.get(rule_name)
+                if rule and rule.managed_rule:
+                    failures.append(
+                        {
+                            "FailureResource": rule_name,
+                            "ExceptionType": "InvalidParameterValue",
+                            "FailureCode": 400,
+                            "FailureDescription": "The value of an input parameter is bad or out-of-range.",
+                        }
+                    )
+                else:
+                    del self.insight_rules[rule_name]
+
+        return failures
+
+    def disable_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
+        failures = []
+        for rule_name in list(self.insight_rules.keys()):
+            if rule_name in rule_names:
+                rule = self.insight_rules.get(rule_name)
+                if rule and rule.managed_rule:
+                    failures.append(
+                        {
+                            "FailureResource": rule_name,
+                            "ExceptionType": "InvalidParameterValue",
+                            "FailureCode": 400,
+                            "FailureDescription": "The value of an input parameter is bad or out-of-range.",
+                        }
+                    )
+                else:
+                    self.insight_rules[rule_name].state = "DISABLED"
+
+        return failures
+
+    def enable_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
+        failures = []
+        for rule_name in list(self.insight_rules.keys()):
+            if rule_name in rule_names:
+                rule = self.insight_rules.get(rule_name)
+                if rule and rule.managed_rule:
+                    failures.append(
+                        {
+                            "FailureResource": rule_name,
+                            "ExceptionType": "InvalidParameterValue",
+                            "FailureCode": 400,
+                            "FailureDescription": "The value of an input parameter is bad or out-of-range.",
+                        }
+                    )
+                else:
+                    self.insight_rules[rule_name].state = "ENABLED"
+
+        return failures
 
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

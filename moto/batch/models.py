@@ -796,7 +796,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 environment["MOTO_HOST"] = settings.moto_server_host()
                 environment["MOTO_PORT"] = settings.moto_server_port()
                 environment["MOTO_HTTP_ENDPOINT"] = (
-                    f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+                    f"{environment['MOTO_HOST']}:{environment['MOTO_PORT']}"
                 )
 
                 if network_name:
@@ -1219,6 +1219,7 @@ class BatchBackend(BaseBackend):
                 "type": environment.env_type,
                 "status": "VALID",
                 "statusReason": "Compute environment is available",
+                "tags": self.list_tags_for_resource(arn),
             }
             if environment.env_type == "MANAGED":
                 json_part["computeResources"] = environment.compute_resources
@@ -1234,6 +1235,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_resources: Dict[str, Any],
         service_role: str,
+        tags: Optional[Dict[str, str]] = None,
     ) -> ComputeEnvironment:
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
@@ -1288,6 +1290,9 @@ class BatchBackend(BaseBackend):
             region_name=self.region_name,
         )
         self._compute_environments[new_comp_env.arn] = new_comp_env
+
+        if tags:
+            self.tag_resource(new_comp_env.arn, tags)
 
         # Ok by this point, everything is legit, so if its Managed then start some instances
         if _type == "MANAGED" and "FARGATE" not in compute_resources["type"]:
@@ -1344,7 +1349,10 @@ class BatchBackend(BaseBackend):
                     "Error executing request, Exception : Instance role is required."
                 )
             for profile in self.iam_backend.get_instance_profiles():
-                if profile.arn == cr["instanceRole"]:
+                if (
+                    profile.arn == cr["instanceRole"]
+                    or profile.name == cr["instanceRole"]
+                ):
                     break
             else:
                 raise InvalidParameterValueException(
@@ -1549,11 +1557,13 @@ class BatchBackend(BaseBackend):
                 for item in sorted(compute_env_order, key=lambda x: x["order"])
             ]
             env_objects = []
-            # Check each ARN exists, then make a list of compute env's
-            for arn in ordered_compute_environments:
-                env = self.get_compute_environment_by_arn(arn)
+            # Check each compute env exists, then make a list of them
+            for identifier in ordered_compute_environments:
+                env = self.get_compute_environment(identifier)
                 if env is None:
-                    raise ClientException(f"Compute environment {arn} does not exist")
+                    raise ClientException(
+                        f"Compute environment {identifier} does not exist"
+                    )
                 env_objects.append(env)
         except Exception:
             raise ClientException("computeEnvironmentOrder is malformed")

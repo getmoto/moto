@@ -28,6 +28,13 @@ class Subnets(EC2BaseResponse):
         template = self.response_template(CREATE_SUBNET_RESPONSE)
         return template.render(subnet=subnet)
 
+    def create_default_subnet(self) -> str:
+        availability_zone = self._get_param("AvailabilityZone")
+
+        subnet = self.ec2_backend.create_default_subnet(availability_zone)
+        template = self.response_template(CREATE_DEFAULT_SUBNET_RESPONSE)
+        return template.render(subnet=subnet)
+
     def delete_subnet(self) -> str:
         subnet_id = self._get_param("SubnetId")
         subnet = self.ec2_backend.delete_subnet(subnet_id)
@@ -118,6 +125,36 @@ CREATE_SUBNET_RESPONSE = """
     </tagSet>
   </subnet>
 </CreateSubnetResponse>"""
+
+CREATE_DEFAULT_SUBNET_RESPONSE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<CreateDefaultSubnetResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>68b1ebc6-3ff3-4f5b-9f2c-a468cb0a5030</requestId>
+    <subnet>
+        <assignIpv6AddressOnCreation>{{ 'false' if not subnet.assign_ipv6_address_on_creation or subnet.assign_ipv6_address_on_creation == 'false' else 'true'}}</assignIpv6AddressOnCreation>
+        <availabilityZone>{{ subnet._availability_zone.name }}</availabilityZone>
+        <availabilityZoneId>{{ subnet._availability_zone.zone_id }}</availabilityZoneId>
+        <availableIpAddressCount>{{ subnet.available_ip_addresses or '0' }}</availableIpAddressCount>
+        <cidrBlock>{{ subnet.cidr_block }}</cidrBlock>
+        <defaultForAz>{{ subnet.default_for_az }}</defaultForAz>
+        <enableDns64>false</enableDns64>
+        <ipv6CidrBlockAssociationSet/>
+        <ipv6Native>false</ipv6Native>
+        <mapCustomerOwnedIpOnLaunch>false</mapCustomerOwnedIpOnLaunch>
+        <mapPublicIpOnLaunch>{{ subnet.map_public_ip_on_launch }}</mapPublicIpOnLaunch>
+        <ownerId>{{ subnet.owner_id }}</ownerId>
+        <privateDnsNameOptionsOnLaunch>
+            <enableResourceNameDnsAAAARecord>false</enableResourceNameDnsAAAARecord>
+            <enableResourceNameDnsARecord>false</enableResourceNameDnsARecord>
+            <hostnameType>ip-name</hostnameType>
+        </privateDnsNameOptionsOnLaunch>
+        <state>available</state>
+        <subnetId>{{ subnet.id }}</subnetId>
+        <tagSet/>
+        <vpcId>{{ subnet.vpc_id }}</vpcId>
+    </subnet>
+</CreateDefaultSubnetResponse>
+"""
 
 DELETE_SUBNET_RESPONSE = """
 <DeleteSubnetResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

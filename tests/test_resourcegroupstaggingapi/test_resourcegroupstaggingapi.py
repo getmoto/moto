@@ -136,6 +136,48 @@ def test_get_resources_backup():
 
 
 @mock_aws
+def test_get_resources_dms_endpoint():
+    client = boto3.client("dms", region_name="us-east-1")
+    endpoint = client.create_endpoint(
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
+        ResourceIdentifier="sample_identifier",
+        Tags=[{"Key": "tag", "Value": "a tag"}],
+    )
+    endpoint_arn = endpoint["Endpoint"]["EndpointArn"]
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["dms:endpoint"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert endpoint_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_aws
+def test_get_resources_dms_replication_instance():
+    client = boto3.client("dms", region_name="us-east-1")
+    replication_instance = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+        Tags=[{"Key": "tag", "Value": "a tag"}],
+    )
+
+    replication_instance_arn = replication_instance["ReplicationInstance"][
+        "ReplicationInstanceArn"
+    ]
+    rgta_client = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["dms:replication-instance"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert replication_instance_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
+
+
+@mock_aws
 def test_get_resources_ecs():
     # ecs:cluster
     client = boto3.client("ecs", region_name="us-east-1")
@@ -520,6 +562,103 @@ def test_get_tag_values_cloudfront():
 
 
 @mock_aws
+def test_get_tag_values_lexv2_models():
+    client = boto3.client("lexv2-models", "us-east-1")
+    # Create a bot
+    bot = client.create_bot(
+        botName="TestBot",
+        description="A test bot",
+        roleArn="arn:aws:iam::123456789012:role/service-role/AmazonLexV2BotRole",
+        dataPrivacy={"childDirected": False},
+        idleSessionTTLInSeconds=300,
+        botTags={"Test": "Test1"},
+    )
+    bot_id = bot["botId"]
+    # Create a bot alias with tags
+    client.create_bot_alias(
+        botAliasName="TestBotAlias",
+        botId=bot_id,
+        description="A test bot alias",
+        tags={"Test": "Test2"},
+    )
+
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+
+    # Test bot tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["lexv2:bot"],
+        TagFilters=[{"Key": "Test", "Values": ["Test1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "Test1"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    # Test bot-alias tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["lexv2:bot-alias"],
+        TagFilters=[{"Key": "Test", "Values": ["Test2"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "Test2"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
+def test_get_tag_values_cloudwatch():
+    cloudwatch = boto3.client("cloudwatch", "us-east-1")
+
+    name = "tester"
+    cloudwatch.put_metric_alarm(
+        AlarmActions=["arn:alarm"],
+        AlarmDescription="A test",
+        AlarmName=name,
+        ComparisonOperator="GreaterThanOrEqualToThreshold",
+        Dimensions=[{"Name": "InstanceId", "Value": "i-0123457"}],
+        EvaluationPeriods=5,
+        InsufficientDataActions=["arn:insufficient"],
+        Namespace=f"{name}_namespace",
+        MetricName=f"{name}_metric",
+        OKActions=["arn:ok"],
+        Period=60,
+        Statistic="Average",
+        Threshold=2,
+        Unit="Seconds",
+        Tags=[{"Key": "key-1", "Value": "value-1"}],
+    )
+
+    cloudwatch.put_insight_rule(
+        RuleName=name,
+        RuleDefinition="""{"Schema": "CloudWatchLogRule}""",
+        RuleState="ENABLED",
+        Tags=[{"Key": "key-2", "Value": "value-2"}],
+    )
+    rtapi = boto3.client("resourcegroupstaggingapi", "us-east-1")
+
+    # Test alarm tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["cloudwatch:alarm"],
+        TagFilters=[{"Key": "key-1", "Values": ["value-1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "key-1", "Value": "value-1"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    # Test insight-rule tag filtering
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["cloudwatch:insight-rule"],
+        TagFilters=[{"Key": "key-2", "Values": ["value-2"]}],
+    )
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "key-2", "Value": "value-2"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
 def test_get_many_resources():
     elbv2 = boto3.client("elbv2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -851,9 +990,7 @@ def test_get_resources_workspaces():
 
     # Create two tagged Workspaces
     directory_id = create_directory()
-    workspaces.register_workspace_directory(
-        DirectoryId=directory_id, EnableWorkDocs=False
-    )
+    workspaces.register_workspace_directory(DirectoryId=directory_id)
     workspaces.create_workspaces(
         Workspaces=[
             {
@@ -900,10 +1037,7 @@ def test_get_resources_workspace_directories():
         directory_id = create_directory()
         workspaces.register_workspace_directory(
             DirectoryId=directory_id,
-            EnableWorkDocs=False,
-            Tags=[
-                {"Key": "Test", "Value": i_str},
-            ],
+            Tags=[{"Key": "Test", "Value": i_str}],
         )
 
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="eu-central-1")
@@ -927,9 +1061,7 @@ def test_get_resources_workspace_images():
 
     # Create two tagged Workspace Images
     directory_id = create_directory()
-    workspaces.register_workspace_directory(
-        DirectoryId=directory_id, EnableWorkDocs=False
-    )
+    workspaces.register_workspace_directory(DirectoryId=directory_id)
     resp = workspaces.create_workspaces(
         Workspaces=[
             {

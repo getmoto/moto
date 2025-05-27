@@ -414,8 +414,6 @@ class Route53(BaseResponse):
         next_token = self._get_param("nexttoken")
         max_results = self._get_int_param("maxresults")
 
-        # The paginator picks up named arguments, returns tuple.
-        # pylint: disable=unbalanced-tuple-unpacking
         all_configs, next_token = self.backend.list_query_logging_configs(
             hosted_zone_id=hosted_zone_id,
             next_token=next_token,

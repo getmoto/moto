@@ -38,9 +38,35 @@ class DefaultVpcAlreadyExists(EC2ClientError):
         )
 
 
+class DefaultVpcDoesNotExistError(EC2ClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "DefaultVpcDoesNotExist",
+            "No default VPC exists for this account in this region.",
+        )
+
+
+class DefaultSubnetAlreadyExistsInAvailabilityZoneError(EC2ClientError):
+    def __init__(self, subnet_id: str, availability_zone: str) -> None:
+        super().__init__(
+            "DefaultSubnetAlreadyExistsInAvailabilityZone",
+            f"'{subnet_id}' is already the default subnet in {availability_zone}.",
+        )
+
+
 class DependencyViolationError(EC2ClientError):
     def __init__(self, message: str):
         super().__init__("DependencyViolation", message)
+
+
+class MissingInputError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("MissingInput", message)
+
+
+class InvalidInputError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidInput", message)
 
 
 class MissingParameterError(EC2ClientError):
@@ -95,6 +121,14 @@ class InvalidKeyPairFormatError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "InvalidKeyPair.Format", "Key is not in valid OpenSSH public key format"
+        )
+
+
+class VPCIdNotSpecifiedError(EC2ClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "VPCIdNotSpecified",
+            "No default VPC for this user. GroupName is only supported for EC2-Classic and default VPC.",
         )
 
 
@@ -194,6 +228,14 @@ class InvalidSecurityGroupNotFoundError(EC2ClientError):
         super().__init__(
             "InvalidGroup.NotFound",
             f"The security group '{name}' does not exist",
+        )
+
+
+class InvalidSecurityGroupRuleIdNotFoundError(EC2ClientError):
+    def __init__(self, name: Any):
+        super().__init__(
+            "InvalidSecurityGroupRuleId.NotFound",
+            f"The security group rule ID '{name}' does not exist",
         )
 
 
@@ -782,6 +824,22 @@ class InvalidParameter(EC2ClientError):
     def __init__(self, message: str):
         super().__init__(
             "InvalidParameter",
+            message,
+        )
+
+
+class InvalidParameterValue(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidParameterValue",
+            message,
+        )
+
+
+class MissingParameter(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "MissingParameter",
             message,
         )
 

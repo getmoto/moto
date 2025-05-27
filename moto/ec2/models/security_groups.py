@@ -10,10 +10,14 @@ from moto.core.utils import aws_api_matches
 from ..exceptions import (
     InvalidCIDRSubnetError,
     InvalidGroupIdMalformedError,
+    InvalidParameterCombination,
+    InvalidParameterValue,
     InvalidPermissionDuplicateError,
     InvalidPermissionNotFoundError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
+    InvalidSecurityGroupRuleIdNotFoundError,
+    MissingParameter,
     MissingParameterError,
     MotoNotImplementedError,
     RulesPerSecurityGroupLimitExceededError,
@@ -81,6 +85,10 @@ class SecurityRule(TaggedEC2Resource):
         )
         self.ip_protocol = proto if proto else self.ip_protocol
         self.add_tags(tags)
+        self.filters = {
+            "group-id": self.filter_group_id,
+            "security-group-rule-id": self.filter_id,
+        }
 
     @property
     def owner_id(self) -> str:
@@ -120,6 +128,30 @@ class SecurityRule(TaggedEC2Resource):
             else:
                 setattr(new, k, copy.deepcopy(v, memodict))
         return new
+
+    def filter_id(self, values: List[Any]) -> bool:
+        for value in values:
+            if aws_api_matches(value, self.id):
+                return True
+        return False
+
+    def filter_group_id(self, values: List[Any]) -> bool:
+        for value in values:
+            if aws_api_matches(value, self.group_id):
+                return True
+        return False
+
+    def matches_filter(self, key: str, filter_value: Any) -> Any:
+        if is_tag_filter(key):
+            return tag_filter_matches(self, key, filter_value)
+        else:
+            return self.filters[key](filter_value)
+
+    def matches_filters(self, filters: Any) -> bool:
+        for key, value in filters.items():
+            if not self.matches_filter(key, value):
+                return False
+        return True
 
 
 class GroupedSecurityRuleView:
@@ -318,7 +350,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
     def delete(
         self,
         account_id: str,
-        region_name: str,  # pylint: disable=unused-argument
+        region_name: str,
     ) -> None:
         """Not exposed as part of the ELB API - used for CloudFormation."""
         self.ec2_backend.delete_security_group(group_id=self.id)
@@ -495,6 +527,13 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             return self.id
         raise UnformattedGetAttTemplateException()
 
+    def get_rule(self, rule_id: str) -> Optional[SecurityRule]:
+        """Retrieve a security group rule by its ID."""
+        for rule in list(itertools.chain(self.egress_rules, self.ingress_rules)):
+            if rule.id == rule_id:
+                return rule
+        return None
+
     def add_ingress_rule(self, rule: SecurityRule) -> None:
         if rule in self.ingress_rules:
             raise InvalidPermissionDuplicateError()
@@ -614,62 +653,31 @@ class SecurityGroupBackend:
 
     def describe_security_group_rules(
         self,
-        group_ids: Optional[List[str]] = None,
-        sg_rule_ids: List[str] = [],
-        filters: Any = None,
+        sg_rule_ids: list[str],
+        filters: dict[str, list[str]],
     ) -> List[SecurityRule]:
-        results = []
-
-        if sg_rule_ids:
-            for id_and_group in self.groups.values():
-                for group in id_and_group.values():
-                    for rule in itertools.chain(
-                        group.egress_rules, group.ingress_rules
-                    ):
-                        if rule.id in sg_rule_ids:
-                            results.append(rule)
-
-            return results
-
-        if group_ids:
-            all_sgs = self.describe_security_groups(group_ids=group_ids)
-            for group in all_sgs:
-                results.extend(group.ingress_rules)
-                results.extend(group.egress_rules)
-
-            return results
-
-        if filters and "group-id" in filters:
+        if "group-id" in filters:
             for group_id in filters["group-id"]:
                 if not is_valid_security_group_id(group_id):
                     raise InvalidGroupIdMalformedError(group_id)
-
-            matches = self.describe_security_groups(
-                group_ids=group_ids, filters=filters
-            )
-            for group in matches:
-                results.extend(group.ingress_rules)
-                results.extend(group.egress_rules)
-
-            return results
-
-        all_sgs = self.describe_security_groups()
-
-        for group in all_sgs:
-            results.extend(self._match_sg_rules(group.ingress_rules, filters))
-            results.extend(self._match_sg_rules(group.egress_rules, filters))
-
-        return results
-
-    @staticmethod
-    def _match_sg_rules(  # type: ignore[misc]
-        rules_list: List[SecurityRule], filters: Any
-    ) -> List[SecurityRule]:
-        results = []
-        for rule in rules_list:
-            if rule.match_tags(filters):
-                results.append(rule)
-        return results
+        rules = [
+            rule
+            for vpc_and_group in self.groups.values()
+            for group in vpc_and_group.values()
+            for rule in list(itertools.chain(group.egress_rules, group.ingress_rules))
+        ]
+        if sg_rule_ids:
+            # If sg_rule_ids is provided, we convert it into a filter.
+            if "security-group-rule-id" not in filters:
+                filters["security-group-rule-id"] = []
+            rule_ids = [rule.id for rule in rules]
+            for rule_id in sg_rule_ids:
+                if rule_id not in rule_ids:
+                    raise InvalidSecurityGroupRuleIdNotFoundError(rule_id)
+                filters["security-group-rule-id"].append(rule_id)
+        if filters:
+            rules = [rule for rule in rules if rule.matches_filters(filters)]
+        return rules
 
     def _delete_security_group(self, vpc_id: Optional[str], group_id: str) -> None:
         vpc_id = vpc_id or self.default_vpc.id  # type: ignore[attr-defined]
@@ -787,6 +795,69 @@ class SecurityGroupBackend:
                 tags=tags,
             )
 
+    def modify_security_group_rules(
+        self,
+        group_id: str,
+        rules: dict[str, dict[str, Any]],
+    ) -> None:
+        group = self.get_security_group_by_name_or_id(group_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_id)
+
+        for rule_id, new_rule in rules.items():
+            cidr_ipv4 = new_rule.get("CidrIpv4")
+            cidr_ipv6 = new_rule.get("CidrIpv6")
+            prefix_list_id = new_rule.get("PrefixListId")
+            reference_group_id = new_rule.get("ReferenceGroupId")
+
+            set_param_count = sum(
+                item is not None
+                for item in [cidr_ipv4, cidr_ipv6, prefix_list_id, reference_group_id]
+            )
+            if set_param_count > 1:
+                raise InvalidParameterCombination(
+                    "Only one of cidrIp, cidrIpv6, prefixListId, or referencedGroupId can be specified"
+                )
+            if set_param_count < 1:
+                raise MissingParameter(
+                    "The request must contain exactly one of: cidrIp, cidrIpv6, prefixListId, or referencedGroupId"
+                )
+
+            existing_rule = group.get_rule(rule_id)
+            if existing_rule is None:
+                raise InvalidSecurityGroupRuleIdNotFoundError(rule_id)
+
+            ip_protocol = new_rule.get("IpProtocol")
+            if ip_protocol is None:
+                raise InvalidParameterValue(
+                    "Invalid value 'null' for protocol. VPC security group rules must specify protocols explicitly."
+                )
+
+            from_port = new_rule.get("FromPort")
+            to_port = new_rule.get("ToPort")
+            if from_port is None or to_port is None:
+                raise InvalidParameterValue(
+                    "Invalid value for portRange. Must specify both from and to ports with TCP/UDP."
+                )
+
+            if cidr_ipv4 and "CidrIpv6" in existing_rule.ip_range:
+                raise InvalidParameterValue(
+                    f"Invalid rule type for security group rule '{rule_id}'. You may not specify CidrIpv6 for an existing IPv4 CIDR rule."
+                )
+
+            existing_rule.ip_protocol = ip_protocol
+            existing_rule.from_port = from_port
+            existing_rule.to_port = to_port
+
+            # TODO: Handle cidr_ipv6, prefix_list_id and reference_group_id
+
+            description = new_rule.get("Description")
+            if description is not None:
+                existing_rule.ip_range["Description"] = description
+
+            if cidr_ipv4 is not None:
+                existing_rule.ip_range["CidrIp"] = cidr_ipv4
+
     def authorize_security_group_ingress(
         self,
         group_name_or_id: str,
@@ -797,7 +868,7 @@ class SecurityGroupBackend:
         sgrule_tags: Dict[str, str] = {},
         source_groups: Optional[List[Dict[str, str]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> Tuple[List[SecurityRule], SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -917,7 +988,7 @@ class SecurityGroupBackend:
         sgrule_tags: Dict[str, str] = {},
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> Tuple[List[SecurityRule], SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -1053,7 +1124,7 @@ class SecurityGroupBackend:
         ip_ranges: List[str],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
@@ -1108,7 +1179,7 @@ class SecurityGroupBackend:
         ip_ranges: List[str],
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
-        security_rule_ids: Optional[List[str]] = None,  # pylint:disable=unused-argument
+        security_rule_ids: Optional[List[str]] = None,
         vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)

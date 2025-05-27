@@ -194,7 +194,8 @@ class GraphqlAPI(BaseModel):
         open_id_connect_config: str,
         lambda_authorizer_config: str,
         visibility: str,
-    ):
+        backend: "AppSyncBackend",
+    ) -> None:
         self.region = region
         self.name = name
         self.api_id = str(mock_random.uuid4())
@@ -213,6 +214,7 @@ class GraphqlAPI(BaseModel):
         self.api_keys: Dict[str, GraphqlAPIKey] = dict()
 
         self.api_cache: Optional[APICache] = None
+        self.backend = backend
 
     def update(
         self,
@@ -321,13 +323,14 @@ class GraphqlAPI(BaseModel):
             "userPoolConfig": self.user_pool_config,
             "xrayEnabled": self.xray_enabled,
             "visibility": self.visibility,
+            "tags": self.backend.list_tags_for_resource(self.arn),
         }
 
 
 class AppSyncBackend(BaseBackend):
     """Implementation of AppSync APIs."""
 
-    def __init__(self, region_name: str, account_id: str):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.graphql_apis: Dict[str, GraphqlAPI] = dict()
         self.tagger = TaggingService()
@@ -357,6 +360,7 @@ class AppSyncBackend(BaseBackend):
             open_id_connect_config=open_id_connect_config,
             lambda_authorizer_config=lambda_authorizer_config,
             visibility=visibility,
+            backend=self,
         )
         self.graphql_apis[graphql_api.api_id] = graphql_api
         self.tagger.tag_resource(

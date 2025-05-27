@@ -805,7 +805,7 @@ class ApiKey(BaseModel):
         name: Optional[str] = None,
         description: Optional[str] = None,
         enabled: bool = False,
-        generateDistinctId: bool = False,  # pylint: disable=unused-argument
+        generateDistinctId: bool = False,
         value: Optional[str] = None,
         stageKeys: Optional[Any] = None,
         tags: Optional[List[Dict[str, str]]] = None,
@@ -2198,10 +2198,14 @@ class APIGatewayBackend(BaseBackend):
         return self.keys[api_key_id]
 
     def update_api_key(self, api_key_id: str, patch_operations: Any) -> ApiKey:
+        if api_key_id not in self.keys:
+            raise ApiKeyNotFoundException()
         key = self.keys[api_key_id]
         return key.update_operations(patch_operations)
 
     def delete_api_key(self, api_key_id: str) -> None:
+        if api_key_id not in self.keys:
+            raise ApiKeyNotFoundException()
         self.keys.pop(api_key_id)
 
     def create_usage_plan(self, payload: Any) -> UsagePlan:

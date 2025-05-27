@@ -1,4 +1,5 @@
 from typing import Callable, Iterable
+from unittest import SkipTest
 
 import boto3
 import pytest
@@ -7,7 +8,6 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.moto_api._internal import mock_random
-from moto.moto_server.threaded_moto_server import ThreadedMotoServer
 
 # The log group must be in the us-east-1 region.
 TEST_REGION = "us-east-1"
@@ -15,6 +15,11 @@ TEST_REGION = "us-east-1"
 
 @pytest.fixture
 def moto_server() -> Iterable[Callable[[], str]]:
+    try:
+        from moto.moto_server.threaded_moto_server import ThreadedMotoServer
+    except ImportError as e:
+        raise SkipTest(str(e))
+
     servers = []
     """Fixture to run a mocked AWS server for testing."""
 
@@ -127,7 +132,7 @@ def test_create_query_logging_config_bad_args():
 
 @mock_aws
 @pytest.mark.parametrize("route53_region", ["us-west-1", TEST_REGION])
-def test_create_query_logging_config_good_args(moto_server, route53_region):  # pylint: disable=redefined-outer-name
+def test_create_query_logging_config_good_args(moto_server, route53_region):
     """Test a valid create_logging_config() request."""
     client_kwargs = {"region_name": route53_region}
     if route53_region != TEST_REGION:

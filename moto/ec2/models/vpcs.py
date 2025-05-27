@@ -709,7 +709,17 @@ class VPCBackend:
         if default_vpc:
             raise DefaultVpcAlreadyExists
         cidr_block = "172.31.0.0/16"
-        return self.create_vpc(cidr_block=cidr_block, is_default=True)
+        vpc = self.create_vpc(cidr_block=cidr_block, is_default=True)
+
+        for zone in self.describe_availability_zones():  # type: ignore[attr-defined]
+            self.create_default_subnet(zone.name)  # type: ignore[attr-defined]
+        return vpc
+
+    def get_default_vpc(self) -> Optional[VPC]:
+        for vpc in self.vpcs.values():
+            if vpc.is_default == "true":
+                return vpc
+        return None
 
     def create_vpc(
         self,
@@ -775,6 +785,15 @@ class VPCBackend:
         return matches
 
     def delete_vpc(self, vpc_id: str) -> VPC:
+        # Refuse to delete if there are dependent subnets
+        subnets = self.describe_subnets(filters={"vpc-id": vpc_id})  # type: ignore[attr-defined]
+        if subnets:
+            raise DependencyViolationError(
+                f"The vpc '{vpc_id}' has dependencies and cannot be deleted."
+            )
+
+        # TODO: Refuse to delete if there are dependent IGW
+
         # Do not delete if any VPN Gateway is attached
         vpn_gateways = self.describe_vpn_gateways(filters={"attachment.vpc-id": vpc_id})  # type: ignore[attr-defined]
         vpn_gateways = [
@@ -1023,7 +1042,7 @@ class VPCBackend:
                 if zone.name.startswith(region)
             ]
 
-            from moto import backends  # pylint: disable=import-outside-toplevel
+            from moto import backends
 
             for implemented_service in IMPLEMENTED_ENDPOINT_SERVICES:
                 _backends = backends.get_backend(implemented_service)  # type: ignore[call-overload]
@@ -1153,7 +1172,7 @@ class VPCBackend:
         max_results: int,
         next_token: Optional[str],
         region: str,
-    ) -> Dict[str, Any]:  # pylint: disable=too-many-arguments
+    ) -> Dict[str, Any]:
         """Return info on services to which you can create a VPC endpoint.
 
         Currently only the default endpoint services are returned.  When

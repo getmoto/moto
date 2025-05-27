@@ -9,10 +9,10 @@ from . import lakeformation_aws_verified
 @pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_add_unknown_lf_tags(
-    bucket_name=None,  # pylint: disable=unused-argument
+    bucket_name=None,
     db_name=None,
-    table_name=None,  # pylint: disable=unused-argument
-    column_name=None,  # pylint: disable=unused-argument
+    table_name=None,
+    column_name=None,
 ):
     client = boto3.client("lakeformation", region_name="eu-west-2")
     sts = boto3.client("sts", "eu-west-2")
@@ -37,10 +37,10 @@ def test_add_unknown_lf_tags(
 @pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_tag_lakeformation_database(
-    bucket_name=None,  # pylint: disable=unused-argument
+    bucket_name=None,
     db_name=None,
-    table_name=None,  # pylint: disable=unused-argument
-    column_name=None,  # pylint: disable=unused-argument
+    table_name=None,
+    column_name=None,
 ):
     client = boto3.client("lakeformation", region_name="eu-west-2")
     sts = boto3.client("sts", "eu-west-2")
@@ -121,10 +121,10 @@ def test_tag_lakeformation_database(
 @pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_tag_lakeformation_table(
-    bucket_name=None,  # pylint: disable=unused-argument
+    bucket_name=None,
     db_name=None,
     table_name=None,
-    column_name=None,  # pylint: disable=unused-argument
+    column_name=None,
 ):
     client = boto3.client("lakeformation", region_name="eu-west-2")
     sts = boto3.client("sts", "eu-west-2")
@@ -205,7 +205,7 @@ def test_tag_lakeformation_table(
 @pytest.mark.aws_verified
 @lakeformation_aws_verified
 def test_tag_lakeformation_columns(
-    bucket_name=None,  # pylint: disable=unused-argument
+    bucket_name=None,
     db_name=None,
     table_name=None,
     column_name=None,
@@ -368,7 +368,7 @@ def test_tag_lakeformation_columns(
 
 @pytest.mark.aws_verified
 @lakeformation_aws_verified
-def test_lf_tags(bucket_name=None, db_name=None, table_name=None, column_name=None):  # pylint: disable=unused-argument
+def test_lf_tags(bucket_name=None, db_name=None, table_name=None, column_name=None):
     client = boto3.client("lakeformation", region_name="eu-west-2")
     sts = boto3.client("sts", "eu-west-2")
     account_id = sts.get_caller_identity()["Account"]

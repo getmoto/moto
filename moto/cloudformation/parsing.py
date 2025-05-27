@@ -28,40 +28,40 @@ from typing import (
 # the subclass's module hasn't been imported yet - then that subclass
 # doesn't exist yet, and __subclasses__ won't find it.
 # So we import here to populate the list of subclasses.
-from moto.apigateway import models as apigw_models  # noqa  # pylint: disable=all
-from moto.autoscaling import models as as_models  # noqa  # pylint: disable=all
-from moto.awslambda import models as lambda_models  # noqa  # pylint: disable=all
-from moto.batch import models as batch_models  # noqa  # pylint: disable=all
+from moto.apigateway import models as apigw_models  # noqa
+from moto.autoscaling import models as as_models  # noqa
+from moto.awslambda import models as lambda_models  # noqa
+from moto.batch import models as batch_models  # noqa
 from moto.cloudformation.custom_model import CustomModel
-from moto.cloudwatch import models as cw_models  # noqa  # pylint: disable=all
+from moto.cloudwatch import models as cw_models  # noqa
 from moto.core.common_models import CloudFormationModel
-from moto.datapipeline import models as data_models  # noqa  # pylint: disable=all
-from moto.dynamodb import models as ddb_models  # noqa  # pylint: disable=all
+from moto.datapipeline import models as data_models  # noqa
+from moto.dynamodb import models as ddb_models  # noqa
 from moto.ec2 import models as ec2_models
 from moto.ec2.models.core import TaggedEC2Resource
-from moto.ecr import models as ecr_models  # noqa  # pylint: disable=all
-from moto.ecs import models as ecs_models  # noqa  # pylint: disable=all
-from moto.efs import models as efs_models  # noqa  # pylint: disable=all
-from moto.elb import models as elb_models  # noqa  # pylint: disable=all
-from moto.elbv2 import models as elbv2_models  # noqa  # pylint: disable=all
-from moto.emr import models as emr_models  # noqa  # pylint: disable=all
-from moto.events import models as events_models  # noqa  # pylint: disable=all
-from moto.iam import models as iam_models  # noqa  # pylint: disable=all
-from moto.iot import models as iot_models  # noqa  # pylint: disable=all
-from moto.kinesis import models as kinesis_models  # noqa  # pylint: disable=all
-from moto.kms import models as kms_models  # noqa  # pylint: disable=all
-from moto.rds import models as rds_models  # noqa  # pylint: disable=all
-from moto.redshift import models as redshift_models  # noqa  # pylint: disable=all
-from moto.route53 import models as route53_models  # noqa  # pylint: disable=all
-from moto.s3 import models as s3_models  # noqa  # pylint: disable=all
+from moto.ecr import models as ecr_models  # noqa
+from moto.ecs import models as ecs_models  # noqa
+from moto.efs import models as efs_models  # noqa
+from moto.elb import models as elb_models  # noqa
+from moto.elbv2 import models as elbv2_models  # noqa
+from moto.emr import models as emr_models  # noqa
+from moto.events import models as events_models  # noqa
+from moto.iam import models as iam_models  # noqa
+from moto.iot import models as iot_models  # noqa
+from moto.kinesis import models as kinesis_models  # noqa
+from moto.kms import models as kms_models  # noqa
+from moto.rds import models as rds_models  # noqa
+from moto.redshift import models as redshift_models  # noqa
+from moto.route53 import models as route53_models  # noqa
+from moto.s3 import models as s3_models  # noqa
 from moto.s3.models import s3_backends
 from moto.s3.utils import bucket_and_name_from_url
-from moto.sagemaker import models as sagemaker_models  # noqa  # pylint: disable=all
-from moto.sns import models as sns_models  # noqa  # pylint: disable=all
-from moto.sqs import models as sqs_models  # noqa  # pylint: disable=all
-from moto.ssm import models as ssm_models  # noqa  # pylint: disable=all
+from moto.sagemaker import models as sagemaker_models  # noqa
+from moto.sns import models as sns_models  # noqa
+from moto.sqs import models as sqs_models  # noqa
+from moto.ssm import models as ssm_models  # noqa
 from moto.ssm import ssm_backends
-from moto.stepfunctions import models as sfn_models  # noqa  # pylint: disable=all
+from moto.stepfunctions import models as sfn_models  # noqa
 from moto.utilities.utils import get_partition
 
 # End ugly list of imports
@@ -81,6 +81,9 @@ NULL_MODELS = [
     "AWS::CloudFormation::WaitCondition",
     "AWS::CloudFormation::WaitConditionHandle",
 ]
+
+# How often CF should attempt to update/delete a resource, before giving up
+MAX_UPDATE_ATTEMPTS = 5
 
 DEFAULT_REGION = "us-east-1"
 
@@ -842,10 +845,21 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     ) -> None:
         resource_names_by_action = self.build_resource_diff(template, parameters)
 
-        for logical_name in resource_names_by_action["Remove"]:
-            resource_json = self._resource_json_map[logical_name]
-            resource = self._parsed_resources[logical_name]
-            self._delete_resource(resource, resource_json)
+        tries = 1
+        while resource_names_by_action["Remove"] and tries < MAX_UPDATE_ATTEMPTS:
+            for logical_name in resource_names_by_action["Remove"].copy():
+                resource_json = self._resource_json_map[logical_name]
+                try:
+                    resource = self._parsed_resources[logical_name]
+                    self._delete_resource(resource, resource_json)
+                except Exception as e:
+                    # skip over dependency violations, and try again in another pass
+                    last_exception = e
+                else:
+                    resource_names_by_action["Remove"].remove(logical_name)
+            tries += 1
+        if tries == MAX_UPDATE_ATTEMPTS:
+            raise last_exception
 
         self._template = template
         if parameters:
@@ -862,7 +876,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             _ = self[logical_name]
 
         tries = 1
-        while resource_names_by_action["Modify"] and tries < 5:
+        while resource_names_by_action["Modify"] and tries < MAX_UPDATE_ATTEMPTS:
             for logical_name in resource_names_by_action["Modify"].copy():
                 resource_json = self._resource_json_map[logical_name]
                 try:
@@ -881,7 +895,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                     self._parsed_resources[logical_name] = changed_resource
                     resource_names_by_action["Modify"].remove(logical_name)
             tries += 1
-        if tries == 5:
+        if tries == MAX_UPDATE_ATTEMPTS:
             raise last_exception
 
     def delete(self) -> None:

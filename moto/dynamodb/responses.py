@@ -1139,7 +1139,7 @@ class DynamoHandler(BaseResponse):
         return values
 
     def _build_updated_new_attributes(self, original: Any, changed: Any) -> Any:
-        if type(changed) != type(original):
+        if type(changed) is not type(original):
             return changed
         else:
             if isinstance(changed, dict):

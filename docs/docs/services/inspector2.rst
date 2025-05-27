@@ -37,6 +37,7 @@ inspector2
 - [X] enable_delegated_admin_account
 - [ ] get_cis_scan_report
 - [ ] get_cis_scan_result_details
+- [ ] get_clusters_for_image
 - [ ] get_configuration
 - [ ] get_delegated_admin_account
 - [ ] get_ec2_deep_inspection_configuration

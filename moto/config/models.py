@@ -4,7 +4,7 @@ import json
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from moto.config.exceptions import (
     DuplicateTags,
@@ -17,6 +17,7 @@ from moto.config.exceptions import (
     InvalidParameterValueException,
     InvalidRecordingGroupException,
     InvalidResourceParameters,
+    InvalidResourceType,
     InvalidResourceTypeException,
     InvalidResultTokenException,
     InvalidS3KeyPrefixException,
@@ -84,6 +85,8 @@ MAX_TAGS_IN_ARG = 50
 
 MANAGED_RULES = load_resource(__name__, "resources/aws_managed_rules.json")
 MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]
+
+DEFAULT_RETENTION_PERIOD = 30
 
 
 def datetime2int(date: datetime) -> int:
@@ -737,7 +740,7 @@ class ConfigRule(ConfigEmptyDictable):
                 "ConfigRule Arn or Id"
             )
 
-        self.maximum_execution_frequency = None  # keeps pylint happy
+        self.maximum_execution_frequency = None
         self.modify_fields(region, config_rule, tags)
         self.config_rule_id = f"config-rule-{random_string():.6}"
         self.config_rule_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:config-rule/{self.config_rule_id}"
@@ -779,7 +782,7 @@ class ConfigRule(ConfigEmptyDictable):
                 # are actually needed.
                 self.input_parameters_dict = json.loads(self.input_parameters)
             except ValueError:
-                raise InvalidParameterValueException(  # pylint: disable=raise-missing-from
+                raise InvalidParameterValueException(
                     f"Invalid json {self.input_parameters} passed in the "
                     f"InputParameters field"
                 )
@@ -910,9 +913,13 @@ class ConfigBackend(BaseBackend):
         self.config_aggregators: Dict[str, ConfigAggregator] = {}
         self.aggregation_authorizations: Dict[str, ConfigAggregationAuthorization] = {}
         self.organization_conformance_packs: Dict[str, OrganizationConformancePack] = {}
-        self.config_rules: Dict[str, ConfigRule] = {}
         self.config_schema: Optional[AWSServiceSpec] = None
+        self.query_results: Dict[str, List[Dict[str, Any]]] = {}
+        self.query_results_queue: List[List[Dict[str, Any]]] = []
         self.retention_configuration: Optional[RetentionConfiguration] = None
+        self._custom_resources: Dict[str, Dict[str, Any]] = {}
+        self._expression_results: Dict[str, List[Dict[str, Any]]] = {}
+        self.config_rules: Dict[str, ConfigRule] = {}
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
         if not self.config_schema:
@@ -2176,6 +2183,78 @@ class ConfigBackend(BaseBackend):
             raise NoSuchRetentionConfigurationException(retention_configuration_name)
 
         self.retention_configuration = None
+
+    def select_resource_config(
+        self,
+        expression: str,
+        limit: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, str]]], Optional[str]]:
+        """
+        This method doesn't actually execute SQL but uses predefined results
+        that can be configured through the moto API. Modeled after AWS Athena's approach.
+        Also need to implement pagination.
+        """
+
+        query_id = str(random.uuid4())
+
+        if expression in self._expression_results:
+            self.query_results[query_id] = self._expression_results[expression]
+        elif query_id not in self.query_results and self.query_results_queue:
+            self.query_results[query_id] = self.query_results_queue.pop(0)
+
+        if query_id in self.query_results:
+            results = self.query_results[query_id]
+
+            columns = []
+            if results and isinstance(results[0], dict):
+                columns = [{"Name": key} for key in results[0].keys()]
+
+            query_info = {"SelectFields": columns}
+            return results, query_info, None
+        else:
+            return [], {"SelectFields": []}, None
+
+    def put_resource_config(
+        self,
+        resource_type: str,
+        schema_version_id: str,
+        resource_id: str,
+        resource_name: str,
+        configuration: str,
+        tags: Optional[Dict[str, str]],
+    ) -> None:
+        if resource_type.split("::")[0].lower() in [
+            "amzn",
+            "amazon",
+            "alexa",
+            "custom",
+        ]:
+            raise InvalidResourceType(
+                resource_type=resource_type,
+                message=f"You cannot use the organization name '{resource_type.split('::')[0]}' with custom resource types.",
+            )
+
+        resource_key = f"{resource_type}:{resource_id}"
+
+        self._custom_resources[resource_key] = {
+            "ResourceType": resource_type,
+            "SchemaVersionId": schema_version_id,
+            "ResourceId": resource_id,
+            "ResourceName": resource_name,
+            "Configuration": configuration,
+            "Tags": tags or {},
+        }
+
+        return
+
+    def delete_resource_config(self, resource_type: str, resource_id: str) -> None:
+        resource_key = f"{resource_type}:{resource_id}"
+
+        if resource_key in self._custom_resources:
+            del self._custom_resources[resource_key]
+
+        return
 
 
 config_backends = BackendDict(ConfigBackend, "config")

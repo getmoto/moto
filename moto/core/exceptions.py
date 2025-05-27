@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from jinja2 import DictLoader, Environment
 from werkzeug.exceptions import HTTPException
 
+from moto.core.mime_types import APP_XML
+
 
 class ServiceException(Exception):
     """
@@ -117,13 +119,9 @@ class RESTError(HTTPException):
                 include_type_sender=self.include_type_sender,
                 **kwargs,
             )
-            self.content_type = "application/xml"
+            self.content_type = APP_XML
 
-    def get_headers(
-        self,
-        *args: Any,
-        **kwargs: Any,  # pylint: disable=unused-argument
-    ) -> List[Tuple[str, str]]:
+    def get_headers(self, *args: Any, **kwargs: Any) -> List[Tuple[str, str]]:
         return [
             ("X-Amzn-ErrorType", self.relative_error_type or "UnknownError"),
             ("Content-Type", self.content_type),
@@ -133,11 +131,7 @@ class RESTError(HTTPException):
     def relative_error_type(self) -> str:
         return self.error_type
 
-    def get_body(
-        self,
-        *args: Any,
-        **kwargs: Any,  # pylint: disable=unused-argument
-    ) -> str:
+    def get_body(self, *args: Any, **kwargs: Any) -> str:
         return self.description
 
     def to_json(self) -> "JsonRESTError":

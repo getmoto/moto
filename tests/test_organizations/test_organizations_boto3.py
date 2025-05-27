@@ -920,22 +920,22 @@ def test_detach_policy():
     # Attach/List/Detach policy
     for name, target in [("OU", ou_id), ("Root", root_id), ("Account", account_id)]:
         #
-        assert (
-            len(get_nonaws_policies(target, client)) == 0
-        ), "We should start with 0 policies"
+        assert len(get_nonaws_policies(target, client)) == 0, (
+            "We should start with 0 policies"
+        )
 
         #
         client.attach_policy(PolicyId=policy_id, TargetId=target)
-        assert (
-            len(get_nonaws_policies(target, client)) == 1
-        ), f"Expecting 1 policy after creation of target={name}"
+        assert len(get_nonaws_policies(target, client)) == 1, (
+            f"Expecting 1 policy after creation of target={name}"
+        )
 
         #
         response = client.detach_policy(PolicyId=policy_id, TargetId=target)
         assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-        assert (
-            len(get_nonaws_policies(target, client)) == 0
-        ), f"Expecting 0 policies after deletion of target={name}"
+        assert len(get_nonaws_policies(target, client)) == 0, (
+            f"Expecting 0 policies after deletion of target={name}"
+        )
 
 
 def get_nonaws_policies(account_id, client):
@@ -2367,5 +2367,54 @@ def test_aiservices_opt_out_policy():
     response = client.list_policies_for_target(
         TargetId=root_id, Filter="AISERVICES_OPT_OUT_POLICY"
     )
+    assert len(response["Policies"]) == 1
+    assert response["Policies"][0]["Id"] == policy_id
+
+
+@mock_aws
+def test_tag_policy():
+    # given
+    client = boto3.client("organizations", region_name="us-east-1")
+    org = client.create_organization(FeatureSet="ALL")["Organization"]
+    root_id = client.list_roots()["Roots"][0]["Id"]
+    client.enable_policy_type(RootId=root_id, PolicyType="TAG_POLICY")
+    tag_policy = {
+        "tags": {
+            "CostCenter": {
+                "tag_key": {"@@assign": "CostCenter"},
+                "tag_value": {"@@assign": ["100", "200", "300"]},
+                "enforced_for": {"@@assign": ["ec2:instance", "s3:bucket"]},
+            }
+        }
+    }
+
+    # when
+    response = client.create_policy(
+        Content=json.dumps(tag_policy),
+        Description="Test tag policy",
+        Name="test-tag-policy",
+        Type="TAG_POLICY",
+    )
+
+    # then
+    summary = response["Policy"]["PolicySummary"]
+    policy_id = summary["Id"]
+    assert re.match(utils.POLICY_ID_REGEX, summary["Id"])
+    assert summary["Arn"] == (
+        utils.TAG_POLICY_ARN_FORMAT.format(
+            "aws", org["MasterAccountId"], org["Id"], summary["Id"]
+        )
+    )
+    assert summary["Name"] == "test-tag-policy"
+    assert summary["Description"] == "Test tag policy"
+    assert summary["Type"] == "TAG_POLICY"
+    assert summary["AwsManaged"] is False
+    assert json.loads(response["Policy"]["Content"]) == tag_policy
+
+    # when
+    client.attach_policy(PolicyId=policy_id, TargetId=root_id)
+
+    # then
+    response = client.list_policies_for_target(TargetId=root_id, Filter="TAG_POLICY")
     assert len(response["Policies"]) == 1
     assert response["Policies"][0]["Id"] == policy_id

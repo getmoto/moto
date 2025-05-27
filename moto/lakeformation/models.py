@@ -577,7 +577,7 @@ class LakeFormationBackend(BaseBackend):
 
     def get_resource_lf_tags(
         self,
-        catalog_id: str,  # pylint: disable=unused-argument
+        catalog_id: str,
         resource: Dict[str, Any],
     ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
         database_tags = []

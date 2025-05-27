@@ -802,7 +802,7 @@ class Role(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        backend = iam_backends[account_id][get_partition(region_name)]
+        backend: IAMBackend = iam_backends[account_id][get_partition(region_name)]
         for profile in backend.instance_profiles.values():
             profile.delete_role(role_name=resource_name)
 
@@ -810,6 +810,13 @@ class Role(CloudFormationModel):
             if role.name == resource_name:
                 for arn in list(role.policies.keys()):
                     role.delete_policy(arn)
+
+        # We may have inline policies attached to this role - make sure that they don't reference a deleted role
+        # If the reference still exists, it's impossible to delete the policy, because on deletion
+        # it will try to detach itself from a role that no longer exists
+        for policy in backend.inline_policies.values():
+            policy.role_names = [n for n in policy.role_names if n != resource_name]
+
         backend.delete_role(resource_name)
 
     @property
@@ -1085,7 +1092,7 @@ class InstanceProfile(CloudFormationModel):
             "path": self.path,
             "instanceProfileName": self.name,
             "instanceProfileId": self.id,
-            "arn": f"arn:{self.partition}:iam::{self.account_id}:instance-profile/{role.name}",  # pylint: disable=W0631
+            "arn": f"arn:{self.partition}:iam::{self.account_id}:instance-profile/{role.name}",
             "createDate": str(self.create_date),
             "roles": roles,
         }
@@ -1606,10 +1613,9 @@ class User(CloudFormationModel):
     ) -> "User":
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
-        user, _ = iam_backends[account_id][get_partition(region_name)].create_user(
+        return iam_backends[account_id][get_partition(region_name)].create_user(
             region_name=region_name, user_name=resource_name, path=path
         )
-        return user
 
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
@@ -2669,7 +2675,7 @@ class IAMBackend(BaseBackend):
         user_name: str,
         path: str = "/",
         tags: Optional[List[Dict[str, str]]] = None,
-    ) -> Tuple[User, Dict[str, List[Dict[str, str]]]]:
+    ) -> User:
         if user_name in self.users:
             raise IAMConflictException(
                 "EntityAlreadyExists", f"User {user_name} already exists"
@@ -2678,7 +2684,7 @@ class IAMBackend(BaseBackend):
         user = User(self.account_id, region_name, user_name, path)
         self.tagger.tag_resource(user.arn, tags or [])
         self.users[user_name] = user
-        return user, self.tagger.list_tags_for_resource(user.arn)
+        return user
 
     def get_user(self, name: str) -> User:
         user = self.users.get(name)

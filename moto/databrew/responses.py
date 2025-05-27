@@ -57,7 +57,6 @@ class DataBrewResponse(BaseResponse):
             "RecipeVersion", self._get_param("recipeVersion")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         recipe_list, next_token = self.databrew_backend.list_recipes(
             next_token=next_token,
             max_results=max_results,
@@ -78,7 +77,6 @@ class DataBrewResponse(BaseResponse):
             "MaxResults", self._get_int_param("maxResults")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         recipe_list, next_token = self.databrew_backend.list_recipe_versions(
             recipe_name=recipe_name, next_token=next_token, max_results=max_results
         )
@@ -170,7 +168,6 @@ class DataBrewResponse(BaseResponse):
             "MaxResults", self._get_int_param("maxResults")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         ruleset_list, next_token = self.databrew_backend.list_rulesets(
             next_token=next_token, max_results=max_results
         )
@@ -210,7 +207,6 @@ class DataBrewResponse(BaseResponse):
             "MaxResults", self._get_int_param("maxResults")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         dataset_list, next_token = self.databrew_backend.list_datasets(
             next_token=next_token, max_results=max_results
         )
