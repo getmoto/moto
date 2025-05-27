@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Pattern
+from typing import Any, Dict, List, Optional, Pattern
 
 from dateutil.tz import tzlocal
 
@@ -89,7 +89,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         encryptionConfiguration: Optional[Dict[str, Any]] = None,
         loggingConfiguration: Optional[Dict[str, Any]] = None,
         tracingConfiguration: Optional[Dict[str, Any]] = None,
-        tag_fn: Callable[[str], List[Dict[str, str]]] = None,
+        backend: "StepFunctionBackend" = None,
     ):
         StateMachineInstance.__init__(
             self,
@@ -104,7 +104,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         self.latest_version_number = 0
         self.versions: Dict[int, StateMachineVersion] = {}
         self.latest_version: Optional[StateMachineVersion] = None
-        self.tag_fn = tag_fn
+        self.backend = backend
 
     def publish(self, description: Optional[str]) -> None:
         new_version_number = self.latest_version_number + 1
@@ -212,7 +212,9 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         elif attribute_name == "StateMachineName":
             return self.name
         elif attribute_name == "Tags":
-            return api_to_cfn_tags(self.tag_fn(self.arn))
+            return api_to_cfn_tags(
+                self.backend.get_tags_list_for_state_machine(self.arn)
+            )
 
         raise UnformattedGetAttTemplateException()
 
@@ -613,7 +615,7 @@ class StepFunctionBackend(BaseBackend):
                 encryptionConfiguration,
                 loggingConfiguration,
                 tracingConfiguration,
-                tag_fn=self.get_tags_list_for_state_machine,
+                backend=self,
             )
             if publish:
                 state_machine.publish(description=version_description)
