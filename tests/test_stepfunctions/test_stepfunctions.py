@@ -1073,17 +1073,17 @@ def _get_default_role():
 def test_create_activity():
     client = boto3.client("stepfunctions", region_name=region)
     response = client.create_activity(
-        name='test-activity',
+        name="test-activity",
         tags=[{"key": "activity-name", "value": "test-activity"}],
         encryptionConfiguration={
-            'kmsKeyId': 'test-id',
-            'kmsDataKeyReusePeriodSeconds': 123,
-            'type': 'CUSTOMER_MANAGED_KMS_KEY',
-        }
+            "kmsKeyId": "test-id",
+            "kmsDataKeyReusePeriodSeconds": 123,
+            "type": "CUSTOMER_MANAGED_KMS_KEY",
+        },
     )
 
-    assert 'creationDate' in response
-    assert 'activityArn' in response
+    assert "creationDate" in response
+    assert "activityArn" in response
 
 
 @mock_aws
@@ -1188,17 +1188,21 @@ def test_create_activity_with_invalid_name():
                 tags=[{"key": "activity-name", "value": "test-activity"}],
             )
 
-        assert exc.value.response['Error']['Code'] == 'InvalidName'
+        assert exc.value.response["Error"]["Code"] == "InvalidName"
 
     # Validate name too long error.
     with pytest.raises(ClientError) as exc:
         client.create_activity(
-            name='test'*25, # 100 characters long.
-            tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+            name="test" * 25,  # 100 characters long.
+            tags=[{"key": "activity-name", "value": "test-activity"}],
         )
 
-    assert exc.value.response['Error']['Code'] == "ValidationException"
-    assert 'Member must have length less than or equal to 80' in exc.value.response['Error']['Message']
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        "Member must have length less than or equal to 80"
+        in exc.value.response["Error"]["Message"]
+    )
+
 
 @mock_aws
 def test_create_activity_with_invalid_encryption_configuration():
@@ -1207,182 +1211,183 @@ def test_create_activity_with_invalid_encryption_configuration():
     # Missing `type` in encryptionConfiguration
     with pytest.raises(ParamValidationError) as exc:
         client.create_activity(
-            name='test-activity',
-            tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+            name="test-activity",
+            tags=[{"key": "activity-name", "value": "test-activity"}],
             encryptionConfiguration={
-                'kmsKeyId': 'test-id',
-                'kmsDataKeyReusePeriodSeconds': 123,
-            }
+                "kmsKeyId": "test-id",
+                "kmsDataKeyReusePeriodSeconds": 123,
+            },
         )
 
     # `kmsKeyId` missing when `type` is `CUSTOMER_MANAGED_KMS_KEY`
     with pytest.raises(ClientError) as exc:
         client.create_activity(
-            name='test-activity',
-            tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+            name="test-activity",
+            tags=[{"key": "activity-name", "value": "test-activity"}],
             encryptionConfiguration={
-                'kmsDataKeyReusePeriodSeconds': 123,
-                'type': 'CUSTOMER_MANAGED_KMS_KEY',
-            }
+                "kmsDataKeyReusePeriodSeconds": 123,
+                "type": "CUSTOMER_MANAGED_KMS_KEY",
+            },
         )
-    assert exc.value.response['Error']['Code'] == 'InvalidEncryptionConfiguration'
+    assert exc.value.response["Error"]["Code"] == "InvalidEncryptionConfiguration"
 
 
 @mock_aws
 def test_create_activity_with_duplicate_name():
     client = boto3.client("stepfunctions", region_name=region)
     client.create_activity(
-        name='test-activity',
-        tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+        name="test-activity",
+        tags=[{"key": "activity-name", "value": "test-activity"}],
         encryptionConfiguration={
-            'kmsKeyId': 'test-id',
-            'kmsDataKeyReusePeriodSeconds': 123,
-            'type': 'CUSTOMER_MANAGED_KMS_KEY',
-        }
+            "kmsKeyId": "test-id",
+            "kmsDataKeyReusePeriodSeconds": 123,
+            "type": "CUSTOMER_MANAGED_KMS_KEY",
+        },
     )
 
     # Validate error if user tries to create activity with the existing name
     with pytest.raises(ClientError) as exc:
         client.create_activity(
-            name='test-activity',
-            tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+            name="test-activity",
+            tags=[{"key": "activity-name", "value": "test-activity"}],
             encryptionConfiguration={
-                'kmsKeyId': 'test-id',
-                'kmsDataKeyReusePeriodSeconds': 123,
-                'type': 'CUSTOMER_MANAGED_KMS_KEY',
-            }
+                "kmsKeyId": "test-id",
+                "kmsDataKeyReusePeriodSeconds": 123,
+                "type": "CUSTOMER_MANAGED_KMS_KEY",
+            },
         )
 
-    assert exc.value.response['Error']['Code'] == 'ActivityAlreadyExists'
+    assert exc.value.response["Error"]["Code"] == "ActivityAlreadyExists"
 
 
 @mock_aws
 def test_describe_activity():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     activity = client.create_activity(
-        name='test-activity',
-        tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+        name="test-activity",
+        tags=[{"key": "activity-name", "value": "test-activity"}],
         encryptionConfiguration={
-            'kmsKeyId': 'test-id',
-            'kmsDataKeyReusePeriodSeconds': 123,
-            'type': 'CUSTOMER_MANAGED_KMS_KEY',
-        }
+            "kmsKeyId": "test-id",
+            "kmsDataKeyReusePeriodSeconds": 123,
+            "type": "CUSTOMER_MANAGED_KMS_KEY",
+        },
     )
 
     response = client.describe_activity(activityArn=activity["activityArn"])
-    assert response['name'] == 'test-activity'
-    assert response['activityArn'] == activity["activityArn"]
-    assert response['creationDate'] == activity["creationDate"]
-    assert response['encryptionConfiguration']['kmsKeyId'] == 'test-id'
-    assert response['encryptionConfiguration']['kmsDataKeyReusePeriodSeconds'] == 123
-    assert response['encryptionConfiguration']['type'] == 'CUSTOMER_MANAGED_KMS_KEY'
+    assert response["name"] == "test-activity"
+    assert response["activityArn"] == activity["activityArn"]
+    assert response["creationDate"] == activity["creationDate"]
+    assert response["encryptionConfiguration"]["kmsKeyId"] == "test-id"
+    assert response["encryptionConfiguration"]["kmsDataKeyReusePeriodSeconds"] == 123
+    assert response["encryptionConfiguration"]["type"] == "CUSTOMER_MANAGED_KMS_KEY"
 
 
 @mock_aws
 def test_delete_activity():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     activity = client.create_activity(
-        name='test-activity',
-        tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+        name="test-activity",
+        tags=[{"key": "activity-name", "value": "test-activity"}],
         encryptionConfiguration={
-            'kmsKeyId': 'test-id',
-            'kmsDataKeyReusePeriodSeconds': 123,
-            'type': 'CUSTOMER_MANAGED_KMS_KEY',
-        }
+            "kmsKeyId": "test-id",
+            "kmsDataKeyReusePeriodSeconds": 123,
+            "type": "CUSTOMER_MANAGED_KMS_KEY",
+        },
     )
 
-    response = client.describe_activity(activityArn=activity['activityArn'])
-    assert response['name'] == 'test-activity'
+    response = client.describe_activity(activityArn=activity["activityArn"])
+    assert response["name"] == "test-activity"
 
-    client.delete_activity(activityArn=activity['activityArn'])
+    client.delete_activity(activityArn=activity["activityArn"])
 
     # Make sure activity is deleted.
     with pytest.raises(ClientError) as exc:
-        client.describe_activity(activityArn=activity['activityArn'])
+        client.describe_activity(activityArn=activity["activityArn"])
 
-    assert exc.value.response['Error']['Code'] == 'ActivityDoesNotExist'
+    assert exc.value.response["Error"]["Code"] == "ActivityDoesNotExist"
 
 
 @mock_aws
 def test_list_activities_returns_empty_list_by_default():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     #
     activities = client.list_activities()
-    assert activities['activities'] == []
+    assert activities["activities"] == []
+
 
 @mock_aws
 def test_list_activities_returns_created_activities():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     activity1 = client.create_activity(
-        name='test-activity-1',
-        tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+        name="test-activity-1",
+        tags=[{"key": "activity-name", "value": "test-activity"}],
     )
     activity2 = client.create_activity(
-        name='test-activity-2',
-        tags=[{'key': 'activity-name', 'value': 'test-activity'}],
+        name="test-activity-2",
+        tags=[{"key": "activity-name", "value": "test-activity"}],
     )
     activities = client.list_activities()
 
-    assert activities['ResponseMetadata']['HTTPStatusCode'] == 200
-    assert len(activities['activities']) == 2
-    assert isinstance(activities['activities'][0]['creationDate'], datetime)
-    assert activities['activities'][0]['creationDate'] == activity1['creationDate']
-    assert activities['activities'][0]['name'] == 'test-activity-1'
-    assert activities['activities'][0]['activityArn'] == activity1['activityArn']
-    assert isinstance(activities['activities'][1]['creationDate'], datetime)
-    assert activities['activities'][1]['creationDate'] == activity2['creationDate']
-    assert activities['activities'][1]['name'] == 'test-activity-2'
-    assert activities['activities'][1]['activityArn'] == activity2['activityArn']
+    assert activities["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(activities["activities"]) == 2
+    assert isinstance(activities["activities"][0]["creationDate"], datetime)
+    assert activities["activities"][0]["creationDate"] == activity1["creationDate"]
+    assert activities["activities"][0]["name"] == "test-activity-1"
+    assert activities["activities"][0]["activityArn"] == activity1["activityArn"]
+    assert isinstance(activities["activities"][1]["creationDate"], datetime)
+    assert activities["activities"][1]["creationDate"] == activity2["creationDate"]
+    assert activities["activities"][1]["name"] == "test-activity-2"
+    assert activities["activities"][1]["activityArn"] == activity2["activityArn"]
 
 
 @mock_aws
 def test_list_activities_pagination():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     for i in range(25):
-        activity_name = f'test-activity-{i}'
+        activity_name = f"test-activity-{i}"
         client.create_activity(
             name=activity_name,
-            tags=[{'key': 'activity-name', 'value': f'test-activity-{i}'}],
+            tags=[{"key": "activity-name", "value": f"test-activity-{i}"}],
         )
 
     resp = client.list_activities()
-    assert 'nextToken' not in resp
-    assert len(resp['activities']) == 25
+    assert "nextToken" not in resp
+    assert len(resp["activities"]) == 25
 
-    paginator = client.get_paginator('list_activities')
+    paginator = client.get_paginator("list_activities")
     page_iterator = paginator.paginate(maxResults=5)
     page_list = list(page_iterator)
     for page in page_list:
-        assert len(page['activities']) == 5
-    assert '24' in page_list[-1]['activities'][-1]['name']
+        assert len(page["activities"]) == 5
+    assert "24" in page_list[-1]["activities"][-1]["name"]
 
 
 @mock_aws
 def test_activity_tagging():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     # Test tags are added on resource creation
     tags = [
-        {'key': 'tag_key1', 'value': 'tag_value1'},
-        {'key': 'tag_key2', 'value': 'tag_value2'},
+        {"key": "tag_key1", "value": "tag_value1"},
+        {"key": "tag_key2", "value": "tag_value2"},
     ]
     activity = client.create_activity(
-        name='test-with-tags',
+        name="test-with-tags",
         tags=tags,
     )
-    resp = client.list_tags_for_resource(resourceArn=activity['activityArn'])
-    assert resp['tags'] == tags
+    resp = client.list_tags_for_resource(resourceArn=activity["activityArn"])
+    assert resp["tags"] == tags
 
     # Test tags are added after creation with tag_resource
     activity = client.create_activity(
-        name='test-activity',
+        name="test-activity",
     )
-    client.tag_resource(resourceArn=activity['activityArn'], tags=tags)
-    resp = client.list_tags_for_resource(resourceArn=activity['activityArn'])
-    assert resp['tags'] == tags
+    client.tag_resource(resourceArn=activity["activityArn"], tags=tags)
+    resp = client.list_tags_for_resource(resourceArn=activity["activityArn"])
+    assert resp["tags"] == tags
 
     tags_update = [
-        {'key': 'tag_key1', 'value': 'tag_value1_new'},
-        {'key': 'tag_key3', 'value': 'tag_value3'},
+        {"key": "tag_key1", "value": "tag_value1_new"},
+        {"key": "tag_key3", "value": "tag_value3"},
     ]
     client.tag_resource(resourceArn=activity["activityArn"], tags=tags_update)
     resp = client.list_tags_for_resource(resourceArn=activity["activityArn"])
@@ -1391,65 +1396,59 @@ def test_activity_tagging():
         tags[1],
         tags_update[1],
     ]
-    assert resp['tags'] == tags_expected
+    assert resp["tags"] == tags_expected
 
 
 @mock_aws
 def test_activity_untagging():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     tags = [
-        {'key': 'tag_key1', 'value': 'tag_value1'},
-        {'key': 'tag_key2', 'value': 'tag_value2'},
-        {'key': 'tag_key3', 'value': 'tag_value3'},
+        {"key": "tag_key1", "value": "tag_value1"},
+        {"key": "tag_key2", "value": "tag_value2"},
+        {"key": "tag_key3", "value": "tag_value3"},
     ]
     activity = client.create_activity(
-        name='test-activity',
+        name="test-activity",
         tags=tags,
     )
-    resp = client.list_tags_for_resource(resourceArn=activity['activityArn'])
-    assert resp['tags'] == tags
-    tags_to_delete = ['tag_key1', 'tag_key2']
-    client.untag_resource(
-        resourceArn=activity['activityArn'], tagKeys=tags_to_delete
-    )
-    resp = client.list_tags_for_resource(resourceArn=activity['activityArn'])
-    expected_tags = [tag for tag in tags if tag['key'] not in tags_to_delete]
-    assert resp['tags'] == expected_tags
+    resp = client.list_tags_for_resource(resourceArn=activity["activityArn"])
+    assert resp["tags"] == tags
+    tags_to_delete = ["tag_key1", "tag_key2"]
+    client.untag_resource(resourceArn=activity["activityArn"], tagKeys=tags_to_delete)
+    resp = client.list_tags_for_resource(resourceArn=activity["activityArn"])
+    expected_tags = [tag for tag in tags if tag["key"] not in tags_to_delete]
+    assert resp["tags"] == expected_tags
 
 
 @mock_aws
 def test_activity_list_tags_for_created_activity():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     #
     activity = client.create_activity(
-        name='test-activity',
-        tags=[{'key': 'tag_key', 'value': 'tag_value'}],
+        name="test-activity",
+        tags=[{"key": "tag_key", "value": "tag_value"}],
     )
-    response = client.list_tags_for_resource(resourceArn=activity['activityArn'])
-    tags = response['tags']
+    response = client.list_tags_for_resource(resourceArn=activity["activityArn"])
+    tags = response["tags"]
     assert len(tags) == 1
-    assert tags[0] == {'key': 'tag_key', 'value': 'tag_value'}
+    assert tags[0] == {"key": "tag_key", "value": "tag_value"}
 
 
 @mock_aws
 def test_activity_list_tags_for_activity_without_tags():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     #
-    activity = client.create_activity(
-        name='test-activity'
-    )
-    response = client.list_tags_for_resource(resourceArn=activity['activityArn'])
-    tags = response['tags']
+    activity = client.create_activity(name="test-activity")
+    response = client.list_tags_for_resource(resourceArn=activity["activityArn"])
+    tags = response["tags"]
     assert len(tags) == 0
 
 
 @mock_aws
 def test_activity_list_tags_for_nonexisting_activity():
-    client = boto3.client('stepfunctions', region_name=region)
+    client = boto3.client("stepfunctions", region_name=region)
     #
-    non_existing_activity = (
-        f"arn:aws:states:{region}:{ACCOUNT_ID}:activity:unknown"
-    )
+    non_existing_activity = f"arn:aws:states:{region}:{ACCOUNT_ID}:activity:unknown"
     response = client.list_tags_for_resource(resourceArn=non_existing_activity)
-    tags = response['tags']
+    tags = response["tags"]
     assert len(tags) == 0

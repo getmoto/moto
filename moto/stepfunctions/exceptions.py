@@ -61,6 +61,7 @@ class NameTooLongException(ValidationException):
             "failed to satisfy constraint: Member must have length less than or equal to 80"
         )
 
+
 class InvalidEncryptionConfiguration(AWSError):
     TYPE = "InvalidEncryptionConfiguration"
     STATUS = 400
@@ -74,4 +75,3 @@ class ActivityDoesNotExist(AWSError):
 class ActivityAlreadyExists(AWSError):
     TYPE = "ActivityAlreadyExists"
     STATUS = 400
-

@@ -11,8 +11,8 @@ from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import (
     ActivityAlreadyExists,
@@ -20,15 +20,15 @@ from .exceptions import (
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
     InvalidArn,
+    InvalidEncryptionConfiguration,
     InvalidExecutionInput,
     InvalidName,
-    InvalidEncryptionConfiguration,
     NameTooLongException,
     ResourceNotFound,
     StateMachineDoesNotExist,
 )
-from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
 from .parser.api import EncryptionType
+from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
 
 
 class StateMachineInstance:
@@ -89,7 +89,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         encryptionConfiguration: Optional[Dict[str, Any]] = None,
         loggingConfiguration: Optional[Dict[str, Any]] = None,
         tracingConfiguration: Optional[Dict[str, Any]] = None,
-        tag_fn: Callable[[str], List[Dict[str, str]]]=None,
+        tag_fn: Callable[[str], List[Dict[str, str]]] = None,
     ):
         StateMachineInstance.__init__(
             self,
@@ -430,7 +430,12 @@ class Execution:
 
 
 class Activity:
-    def __init__(self, arn: str, name: str, encryption_configuration: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        arn: str,
+        name: str,
+        encryption_configuration: Optional[Dict[str, Any]] = None,
+    ):
         self.arn = arn
         self.name = name
         self.encryption_configuration = encryption_configuration
@@ -574,7 +579,9 @@ class StepFunctionBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.tagger = TaggingService(tag_name="tags", key_name="key", value_name="value")
+        self.tagger = TaggingService(
+            tag_name="tags", key_name="key", value_name="value"
+        )
 
         self.state_machines: List[StateMachine] = []
         self.activities: Dict[str, Activity] = {}
@@ -606,7 +613,7 @@ class StepFunctionBackend(BaseBackend):
                 encryptionConfiguration,
                 loggingConfiguration,
                 tracingConfiguration,
-                tag_fn=self.get_tags_list_for_state_machine
+                tag_fn=self.get_tags_list_for_state_machine,
             )
             if publish:
                 state_machine.publish(description=version_description)
@@ -815,13 +822,22 @@ class StepFunctionBackend(BaseBackend):
         if not arn or not match:
             raise InvalidArn(invalid_msg)
 
-    def _validate_encryption_configuration(self, encryption_configuration: Optional[Dict[str, Any]]):
+    def _validate_encryption_configuration(
+        self, encryption_configuration: Optional[Dict[str, Any]]
+    ):
         encryption_type = encryption_configuration.get("type")
         if not encryption_type:
-            raise InvalidEncryptionConfiguration("Invalid Encryption Configuration: 'type' is required.")
+            raise InvalidEncryptionConfiguration(
+                "Invalid Encryption Configuration: 'type' is required."
+            )
 
-        if encryption_type == EncryptionType.CUSTOMER_MANAGED_KMS_KEY and not encryption_configuration.get('kmsKeyId'):
-            raise InvalidEncryptionConfiguration("Invalid Encryption Configuration: 'kmsKeyId' is required when 'type' is 'CUSTOMER_MANAGED_KMS_KEY'")
+        if (
+            encryption_type == EncryptionType.CUSTOMER_MANAGED_KMS_KEY
+            and not encryption_configuration.get("kmsKeyId")
+        ):
+            raise InvalidEncryptionConfiguration(
+                "Invalid Encryption Configuration: 'kmsKeyId' is required when 'type' is 'CUSTOMER_MANAGED_KMS_KEY'"
+            )
 
     def _get_state_machine_for_execution(self, execution_arn: str) -> StateMachine:
         state_machine_name = execution_arn.split(":")[6]
@@ -836,7 +852,12 @@ class StepFunctionBackend(BaseBackend):
             )
         return self.describe_state_machine(state_machine_arn)
 
-    def create_activity(self, name: str, tags: Optional[List[Dict[str, str]]] = None, encryption_configuration: Optional[Dict[str, Any]] = None) -> Activity:
+    def create_activity(
+        self,
+        name: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+        encryption_configuration: Optional[Dict[str, Any]] = None,
+    ) -> Activity:
         self._validate_name(name)
 
         if encryption_configuration is not None:
@@ -845,7 +866,7 @@ class StepFunctionBackend(BaseBackend):
         arn = f"arn:{get_partition(self.region_name)}:states:{self.region_name}:{self.account_id}:activity:{name}"
 
         if arn in self.activities:
-            raise ActivityAlreadyExists('Activity already exists.')
+            raise ActivityAlreadyExists("Activity already exists.")
 
         activity = Activity(
             arn=arn,
@@ -859,14 +880,12 @@ class StepFunctionBackend(BaseBackend):
 
         return activity
 
-
     def describe_activity(self, activity_arn: str) -> Activity:
         self._validate_activity_arn(activity_arn)
         if activity_arn in self.activities:
             return self.activities[activity_arn]
         else:
             raise ActivityDoesNotExist(activity_arn)
-
 
     def delete_activity(self, activity_arn: str):
         self._validate_activity_arn(activity_arn)
@@ -876,5 +895,6 @@ class StepFunctionBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_activities(self) -> List[Activity]:
         return sorted(self.activities.values(), key=lambda x: x.creation_date)
+
 
 stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

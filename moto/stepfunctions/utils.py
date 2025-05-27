@@ -18,7 +18,7 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": ["creation_date", "arn"],
-    }
+    },
 }
 
 

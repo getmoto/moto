@@ -302,9 +302,7 @@ class StepFunctionResponse(BaseResponse):
         tags = self._get_param("tags")
         encryption_configuration = self._get_param("encryptionConfiguration")
         activity = self.stepfunction_backend.create_activity(
-            name=name,
-            tags=tags,
-            encryption_configuration=encryption_configuration
+            name=name, tags=tags, encryption_configuration=encryption_configuration
         )
         response = {
             "creationDate": activity.creation_date,
@@ -317,11 +315,10 @@ class StepFunctionResponse(BaseResponse):
         activity = self.stepfunction_backend.describe_activity(activity_arn)
 
         response = {
-            'activityArn': activity.arn,
-            'name': activity.name,
-            'creationDate': activity.creation_date,
-            'encryptionConfiguration': activity.encryption_configuration,
-
+            "activityArn": activity.arn,
+            "name": activity.name,
+            "creationDate": activity.creation_date,
+            "encryptionConfiguration": activity.encryption_configuration,
         }
         return 200, {}, json.dumps(response)
 
