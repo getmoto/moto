@@ -786,7 +786,6 @@ def test_create_channel_namespace_invalid_name():
     )
     api_id = resp["api"]["apiId"]
 
-    # Test case: name ending with forward slash (like "test-channel/")
     with pytest.raises(ClientError) as exc:
         client.create_channel_namespace(
             apiId=api_id,
@@ -825,7 +824,6 @@ def test_create_channel_namespace_invalid_name():
 def test_create_api_invalid_name():
     client = boto3.client("appsync", region_name="us-east-2")
 
-    # Test case: name with special characters (like forward slash)
     with pytest.raises(ClientError) as exc:
         client.create_api(
             name="invalid/api",

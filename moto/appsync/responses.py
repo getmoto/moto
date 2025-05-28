@@ -271,7 +271,6 @@ class AppSyncResponse(BaseResponse):
         params = json.loads(self.body)
         name = params.get("name")
 
-        # Validate API name pattern
         if name:
             pattern = r"^[A-Za-z0-9_\-\ ]+$"
             if not re.match(pattern, name):
