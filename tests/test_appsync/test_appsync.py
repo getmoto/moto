@@ -694,7 +694,7 @@ def test_get_api():
 
 
 @mock_aws
-def test_events_api_direct_http_request_entire_flow():
+def test_events_api_direct_http_request_e2e():
     client = boto3.client("appsync", region_name="us-east-1")
     api_resp = client.create_api(
         name="events-api",
@@ -716,7 +716,7 @@ def test_events_api_direct_http_request_entire_flow():
     api_id = api_resp["api"]["apiId"]
     api_http_url = api_resp["api"]["dns"]["HTTP"]
 
-    channel_name = "test-channel/"
+    channel_name = "test-channel"
     client.create_channel_namespace(
         apiId=api_id,
         name=channel_name,
