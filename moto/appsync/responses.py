@@ -270,6 +270,18 @@ class AppSyncResponse(BaseResponse):
     def create_api(self) -> str:
         params = json.loads(self.body)
         name = params.get("name")
+
+        # Validate API name pattern
+        if name:
+            pattern = r"^[A-Za-z0-9_\-\ ]+$"
+            if not re.match(pattern, name):
+                raise AWSValidationException(
+                    "1 validation error detected: "
+                    "Value at 'name' failed to satisfy constraint: "
+                    "Member must satisfy regular expression pattern: "
+                    "[A-Za-z0-9_\\-\\ ]+"
+                )
+
         owner_contact = params.get("ownerContact")
         tags = params.get("tags", {})
         event_config = params.get("eventConfig")

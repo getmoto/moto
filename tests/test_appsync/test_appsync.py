@@ -820,3 +820,35 @@ def test_create_channel_namespace_invalid_name():
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
 
+
+@mock_aws
+def test_create_api_invalid_name():
+    client = boto3.client("appsync", region_name="us-east-2")
+
+    # Test case: name with special characters (like forward slash)
+    with pytest.raises(ClientError) as exc:
+        client.create_api(
+            name="invalid/api",
+            eventConfig={
+                "authProviders": [{"authType": "API_KEY"}],
+                "connectionAuthModes": [{"authType": "API_KEY"}],
+                "defaultPublishAuthModes": [{"authType": "API_KEY"}],
+                "defaultSubscribeAuthModes": [{"authType": "API_KEY"}],
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_api(
+            name="invalid@api",
+            eventConfig={
+                "authProviders": [{"authType": "API_KEY"}],
+                "connectionAuthModes": [{"authType": "API_KEY"}],
+                "defaultPublishAuthModes": [{"authType": "API_KEY"}],
+                "defaultSubscribeAuthModes": [{"authType": "API_KEY"}],
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
