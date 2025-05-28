@@ -94,6 +94,7 @@ cognito-idp
 - [ ] get_identity_provider_by_identifier
 - [ ] get_log_delivery_configuration
 - [ ] get_signing_certificate
+- [ ] get_tokens_from_refresh_token
 - [ ] get_ui_customization
 - [X] get_user
 - [ ] get_user_attribute_verification_code

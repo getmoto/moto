@@ -19,6 +19,7 @@ emr
 - [X] add_job_flow_steps
 - [X] add_tags
 - [ ] cancel_steps
+- [ ] create_persistent_app_ui
 - [X] create_security_configuration
 - [ ] create_studio
 - [ ] create_studio_session_mapping
@@ -28,6 +29,7 @@ emr
 - [X] describe_cluster
 - [X] describe_job_flows
 - [ ] describe_notebook_execution
+- [ ] describe_persistent_app_ui
 - [ ] describe_release_label
 - [ ] describe_security_configuration
 - [X] describe_step
@@ -36,6 +38,8 @@ emr
 - [X] get_block_public_access_configuration
 - [ ] get_cluster_session_credentials
 - [ ] get_managed_scaling_policy
+- [ ] get_on_cluster_app_ui_presigned_url
+- [ ] get_persistent_app_ui_presigned_url
 - [ ] get_studio_session_mapping
 - [X] list_bootstrap_actions
 - [X] list_clusters
