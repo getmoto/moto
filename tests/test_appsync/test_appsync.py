@@ -725,10 +725,10 @@ def test_events_api_direct_http_request_e2e():
         publishAuthModes=[{"authType": "API_KEY"}],
     )
 
-    tomorrow = datetime.now() + timedelta(days=1)
-    tomorrow_in_secs = int(unix_time(tomorrow))
+    three_days_ahead = datetime.now() + timedelta(days=3)
+    three_days_ahead_in_secs = int(unix_time(three_days_ahead))
     key_resp = client.create_api_key(
-        apiId=api_id, description="test api key", expires=tomorrow_in_secs
+        apiId=api_id, description="test api key", expires=three_days_ahead_in_secs
     )
     api_key = key_resp["apiKey"]["id"]
 

@@ -15,6 +15,14 @@ class AWSValidationException(AppSyncExceptions):
         self.description = json.dumps({"message": self.message})
 
 
+class ApiKeyValidityOutOfBoundsException(AppSyncExceptions):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ApiKeyValidityOutOfBoundsException", message)
+        self.description = json.dumps({"message": self.message})
+
+
 class GraphqlAPINotFound(AppSyncExceptions):
     code = 404
 
