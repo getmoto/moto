@@ -851,4 +851,3 @@ def test_create_api_invalid_name():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
-
