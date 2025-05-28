@@ -1,15 +1,14 @@
 import json
-import uuid
 from datetime import datetime, timedelta
+from unittest import SkipTest
 
 import boto3
 import pytest
 import requests
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.models import responses_mock
 from moto.core.utils import unix_time
 
 # See our Development Tips on writing tests for hints on how to write good tests:
@@ -695,6 +694,8 @@ def test_get_api():
 
 @mock_aws
 def test_events_api_direct_http_request_e2e():
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Can only test this flow in DecoratorMode")
     client = boto3.client("appsync", region_name="us-east-1")
     api_resp = client.create_api(
         name="events-api",
@@ -739,11 +740,6 @@ def test_events_api_direct_http_request_e2e():
     }
 
     endpoint_url = f"https://{api_http_url}/event"
-    response_content = json.dumps(
-        {"failed": [], "successful": [{"identifier": str(uuid.uuid4()), "index": 0}]}
-    )
-    responses_mock.add(responses_mock.POST, endpoint_url, body=response_content)
-    responses_mock.registered()
 
     response = requests.post(
         endpoint_url,
@@ -752,7 +748,8 @@ def test_events_api_direct_http_request_e2e():
         timeout=10,
     )
     assert response.status_code == 200
-    assert response.json() == json.loads(response_content)
+    assert response.json()["failed"] == []
+    assert len(response.json()["successful"]) == 1
 
     get_api_resp = client.get_api(apiId=api_id)
     assert get_api_resp["api"]["apiId"] == api_id
@@ -765,3 +762,61 @@ def test_events_api_direct_http_request_e2e():
     list_keys_resp = client.list_api_keys(apiId=api_id)
     assert len(list_keys_resp["apiKeys"]) == 1
     assert list_keys_resp["apiKeys"][0]["id"] == api_key
+
+
+@mock_aws
+def test_create_channel_namespace_invalid_name():
+    client = boto3.client("appsync", region_name="us-east-2")
+    resp = client.create_api(
+        name="api1",
+        eventConfig={
+            "authProviders": [
+                {"authType": "API_KEY"},
+            ],
+            "connectionAuthModes": [
+                {"authType": "API_KEY"},
+            ],
+            "defaultPublishAuthModes": [
+                {"authType": "API_KEY"},
+            ],
+            "defaultSubscribeAuthModes": [
+                {"authType": "API_KEY"},
+            ],
+        },
+    )
+    api_id = resp["api"]["apiId"]
+
+    # Test case: name ending with forward slash (like "test-channel/")
+    with pytest.raises(ClientError) as exc:
+        client.create_channel_namespace(
+            apiId=api_id,
+            name="test-channel/",
+            subscribeAuthModes=[{"authType": "API_KEY"}],
+            publishAuthModes=[{"authType": "API_KEY"}],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert "1 validation error detected" in err["Message"]
+    assert "Value at 'name' failed to satisfy constraint" in err["Message"]
+    assert "Member must satisfy regular expression pattern" in err["Message"]
+
+    with pytest.raises(ClientError) as exc:
+        client.create_channel_namespace(
+            apiId=api_id,
+            name="-test-channel",
+            subscribeAuthModes=[{"authType": "API_KEY"}],
+            publishAuthModes=[{"authType": "API_KEY"}],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_channel_namespace(
+            apiId=api_id,
+            name="test-channel-",
+            subscribeAuthModes=[{"authType": "API_KEY"}],
+            publishAuthModes=[{"authType": "API_KEY"}],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+

@@ -1,10 +1,15 @@
 """Handles incoming appsync requests, invokes methods, returns responses."""
 
 import json
+import re
+from typing import Any
 from urllib.parse import unquote
+from uuid import uuid4
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
+from .exceptions import AWSValidationException
 from .models import AppSyncBackend, appsync_backends
 
 
@@ -13,6 +18,16 @@ class AppSyncResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="appsync")
+
+    @staticmethod
+    def dns_event_response(request: Any, url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+        data = json.loads(request.data.decode("utf-8"))
+
+        response: dict[str, list[Any]] = {"failed": [], "successful": []}
+        for idx in range(len(data.get("events", []))):
+            response["successful"].append({"identifier": str(uuid4()), "index": idx})
+
+        return 200, {}, json.dumps(response).encode("utf-8")
 
     @property
     def appsync_backend(self) -> AppSyncBackend:
@@ -282,6 +297,17 @@ class AppSyncResponse(BaseResponse):
         params = json.loads(self.body)
         api_id = self.path.split("/")[-2]
         name = params.get("name")
+
+        if name:
+            pattern = r"^[A-Za-z0-9](?:[A-Za-z0-9\-]{0,48}[A-Za-z0-9])?$"
+            if not re.match(pattern, name):
+                raise AWSValidationException(
+                    "1 validation error detected: "
+                    "Value at 'name' failed to satisfy constraint: "
+                    "Member must satisfy regular expression pattern: "
+                    "([A-Za-z0-9](?:[A-Za-z0-9\\-]{0,48}[A-Za-z0-9])?)"
+                )
+
         subscribe_auth_modes = params.get("subscribeAuthModes")
         publish_auth_modes = params.get("publishAuthModes")
         code_handlers = params.get("codeHandlers")

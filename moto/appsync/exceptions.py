@@ -7,6 +7,14 @@ class AppSyncExceptions(JsonRESTError):
     pass
 
 
+class AWSValidationException(AppSyncExceptions):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ValidationException", message)
+        self.description = json.dumps({"message": self.message})
+
+
 class GraphqlAPINotFound(AppSyncExceptions):
     code = 404
 
