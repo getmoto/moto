@@ -2,13 +2,13 @@
 
 import json
 import re
-import time
 from typing import Any
 from urllib.parse import unquote
 from uuid import uuid4
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.core.utils import unix_time
 
 from .exceptions import ApiKeyValidityOutOfBoundsException, AWSValidationException
 from .models import AppSyncBackend, appsync_backends
@@ -118,7 +118,7 @@ class AppSyncResponse(BaseResponse):
         expires = params.get("expires")
 
         if expires:
-            current_time = int(time.time())
+            current_time = int(unix_time())
             min_validity = current_time + 86400  # 1 day in seconds
             if expires < min_validity:
                 raise ApiKeyValidityOutOfBoundsException(
@@ -151,7 +151,7 @@ class AppSyncResponse(BaseResponse):
 
         # Validate that API key expires at least 1 day from now
         if expires:
-            current_time = int(time.time())
+            current_time = int(unix_time())
             min_validity = current_time + 86400  # 1 day in seconds
             if expires < min_validity:
                 raise ApiKeyValidityOutOfBoundsException(
