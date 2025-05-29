@@ -113,6 +113,10 @@ def test_checksum_crc32c():
         assert compute_checksum(b"somedata", "CRC32C") == b"Uwy90A=="
 
 
+def test_checksum_crc64nvme():
+    assert compute_checksum(b"somedata", "CRC64NVME") == b"1n4hOQfCfC0="
+
+
 def test_cors_utils():
     "Fancy string matching"
     assert cors_matches_origin("a", ["a"])
