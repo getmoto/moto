@@ -8706,7 +8706,7 @@
 
 ## securityhub
 <details>
-<summary>2% implemented</summary>
+<summary>7% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -8736,7 +8736,7 @@
 - [ ] delete_members
 - [ ] describe_action_targets
 - [ ] describe_hub
-- [ ] describe_organization_configuration
+- [X] describe_organization_configuration
 - [ ] describe_products
 - [ ] describe_standards
 - [ ] describe_standards_controls
@@ -8747,9 +8747,9 @@
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [ ] enable_import_findings_for_product
-- [ ] enable_organization_admin_account
+- [X] enable_organization_admin_account
 - [ ] enable_security_hub
-- [ ] get_administrator_account
+- [X] get_administrator_account
 - [ ] get_configuration_policy
 - [ ] get_configuration_policy_association
 - [ ] get_enabled_standards
@@ -8783,7 +8783,7 @@
 - [ ] update_finding_aggregator
 - [ ] update_findings
 - [ ] update_insight
-- [ ] update_organization_configuration
+- [X] update_organization_configuration
 - [ ] update_security_control
 - [ ] update_security_hub_configuration
 - [ ] update_standards_control
