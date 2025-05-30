@@ -759,7 +759,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Step Functions
         if not resource_type_filters or "states:stateMachine" in resource_type_filters:
             for state_machine in self.stepfunctions_backend.state_machines:
-                tags = format_tag_keys(state_machine.tags, ["key", "value"])
+                tags = format_tag_keys(
+                    state_machine.backend.get_tags_list_for_state_machine(
+                        state_machine.arn
+                    ),
+                    [
+                        state_machine.backend.tagger.key_name,
+                        state_machine.backend.tagger.value_name,
+                    ],
+                )
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": state_machine.arn, "Tags": tags}

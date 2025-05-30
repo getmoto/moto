@@ -11,18 +11,23 @@ from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import (
+    ActivityAlreadyExists,
+    ActivityDoesNotExist,
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
     InvalidArn,
+    InvalidEncryptionConfiguration,
     InvalidExecutionInput,
     InvalidName,
     NameTooLongException,
     ResourceNotFound,
     StateMachineDoesNotExist,
 )
+from .parser.api import EncryptionType
 from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
 
 
@@ -81,7 +86,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         name: str,
         definition: str,
         roleArn: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        backend: "StepFunctionBackend",
         encryptionConfiguration: Optional[Dict[str, Any]] = None,
         loggingConfiguration: Optional[Dict[str, Any]] = None,
         tracingConfiguration: Optional[Dict[str, Any]] = None,
@@ -96,13 +101,10 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             loggingConfiguration=loggingConfiguration,
             tracingConfiguration=tracingConfiguration,
         )
-        self.tags: List[Dict[str, str]] = []
-        if tags:
-            self.add_tags(tags)
-
         self.latest_version_number = 0
         self.versions: Dict[int, StateMachineVersion] = {}
         self.latest_version: Optional[StateMachineVersion] = None
+        self.backend = backend
 
     def publish(self, description: Optional[str]) -> None:
         new_version_number = self.latest_version_number + 1
@@ -165,27 +167,6 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
                 setattr(self, key, value)
         self.update_date = iso_8601_datetime_with_milliseconds()
 
-    def add_tags(self, tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        merged_tags = []
-        for tag in self.tags:
-            replacement_index = next(
-                (index for (index, d) in enumerate(tags) if d["key"] == tag["key"]),
-                None,
-            )
-            if replacement_index is not None:
-                replacement = tags.pop(replacement_index)
-                merged_tags.append(replacement)
-            else:
-                merged_tags.append(tag)
-        for tag in tags:
-            merged_tags.append(tag)
-        self.tags = merged_tags
-        return self.tags
-
-    def remove_tags(self, tag_keys: List[str]) -> List[Dict[str, str]]:
-        self.tags = [tag_set for tag_set in self.tags if tag_set["key"] not in tag_keys]
-        return self.tags
-
     @property
     def physical_resource_id(self) -> str:
         return self.arn
@@ -231,7 +212,9 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         elif attribute_name == "StateMachineName":
             return self.name
         elif attribute_name == "Tags":
-            return api_to_cfn_tags(self.tags)
+            return api_to_cfn_tags(
+                self.backend.get_tags_list_for_state_machine(self.arn)
+            )
 
         raise UnformattedGetAttTemplateException()
 
@@ -304,7 +287,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             state_machine = sf_backend.update_state_machine(
                 original_resource.arn, definition=definition, role_arn=role_arn
             )
-            state_machine.add_tags(tags)
+            sf_backend.tag_resource(state_machine.arn, tags)
             return state_machine
 
 
@@ -448,6 +431,21 @@ class Execution:
         self.stop_date = datetime.now()
 
 
+class Activity:
+    def __init__(
+        self,
+        arn: str,
+        name: str,
+        encryption_configuration: Optional[Dict[str, Any]] = None,
+    ):
+        self.arn = arn
+        self.name = name
+        self.encryption_configuration = encryption_configuration
+
+        self.creation_date = iso_8601_datetime_with_milliseconds()
+        self.update_date = self.creation_date
+
+
 class StepFunctionBackend(BaseBackend):
     """
     Configure Moto to explicitly parse and execute the StateMachine:
@@ -576,10 +574,19 @@ class StepFunctionBackend(BaseBackend):
         ARN_PARTITION_REGEX
         + r":states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):execution:.+"
     )
+    accepted_activity_arn_format = re.compile(
+        ARN_PARTITION_REGEX
+        + r":states:[-0-9a-zA-Z]+:(?P<account_id>[0-9]{12}):activity:.+"
+    )
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.tagger = TaggingService(
+            tag_name="tags", key_name="key", value_name="value"
+        )
+
         self.state_machines: List[StateMachine] = []
+        self.activities: Dict[str, Activity] = {}
         self._account_id = None
 
     def create_state_machine(
@@ -605,13 +612,17 @@ class StepFunctionBackend(BaseBackend):
                 name,
                 definition,
                 roleArn,
-                tags,
+                self,
                 encryptionConfiguration,
                 loggingConfiguration,
                 tracingConfiguration,
             )
             if publish:
                 state_machine.publish(description=version_description)
+
+            if tags:
+                self.tag_resource(arn, tags)
+
             self.state_machines.append(state_machine)
             return state_machine
 
@@ -734,26 +745,17 @@ class StepFunctionBackend(BaseBackend):
                     return sm
         raise ResourceNotFound(execution_arn)
 
-    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
-        try:
-            state_machine = self.describe_state_machine(arn)
-            return state_machine.tags or []
-        except StateMachineDoesNotExist:
-            return []
+    def list_tags_for_resource(self, arn: str) -> Dict[str, List[Dict[str, str]]]:
+        return self.tagger.list_tags_for_resource(arn)
 
     def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
-        try:
-            state_machine = self.describe_state_machine(resource_arn)
-            state_machine.add_tags(tags)
-        except StateMachineDoesNotExist:
-            raise ResourceNotFound(resource_arn)
+        self.tagger.tag_resource(resource_arn, tags)
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
-        try:
-            state_machine = self.describe_state_machine(resource_arn)
-            state_machine.remove_tags(tag_keys)
-        except StateMachineDoesNotExist:
-            raise ResourceNotFound(resource_arn)
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def get_tags_list_for_state_machine(self, arn: str) -> List[Dict[str, str]]:
+        return self.list_tags_for_resource(arn)[self.tagger.tag_name]
 
     def send_task_failure(self, task_token: str, error: Optional[str] = None) -> None:
         pass
@@ -810,10 +812,34 @@ class StepFunctionBackend(BaseBackend):
             invalid_msg="Execution Does Not Exist: '" + execution_arn + "'",
         )
 
+    def _validate_activity_arn(self, activity_arn: str) -> None:
+        self._validate_arn(
+            arn=activity_arn,
+            regex=self.accepted_activity_arn_format,
+            invalid_msg="Invalid Activity Arn: '" + activity_arn + "'",
+        )
+
     def _validate_arn(self, arn: str, regex: Pattern[str], invalid_msg: str) -> None:
         match = regex.match(arn)
         if not arn or not match:
             raise InvalidArn(invalid_msg)
+
+    def _validate_encryption_configuration(
+        self, encryption_configuration: Dict[str, Any]
+    ) -> None:
+        encryption_type = encryption_configuration.get("type")
+        if not encryption_type:
+            raise InvalidEncryptionConfiguration(
+                "Invalid Encryption Configuration: 'type' is required."
+            )
+
+        if (
+            encryption_type == EncryptionType.CUSTOMER_MANAGED_KMS_KEY
+            and not encryption_configuration.get("kmsKeyId")
+        ):
+            raise InvalidEncryptionConfiguration(
+                "Invalid Encryption Configuration: 'kmsKeyId' is required when 'type' is 'CUSTOMER_MANAGED_KMS_KEY'"
+            )
 
     def _get_state_machine_for_execution(self, execution_arn: str) -> StateMachine:
         state_machine_name = execution_arn.split(":")[6]
@@ -827,6 +853,50 @@ class StepFunctionBackend(BaseBackend):
                 "Execution Does Not Exist: '" + execution_arn + "'"
             )
         return self.describe_state_machine(state_machine_arn)
+
+    def create_activity(
+        self,
+        name: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+        encryption_configuration: Optional[Dict[str, Any]] = None,
+    ) -> Activity:
+        self._validate_name(name)
+
+        if encryption_configuration is not None:
+            self._validate_encryption_configuration(encryption_configuration)
+
+        arn = f"arn:{get_partition(self.region_name)}:states:{self.region_name}:{self.account_id}:activity:{name}"
+
+        if arn in self.activities:
+            raise ActivityAlreadyExists("Activity already exists.")
+
+        activity = Activity(
+            arn=arn,
+            name=name,
+            encryption_configuration=encryption_configuration,
+        )
+        self.activities[arn] = activity
+
+        if tags:
+            self.tag_resource(arn, tags)
+
+        return activity
+
+    def describe_activity(self, activity_arn: str) -> Activity:
+        self._validate_activity_arn(activity_arn)
+        if activity_arn in self.activities:
+            return self.activities[activity_arn]
+        else:
+            raise ActivityDoesNotExist(activity_arn)
+
+    def delete_activity(self, activity_arn: str) -> None:
+        self._validate_activity_arn(activity_arn)
+        if activity_arn in self.activities:
+            del self.activities[activity_arn]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_activities(self) -> List[Activity]:
+        return sorted(self.activities.values(), key=lambda x: x.creation_date)
 
 
 stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

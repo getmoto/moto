@@ -3185,7 +3185,7 @@
 - [ ] modify_public_ip_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_route_server
-- [ ] modify_security_group_rules
+- [X] modify_security_group_rules
 - [ ] modify_snapshot_attribute
 - [ ] modify_snapshot_tier
 - [X] modify_spot_fleet_request
@@ -9536,14 +9536,14 @@
 <details>
 <summary>54% implemented</summary>
 
-- [ ] create_activity
+- [X] create_activity
 - [X] create_state_machine
 - [ ] create_state_machine_alias
-- [ ] delete_activity
+- [X] delete_activity
 - [X] delete_state_machine
 - [ ] delete_state_machine_alias
 - [ ] delete_state_machine_version
-- [ ] describe_activity
+- [X] describe_activity
 - [X] describe_execution
 - [X] describe_map_run
 - [X] describe_state_machine
@@ -9551,7 +9551,7 @@
 - [X] describe_state_machine_for_execution
 - [ ] get_activity_task
 - [X] get_execution_history
-- [ ] list_activities
+- [X] list_activities
 - [X] list_executions
 - [X] list_map_runs
 - [ ] list_state_machine_aliases
