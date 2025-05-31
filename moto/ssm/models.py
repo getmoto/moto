@@ -1657,7 +1657,6 @@ class SimpleSystemManagerBackend(BaseBackend):
         filter_keys = []
         for filter_obj in parameter_filters or []:
             key = filter_obj["Key"]
-            values = filter_obj.get("Values")
 
             if key == "Path":
                 option = filter_obj.get("Option", "OneLevel")
@@ -1674,7 +1673,9 @@ class SimpleSystemManagerBackend(BaseBackend):
                     f"The following filter key is not valid: {key}. Valid filter keys include: [Type, KeyId]."
                 )
 
-            if key in ["Name", "Type", "Path", "Tier", "Keyid"] and not values:
+            if key in ["Name", "Type", "Path", "Tier", "Keyid"] and not filter_obj.get(
+                "Values"
+            ):
                 raise InvalidFilterValue(
                     "The following filter values are missing : null for filter key Name."
                 )
@@ -1685,16 +1686,19 @@ class SimpleSystemManagerBackend(BaseBackend):
                 )
 
             if key == "Path":
+                path_values = filter_obj["Values"]
                 if option not in ["Recursive", "OneLevel"]:
                     raise InvalidFilterOption(
                         f"The following filter option is not valid: {option}. Valid options include: [Recursive, OneLevel]."
                     )
-                if any(value.lower().startswith(("/aws", "/ssm")) for value in values):
+                if any(
+                    value.lower().startswith(("/aws", "/ssm")) for value in path_values
+                ):
                     raise ValidationException(
                         'Filters for common parameters can\'t be prefixed with "aws" or "ssm" (case-insensitive). '
                         "When using global parameters, please specify within a global namespace."
                     )
-                for value in values:
+                for value in path_values:
                     if value.lower().startswith(("/aws", "/ssm")):
                         raise ValidationException(
                             'Filters for common parameters can\'t be prefixed with "aws" or "ssm" (case-insensitive). '
@@ -1714,14 +1718,16 @@ class SimpleSystemManagerBackend(BaseBackend):
                         )
 
             if key == "Tier":
-                for value in values:
+                tier_values = filter_obj["Values"]
+                for value in tier_values:
                     if value not in ["Standard", "Advanced", "Intelligent-Tiering"]:
                         raise InvalidFilterOption(
                             f"The following filter value is not valid: {value}. Valid values include: [Standard, Advanced, Intelligent-Tiering]."
                         )
 
             if key == "Type":
-                for value in values:
+                type_values = filter_obj["Values"]
+                for value in type_values:
                     if value not in ["String", "StringList", "SecureString"]:
                         raise InvalidFilterOption(
                             f"The following filter value is not valid: {value}. Valid values include: [String, StringList, SecureString]."

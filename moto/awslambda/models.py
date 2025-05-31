@@ -2536,7 +2536,7 @@ class LambdaBackend(BaseBackend):
         fn.reserved_concurrency = None
         return fn.reserved_concurrency
 
-    def get_function_concurrency(self, function_name: str) -> str:
+    def get_function_concurrency(self, function_name: str) -> Optional[str]:
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 

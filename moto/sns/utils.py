@@ -25,7 +25,9 @@ class FilterPolicyMatcher:
     class CheckException(Exception):
         pass
 
-    def __init__(self, filter_policy: Dict[str, Any], filter_policy_scope: str):
+    def __init__(
+        self, filter_policy: Dict[str, Any], filter_policy_scope: Optional[str]
+    ):
         self.filter_policy = filter_policy
         self.filter_policy_scope = (
             filter_policy_scope

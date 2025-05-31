@@ -837,6 +837,9 @@ class ELBV2Response(BaseResponse):
         template = self.response_template(MODIFY_LISTENER_ATTRIBUTES)
         return template.render(attributes=updated_attrs)
 
+    def describe_capacity_reservation(self) -> str:
+        return DESCRIBE_CAPACITY_RESERVATION
+
 
 ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
   <AddTagsResult/>
@@ -1959,3 +1962,18 @@ MODIFY_LISTENER_ATTRIBUTES = """<ModifyListenerAttributesResponse xmlns="http://
     <RequestId>{{ request_id }}</RequestId>
   </ResponseMetadata>
 </ModifyListenerAttributesResponse>"""
+
+DESCRIBE_CAPACITY_RESERVATION = """<DescribeCapacityReservationResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeCapacityReservationResult>
+    <CapacityReservationState>
+      <item>
+        <State>
+          <code>provisioned</code>
+        </State>
+      </item>
+    </CapacityReservationState>
+  </DescribeCapacityReservationResult>
+  <ResponseMetadata>
+    <RequestId>{{ request_id }}</RequestId>
+  </ResponseMetadata>
+</DescribeCapacityReservationResponse>"""
