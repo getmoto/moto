@@ -10,9 +10,8 @@ from tests import DEFAULT_ACCOUNT_ID
 def test_create_directory():
     region = "us-west-2"
     client = boto3.client("clouddirectory", region_name=region)
-    schema_arn = (
-        f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:directory/test-schema/1"
-    )
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
     resp = client.create_directory(SchemaArn=schema_arn, Name="test-directory")
     assert (
         resp["DirectoryArn"]
@@ -20,6 +19,109 @@ def test_create_directory():
     )
     assert resp["Name"] == "test-directory"
     assert "ObjectIdentifier" in resp
+    assert resp["AppliedSchemaArn"] == schema_arn
+
+
+@mock_aws
+def test_create_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    resp = client.create_schema(Name="test-schema")
+    assert (
+        resp["SchemaArn"]
+        == f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/development/test-schema"
+    )
+
+
+@mock_aws
+def test_apply_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
+    pub_schema = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn,
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+    pub_schema_arn = pub_schema["PublishedSchemaArn"]
+    directory = client.create_directory(SchemaArn=pub_schema_arn, Name="test-directory")
+    directory_arn = directory["DirectoryArn"]
+    resp = client.apply_schema(
+        PublishedSchemaArn=pub_schema_arn, DirectoryArn=directory_arn
+    )
+    assert resp["AppliedSchemaArn"] == pub_schema_arn
+    assert resp["DirectoryArn"] == directory_arn
+
+
+@mock_aws
+def test_publish_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
+    resp = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn,
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+    assert (
+        resp["PublishedSchemaArn"]
+        == f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/published/test-schema/1/0"
+    )
+
+
+@mock_aws
+def test_list_development_schema_arns():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn1 = client.create_schema(Name="test-schema1")["SchemaArn"]
+    schema_arn2 = client.create_schema(Name="test-schema2")["SchemaArn"]
+
+    resp = client.list_development_schema_arns()
+    assert len(resp["SchemaArns"]) == 2
+    assert schema_arn1 in resp["SchemaArns"]
+    assert schema_arn2 in resp["SchemaArns"]
+
+
+@mock_aws
+def test_list_published_schema_arns():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn1 = client.create_schema(Name="test-schema1")["SchemaArn"]
+    schema_arn2 = client.create_schema(Name="test-schema2")["SchemaArn"]
+
+    published_arn1 = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn1,
+        Name="test-schema1",
+        Version="1",
+        MinorVersion="0",
+    )["PublishedSchemaArn"]
+
+    published_arn2 = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn2,
+        Name="test-schema2",
+        Version="1",
+        MinorVersion="0",
+    )["PublishedSchemaArn"]
+
+    resp = client.list_published_schema_arns()
+    assert len(resp["SchemaArns"]) == 2
+    assert published_arn1 in resp["SchemaArns"]
+    assert published_arn2 in resp["SchemaArns"]
+
+
+@mock_aws
+def test_delete_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+    schema_arn = client.create_schema(Name="test-schema")["SchemaArn"]
+    client.create_directory(SchemaArn=schema_arn, Name="test-directory")
+    client.delete_schema(SchemaArn=schema_arn)
+    resp = client.list_development_schema_arns()
+    assert len(resp["SchemaArns"]) == 0
 
 
 @mock_aws
