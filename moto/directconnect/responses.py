@@ -121,3 +121,27 @@ class DirectConnectResponse(BaseResponse):
                 macSecKeys=[mac_sec_key.to_dict()],
             )
         )
+
+    def tag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("resourceArn")
+        tags = params.get("tags")
+        self.directconnect_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return json.dumps(dict())
+
+    def untag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("resourceArn")
+        tag_keys = params.get("tagKeys", [])
+        self.directconnect_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
+        return json.dumps(dict())
+
+    def describe_tags(self) -> str:
+        params = json.loads(self.body)
+        resource_arns = params.get("resourceArns")
+        tags = self.directconnect_backend.list_tags_for_resources(
+            resource_arns=resource_arns
+        )
+        return json.dumps(tags)
