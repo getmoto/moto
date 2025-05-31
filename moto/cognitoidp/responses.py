@@ -257,9 +257,7 @@ class CognitoIdpResponse(BaseResponse):
         groups, token = self.backend.list_groups(
             user_pool_id, limit=limit, next_token=token
         )
-        response = {"Groups": [group.to_json() for group in groups]}
-        if token:
-            response["NextToken"] = token
+        response = {"Groups": [group.to_json() for group in groups], "NextToken": token}
         return json.dumps(response)
 
     def delete_group(self) -> str:
@@ -298,9 +296,10 @@ class CognitoIdpResponse(BaseResponse):
         users, token = self.backend.list_users_in_group(
             user_pool_id, group_name, limit=limit, next_token=token
         )
-        response = {"Users": [user.to_json(extended=True) for user in users]}
-        if token:
-            response["NextToken"] = token
+        response = {
+            "Users": [user.to_json(extended=True) for user in users],
+            "NextToken": token,
+        }
         return json.dumps(response)
 
     def admin_list_groups_for_user(self) -> str:
@@ -311,9 +310,7 @@ class CognitoIdpResponse(BaseResponse):
         groups, token = self.backend.admin_list_groups_for_user(
             user_pool_id, username, limit=limit, next_token=token
         )
-        response = {"Groups": [group.to_json() for group in groups]}
-        if token:
-            response["NextToken"] = token
+        response = {"Groups": [group.to_json() for group in groups], "NextToken": token}
         return json.dumps(response)
 
     def admin_remove_user_from_group(self) -> str:

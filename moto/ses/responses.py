@@ -168,7 +168,7 @@ class EmailResponse(BaseResponse):
                 break
             destinations.append(address[0])
 
-        message = self.backend.send_raw_email(source, destinations, raw_data)
+        message = self.backend.send_raw_email(source, destinations, raw_data)  # type: ignore[arg-type]
         template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
         return template.render(message=message)
 

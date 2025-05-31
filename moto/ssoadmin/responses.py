@@ -161,9 +161,7 @@ class SSOAdminResponse(BaseResponse):
         permission_set_ids = []
         for permission_set in permission_sets:
             permission_set_ids.append(permission_set.permission_set_arn)
-        response = {"PermissionSets": permission_set_ids}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"PermissionSets": permission_set_ids, "NextToken": next_token}
         return json.dumps(response)
 
     def put_inline_policy_to_permission_set(self) -> str:

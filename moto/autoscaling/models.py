@@ -10,6 +10,7 @@ from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import EC2Backend
 from moto.ec2.models.instances import Instance
+from moto.ec2.models.launch_templates import LaunchTemplate
 from moto.elb.exceptions import LoadBalancerNotFoundError
 from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
@@ -458,8 +459,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.max_size = max_size
         self.min_size = min_size
 
-        self.launch_template = None
-        self.launch_config = None
+        self.launch_template: Optional[LaunchTemplate] = None
+        # Will be None if self.launch_template is used instead
+        self.launch_config: FakeLaunchConfiguration = None  # type: ignore[assignment]
 
         self._set_launch_configuration(
             launch_config_name, launch_template, mixed_instances_policy
