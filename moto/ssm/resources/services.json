@@ -21115,11 +21115,23 @@
             "longName": {
               "Value": "Amazon Aurora DSQL"
             },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/rds/aurora/dsql/"
+            },
             "regions": {
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
                   "Value": "dsql.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-northeast-3": {
+                "Value": "ap-northeast-3",
+                "endpoint": {
+                  "Value": "dsql.ap-northeast-3.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46538,6 +46550,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "ap-southeast-4": {
+                "Value": "ap-southeast-4",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "ap-southeast-5": {
                 "Value": "ap-southeast-5",
                 "endpoint": {
@@ -46551,6 +46572,15 @@
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "rds.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "rds.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
@@ -60569,6 +60599,15 @@
                 "Value": "ca-central-1",
                 "endpoint": {
                   "Value": "scheduler.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ca-west-1": {
+                "Value": "ca-west-1",
+                "endpoint": {
+                  "Value": "scheduler.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
