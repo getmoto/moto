@@ -221,7 +221,7 @@ class Subscription(BaseModel):
         self.arn = make_arn_for_subscription(self.topic.arn)
         self.attributes: Dict[str, Any] = {}
         self._filter_policy = None  # filter policy as a dict, not json.
-        self._filter_policy_matcher = None
+        self._filter_policy_matcher: Optional[FilterPolicyMatcher] = None
         self.confirmed = False
 
     def publish(
@@ -898,7 +898,7 @@ class SNSBackend(BaseBackend):
 
         subscription.attributes[name] = value
 
-    def _validate_filter_policy(self, value: Any, scope: str) -> None:
+    def _validate_filter_policy(self, value: Any, scope: Optional[str]) -> None:
         combinations = 1
 
         def aggregate_rules(

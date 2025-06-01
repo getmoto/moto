@@ -136,7 +136,7 @@ class InvalidSNSTopicARNException(JsonRESTError):
 class InvalidDeliveryFrequency(JsonRESTError):
     code = 400
 
-    def __init__(self, value: str, good_list: Any):
+    def __init__(self, value: Optional[str], good_list: Any):
         message = (
             f"1 validation error detected: Value '{value}' at "
             "'deliveryChannel.configSnapshotDeliveryProperties.deliveryFrequency' failed to satisfy "

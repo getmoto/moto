@@ -631,12 +631,9 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                 if name == "AWS::Include":
                     location = params["Location"]
                     bucket_name, name = bucket_and_name_from_url(location)
-                    key = s3_backends[self._account_id][
-                        get_partition(self._region_name)
-                    ].get_object(
-                        bucket_name,  # type: ignore[arg-type]
-                        name,
-                    )
+                    partition = get_partition(self._region_name)
+                    backend = s3_backends[self._account_id][partition]
+                    key = backend.get_object(bucket_name, name)  # type: ignore[arg-type]
                     self._parsed_resources.update(json.loads(key.value))  # type: ignore[union-attr]
 
     def parse_ssm_parameter(self, value: str, value_type: str) -> str:

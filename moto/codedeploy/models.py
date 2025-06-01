@@ -117,6 +117,7 @@ class DeploymentGroup(BaseModel):
     def to_dict(self) -> Dict[str, Any]:
         return {
             "applicationName": self.application.application_name,
+            "deploymentGroupId": self.deployment_group_id,
             "deploymentGroupName": self.deployment_group_name,
             "deploymentConfigName": str(self.deployment_config_name),
             "ec2TagFilters": self.ec2_tag_filters,
@@ -507,7 +508,7 @@ class CodeDeployBackend(BaseBackend):
             return []
 
         return [
-            deployment_group.deployment_group_id
+            deployment_group.deployment_group_name
             for deployment_group in self.deployment_groups[application_name].values()
         ]
 
