@@ -3020,6 +3020,10 @@
   "Location": "eu-west-1"
  },
  {
+  "InstanceType": "u-24tb1.112xlarge",
+  "Location": "eu-west-1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "eu-west-1"
  },

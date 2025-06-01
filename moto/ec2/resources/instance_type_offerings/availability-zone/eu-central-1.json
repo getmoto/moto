@@ -2908,6 +2908,10 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-central-1a"
  },
