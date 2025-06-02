@@ -1,6 +1,7 @@
 """Unit tests for clouddirectory-supported APIs."""
 
 import boto3
+import pytest
 
 from moto import mock_aws
 from tests import DEFAULT_ACCOUNT_ID
@@ -254,3 +255,139 @@ def test_get_directory():
     assert directory["DirectoryArn"] == directory_arns[0]
     assert directory["State"] == "ENABLED"
     assert "CreationDateTime" in directory
+
+
+@mock_aws
+def test_apply_schema_with_nonexistent_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
+    pub_schema = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn,
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+    pub_schema_arn = pub_schema["PublishedSchemaArn"]
+    directory = client.create_directory(SchemaArn=pub_schema_arn, Name="test-directory")
+    directory_arn = directory["DirectoryArn"]
+
+    non_existent_schema_arn = (
+        f"arn:aws:clouddirectory:{region}:123456789012:schema/published/nonexistent/1/0"
+    )
+
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.apply_schema(
+            PublishedSchemaArn=non_existent_schema_arn, DirectoryArn=directory_arn
+        )
+
+
+@mock_aws
+def test_apply_schema_updates_directory_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+
+    schema1 = client.create_schema(Name="test-schema1")
+    schema1_arn = schema1["SchemaArn"]
+    pub_schema1 = client.publish_schema(
+        DevelopmentSchemaArn=schema1_arn,
+        Name="test-schema1",
+        Version="1",
+        MinorVersion="0",
+    )
+    pub_schema1_arn = pub_schema1["PublishedSchemaArn"]
+
+    directory = client.create_directory(
+        SchemaArn=pub_schema1_arn, Name="test-directory"
+    )
+    directory_arn = directory["DirectoryArn"]
+
+    schema2 = client.create_schema(Name="test-schema2")
+    schema2_arn = schema2["SchemaArn"]
+    pub_schema2 = client.publish_schema(
+        DevelopmentSchemaArn=schema2_arn,
+        Name="test-schema2",
+        Version="1",
+        MinorVersion="0",
+    )
+    pub_schema2_arn = pub_schema2["PublishedSchemaArn"]
+
+    # Apply second schema to directory
+    resp = client.apply_schema(
+        PublishedSchemaArn=pub_schema2_arn, DirectoryArn=directory_arn
+    )
+
+    # Verify schema was updated
+    assert resp["AppliedSchemaArn"] == pub_schema2_arn
+
+
+@mock_aws
+def test_publish_nonexistent_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+
+    non_existent_schema_arn = f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/development/nonexistent"
+
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.publish_schema(
+            DevelopmentSchemaArn=non_existent_schema_arn,
+            Name="nonexistent",
+            Version="1",
+            MinorVersion="0",
+        )
+
+
+@mock_aws
+def test_publish_schema_state_transition():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+
+    dev_schema = client.create_schema(Name="test-schema")
+    dev_schema_arn = dev_schema["SchemaArn"]
+
+    dev_schemas = client.list_development_schema_arns()
+    assert dev_schema_arn in dev_schemas["SchemaArns"]
+
+    published = client.publish_schema(
+        DevelopmentSchemaArn=dev_schema_arn,
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+    published_schema_arn = published["PublishedSchemaArn"]
+
+    dev_schemas = client.list_development_schema_arns()
+    pub_schemas = client.list_published_schema_arns()
+
+    assert dev_schema_arn not in dev_schemas["SchemaArns"]
+    assert published_schema_arn in pub_schemas["SchemaArns"]
+    assert (
+        published_schema_arn
+        == f"arn:aws:clouddirectory:{region}:{DEFAULT_ACCOUNT_ID}:schema/published/test-schema/1/0"
+    )
+
+
+@mock_aws
+def test_publish_already_published_schema():
+    region = "us-west-2"
+    client = boto3.client("clouddirectory", region_name=region)
+
+    schema = client.create_schema(Name="test-schema")
+    schema_arn = schema["SchemaArn"]
+    new_schema_arn = client.publish_schema(
+        DevelopmentSchemaArn=schema_arn,
+        Name="test-schema",
+        Version="1",
+        MinorVersion="0",
+    )
+
+    # Try to publish again with same development schema
+    with pytest.raises(client.exceptions.SchemaAlreadyPublishedException):
+        client.publish_schema(
+            DevelopmentSchemaArn=new_schema_arn["PublishedSchemaArn"],
+            Name="test-schema",
+            Version="1",
+            MinorVersion="0",
+        )
