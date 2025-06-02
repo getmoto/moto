@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import calendar
 import copy
@@ -61,6 +63,7 @@ from .exceptions import (
     ValidationException,
 )
 from .utils import (
+    make_event_source_mapping_arn,
     make_function_arn,
     make_function_ver_arn,
     make_layer_arn,
@@ -1272,8 +1275,14 @@ class FunctionUrlConfig:
 class EventSourceMapping(CloudFormationModel):
     def __init__(self, spec: Dict[str, Any]):
         # required
+        self.region = spec["RegionName"]
+        self.account_id = spec["AccountId"]
+        self.uuid = str(random.uuid4())
         self.function_name = spec["FunctionName"]
         self.event_source_arn = spec["EventSourceArn"]
+        self.arn: str = make_event_source_mapping_arn(
+            self.region, self.account_id, self.uuid
+        )
 
         # optional
         self.batch_size = spec.get("BatchSize")  # type: ignore[assignment]
@@ -1300,12 +1309,11 @@ class EventSourceMapping(CloudFormationModel):
             "SelfManagedKafkaEventSourceConfig"
         )
         self.source_access_config = spec.get("SourceAccessConfigurations")
-        self.tags = spec.get("Tags")
+        self.tags = spec.get("Tags") or dict()
         self.topics = spec.get("Topics")
         self.tumbling_window = spec.get("TumblingWindowInSeconds")
 
         self.function_arn: str = spec["FunctionArn"]
-        self.uuid = str(random.uuid4())
         self.last_modified = time.mktime(utcnow().timetuple())
 
     def _get_service_source_from_arn(self, event_source_arn: str) -> str:
@@ -1358,6 +1366,7 @@ class EventSourceMapping(CloudFormationModel):
             "UUID": self.uuid,
             "BatchSize": self.batch_size,
             "EventSourceArn": self.event_source_arn,
+            "EventSourceMappingArn": self.arn,
             "FunctionArn": self.function_arn,
             "LastModified": self.last_modified,
             "LastProcessingResult": None,
@@ -2066,6 +2075,8 @@ class LambdaBackend(BaseBackend):
         for param in required:
             if not spec.get(param):
                 raise RESTError("InvalidParameterValueException", f"Missing {param}")
+        spec["RegionName"] = self.region_name
+        spec["AccountId"] = self.account_id
 
         # Validate function name
         func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
@@ -2410,17 +2421,32 @@ class LambdaBackend(BaseBackend):
         func = self._lambdas.get_arn(function_arn)
         func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
 
+    def _get_resource_by_arn(self, arn: str) -> EventSourceMapping | LambdaFunction:
+        arn_breakdown = arn.split(":")
+        resource_type = arn_breakdown[len(arn_breakdown) - 2]
+        resource_name = arn_breakdown[len(arn_breakdown) - 1]
+        if resource_type == "event-source-mapping":
+            esm = self._event_source_mappings.get(resource_name)
+            if not esm:
+                raise RESTError(
+                    "ResourceNotFoundException",
+                    f"Event source mapping {resource_name} not found.",
+                )
+            return esm
+        return self._lambdas.get_function_by_name_or_arn_with_qualifier(arn)
+
     def list_tags(self, resource: str) -> Dict[str, str]:
-        return self._lambdas.get_function_by_name_or_arn_with_qualifier(resource).tags
+        resource = self._get_resource_by_arn(resource)
+        return resource.tags
 
     def tag_resource(self, resource: str, tags: Dict[str, str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
-        fn.tags.update(tags)
+        resource = self._get_resource_by_arn(resource)
+        resource.tags.update(tags)
 
     def untag_resource(self, resource: str, tagKeys: List[str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
+        resource = self._get_resource_by_arn(resource)
         for key in tagKeys:
-            fn.tags.pop(key, None)
+            resource.tags.pop(key, None)
 
     def add_permission(
         self, function_name: str, qualifier: str, raw: str
