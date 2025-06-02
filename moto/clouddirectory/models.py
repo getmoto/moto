@@ -84,7 +84,7 @@ class CloudDirectoryBackend(BaseBackend):
 
     def publish_schema(
         self, name: str, version: str, development_schema_arn: str, minor_version: str
-    ) -> Dict[str, str]:
+    ) -> str:
         schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/published/{name}/{version}/{minor_version}"
         if development_schema_arn in self.schemas_states["published"]:
             raise SchemaAlreadyPublishedException(development_schema_arn)
@@ -100,7 +100,7 @@ class CloudDirectoryBackend(BaseBackend):
         self.directories[directory.directory_arn] = directory
         return directory
 
-    def create_schema(self, name: str) -> dict[str, str]:
+    def create_schema(self, name: str) -> str:
         self.schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/development/{name}"
         self.schemas_states["development"].append(self.schema_arn)
         return self.schema_arn
@@ -115,15 +115,11 @@ class CloudDirectoryBackend(BaseBackend):
         return
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_development_schema_arns(
-        self, next_token=None, max_results=None
-    ) -> List[str]:
+    def list_development_schema_arns(self) -> List[str]:
         return self.schemas_states["development"]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_published_schema_arns(
-        self, next_token=None, max_results=None
-    ) -> List[str]:
+    def list_published_schema_arns(self) -> List[str]:
         return self.schemas_states["published"]
 
     @paginate(pagination_model=PAGINATION_MODEL)
