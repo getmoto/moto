@@ -666,10 +666,9 @@ def test_delete_event_source_mapping():
 
 @mock_aws
 def test_event_source_mapping_tagging_lifecycle():
-    iam_role = boto3.client("iam").create_role(
-        RoleName="role", AssumeRolePolicyDocument="{}"
-    )
-    client = boto3.client("lambda")
+    iam = boto3.client("iam", region_name="us-east-1")
+    iam_role = iam.create_role(RoleName="role", AssumeRolePolicyDocument="{}")
+    client = boto3.client("lambda", region_name="us-east-1")
     client.create_function(
         FunctionName="any-function-name",
         Runtime="python3.6",
@@ -679,7 +678,7 @@ def test_event_source_mapping_tagging_lifecycle():
             "ZipFile": b"any zip file",
         },
     )
-    sqs = boto3.client("sqs")
+    sqs = boto3.client("sqs", region_name="us-east-1")
     queue_url = sqs.create_queue(QueueName="any-queue-name")
     queue_arn = sqs.get_queue_attributes(
         QueueUrl=queue_url["QueueUrl"], AttributeNames=["QueueArn"]
