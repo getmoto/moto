@@ -2435,16 +2435,16 @@ class LambdaBackend(BaseBackend):
             return esm
         return self._lambdas.get_function_by_name_or_arn_with_qualifier(arn)
 
-    def list_tags(self, resource: str) -> Dict[str, str]:
-        resource = self._get_resource_by_arn(resource)
+    def list_tags(self, resource_arn: str) -> Dict[str, str]:
+        resource = self._get_resource_by_arn(resource_arn)
         return resource.tags
 
-    def tag_resource(self, resource: str, tags: Dict[str, str]) -> None:
-        resource = self._get_resource_by_arn(resource)
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
         resource.tags.update(tags)
 
-    def untag_resource(self, resource: str, tagKeys: List[str]) -> None:
-        resource = self._get_resource_by_arn(resource)
+    def untag_resource(self, resource_arn: str, tagKeys: List[str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
         for key in tagKeys:
             resource.tags.pop(key, None)
 
