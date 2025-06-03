@@ -57,6 +57,7 @@ class NetworkFirewallModel(BaseModel):
 
         self.arn = f"arn:aws:network-firewall:{region_name}:{account_id}:firewall/{self.firewall_name}"
 
+        self.update_token = "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
         self.firewall_status = {
             "Status": "READY",
             "ConfigurationSyncStateSummary": "IN_SYNC",
