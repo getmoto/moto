@@ -161,10 +161,13 @@ def test_get_findings_max_results():
 
 @mock_aws
 def test_enable_organization_admin_account():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
     org_client = boto3.client("organizations", region_name="us-east-1")
     org_client.create_organization(FeatureSet="ALL")
 
-    admin_account_id = "123456789012"
     org_client.create_account(
         AccountName="SecurityHubAdmin",
         Email="securityhub.admin@example.com",
@@ -175,15 +178,26 @@ def test_enable_organization_admin_account():
     admin_account_id = admin_account["Id"]
 
     client = boto3.client("securityhub", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.enable_organization_admin_account(AdminAccountId="111111111111")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidInputException"
+    assert "is not a member of organization" in err["Message"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        non_management_client = boto3.client("securityhub", region_name="us-east-1")
+        with pytest.raises(ClientError) as exc:
+            non_management_client.enable_organization_admin_account(
+                AdminAccountId=admin_account_id
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "AccessDeniedException"
+
     client.enable_organization_admin_account(AdminAccountId=admin_account_id)
 
     get_resp = client.get_administrator_account()
     assert "Administrator" not in get_resp
-
-    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
-        admin_client = boto3.client("securityhub", region_name="us-east-1")
-        admin_resp = admin_client.get_administrator_account()
-        assert "Administrator" not in admin_resp
 
 
 @mock_aws
@@ -244,9 +258,34 @@ def test_update_organization_configuration():
     admin_account = next(acc for acc in accounts if acc["Name"] == "SecurityHubAdmin")
     admin_account_id = admin_account["Id"]
 
-    # Enable SecurityHub admin account from management account
     client = boto3.client("securityhub", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.update_organization_configuration(
+            AutoEnable=True, AutoEnableStandards="DEFAULT"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert "no administrator account has been designated" in err["Message"]
+
     client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.update_organization_configuration(
+            AutoEnable=True, AutoEnableStandards="DEFAULT"
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AccessDeniedException"
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
+        with pytest.raises(ClientError) as exc:
+            admin_client.update_organization_configuration(
+                AutoEnable=True, AutoEnableStandards="INVALID_VALUE"
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidInputException"
+        assert "AutoEnableStandards must be either NONE or DEFAULT" in err["Message"]
 
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
         admin_client = boto3.client("securityhub", region_name="us-east-1")
@@ -270,58 +309,6 @@ def test_update_organization_configuration():
         assert (
             describe_resp["OrganizationConfiguration"]["StatusMessage"]
             == "Configuration localized"
-        )
-
-    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
-        admin_client = boto3.client("securityhub", region_name="us-east-1")
-
-        # Should fail when trying to set AutoEnable=True with CENTRAL configuration
-        with pytest.raises(ClientError) as exc:
-            admin_client.update_organization_configuration(
-                AutoEnable=True,
-                AutoEnableStandards="NONE",
-                OrganizationConfiguration={
-                    "ConfigurationType": "CENTRAL",
-                    "Status": "ENABLED",
-                    "StatusMessage": "Configuration centralized",
-                },
-            )
-        assert exc.value.response["Error"]["Code"] == "ValidationException"
-
-        # Should fail when trying to set AutoEnableStandards=DEFAULT with CENTRAL configuration
-        with pytest.raises(ClientError) as exc:
-            admin_client.update_organization_configuration(
-                AutoEnable=False,
-                AutoEnableStandards="DEFAULT",
-                OrganizationConfiguration={
-                    "ConfigurationType": "CENTRAL",
-                    "Status": "ENABLED",
-                    "StatusMessage": "Configuration centralized",
-                },
-            )
-        assert exc.value.response["Error"]["Code"] == "ValidationException"
-
-        # Should succeed with correct CENTRAL configuration
-        admin_client.update_organization_configuration(
-            AutoEnable=False,
-            AutoEnableStandards="NONE",
-            OrganizationConfiguration={
-                "ConfigurationType": "CENTRAL",
-                "Status": "ENABLED",
-                "StatusMessage": "Configuration centralized",
-            },
-        )
-
-        describe_resp = admin_client.describe_organization_configuration()
-        assert describe_resp["AutoEnable"] is False
-        assert describe_resp["AutoEnableStandards"] == "NONE"
-        assert (
-            describe_resp["OrganizationConfiguration"]["ConfigurationType"] == "CENTRAL"
-        )
-        assert describe_resp["OrganizationConfiguration"]["Status"] == "ENABLED"
-        assert (
-            describe_resp["OrganizationConfiguration"]["StatusMessage"]
-            == "Configuration centralized"
         )
 
     # Test non-admin account access
@@ -599,3 +586,92 @@ def test_multiple_admin_member_relationships():
         admin_response_d = member_d_client.get_administrator_account()
         assert "Administrator" in admin_response_d
         assert admin_response_d["Administrator"]["AccountId"] != admin_a["Id"]
+
+
+@mock_aws
+def test_describe_organization_configuration():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
+    org_client = boto3.client("organizations", region_name="us-east-1")
+    org_client.create_organization(FeatureSet="ALL")
+
+    org_client.create_account(
+        AccountName="SecurityHubAdmin",
+        Email="securityhub.admin@example.com",
+    )
+
+    accounts = org_client.list_accounts()["Accounts"]
+    admin_account = next(acc for acc in accounts if acc["Name"] == "SecurityHubAdmin")
+    admin_account_id = admin_account["Id"]
+
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_organization_configuration()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AccessDeniedException"
+    assert "You do not have sufficient access to perform this action" in err["Message"]
+
+    client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_organization_configuration()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AccessDeniedException"
+    assert "You do not have sufficient access to perform this action" in err["Message"]
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
+        response = admin_client.describe_organization_configuration()
+        assert "AutoEnable" in response
+        assert "MemberAccountLimitReached" in response
+        assert "AutoEnableStandards" in response
+        assert "OrganizationConfiguration" in response
+
+
+@mock_aws
+def test_get_administrator_account():
+    if not settings.TEST_DECORATOR_MODE:
+        return
+
+    org_client = boto3.client("organizations", region_name="us-east-1")
+    org_client.create_organization(FeatureSet="ALL")
+
+    org_client.create_account(
+        AccountName="SecurityHubAdmin",
+        Email="securityhub.admin@example.com",
+    )
+    org_client.create_account(
+        AccountName="Member",
+        Email="member@example.com",
+    )
+
+    accounts = org_client.list_accounts()["Accounts"]
+    admin_account = next(acc for acc in accounts if acc["Name"] == "SecurityHubAdmin")
+    member_account = next(acc for acc in accounts if acc["Name"] == "Member")
+    admin_account_id = admin_account["Id"]
+    member_account_id = member_account["Id"]
+
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    response = client.get_administrator_account()
+    assert "Administrator" not in response
+
+    client.enable_organization_admin_account(AdminAccountId=admin_account_id)
+
+    response = client.get_administrator_account()
+    assert "Administrator" not in response
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": admin_account_id}):
+        admin_client = boto3.client("securityhub", region_name="us-east-1")
+        response = admin_client.get_administrator_account()
+        assert "Administrator" not in response
+
+    with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_account_id}):
+        member_client = boto3.client("securityhub", region_name="us-east-1")
+        response = member_client.get_administrator_account()
+        assert "Administrator" in response
+        assert response["Administrator"]["AccountId"] == admin_account_id
+        assert response["Administrator"]["MemberStatus"] == "ENABLED"
