@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID
 
 
@@ -442,6 +442,10 @@ def test_organization_auto_enable_disabled():
 
 @mock_aws
 def test_describe_organization_configuration_access_control():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
     org_client = boto3.client("organizations", region_name="us-east-1")
     org_client.create_organization(FeatureSet="ALL")
 
@@ -488,8 +492,6 @@ def test_describe_organization_configuration_access_control():
     accounts = org_client.list_accounts()["Accounts"]
     member_account = next(acc for acc in accounts if acc["Name"] == "Member1")
     member_account_id = member_account["Id"]
-
-    # Try to describe configuration from member account - should fail
     with mock.patch.dict(os.environ, {"MOTO_ACCOUNT_ID": member_account_id}):
         member_client = boto3.client("securityhub", region_name="us-east-1")
         with pytest.raises(ClientError) as exc:
@@ -503,6 +505,10 @@ def test_describe_organization_configuration_access_control():
 
 @mock_aws
 def test_multiple_admin_member_relationships():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
     """Different accounts can be admins of different member accounts.
     - Account A is admin of Account B
     - Account C is admin of Account D
