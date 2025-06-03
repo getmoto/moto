@@ -199,6 +199,10 @@ def test_enable_organization_admin_account_without_org():
 
 @mock_aws
 def test_enable_organization_admin_account_non_management():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
     org_client = boto3.client("organizations", region_name="us-east-1")
     org_client.create_organization(FeatureSet="ALL")
 
@@ -224,6 +228,10 @@ def test_enable_organization_admin_account_non_management():
 
 @mock_aws
 def test_update_organization_configuration():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
     org_client = boto3.client("organizations", region_name="us-east-1")
     org_client.create_organization(FeatureSet="ALL")
 
@@ -329,6 +337,10 @@ def test_update_organization_configuration():
 
 @mock_aws
 def test_multiple_accounts_in_organization():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
     org_client = boto3.client("organizations", region_name="us-east-1")
     org_client.create_organization(FeatureSet="ALL")
 
@@ -393,6 +405,10 @@ def test_multiple_accounts_in_organization():
 
 @mock_aws
 def test_organization_auto_enable_disabled():
+    if not settings.TEST_DECORATOR_MODE:
+        # Can't set env variables in ServerMode
+        return
+
     org_client = boto3.client("organizations", region_name="us-east-1")
     org_client.create_organization(FeatureSet="ALL")
 
