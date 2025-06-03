@@ -75,6 +75,94 @@ def test_get_metric_data_with_simple_expression():
     assert results[0]["Values"] == [25.0]
 
 
+@mock_aws
+def test_get_metric_data_with_basic_addition():
+    t3 = datetime.now(tz=timezone.utc).replace(second=0, microsecond=0)
+    t2 = t3 - timedelta(minutes=1)
+    t1 = t2 - timedelta(minutes=1)
+
+    utc_now = datetime.now(tz=timezone.utc)
+    cloudwatch = boto3.client("cloudwatch", "eu-west-1")
+    namespace = "my_namespace/"
+    cloudwatch.put_metric_data(
+        Namespace=namespace,
+        MetricData=[
+            {
+                "MetricName": "metric1",
+                "Value": 25,
+                "Unit": "Bytes",
+                "Timestamp": t1,
+            },
+            {
+                "MetricName": "metric1",
+                "Value": 30,
+                "Unit": "Bytes",
+                "Timestamp": t2,
+            },
+            {
+                "MetricName": "metric1",
+                "Value": 10,
+                "Unit": "Bytes",
+                "Timestamp": t3,
+            },
+            {
+                "MetricName": "metric2",
+                "Value": 9,
+                "Unit": "Bytes",
+                "Timestamp": t1,
+            },
+            {
+                "MetricName": "metric2",
+                "Value": 5,
+                "Unit": "Bytes",
+                "Timestamp": t2,
+            },
+            {
+                "MetricName": "metric2",
+                "Value": 10,
+                "Unit": "Bytes",
+                "Timestamp": t3,
+            },
+        ],
+    )
+    # get_metric_data 1
+    results = cloudwatch.get_metric_data(
+        MetricDataQueries=[
+            {
+                "Id": "result1",
+                "Expression": "first + second",
+                "Label": "e1",
+            },
+            {
+                "Id": "first",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace, "MetricName": "metric1"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+                "ReturnData": False,
+            },
+            {
+                "Id": "second",
+                "MetricStat": {
+                    "Metric": {"Namespace": namespace, "MetricName": "metric2"},
+                    "Period": 60,
+                    "Stat": "Sum",
+                },
+                "ReturnData": False,
+            },
+        ],
+        StartTime=utc_now - timedelta(minutes=5),
+        EndTime=utc_now + timedelta(minutes=5),
+        ScanBy="TimestampAscending",
+    )["MetricDataResults"]
+    #
+    assert len(results) == 1
+    assert results[0]["Id"] == "result1"
+    assert results[0]["Label"] == "e1"
+    assert results[0]["Values"] == [34, 35, 20]
+
+
 @cloudwatch_aws_verified
 @pytest.mark.aws_verified
 def test_get_metric_data_with_expressive_expression():
