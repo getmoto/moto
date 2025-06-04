@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.ec2.models import ec2_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
@@ -11,9 +12,11 @@ from ..moto_api._internal import mock_random
 from .exceptions import (
     CacheClusterAlreadyExists,
     CacheClusterNotFound,
+    CacheSubnetGroupAlreadyExists,
     InvalidARNFault,
     InvalidParameterCombinationException,
     InvalidParameterValueException,
+    InvalidSubnet,
     UserAlreadyExists,
     UserNotFound,
 )
@@ -137,13 +140,73 @@ class CacheCluster(BaseModel):
         return self.tags
 
 
+class CacheSubnetGroup(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        cache_subnet_group_name: str,
+        cache_subnet_group_description: str,
+        subnet_ids: List[str],
+        tags: Optional[List[Dict[str, str]]],
+    ):
+
+        if tags is None:
+            tags = []
+        self.cache_subnet_group_name = cache_subnet_group_name
+        self.cache_subnet_group_description = cache_subnet_group_description
+        self.subnet_ids = subnet_ids
+        self.tags = tags
+
+        # Get VPC details from provided subnet IDs
+        # References rds models.py
+        ec2_backend = ec2_backends[account_id][region_name]
+        self.supported_network_types = []
+        self.subnets_responses = []
+        try:
+            subnets = ec2_backend.describe_subnets(subnet_ids=subnet_ids)
+        except Exception as e:
+            if "InvalidSubnet" in str(e):
+                for subnet_id in subnet_ids:
+                    subnet_response = {}
+                    subnet_response["subnet_id"] = subnet_id
+                    subnet_response["subnet_az"] = {
+                        "Name": "us-east-1a"
+                    }
+                    subnet_response["subnet_network_types"] = ["ipv4", "ipv6", "dual_stack"]
+                    self.subnets_responses.append(subnet_response)
+                vpcs = ["vpc-0123456789abcdef0"]
+                self.supported_network_types = ["ipv4", "ipv6", "dual_stack"]
+        else:
+            vpcs = []
+            for subnet in subnets:
+                vpcs.append(subnet.vpc_id)
+                if subnet.vpc_id != vpcs[0]:
+                    raise InvalidSubnet(subnet_id=subnet.id)
+                if subnet.ipv6_cidr_block_associations:
+                    self.supported_network_types.append("ipv6")
+                if subnet.cidr_block:
+                    self.supported_network_types.append("ipv4")
+            if self.supported_network_types:
+                self.supported_network_types = list(set(self.supported_network_types))
+                if ("ipv4" in self.supported_network_types) and \
+                    ("ipv6" in self.supported_network_types):
+                    self.supported_network_types.append("dual_stack")
+
+        self.arn=f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:subnetgroup:{cache_subnet_group_name}",
+        self.vpc_id = vpcs[0] if vpcs else None
+
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
+
 class ElastiCacheBackend(BaseBackend):
     """Implementation of ElastiCache APIs."""
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
-            r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot):.*$"
+            r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot|subnetgroup):.*$"
         )
         self.users = dict()
         self.users["default"] = User(
@@ -157,6 +220,7 @@ class ElastiCacheBackend(BaseBackend):
         )
 
         self.cache_clusters: Dict[str, Any] = dict()
+        self.cache_subnet_groups: Dict[str, CacheSubnetGroup] = dict()
 
     def create_user(
         self,
@@ -334,6 +398,28 @@ class ElastiCacheBackend(BaseBackend):
                 return cache_cluster
         raise CacheClusterNotFound(cache_cluster_id)
 
+    def create_cache_subnet_group(
+        self,
+        cache_subnet_group_name: str,
+        cache_subnet_group_description: str,
+        subnet_ids: List[str],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> CacheSubnetGroup:
+
+        if cache_subnet_group_name in self.cache_subnet_groups:
+            raise CacheSubnetGroupAlreadyExists(cache_subnet_group_name)
+
+        cache_subnet_group = CacheSubnetGroup(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            cache_subnet_group_name=cache_subnet_group_name,
+            cache_subnet_group_description=cache_subnet_group_description,
+            subnet_ids=subnet_ids,
+            tags=tags
+        )
+        self.cache_subnet_groups[cache_subnet_group_name] = cache_subnet_group
+        return cache_subnet_group
+
     def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
         if self.arn_regex.match(arn):
             arn_breakdown = arn.split(":")
@@ -347,6 +433,5 @@ class ElastiCacheBackend(BaseBackend):
         else:
             raise InvalidARNFault(arn)
         return []
-
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

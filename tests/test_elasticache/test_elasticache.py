@@ -689,3 +689,21 @@ def test_list_tags_cache_cluster():
         {"Value": "bar", "Key": "foo"},
         {"Value": "bar1", "Key": "foo1"},
     ]
+
+
+@mock_aws
+def test_create_cache_subnet_group():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ]
+    )
+
+    assert resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
+
