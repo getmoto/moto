@@ -121,9 +121,7 @@ class SageMakerResponse(BaseResponse):
         paged_results, next_token = self.sagemaker_backend.list_tags(
             arn=arn, MaxResults=max_results, NextToken=next_token
         )
-        response = {"Tags": paged_results}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Tags": paged_results, "NextToken": next_token}
         return 200, {}, json.dumps(response)
 
     def add_tags(self) -> TYPE_RESPONSE:

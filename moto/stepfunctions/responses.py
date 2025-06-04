@@ -74,9 +74,7 @@ class StepFunctionResponse(BaseResponse):
             }
             for sm in results
         ]
-        response = {"stateMachines": state_machines}
-        if next_token:
-            response["nextToken"] = next_token
+        response = {"stateMachines": state_machines, "nextToken": next_token}
         return 200, {}, json.dumps(response)
 
     def describe_state_machine(self) -> TYPE_RESPONSE:
@@ -198,9 +196,7 @@ class StepFunctionResponse(BaseResponse):
                     execution.stop_date
                 )
             executions.append(result)
-        response = {"executions": executions}
-        if next_token:
-            response["nextToken"] = next_token
+        response = {"executions": executions, "nextToken": next_token}
         return 200, {}, json.dumps(response)
 
     def describe_execution(self) -> TYPE_RESPONSE:
@@ -342,7 +338,5 @@ class StepFunctionResponse(BaseResponse):
             }
             for activity in results
         ]
-        response = {"activities": activities}
-        if next_token:
-            response["nextToken"] = next_token
+        response = {"activities": activities, "nextToken": next_token}
         return 200, {}, json.dumps(response)

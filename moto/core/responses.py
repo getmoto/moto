@@ -727,7 +727,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         skip_result_conversion: bool = False,
         tracked_prefixes: Optional[Set[str]] = None,
     ) -> Any:
-        value_dict = dict()
+        value_dict: Any = dict()
         tracked_prefixes = (
             tracked_prefixes or set()
         )  # prefixes which have already been processed

@@ -326,11 +326,14 @@ def test_get_deployment_group():
     client.create_application(
         applicationName=application_name, computePlatform="Lambda"
     )
-    client.create_deployment_group(
+
+    response = client.create_deployment_group(
         applicationName=application_name,
         deploymentGroupName=deployment_group_name,
         serviceRoleArn=service_role_arn,
     )
+
+    deployment_group_id = response["deploymentGroupId"]
 
     response = client.get_deployment_group(
         applicationName=application_name, deploymentGroupName=deployment_group_name
@@ -340,6 +343,7 @@ def test_get_deployment_group():
 
     # required fields
     assert deployment_group_info["applicationName"] == application_name
+    assert deployment_group_info["deploymentGroupId"] == deployment_group_id
     assert deployment_group_info["deploymentGroupName"] == deployment_group_name
     assert deployment_group_info["serviceRoleArn"] == service_role_arn
 
@@ -554,6 +558,11 @@ def test_list_deployment_groups():
     resp = client.list_deployment_groups(applicationName=application_name)
     assert len(resp["deploymentGroups"]) == 2
 
+    # ensure both deployment group names are in the response
+    assert set([deployment_group_name, deployment_group_name2]) == set(
+        resp["deploymentGroups"]
+    )
+
 
 @mock_aws
 def test_application_tagging():
@@ -584,7 +593,7 @@ def test_deployment_group_tagging():
     client.create_application(applicationName=app_name, computePlatform="Server")
 
     initial_tags = [{"Key": "Team", "Value": "Platform"}]
-    response = client.create_deployment_group(
+    client.create_deployment_group(
         applicationName=app_name,
         deploymentGroupName=dg_name,
         serviceRoleArn=service_role_arn,
