@@ -110,6 +110,7 @@ class CacheSubnetGroupAlreadyExists(ElastiCacheException):
             ),
         )
 
+
 class InvalidARNFault(ElastiCacheException):
     code = 400
 

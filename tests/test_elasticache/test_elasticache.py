@@ -701,9 +701,51 @@ def test_create_cache_subnet_group():
         Tags=[
             {"Key": "foo", "Value": "bar"},
             {"Key": "foo1", "Value": "bar1"},
-        ]
+        ],
     )
 
-    assert resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    assert (
+        resp["CacheSubnetGroup"]["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert resp["CacheSubnetGroup"]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert (
+        resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    )
     assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
 
+
+@mock_aws
+def test_create_cache_subnet_group_and_mock_vpc():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    # Create a subnet group with two subnets
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16").get("Vpc")
+    vpc_id = vpc.get("VpcId")
+    subnet_1 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet_2 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24").get(
+        "Subnet"
+    )
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_1.get("SubnetId"), subnet_2.get("SubnetId")],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    assert (
+        resp["CacheSubnetGroup"]["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert resp["CacheSubnetGroup"]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert (
+        resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    )
+    assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
