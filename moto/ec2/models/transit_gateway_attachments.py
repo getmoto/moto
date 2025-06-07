@@ -1,6 +1,6 @@
 import weakref
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
@@ -9,6 +9,9 @@ from ..exceptions import InvalidParameterValueErrorPeeringAttachment
 from ..utils import describe_tag_filter, random_transit_gateway_attachment_id
 from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
+
+if TYPE_CHECKING:
+    from .transit_gateway_route_tables import TransitGatewayRouteTable
 
 
 class TransitGatewayAttachment(TaggedEC2Resource):
@@ -226,11 +229,13 @@ class TransitGatewayAttachmentBackend:
             route_table_id = transit_gateway_attachment.propagation.get(
                 "transitGatewayRouteTableId"
             )
-            route_table = self.transit_gateways_route_tables[route_table_id]  # type: ignore[attr-defined]
+            route_table: "TransitGatewayRouteTable" = (
+                self.transit_gateways_route_tables[route_table_id]  # type: ignore[attr-defined]
+            )
             route_table.route_table_propagation = [
                 prop
                 for prop in route_table.route_table_propagation
-                if prop["transitGatewayAttachmentId"] != transit_gateway_attachment_id
+                if prop.transitGatewayAttachmentId != transit_gateway_attachment_id
             ]
         except (AttributeError, KeyError, IndexError):
             pass
