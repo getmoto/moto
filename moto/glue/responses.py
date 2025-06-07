@@ -910,3 +910,14 @@ class GlueResponse(BaseResponse):
         )
 
         return json.dumps(response, cls=DateTimeEncoder)
+
+    def delete_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        policy_hash_condition = params.get("PolicyHashCondition")
+        resource_arn = params.get("ResourceArn")
+        self.glue_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+            policy_hash_condition=policy_hash_condition,
+        )
+
+        return "{}"
