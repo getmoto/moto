@@ -141,6 +141,7 @@ def test_describe_firewall():
     assert resp["Firewall"]["FirewallPolicyChangeProtection"] is False
     assert resp["Firewall"]["Description"] == "Test firewall"
     assert resp["Firewall"]["Tags"] == [{"Key": "Name", "Value": "test-firewall"}]
+    assert resp["UpdateToken"] == "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
 
     # Describe the firewall using the name
     resp_name = client.describe_firewall(FirewallName="test-firewall")
