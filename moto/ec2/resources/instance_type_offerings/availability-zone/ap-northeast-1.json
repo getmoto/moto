@@ -2148,6 +2148,10 @@
   "Location": "ap-northeast-1a"
  },
  {
+  "InstanceType": "p4de.24xlarge",
+  "Location": "ap-northeast-1a"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "ap-northeast-1a"
  },
@@ -5373,6 +5377,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "ap-northeast-1c"
+ },
+ {
+  "InstanceType": "p4de.24xlarge",
   "Location": "ap-northeast-1c"
  },
  {

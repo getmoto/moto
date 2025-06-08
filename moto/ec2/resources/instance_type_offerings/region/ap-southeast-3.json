@@ -680,6 +680,10 @@
   "Location": "ap-southeast-3"
  },
  {
+  "InstanceType": "p5.48xlarge",
+  "Location": "ap-southeast-3"
+ },
+ {
   "InstanceType": "p5e.48xlarge",
   "Location": "ap-southeast-3"
  },

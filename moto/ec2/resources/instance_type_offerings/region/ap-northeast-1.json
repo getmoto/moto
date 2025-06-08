@@ -2172,6 +2172,10 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "p4de.24xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "ap-northeast-1"
  },

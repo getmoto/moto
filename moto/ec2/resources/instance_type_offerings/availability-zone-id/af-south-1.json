@@ -2832,6 +2832,10 @@
   "Location": "afs1-az3"
  },
  {
+  "InstanceType": "u-9tb1.112xlarge",
+  "Location": "afs1-az3"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "afs1-az3"
  },

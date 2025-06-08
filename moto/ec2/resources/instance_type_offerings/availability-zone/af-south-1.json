@@ -2832,6 +2832,10 @@
   "Location": "af-south-1c"
  },
  {
+  "InstanceType": "u-9tb1.112xlarge",
+  "Location": "af-south-1c"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "af-south-1c"
  },

@@ -5500,6 +5500,10 @@
   "Location": "use2-az2"
  },
  {
+  "InstanceType": "p5e.48xlarge",
+  "Location": "use2-az2"
+ },
+ {
   "InstanceType": "p5en.48xlarge",
   "Location": "use2-az2"
  },
