@@ -53,7 +53,7 @@ def sns_aws_verified(func):
     return pagination_wrapper
 
 
-def sns_sqs_aws_verified():
+def sns_sqs_aws_verified(fifo_topic: bool = False, fifo_queue: bool = False):
     """
     Function that is verified to work against AWS.
     Can be run against AWS at any time by setting:
@@ -70,22 +70,42 @@ def sns_sqs_aws_verified():
     def inner(func):
         @wraps(func)
         def pagination_wrapper(**kwargs):
-            topic_name = f"test_topic_{str(uuid4())[0:6]}"
+            topic_name = f"test_topic_{str(uuid4())[0:6]}" + (
+                ".fifo" if fifo_topic else ""
+            )
             kwargs["topic_name"] = topic_name
-            queue_name = f"test_queue_{str(uuid4())[0:6]}"
+            queue_name = f"test_queue_{str(uuid4())[0:6]}" + (
+                ".fifo" if fifo_queue else ""
+            )
             kwargs["queue_name"] = queue_name
 
             def create_resources_and_test():
                 client = boto3.client("sns", region_name="us-east-1")
                 sqs_client = boto3.resource("sqs", region_name="us-east-1")
 
-                topic_arn = client.create_topic(Name=topic_name)["TopicArn"]
+                topic_args = {}
+                if fifo_topic:
+                    topic_args["Attributes"] = {
+                        "FifoTopic": "true",
+                        "ContentBasedDeduplication": "true",
+                    }
+                topic_arn = client.create_topic(Name=topic_name, **topic_args)[
+                    "TopicArn"
+                ]
                 kwargs["topic_arn"] = topic_arn
 
-                queue = sqs_client.create_queue(QueueName=queue_name)
+                queue_args = {}
+                if fifo_queue:
+                    queue_args["Attributes"] = {
+                        "FifoQueue": "true",
+                        "ContentBasedDeduplication": "true",
+                    }
+                queue = sqs_client.create_queue(QueueName=queue_name, **queue_args)
 
                 identity = boto3.client("sts", "us-east-1").get_caller_identity()
-                queue_arn = f"arn:aws:sqs:us-east-1:{identity['Account']}:{queue_name}"
+                kwargs["queue_arn"] = (
+                    f"arn:aws:sqs:us-east-1:{identity['Account']}:{queue_name}"
+                )
 
                 # Give permissions to the queue
                 policy = {
@@ -95,24 +115,25 @@ def sns_sqs_aws_verified():
                             "Effect": "Allow",
                             "Principal": {"Service": "sns.amazonaws.com"},
                             "Action": "sqs:SendMessage",
-                            "Resource": queue_arn,
+                            "Resource": kwargs["queue_arn"],
                             "Condition": {"ArnEquals": {"aws:SourceArn": topic_arn}},
                         }
                     ],
                 }
                 queue.set_attributes(Attributes={"Policy": json.dumps(policy)})
 
-                # Subscribe the Queue to the Topic
-                subscription_arn = client.subscribe(
-                    TopicArn=topic_arn,
-                    Protocol="sqs",
-                    Endpoint=queue_arn,
-                )["SubscriptionArn"]
-
+                subscription_arn = None
                 try:
+                    subscription_arn = client.subscribe(
+                        TopicArn=topic_arn,
+                        Protocol="sqs",
+                        Endpoint=kwargs["queue_arn"],
+                    )["SubscriptionArn"]
+
                     resp = func(**kwargs)
                 finally:
-                    client.unsubscribe(SubscriptionArn=subscription_arn)
+                    if subscription_arn:
+                        client.unsubscribe(SubscriptionArn=subscription_arn)
                     client.delete_topic(TopicArn=topic_arn)
                     queue.delete()
 
