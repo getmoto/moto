@@ -24,7 +24,9 @@ def to_comparable_dicts(list_entry: list):
 
 @pytest.mark.aws_verified
 @sns_sqs_aws_verified()
-def test_publish_to_sqs(topic_name=None, topic_arn=None, queue_name=None):
+def test_publish_to_sqs(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
     conn = boto3.client("sns", region_name="us-east-1")
 
     sqs_conn = boto3.resource("sqs", region_name="us-east-1")
@@ -69,22 +71,54 @@ def test_publish_to_sqs_raw():
     assert messages[0].body == message
 
 
-@mock_aws
-def test_publish_to_sqs_fifo():
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified(fifo_topic=True, fifo_queue=True)
+def test_publish_to_sqs_fifo(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
     sns = boto3.resource("sns", region_name="us-east-1")
-    topic = sns.create_topic(
-        Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
-    )
-
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(
-        QueueName="queue.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-    )
-    topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
+    topic = sns.Topic(topic_arn)
 
     topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    queue = sqs.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["Message"] == "message"
+
+
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified(fifo_topic=True, fifo_queue=False)
+def test_publish_from_sns_fifo_to_standard_sqs(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
+    sns = boto3.resource("sns", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    topic = sns.Topic(topic_arn)
+
+    topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    queue = sqs.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["Message"] == "message"
+
+
+@pytest.mark.aws_verified
+def test_publish_from_standard_sns_to_fifo_sqs():
+    def x(topic_arn="", topic_name="", queue_arn="", queue_name=""):
+        pass
+
+    with pytest.raises(ClientError) as exc:
+        func = sns_sqs_aws_verified(fifo_topic=False, fifo_queue=True)
+        func(x)()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameter"
+    assert (
+        err["Message"]
+        == "Invalid parameter: Invalid parameter: Endpoint Reason: FIFO SQS Queues can not be subscribed to standard SNS topics"
+    )
 
 
 @mock_aws
