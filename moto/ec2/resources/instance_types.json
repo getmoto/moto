@@ -22347,7 +22347,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -22510,7 +22510,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -22903,7 +22903,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -23239,7 +23239,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -23370,7 +23370,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -23517,7 +23517,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -23634,7 +23634,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -23958,7 +23958,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -68939,7 +68939,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -69275,7 +69275,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -69406,7 +69406,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -69553,7 +69553,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -69670,7 +69670,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -69994,7 +69994,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -71418,7 +71418,7 @@
     "MaximumEfaInterfaces": 32
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -71688,7 +71688,12 @@
    "NetworkPerformance": "3200 Gigabit"
   },
   "NitroEnclavesSupport": "supported",
-  "NitroTpmSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -71797,7 +71802,7 @@
     "MaximumEfaInterfaces": 32
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -96756,7 +96761,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -97092,7 +97097,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -97370,7 +97375,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -97487,7 +97492,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -97811,7 +97816,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
