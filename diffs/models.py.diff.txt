@@ -1,0 +1,91 @@
+diff --git a/moto/kms/models.py b/moto/kms/models.py
+index e2bdd1ce6..d21fbc46c 100644
+--- a/moto/kms/models.py
++++ b/moto/kms/models.py
+@@ -13,6 +13,7 @@ from moto.core.utils import unix_time
+ from moto.moto_api._internal import mock_random
+ from moto.utilities.tagging_service import TaggingService
+ from moto.core.exceptions import JsonRESTError
++from moto.core.policy import PolicyEvaluator
+ 
+ from .exceptions import ValidationException, AccessDeniedException
+ from .utils import (
+@@ -154,68 +155,18 @@ class Key(CloudFormationModel):
+         Raises:
+             AccessDeniedException: If the action is denied by the policy
+         """
+-        from .exceptions import AccessDeniedException
++        # Initialize policy evaluator if needed
++        if not hasattr(self, "_policy_evaluator"):
++            self._policy_evaluator = PolicyEvaluator(self.policy)
++        elif self._policy_evaluator.policy_document != self.policy:
++            self._policy_evaluator.update_policy(self.policy)
+         
+-        # If there's no policy defined, default is to allow
+-        if not self.policy:
+-            return True
++        # Normalize action format
++        if not action.startswith("kms:"):
++            action = f"kms:{action}"
+         
+-        # Parse the policy document
+-        try:
+-            policy_doc = json.loads(self.policy)
+-        except json.JSONDecodeError:
+-            # If the policy is not valid JSON, default to allow
+-            return True
+-        
+-        # Process each statement in the policy
+-        statements = policy_doc.get("Statement", [])
+-        if not isinstance(statements, list):
+-            statements = [statements]
+-        
+-        # Check for explicit deny first (deny takes precedence)
+-        for statement in statements:
+-            if statement.get("Effect") != "Deny":
+-                continue
+-            
+-            actions = statement.get("Action", [])
+-            if isinstance(actions, str):
+-                actions = [actions]
+-            
+-            # Check if the action is denied explicitly
+-            for pattern in actions:
+-                # Exact match
+-                if pattern == action or pattern == "kms:*":
+-                    raise AccessDeniedException(
+-                        f"Access to KMS action {action} is not allowed under the key policy."
+-                    )
+-                # Wildcard match (e.g., kms:Describe* matches kms:DescribeKey)
+-                if pattern.endswith("*") and action.startswith(pattern[:-1]):
+-                    raise AccessDeniedException(
+-                        f"Access to KMS action {action} is not allowed under the key policy."
+-                    )
+-        
+-        # Then check for explicit allow
+-        for statement in statements:
+-            if statement.get("Effect") != "Allow":
+-                continue
+-            
+-            actions = statement.get("Action", [])
+-            if isinstance(actions, str):
+-                actions = [actions]
+-            
+-            # Check if the action is allowed explicitly
+-            for pattern in actions:
+-                # Exact match
+-                if pattern == action or pattern == "kms:*":
+-                    return True
+-                # Wildcard match (e.g., kms:Describe* matches kms:DescribeKey)
+-                if pattern.endswith("*") and action.startswith(pattern[:-1]):
+-                    return True
+-        
+-        # If we get here, the action is not explicitly allowed
+-        raise AccessDeniedException(
+-            f"Access to KMS action {action} is not allowed under the key policy."
+-        )
++        # Evaluate the action against the policy
++        return self._policy_evaluator.evaluate(action, service_prefix="kms")
+ 
+     @property
+     def physical_resource_id(self):
