@@ -1,0 +1,274 @@
+import json
+from typing import Dict, List, Optional, Union, Any
+
+class PolicyEvaluator:
+    """
+    A generic policy evaluator for AWS service policies.
+    
+    This class handles the parsing and evaluation of AWS IAM policy documents,
+    with support for action matching, effect determination, and other policy
+    evaluation features.
+    """
+    
+    def __init__(self, policy_document: Optional[str] = None):
+        """
+        Initialize a policy evaluator with an optional policy document.
+        
+        Args:
+            policy_document (str, optional): A JSON policy document string.
+        """
+        self.policy_document = policy_document
+        self._parsed_policy = None
+        self._cache = {}
+        
+        # Parse the policy if provided
+        if policy_document:
+            self._parse_policy()
+    
+    def _parse_policy(self) -> None:
+        """Parse the policy document into a Python dict, with caching"""
+        try:
+            self._parsed_policy = json.loads(self.policy_document) if self.policy_document else None
+            # Clear the evaluation cache when policy is parsed
+            self._cache = {}
+        except json.JSONDecodeError:
+            # If the policy is not valid JSON, we'll leave parsed_policy as None
+            self._parsed_policy = None
+            self._cache = {}
+    
+    def update_policy(self, policy_document: str) -> None:
+        """
+        Update the policy document and re-parse it.
+        
+        Args:
+            policy_document (str): A JSON policy document string.
+        """
+        self.policy_document = policy_document
+        self._parse_policy()
+    
+    def evaluate(self, action: str, service_prefix: str = None, principal: str = None, resource: str = None) -> bool:
+        """
+        Evaluate if the given action is allowed by the policy.
+        
+        Args:
+            action (str): The action to check, e.g., "Encrypt" or "kms:Encrypt"
+            service_prefix (str, optional): The service prefix, e.g., "kms".
+                                           If not provided, assumed to be part of the action.
+            principal (str, optional): The principal (AWS ARN) performing the action
+            resource (str, optional): The resource ARN the action is performed on
+        
+        Returns:
+            bool: True if the action is allowed, False otherwise
+            
+        Raises:
+            AccessDeniedException: If the action is explicitly denied by the policy
+        """
+        from moto.core.exceptions import AccessDeniedException
+        
+        # If there's no policy defined or parsing failed, default to allow
+        if not self._parsed_policy:
+            return True
+        
+        # Format the action with service prefix if needed
+        full_action = action
+        if service_prefix and not action.startswith(f"{service_prefix}:"):
+            full_action = f"{service_prefix}:{action}"
+        
+        # Check cache for this evaluation
+        cache_key = f"{full_action}:{principal or ''}:{resource or ''}"
+        if cache_key in self._cache:
+            if self._cache[cache_key] is False:
+                raise AccessDeniedException(
+                    f"Access to action {full_action} is not allowed under the policy."
+                )
+            return self._cache[cache_key]
+        
+        # Process each statement in the policy
+        statements = self._parsed_policy.get("Statement", [])
+        if not isinstance(statements, list):
+            statements = [statements]
+        
+        # Check for explicit deny first (deny takes precedence)
+        for statement in statements:
+            if statement.get("Effect") != "Deny":
+                continue
+            
+            # Skip if principal doesn't match (if specified)
+            if principal and not self._principal_matches(statement, principal):
+                continue
+                
+            # Skip if resource doesn't match (if specified)
+            if resource and not self._resource_matches(statement, resource):
+                continue
+            
+            actions = statement.get("Action", [])
+            if isinstance(actions, str):
+                actions = [actions]
+            
+            # Check if the action is denied explicitly
+            for pattern in actions:
+                if self._action_matches(full_action, pattern, service_prefix):
+                    # Cache the result
+                    self._cache[cache_key] = False
+                    raise AccessDeniedException(
+                        f"Access to action {full_action} is explicitly denied by the policy."
+                    )
+        
+        # Then check for explicit allow
+        for statement in statements:
+            if statement.get("Effect") != "Allow":
+                continue
+                
+            # Skip if principal doesn't match (if specified)
+            if principal and not self._principal_matches(statement, principal):
+                continue
+                
+            # Skip if resource doesn't match (if specified)
+            if resource and not self._resource_matches(statement, resource):
+                continue
+            
+            actions = statement.get("Action", [])
+            if isinstance(actions, str):
+                actions = [actions]
+            
+            # Check if the action is allowed explicitly
+            for pattern in actions:
+                if self._action_matches(full_action, pattern, service_prefix):
+                    # Cache the result
+                    self._cache[cache_key] = True
+                    return True
+        
+        # If we get here, the action is not explicitly allowed
+        # Cache the result
+        self._cache[cache_key] = False
+        raise AccessDeniedException(
+            f"Access to action {full_action} is not allowed under the policy."
+        )
+    
+    def _action_matches(self, action: str, pattern: str, service_prefix: str = None) -> bool:
+        """
+        Check if an action matches a pattern, including wildcards.
+        
+        Args:
+            action (str): The action to check
+            pattern (str): The pattern to match against
+            service_prefix (str, optional): The service prefix
+            
+        Returns:
+            bool: True if the action matches the pattern
+        """
+        # Universal wildcard
+        if pattern == "*":
+            return True
+            
+        # Service wildcard (e.g., "kms:*")
+        if service_prefix and pattern == f"{service_prefix}:*":
+            return action.startswith(f"{service_prefix}:")
+            
+        # Exact match
+        if pattern == action:
+            return True
+            
+        # Partial wildcard (e.g., "kms:Get*")
+        if pattern.endswith("*"):
+            return action.startswith(pattern[:-1])
+            
+        return False
+    
+    def _principal_matches(self, statement: Dict[str, Any], principal: str) -> bool:
+        """
+        Check if a principal matches the statement's Principal field.
+        
+        Args:
+            statement (dict): The policy statement
+            principal (str): The principal to check
+            
+        Returns:
+            bool: True if the principal matches or if Principal is not specified
+        """
+        statement_principal = statement.get("Principal", {})
+        
+        # If Principal is not specified, it applies to all
+        if not statement_principal:
+            return True
+            
+        # Handle different Principal formats
+        if isinstance(statement_principal, str):
+            # Principal could be "*" (any principal)
+            if statement_principal == "*":
+                return True
+            return statement_principal == principal
+            
+        if isinstance(statement_principal, dict):
+            # AWS principals
+            aws_principals = statement_principal.get("AWS", [])
+            if isinstance(aws_principals, str):
+                aws_principals = [aws_principals]
+                
+            # Check if the principal matches any AWS principal
+            for aws_principal in aws_principals:
+                if aws_principal == "*" or aws_principal == principal:
+                    return True
+                    
+                # Handle account-level wildcards
+                if aws_principal.endswith(":root") and principal.startswith(aws_principal.rsplit(":", 1)[0]):
+                    return True
+        
+        return False
+    
+    def _resource_matches(self, statement: Dict[str, Any], resource: str) -> bool:
+        """
+        Check if a resource matches the statement's Resource field.
+        
+        Args:
+            statement (dict): The policy statement
+            resource (str): The resource to check
+            
+        Returns:
+            bool: True if the resource matches or if Resource is not specified
+        """
+        statement_resource = statement.get("Resource", "*")
+        
+        # If Resource is not specified or is "*", it applies to all resources
+        if statement_resource == "*":
+            return True
+            
+        # Handle different Resource formats
+        if isinstance(statement_resource, str):
+            return self._resource_pattern_matches(statement_resource, resource)
+            
+        if isinstance(statement_resource, list):
+            # Check if the resource matches any resource pattern
+            for pattern in statement_resource:
+                if self._resource_pattern_matches(pattern, resource):
+                    return True
+        
+        return False
+    
+    def _resource_pattern_matches(self, pattern: str, resource: str) -> bool:
+        """
+        Check if a resource matches a pattern, including wildcards.
+        
+        Args:
+            pattern (str): The pattern to match against
+            resource (str): The resource to check
+            
+        Returns:
+            bool: True if the resource matches the pattern
+        """
+        # Exact match
+        if pattern == resource:
+            return True
+            
+        # Wildcard match
+        if pattern.endswith("*"):
+            return resource.startswith(pattern[:-1])
+            
+        # ARN wildcard match with path-style resources
+        if "*" in pattern:
+            # Convert patterns like "arn:aws:s3:::bucket/*/file" to regex
+            import re
+            regex_pattern = pattern.replace("*", ".*")
+            return bool(re.match(f"^{regex_pattern}$", resource))
+            
+        return False 
