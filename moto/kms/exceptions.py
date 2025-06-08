@@ -36,7 +36,6 @@ class AccessDeniedException(JsonRESTError):
 
     def __init__(self, message):
         super().__init__("AccessDeniedException", message)
-
         self.description = '{"__type":"AccessDeniedException"}'
 
 

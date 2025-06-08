@@ -12,6 +12,7 @@ from .exceptions import (
     ValidationException,
     AlreadyExistsException,
     NotAuthorizedException,
+    AccessDeniedException,
 )
 
 
@@ -106,17 +107,16 @@ class KmsResponse(BaseResponse):
 
     def create_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateKey.html"""
-        policy = self.parameters.get("Policy")
-        key_usage = self.parameters.get("KeyUsage")
-        key_spec = self.parameters.get("KeySpec") or self.parameters.get(
-            "CustomerMasterKeySpec"
-        )
-        description = self.parameters.get("Description")
-        tags = self.parameters.get("Tags")
-        multi_region = self.parameters.get("MultiRegion")
+        description = self.parameters.get("Description", "")
+        key_usage = self.parameters.get("KeyUsage", "ENCRYPT_DECRYPT")
+        key_spec = self.parameters.get("KeySpec", None)
+        customer_master_key_spec = self.parameters.get("CustomerMasterKeySpec", None)
+        policy = self.parameters.get("Policy", "")
+        tags = self.parameters.get("Tags", [])
+        multi_region = self.parameters.get("MultiRegion", False)
 
         key = self.kms_backend.create_key(
-            policy, key_usage, key_spec, description, tags, multi_region
+            policy, key_usage, key_spec or customer_master_key_spec, description, tags, multi_region
         )
         return json.dumps(key.to_dict())
 
@@ -168,12 +168,12 @@ class KmsResponse(BaseResponse):
     def describe_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_DescribeKey.html"""
         key_id = self.parameters.get("KeyId")
-
+        
         self._validate_key_id(key_id)
-
-        key = self.kms_backend.describe_key(self.kms_backend.get_key_id(key_id))
-
-        return json.dumps(key.to_dict())
+        
+        key = self.kms_backend.describe_key(key_id)
+        result = key.to_dict()
+        return json.dumps(result)
 
     def list_keys(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ListKeys.html"""
@@ -181,8 +181,9 @@ class KmsResponse(BaseResponse):
 
         return json.dumps(
             {
-                "Keys": [{"KeyArn": key.arn, "KeyId": key.id} for key in keys],
-                "NextMarker": None,
+                "Keys": [
+                    {"KeyArn": key.arn, "KeyId": key.id} for key in keys if key.key_state != "PendingDeletion"
+                ],
                 "Truncated": False,
             }
         )
@@ -343,17 +344,15 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.enable_key_rotation(key_id)
-
         return json.dumps(None)
 
     def disable_key_rotation(self):
-        """https://docs.aws.amazon.com/kms/latest/APIReference/API_EnableKeyRotation.html"""
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_DisableKeyRotation.html"""
         key_id = self.parameters.get("KeyId")
 
         self._validate_cmk_id(key_id)
 
         self.kms_backend.disable_key_rotation(key_id)
-
         return json.dumps(None)
 
     def get_key_rotation_status(self):
@@ -363,7 +362,6 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         rotation_enabled = self.kms_backend.get_key_rotation_status(key_id)
-
         return json.dumps({"KeyRotationEnabled": rotation_enabled})
 
     def put_key_policy(self):
@@ -376,7 +374,6 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.put_key_policy(key_id, policy)
-
         return json.dumps(None)
 
     def get_key_policy(self):
@@ -396,40 +393,41 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(key_id)
 
-        self.kms_backend.describe_key(key_id)
-
-        return json.dumps({"Truncated": False, "PolicyNames": ["default"]})
+        policy_names = self.kms_backend.list_key_policies(key_id)
+        return json.dumps({"Truncated": False, "PolicyNames": policy_names})
 
     def encrypt(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Encrypt.html"""
         key_id = self.parameters.get("KeyId")
-        encryption_context = self.parameters.get("EncryptionContext", {})
         plaintext = self.parameters.get("Plaintext")
+        encryption_context = self.parameters.get("EncryptionContext", {})
 
-        self._validate_key_id(key_id)
-
-        if isinstance(plaintext, str):
-            plaintext = plaintext.encode("utf-8")
-
-        ciphertext_blob, arn = self.kms_backend.encrypt(
+        ciphertext_blob, key_arn = self.kms_backend.encrypt(
             key_id=key_id, plaintext=plaintext, encryption_context=encryption_context
         )
-        ciphertext_blob_response = base64.b64encode(ciphertext_blob).decode("utf-8")
 
-        return json.dumps({"CiphertextBlob": ciphertext_blob_response, "KeyId": arn})
+        return json.dumps(
+            {
+                "CiphertextBlob": base64.b64encode(ciphertext_blob).decode("utf-8"),
+                "KeyId": key_arn,
+            }
+        )
 
     def decrypt(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_Decrypt.html"""
         ciphertext_blob = self.parameters.get("CiphertextBlob")
         encryption_context = self.parameters.get("EncryptionContext", {})
 
-        plaintext, arn = self.kms_backend.decrypt(
+        plaintext, key_arn = self.kms_backend.decrypt(
             ciphertext_blob=ciphertext_blob, encryption_context=encryption_context
         )
 
-        plaintext_response = base64.b64encode(plaintext).decode("utf-8")
-
-        return json.dumps({"Plaintext": plaintext_response, "KeyId": arn})
+        return json.dumps(
+            {
+                "Plaintext": base64.b64encode(plaintext).decode("utf-8"),
+                "KeyId": key_arn,
+            }
+        )
 
     def re_encrypt(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ReEncrypt.html"""
@@ -440,26 +438,18 @@ class KmsResponse(BaseResponse):
             "DestinationEncryptionContext", {}
         )
 
-        self._validate_cmk_id(destination_key_id)
-
-        (
-            new_ciphertext_blob,
-            decrypting_arn,
-            encrypting_arn,
-        ) = self.kms_backend.re_encrypt(
+        new_ciphertext_blob, source_key_arn, destination_key_arn = self.kms_backend.re_encrypt(
             ciphertext_blob=ciphertext_blob,
             source_encryption_context=source_encryption_context,
             destination_key_id=destination_key_id,
             destination_encryption_context=destination_encryption_context,
         )
 
-        response_ciphertext_blob = base64.b64encode(new_ciphertext_blob).decode("utf-8")
-
         return json.dumps(
             {
-                "CiphertextBlob": response_ciphertext_blob,
-                "KeyId": encrypting_arn,
-                "SourceKeyId": decrypting_arn,
+                "CiphertextBlob": base64.b64encode(new_ciphertext_blob).decode("utf-8"),
+                "SourceKeyId": source_key_arn,
+                "KeyId": destination_key_arn,
             }
         )
 
@@ -470,7 +460,6 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.disable_key(key_id)
-
         return json.dumps(None)
 
     def enable_key(self):
@@ -480,7 +469,6 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.enable_key(key_id)
-
         return json.dumps(None)
 
     def cancel_key_deletion(self):
@@ -490,27 +478,19 @@ class KmsResponse(BaseResponse):
         self._validate_cmk_id(key_id)
 
         self.kms_backend.cancel_key_deletion(key_id)
-
         return json.dumps({"KeyId": key_id})
 
     def schedule_key_deletion(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_ScheduleKeyDeletion.html"""
         key_id = self.parameters.get("KeyId")
-        if self.parameters.get("PendingWindowInDays") is None:
-            pending_window_in_days = 30
-        else:
-            pending_window_in_days = self.parameters.get("PendingWindowInDays")
+        pending_window_in_days = self.parameters.get("PendingWindowInDays", 30)
 
         self._validate_cmk_id(key_id)
 
-        return json.dumps(
-            {
-                "KeyId": key_id,
-                "DeletionDate": self.kms_backend.schedule_key_deletion(
-                    key_id, pending_window_in_days
-                ),
-            }
+        deletion_date = self.kms_backend.schedule_key_deletion(
+            key_id, pending_window_in_days
         )
+        return json.dumps({"KeyId": key_id, "DeletionDate": deletion_date})
 
     def generate_data_key(self):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKey.html"""
@@ -563,7 +543,7 @@ class KmsResponse(BaseResponse):
             {
                 "CiphertextBlob": ciphertext_blob_response,
                 "Plaintext": plaintext_response,
-                "KeyId": key_arn,  # not alias
+                "KeyId": key_arn,
             }
         )
 

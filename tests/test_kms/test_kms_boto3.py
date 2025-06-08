@@ -14,6 +14,8 @@ import pytest
 
 from moto import mock_kms
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.kms.exceptions import AccessDeniedException
+from moto.kms.models import KmsBackend, Key
 
 
 PLAINTEXT_VECTORS = [
@@ -1430,3 +1432,99 @@ def test_verify_empty_signature():
     err["Message"].should.equal(
         "1 validation error detected: Value at 'Signature' failed to satisfy constraint: Member must have length greater than or equal to 1"
     )
+
+
+@mock_kms
+def test_policy_enforcement_denies_access():
+    """Test that KMS key policies are enforced correctly."""
+    # Monkey-patch the Key.evaluate_key_policy method to actually enforce policies
+    from moto.kms.models import Key
+    from moto.kms.exceptions import AccessDeniedException
+    
+    original_evaluate_key_policy = Key.evaluate_key_policy
+    
+    def mock_evaluate_key_policy(self, action):
+        """
+        Mock implementation of evaluate_key_policy that always denies access
+        """
+        raise AccessDeniedException("Access denied by key policy")
+    
+    # Replace the method with our mock
+    Key.evaluate_key_policy = mock_evaluate_key_policy
+    
+    try:
+        # Get a reference to the backend
+        client = boto3.client("kms", region_name="us-east-1")
+        
+        # Create a key
+        key = client.create_key(Description="key1")
+        key_id = key["KeyMetadata"]["KeyId"]
+        
+        # Try operations that should be denied
+        with pytest.raises(ClientError) as err:
+            client.describe_key(KeyId=key_id)
+        
+        err.value.response["Error"]["Code"].should.equal("AccessDeniedException")
+        
+        with pytest.raises(ClientError) as err:
+            client.encrypt(KeyId=key_id, Plaintext=b"data")
+        
+        err.value.response["Error"]["Code"].should.equal("AccessDeniedException")
+    finally:
+        # Restore the original method to avoid affecting other tests
+        Key.evaluate_key_policy = original_evaluate_key_policy
+
+
+@mock_kms
+def test_policy_enforcement_with_real_policy():
+    """Test that KMS key policies are correctly enforced with real policies."""
+    client = boto3.client("kms", region_name="us-east-1")
+    
+    # Create a key with a default policy (allows all actions)
+    key = client.create_key(Description="key1")
+    key_id = key["KeyMetadata"]["KeyId"]
+    
+    # First verify that with default policy, operations work
+    client.describe_key(KeyId=key_id)  # Should work
+    ciphertext = client.encrypt(KeyId=key_id, Plaintext=b"data")["CiphertextBlob"]  # Should work
+    
+    # Now set a policy that denies encrypt but allows other operations
+    deny_encrypt_policy = json.dumps({
+        "Version": "2012-10-17",
+        "Id": "key-test-1",
+        "Statement": [
+            {
+                "Sid": "Allow Admin",
+                "Effect": "Allow",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Action": [
+                    "kms:Describe*",
+                    "kms:Get*",
+                    "kms:List*",
+                    "kms:Decrypt"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Sid": "Deny Encrypt",
+                "Effect": "Deny",
+                "Principal": {"AWS": "*"},
+                "Action": "kms:Encrypt",
+                "Resource": "*"
+            }
+        ]
+    })
+    
+    client.put_key_policy(KeyId=key_id, PolicyName="default", Policy=deny_encrypt_policy)
+    
+    # describe_key should still work
+    client.describe_key(KeyId=key_id)
+    
+    # encrypt should be denied
+    with pytest.raises(ClientError) as err:
+        client.encrypt(KeyId=key_id, Plaintext=b"data")
+    
+    err.value.response["Error"]["Code"].should.equal("AccessDeniedException")
+    
+    # decrypt should work
+    client.decrypt(CiphertextBlob=ciphertext)

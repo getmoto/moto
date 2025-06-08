@@ -14,7 +14,7 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.core.exceptions import JsonRESTError
 
-from .exceptions import ValidationException
+from .exceptions import ValidationException, AccessDeniedException
 from .utils import (
     RESERVED_ALIASES,
     decrypt,
@@ -142,6 +142,79 @@ class Key(CloudFormationModel):
                     }
                 ],
             }
+        )
+
+    def evaluate_key_policy(self, action):
+        """
+        Evaluates if the given KMS action is allowed by the key policy.
+        
+        Args:
+            action (str): The KMS action to check, e.g., "kms:Encrypt"
+            
+        Raises:
+            AccessDeniedException: If the action is denied by the policy
+        """
+        from .exceptions import AccessDeniedException
+        
+        # If there's no policy defined, default is to allow
+        if not self.policy:
+            return True
+        
+        # Parse the policy document
+        try:
+            policy_doc = json.loads(self.policy)
+        except json.JSONDecodeError:
+            # If the policy is not valid JSON, default to allow
+            return True
+        
+        # Process each statement in the policy
+        statements = policy_doc.get("Statement", [])
+        if not isinstance(statements, list):
+            statements = [statements]
+        
+        # Check for explicit deny first (deny takes precedence)
+        for statement in statements:
+            if statement.get("Effect") != "Deny":
+                continue
+            
+            actions = statement.get("Action", [])
+            if isinstance(actions, str):
+                actions = [actions]
+            
+            # Check if the action is denied explicitly
+            for pattern in actions:
+                # Exact match
+                if pattern == action or pattern == "kms:*":
+                    raise AccessDeniedException(
+                        f"Access to KMS action {action} is not allowed under the key policy."
+                    )
+                # Wildcard match (e.g., kms:Describe* matches kms:DescribeKey)
+                if pattern.endswith("*") and action.startswith(pattern[:-1]):
+                    raise AccessDeniedException(
+                        f"Access to KMS action {action} is not allowed under the key policy."
+                    )
+        
+        # Then check for explicit allow
+        for statement in statements:
+            if statement.get("Effect") != "Allow":
+                continue
+            
+            actions = statement.get("Action", [])
+            if isinstance(actions, str):
+                actions = [actions]
+            
+            # Check if the action is allowed explicitly
+            for pattern in actions:
+                # Exact match
+                if pattern == action or pattern == "kms:*":
+                    return True
+                # Wildcard match (e.g., kms:Describe* matches kms:DescribeKey)
+                if pattern.endswith("*") and action.startswith(pattern[:-1]):
+                    return True
+        
+        # If we get here, the action is not explicitly allowed
+        raise AccessDeniedException(
+            f"Access to KMS action {action} is not allowed under the key policy."
         )
 
     @property
@@ -322,7 +395,9 @@ class KmsBackend(BaseBackend):
         key_id = self.get_key_id(key_id)
         if r"alias/" in str(key_id).lower():
             key_id = self.get_key_id_from_alias(key_id)
-        return self.keys[self.get_key_id(key_id)]
+        key = self.keys[self.get_key_id(key_id)]
+        key.evaluate_key_policy("kms:DescribeKey")
+        return key
 
     def list_keys(self):
         return self.keys.values()
@@ -387,33 +462,52 @@ class KmsBackend(BaseBackend):
         return None
 
     def enable_key_rotation(self, key_id):
-        self.keys[self.get_key_id(key_id)].key_rotation_status = True
+        key_id = self.get_key_id(key_id)
+        self.keys[key_id].evaluate_key_policy("kms:EnableKeyRotation")
+        self.keys[key_id].key_rotation_status = True
 
     def disable_key_rotation(self, key_id):
-        self.keys[self.get_key_id(key_id)].key_rotation_status = False
+        key_id = self.get_key_id(key_id)
+        self.keys[key_id].evaluate_key_policy("kms:DisableKeyRotation")
+        self.keys[key_id].key_rotation_status = False
 
     def get_key_rotation_status(self, key_id):
-        return self.keys[self.get_key_id(key_id)].key_rotation_status
+        key_id = self.get_key_id(key_id)
+        self.keys[key_id].evaluate_key_policy("kms:GetKeyRotationStatus")
+        return self.keys[key_id].key_rotation_status
 
     def put_key_policy(self, key_id, policy):
-        self.keys[self.get_key_id(key_id)].policy = policy
+        key_id = self.get_key_id(key_id)
+        self.keys[key_id].evaluate_key_policy("kms:PutKeyPolicy")
+        self.keys[key_id].policy = policy
 
     def get_key_policy(self, key_id):
-        return self.keys[self.get_key_id(key_id)].policy
+        key_id = self.get_key_id(key_id)
+        self.keys[key_id].evaluate_key_policy("kms:GetKeyPolicy")
+        return self.keys[key_id].policy
+
+    def list_key_policies(self, key_id):
+        key_id = self.get_key_id(key_id)
+        self.keys[key_id].evaluate_key_policy("kms:ListKeyPolicies")
+        return ["default"]
 
     def disable_key(self, key_id):
+        self.keys[key_id].evaluate_key_policy("kms:DisableKey")
         self.keys[key_id].enabled = False
         self.keys[key_id].key_state = "Disabled"
 
     def enable_key(self, key_id):
+        self.keys[key_id].evaluate_key_policy("kms:EnableKey")
         self.keys[key_id].enabled = True
         self.keys[key_id].key_state = "Enabled"
 
     def cancel_key_deletion(self, key_id):
+        self.keys[key_id].evaluate_key_policy("kms:CancelKeyDeletion")
         self.keys[key_id].key_state = "Disabled"
         self.keys[key_id].deletion_date = None
 
     def schedule_key_deletion(self, key_id, pending_window_in_days):
+        self.keys[key_id].evaluate_key_policy("kms:ScheduleKeyDeletion")
         if 7 <= pending_window_in_days <= 30:
             self.keys[key_id].enabled = False
             self.keys[key_id].key_state = "PendingDeletion"
@@ -424,6 +518,9 @@ class KmsBackend(BaseBackend):
 
     def encrypt(self, key_id, plaintext, encryption_context):
         key_id = self.any_id_to_key_id(key_id)
+        
+        # Check if the policy allows the encrypt operation
+        self.keys[key_id].evaluate_key_policy("kms:Encrypt")
 
         ciphertext_blob = encrypt(
             master_keys=self.keys,
@@ -440,6 +537,10 @@ class KmsBackend(BaseBackend):
             ciphertext_blob=ciphertext_blob,
             encryption_context=encryption_context,
         )
+        
+        # Check if the policy allows the decrypt operation
+        self.keys[key_id].evaluate_key_policy("kms:Decrypt")
+        
         arn = self.keys[key_id].arn
         return plaintext, arn
 
@@ -451,11 +552,20 @@ class KmsBackend(BaseBackend):
         destination_encryption_context,
     ):
         destination_key_id = self.any_id_to_key_id(destination_key_id)
+        
+        # Check if destination key exists
+        if destination_key_id is None or destination_key_id not in self.keys:
+            from .exceptions import NotFoundException
+            raise NotFoundException(f"Key '{destination_key_id}' does not exist")
 
         plaintext, decrypting_arn = self.decrypt(
             ciphertext_blob=ciphertext_blob,
             encryption_context=source_encryption_context,
         )
+        
+        # Evaluate policy for the destination key
+        self.keys[destination_key_id].evaluate_key_policy("kms:ReEncrypt*")
+        
         new_ciphertext_blob, encrypting_arn = self.encrypt(
             key_id=destination_key_id,
             plaintext=plaintext,
@@ -465,6 +575,7 @@ class KmsBackend(BaseBackend):
 
     def generate_data_key(self, key_id, encryption_context, number_of_bytes, key_spec):
         key_id = self.any_id_to_key_id(key_id)
+        self.keys[key_id].evaluate_key_policy("kms:GenerateDataKey")
 
         if key_spec:
             # Note: Actual validation of key_spec is done in kms.responses
