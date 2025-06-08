@@ -3477,3 +3477,131 @@ def test_send_message_delay_seconds_validation(queue_config):
 
     # clean up for servertests
     client.delete_queue(QueueUrl=q)
+
+@mock_aws
+def test_send_receive_with_awstraceheader_system_attribute():
+    sqs = boto3.client("sqs", region_name=REGION)
+    queue_name = f"test-traceheader-queue-{str(uuid4())[:8]}"
+    queue_url = sqs.create_queue(QueueName=queue_name)["QueueUrl"]
+
+    try:
+        trace_id = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=53995c3f42cd8ad8;Sampled=1"
+
+        # Test Case 1: Send and Receive with AWSTraceHeader
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody="test_message_with_traceheader",
+            MessageSystemAttributes={
+                'AWSTraceHeader': {
+                    'StringValue': trace_id,
+                    'DataType': 'String'
+                }
+            }
+        )
+        response = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            MessageSystemAttributeNames=['AWSTraceHeader']
+        )
+        assert "Messages" in response and len(response["Messages"]) == 1
+        msg1 = response["Messages"][0]
+        assert "Attributes" in msg1
+        assert "AWSTraceHeader" in msg1["Attributes"]
+        assert msg1["Attributes"]["AWSTraceHeader"] == trace_id
+
+        # Test Case 1.b: Send and Receive with AWSTraceHeader (requesting "All")
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody="test_message_with_traceheader_all",
+            MessageSystemAttributes={
+                'AWSTraceHeader': {
+                    'StringValue': trace_id,
+                    'DataType': 'String'
+                }
+            }
+        )
+        response_all = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            MessageSystemAttributeNames=['All'] # Request all system attributes
+        )
+        assert "Messages" in response_all and len(response_all["Messages"]) == 1
+        msg1b = response_all["Messages"][0]
+        assert "Attributes" in msg1b
+        assert "AWSTraceHeader" in msg1b["Attributes"]
+        assert msg1b["Attributes"]["AWSTraceHeader"] == trace_id
+
+
+        # Test Case 2: Send and Receive without AWSTraceHeader (ensure it's not present)
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody="test_message_no_traceheader"
+        )
+        response2 = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            MessageSystemAttributeNames=['AWSTraceHeader']
+        )
+        assert "Messages" in response2 and len(response2["Messages"]) == 1
+        msg2 = response2["Messages"][0]
+        # If AWSTraceHeader was not sent, it should not be in Attributes,
+        # or if Attributes itself is not present, that's also fine.
+        if "Attributes" in msg2:
+            assert "AWSTraceHeader" not in msg2["Attributes"]
+        else:
+            # No attributes dict means AWSTraceHeader is definitely not there
+            pass
+
+
+        # Test Case 3: Send with AWSTraceHeader but do not request it (ensure it's not present)
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody="test_message_with_traceheader_not_requested",
+            MessageSystemAttributes={
+                'AWSTraceHeader': {
+                    'StringValue': trace_id,
+                    'DataType': 'String'
+                }
+            }
+        )
+        response3 = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            MessageSystemAttributeNames=['SenderId'] # Requesting something else
+        )
+        assert "Messages" in response3 and len(response3["Messages"]) == 1
+        msg3 = response3["Messages"][0]
+        if "Attributes" in msg3:
+            assert "AWSTraceHeader" not in msg3["Attributes"]
+            assert "SenderId" in msg3["Attributes"] # Ensure the requested one is there
+        else:
+            # This case might happen if SenderId also wasn't available for some reason,
+            # but the main point is AWSTraceHeader shouldn't be there.
+            pass
+
+        # Test Case 3b: Send with AWSTraceHeader but request empty list (ensure it's not present)
+        sqs.send_message(
+            QueueUrl=queue_url,
+            MessageBody="test_message_with_traceheader_empty_request",
+            MessageSystemAttributes={
+                'AWSTraceHeader': {
+                    'StringValue': trace_id,
+                    'DataType': 'String'
+                }
+            }
+        )
+        response4 = sqs.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=1,
+            MessageSystemAttributeNames=[] # Requesting empty list
+        )
+        assert "Messages" in response4 and len(response4["Messages"]) == 1
+        msg4 = response4["Messages"][0]
+        if "Attributes" in msg4: # Attributes should not be present if none were requested and returned
+            assert "AWSTraceHeader" not in msg4["Attributes"]
+        else:
+            pass
+
+
+    finally:
+        sqs.delete_queue(QueueUrl=queue_url)

@@ -605,6 +605,7 @@ class SQSResponse(BaseResponse):
             "sender_id": "SenderId" in message_system_attributes,
             "sent_timestamp": "SentTimestamp" in message_system_attributes,
             "sequence_number": "SequenceNumber" in message_system_attributes,
+            "awstraceheader": "AWSTraceHeader" in message_system_attributes,  # Add AWSTraceHeader
         }
 
         if "All" in message_system_attributes:
@@ -616,6 +617,7 @@ class SQSResponse(BaseResponse):
                 "sender_id": True,
                 "sent_timestamp": True,
                 "sequence_number": True,
+                "awstraceheader": True,  # Add AWSTraceHeader if "All"
             }
 
         for attribute in attributes:
@@ -654,12 +656,9 @@ class SQSResponse(BaseResponse):
                     )
                 if attributes["message_group_id"] and message.group_id is not None:
                     msg["Attributes"]["MessageGroupId"] = message.group_id
-                if message.system_attributes and message.system_attributes.get(
-                    "AWSTraceHeader"
-                ):
-                    msg["Attributes"]["AWSTraceHeader"] = message.system_attributes[
-                        "AWSTraceHeader"
-                    ].get("string_value")
+                # Check if AWSTraceHeader is requested and present
+                if attributes.get("awstraceheader") and message.system_attributes and message.system_attributes.get("AWSTraceHeader"):
+                    msg["Attributes"]["AWSTraceHeader"] = message.system_attributes["AWSTraceHeader"].get("string_value")
                 if (
                     attributes["sequence_number"]
                     and message.sequence_number is not None
@@ -901,7 +900,7 @@ RECEIVE_MESSAGE_RESPONSE = """<?xml version="1.0"?>
             <Value>{{ message.group_id }}</Value>
           </Attribute>
           {% endif %}
-          {% if message.system_attributes and message.system_attributes.get('AWSTraceHeader') is not none %}
+          {% if attributes.awstraceheader and message.system_attributes and message.system_attributes.get('AWSTraceHeader') is not none %}
           <Attribute>
             <Name>AWSTraceHeader</Name>
             <Value>{{ message.system_attributes.get('AWSTraceHeader',{}).get('string_value') }}</Value>

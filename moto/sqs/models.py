@@ -76,11 +76,14 @@ class Message(BaseModel):
         self,
         message_id: str,
         body: str,
+        # system_attributes is already here, no change needed to the signature.
+        # The previous attempt was trying to add it again.
         system_attributes: Optional[Dict[str, Any]] = None,
     ):
         self.id = message_id
         self._body = body
         self.message_attributes: Dict[str, Any] = {}
+        # self.system_attributes = system_attributes or {} # This line is already present from the previous read.
         self.receipt_handle: Optional[str] = None
         self._old_receipt_handles: List[str] = []
         self.sender_id = DEFAULT_SENDER_ID
@@ -869,7 +872,8 @@ class SQSBackend(BaseBackend):
             delay_seconds = queue.delay_seconds  # type: ignore
 
         message_id = str(random.uuid4())
-        message = Message(message_id, message_body, system_attributes)
+        # Pass system_attributes to the Message constructor
+        message = Message(message_id, message_body, system_attributes=system_attributes)
 
         # if content based deduplication is set then set sha256 hash of the message
         # as the deduplication_id
