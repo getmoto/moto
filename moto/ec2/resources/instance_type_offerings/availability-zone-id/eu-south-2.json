@@ -592,6 +592,46 @@
   "Location": "eus2-az1"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "eus2-az1"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "eus2-az1"
+ },
+ {
   "InstanceType": "im4gn.16xlarge",
   "Location": "eus2-az1"
  },
@@ -2288,6 +2328,46 @@
   "Location": "eus2-az2"
  },
  {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "eus2-az2"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
+  "Location": "eus2-az2"
+ },
+ {
   "InstanceType": "im4gn.16xlarge",
   "Location": "eus2-az2"
  },
@@ -3897,6 +3977,46 @@
  },
  {
   "InstanceType": "i3en.xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.12xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.16xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.24xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.2xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.32xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.4xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.8xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.large",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.metal",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "i4i.xlarge",
   "Location": "eus2-az3"
  },
  {

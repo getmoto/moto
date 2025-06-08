@@ -2124,6 +2124,10 @@
   "Location": "apne1-az1"
  },
  {
+  "InstanceType": "p4de.24xlarge",
+  "Location": "apne1-az1"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "apne1-az1"
  },
@@ -8169,6 +8173,10 @@
  },
  {
   "InstanceType": "p4d.24xlarge",
+  "Location": "apne1-az4"
+ },
+ {
+  "InstanceType": "p4de.24xlarge",
   "Location": "apne1-az4"
  },
  {

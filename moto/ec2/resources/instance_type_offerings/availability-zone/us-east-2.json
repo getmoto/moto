@@ -5500,6 +5500,10 @@
   "Location": "us-east-2b"
  },
  {
+  "InstanceType": "p5e.48xlarge",
+  "Location": "us-east-2b"
+ },
+ {
   "InstanceType": "p5en.48xlarge",
   "Location": "us-east-2b"
  },
