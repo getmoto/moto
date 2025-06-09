@@ -111,6 +111,16 @@ class CacheSubnetGroupAlreadyExists(ElastiCacheException):
         )
 
 
+class CacheSubnetGroupNotFound(ElastiCacheException):
+    code = 404
+
+    def __init__(self, cache_subnet_group_name: str):
+        super().__init__(
+            "CacheSubnetGroupNotFound",
+            message=f"CacheSubnetGroup {cache_subnet_group_name} not found.",
+        )
+
+
 class InvalidARNFault(ElastiCacheException):
     code = 400
 

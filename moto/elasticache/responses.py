@@ -205,17 +205,17 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(CREATE_CACHE_SUBNET_GROUP_TEMPLATE)
         return template.render(cache_subnet_group=cache_subnet_group)
 
-    # def describe_cache_subnet_groups(self):
-    #     params = self._get_params()
-    #     cache_subnet_group_name = params.get("CacheSubnetGroupName")
-    #     max_records = params.get("MaxRecords")
-    #     marker = params.get("Marker")
-    #     marker, cache_subnet_groups = self.elasticache_backend.describe_cache_subnet_groups(
-    #         cache_subnet_group_name=cache_subnet_group_name,
-    #         max_records=max_records,
-    #     )
-    #     template = self.response_template(DESCRIBE_CACHE_SUBNET_GROUPS_TEMPLATE)
-    #     return template.render(marker=marker, cache_subnet_groups=cache_subnet_groups)
+    def describe_cache_subnet_groups(self):
+        cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
+        max_records = self._get_param("MaxRecords")
+        marker = self._get_param("Marker")
+        cache_subnet_groups, marker = self.elasticache_backend.describe_cache_subnet_groups(
+            cache_subnet_group_name=cache_subnet_group_name,
+            marker=marker,
+            max_records=max_records,
+        )
+        template = self.response_template(DESCRIBE_CACHE_SUBNET_GROUPS_TEMPLATE)
+        return template.render(marker=marker, cache_subnet_groups=cache_subnet_groups)
 
 
 USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
@@ -662,6 +662,50 @@ CREATE_CACHE_SUBNET_GROUP_TEMPLATE = """<CreateCacheSubnetGroupResponse xmlns="h
         {% endfor %}
       </Subnets>
       <ARN>{{ cache_subnet_group.arn }}</ARN>
+      <SupportedNetworkTypes>
+        {% for network_type in cache_subnet_group.supported_network_types %}
+          <member>{{ network_type }}</member>
+        {% endfor %}
+      </SupportedNetworkTypes>
     </CacheSubnetGroup>
   </CreateCacheSubnetGroupResult>
 </CreateCacheSubnetGroupResponse>"""
+
+DESCRIBE_CACHE_SUBNET_GROUPS_TEMPLATE = """<DescribeCacheSubnetGroupsResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeCacheSubnetGroupsResult>
+    {% if marker %}<Marker>{{ marker }}</Marker>{% endif %}
+    <CacheSubnetGroups>
+      {% for cache_subnet_group in cache_subnet_groups %}
+      <member>
+        <CacheSubnetGroupName>{{ cache_subnet_group.cache_subnet_group_name }}</CacheSubnetGroupName>
+        <CacheSubnetGroupDescription>{{ cache_subnet_group.cache_subnet_group_description }}</CacheSubnetGroupDescription>
+        <VpcId>{{ cache_subnet_group.vpc_id }}</VpcId>
+        <Subnets>
+          {% for subnet in cache_subnet_group.subnets_responses %}
+          <Subnet>
+            <SubnetIdentifier>{{ subnet.subnet_id }}</SubnetIdentifier>
+            <SubnetAvailabilityZone>
+              <Name>{{ subnet.subnet_az }}</Name>
+            </SubnetAvailabilityZone>
+            <SupportedNetworkTypes>
+              {% for network_type in subnet.subnet_network_types %}
+              <member>{{ network_type }}</member>
+              {% endfor %}
+            </SupportedNetworkTypes>
+          </Subnet>
+          {% endfor %}
+        </Subnets>
+        <ARN>{{ cache_subnet_group.arn }}</ARN>
+        <SupportedNetworkTypes>
+          {% for network_type in cache_subnet_group.supported_network_types %}
+          <member>{{ network_type }}</member>
+          {% endfor %}
+        </SupportedNetworkTypes>
+      </member>
+      {% endfor %}
+    </CacheSubnetGroups>
+  </DescribeCacheSubnetGroupsResult>
+</DescribeCacheSubnetGroupsResponse>"""

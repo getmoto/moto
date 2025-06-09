@@ -749,3 +749,21 @@ def test_create_cache_subnet_group_and_mock_vpc():
         resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
     )
     assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
+
+@mock_aws
+def test_describe_cache_subnet_groups():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+    resp = client.describe_cache_subnet_groups()
+    assert len(resp["CacheSubnetGroups"]) == 1
+    assert resp["CacheSubnetGroups"][0]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert len(resp["CacheSubnetGroups"][0]["Subnets"]) == 2
+
