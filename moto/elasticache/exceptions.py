@@ -139,3 +139,12 @@ class InvalidSubnet(ElastiCacheException):
             "InvalidSubnet",
             message=f"Subnet {subnet_id} is invalid.",
         )
+
+class ReplicationGroupAlreadyExists(ElastiCacheException):
+    code = 404
+
+    def __init__(self, replication_group_id: str):
+        super().__init__(
+            "ReplicationGroupAlreadyExists",
+            message=f"Replication group {replication_group_id} already exists.",
+        )

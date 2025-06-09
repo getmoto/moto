@@ -218,6 +218,90 @@ class ElastiCacheResponse(BaseResponse):
         return template.render(marker=marker, cache_subnet_groups=cache_subnet_groups)
 
 
+    def create_replication_group(self):
+        replication_group_id = self._get_param("ReplicationGroupId")
+        replication_group_description = self._get_param("ReplicationGroupDescription")
+        global_replication_group_id = self._get_param("GlobalReplicationGroupId")
+        primary_cluster_id = self._get_param("PrimaryClusterId")
+        automatic_failover_enabled = self._get_param("AutomaticFailoverEnabled")
+        multi_az_enabled = self._get_param("MultiAZEnabled")
+        num_cache_clusters = self._get_param("NumCacheClusters")
+        preferred_cache_cluster_a_zs = self._get_param("PreferredCacheClusterAZs")
+        num_node_groups = self._get_param("NumNodeGroups")
+        replicas_per_node_group = self._get_param("ReplicasPerNodeGroup")
+        node_group_configuration = self._get_param("NodeGroupConfiguration")
+        cache_node_type = self._get_param("CacheNodeType")
+        engine = self._get_param("Engine")
+        engine_version = self._get_param("EngineVersion")
+        cache_parameter_group_name = self._get_param("CacheParameterGroupName")
+        cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
+        cache_security_group_names = self._get_param("CacheSecurityGroupNames")
+        security_group_ids = self._get_param("SecurityGroupIds")
+        tags = (self._get_multi_param_dict("Tags") or {}).get("Tag", [])
+        snapshot_arns = self._get_param("SnapshotArns")
+        snapshot_name = self._get_param("SnapshotName")
+        preferred_maintenance_window = self._get_param("PreferredMaintenanceWindow")
+        port = self._get_param("Port")
+        notification_topic_arn = self._get_param("NotificationTopicArn")
+        auto_minor_version_upgrade = self._get_param("AutoMinorVersionUpgrade")
+        snapshot_retention_limit = self._get_param("SnapshotRetentionLimit")
+        snapshot_window = self._get_param("SnapshotWindow")
+        auth_token = self._get_param("AuthToken")
+        transit_encryption_enabled = self._get_param("TransitEncryptionEnabled")
+        at_rest_encryption_enabled = self._get_param("AtRestEncryptionEnabled")
+        kms_key_id = self._get_param("KmsKeyId")
+        user_group_ids = self._get_param("UserGroupIds")
+        log_delivery_configurations = self._get_param("LogDeliveryConfigurations")
+        data_tiering_enabled = self._get_param("DataTieringEnabled")
+        network_type = self._get_param("NetworkType")
+        ip_discovery = self._get_param("IpDiscovery")
+        transit_encryption_mode = self._get_param("TransitEncryptionMode")
+        cluster_mode = self._get_param("ClusterMode")
+        serverless_cache_snapshot_name = self._get_param("ServerlessCacheSnapshotName")
+        replication_group = self.elasticache_backend.create_replication_group(
+            replication_group_id=replication_group_id,
+            replication_group_description=replication_group_description,
+            global_replication_group_id=global_replication_group_id,
+            primary_cluster_id=primary_cluster_id,
+            automatic_failover_enabled=automatic_failover_enabled,
+            multi_az_enabled=multi_az_enabled,
+            num_cache_clusters=num_cache_clusters,
+            preferred_cache_cluster_a_zs=preferred_cache_cluster_a_zs,
+            num_node_groups=num_node_groups,
+            replicas_per_node_group=replicas_per_node_group,
+            node_group_configuration=node_group_configuration,
+            cache_node_type=cache_node_type,
+            engine=engine,
+            engine_version=engine_version,
+            cache_parameter_group_name=cache_parameter_group_name,
+            cache_subnet_group_name=cache_subnet_group_name,
+            cache_security_group_names=cache_security_group_names,
+            security_group_ids=security_group_ids,
+            tags=tags,
+            snapshot_arns=snapshot_arns,
+            snapshot_name=snapshot_name,
+            preferred_maintenance_window=preferred_maintenance_window,
+            port=port,
+            notification_topic_arn=notification_topic_arn,
+            auto_minor_version_upgrade=auto_minor_version_upgrade,
+            snapshot_retention_limit=snapshot_retention_limit,
+            snapshot_window=snapshot_window,
+            auth_token=auth_token,
+            transit_encryption_enabled=transit_encryption_enabled,
+            at_rest_encryption_enabled=at_rest_encryption_enabled,
+            kms_key_id=kms_key_id,
+            user_group_ids=user_group_ids,
+            log_delivery_configurations=log_delivery_configurations,
+            data_tiering_enabled=data_tiering_enabled,
+            network_type=network_type,
+            ip_discovery=ip_discovery,
+            transit_encryption_mode=transit_encryption_mode,
+            cluster_mode=cluster_mode,
+            serverless_cache_snapshot_name=serverless_cache_snapshot_name,
+        )
+        template = self.response_template(CREATE_REPLICATION_GROUP_TEMPLATE)
+        return template.render(replication_group=replication_group)
+
 USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
     <UserName>{{ user.name }}</UserName>
     <Status>{{ user.status }}</Status>
@@ -709,3 +793,118 @@ DESCRIBE_CACHE_SUBNET_GROUPS_TEMPLATE = """<DescribeCacheSubnetGroupsResponse xm
     </CacheSubnetGroups>
   </DescribeCacheSubnetGroupsResult>
 </DescribeCacheSubnetGroupsResponse>"""
+
+CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <CreateReplicationGroupResult>
+    <ReplicationGroup>
+      <ReplicationGroupId>{{ replication_group.replication_group_id }}</ReplicationGroupId>
+      <Description>{{ replication_group.replication_group_description }}</Description>
+      {% if replication_group.global_replication_group_id %}
+      <GlobalReplicationGroupInfo>
+        <GlobalReplicationGroupId>{{ replication_group.global_replication_group_id }}</GlobalReplicationGroupId>
+        <GlobalReplicationGroupMemberRole>{{ replication_group.global_replication_group_member_role }}</GlobalReplicationGroupMemberRole>
+      </GlobalReplicationGroupInfo>
+      {% endif %}
+      <Status>{{ replication_group.status }}</Status>
+      <PrimaryClusterId>{{ replication_group.primary_cluster_id }}</PrimaryClusterId>
+      <MemberClusters>
+        {% for member_cluster in replication_group.member_clusters %}
+        <member>{{ member_cluster }}</member>
+        {% endfor %}
+      </MemberClusters>
+      <NodeGroups>
+        {% for node_group in replication_group.node_groups %}
+        <member>
+          <NodeGroupId>{{ node_group.node_group_id }}</NodeGroupId>
+          <Status>{{ node_group.status }}</Status>
+          <PrimaryEndpoint>
+            <Address>{{ node_group.primary_endpoint.address }}</Address>
+            <Port>{{ node_group.primary_endpoint.port }}</Port>
+          </PrimaryEndpoint>
+          <ReaderEndpoint>
+            <Address>{{ node_group.reader_endpoint.address }}</Address>
+            <Port>{{ node_group.reader_endpoint.port }}</Port>
+          </ReaderEndpoint>
+          <CacheNodeType>{{ node_group.cache_node_type }}</CacheNodeType>
+          <PreferredAvailabilityZone>{{ node_group.preferred_availability_zone }}</PreferredAvailabilityZone>
+          <PreferredOutpostArn>{{ node_group.preferred_outpost_arn }}</PreferredOutpostArn>
+          <ReplicaCount>{{ node_group.replica_count }}</ReplicaCount>
+          <Slots>{{ node_group.slots }}</Slots>
+          <NodeGroupMembers>
+            {% for node in node_group.node_group_members %}
+            <member>
+              <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
+              <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
+              <ReadEndpoint>
+                <Address>{{ node.read_endpoint.address }}</Address>
+                <Port>{{ node.read_endpoint.port }}</Port>
+              </ReadEndpoint>
+              <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
+              <PreferredOutpostArn>{{ node.preferred_outpost_arn }}</PreferredOutpostArn>
+              <CurrentRole>{{ node.current_role }}</CurrentRole>
+            </member>
+            {% endfor %}
+          </NodeGroupMembers>
+        </member>
+        {% endfor %}
+      </NodeGroups>
+      <SnapshottingClusterId>{{ replication_group.snapshotting_cluster_id }}</SnapshottingClusterId>
+      <AutomaticFailoverEnabled>{{ replication_group.automatic_failover_enabled|lower }}</AutomaticFailoverEnabled>
+      <MultiAZEnabled>{{ replication_group.multi_az_enabled|lower }}</MultiAZEnabled>
+      <ConfigurationEndpoint>
+        <Address>{{ replication_group.configuration_endpoint.address }}</Address>
+        <Port>{{ replication_group.configuration_endpoint.port }}</Port>
+      </ConfigurationEndpoint>
+      <SnapshotRetentionLimit>{{ replication_group.snapshot_retention_limit }}</SnapshotRetentionLimit>
+      <SnapshotWindow>{{ replication_group.snapshot_window }}</SnapshotWindow>
+      <ClusterEnabled>{{ replication_group.cluster_enabled|lower }}</ClusterEnabled>
+      <CacheNodeType>{{ replication_group.cache_node_type }}</CacheNodeType>
+      <AuthTokenEnabled>{{ replication_group.auth_token is not none }}</AuthTokenEnabled>
+      <AuthTokenLastModifiedDate>{{ replication_group.auth_token_last_modified_date }}</AuthTokenLastModifiedDate>
+      <TransitEncryptionEnabled>{{ replication_group.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
+      <AtRestEncryptionEnabled>{{ replication_group.at_rest_encryption_enabled|lower }}</AtRestEncryptionEnabled>
+      <MemberClustersOutpostArns>
+        {% for outpost_arn in replication_group.member_clusters_outpost_arns %}
+        <member>{{ outpost_arn }}</member>
+        {% endfor %}
+      </MemberClustersOutpostArns>
+      <KmsKeyId>{{ replication_group.kms_key_id }}</KmsKeyId>
+      <ARN>{{ replication_group.arn }}</ARN>
+      <UserGroupIds>
+        {% for user_group_id in replication_group.user_group_ids %}
+        <member>{{ user_group_id }}</member>
+        {% endfor %}
+      </UserGroupIds>
+      <LogDeliveryConfigurations>
+        {% for log_delivery_configuration in replication_group.log_delivery_configurations %}
+        <member>
+          <LogType>{{ log_delivery_configuration.log_type }}</LogType>
+          <DestinationType>{{ log_delivery_configuration.destination_type }}</DestinationType>
+          <DestinationDetails>
+            <CloudWatchLogsDetails>
+              <LogGroup>{{ log_delivery_configuration.cloud_watch_logs_details.log_group }}</LogGroup>
+            </CloudWatchLogsDetails>
+            <KinesisFirehoseDetails>
+              <DeliveryStream>{{ log_delivery_configuration.kinesis_firehose_details.delivery_stream }}</DeliveryStream>
+            </KinesisFirehoseDetails>
+          </DestinationDetails>
+          <LogFormat>{{ log_delivery_configuration.log_format }}</LogFormat>
+          <Status>{{ log_delivery_configuration.status }}</Status>
+          <Message>{{ log_delivery_configuration.message }}</Message>
+        </member>
+        {% endfor %}
+      </LogDeliveryConfigurations>
+      <ReplicationGroupCreateTime>{{ replication_group.replication_group_create_time }}</ReplicationGroupCreateTime>
+      <DataTiering>{{ replication_group.data_tiering_enabled|lower }}</DataTiering>
+      <AutoMinorVersionUpgrade>{{ replication_group.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
+      <NetworkType>{{ replication_group.network_type }}</NetworkType>
+      <IpDiscovery>{{ replication_group.ip_discovery }}</IpDiscovery>
+      <TransitEncryptionMode>{{ replication_group.transit_encryption_mode }}</TransitEncryptionMode>
+      <ClusterMode>{{ replication_group.cluster_mode }}</ClusterMode>
+      <Engine>{{ replication_group.engine }}</Engine>
+    </ReplicationGroup>
+  </CreateReplicationGroupResult>
+</CreateReplicationGroupResponse>"""
