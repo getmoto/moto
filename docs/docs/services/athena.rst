@@ -92,7 +92,7 @@ athena
 
         
 
-- [ ] get_query_runtime_statistics
+- [X] get_query_runtime_statistics
 - [ ] get_session
 - [ ] get_session_status
 - [ ] get_table_metadata
