@@ -51,23 +51,20 @@
 
 ## amp
 <details>
-<summary>51% implemented</summary>
+<summary>58% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
-- [ ] create_query_logging_configuration
 - [X] create_rule_groups_namespace
 - [ ] create_scraper
 - [X] create_workspace
 - [ ] delete_alert_manager_definition
 - [X] delete_logging_configuration
-- [ ] delete_query_logging_configuration
 - [X] delete_rule_groups_namespace
 - [ ] delete_scraper
 - [X] delete_workspace
 - [ ] describe_alert_manager_definition
 - [X] describe_logging_configuration
-- [ ] describe_query_logging_configuration
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
@@ -82,7 +79,6 @@
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_logging_configuration
-- [ ] update_query_logging_configuration
 - [ ] update_scraper
 - [X] update_workspace_alias
 - [ ] update_workspace_configuration
@@ -422,25 +418,25 @@
 
 ## appsync
 <details>
-<summary>27% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] associate_api
 - [ ] associate_merged_graphql_api
 - [ ] associate_source_graphql_api
-- [ ] create_api
+- [X] create_api
 - [X] create_api_cache
 - [X] create_api_key
-- [ ] create_channel_namespace
+- [X] create_channel_namespace
 - [ ] create_data_source
 - [ ] create_domain_name
 - [ ] create_function
 - [X] create_graphql_api
 - [ ] create_resolver
 - [ ] create_type
-- [ ] delete_api
+- [X] delete_api
 - [X] delete_api_cache
 - [X] delete_api_key
-- [ ] delete_channel_namespace
+- [X] delete_channel_namespace
 - [ ] delete_data_source
 - [ ] delete_domain_name
 - [ ] delete_function
@@ -453,7 +449,7 @@
 - [ ] evaluate_code
 - [ ] evaluate_mapping_template
 - [X] flush_api_cache
-- [ ] get_api
+- [X] get_api
 - [ ] get_api_association
 - [X] get_api_cache
 - [ ] get_channel_namespace
@@ -469,8 +465,8 @@
 - [ ] get_source_api_association
 - [X] get_type
 - [X] list_api_keys
-- [ ] list_apis
-- [ ] list_channel_namespaces
+- [X] list_apis
+- [X] list_channel_namespaces
 - [ ] list_data_sources
 - [ ] list_domain_names
 - [ ] list_functions
@@ -1009,7 +1005,7 @@
 
 ## clouddirectory
 <details>
-<summary>10% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] add_facet_to_object
 - [X] apply_schema
@@ -2055,27 +2051,27 @@
 
 ## connectcampaigns
 <details>
-<summary>22% implemented</summary>
+<summary>63% implemented</summary>
 
 - [X] create_campaign
 - [X] delete_campaign
 - [ ] delete_connect_instance_config
 - [ ] delete_instance_onboarding_job
 - [X] describe_campaign
-- [ ] get_campaign_state
+- [X] get_campaign_state
 - [ ] get_campaign_state_batch
 - [X] get_connect_instance_config
 - [ ] get_instance_onboarding_job_status
-- [ ] list_campaigns
-- [ ] list_tags_for_resource
-- [ ] pause_campaign
+- [X] list_campaigns
+- [X] list_tags_for_resource
+- [X] pause_campaign
 - [ ] put_dial_request_batch
-- [ ] resume_campaign
-- [ ] start_campaign
+- [X] resume_campaign
+- [X] start_campaign
 - [X] start_instance_onboarding_job
-- [ ] stop_campaign
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] stop_campaign
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_campaign_dialer_config
 - [ ] update_campaign_name
 - [ ] update_campaign_outbound_call_config
@@ -2244,7 +2240,7 @@
 
 ## directconnect
 <details>
-<summary>12% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] accept_direct_connect_gateway_association_proposal
 - [ ] allocate_connection_on_interconnect
@@ -2294,7 +2290,7 @@
 - [ ] describe_loa
 - [ ] describe_locations
 - [ ] describe_router_configuration
-- [X] describe_tags
+- [ ] describe_tags
 - [ ] describe_virtual_gateways
 - [ ] describe_virtual_interfaces
 - [ ] disassociate_connection_from_lag
@@ -2607,7 +2603,7 @@
 
 ## ec2
 <details>
-<summary>30% implemented</summary>
+<summary>31% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_capacity_reservation_billing_ownership
@@ -3182,7 +3178,6 @@
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
-- [ ] modify_public_ip_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_route_server
 - [X] modify_security_group_rules
@@ -4190,7 +4185,7 @@
 
 ## glue
 <details>
-<summary>30% implemented</summary>
+<summary>31% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -9534,7 +9529,7 @@
 
 ## stepfunctions
 <details>
-<summary>54% implemented</summary>
+<summary>64% implemented</summary>
 
 - [X] create_activity
 - [X] create_state_machine
