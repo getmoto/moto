@@ -499,9 +499,9 @@ def test_get_campaign_state():
 
     campaign_id = create_response["id"]
 
-    # Initially, the campaign state should be 'Stopped'
+    # Initially, the campaign state should be 'Initialized'
     state_response = client.get_campaign_state(id=campaign_id)
-    assert state_response["state"] == "Stopped"
+    assert state_response["state"] == "Initialized"
 
     # Start the campaign
     client.start_campaign(id=campaign_id)
