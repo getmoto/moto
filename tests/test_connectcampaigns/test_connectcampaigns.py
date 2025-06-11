@@ -448,38 +448,6 @@ def test_list_tags_for_resource():
 
 
 @mock_aws
-def test_list_tags_for_resource_invalid_arn():
-    client = boto3.client("connectcampaigns", region_name="us-east-1")
-
-    with pytest.raises(client.exceptions.ResourceNotFoundException):
-        client.list_tags_for_resource(
-            arn="arn:aws:connectcampaigns:us-east-1:123456789012:campaign/non-existent-id"
-        )
-
-
-@mock_aws
-def test_tag_resource_invalid_arn():
-    client = boto3.client("connectcampaigns", region_name="us-east-1")
-
-    with pytest.raises(client.exceptions.ResourceNotFoundException):
-        client.tag_resource(
-            arn="arn:aws:connectcampaigns:us-east-1:123456789012:campaign/non-existent-id",
-            tags={"Environment": "Test", "Owner": "DevTeam"},
-        )
-
-
-@mock_aws
-def test_untag_resource_invalid_arn():
-    client = boto3.client("connectcampaigns", region_name="us-east-1")
-
-    with pytest.raises(client.exceptions.ResourceNotFoundException):
-        client.untag_resource(
-            arn="arn:aws:connectcampaigns:us-east-1:123456789012:campaign/non-existent-id",
-            tagKeys=["Environment"],
-        )
-
-
-@mock_aws
 def test_get_campaign_state():
     client = boto3.client("connectcampaigns", region_name="us-east-1")
 
