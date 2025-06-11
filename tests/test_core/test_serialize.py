@@ -17,7 +17,11 @@ import time
 from botocore.model import ServiceModel, ShapeResolver
 from xmltodict import parse
 
-from moto.core.serialize import QuerySerializer, XFormedAttributePicker
+from moto.core.serialize import (
+    AttributePickerContext,
+    QuerySerializer,
+    XFormedAttributePicker,
+)
 
 
 def test_serialize_from_object() -> None:
@@ -150,7 +154,8 @@ class TestXFormedAttributePicker:
 
     def test_missing_attribute(self):
         obj = dict()
-        value = self.picker(obj, "Attribute", None)
+        ctx = AttributePickerContext(obj, "Attribute", None)
+        value = self.picker(ctx)
         assert value is None
 
     def test_serialization_key(self):
@@ -169,24 +174,46 @@ class TestXFormedAttributePicker:
         )
         assert shape
         obj = {"other": "found me"}
-        value = self.picker(obj, "StringType", shape)
+        ctx = AttributePickerContext(obj, "StringType", shape)
+        value = self.picker(ctx)
         assert value == "found me"
 
     def test_short_key(self):
         class Role:
             id = "unique-identifier"
 
-        value = self.picker(Role(), "RoleId", None)
+        ctx = AttributePickerContext(Role(), "RoleId", None)
+        value = self.picker(ctx)
         assert value == "unique-identifier"
 
     def test_transformed_key(self):
         class DBInstance:
             db_instance_class = "t2.medium"
 
-        value = self.picker(DBInstance(), "DBInstanceClass", None)
+        ctx = AttributePickerContext(DBInstance(), "DBInstanceClass", None)
+        value = self.picker(ctx)
         assert value == "t2.medium"
 
     def test_untransformed_key(self):
         obj = {"PascalCasedAttr": True}
-        value = self.picker(obj, "PascalCasedAttr", None)
+        ctx = AttributePickerContext(obj, "PascalCasedAttr", None)
+        value = self.picker(ctx)
         assert value is True
+
+    def test_key_path_traversal(self):
+        child = {"Child": True}
+        parent = {"Parent": child}
+        ctx = AttributePickerContext(parent, "Parent.Child", None)
+        value = self.picker(ctx)
+        assert value is True
+
+    def test_explicit_key_alias(self):
+        class DBInstance:
+            class Meta:
+                serialization_aliases = {"DBInstanceClass": "db_instance_klass"}
+
+            db_instance_klass = "t2.medium"
+
+        ctx = AttributePickerContext(DBInstance(), "DBInstanceClass", None)
+        value = self.picker(ctx)
+        assert value == "t2.medium"
