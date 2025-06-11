@@ -23,6 +23,7 @@ from typing import (
     Protocol,
     Tuple,
     Union,
+    overload,
 )
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -2253,6 +2254,30 @@ class RDSBackend(BaseBackend):
         validated_key = kms_key.arn
         return validated_key
 
+    @overload
+    def get_backend(
+        self,
+        service: Literal["kms"],
+        region: str,
+        account_id: Optional[str] = None,
+    ) -> KmsBackend: ...
+
+    @overload
+    def get_backend(
+        self,
+        service: Literal["rds"],
+        region: str,
+        account_id: Optional[str] = None,
+    ) -> RDSBackend: ...
+
+    @overload
+    def get_backend(
+        self,
+        service: Literal["secretsmanager"],
+        region: str,
+        account_id: Optional[str] = None,
+    ) -> SecretsManagerBackend: ...
+
     def get_backend(
         self,
         service: Literal["kms"] | Literal["rds"] | Literal["secretsmanager"],
@@ -2266,6 +2291,22 @@ class RDSBackend(BaseBackend):
 
         return get_moto_backend(service)[account_id][region]
 
+    @overload
+    def get_snapshot(
+        self,
+        identifier: str,
+        resource_type: type[DBSnapshot],
+        not_found_exception: type[DBSnapshotNotFoundFault],
+    ) -> DBSnapshot: ...
+
+    @overload
+    def get_snapshot(
+        self,
+        identifier: str,
+        resource_type: type[DBClusterSnapshot],
+        not_found_exception: type[DBClusterSnapshotNotFoundError],
+    ) -> DBClusterSnapshot: ...
+
     def get_snapshot(
         self,
         identifier: str,
@@ -2278,22 +2319,24 @@ class RDSBackend(BaseBackend):
             region = identifier.split(":")[3]
             identifier = identifier.split(":")[-1]
         backend = self.get_backend("rds", region=region)
-        assert isinstance(backend, RDSBackend)
         snapshots = backend.resource_map[resource_type]
-        if identifier not in snapshots:  # type: ignore[operator]
+        if identifier not in snapshots:
             raise not_found_exception(identifier)
-        return snapshots[identifier]  # type: ignore[index]
+        return snapshots[identifier]
 
-    get_db_snapshot = partialmethod(
-        get_snapshot,
-        resource_type=DBSnapshot,
-        not_found_exception=DBSnapshotNotFoundFault,
-    )
-    get_db_cluster_snapshot = partialmethod(
-        get_snapshot,
-        resource_type=DBClusterSnapshot,
-        not_found_exception=DBClusterSnapshotNotFoundError,
-    )
+    def get_db_snapshot(self, identifier: str) -> DBSnapshot:
+        return self.get_snapshot(
+            identifier,
+            resource_type=DBSnapshot,
+            not_found_exception=DBSnapshotNotFoundFault,
+        )
+
+    def get_db_cluster_snapshot(self, identifier: str) -> DBClusterSnapshot:
+        return self.get_snapshot(
+            identifier,
+            resource_type=DBClusterSnapshot,
+            not_found_exception=DBClusterSnapshotNotFoundError,
+        )
 
     def get_shared_snapshots(
         self, resource_type: type[DBSnapshot] | type[DBClusterSnapshot]
