@@ -954,8 +954,8 @@ class DBClusterSnapshot(SnapshotAttributesMixin, RDSBaseModel):
             self.kms_key_id = self.cluster.kms_key_id = kms_key_id
             self.encrypted = self.cluster.storage_encrypted = True
         else:
-            self.kms_key_id = self.cluster.kms_key_id  # type: ignore[assignment]
-            self.encrypted = self.cluster.storage_encrypted  # type: ignore[assignment]
+            self.kms_key_id = self.cluster.kms_key_id
+            self.encrypted = self.cluster.storage_encrypted
         self.engine = self.cluster.engine
         self.engine_version = self.cluster.engine_version
         self.master_username = self.cluster.master_username
@@ -1357,12 +1357,12 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         return [self.backend.db_parameter_groups[self.db_parameter_group_name]]
 
     def is_default_parameter_group(self, param_group_name: str) -> bool:
-        return param_group_name.startswith(f"default.{self.engine.lower()}")  # type: ignore
+        return param_group_name.startswith(f"default.{self.engine.lower()}")
 
     def default_db_parameter_group_details(self) -> Tuple[str, str]:
         assert self.engine and self.engine_version
         minor_engine_version = ".".join(str(self.engine_version).rsplit(".")[:-1])
-        db_family = f"{self.engine.lower()}{minor_engine_version}"  # type: ignore
+        db_family = f"{self.engine.lower()}{minor_engine_version}"
 
         return db_family, f"default.{db_family}"
 
@@ -1439,10 +1439,10 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             # Cross Region replica
             self.replicas.append(replica.db_instance_arn)
         else:
-            self.replicas.append(replica.db_instance_identifier)  # type: ignore
+            self.replicas.append(replica.db_instance_identifier)
 
     def remove_replica(self, replica: DBInstance) -> None:
-        self.replicas.remove(replica.db_instance_identifier)  # type: ignore
+        self.replicas.remove(replica.db_instance_identifier)
 
     def set_as_replica(self) -> None:
         self.is_replica = True
@@ -1607,7 +1607,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_db_instance(self.db_instance_identifier)  # type: ignore[arg-type]
+        backend.delete_db_instance(self.db_instance_identifier)
 
     def save_automated_backup(self) -> None:
         self.add_event("DB_INSTANCE_BACKUP_START")
@@ -2230,7 +2230,7 @@ class RDSBackend(BaseBackend):
 
     @property
     def secretsmanager(self) -> SecretsManagerBackend:
-        return self.get_backend("secretsmanager", self.region_name, self.account_id)  # type: ignore[return-value]
+        return self.get_backend("secretsmanager", self.region_name, self.account_id)
 
     def _validate_kms_key(self, kms_key_id: str) -> str:
         key = kms_key_id
@@ -2241,7 +2241,7 @@ class RDSBackend(BaseBackend):
                 raise KMSKeyNotAccessibleFault(kms_key_id)
             account = match.group("account_id")
             key = match.group("key")
-            kms_backend = self.get_backend("kms", region, account)  # type: ignore[assignment]
+            kms_backend = self.get_backend("kms", region, account)
             assert isinstance(kms_backend, KmsBackend)
         try:
             kms_key = kms_backend.describe_key(key)
@@ -2342,7 +2342,7 @@ class RDSBackend(BaseBackend):
             for backend in backend_container.values():
                 if backend.region_name != self.region_name:
                     continue
-                snapshots = backend.resource_map[resource_type].values()  # type: ignore[attr-defined]
+                snapshots = backend.resource_map[resource_type].values()
                 for snapshot in snapshots:
                     if self.account_id in snapshot.attributes["restore"]:
                         snapshots_shared.append(snapshot)
@@ -2763,7 +2763,7 @@ class RDSBackend(BaseBackend):
         # todo: certain rds types not allowed to be stopped at this time.
         # https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_StopInstance.html#USER_StopInstance.Limitations
         if database.is_replica or (
-            database.multi_az and database.engine.lower().startswith("sqlserver")  # type: ignore
+            database.multi_az and database.engine.lower().startswith("sqlserver")
         ):
             # todo: more db types not supported by stop/start instance api
             raise InvalidDBClusterStateFaultError(db_instance_identifier)
@@ -2952,7 +2952,7 @@ class RDSBackend(BaseBackend):
                 "InvalidParameterValue", "Invalid DB engine: non-existent"
             )
         if (
-            option_group_kwargs["major_engine_version"]  # type: ignore
+            option_group_kwargs["major_engine_version"]
             not in valid_option_group_engines[option_group_kwargs["engine_name"]]
         ):
             raise RDSClientError(
@@ -3343,7 +3343,7 @@ class RDSBackend(BaseBackend):
             clusters = self._filter_resources(clusters, filters, DBCluster)
         if db_cluster_identifier and not clusters:
             raise DBClusterNotFoundError(db_cluster_identifier)
-        return list(clusters.values())  # type: ignore
+        return list(clusters.values())
 
     def describe_db_cluster_snapshots(
         self,
@@ -3520,8 +3520,8 @@ class RDSBackend(BaseBackend):
     def _find_resource(self, resource_type: str, resource_name: str) -> Any:
         for resource_class, resources in self.resource_map.items():
             if resource_type == getattr(resource_class, "resource_type", ""):
-                if resource_name in resources:  # type: ignore
-                    return resources[resource_name]  # type: ignore
+                if resource_name in resources:
+                    return resources[resource_name]
         # The resource_name is the last part of the ARN
         # Usually that's the name - but for DBProxies, the last part of the ARN is a random identifier
         # So we can't just use the dict-keys - we have to manually check the ARN
@@ -3554,7 +3554,7 @@ class RDSBackend(BaseBackend):
         if resource:
             resource.remove_tags(tag_keys)
 
-    def add_tags_to_resource(  # type: ignore[return]
+    def add_tags_to_resource(
         self, arn: str, tags: List[Dict[str, str]]
     ) -> List[Dict[str, str]]:
         resource = self._get_resource_for_tagging(arn)
@@ -3683,7 +3683,7 @@ class RDSBackend(BaseBackend):
         global_cluster = GlobalCluster(
             backend=self,
             global_cluster_identifier=global_cluster_identifier,
-            engine=engine,  # type: ignore
+            engine=engine,
             engine_version=engine_version,
             storage_encrypted=storage_encrypted,
             deletion_protection=deletion_protection,
@@ -4042,7 +4042,7 @@ class DBParameterGroup(CloudFormationModel, RDSBaseModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_db_parameter_group(self.name)  # type: ignore[arg-type]
+        backend.delete_db_parameter_group(self.name)
 
     @staticmethod
     def cloudformation_name_type() -> str:
