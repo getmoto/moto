@@ -1094,7 +1094,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.iops = iops
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
         self.db_instance_identifier = db_instance_identifier
-        self.source_db_identifier = source_db_instance_identifier
+        self.source_db_instance_identifier = source_db_instance_identifier
         self.db_instance_class = db_instance_class
         self.port = port
         if self.port is None:
@@ -1990,7 +1990,7 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_security_group(self.group_name)
+        backend.delete_security_group(self.name)
 
 
 class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
@@ -2084,7 +2084,7 @@ class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_subnet_group(self.subnet_name)
+        backend.delete_subnet_group(self.name)
 
 
 class DBProxy(RDSBaseModel):
