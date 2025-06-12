@@ -1,6 +1,5 @@
 """ConnectCampaignServiceBackend class with methods for supported APIs."""
 
-import logging
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote
@@ -271,43 +270,38 @@ class ConnectCampaignServiceBackend(BaseBackend):
 
     def tag_resource(self, arn: str, tags: Dict[str, str]) -> None:
         arn = unquote(arn)
-        campaign = None
-        for c in self.campaigns.values():
-            # TODO: Note to myself, remove this print statements and loggingclear in production code
-            # print("=" * 80)
-            # print(f"Checking campaign: {c.arn} against {arn}")
-            logging.info("=" * 90)
-            logging.info(f"Checking campaign: {c.arn} against {arn}")
-            if c.arn == arn:
-                campaign = c
-                break
+        # campaign = None
+        # for c in self.campaigns.values():
+        #     if c.arn == arn:
+        #         campaign = c
+        #         break
 
-        if campaign is None:
-            raise ResourceNotFoundException(f"Resource {arn} not found")
+        # if campaign is None:
+        #     raise ResourceNotFoundException(f"Resource {arn} not found")
 
         tag_list = [{"Key": k, "Value": v} for k, v in tags.items()]
-        campaign.tags.update(tags)
+        # campaign.tags.update(tags)
         self.tagger.tag_resource(arn, tag_list)
         return
 
     def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
         arn = unquote(arn)
-        campaign = None
-        for c in self.campaigns.values():
-            if c.arn == arn:
-                campaign = c
-                break
+        # campaign = None
+        # for c in self.campaigns.values():
+        #     if c.arn == arn:
+        #         campaign = c
+        #         break
 
-        if campaign is None:
-            raise ResourceNotFoundException(f"Resource {arn} not found")
+        # if campaign is None:
+        #     raise ResourceNotFoundException(f"Resource {arn} not found")
 
-        if not isinstance(tag_keys, list):
-            tag_keys = [tag_keys]
+        # if not isinstance(tag_keys, list):
+        #     tag_keys = [tag_keys]
         if not tag_keys:
             raise ValidationException("tagKeys is a required parameter")
 
-        for tag in tag_keys:
-            campaign.tags.pop(tag, None)
+        # for tag in tag_keys:
+        #     campaign.tags.pop(tag, None)
         self.tagger.untag_resource_using_names(arn, tag_keys)
         return
 

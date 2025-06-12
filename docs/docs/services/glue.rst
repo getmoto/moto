@@ -88,7 +88,7 @@ glue
 - [X] delete_partition
 - [ ] delete_partition_index
 - [X] delete_registry
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [X] delete_schema
 - [ ] delete_schema_versions
 - [ ] delete_security_configuration
