@@ -1,5 +1,6 @@
 """ConnectCampaignServiceBackend class with methods for supported APIs."""
 
+import logging
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import unquote
@@ -272,6 +273,11 @@ class ConnectCampaignServiceBackend(BaseBackend):
         arn = unquote(arn)
         campaign = None
         for c in self.campaigns.values():
+            # TODO: Note to myself, remove this print statements and loggingclear in production code
+            # print("=" * 80)
+            # print(f"Checking campaign: {c.arn} against {arn}")
+            logging.info("=" * 90)
+            logging.info(f"Checking campaign: {c.arn} against {arn}")
             if c.arn == arn:
                 campaign = c
                 break
