@@ -4,11 +4,13 @@ import copy
 import json
 import math
 import os
+import random
 import re
 import string
 import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime
+from enum import Enum
 from functools import lru_cache, partialmethod
 from re import compile as re_compile
 from typing import (
@@ -2307,8 +2309,9 @@ class RDSBackend(BaseBackend):
         self,
         identifier: str,
         resource_type: type[DBSnapshot] | type[DBClusterSnapshot],
-        not_found_exception: type[DBSnapshotNotFoundFault]
-        | type[DBClusterSnapshotNotFoundError],
+        not_found_exception: (
+            type[DBSnapshotNotFoundFault] | type[DBClusterSnapshotNotFoundError]
+        ),
     ) -> DBSnapshot | DBClusterSnapshot:
         region = self.region_name
         if identifier.startswith("arn"):
@@ -2545,9 +2548,7 @@ class RDSBackend(BaseBackend):
                 snapshot_type is None
                 and (filters is not None and "snapshot-type" not in filters)
             )
-            else [snapshot_type]
-            if snapshot_type is not None
-            else []
+            else [snapshot_type] if snapshot_type is not None else []
         )
         if snapshot_types:
             filters = merge_filters(filters, {"snapshot-type": snapshot_types})
@@ -3367,9 +3368,7 @@ class RDSBackend(BaseBackend):
                 snapshot_type is None
                 and (filters is not None and "snapshot-type" not in filters)
             )
-            else [snapshot_type]
-            if snapshot_type is not None
-            else []
+            else [snapshot_type] if snapshot_type is not None else []
         )
         if snapshot_types:
             filters = merge_filters(filters, {"snapshot-type": snapshot_types})
@@ -3944,9 +3943,11 @@ class RDSBackend(BaseBackend):
             raise DBInstanceNotFoundError(db_instance_identifier)
         database = self.databases[db_instance_identifier]
         return database.log_file_manager.files
-    
-    def create_blue_green_deployment(self, bg_kwargs: Dict[str, Any]) -> BlueGreenDeployment:
-        return BlueGreenDeployment(**bg_kwargs)
+
+    def create_blue_green_deployment(
+        self, bg_kwargs: Dict[str, Any]
+    ) -> BlueGreenDeployment:
+        return BlueGreenDeployment(self, **bg_kwargs)  # type: ignore
 
 
 class OptionGroup(RDSBaseModel):
@@ -4157,33 +4158,101 @@ class Event:
         self.source_arn = resource.arn
         self.date = utcnow()
 
-class BlueGreenDeployment:
+
+class BlueGreenDeployment(RDSBaseModel):
+
+    class SupportedStates(Enum):
+        PROVISIONING = (1,)
+        AVAILABLE = (2,)
+        SWITCHOVER_IN_PROGRESS = (3,)
+        SWITCHOVER_COMPLETED = (4,)
+        INVALID_CONFIGURATION = (5,)
+        SWITCHOVER_FAILED = (6,)
+        DELETING = 7
+
     def __init__(
         self,
+        backend: RDSBackend,
         blue_green_deployment_name: str,
         source: str,
-        target_engine_version: str | None = None,
-        target_db_parameter_group_name: str | None = None,
-        target_cluster_db_parameter_group_name: str | None = None,
-        target_db_instance_class: str | None = None,
-        target_iops: int | None = None,
-        target_storage_type: str | None = None,
-        target_allocated_storage: int | None = None,
-        target_storage_throughput: int | None = None,
         tags: List[Dict[str, str]] | None = None,
-        upgrade_target_storage_config: bool = False
-        ) -> None:
-        self.blue_green_deployment_identifier = "foo"
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(backend)
+        self.blue_green_deployment_identifier = self._generate_id()
         self.blue_green_deployment_name = blue_green_deployment_name
         self.source = source
-        self.target = "foobarBaz" # ToDo: Create Instance with targetblob
-        self.switchover_details = [{}] # ToDo: Setup SwitchoverDetails
-        self.tasks = [{}] # ToDo: Setup Tasks
-        self.status = "AVAILABLE"
-        self.status_details = "None"
+        self.target = self._create_green_instance(
+            target_engine_version=kwargs.get("target_engine_version", None),
+            target_db_parameter_group_name=kwargs.get(
+                "target_db_parameter_group_name", None
+            ),
+            target_cluster_db_parameter_group_name=kwargs.get(
+                "target_cluster_db_parameter_group_name", None
+            ),
+            target_db_instance_class=kwargs.get("target_db_instance_class", None),
+            target_iops=kwargs.get("target_iops", None),
+            target_storage_type=kwargs.get("target_storage_type", None),
+            target_allocated_storage=kwargs.get("target_allocated_storage", None),
+            target_storage_throughput=kwargs.get("target_storage_throughput", None),
+            upgrade_target_storage_config=kwargs.get(
+                "upgrade_target_storage_config", False
+            ),
+        )
+        self.switchover_details = [{}]  # ToDo: Setup SwitchoverDetails
+        self.tasks = [{}]  # ToDo: Setup Tasks
+        self.status = self.SupportedStates.AVAILABLE.name
+        self.status_details = "None"  # ToDo: Check what actually shows up
         self.create_time = utcnow()
-        self.deletion_time = None
-        self.tag_list = tags
+        self.deletion_time = None  # ToDo: Check what actually shows up
+        self.tags = tags
+
+    @property
+    def resource_id(self) -> str:
+        return self.blue_green_deployment_identifier
+
+    def _generate_id(self) -> str:
+        return "bgd-" + "".join(
+            random.choices(string.ascii_lowercase + string.digits, k=16)
+        )
+
+    def _create_green_instance(
+        self,
+        target_engine_version: str | None,
+        target_db_parameter_group_name: str | None,
+        target_cluster_db_parameter_group_name: str | None,
+        target_db_instance_class: str | None,
+        target_iops: int | None,
+        target_storage_type: str | None,
+        target_allocated_storage: int | None,
+        target_storage_throughput: int | None,
+        upgrade_target_storage_config: bool,
+    ) -> str:
+        source_instance = self._get_source_instance()
+
+        # db_kwargs = {
+        #     "engine": source_instance["Engine"],
+        #     "db_instance_class": target_db_instance_class or source_instance["DBInstanceClass"],
+        #     "engine_version": target_engine_version or source_instance["EngineVersion"]
+        # }
+
+        # if isinstance(source_instance, DBInstance):
+        #     db_kwargs["db_instance_identifier"] = "{}-green-12345".format(source_instance["DBInstanceIdentifier"])
+        #     green_instance = self.backend.create_db_instance(
+        #         db_kwargs
+        #     )
+
+        return "FooBarBaz"
+    
+    def _get_source_instance(self) -> DBInstance | DBCluster:
+        try:
+            result = self.backend.describe_db_instances(
+                db_instance_identifier=self.source)
+            return result[0]
+        except DBInstanceNotFoundError:
+            return self.backend.describe_db_clusters(
+                db_cluster_identifier=self.source
+            )[0]
 
 
 rds_backends = BackendDict(RDSBackend, "rds")

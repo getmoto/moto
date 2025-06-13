@@ -3670,9 +3670,16 @@ def test_create_bluegreen_deployment_creates_a_new_instance(client):
     )
 
     bluegreen_deployment_response = response["BlueGreenDeployment"]
+
+    db_describe_response = client.describe_db_instances(
+        DBInstanceIdentifier=bluegreen_deployment_response["Target"]
+    )
+
     assert bluegreen_deployment_response != None
+    assert "bgd-" in bluegreen_deployment_response["BlueGreenDeploymentIdentifier"]
     assert bluegreen_deployment_response["BlueGreenDeploymentName"] == "FooBarBlueGreen"
     assert bluegreen_deployment_response["Source"] == instance["DBInstanceArn"]
     assert bluegreen_deployment_response["Target"] != None
     assert bluegreen_deployment_response["Status"] == "AVAILABLE"
 
+    assert len(db_describe_response["DBInstances"]) > 0
