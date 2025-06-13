@@ -66,6 +66,8 @@ def test_get_compatible_versions():
     client = boto3.client("opensearch", region_name="us-east-2")
     client.create_domain(DomainName="testdn")
 
+    versions = client.get_compatible_versions()["CompatibleVersions"]
+    assert len(versions) == 22
     versions = client.get_compatible_versions(DomainName="testdn")["CompatibleVersions"]
     assert len(versions) == 22
 

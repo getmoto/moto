@@ -305,8 +305,10 @@ class OpenSearchServiceBackend(BaseBackend):
             self.add_tags(domain.arn, tag_list)
         return domain
 
-    def get_compatible_versions(self, domain_name: str) -> List[Dict[str, Any]]:
-        if domain_name not in self.domains:
+    def get_compatible_versions(
+        self, domain_name: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        if domain_name and domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         return compatible_versions
 
