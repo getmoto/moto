@@ -3944,6 +3944,9 @@ class RDSBackend(BaseBackend):
             raise DBInstanceNotFoundError(db_instance_identifier)
         database = self.databases[db_instance_identifier]
         return database.log_file_manager.files
+    
+    def create_blue_green_deployment(self, bg_kwargs: Dict[str, Any]) -> BlueGreenDeployment:
+        return BlueGreenDeployment(**bg_kwargs)
 
 
 class OptionGroup(RDSBaseModel):
@@ -4153,6 +4156,34 @@ class Event:
         self.event_categories = event_metadata["Categories"]
         self.source_arn = resource.arn
         self.date = utcnow()
+
+class BlueGreenDeployment:
+    def __init__(
+        self,
+        blue_green_deployment_name: str,
+        source: str,
+        target_engine_version: str | None = None,
+        target_db_parameter_group_name: str | None = None,
+        target_cluster_db_parameter_group_name: str | None = None,
+        target_db_instance_class: str | None = None,
+        target_iops: int | None = None,
+        target_storage_type: str | None = None,
+        target_allocated_storage: int | None = None,
+        target_storage_throughput: int | None = None,
+        tags: List[Dict[str, str]] | None = None,
+        upgrade_target_storage_config: bool = False
+        ) -> None:
+        self.blue_green_deployment_identifier = "foo"
+        self.blue_green_deployment_name = blue_green_deployment_name
+        self.source = source
+        self.target = "foobarBaz" # ToDo: Create Instance with targetblob
+        self.switchover_details = [{}] # ToDo: Setup SwitchoverDetails
+        self.tasks = [{}] # ToDo: Setup Tasks
+        self.status = "AVAILABLE"
+        self.status_details = "None"
+        self.create_time = utcnow()
+        self.deletion_time = None
+        self.tag_list = tags
 
 
 rds_backends = BackendDict(RDSBackend, "rds")

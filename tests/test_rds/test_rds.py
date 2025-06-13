@@ -3659,3 +3659,20 @@ def test_db_instance_identifier_is_case_insensitive(client):
 
     response = client.describe_db_instances()
     assert len(response["DBInstances"]) == 0
+
+@mock_aws
+def test_create_bluegreen_deployment_creates_a_new_instance(client):
+    instance = create_db_instance(DBInstanceIdentifier="FooBar")
+
+    response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName="FooBarBlueGreen",
+        Source=instance["DBInstanceArn"]
+    )
+
+    bluegreen_deployment_response = response["BlueGreenDeployment"]
+    assert bluegreen_deployment_response != None
+    assert bluegreen_deployment_response["BlueGreenDeploymentName"] == "FooBarBlueGreen"
+    assert bluegreen_deployment_response["Source"] == instance["DBInstanceArn"]
+    assert bluegreen_deployment_response["Target"] != None
+    assert bluegreen_deployment_response["Status"] == "AVAILABLE"
+
