@@ -26,7 +26,6 @@ from xml.dom.minidom import parseString as parseXML
 
 import boto3
 import requests
-import xmltodict
 from botocore.model import OperationModel, ServiceModel
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
@@ -1275,80 +1274,3 @@ def flatten_json_request_body(
     if prefix:
         prefix = prefix + "."
     return dict((prefix + k, v) for k, v in flat.items())
-
-
-def xml_to_json_response(
-    service_spec: Any, operation: str, xml: str, result_node: Any = None
-) -> Dict[str, Any]:
-    """Convert rendered XML response to JSON for use with boto3."""
-
-    def transform(value: Any, spec: Dict[str, Any]) -> Any:
-        """Apply transformations to make the output JSON comply with the
-        expected form. This function applies:
-
-          (1) Type cast to nodes with "type" property (e.g., 'true' to
-              True). XML field values are all in text so this step is
-              necessary to convert it to valid JSON objects.
-
-          (2) Squashes "member" nodes to lists.
-
-        """
-        if len(spec) == 1:
-            return from_str(value, spec)
-
-        od: Dict[str, Any] = OrderedDict()
-        for k, v in value.items():
-            if k.startswith("@"):
-                continue
-
-            if k not in spec:
-                # this can happen when with an older version of
-                # botocore for which the node in XML template is not
-                # defined in service spec.
-                log.warning("Field %s is not defined by the botocore version in use", k)
-                continue
-
-            if spec[k]["type"] == "list":
-                if v is None:
-                    od[k] = []
-                elif len(spec[k]["member"]) == 1:
-                    if isinstance(v["member"], list):
-                        od[k] = transform(v["member"], spec[k]["member"])
-                    else:
-                        od[k] = [transform(v["member"], spec[k]["member"])]
-                elif isinstance(v["member"], list):
-                    od[k] = [transform(o, spec[k]["member"]) for o in v["member"]]
-                elif isinstance(v["member"], (OrderedDict, dict)):
-                    od[k] = [transform(v["member"], spec[k]["member"])]
-                else:
-                    raise ValueError("Malformatted input")
-            elif spec[k]["type"] == "map":
-                if v is None:
-                    od[k] = {}
-                else:
-                    items = (
-                        [v["entry"]] if not isinstance(v["entry"], list) else v["entry"]
-                    )
-                    for item in items:
-                        key = from_str(item["key"], spec[k]["key"])
-                        val = from_str(item["value"], spec[k]["value"])
-                        if k not in od:
-                            od[k] = {}
-                        od[k][key] = val
-            else:
-                if v is None:
-                    od[k] = None
-                else:
-                    od[k] = transform(v, spec[k])
-        return od
-
-    dic = xmltodict.parse(xml)
-    output_spec = service_spec.output_spec(operation)
-    try:
-        for k in result_node or (operation + "Response", operation + "Result"):
-            dic = dic[k]
-    except KeyError:
-        return None  # type: ignore[return-value]
-    else:
-        return transform(dic, output_spec)
-    return None
