@@ -3549,50 +3549,30 @@ def test_update_item_add_to_non_existent_number_set():
     assert updated_item["s_i"]["NS"] == ["3"]
 
 
-@mock_aws
-def test_gsi_projection_type_keys_only():
-    table_schema = {
-        "KeySchema": [{"AttributeName": "partitionKey", "KeyType": "HASH"}],
-        "GlobalSecondaryIndexes": [
-            {
-                "IndexName": "GSI-K1",
-                "KeySchema": [
-                    {"AttributeName": "gsiK1PartitionKey", "KeyType": "HASH"},
-                    {"AttributeName": "gsiK1SortKey", "KeyType": "RANGE"},
-                ],
-                "Projection": {"ProjectionType": "KEYS_ONLY"},
-            }
-        ],
-        "AttributeDefinitions": [
-            {"AttributeName": "partitionKey", "AttributeType": "S"},
-            {"AttributeName": "gsiK1PartitionKey", "AttributeType": "S"},
-            {"AttributeName": "gsiK1SortKey", "AttributeType": "S"},
-        ],
-    }
-
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_gsi_range=True, gsi_projection_type="KEYS_ONLY")
+def test_gsi_projection_type_keys_only(table_name=None):
     item = {
-        "partitionKey": "pk-1",
-        "gsiK1PartitionKey": "gsi-pk",
-        "gsiK1SortKey": "gsi-sk",
+        "pk": "pk-1",
+        "gsi_pk": "gsi-pk",
+        "gsi_sk": "gsi-sk",
         "someAttribute": "lore ipsum",
     }
 
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-    table = dynamodb.Table("test-table")
+
+    table = dynamodb.Table(table_name)
     table.put_item(Item=item)
 
     items = table.query(
-        KeyConditionExpression=Key("gsiK1PartitionKey").eq("gsi-pk"), IndexName="GSI-K1"
+        KeyConditionExpression=Key("gsi_pk").eq("gsi-pk"), IndexName="test_gsi"
     )["Items"]
     assert len(items) == 1
     # Item should only include GSI Keys and Table Keys, as per the ProjectionType
     assert items[0] == {
-        "gsiK1PartitionKey": "gsi-pk",
-        "gsiK1SortKey": "gsi-sk",
-        "partitionKey": "pk-1",
+        "gsi_pk": "gsi-pk",
+        "gsi_sk": "gsi-sk",
+        "pk": "pk-1",
     }
 
 
@@ -3658,58 +3638,32 @@ def test_gsi_projection_type_include():
     }
 
 
-@mock_aws
-def test_lsi_projection_type_keys_only():
-    table_schema = {
-        "KeySchema": [
-            {"AttributeName": "partitionKey", "KeyType": "HASH"},
-            {"AttributeName": "sortKey", "KeyType": "RANGE"},
-        ],
-        "LocalSecondaryIndexes": [
-            {
-                "IndexName": "LSI",
-                "KeySchema": [
-                    {"AttributeName": "partitionKey", "KeyType": "HASH"},
-                    {"AttributeName": "lsiK1SortKey", "KeyType": "RANGE"},
-                ],
-                "Projection": {"ProjectionType": "KEYS_ONLY"},
-            }
-        ],
-        "AttributeDefinitions": [
-            {"AttributeName": "partitionKey", "AttributeType": "S"},
-            {"AttributeName": "sortKey", "AttributeType": "S"},
-            {"AttributeName": "lsiK1SortKey", "AttributeType": "S"},
-        ],
-    }
-
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_lsi=True, lsi_projection_type="KEYS_ONLY")
+def test_lsi_projection_type_keys_only(table_name=None):
     item = {
-        "partitionKey": "pk-1",
-        "sortKey": "sk-1",
-        "lsiK1SortKey": "lsi-sk",
+        "pk": "pk-1",
+        "sk": "sk-1",
+        "lsi_sk": "lsi-sk",
         "someAttribute": "lore ipsum",
     }
 
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-    table = dynamodb.Table("test-table")
+    table = dynamodb.Table(table_name)
     table.put_item(Item=item)
 
     items = table.query(
-        KeyConditionExpression=Key("partitionKey").eq("pk-1"), IndexName="LSI"
+        KeyConditionExpression=Key("pk").eq("pk-1"), IndexName="test_lsi"
     )["Items"]
     # Item should only include GSI Keys and Table Keys, as per the ProjectionType
-    assert items == [
-        {"partitionKey": "pk-1", "sortKey": "sk-1", "lsiK1SortKey": "lsi-sk"}
-    ]
+    assert items == [{"pk": "pk-1", "sk": "sk-1", "lsi_sk": "lsi-sk"}]
 
     # Same when scanning the table
-    items = table.scan(IndexName="LSI")["Items"]
+    items = table.scan(IndexName="test_lsi")["Items"]
     assert items[0] == {
-        "lsiK1SortKey": "lsi-sk",
-        "partitionKey": "pk-1",
-        "sortKey": "sk-1",
+        "lsi_sk": "lsi-sk",
+        "pk": "pk-1",
+        "sk": "sk-1",
     }
 
 
