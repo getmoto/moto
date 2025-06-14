@@ -97,9 +97,13 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
             # Terraform 5.50 made a request to /rrset/
             # Terraform 5.51+ makes a request to /rrset - so we have to intercept both variants
             request_uri += "?"
-        if service_name == "lambda" and request_uri.endswith("/functions/"):
-            # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
-            request_uri += "?"
+        if service_name == "lambda":
+            if request_uri.endswith("/event-source-mappings/"):
+                # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
+                request_uri += "?"
+            elif request_uri.endswith("/functions/"):
+                # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
+                request_uri += "?"
         if service_name == "opensearch" and request_uri.endswith("/tags/"):
             # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"

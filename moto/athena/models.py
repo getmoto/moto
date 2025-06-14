@@ -452,5 +452,12 @@ class AthenaBackend(BaseBackend):
                 return ps
         return None
 
+    def get_query_runtime_statistics(
+        self, query_execution_id: str
+    ) -> Optional[Execution]:
+        if query_execution_id in self.executions:
+            return self.executions[query_execution_id]
+        return None
+
 
 athena_backends = BackendDict(AthenaBackend, "athena")

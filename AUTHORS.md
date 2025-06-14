@@ -65,3 +65,4 @@ Moto is written by Steve Pulec with contributions from:
 * [Jonas Bulik](https://github.com/MrGreenTea)
 * [Rita Cheung](https://github.com/rita-cheung)
 * [David Acevedo](https://github.com/dacevedo12)
+* [Damon Williams](https://github.com/footballencarta)

@@ -22,12 +22,15 @@ network-firewall
 - [ ] create_firewall_policy
 - [ ] create_rule_group
 - [ ] create_tls_inspection_configuration
+- [ ] create_vpc_endpoint_association
 - [ ] delete_firewall
 - [ ] delete_firewall_policy
 - [ ] delete_resource_policy
 - [ ] delete_rule_group
 - [ ] delete_tls_inspection_configuration
+- [ ] delete_vpc_endpoint_association
 - [X] describe_firewall
+- [ ] describe_firewall_metadata
 - [ ] describe_firewall_policy
 - [ ] describe_flow_operation
 - [X] describe_logging_configuration
@@ -35,6 +38,7 @@ network-firewall
 - [ ] describe_rule_group
 - [ ] describe_rule_group_metadata
 - [ ] describe_tls_inspection_configuration
+- [ ] describe_vpc_endpoint_association
 - [ ] disassociate_subnets
 - [ ] get_analysis_report_results
 - [ ] list_analysis_reports
@@ -45,6 +49,7 @@ network-firewall
 - [ ] list_rule_groups
 - [ ] list_tags_for_resource
 - [ ] list_tls_inspection_configurations
+- [ ] list_vpc_endpoint_associations
 - [ ] put_resource_policy
 - [ ] start_analysis_report
 - [ ] start_flow_capture
