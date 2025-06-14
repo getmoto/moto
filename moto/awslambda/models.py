@@ -1317,10 +1317,13 @@ class EventSourceMapping(CloudFormationModel):
         self.last_modified = time.mktime(utcnow().timetuple())
 
     def _get_service_source_from_arn(self, event_source_arn: str) -> str:
-        return event_source_arn.split(":")[2].lower()
+        service = event_source_arn.split(":")[2].lower()
+        if service == "sqs" and event_source_arn.endswith(".fifo"):
+            return "sqs-fifo"
+        return service
 
     def _validate_event_source(self, event_source_arn: str) -> bool:
-        valid_services = ("dynamodb", "kinesis", "sqs")
+        valid_services = ("dynamodb", "kinesis", "sqs", "sqs-fifo")
         service = self._get_service_source_from_arn(event_source_arn)
         return service in valid_services
 
@@ -1344,8 +1347,9 @@ class EventSourceMapping(CloudFormationModel):
     def batch_size(self, batch_size: Optional[int]) -> None:
         batch_size_service_map = {
             "kinesis": (100, 10000),
-            "dynamodb": (100, 1000),
-            "sqs": (10, 10),
+            "dynamodb": (100, 10000),
+            "sqs": (10, 10000),
+            "sqs-fifo": (10, 10),
         }
 
         source_type = self._get_service_source_from_arn(self.event_source_arn)
