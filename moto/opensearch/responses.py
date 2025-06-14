@@ -137,7 +137,7 @@ class OpenSearchServiceResponse(BaseResponse):
         return json.dumps(dict(DomainStatus=domain.to_dict()))
 
     def describe_domain_config(self) -> str:
-        domain_name = self.path.split("/")[-1]
+        domain_name = self.path.split("/")[-2]
         domain = self.opensearch_backend.describe_domain_config(
             domain_name=domain_name,
         )
