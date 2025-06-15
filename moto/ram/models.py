@@ -160,87 +160,87 @@ class ResourceAccessManagerBackend(BaseBackend):
         {
             "resourceType": "rds:Cluster",
             "serviceName": "rds",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "imagebuilder:Component",
             "serviceName": "imagebuilder",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "networkmanager:CoreNetwork",
             "serviceName": "networkmanager",
-            "resourceRegionScope": "GLOBAL"
+            "resourceRegionScope": "GLOBAL",
         },
         {
             "resourceType": "resource-groups:Group",
             "serviceName": "resource-groups",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "imagebuilder:Image",
             "serviceName": "imagebuilder",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "imagebuilder:ImageRecipe",
             "serviceName": "imagebuilder",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "license-manager:LicenseConfiguration",
             "serviceName": "license-manager",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "appmesh:Mesh",
             "serviceName": "appmesh",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "ec2:PrefixList",
             "serviceName": "ec2",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "codebuild:Project",
             "serviceName": "codebuild",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "codebuild:ReportGroup",
             "serviceName": "codebuild",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "route53resolver:ResolverRule",
             "serviceName": "route53resolver",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "ec2:Subnet",
             "serviceName": "ec2",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "ec2:TransitGatewayMulticastDomain",
             "serviceName": "ec2",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "glue:Database",
             "serviceName": "glue",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "glue:Table",
             "serviceName": "glue",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
         {
             "resourceType": "glue:Catalog",
             "serviceName": "glue",
-            "resourceRegionScope": "REGIONAL"
+            "resourceRegionScope": "REGIONAL",
         },
     ]
 
@@ -401,7 +401,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                 f"{resource_region_scope} is not a valid resource region "
                 "scope value. Specify a valid value and try again."
             )
-        
+
         if resource_region_scope == "ALL":
             resource_types = self.RESOURCE_TYPES
         else:

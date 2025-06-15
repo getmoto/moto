@@ -541,7 +541,11 @@ def test_get_resource_share_associations_errors():
         ({"resourceRegionScope": "ALL"}, False, None),
         ({"resourceRegionScope": "GLOBAL"}, False, None),
         ({"resourceRegionScope": "REGIONAL"}, False, None),
-        ({"resourceRegionScope": "INVALID"}, True, "INVALID is not a valid resource region scope value. Specify a valid value and try again."),
+        (
+            {"resourceRegionScope": "INVALID"},
+            True,
+            "INVALID is not a valid resource region scope value. Specify a valid value and try again.",
+        ),
     ],
     ids=[
         "default_region_scope",
@@ -568,9 +572,13 @@ def test_list_resource_types(resource_region_scope, expect_error, error_message)
         response = client.list_resource_types(**kwargs)
         expected_types = ResourceAccessManagerBackend.RESOURCE_TYPES
         if kwargs["resourceRegionScope"] == "GLOBAL":
-            expected_types = [rt for rt in expected_types if rt["resourceRegionScope"] == "GLOBAL"]
+            expected_types = [
+                rt for rt in expected_types if rt["resourceRegionScope"] == "GLOBAL"
+            ]
         elif kwargs["resourceRegionScope"] == "REGIONAL":
-            expected_types = [rt for rt in expected_types if rt["resourceRegionScope"] == "REGIONAL"]
+            expected_types = [
+                rt for rt in expected_types if rt["resourceRegionScope"] == "REGIONAL"
+            ]
 
         assert "resourceTypes" in response
         assert response["resourceTypes"] == expected_types
