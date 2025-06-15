@@ -10,7 +10,7 @@ from jinja2 import Template
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.route53.exceptions import InvalidChangeBatch
+from moto.route53.exceptions import InvalidChangeBatch, InvalidInput
 from moto.route53.models import Route53Backend, route53_backends
 
 XMLNS = "https://route53.amazonaws.com/doc/2013-04-01/"
@@ -350,6 +350,14 @@ class Route53(BaseResponse):
         assert id_matcher
         type_ = id_matcher.group(1)
         id_ = unquote(id_matcher.group(2))
+        if type_ == "hostedzone" and len(id_) > 32:
+            # From testing, it looks like Route53 creates ID's that are either 21 or 22 characters long
+            # In practice, this error will typically appear when passing in the full ID: `/hostedzone/{id}`
+            # Users should pass in {id} instead
+            # NOTE: we don't know (yet) what kind of validation (if any) is in place for type_==healthcheck.
+            raise InvalidInput(
+                f"1 validation error detected: Value '{id_}' at 'resourceId' failed to satisfy constraint: Member must have length less than or equal to 32"
+            )
 
         if request.method == "GET":
             tags = self.backend.list_tags_for_resource(id_)
@@ -368,7 +376,7 @@ class Route53(BaseResponse):
             elif "RemoveTagKeys" in tags:
                 tags = tags["RemoveTagKeys"]  # type: ignore
 
-            self.backend.change_tags_for_resource(id_, tags)
+            self.backend.change_tags_for_resource(type_, id_, tags)
             template = Template(CHANGE_TAGS_FOR_RESOURCE_RESPONSE)
             return 200, headers, template.render()
 
