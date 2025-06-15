@@ -37,7 +37,10 @@ class ResourceShare(BaseModel):
         "report-group",  # AWS CodeBuild report group
         "resolver-rule",  # Amazon Route 53 forwarding rule
         "subnet",  # Amazon EC2 subnet
-        "transit-gateway",  # Amazon EC2 transit gateway
+        "transit-gateway",  # Amazon EC2 transit gateway,
+        "database",  # Amazon Glue database
+        "table",  # Amazon Glue table
+        "catalog",  # Amazon Glue catalog
     ]
 
     def __init__(self, account_id: str, region: str, **kwargs: Any):
