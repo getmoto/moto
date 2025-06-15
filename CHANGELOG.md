@@ -1,6 +1,65 @@
 Moto Changelog
 ==============
 
+5.1.6
+-----
+Docker Digest for 5.1.6: <autopopulateddigest>
+
+    New Methods:
+        * Athena:
+            * get_query_statistics()
+
+        * AppSync:
+            * create_api()
+            * create_channel_namespace()
+            * delete_api()
+            * delete_channel_namespace()
+            * get_api()
+            * list_apis()
+            * list_channel_namespaces()
+
+        * CloudDirectory:
+            * apply_schema()
+            * create_schema()
+            * delete_schema()
+            * list_development_schema_arns()
+            * list_published_schema_arns()
+            * publish_schema()
+
+        * DirectConnect:
+            * describe_tags()
+            * tag_resource()
+            * untag_resource()
+
+        * EC2:
+            * modify_security_group_rules()
+
+        * Glue:
+            * delete_resource_policy()
+
+        * SecurityHub:
+            * describe_organization_configuration()
+            * enable_organization_admin_account()
+            * get_administrator_account()
+            * update_organization_configuration()
+
+        * StepFunctions:
+            * create_activity()
+            * delete_activity()
+            * describe_activity()
+            * list_activities()
+
+    Miscellaneous:
+        * CodeDeploy: get_deployment_group() now returns the deploymentGroupId-attribute
+        * CognitoIDP: create_user_pool_client() now supports MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY=HASH to ensure predictable identifiers
+        * Lambda: EventSourceMappings for FIFO queues now support custom batch sizes
+        * Lambda: EventSourceMappings now support tagging
+        * NetworkFirewall: describe_firewall() now returns the UpdateToken-parameter
+        * OpenSearch: get_compatible_versions() now longer requires the DomainName-parameter
+        * OpenSearch: describe_domain_config() now actually works (used to be completely broken)
+        * Route53: change_tags_for_resource(): Validate ZoneId parameter
+        * SNS: Now allows sending messages from standard topics to FIFO queues
+
 5.1.5
 -----
 Docker Digest for 5.1.5: _sha256:b9dbd12d211c88e5799d023db15ec809bca4cc6df93a8aa78f26ccbfb073d18a_
