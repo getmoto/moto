@@ -968,6 +968,10 @@
   "Location": "il-central-1"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "il-central-1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "il-central-1"
  },

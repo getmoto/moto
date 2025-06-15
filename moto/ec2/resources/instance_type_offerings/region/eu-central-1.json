@@ -2168,6 +2168,10 @@
   "Location": "eu-central-1"
  },
  {
+  "InstanceType": "p4de.24xlarge",
+  "Location": "eu-central-1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "eu-central-1"
  },
