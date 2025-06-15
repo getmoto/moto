@@ -156,6 +156,94 @@ class ResourceShare(BaseModel):
 
 
 class ResourceAccessManagerBackend(BaseBackend):
+    RESOURCE_TYPES = [  # List of resource types based on SHAREABLE_RESOURCES
+        {
+            "resourceType": "rds:Cluster",
+            "serviceName": "rds",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "imagebuilder:Component",
+            "serviceName": "imagebuilder",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "networkmanager:CoreNetwork",
+            "serviceName": "networkmanager",
+            "resourceRegionScope": "GLOBAL"
+        },
+        {
+            "resourceType": "resource-groups:Group",
+            "serviceName": "resource-groups",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "imagebuilder:Image",
+            "serviceName": "imagebuilder",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "imagebuilder:ImageRecipe",
+            "serviceName": "imagebuilder",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "license-manager:LicenseConfiguration",
+            "serviceName": "license-manager",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "appmesh:Mesh",
+            "serviceName": "appmesh",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "ec2:PrefixList",
+            "serviceName": "ec2",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "codebuild:Project",
+            "serviceName": "codebuild",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "codebuild:ReportGroup",
+            "serviceName": "codebuild",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "route53resolver:ResolverRule",
+            "serviceName": "route53resolver",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "ec2:Subnet",
+            "serviceName": "ec2",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "ec2:TransitGatewayMulticastDomain",
+            "serviceName": "ec2",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "glue:Database",
+            "serviceName": "glue",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "glue:Table",
+            "serviceName": "glue",
+            "resourceRegionScope": "REGIONAL"
+        },
+        {
+            "resourceType": "glue:Catalog",
+            "serviceName": "glue",
+            "resourceRegionScope": "REGIONAL"
+        },
+    ]
+
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.resource_shares: List[ResourceShare] = []
@@ -304,6 +392,26 @@ class ResourceAccessManagerBackend(BaseBackend):
                     )
 
         return dict(resourceShareAssociations=associations)
+
+    def list_resource_types(self, **kwargs: Any) -> Dict[str, Any]:
+        resource_region_scope = kwargs.get("resourceRegionScope", "ALL")
+
+        if resource_region_scope not in ["ALL", "REGIONAL", "GLOBAL"]:
+            raise InvalidParameterException(
+                f"{resource_region_scope} is not a valid resource region "
+                "scope value. Specify a valid value and try again."
+            )
+        
+        if resource_region_scope == "ALL":
+            resource_types = self.RESOURCE_TYPES
+        else:
+            resource_types = [
+                resource_type
+                for resource_type in self.RESOURCE_TYPES
+                if resource_type["resourceRegionScope"] == resource_region_scope
+            ]
+
+        return dict(resourceTypes=resource_types)
 
 
 ram_backends = BackendDict(ResourceAccessManagerBackend, "ram")
