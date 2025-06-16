@@ -557,25 +557,23 @@ def test_get_resource_share_associations_errors():
 )
 def test_list_resource_types(resource_region_scope, expect_error, error_message):
     client = boto3.client("ram", region_name="us-east-1")
-    kwargs = dict(resource_region_scope)
-    if "resourceRegionScope" not in kwargs:
-        kwargs["resourceRegionScope"] = "ALL"
+    region_scope = resource_region_scope.get("resourceRegionScope")
 
     if expect_error:
         with pytest.raises(ClientError) as e:
-            client.list_resource_types(**kwargs)
+            client.list_resource_types(**resource_region_scope)
         ex = e.value
         assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
         assert "InvalidParameterException" in ex.response["Error"]["Code"]
         assert ex.response["Error"]["Message"] == error_message
     else:
-        response = client.list_resource_types(**kwargs)
+        response = client.list_resource_types(**resource_region_scope)
         expected_types = ResourceAccessManagerBackend.RESOURCE_TYPES
-        if kwargs["resourceRegionScope"] == "GLOBAL":
+        if region_scope == "GLOBAL":
             expected_types = [
                 rt for rt in expected_types if rt["resourceRegionScope"] == "GLOBAL"
             ]
-        elif kwargs["resourceRegionScope"] == "REGIONAL":
+        elif region_scope == "REGIONAL":
             expected_types = [
                 rt for rt in expected_types if rt["resourceRegionScope"] == "REGIONAL"
             ]
