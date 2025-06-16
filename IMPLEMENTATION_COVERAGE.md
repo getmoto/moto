@@ -51,23 +51,20 @@
 
 ## amp
 <details>
-<summary>51% implemented</summary>
+<summary>58% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
-- [ ] create_query_logging_configuration
 - [X] create_rule_groups_namespace
 - [ ] create_scraper
 - [X] create_workspace
 - [ ] delete_alert_manager_definition
 - [X] delete_logging_configuration
-- [ ] delete_query_logging_configuration
 - [X] delete_rule_groups_namespace
 - [ ] delete_scraper
 - [X] delete_workspace
 - [ ] describe_alert_manager_definition
 - [X] describe_logging_configuration
-- [ ] describe_query_logging_configuration
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
@@ -82,7 +79,6 @@
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_logging_configuration
-- [ ] update_query_logging_configuration
 - [ ] update_scraper
 - [X] update_workspace_alias
 - [ ] update_workspace_configuration
@@ -2064,27 +2060,27 @@
 
 ## connectcampaigns
 <details>
-<summary>22% implemented</summary>
+<summary>63% implemented</summary>
 
 - [X] create_campaign
 - [X] delete_campaign
 - [ ] delete_connect_instance_config
 - [ ] delete_instance_onboarding_job
 - [X] describe_campaign
-- [ ] get_campaign_state
+- [X] get_campaign_state
 - [ ] get_campaign_state_batch
 - [X] get_connect_instance_config
 - [ ] get_instance_onboarding_job_status
-- [ ] list_campaigns
-- [ ] list_tags_for_resource
-- [ ] pause_campaign
+- [X] list_campaigns
+- [X] list_tags_for_resource
+- [X] pause_campaign
 - [ ] put_dial_request_batch
-- [ ] resume_campaign
-- [ ] start_campaign
+- [X] resume_campaign
+- [X] start_campaign
 - [X] start_instance_onboarding_job
-- [ ] stop_campaign
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] stop_campaign
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_campaign_dialer_config
 - [ ] update_campaign_name
 - [ ] update_campaign_outbound_call_config
@@ -3192,7 +3188,6 @@
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
-- [ ] modify_public_ip_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_route_server
 - [X] modify_security_group_rules

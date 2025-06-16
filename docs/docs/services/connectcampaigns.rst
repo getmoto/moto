@@ -19,20 +19,20 @@ connectcampaigns
 - [ ] delete_connect_instance_config
 - [ ] delete_instance_onboarding_job
 - [X] describe_campaign
-- [ ] get_campaign_state
+- [X] get_campaign_state
 - [ ] get_campaign_state_batch
 - [X] get_connect_instance_config
 - [ ] get_instance_onboarding_job_status
-- [ ] list_campaigns
-- [ ] list_tags_for_resource
-- [ ] pause_campaign
+- [X] list_campaigns
+- [X] list_tags_for_resource
+- [X] pause_campaign
 - [ ] put_dial_request_batch
-- [ ] resume_campaign
-- [ ] start_campaign
+- [X] resume_campaign
+- [X] start_campaign
 - [X] start_instance_onboarding_job
-- [ ] stop_campaign
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] stop_campaign
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_campaign_dialer_config
 - [ ] update_campaign_name
 - [ ] update_campaign_outbound_call_config
