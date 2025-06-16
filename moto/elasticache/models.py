@@ -167,33 +167,39 @@ class CacheSubnetGroup(BaseModel):
             subnets = ec2_backend.describe_subnets(subnet_ids=subnet_ids)
             vpcs = []
             for subnet in subnets:
-                subnet_response = {}
+                subnet_response: Dict[str, Any] = {}
                 vpcs.append(subnet.vpc_id)
                 subnet_response["subnet_id"] = subnet.id
                 subnet_response["subnet_az"] = subnet.availability_zone
-                subnet_response["supported_network_types"] = []
+                subnet_response["subnet_supported_network_types"] = []
 
                 if subnet.vpc_id != vpcs[0]:
                     raise InvalidSubnet(subnet_id=subnet.id)
                 if subnet.ipv6_cidr_block_associations:
                     self.supported_network_types.append("ipv6")
-                    subnet_response["supported_network_types"].append("ipv6")
+                    subnet_response["subnet_supported_network_types"].append("ipv6")
                 if subnet.cidr_block:
                     self.supported_network_types.append("ipv4")
-                    subnet_response["supported_network_types"].append("ipv6")
+                    subnet_response["subnet_supported_network_types"].append("ipv4")
 
-                if "ipv4" in subnet_response["supported_network_types"] and \
-                    "ipv6" in subnet_response["supported_network_types"]:
-                    subnet_response["supported_network_types"].append("dual_stack")
+                if (
+                    "ipv4" in subnet_response["subnet_supported_network_types"]
+                    and "ipv6" in subnet_response["subnet_supported_network_types"]
+                ):
+                    subnet_response["subnet_supported_network_types"].append(
+                        "dual_stack"
+                    )
                     self.supported_network_types.append("dual_stack")
 
                 self.subnets_responses.append(subnet_response)
 
             if self.supported_network_types:
                 self.supported_network_types = list(set(self.supported_network_types))
-                if "dual_stack" not in self.supported_network_types and \
-                    ("ipv4" in self.supported_network_types) and \
-                    ("ipv6" in self.supported_network_types):
+                if (
+                    "dual_stack" not in self.supported_network_types
+                    and ("ipv4" in self.supported_network_types)
+                    and ("ipv6" in self.supported_network_types)
+                ):
                     self.supported_network_types.append("dual_stack")
 
         except Exception as e:
@@ -202,9 +208,7 @@ class CacheSubnetGroup(BaseModel):
                     subnet_response = {}
                     subnet_response["subnet_id"] = subnet_id
                     subnet_response["subnet_az"] = {"Name": "us-east-1a"}
-                    subnet_response["subnet_network_types"] = [
-                        "ipv4"
-                    ]
+                    subnet_response["subnet_supported_network_types"] = ["ipv4"]
                     self.subnets_responses.append(subnet_response)
                 vpcs = ["vpc-0123456789abcdef0"]
                 self.supported_network_types = ["ipv4"]
