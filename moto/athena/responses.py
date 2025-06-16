@@ -76,18 +76,24 @@ class AthenaResponse(BaseResponse):
                 "Query": execution.query,
                 "StatementType": statement_type,
                 "ResultConfiguration": execution.config,
+                "ResultReuseConfiguration": {
+                    "ResultReuseByAgeConfiguration": {"Enabled": False}
+                },
                 "QueryExecutionContext": execution.context,
                 "Status": {
                     "State": execution.status,
                     "SubmissionDateTime": execution.start_time,
+                    "CompletionDateTime": execution.end_time,
                 },
                 "Statistics": {
                     "EngineExecutionTimeInMillis": 0,
                     "DataScannedInBytes": 0,
                     "TotalExecutionTimeInMillis": 0,
                     "QueryQueueTimeInMillis": 0,
+                    "ServicePreProcessingTimeInMillis": 0,
                     "QueryPlanningTimeInMillis": 0,
                     "ServiceProcessingTimeInMillis": 0,
+                    "ResultReuseInformation": {"ReusedPreviousResult": False},
                 },
                 "WorkGroup": execution.workgroup.name if execution.workgroup else None,
             }
