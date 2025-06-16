@@ -223,7 +223,7 @@ class MetricDatumBase(BaseModel):
         namespace: str,
         name: str,
         dimensions: List[Dict[str, str]],
-        timestamp: datetime,
+        timestamp: Optional[datetime],
         unit: Any = None,
     ):
         self.namespace = namespace
@@ -276,7 +276,7 @@ class MetricDatum(MetricDatumBase):
         name: str,
         value: float,
         dimensions: List[Dict[str, str]],
-        timestamp: datetime,
+        timestamp: Optional[datetime],
         unit: Any = None,
     ):
         super().__init__(namespace, name, dimensions, timestamp, unit)
@@ -297,7 +297,7 @@ class MetricAggregatedDatum(MetricDatumBase):
         sample_count: float,
         sum_stat: float,
         dimensions: List[Dict[str, str]],
-        timestamp: datetime,
+        timestamp: Optional[datetime],
         unit: Any = None,
     ):
         super().__init__(namespace, name, dimensions, timestamp, unit)

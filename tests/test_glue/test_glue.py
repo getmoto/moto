@@ -1287,3 +1287,74 @@ def test_put_resource_policy_error_conditions():
             PolicyExistsCondition="MUST_EXIST",
         )
     assert "ResourceNumberLimitExceededException" in str(excinfo.value)
+
+
+@mock_aws
+def test_delete_resource_policy():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+    client.put_resource_policy(PolicyInJson=policy_json, ResourceArn=catalog_arn)
+    catalog_response = client.get_resource_policy(ResourceArn=catalog_arn)
+
+    assert "PolicyInJson" in catalog_response
+    assert "PolicyHash" in catalog_response
+
+    # Delete resource policy
+    client.delete_resource_policy(ResourceArn=catalog_arn)
+
+    catalog_response = client.get_resource_policy(ResourceArn=catalog_arn)
+    assert "PolicyInJson" not in catalog_response
+    assert "PolicyHash" not in catalog_response
+
+
+@mock_aws
+def test_delete_resource_policy_error_conditions():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+
+    # Delete resource policy that does not exist.
+    with pytest.raises(ClientError) as error_info:
+        client.delete_resource_policy(ResourceArn=catalog_arn)
+
+    assert error_info.value.response["Error"]["Code"] == "EntityNotFoundException"
+
+    # Create resource policy
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+    client.put_resource_policy(PolicyInJson=policy_json, ResourceArn=catalog_arn)
+
+    with pytest.raises(ClientError) as error_info:
+        client.delete_resource_policy(
+            ResourceArn=catalog_arn,
+            PolicyHashCondition="incorrect-hash",
+        )
+    assert (
+        error_info.value.response["Error"]["Code"] == "ConcurrentModificationException"
+    )

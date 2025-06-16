@@ -1798,6 +1798,50 @@ def test_set_repository_policy():
 
 
 @mock_aws
+def test_set_repository_policy_validation():
+    """Test if ECR specific behavior for policy validation works (like allowing duplicated Sids)"""
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    client.create_repository(repositoryName=ECR_REPO)
+
+    # test duplicated Sids (allowed for ECR) and missing resource
+    policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "duplicate",
+                "Effect": "Allow",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Action": ["ecr:DescribeImages"],
+            },
+            {
+                "Sid": "duplicate",
+                "Effect": "Allow",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Action": ["ecr:PutImage"],
+            },
+        ],
+    }
+
+    # when
+    client.set_repository_policy(repositoryName=ECR_REPO, policyText=json.dumps(policy))
+
+    # test older policy version (allowed for ECR)
+    policy = {
+        "Version": "2008-10-17",
+        "Statement": [
+            {
+                "Sid": "root",
+                "Effect": "Allow",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Action": ["ecr:DescribeImages"],
+            },
+        ],
+    }
+
+    client.set_repository_policy(repositoryName=ECR_REPO, policyText=json.dumps(policy))
+
+
+@mock_aws
 def test_set_repository_policy_error_not_exists():
     # given
     region_name = "eu-central-1"

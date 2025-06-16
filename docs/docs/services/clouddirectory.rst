@@ -17,7 +17,7 @@ clouddirectory
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] add_facet_to_object
-- [ ] apply_schema
+- [X] apply_schema
 - [ ] attach_object
 - [ ] attach_policy
 - [ ] attach_to_index
@@ -28,12 +28,12 @@ clouddirectory
 - [ ] create_facet
 - [ ] create_index
 - [ ] create_object
-- [ ] create_schema
+- [X] create_schema
 - [ ] create_typed_link_facet
 - [X] delete_directory
 - [ ] delete_facet
 - [ ] delete_object
-- [ ] delete_schema
+- [X] delete_schema
 - [ ] delete_typed_link_facet
 - [ ] detach_from_index
 - [ ] detach_object
@@ -51,7 +51,7 @@ clouddirectory
 - [ ] get_typed_link_facet_information
 - [ ] list_applied_schema_arns
 - [ ] list_attached_indices
-- [ ] list_development_schema_arns
+- [X] list_development_schema_arns
 - [X] list_directories
 - [ ] list_facet_attributes
 - [ ] list_facet_names
@@ -65,12 +65,12 @@ clouddirectory
 - [ ] list_object_policies
 - [ ] list_outgoing_typed_links
 - [ ] list_policy_attachments
-- [ ] list_published_schema_arns
+- [X] list_published_schema_arns
 - [X] list_tags_for_resource
 - [ ] list_typed_link_facet_attributes
 - [ ] list_typed_link_facet_names
 - [ ] lookup_policy
-- [ ] publish_schema
+- [X] publish_schema
 - [ ] put_schema_from_json
 - [ ] remove_facet_from_object
 - [X] tag_resource

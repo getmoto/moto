@@ -29,10 +29,10 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         )
 
         # Format tag response
-        response = {"ResourceTagMappingList": resource_tag_mapping_list}
-        if pagination_token:
-            response["PaginationToken"] = pagination_token
-
+        response = {
+            "ResourceTagMappingList": resource_tag_mapping_list,
+            "PaginationToken": pagination_token,
+        }
         return json.dumps(response)
 
     def get_tag_keys(self) -> str:
@@ -41,10 +41,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
             pagination_token=pagination_token
         )
 
-        response = {"TagKeys": tag_keys}
-        if pagination_token:
-            response["PaginationToken"] = pagination_token
-
+        response = {"TagKeys": tag_keys, "PaginationToken": pagination_token}
         return json.dumps(response)
 
     def get_tag_values(self) -> str:
@@ -54,10 +51,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
             pagination_token=pagination_token, key=key
         )
 
-        response = {"TagValues": tag_values}
-        if pagination_token:
-            response["PaginationToken"] = pagination_token
-
+        response = {"TagValues": tag_values, "PaginationToken": pagination_token}
         return json.dumps(response)
 
     def tag_resources(self) -> str:

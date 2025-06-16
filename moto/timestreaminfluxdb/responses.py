@@ -140,10 +140,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
             max_results=max_results,
         )
 
-        response = {"items": items}
-        if next_token:
-            response["nextToken"] = next_token
-
+        response = {"items": items, "nextToken": next_token}
         return json.dumps(response)
 
     def list_db_clusters(self) -> str:
@@ -156,10 +153,7 @@ class TimestreamInfluxDBResponse(BaseResponse):
             max_results=max_results,
         )
 
-        response = {"items": items}
-        if next_token:
-            response["nextToken"] = next_token
-
+        response = {"items": items, "nextToken": next_token}
         return json.dumps(response)
 
     def get_db_cluster(self) -> str:

@@ -432,11 +432,11 @@ class Task(BaseObject, ManagedState):
             )
 
     @property
-    def last_status(self) -> Optional[str]:
-        return self.status  # managed state
+    def last_status(self) -> str:
+        return self.status  # type: ignore[return-value]  # managed state
 
     @last_status.setter
-    def last_status(self, value: Optional[str]) -> None:
+    def last_status(self, value: str) -> None:
         self.status = value
 
     @property

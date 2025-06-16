@@ -52,11 +52,13 @@ encoded as ``utf-8``.
 
 from __future__ import annotations
 
+import abc
 import base64
 import calendar
 import json
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, MutableMapping, Optional, TypedDict, Union
+from typing import Any, Generator, Mapping, MutableMapping, Optional, TypedDict, Union
 
 import xmltodict
 from botocore import xform_name
@@ -70,6 +72,8 @@ from botocore.model import (
     StructureShape,
 )
 from botocore.utils import is_json_value_header, parse_to_aware_datetime
+
+from moto.core.utils import MISSING, get_value
 
 Serialized = MutableMapping[str, Any]
 
@@ -248,7 +252,7 @@ class ResponseSerializer(ShapeHelpersMixin):
         self.context = context or SerializationContext()
         self.pretty_print = pretty_print
         if value_picker is None:
-            value_picker = self._default_value_picker
+            value_picker = DefaultAttributePicker()
         self._value_picker = value_picker
         self._timestamp_serializer = TimestampSerializer(self.DEFAULT_TIMESTAMP_FORMAT)
 
@@ -329,18 +333,9 @@ class ResponseSerializer(ShapeHelpersMixin):
             value = value.encode(self.DEFAULT_ENCODING)
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
 
-    @staticmethod
-    def _default_value_picker(obj: Any, key: str, _: Shape, default: Any = None) -> Any:
-        if not hasattr(obj, "__getitem__"):
-            return getattr(obj, key, default)
-
-        try:
-            return obj[key]
-        except (KeyError, IndexError, TypeError, AttributeError):
-            return getattr(obj, key, default)
-
-    def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
-        return self._value_picker(value, key, shape)
+    def get_value(self, value: Any, key: str, shape: Shape) -> Any:
+        context = AttributePickerContext(obj=value, key=key, shape=shape)
+        return self._value_picker(context)
 
     @staticmethod
     def _get_error_shape_name(error: Exception) -> str:
@@ -400,6 +395,7 @@ class ResponseSerializer(ShapeHelpersMixin):
             serialized[key] = new_serialized
             serialized = new_serialized
         for member_key, member_shape in shape.members.items():
+            setattr(member_shape, "parent", shape)
             self._serialize_structure_member(
                 serialized, value, member_shape, member_key
             )
@@ -407,7 +403,7 @@ class ResponseSerializer(ShapeHelpersMixin):
     def _serialize_structure_member(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
-        member_value = self._get_value(value, key, shape)
+        member_value = self.get_value(value, key, shape)
         if member_value is not None:
             key_name = self.get_serialized_name(shape, key)
             self._serialize(serialized, member_value, shape, key_name)
@@ -449,6 +445,22 @@ class ResponseSerializer(ShapeHelpersMixin):
     ) -> None:
         blob_value = self._base64(value)
         self._default_serialize(serialized, blob_value, shape, key)
+
+    def _serialize_type_integer(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        integer_value = int(value)
+        self._default_serialize(serialized, integer_value, shape, key)
+
+    _serialize_type_long = _serialize_type_integer
+
+    def _serialize_type_float(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        integer_value = float(value)
+        self._default_serialize(serialized, integer_value, shape, key)
+
+    _serialize_type_double = _serialize_type_float
 
 
 class BaseJSONSerializer(ResponseSerializer):
@@ -719,7 +731,7 @@ class BaseRestSerializer(ResponseSerializer):
             payload_member = output_shape.serialization.get("payload")
             if payload_member is not None:
                 payload_shape = output_shape.members[payload_member]
-                payload_value = self._get_value(result, payload_member, payload_shape)
+                payload_value = self.get_value(result, payload_member, payload_shape)
                 self._serialize_payload(serialized_result, payload_value, payload_shape)
 
         return self._serialized_result_to_response(
@@ -745,7 +757,7 @@ class BaseRestSerializer(ResponseSerializer):
     ) -> None:
         if self.is_not_bound_to_body(shape):
             if self.is_http_header_trait(shape) and "headers" in serialized:
-                member_value = self._get_value(value, key, shape)
+                member_value = self.get_value(value, key, shape)
                 if member_value is not None:
                     key_name = self.get_serialized_name(shape, key)
                     header_serializer = HeaderSerializer()
@@ -891,7 +903,48 @@ SERIALIZERS = {
 }
 
 
-class XFormedAttributePicker:
+@dataclass
+class AttributePickerContext:
+    obj: Any
+    key: str
+    shape: Shape
+
+
+class DefaultAttributePicker:
+    def __call__(self, context: AttributePickerContext) -> Any:
+        return get_value(context.obj, context.key, None)
+
+
+class AliasedAttributePicker(DefaultAttributePicker):
+    """Uses alias providers to find the value of an attribute in a Python object"""
+
+    def __init__(
+        self, alias_providers: list[type[AttributeAliasProvider]] | None = None
+    ) -> None:
+        self.alias_providers = (
+            alias_providers if alias_providers is not None else DEFAULT_ALIAS_PROVIDERS
+        )
+
+    def __call__(self, context: AttributePickerContext) -> Any:
+        obj = context.obj
+        for possible_key in self.get_possible_keys(context):
+            value = get_value(obj, possible_key, MISSING)
+            if value is not MISSING:
+                break
+        else:
+            value = None
+        return value
+
+    def get_possible_keys(self, context: AttributePickerContext) -> Generator[str]:
+        key = context.key
+        for alias_provider_cls in self.alias_providers:
+            alias_provider = alias_provider_cls(context)
+            if alias_provider.has_alias(key):
+                alias = alias_provider.get_alias(key)
+                yield alias
+
+
+class XFormedAttributePicker(AliasedAttributePicker):
     """Can be injected into a ResponseSerializer to aid in plucking AWS model
     attributes specified in `camelCase` or `PascalCase` from Python objects
     with standard `snake_case` attribute names.
@@ -904,34 +957,135 @@ class XFormedAttributePicker:
     check for the following attribute on the provided object:
        * `identifier`
 
-    Uses ``botocore.xform_name`` to translate the attribute name.
+    ``botocore.xform_name`` is used to transform the attribute name.
     """
 
-    def __init__(self) -> None:
-        self._xform_cache = {}
+    def get_possible_keys(self, context: AttributePickerContext) -> Generator[str]:
+        for possible_key in super().get_possible_keys(context):
+            yield possible_key
+            yield xform_name(possible_key)
 
-    def __call__(self, value: Any, key: str, shape: Shape) -> Any:
-        return self._get_value(value, key, shape)
 
-    def xform_name(self, name: str) -> str:
-        return xform_name(name, _xform_cache=self._xform_cache)
+class AttributeAliasProvider(abc.ABC):
+    """Abstract base class for providing attribute key aliases."""
 
-    def _get_value(self, value: Any, key: str, shape: Shape) -> Any:
-        new_value = None
-        possible_keys = [key, self.xform_name(key)]
-        # If a class `Role` has an attribute named `arn`, that will work for a `RoleArn` key.
-        if hasattr(value, "__class__"):
-            class_name = value.__class__.__name__
-            if key.lower().startswith(class_name.lower()):
-                short_key = key[len(class_name) :]
-                if short_key:  # Will be empty string if class name same as key
-                    possible_keys.append(self.xform_name(short_key))
+    def __init__(self, context: AttributePickerContext) -> None:
+        self.context = context
+
+    @abc.abstractmethod
+    def has_alias(self, key: str) -> bool:
+        """Check if a key alias exists for the given context."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def get_alias(self, key: str) -> str:
+        """Get the key alias for the given context."""
+        raise NotImplementedError()
+
+
+class ExplicitAlias(AttributeAliasProvider):
+    """Provides a key alias explicitly defined in the source object's Meta class."""
+
+    def has_alias(self, key: str) -> bool:
+        obj = self.context.obj
+        if not hasattr(obj, "Meta"):
+            return False
+        if not hasattr(obj.Meta, "serialization_aliases"):
+            return False
+        return key in obj.Meta.serialization_aliases
+
+    def get_alias(self, key: str) -> str:
+        return self.context.obj.Meta.serialization_aliases[key]
+
+
+class NoAlias(AttributeAliasProvider):
+    """Provides the key as is, without any aliasing."""
+
+    def has_alias(self, key: str) -> bool:
+        return True
+
+    def get_alias(self, key: str) -> str:
+        return key
+
+
+class ModelAlias(AttributeAliasProvider):
+    """Provides a key alias based on the botocore model's serialization name."""
+
+    def has_alias(self, key: str) -> bool:
+        shape = self.context.shape
         if shape is not None:
             serialization_key = shape.serialization.get("name", key)
             if serialization_key != key:
-                possible_keys.append(serialization_key)
-        for key in possible_keys:
-            new_value = ResponseSerializer._default_value_picker(value, key, shape)
-            if new_value is not None:
-                break
-        return new_value
+                return True
+        return False
+
+    def get_alias(self, key: str) -> Any:
+        return self.context.shape.serialization["name"]
+
+
+class ShapePrefixAlias(AttributeAliasProvider):
+    """Provides a shortened key alias if key is prefixed with the model name.
+
+    Example: `DBInstanceIdentifier` becomes `Identifier` if the model name is `DBInstance`.
+    """
+
+    def has_alias(self, key: str) -> bool:
+        shape = self.context.shape
+        if shape is not None:
+            if hasattr(shape, "parent"):
+                if key.lower().startswith(shape.parent.name.lower()):
+                    return True
+        return False
+
+    def get_alias(self, key: str) -> Any:
+        shape = self.context.shape
+        assert hasattr(shape, "parent")
+        assert isinstance(shape.parent, Shape)  # mypy hint
+        return key[len(shape.parent.name) :]
+
+
+class ClassPrefixAlias(AttributeAliasProvider):
+    """Provides a shortened key alias if key is prefixed with the source object's class name.
+
+    Example: `DBInstanceIdentifier` becomes `Identifier` if the class name is `DBInstance`.
+    """
+
+    def has_alias(self, key: str) -> bool:
+        obj = self.context.obj
+        if hasattr(obj, "__class__"):
+            class_name = obj.__class__.__name__
+            if key.lower().startswith(class_name.lower()):
+                return True
+        return False
+
+    def get_alias(self, key: str) -> Any:
+        class_name = self.context.obj.__class__.__name__
+        short_key = key[len(class_name) :]
+        return short_key
+
+
+class ShapeNameAlias(AttributeAliasProvider):
+    """Provides a key alias based on the shape's name if it differs from the key."""
+
+    def has_alias(self, key: str) -> bool:
+        shape = self.context.shape
+        if shape is not None:
+            if shape.type_name in ["list", "structure"]:
+                if key != shape.name:
+                    return True
+        return False
+
+    def get_alias(self, key: str) -> Any:
+        return self.context.shape.name
+
+
+# Ordering is important here, as the first alias provider that matches will be used.
+# We want to try the most specific alias providers first, and fall back to the more generic ones.
+DEFAULT_ALIAS_PROVIDERS = [
+    ExplicitAlias,
+    ShapeNameAlias,
+    NoAlias,
+    ShapePrefixAlias,
+    ClassPrefixAlias,
+    ModelAlias,
+]

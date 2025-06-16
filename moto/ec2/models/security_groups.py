@@ -808,7 +808,7 @@ class SecurityGroupBackend:
             cidr_ipv4 = new_rule.get("CidrIpv4")
             cidr_ipv6 = new_rule.get("CidrIpv6")
             prefix_list_id = new_rule.get("PrefixListId")
-            reference_group_id = new_rule.get("ReferenceGroupId")
+            reference_group_id = new_rule.get("ReferencedGroupId")
 
             set_param_count = sum(
                 item is not None

@@ -6,12 +6,12 @@ import boto3
 import pytest
 import requests
 from botocore.exceptions import ClientError
-from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.models import responses_mock
 from moto.sns import sns_backends
+from tests.test_sns import sns_sqs_aws_verified
 
 
 def to_comparable_dicts(list_entry: list):
@@ -22,31 +22,23 @@ def to_comparable_dicts(list_entry: list):
     return set(list_entry)
 
 
-@mock_aws
-def test_publish_to_sqs():
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified()
+def test_publish_to_sqs(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.create_topic(Name="some-topic")
-    response = conn.list_topics()
-    topic_arn = response["Topics"][0]["TopicArn"]
 
     sqs_conn = boto3.resource("sqs", region_name="us-east-1")
-    sqs_conn.create_queue(QueueName="test-queue")
 
-    conn.subscribe(
-        TopicArn=topic_arn,
-        Protocol="sqs",
-        Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
-    )
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(
-            TopicArn=topic_arn, Message=message, Subject="my subject"
-        )
+    published_message = conn.publish(
+        TopicArn=topic_arn, Message=message, Subject="my subject"
+    )
     published_message_id = published_message["MessageId"]
 
-    queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    queue = sqs_conn.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
     acquired_message = json.loads(messages[0].body)
 
     assert acquired_message["Message"] == "my message"
@@ -73,30 +65,60 @@ def test_publish_to_sqs_raw():
     )
 
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        topic.publish(Message=message)
+    topic.publish(Message=message)
 
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
     assert messages[0].body == message
 
 
-@mock_aws
-def test_publish_to_sqs_fifo():
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified(fifo_topic=True, fifo_queue=True)
+def test_publish_to_sqs_fifo(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
     sns = boto3.resource("sns", region_name="us-east-1")
-    topic = sns.create_topic(
-        Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
-    )
-
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(
-        QueueName="queue.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-    )
-    topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
+    topic = sns.Topic(topic_arn)
 
     topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    queue = sqs.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["Message"] == "message"
+
+
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified(fifo_topic=True, fifo_queue=False)
+def test_publish_from_sns_fifo_to_standard_sqs(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
+    sns = boto3.resource("sns", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    topic = sns.Topic(topic_arn)
+
+    topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    queue = sqs.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["Message"] == "message"
+
+
+@pytest.mark.aws_verified
+def test_publish_from_standard_sns_to_fifo_sqs():
+    def x(topic_arn="", topic_name="", queue_arn="", queue_name=""):
+        pass
+
+    with pytest.raises(ClientError) as exc:
+        func = sns_sqs_aws_verified(fifo_topic=False, fifo_queue=True)
+        func(x)()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameter"
+    assert (
+        err["Message"]
+        == "Invalid parameter: Invalid parameter: Endpoint Reason: FIFO SQS Queues can not be subscribed to standard SNS topics"
+    )
 
 
 @mock_aws
@@ -120,18 +142,16 @@ def test_publish_to_sqs_fifo_with_deduplication_id():
     )
 
     message = '{"msg": "hello"}'
-    with freeze_time("2015-01-01 12:00:00"):
-        topic.publish(
-            Message=message,
-            MessageGroupId="message_group_id",
-            MessageDeduplicationId="message_deduplication_id",
-        )
+    topic.publish(
+        Message=message,
+        MessageGroupId="message_group_id",
+        MessageDeduplicationId="message_deduplication_id",
+    )
 
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(
-            MaxNumberOfMessages=1,
-            AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
-        )
+    messages = queue.receive_messages(
+        MaxNumberOfMessages=1,
+        AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
+    )
     assert messages[0].attributes["MessageGroupId"] == "message_group_id"
     assert (
         messages[0].attributes["MessageDeduplicationId"] == "message_deduplication_id"
@@ -160,18 +180,16 @@ def test_publish_to_sqs_fifo_raw_with_deduplication_id():
     )
 
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        topic.publish(
-            Message=message,
-            MessageGroupId="message_group_id",
-            MessageDeduplicationId="message_deduplication_id",
-        )
+    topic.publish(
+        Message=message,
+        MessageGroupId="message_group_id",
+        MessageDeduplicationId="message_deduplication_id",
+    )
 
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(
-            MaxNumberOfMessages=1,
-            AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
-        )
+    messages = queue.receive_messages(
+        MaxNumberOfMessages=1,
+        AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
+    )
     assert messages[0].attributes["MessageGroupId"] == "message_group_id"
     assert (
         messages[0].attributes["MessageDeduplicationId"] == "message_deduplication_id"
@@ -412,15 +430,13 @@ def test_publish_to_sqs_dump_json():
         },
         sort_keys=True,
     )
-    with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(
-            TopicArn=topic_arn, Message=message, Subject="my subject"
-        )
+    published_message = conn.publish(
+        TopicArn=topic_arn, Message=message, Subject="my subject"
+    )
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
 
     acquired_message = json.loads(messages[0].body)
     assert json.loads(acquired_message["Message"]) == json.loads(message)
@@ -447,15 +463,13 @@ def test_publish_to_sqs_in_different_region():
     )
 
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(
-            TopicArn=topic_arn, Message=message, Subject="my subject"
-        )
+    published_message = conn.publish(
+        TopicArn=topic_arn, Message=message, Subject="my subject"
+    )
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
 
     acquired_message = json.loads(messages[0].body)
     assert acquired_message["MessageId"] == published_message_id
@@ -465,7 +479,6 @@ def test_publish_to_sqs_in_different_region():
     assert acquired_message["Subject"] == "my subject"
 
 
-@freeze_time("2013-01-01")
 @mock_aws
 def test_publish_to_http():
     if settings.TEST_SERVER_MODE:
@@ -519,18 +532,23 @@ def test_publish_subject():
     )
     message = "my message"
     subject1 = "test subject"
-    subject2 = "test subject" * 20
-    with freeze_time("2015-01-01 12:00:00"):
-        conn.publish(TopicArn=topic_arn, Message=message, Subject=subject1)
+    conn.publish(TopicArn=topic_arn, Message=message, Subject=subject1)
 
-    # Just that it doesnt error is a pass
-    try:
-        with freeze_time("2015-01-01 12:00:00"):
-            conn.publish(TopicArn=topic_arn, Message=message, Subject=subject2)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameter"
-    else:
-        raise RuntimeError("Should have raised an InvalidParameter exception")
+
+@mock_aws
+def test_publish_large_subject():
+    conn = boto3.client("sns", region_name="us-east-1")
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]["TopicArn"]
+
+    large_subject = "test subject" * 20
+
+    with pytest.raises(ClientError) as exc:
+        conn.publish(TopicArn=topic_arn, Message="message", Subject=large_subject)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameter"
+    assert err["Message"] == "Subject must be less than 100 characters"
 
 
 @mock_aws
@@ -549,12 +567,10 @@ def test_publish_null_subject():
         Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
     )
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        conn.publish(TopicArn=topic_arn, Message=message)
+    conn.publish(TopicArn=topic_arn, Message=message)
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
 
     acquired_message = json.loads(messages[0].body)
     assert acquired_message["Message"] == message

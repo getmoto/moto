@@ -804,6 +804,7 @@ class SQSBackend(BaseBackend):
         delay_seconds: int,
         deduplication_id: Optional[str] = None,
         group_id: Optional[str] = None,
+        validate_group_id: bool = True,
     ) -> None:
         if queue.fifo_queue:
             if (
@@ -834,18 +835,17 @@ class SQSBackend(BaseBackend):
             msg = f"One or more parameters are invalid. Reason: Message must be shorter than {queue.maximum_message_size} bytes."  # type: ignore
             raise InvalidParameterValue(msg)
 
-        if group_id is None:
-            if queue.fifo_queue:
-                # MessageGroupId is a mandatory parameter for all
-                # messages in a fifo queue
-                raise MissingParameter("MessageGroupId")
-        else:
-            if not queue.fifo_queue:
-                msg = (
-                    f"Value {group_id} for parameter MessageGroupId is invalid. "
-                    "Reason: The request include parameter that is not valid for this queue type."
-                )
-                raise InvalidParameterValue(msg)
+        if group_id is None and queue.fifo_queue:
+            # MessageGroupId is a mandatory parameter for all
+            # messages in a fifo queue
+            raise MissingParameter("MessageGroupId")
+        if group_id and not queue.fifo_queue and validate_group_id:
+            # If the request comes from SNS, we don't need to validate the existence of a group ID
+            msg = (
+                f"Value {group_id} for parameter MessageGroupId is invalid. "
+                "Reason: The request include parameter that is not valid for this queue type."
+            )
+            raise InvalidParameterValue(msg)
 
     def send_message(
         self,
@@ -856,11 +856,17 @@ class SQSBackend(BaseBackend):
         deduplication_id: Optional[str] = None,
         group_id: Optional[str] = None,
         system_attributes: Optional[Dict[str, Any]] = None,
+        validate_group_id: bool = True,
     ) -> Message:
         queue = self.get_queue(queue_name)
 
         self._validate_message(
-            queue, message_body, int(delay_seconds or 0), deduplication_id, group_id
+            queue,
+            message_body=message_body,
+            delay_seconds=int(delay_seconds or 0),
+            deduplication_id=deduplication_id,
+            group_id=group_id,
+            validate_group_id=validate_group_id,
         )
 
         if delay_seconds is not None:

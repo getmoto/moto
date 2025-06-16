@@ -18,9 +18,36 @@ class CloudDirectoryResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return clouddirectory_backends[self.current_account][self.region]
 
+    def apply_schema(self) -> str:
+        directory_arn = self.headers.get("x-amz-data-partition")
+        published_schema_arn = self._get_param("PublishedSchemaArn")
+        self.clouddirectory_backend.apply_schema(
+            directory_arn=directory_arn,
+            published_schema_arn=published_schema_arn,
+        )
+        return json.dumps(
+            {
+                "AppliedSchemaArn": published_schema_arn,
+                "DirectoryArn": directory_arn,
+            }
+        )
+
+    def publish_schema(self) -> str:
+        development_schema_arn = self.headers.get("x-amz-data-partition")
+        version = self._get_param("Version")
+        minor_version = self._get_param("MinorVersion")
+        name = self._get_param("Name")
+        schema = self.clouddirectory_backend.publish_schema(
+            name=name,
+            version=version,
+            minor_version=minor_version,
+            development_schema_arn=development_schema_arn,
+        )
+        return json.dumps({"PublishedSchemaArn": schema})
+
     def create_directory(self) -> str:
         name = self._get_param("Name")
-        schema_arn = self._get_param("SchemaArn")
+        schema_arn = self.headers.get("x-amz-data-partition")
         directory = self.clouddirectory_backend.create_directory(
             name=name,
             schema_arn=schema_arn,
@@ -34,6 +61,13 @@ class CloudDirectoryResponse(BaseResponse):
                 AppliedSchemaArn=directory.schema_arn,
             )
         )
+
+    def create_schema(self) -> str:
+        name = self._get_param("Name")
+        schema = self.clouddirectory_backend.create_schema(
+            name=name,
+        )
+        return json.dumps(dict(SchemaArn=schema))
 
     def list_directories(self) -> str:
         next_token = self._get_param("NextToken")
@@ -71,6 +105,33 @@ class CloudDirectoryResponse(BaseResponse):
             directory_arn=arn,
         )
         return json.dumps(dict(DirectoryArn=directory_arn))
+
+    def delete_schema(self) -> str:
+        # Retrieve arn from headers
+        # https://docs.aws.amazon.com/clouddirectory/latest/APIReference/API_DeleteSchema.html
+        arn = self.headers.get("x-amz-data-partition")
+        self.clouddirectory_backend.delete_schema(
+            schema_arn=arn,
+        )
+        return json.dumps(dict(SchemaArn=arn))
+
+    def list_development_schema_arns(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        schemas, next_token = self.clouddirectory_backend.list_development_schema_arns(
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(dict(SchemaArns=schemas, NextToken=next_token))
+
+    def list_published_schema_arns(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        schemas, next_token = self.clouddirectory_backend.list_published_schema_arns(
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(dict(SchemaArns=schemas, NextToken=next_token))
 
     def get_directory(self) -> str:
         # Retrieve arn from headers

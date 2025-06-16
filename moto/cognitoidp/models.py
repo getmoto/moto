@@ -15,7 +15,10 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition, load_resource, md5_hash
 
-from ..settings import get_cognito_idp_user_pool_id_strategy
+from ..settings import (
+    get_cognito_idp_user_pool_client_id_strategy,
+    get_cognito_idp_user_pool_id_strategy,
+)
 from .exceptions import (
     AliasExistsException,
     ExpiredCodeException,
@@ -31,7 +34,6 @@ from .exceptions import (
 from .utils import (
     PAGINATION_MODEL,
     check_secret_hash,
-    create_id,
     expand_attrs,
     flatten_attrs,
     generate_id,
@@ -705,6 +707,8 @@ class CognitoIdpUserPoolDomain(BaseModel):
 
 
 class CognitoIdpUserPoolClient(BaseModel):
+    MAX_ID_LENGTH = 26
+
     def __init__(
         self,
         user_pool_id: str,
@@ -712,7 +716,12 @@ class CognitoIdpUserPoolClient(BaseModel):
         extended_config: Optional[Dict[str, Any]],
     ):
         self.user_pool_id = user_pool_id
-        self.id = create_id()
+        self.id = generate_id(
+            get_cognito_idp_user_pool_client_id_strategy(),
+            user_pool_id,
+            generate_secret,
+            extended_config,
+        )[: self.MAX_ID_LENGTH]
         self.secret = str(random.uuid4())
         self.generate_secret = generate_secret or False
         # Some default values - may be overridden by the user
@@ -961,6 +970,7 @@ class CognitoIdpBackend(BaseBackend):
     For example, a single initialization before the start of integration tests.
 
     This behavior can be enabled by passing the environment variable: MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY=HASH.
+    Passing MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY=HASH enables the same logic for user pool clients.
     """
 
     def __init__(self, region_name: str, account_id: str):

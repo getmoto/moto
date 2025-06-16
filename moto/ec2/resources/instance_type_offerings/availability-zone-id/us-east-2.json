@@ -2156,6 +2156,10 @@
   "Location": "use2-az1"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "use2-az1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "use2-az1"
  },
@@ -5497,6 +5501,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "use2-az2"
+ },
+ {
+  "InstanceType": "p5e.48xlarge",
   "Location": "use2-az2"
  },
  {

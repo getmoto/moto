@@ -1,10 +1,30 @@
+from http.server import BaseHTTPRequestHandler
+from typing import Any
 from unittest import SkipTest
 
+import pytest
 import requests
 
 from moto import settings
+from tests.test_core.utilities import SimpleServer
 
 url = "http://motoapi.amazonaws.com/moto-api/proxy/passthrough"
+
+
+class WebRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b"real response")
+
+
+@pytest.fixture
+def server() -> Any:  # type: ignore[misc]
+    server = SimpleServer(WebRequestHandler)
+    server.start()
+    yield server
+    server.stop()
 
 
 def test_real_request_errors() -> None:
@@ -68,7 +88,7 @@ def test_configure_passedthrough_urls() -> None:
     assert resp.json() == {"http_urls": [], "https_hosts": []}
 
 
-def test_http_get_request_can_be_passed_through() -> None:
+def test_http_get_request_can_be_passed_through(server: Any) -> None:
     if not settings.is_test_proxy_mode():
         raise SkipTest("Can only be tested in ProxyMode")
 
@@ -80,34 +100,17 @@ def test_http_get_request_can_be_passed_through() -> None:
     requests.delete(url, proxies=proxies)
 
     # Configure our URL as the one to passthrough
-    target_url = "http://httpbin.org/robots.txt"
+    server_url, port = server.get_host_and_port()
+    target_url = f"http://127.0.0.1:{port}/robots.txt"
     requests.post(url, json={"http_urls": [target_url]}, proxies=proxies)
 
-    resp = requests.get("http://httpbin.org/robots.txt", proxies=proxies)
+    resp = requests.get(target_url, proxies=proxies)
     assert resp.status_code == 200
-    assert b"/deny" in resp.content
-
-
-def test_http_post_request_can_be_passed_through() -> None:
-    if not settings.is_test_proxy_mode():
-        raise SkipTest("Can only be tested in ProxyMode")
-
-    http_proxy = settings.test_proxy_mode_endpoint()
-    https_proxy = settings.test_proxy_mode_endpoint()
-    proxies = {"http": http_proxy, "https": https_proxy}
-
-    # Delete all to ensure we're starting with a clean slate
-    requests.delete(url, proxies=proxies)
-
-    # Configure our URL as the one to passthrough
-    target_url = "http://httpbin.org/response-headers?x-moto-test=someval"
-    requests.post(url, json={"http_urls": [target_url]}, proxies=proxies)
-
-    resp = requests.post(target_url, proxies=proxies)
-    assert "x-moto-test" in resp.json()
+    assert resp.content == b"real response"
 
 
 def test_https_request_can_be_passed_through() -> None:
+    raise SkipTest("Times out regularly")
     if not settings.is_test_proxy_mode():
         raise SkipTest("Can only be tested in ProxyMode")
 

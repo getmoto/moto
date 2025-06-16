@@ -4320,6 +4320,10 @@
   "Location": "apse1-az2"
  },
  {
+  "InstanceType": "p4de.24xlarge",
+  "Location": "apse1-az2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "apse1-az2"
  },
@@ -6749,6 +6753,10 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "apse1-az3"
+ },
+ {
+  "InstanceType": "p4de.24xlarge",
   "Location": "apse1-az3"
  },
  {

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import inspect
 import re
@@ -12,6 +14,7 @@ from botocore.model import ServiceModel
 
 from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
+from .constants import MISSING
 from .versions import PYTHON_311
 
 
@@ -460,3 +463,32 @@ def get_service_model(service_name: str) -> ServiceModel:
     model = loader.load_service_model(service_name, "service-2")
     service_model = ServiceModel(model, service_name)
     return service_model
+
+
+def get_value(obj: Any, key: int | str, default: Any = MISSING) -> Any:
+    """Helper for pulling a keyed value off various types of objects.
+
+    A key containing a dot (e.g. `parent.child`) will be treated as a
+    path to traverse to get to the desired value.
+    """
+    if not isinstance(key, int) and "." in key:
+        return _get_value_for_keys(obj, key.split("."), default)
+    return _get_value_for_key(obj, key, default)
+
+
+def _get_value_for_keys(obj: Any, keys: list[str], default: Any) -> Any:
+    if len(keys) == 1:
+        return _get_value_for_key(obj, keys[0], default)
+    return _get_value_for_keys(
+        _get_value_for_key(obj, keys[0], default), keys[1:], default
+    )
+
+
+def _get_value_for_key(obj: Any, key: int | str, default: Any) -> Any:
+    if not hasattr(obj, "__getitem__"):
+        return getattr(obj, str(key), default)
+
+    try:
+        return obj[key]
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return getattr(obj, str(key), default)

@@ -181,8 +181,9 @@ class S3TablesResponse(BaseResponse):
         )
 
     def get_table(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn = unquote(self._get_param("tableBucketARN"))
+        namespace = self._get_param("namespace")
+        name = self._get_param("name")
         table = self.s3tables_backend.get_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,

@@ -73,11 +73,8 @@ class Route53DomainsResponse(BaseResponse):
         )
         res = {
             "Domains": list(map(self.__map_domains_to_info, domains)),
+            "NextPageMarker": marker,
         }
-
-        if marker:
-            res["NextPageMarker"] = marker
-
         return json.dumps(res)
 
     @staticmethod
@@ -110,11 +107,8 @@ class Route53DomainsResponse(BaseResponse):
 
         res = {
             "Operations": [operation.to_json() for operation in operations],
+            "NextPageMarker": marker,
         }
-
-        if marker:
-            res["NextPageMarker"] = marker
-
         return json.dumps(res)
 
     def get_operation_detail(self) -> str:

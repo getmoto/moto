@@ -178,9 +178,10 @@ class LogsResponse(BaseResponse):
             log_group_name_prefix=log_group_name_prefix,
             next_token=next_token,
         )
-        result = {"logGroups": [g.to_describe_dict() for g in groups]}
-        if next_token:
-            result["nextToken"] = next_token
+        result = {
+            "logGroups": [g.to_describe_dict() for g in groups],
+            "nextToken": next_token,
+        }
         return json.dumps(result)
 
     def put_destination(self) -> str:

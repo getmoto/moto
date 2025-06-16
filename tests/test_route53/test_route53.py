@@ -478,7 +478,7 @@ def test_list_or_change_tags_for_resource_request():
             "HealthThreshold": 123,
         },
     )
-    healthcheck_id = health_check["HealthCheck"]["Id"]
+    healthcheck_id = health_check["HealthCheck"]["Id"].replace("/hostedzone/", "")
 
     # confirm this works for resources with zero tags
     response = conn.list_tags_for_resource(
@@ -558,11 +558,11 @@ def test_list_tags_for_resources():
     zone1 = conn.create_hosted_zone(
         Name="testdns1.aws.com", CallerReference=str(hash("foo"))
     )
-    zone1_id = zone1["HostedZone"]["Id"]
+    zone1_id = zone1["HostedZone"]["Id"].replace("/hostedzone/", "")
     zone2 = conn.create_hosted_zone(
         Name="testdns2.aws.com", CallerReference=str(hash("bar"))
     )
-    zone2_id = zone2["HostedZone"]["Id"]
+    zone2_id = zone2["HostedZone"]["Id"].replace("/hostedzone/", "")
 
     # Create two healthchecks
     health_check1 = conn.create_health_check(
