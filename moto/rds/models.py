@@ -1077,6 +1077,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         availability_zone: Optional[str] = None,
         manage_master_user_password: Optional[bool] = False,
         master_user_secret_kms_key_id: Optional[str] = None,
+        storage_throughput: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(backend)
@@ -1180,6 +1181,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
                 option_suffix = option_suffix + "-" + semantic[1]
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
+            self.storage_throughput = storage_throughput
 
     @property
     def db_instance_identifier(self) -> str:
@@ -1435,6 +1437,18 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     @property
     def iam_database_authentication_enabled(self) -> bool:
         return self.enable_iam_database_authentication
+
+    @property
+    def storage_throughput(self) -> Optional[int]:
+        return self._storage_throughput
+
+    @storage_throughput.setter
+    def storage_throughput(self, value: Optional[int]) -> None:
+        if value and self.storage_type == "gp3":
+            self._storage_throughput = value
+        else:
+            self._storage_throughput = None
+
 
     def add_replica(self, replica: DBInstance) -> None:
         if self.region != replica.region:
@@ -4194,10 +4208,7 @@ class BlueGreenDeployment(RDSBaseModel):
             target_iops=kwargs.get("target_iops", None),
             target_storage_type=kwargs.get("target_storage_type", None),
             target_allocated_storage=kwargs.get("target_allocated_storage", None),
-            target_storage_throughput=kwargs.get("target_storage_throughput", None),
-            upgrade_target_storage_config=kwargs.get(
-                "upgrade_target_storage_config", False
-            ),
+            target_storage_throughput=kwargs.get("target_storage_throughput", None)
         )
         self.switchover_details = [{}]  # ToDo: Setup SwitchoverDetails
         self.tasks = [{}]  # ToDo: Setup Tasks
@@ -4226,23 +4237,65 @@ class BlueGreenDeployment(RDSBaseModel):
         target_storage_type: str | None,
         target_allocated_storage: int | None,
         target_storage_throughput: int | None,
-        upgrade_target_storage_config: bool,
     ) -> str:
         source_instance = self._get_source_instance()
 
-        # db_kwargs = {
-        #     "engine": source_instance["Engine"],
-        #     "db_instance_class": target_db_instance_class or source_instance["DBInstanceClass"],
-        #     "engine_version": target_engine_version or source_instance["EngineVersion"]
-        # }
+        db_kwargs = {
+            "engine": source_instance.engine,
+            "engine_version": target_engine_version or source_instance.engine_version,
+            "iops": target_iops or source_instance.iops,
+            "port": source_instance.port,
+            "backup_retention_period": source_instance.backup_retention_period,
+            "character_set_name": source_instance.character_set_name,
+            "auto_minor_version_upgrade": source_instance.auto_minor_version_upgrade,
+            "copy_tags_to_snapshot": source_instance.copy_tags_to_snapshot,
+            "master_username": source_instance.master_username,
+            "master_user_password": source_instance._master_user_password,
+            "multi_az": source_instance.multi_az,
+            "license_model": source_instance.license_model,
+            "preferred_backup_window": source_instance.preferred_backup_window,
+            "preferred_maintenance_window": source_instance.preferred_maintenance_window,
+            "storage_encrypted": source_instance.storage_encrypted,
+            "tags": source_instance.tags,
+            "deletion_protection": source_instance.deletion_protection,
+            #"option_group_name": source_instance.option_group_name,
+            "enable_cloudwatch_logs_exports": source_instance.enabled_cloudwatch_logs_exports,
+            "manage_master_user_password": source_instance.manage_master_user_password,
+        }
 
-        # if isinstance(source_instance, DBInstance):
-        #     db_kwargs["db_instance_identifier"] = "{}-green-12345".format(source_instance["DBInstanceIdentifier"])
-        #     green_instance = self.backend.create_db_instance(
-        #         db_kwargs
-        #     )
+        if source_instance.manage_master_user_password:
+            db_kwargs["master_user_secret_kms_key_id"] = source_instance.master_user_secret.kms_key_id
 
-        return "FooBarBaz"
+        if isinstance(source_instance, DBInstance):
+            db_instance_speficic_kwargs = {
+                "storage_type": target_storage_type or source_instance.storage_type,
+                "allocated_storage": target_allocated_storage or source_instance.allocated_storage,
+                "db_instance_identifier": "{}-green-12345".format(source_instance.db_instance_identifier),
+                "db_instance_class": target_db_instance_class or source_instance.db_instance_class,
+                "storage_throughput": target_storage_throughput or source_instance.storage_throughput or None,
+                "max_allocated_storage": source_instance.max_allocated_storage,
+                "db_security_groups": source_instance.db_security_groups,
+                "db_cluster_identifier": source_instance.db_cluster_identifier,
+                "publicly_accessible": source_instance.publicly_accessible,
+                "source_db_instance_identifier": source_instance.source_db_instance_identifier,
+                "vpc_security_group_ids": source_instance.vpc_security_group_ids,
+                "ca_certificate_identifier": source_instance.ca_certificate_identifier,
+                "availability_zone": source_instance.availability_zone,
+                "db_subnet_group_name": source_instance._db_subnet_group_name,
+            }
+            if target_db_parameter_group_name or source_instance.db_parameter_group_name:
+                db_instance_speficic_kwargs["db_parameter_group_name"] = target_db_parameter_group_name or source_instance.db_parameter_group_name
+            
+            green_instance = self.backend.create_db_instance(
+                db_kwargs | db_instance_speficic_kwargs
+            )
+            return green_instance.db_instance_arn
+        else:
+
+            green_instance = self.backend.create_db_cluster(
+                db_kwargs
+            )
+            return green_instance.db_cluster_arn
     
     def _get_source_instance(self) -> DBInstance | DBCluster:
         try:
