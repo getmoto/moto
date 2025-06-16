@@ -1,5 +1,7 @@
 from re import compile as re_compile
 from typing import Any, Dict, List, Optional
+import random
+import string
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -265,19 +267,72 @@ class ReplicationGroup(BaseModel):
         self.replication_group_id = replication_group_id
         self.replication_group_description = replication_group_description
         self.primary_cluster_id = primary_cluster_id
+        self.port = port or 6379
 
-        self.global_replication_group_id = global_replication_group_id if global_replication_group_id else None
-        if global_replication_group_id == primary_cluster_id:
-            self.global_replication_group_member_role = "PRIMARY"
-        else:
+        # This field is only present if the API is used to create a
+        # secondary replication group associated with an existing
+        # global replication group.
+        if global_replication_group_id:
+            self.global_replication_group_id = global_replication_group_id
             self.global_replication_group_member_role = "SECONDARY"
+            # if global_replication_group_id == primary_cluster_id:
+            #     self.global_replication_group_member_role = "PRIMARY"
+            # else:
+            #     self.global_replication_group_member_role = "SECONDARY"
+        else:
+            self.global_replication_group_id = None
 
         self.status = "available"
+        self.primary_cluster_id = primary_cluster_id if primary_cluster_id else None
+
+        # TO-DO: Implement pending modified values
+        if primary_cluster_id:
+            self.pending_automatic_failover = "enabled" if automatic_failover_enabled else "disabled"
+
+        # NCacheClusterID of primary and replicas
         self.member_clusters = []
         for i in range(len(num_cache_clusters)):
             self.member_clusters.append(
-                f"{replication_group_id}-cluster-00{i}"
+                f"{replication_group_id}-cluster-{i:0>3}"
             )
+
+
+        # NodeGroups
+        # Ports used in num_node_groups would all be the same as self.port
+        random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        region_short = "use1"
+        self.node_groups = []
+        for i in range(num_node_groups):
+            node_group = {}
+            node_group["node_group_id"] = f"{i:0>4}"
+            node_group["status"] = "available"
+            node_group["primary_endpoint_address"] = f"master.{replication_group_id}.random_str.{region_short}.cache.amazonaws.com"
+            node_group["reader_endpoint_address"] = f"replica.{replication_group_id}.random_str.{region_short}.cache.amazonaws.com"
+
+            if cluster_mode == "enabled":
+                node_group["slots"] = node_group_configuration[i].get("slots") if node_group_configuration else "0-16383"
+            # self.node_groups.append(
+            #     {
+            #         "node_group_id": f"{i:0>4}",
+            #         "primary_endpoint": {
+            #             "address": f"master.{replication_group_id}.xxxxxx.use1.cache.amazonaws.com",
+            #             "port": port,
+            #         },
+            #         "reader_endpoint": {
+            #             "address": f"replica.{replication_group_id}-reader.xxxxxx.use1.cache.amazonaws.com",
+            #             "port": port,
+            #         },
+            #         "slots": node_group_configuration.get("slots") if node_group_configuration else None,
+            #         "node_group_members": [
+            #             {
+            #                 "cache_cluster_id": member_cluster_id,
+            #                 "cache_node_id": f"{member_cluster_id}-0001",
+            #                 "preferred_availability_zone": preferred_cache_cluster_a_zs[i % len(preferred_cache_cluster_a_zs)],
+            #                 "current_role": "primary" if i == 0 else "replica",
+            #             }
+            #         ],
+            #     }
+            # )
 
 
         self.automatic_failover_enabled = automatic_failover_enabled

@@ -809,7 +809,12 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
       </GlobalReplicationGroupInfo>
       {% endif %}
       <Status>{{ replication_group.status }}</Status>
-      <PrimaryClusterId>{{ replication_group.primary_cluster_id }}</PrimaryClusterId>
+      <% if replication_group.primary_cluster_id %}>
+      <PendingModifiedValues>
+        <PrimaryClusterId>{{ replication_group.primary_cluster_id }}</PrimaryClusterId>
+        <AuomaticFailoverStatus>{{ replication_group.pending_automatic_failover_status }}</AutomaticFailoverStatus>
+      </PendingModifiedValues>
+      {% endif %}
       <MemberClusters>
         {% for member_cluster in replication_group.member_clusters %}
         <member>{{ member_cluster }}</member>
@@ -821,12 +826,12 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
           <NodeGroupId>{{ node_group.node_group_id }}</NodeGroupId>
           <Status>{{ node_group.status }}</Status>
           <PrimaryEndpoint>
-            <Address>{{ node_group.primary_endpoint.address }}</Address>
-            <Port>{{ node_group.primary_endpoint.port }}</Port>
+            <Address>{{ node_group.primary_endpoint_address }}</Address>
+            <Port>{{ self.port }}</Port>
           </PrimaryEndpoint>
           <ReaderEndpoint>
-            <Address>{{ node_group.reader_endpoint.address }}</Address>
-            <Port>{{ node_group.reader_endpoint.port }}</Port>
+            <Address>{{ node_group.reader_endpoint_address }}</Address>
+            <Port>{{ self.port }}</Port>
           </ReaderEndpoint>
           <CacheNodeType>{{ node_group.cache_node_type }}</CacheNodeType>
           <PreferredAvailabilityZone>{{ node_group.preferred_availability_zone }}</PreferredAvailabilityZone>
