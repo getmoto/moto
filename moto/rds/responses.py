@@ -780,7 +780,7 @@ class RDSResponse(BaseResponse):
         log_files = self.backend.describe_db_log_files(**self.parameters)
         result = {"DescribeDBLogFiles": log_files}
         return ActionResult(result)
-    
+
     def create_blue_green_deployment(self) -> ActionResult:
         bg_kwargs = self.parameters
         bg_deployment = self.backend.create_blue_green_deployment(bg_kwargs)

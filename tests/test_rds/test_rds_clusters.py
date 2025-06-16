@@ -2006,3 +2006,113 @@ def test_db_cluster_identifier_is_case_insensitive(client):
 
     response = client.delete_db_cluster(DBClusterIdentifier="xXyY")
     assert response["DBCluster"]["DBClusterIdentifier"] == "xxyy"
+
+
+@mock_aws
+def test_create_bluegreen_deployment_creates_a_green_db_cluster(client):
+    expected_target_engine_version = "17.3"
+    expected_db_parameter_group_name = "new_parameter_group"
+    expected_db_cluster_parameter_group_name = "new_cluster_parameter_group"
+
+    subnet_id = create_subnet()
+    subnet = client.create_db_subnet_group(
+        DBSubnetGroupName="db_subnet1",
+        DBSubnetGroupDescription="my db subnet",
+        SubnetIds=[subnet_id],
+        Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
+    )["DBSubnetGroup"]["DBSubnetGroupName"]
+
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        DBSubnetGroupName=subnet,
+        MasterUsername="Bob",
+        ManageMasterUserPassword=True,
+        Engine="aurora-postgresql",
+    )
+    clustered_instances = []
+    for i in range(3):
+        clustered_instances.append(
+            client.create_db_instance(
+                DBInstanceIdentifier=f"test-instance-{i}",
+                DBInstanceClass="db.m1.small",
+                Engine="aurora-postgresql",
+                DBClusterIdentifier="cluster-1",
+                DBSubnetGroupName=subnet,
+            )
+        )
+    cluster = client.describe_db_clusters(
+        DBClusterIdentifier="cluster-1",
+    )["DBClusters"][0]
+    client.create_db_parameter_group(
+        DBParameterGroupName=expected_db_parameter_group_name,
+        DBParameterGroupFamily="postgres",
+        Description="Foobar",
+    )
+    client.create_db_cluster_parameter_group(
+        DBClusterParameterGroupName=expected_db_cluster_parameter_group_name,
+        DBParameterGroupFamily="aurora-postgresql14",
+        Description="FooBar",
+    )
+
+    response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName="FooBarBlueGreen",
+        Source=cluster["DBClusterArn"],
+        TargetEngineVersion=expected_target_engine_version,
+        TargetDBParameterGroupName=expected_db_parameter_group_name,
+        TargetDBClusterParameterGroupName=expected_db_cluster_parameter_group_name,
+    )
+
+    bluegreen_deployment_response = response["BlueGreenDeployment"]
+
+    db_describe_response = client.describe_db_clusters(
+        DBClusterIdentifier=bluegreen_deployment_response["Target"]
+    )
+
+    assert bluegreen_deployment_response is not None
+    assert "bgd-" in bluegreen_deployment_response["BlueGreenDeploymentIdentifier"]
+    assert bluegreen_deployment_response["BlueGreenDeploymentName"] == "FooBarBlueGreen"
+    assert bluegreen_deployment_response["Source"] == cluster["DBClusterArn"]
+    assert (
+        bluegreen_deployment_response["Target"]
+        == db_describe_response["DBClusters"][0]["DBClusterArn"]
+    )
+    assert bluegreen_deployment_response["Status"] == "AVAILABLE"
+
+    assert len(db_describe_response["DBClusters"]) > 0
+    assert (
+        db_describe_response["DBClusters"][0]["EngineVersion"]
+        == expected_target_engine_version
+    )
+    assert (
+        db_describe_response["DBClusters"][0]["AllocatedStorage"]
+        == cluster["AllocatedStorage"]
+    )
+    assert db_describe_response["DBClusters"][0]["MasterUserSecret"] is not None
+    assert (
+        db_describe_response["DBClusters"][0]["DBClusterParameterGroup"]
+        == expected_db_cluster_parameter_group_name
+    )
+
+    assert len(db_describe_response["DBClusters"][0]["DBClusterMembers"]) == len(
+        cluster["DBClusterMembers"]
+    )
+    for index, member in enumerate(
+        db_describe_response["DBClusters"][0]["DBClusterMembers"]
+    ):
+        member_response = client.describe_db_instances(
+            DBInstanceIdentifier=member["DBInstanceIdentifier"]
+        )
+
+        assert (
+            member_response["DBInstances"][0]["DBSubnetGroup"]["DBSubnetGroupName"]
+            == clustered_instances[index]["DBInstance"]["DBSubnetGroup"][
+                "DBSubnetGroupName"
+            ]
+        )
+
+
+def create_subnet() -> str:
+    ec2_client = boto3.client("ec2", DEFAULT_REGION)
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    response = ec2_client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")
+    return response["Subnet"]["SubnetId"]

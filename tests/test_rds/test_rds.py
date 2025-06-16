@@ -3660,13 +3660,47 @@ def test_db_instance_identifier_is_case_insensitive(client):
     response = client.describe_db_instances()
     assert len(response["DBInstances"]) == 0
 
+
 @mock_aws
-def test_create_bluegreen_deployment_creates_a_new_instance(client):
-    instance = create_db_instance(DBInstanceIdentifier="FooBar")
+def test_create_bluegreen_deployment_creates_a_green_db_instance(client):
+    expected_target_engine_version = "17.3"
+    expected_target_db_instance_class = "db.6g.xlarge"
+    expected_target_allocated_storage = 999
+    expected_db_parameter_group_name = "new_parameter_group"
+    expected_target_iops = 5000
+    expected_target_storage_type = "gp3"
+    expected_target_storage_throughput = 6329
+
+    subnet_id = create_subnet()
+    subnet = client.create_db_subnet_group(
+        DBSubnetGroupName="db_subnet1",
+        DBSubnetGroupDescription="my db subnet",
+        SubnetIds=[subnet_id],
+        Tags=[{"Value": "bar", "Key": "foo"}, {"Value": "bar1", "Key": "foo1"}],
+    )["DBSubnetGroup"]["DBSubnetGroupName"]
+
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+        DBSubnetGroupName=subnet,
+        MasterUsername="Bob",
+        ManageMasterUserPassword=True,
+    )
+    client.create_db_parameter_group(
+        DBParameterGroupName=expected_db_parameter_group_name,
+        DBParameterGroupFamily="postgres",
+        Description="Foobar",
+    )
 
     response = client.create_blue_green_deployment(
         BlueGreenDeploymentName="FooBarBlueGreen",
-        Source=instance["DBInstanceArn"]
+        Source=instance["DBInstanceArn"],
+        TargetEngineVersion=expected_target_engine_version,
+        TargetDBInstanceClass=expected_target_db_instance_class,
+        TargetAllocatedStorage=expected_target_allocated_storage,
+        TargetDBParameterGroupName=expected_db_parameter_group_name,
+        TargetIops=expected_target_iops,
+        TargetStorageType=expected_target_storage_type,
+        TargetStorageThroughput=expected_target_storage_throughput,
     )
 
     bluegreen_deployment_response = response["BlueGreenDeployment"]
@@ -3675,11 +3709,56 @@ def test_create_bluegreen_deployment_creates_a_new_instance(client):
         DBInstanceIdentifier=bluegreen_deployment_response["Target"]
     )
 
-    assert bluegreen_deployment_response != None
+    assert bluegreen_deployment_response is not None
     assert "bgd-" in bluegreen_deployment_response["BlueGreenDeploymentIdentifier"]
     assert bluegreen_deployment_response["BlueGreenDeploymentName"] == "FooBarBlueGreen"
     assert bluegreen_deployment_response["Source"] == instance["DBInstanceArn"]
-    assert bluegreen_deployment_response["Target"] != None
+    assert (
+        bluegreen_deployment_response["Target"]
+        == db_describe_response["DBInstances"][0]["DBInstanceArn"]
+    )
     assert bluegreen_deployment_response["Status"] == "AVAILABLE"
 
     assert len(db_describe_response["DBInstances"]) > 0
+    assert (
+        db_describe_response["DBInstances"][0]["EngineVersion"]
+        == expected_target_engine_version
+    )
+    assert (
+        db_describe_response["DBInstances"][0]["DBInstanceClass"]
+        == expected_target_db_instance_class
+    )
+    assert (
+        db_describe_response["DBInstances"][0]["AllocatedStorage"]
+        == expected_target_allocated_storage
+    )
+    assert (
+        db_describe_response["DBInstances"][0]["DBParameterGroups"][0][
+            "DBParameterGroupName"
+        ]
+        == expected_db_parameter_group_name
+    )
+    assert db_describe_response["DBInstances"][0]["Iops"] == expected_target_iops
+    assert (
+        db_describe_response["DBInstances"][0]["StorageType"]
+        == expected_target_storage_type
+    )
+    assert (
+        db_describe_response["DBInstances"][0]["StorageThroughput"]
+        == expected_target_storage_throughput
+    )
+    assert (
+        db_describe_response["DBInstances"][0]["DBSecurityGroups"]
+        == instance["DBSecurityGroups"]
+    )
+    assert (
+        db_describe_response["DBInstances"][0]["DBSubnetGroup"]["DBSubnetGroupName"]
+        == instance["DBSubnetGroup"]["DBSubnetGroupName"]
+    )
+    assert (
+        db_describe_response["DBInstances"][0]["OptionGroupMemberships"][0][
+            "OptionGroupName"
+        ]
+        != instance["OptionGroupMemberships"][0]["OptionGroupName"]
+    )
+    assert db_describe_response["DBInstances"][0]["MasterUserSecret"] is not None

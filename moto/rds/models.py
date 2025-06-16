@@ -4,7 +4,6 @@ import copy
 import json
 import math
 import os
-import random
 import re
 import string
 import uuid
@@ -1449,7 +1448,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         else:
             self._storage_throughput = None
 
-
     def add_replica(self, replica: DBInstance) -> None:
         if self.region != replica.region:
             # Cross Region replica
@@ -1767,6 +1765,17 @@ class DBInstanceClustered(DBInstance):
     @storage_type.setter
     def storage_type(self, value: str) -> None:
         raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def storage_throughput(self) -> Optional[int]:
+        return self._storage_throughput
+
+    @storage_throughput.setter
+    def storage_throughput(self, value: Optional[int]) -> None:
+        if value and self.storage_type == "gp3":
+            self._storage_throughput = value
+        else:
+            self._storage_throughput = None
 
 
 class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
@@ -2562,7 +2571,9 @@ class RDSBackend(BaseBackend):
                 snapshot_type is None
                 and (filters is not None and "snapshot-type" not in filters)
             )
-            else [snapshot_type] if snapshot_type is not None else []
+            else [snapshot_type]
+            if snapshot_type is not None
+            else []
         )
         if snapshot_types:
             filters = merge_filters(filters, {"snapshot-type": snapshot_types})
@@ -3382,7 +3393,9 @@ class RDSBackend(BaseBackend):
                 snapshot_type is None
                 and (filters is not None and "snapshot-type" not in filters)
             )
-            else [snapshot_type] if snapshot_type is not None else []
+            else [snapshot_type]
+            if snapshot_type is not None
+            else []
         )
         if snapshot_types:
             filters = merge_filters(filters, {"snapshot-type": snapshot_types})
@@ -4174,7 +4187,6 @@ class Event:
 
 
 class BlueGreenDeployment(RDSBaseModel):
-
     class SupportedStates(Enum):
         PROVISIONING = (1,)
         AVAILABLE = (2,)
@@ -4201,14 +4213,14 @@ class BlueGreenDeployment(RDSBaseModel):
             target_db_parameter_group_name=kwargs.get(
                 "target_db_parameter_group_name", None
             ),
-            target_cluster_db_parameter_group_name=kwargs.get(
-                "target_cluster_db_parameter_group_name", None
+            target_db_cluster_parameter_group_name=kwargs.get(
+                "target_db_cluster_parameter_group_name", None
             ),
             target_db_instance_class=kwargs.get("target_db_instance_class", None),
             target_iops=kwargs.get("target_iops", None),
             target_storage_type=kwargs.get("target_storage_type", None),
             target_allocated_storage=kwargs.get("target_allocated_storage", None),
-            target_storage_throughput=kwargs.get("target_storage_throughput", None)
+            target_storage_throughput=kwargs.get("target_storage_throughput", None),
         )
         self.switchover_details = [{}]  # ToDo: Setup SwitchoverDetails
         self.tasks = [{}]  # ToDo: Setup Tasks
@@ -4231,7 +4243,7 @@ class BlueGreenDeployment(RDSBaseModel):
         self,
         target_engine_version: str | None,
         target_db_parameter_group_name: str | None,
-        target_cluster_db_parameter_group_name: str | None,
+        target_db_cluster_parameter_group_name: str | None,
         target_db_instance_class: str | None,
         target_iops: int | None,
         target_storage_type: str | None,
@@ -4250,7 +4262,6 @@ class BlueGreenDeployment(RDSBaseModel):
             "auto_minor_version_upgrade": source_instance.auto_minor_version_upgrade,
             "copy_tags_to_snapshot": source_instance.copy_tags_to_snapshot,
             "master_username": source_instance.master_username,
-            "master_user_password": source_instance._master_user_password,
             "multi_az": source_instance.multi_az,
             "license_model": source_instance.license_model,
             "preferred_backup_window": source_instance.preferred_backup_window,
@@ -4258,21 +4269,31 @@ class BlueGreenDeployment(RDSBaseModel):
             "storage_encrypted": source_instance.storage_encrypted,
             "tags": source_instance.tags,
             "deletion_protection": source_instance.deletion_protection,
-            #"option_group_name": source_instance.option_group_name,
             "enable_cloudwatch_logs_exports": source_instance.enabled_cloudwatch_logs_exports,
             "manage_master_user_password": source_instance.manage_master_user_password,
+            "kms_key_id": source_instance.kms_key_id,
         }
 
         if source_instance.manage_master_user_password:
-            db_kwargs["master_user_secret_kms_key_id"] = source_instance.master_user_secret.kms_key_id
+            db_kwargs["master_user_secret_kms_key_id"] = (
+                source_instance.master_user_secret.kms_key_id
+            )
+        else:
+            db_kwargs["master_user_password"] = source_instance._master_user_password
 
         if isinstance(source_instance, DBInstance):
-            db_instance_speficic_kwargs = {
+            db_instance_specific_kwargs = {
                 "storage_type": target_storage_type or source_instance.storage_type,
-                "allocated_storage": target_allocated_storage or source_instance.allocated_storage,
-                "db_instance_identifier": "{}-green-12345".format(source_instance.db_instance_identifier),
-                "db_instance_class": target_db_instance_class or source_instance.db_instance_class,
-                "storage_throughput": target_storage_throughput or source_instance.storage_throughput or None,
+                "allocated_storage": target_allocated_storage
+                or source_instance.allocated_storage,
+                "db_instance_identifier": "{}-green-12345".format(
+                    source_instance.db_instance_identifier
+                ),  # ToDo: Determine real identifier
+                "db_instance_class": target_db_instance_class
+                or source_instance.db_instance_class,
+                "storage_throughput": target_storage_throughput
+                or source_instance.storage_throughput
+                or None,
                 "max_allocated_storage": source_instance.max_allocated_storage,
                 "db_security_groups": source_instance.db_security_groups,
                 "db_cluster_identifier": source_instance.db_cluster_identifier,
@@ -4282,30 +4303,75 @@ class BlueGreenDeployment(RDSBaseModel):
                 "ca_certificate_identifier": source_instance.ca_certificate_identifier,
                 "availability_zone": source_instance.availability_zone,
                 "db_subnet_group_name": source_instance._db_subnet_group_name,
+                "db_name": source_instance.db_name,
             }
-            if target_db_parameter_group_name or source_instance.db_parameter_group_name:
-                db_instance_speficic_kwargs["db_parameter_group_name"] = target_db_parameter_group_name or source_instance.db_parameter_group_name
-            
+            if (
+                target_db_parameter_group_name
+                or source_instance.db_parameter_group_name
+            ):
+                db_instance_specific_kwargs["db_parameter_group_name"] = (
+                    target_db_parameter_group_name
+                    or source_instance.db_parameter_group_name
+                )
+
             green_instance = self.backend.create_db_instance(
-                db_kwargs | db_instance_speficic_kwargs
+                db_kwargs | db_instance_specific_kwargs
             )
             return green_instance.db_instance_arn
         else:
+            db_cluster_specific_kwargs = {
+                "db_cluster_identifier": "{}-green-12345".format(
+                    source_instance.db_cluster_identifier
+                ),  # ToDo: Determine real identifier
+                "allocated_storage": source_instance.allocated_storage,
+                "database_name": source_instance.database_name,
+                "db_cluster_parameter_group_name": target_db_cluster_parameter_group_name
+                or source_instance.db_cluster_parameter_group,
+                "vpc_security_group_ids": source_instance._vpc_security_group_ids,
+            }
 
             green_instance = self.backend.create_db_cluster(
-                db_kwargs
+                db_kwargs | db_cluster_specific_kwargs
             )
+
+            for cluster_member in source_instance.members:
+                cluster_member_specific_kwargs = {
+                    "storage_type": cluster_member.storage_type,
+                    "allocated_storage": cluster_member.allocated_storage,
+                    "db_instance_identifier": "{}-green-12345".format(
+                        cluster_member.db_instance_identifier
+                    ),  # ToDo: Determine real identifier
+                    "db_cluster_identifier": green_instance.db_cluster_identifier,
+                    "db_instance_class": cluster_member.db_instance_class,
+                    "max_allocated_storage": cluster_member.max_allocated_storage,
+                    "publicly_accessible": cluster_member.publicly_accessible,
+                    "availability_zone": cluster_member.availability_zone,
+                    "db_subnet_group_name": cluster_member._db_subnet_group_name,
+                }
+                if (
+                    target_db_parameter_group_name
+                    or cluster_member.db_parameter_group_name
+                ):
+                    cluster_member_specific_kwargs["db_parameter_group_name"] = (
+                        target_db_parameter_group_name
+                        or cluster_member.db_parameter_group_name
+                    )
+
+                self.backend.create_db_instance(
+                    db_kwargs | cluster_member_specific_kwargs
+                )
             return green_instance.db_cluster_arn
-    
+
     def _get_source_instance(self) -> DBInstance | DBCluster:
         try:
             result = self.backend.describe_db_instances(
-                db_instance_identifier=self.source)
+                db_instance_identifier=self.source
+            )
             return result[0]
         except DBInstanceNotFoundError:
-            return self.backend.describe_db_clusters(
-                db_cluster_identifier=self.source
-            )[0]
+            return self.backend.describe_db_clusters(db_cluster_identifier=self.source)[
+                0
+            ]
 
 
 rds_backends = BackendDict(RDSBackend, "rds")
