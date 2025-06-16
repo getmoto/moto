@@ -152,7 +152,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def list_task_definitions(self) -> str:
         family_prefix = self._get_param("familyPrefix")
-        task_definition_arns = self.ecs_backend.list_task_definitions(family_prefix)
+        status = self._get_param("status", "ACTIVE")
+        task_definition_arns = self.ecs_backend.list_task_definitions(
+            family_prefix, status
+        )
         return json.dumps({"taskDefinitionArns": task_definition_arns})
 
     def describe_task_definition(self) -> str:
