@@ -543,3 +543,18 @@ class EC2ContainerServiceResponse(BaseResponse):
         name = self._get_param("name")
         self.ecs_backend.delete_account_setting(name)
         return "{}"
+
+    def delete_task_definitions(self) -> str:
+        task_definitions = self._get_param("taskDefinitions")
+        deleted_task_definitions, failures = self.ecs_backend.delete_task_definitions(
+            task_definitions=task_definitions,
+        )
+        return json.dumps(
+            {
+                "taskDefinitions": [
+                    td.response_object["taskDefinition"]
+                    for td in deleted_task_definitions
+                ],
+                "failures": [f.response_object for f in failures],
+            }
+        )
