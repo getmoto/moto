@@ -41,3 +41,6 @@ class ResourceAccessManagerResponse(BaseResponse):
         return json.dumps(
             self.ram_backend.get_resource_share_associations(**self.request_params)
         )
+
+    def list_resource_types(self) -> str:
+        return json.dumps(self.ram_backend.list_resource_types(**self.request_params))
