@@ -1,9 +1,11 @@
 """Unit tests for connectcampaigns-supported APIs."""
 
+from unittest import SkipTest
+
 import boto3
 import pytest
 
-from moto import mock_aws
+from moto import mock_aws, settings
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -349,6 +351,8 @@ def test_stop_campaign_invalid_id():
 
 @mock_aws
 def test_tag_resource():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't tag campaigns in ServerMode")
     client = boto3.client("connectcampaigns", region_name="us-east-1")
 
     create_response = client.create_campaign(
@@ -381,44 +385,48 @@ def test_tag_resource():
     assert tags["Owner"] == "DevTeam"
 
 
-# @mock_aws
-# def test_untag_resource():
-#     client = boto3.client("connectcampaigns", region_name="us-east-1")
+@mock_aws
+def test_untag_resource():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't tag campaigns in ServerMode")
+    client = boto3.client("connectcampaigns", region_name="us-east-1")
 
-#     create_response = client.create_campaign(
-#         name="CampaignToUntag",
-#         connectInstanceId="12345678-1234-1234-1234-123456789012",
-#         dialerConfig={
-#             "progressiveDialerConfig": {
-#                 "bandwidthAllocation": 1.0,
-#                 "dialingCapacity": 2.0,
-#             }
-#         },
-#         outboundCallConfig={
-#             "connectContactFlowId": "12345678-1234-1234-1234-123456789012",
-#         },
-#     )
+    create_response = client.create_campaign(
+        name="CampaignToUntag",
+        connectInstanceId="12345678-1234-1234-1234-123456789012",
+        dialerConfig={
+            "progressiveDialerConfig": {
+                "bandwidthAllocation": 1.0,
+                "dialingCapacity": 2.0,
+            }
+        },
+        outboundCallConfig={
+            "connectContactFlowId": "12345678-1234-1234-1234-123456789012",
+        },
+    )
 
-#     campaign_id = create_response["id"]
-#     client.tag_resource(
-#         arn=create_response["arn"],
-#         tags={"Environment": "Test", "Owner": "DevTeam"},
-#     )
+    campaign_id = create_response["id"]
+    client.tag_resource(
+        arn=create_response["arn"],
+        tags={"Environment": "Test", "Owner": "DevTeam"},
+    )
 
-#     client.untag_resource(
-#         arn=create_response["arn"],
-#         tagKeys=["Environment"],
-#     )
-#     # Verify tags after untagging
-#     describe_response = client.describe_campaign(id=campaign_id)
-#     assert "tags" in describe_response["campaign"]
-#     tags = describe_response["campaign"]["tags"]
-#     assert "Environment" not in tags
-#     assert tags["Owner"] == "DevTeam"
+    client.untag_resource(
+        arn=create_response["arn"],
+        tagKeys=["Environment"],
+    )
+    # Verify tags after untagging
+    describe_response = client.describe_campaign(id=campaign_id)
+    assert "tags" in describe_response["campaign"]
+    tags = describe_response["campaign"]["tags"]
+    assert "Environment" not in tags
+    assert tags["Owner"] == "DevTeam"
 
 
 @mock_aws
 def test_list_tags_for_resource():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Can't tag campaigns in ServerMode")
     client = boto3.client("connectcampaigns", region_name="us-east-1")
 
     create_response = client.create_campaign(
