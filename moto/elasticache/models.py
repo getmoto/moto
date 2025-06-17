@@ -171,7 +171,7 @@ class CacheSubnetGroup(BaseModel):
         except Exception as e:
             if "InvalidSubnet" in str(e):
                 for subnet_id in subnet_ids:
-                    subnet_response = {}
+                    subnet_response: Dict[str, Any] = {}
                     subnet_response["subnet_id"] = subnet_id
                     subnet_response["subnet_az"] = {"Name": "us-east-1a"}
                     subnet_response["subnet_supported_network_types"] = ["ipv4"]
@@ -182,7 +182,7 @@ class CacheSubnetGroup(BaseModel):
         if vpc_exists:
             vpcs = []
             for subnet in subnets:
-                subnet_response: Dict[str, Any] = {}
+                subnet_response = {}
                 vpcs.append(subnet.vpc_id)
                 subnet_response["subnet_id"] = subnet.id
                 subnet_response["subnet_az"] = subnet.availability_zone
