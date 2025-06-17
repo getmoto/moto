@@ -7,7 +7,7 @@ url_bases = [
 ]
 
 url_paths = {
-    "{0}/tags/(?P<arn>[^/]+)$": ConnectCampaignServiceResponse.dispatch,
+    "{0}/tags/(?P<resourceArn>.+)$": ConnectCampaignServiceResponse.dispatch,
     "{0}/tags/(?P<arn>[^/]+)?tagKeys=(?P<tagKeys>[^/]+)$": ConnectCampaignServiceResponse.dispatch,
     "{0}/campaigns$": ConnectCampaignServiceResponse.dispatch,
     "{0}/campaigns-summary$": ConnectCampaignServiceResponse.dispatch,

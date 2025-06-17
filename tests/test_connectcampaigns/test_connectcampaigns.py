@@ -1,11 +1,9 @@
 """Unit tests for connectcampaigns-supported APIs."""
 
-from unittest import SkipTest
-
 import boto3
 import pytest
 
-from moto import mock_aws, settings
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -351,8 +349,6 @@ def test_stop_campaign_invalid_id():
 
 @mock_aws
 def test_tag_resource():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't tag campaigns in ServerMode")
     client = boto3.client("connectcampaigns", region_name="us-east-1")
 
     create_response = client.create_campaign(
@@ -387,8 +383,6 @@ def test_tag_resource():
 
 @mock_aws
 def test_untag_resource():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't tag campaigns in ServerMode")
     client = boto3.client("connectcampaigns", region_name="us-east-1")
 
     create_response = client.create_campaign(
@@ -425,8 +419,6 @@ def test_untag_resource():
 
 @mock_aws
 def test_list_tags_for_resource():
-    if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't tag campaigns in ServerMode")
     client = boto3.client("connectcampaigns", region_name="us-east-1")
 
     create_response = client.create_campaign(
