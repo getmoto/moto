@@ -803,6 +803,11 @@ class RDSResponse(BaseResponse):
         result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
 
+    def delete_blue_green_deployment(self) -> ActionResult:
+        bg_deployment = self.backend.delete_blue_green_deployment(**self.parameters)
+        result = {"BlueGreenDeployment": bg_deployment}
+        return ActionResult(result)
+
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 

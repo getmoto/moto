@@ -3937,3 +3937,84 @@ def test_switchover_after_successful_switchover_blue_green_deployment(client):
 
     error = exc.value.response["Error"]
     assert error["Code"] == "InvalidBlueGreenDeploymentStateFault"
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "options",
+    [
+        pytest.param(
+            {"with_switchover": False, "delete_target": True},
+            id="before_switchover_with_delete_target",
+        ),
+        pytest.param(
+            {"with_switchover": False, "delete_target": False},
+            id="before_switchover_without_delete_target",
+        ),
+        pytest.param(
+            {"with_switchover": True, "delete_target": True},
+            id="after_switchover_with_delete_target",
+        ),
+    ],
+)
+def test_delete_blue_green_deployment_with_source_db_instance(client, options):
+    bg_name = "bluegreen-deployment-1"
+
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+    )
+
+    create_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bg_name,
+        Source=instance["DBInstanceArn"],
+    )
+
+    if options["with_switchover"]:
+        client.switchover_blue_green_deployment(
+            BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+                "BlueGreenDeploymentIdentifier"
+            ]
+        )
+
+    delete_response = client.delete_blue_green_deployment(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ],
+        DeleteTarget=options["delete_target"],
+    )
+
+    describe_response = client.describe_blue_green_deployments(
+        Filters=[{"Name": "blue-green-deployment-name", "Values": [bg_name]}]
+    )
+
+    describe_source_instance = client.describe_db_instances(
+        DBInstanceIdentifier=delete_response["BlueGreenDeployment"]["Source"]
+    )
+
+    describe_target_instance = client.describe_db_instances(
+        Filters=[
+            {
+                "Name": "db-instance-id",
+                "Values": [delete_response["BlueGreenDeployment"]["Target"]],
+            }
+        ]
+    )
+
+    assert delete_response["BlueGreenDeployment"]["Status"] == "DELETING"
+    assert len(describe_response["BlueGreenDeployments"]) == 0
+    assert len(describe_source_instance["DBInstances"]) == 1
+    if options["delete_target"] and not options["with_switchover"]:
+        assert len(describe_target_instance["DBInstances"]) == 0
+    else:
+        assert len(describe_target_instance["DBInstances"]) == 1
+
+
+@mock_aws
+def test_delete_blue_green_deployment_when_it_does_not_exist(client):
+    with pytest.raises(ClientError) as exc:
+        client.delete_blue_green_deployment(
+            BlueGreenDeploymentIdentifier="DoesNotExist"
+        )
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "BlueGreenDeploymentNotFoundFault"

@@ -4046,13 +4046,42 @@ class RDSBackend(BaseBackend):
         self.bluegreen_deployments[blue_green_deployment_identifier] = bg_deployment
 
         bg_deployment_before_switch.status = (
-            bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS.name
+            bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS
         )
-        bg_deployment_before_switch.switchover_details[
-            0
-        ].Status = bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS.name
 
         return bg_deployment_before_switch
+
+    def delete_blue_green_deployment(
+        self, blue_green_deployment_identifier: str, delete_target: bool = False
+    ) -> BlueGreenDeployment:
+        if blue_green_deployment_identifier not in self.bluegreen_deployments:
+            raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
+        bg_deployment = self.bluegreen_deployments.pop(blue_green_deployment_identifier)
+
+        if (
+            delete_target
+            and bg_deployment._status
+            != bg_deployment.SupportedStates.SWITCHOVER_COMPLETED
+        ):
+            if self._is_cluster(bg_deployment.target):
+                cluster = self.describe_db_clusters(
+                    db_cluster_identifier=bg_deployment.target
+                )[0]
+                for member in cluster.members:
+                    self.delete_db_instance(
+                        db_instance_identifier=member.db_instance_identifier
+                    )
+                self.delete_db_cluster(cluster_identifier=cluster.db_cluster_identifier)
+            else:
+                instance = self.describe_db_instances(
+                    db_instance_identifier=bg_deployment.target
+                )[0]
+                self.delete_db_instance(
+                    db_instance_identifier=instance.db_instance_identifier
+                )
+
+        bg_deployment.status = bg_deployment.SupportedStates.DELETING
+        return bg_deployment
 
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"
@@ -4316,13 +4345,8 @@ class BlueGreenDeployment(RDSBaseModel):
             target_allocated_storage=kwargs.get("target_allocated_storage", None),
             target_storage_throughput=kwargs.get("target_storage_throughput", None),
         )
-        self.switchover_details = [
-            SwitchoverDetails(
-                self.source, self.target, self.SupportedStates.AVAILABLE.name
-            )
-        ]
         self.tasks = [{}]  # ToDo: Setup Tasks
-        self.status = self.SupportedStates.AVAILABLE.name
+        self.status = self.SupportedStates.AVAILABLE
         self.status_details = "None"  # ToDo: Check what actually shows up
         self.create_time = utcnow()
         self.deletion_time = None  # ToDo: Check what actually shows up
@@ -4331,6 +4355,17 @@ class BlueGreenDeployment(RDSBaseModel):
     @property
     def resource_id(self) -> str:
         return self.blue_green_deployment_identifier
+
+    @property
+    def status(self) -> str:
+        return self._status.name
+
+    @status.setter
+    def status(self, value: SupportedStates):
+        self._status = value
+        self.switchover_details = [
+            SwitchoverDetails(self.source, self.target, self.status)
+        ]
 
     def _generate_id(self) -> str:
         return "bgd-" + "".join(
@@ -4507,10 +4542,7 @@ class BlueGreenDeployment(RDSBaseModel):
             )
         self.source = source_result.arn
         self.target = target_result.arn
-        self.status = self.SupportedStates.SWITCHOVER_COMPLETED.name
-        self.switchover_details = [
-            SwitchoverDetails(self.source, self.target, self.status)
-        ]
+        self.status = self.SupportedStates.SWITCHOVER_COMPLETED
 
 
 @dataclass

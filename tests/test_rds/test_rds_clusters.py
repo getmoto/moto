@@ -2217,6 +2217,90 @@ def test_switchover_blue_green_deployment(client):
     )  # ToDo: Maybe copy whole instance so endpoints stay the same?
 
 
+@mock_aws
+@pytest.mark.parametrize(
+    "options",
+    [
+        pytest.param(
+            {"with_switchover": False, "delete_target": True},
+            id="before_switchover_with_delete_target",
+        ),
+        pytest.param(
+            {"with_switchover": False, "delete_target": False},
+            id="before_switchover_without_delete_target",
+        ),
+        pytest.param(
+            {"with_switchover": True, "delete_target": True},
+            id="after_switchover_with_delete_target",
+        ),
+    ],
+)
+def test_delete_blue_green_deployment_with_source_db_cluster(client, options):
+    bg_name = "bluegreen-deployment-1"
+
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        Engine="aurora-postgresql",
+    )
+    clustered_instances = []
+    for i in range(3):
+        clustered_instances.append(
+            client.create_db_instance(
+                DBInstanceIdentifier=f"test-instance-{i}",
+                DBClusterIdentifier="cluster-1",
+                DBInstanceClass="db.m1.small",
+                Engine="aurora-postgresql",
+            )
+        )
+    cluster = client.describe_db_clusters(
+        DBClusterIdentifier="cluster-1",
+    )["DBClusters"][0]
+
+    create_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bg_name,
+        Source=cluster["DBClusterArn"],
+    )
+
+    if options["with_switchover"]:
+        client.switchover_blue_green_deployment(
+            BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+                "BlueGreenDeploymentIdentifier"
+            ]
+        )
+
+    delete_response = client.delete_blue_green_deployment(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ],
+        DeleteTarget=options["delete_target"],
+    )
+
+    describe_response = client.describe_blue_green_deployments(
+        Filters=[{"Name": "blue-green-deployment-name", "Values": [bg_name]}]
+    )
+
+    describe_source_cluster = client.describe_db_clusters(
+        DBClusterIdentifier=delete_response["BlueGreenDeployment"]["Source"]
+    )
+
+    describe_target_cluster = client.describe_db_clusters(
+        Filters=[
+            {
+                "Name": "db-cluster-id",
+                "Values": [delete_response["BlueGreenDeployment"]["Target"]],
+            }
+        ]
+    )
+
+    assert delete_response["BlueGreenDeployment"]["Status"] == "DELETING"
+    assert len(describe_response["BlueGreenDeployments"]) == 0
+    assert len(describe_source_cluster["DBClusters"]) == 1
+    if options["delete_target"] and not options["with_switchover"]:
+        assert len(describe_target_cluster["DBClusters"]) == 0
+    else:
+        assert len(describe_target_cluster["DBClusters"]) == 1
+
+
 def create_subnet() -> str:
     ec2_client = boto3.client("ec2", DEFAULT_REGION)
     vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
