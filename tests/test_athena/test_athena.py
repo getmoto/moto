@@ -548,3 +548,35 @@ def test_get_prepared_statement():
         StatementName="stmt-name", WorkGroup="athena_workgroup"
     )
     assert "PreparedStatement" in resp
+
+
+@mock_aws
+def test_get_query_runtime_statistics_no_execution_id():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_query_runtime_statistics(QueryExecutionId="1")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert err["Message"] == "QueryExecution 1 was not found"
+
+
+@mock_aws
+def test_get_query_runtime_statistics_with_execution_id():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    response = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    assert "QueryExecutionId" in response
+
+    statistics = client.get_query_runtime_statistics(
+        QueryExecutionId=response["QueryExecutionId"]
+    )
+
+    assert "QueryRuntimeStatistics" in statistics

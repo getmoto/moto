@@ -1936,6 +1936,10 @@
   "Location": "euc1-az1"
  },
  {
+  "InstanceType": "p4de.24xlarge",
+  "Location": "euc1-az1"
+ },
+ {
   "InstanceType": "r4.16xlarge",
   "Location": "euc1-az1"
  },
@@ -5065,6 +5069,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "euc1-az2"
+ },
+ {
+  "InstanceType": "p4de.24xlarge",
   "Location": "euc1-az2"
  },
  {

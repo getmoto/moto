@@ -3957,6 +3957,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "glue": {
+                "Value": "glue",
+                "endpoint": {
+                  "Value": "glue.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -4204,6 +4213,15 @@
                 "Value": "stepfunctions",
                 "endpoint": {
                   "Value": "states.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11367,6 +11385,9 @@
             "local-zones": {
               "aps1-ccu1-az1": {
                 "Value": "aps1-ccu1-az1"
+              },
+              "aps1-del1-az1": {
+                "Value": "aps1-del1-az1"
               }
             },
             "longName": {
@@ -32744,6 +32765,9 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "awstransform": {
+                "Value": "awstransform"
+              },
               "backup": {
                 "Value": "backup",
                 "endpoint": {
@@ -36790,6 +36814,14 @@
             },
             "geolocationRegion": {
               "Value": "SE-AB"
+            },
+            "local-zones": {
+              "eun1-cph1-az1": {
+                "Value": "eun1-cph1-az1"
+              },
+              "eun1-hel1-az1": {
+                "Value": "eun1-hel1-az1"
+              }
             },
             "longName": {
               "Value": "Europe (Stockholm)"
@@ -52895,6 +52927,11 @@
             "geolocationRegion": {
               "Value": "BH-14"
             },
+            "local-zones": {
+              "mes1-mct1-az1": {
+                "Value": "mes1-mct1-az1"
+              }
+            },
             "longName": {
               "Value": "Middle East (Bahrain)"
             },
@@ -55085,6 +55122,15 @@
                 "Value": "iam",
                 "endpoint": {
                   "Value": "iam.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "identitystore": {
+                "Value": "identitystore",
+                "endpoint": {
+                  "Value": "identitystore.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -57768,6 +57814,9 @@
               "use1-bos1-az1": {
                 "Value": "use1-bos1-az1"
               },
+              "use1-bue1-az1": {
+                "Value": "use1-bue1-az1"
+              },
               "use1-chi2-az1": {
                 "Value": "use1-chi2-az1"
               },
@@ -58093,6 +58142,9 @@
                 "protocols": {
                   "Value": "HTTPS, HTTP"
                 }
+              },
+              "awstransform": {
+                "Value": "awstransform"
               },
               "b2bi": {
                 "Value": "b2bi",

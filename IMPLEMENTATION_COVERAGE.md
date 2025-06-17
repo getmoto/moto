@@ -225,7 +225,7 @@
 
 ## apigatewayv2
 <details>
-<summary>75% implemented</summary>
+<summary>70% implemented</summary>
 
 - [X] create_api
 - [X] create_api_mapping
@@ -237,6 +237,7 @@
 - [X] create_model
 - [X] create_route
 - [X] create_route_response
+- [ ] create_routing_rule
 - [X] create_stage
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
@@ -253,6 +254,7 @@
 - [X] delete_route_request_parameter
 - [X] delete_route_response
 - [ ] delete_route_settings
+- [ ] delete_routing_rule
 - [X] delete_stage
 - [X] delete_vpc_link
 - [ ] export_api
@@ -277,12 +279,15 @@
 - [X] get_route_response
 - [ ] get_route_responses
 - [X] get_routes
+- [ ] get_routing_rule
 - [X] get_stage
 - [X] get_stages
 - [X] get_tags
 - [X] get_vpc_link
 - [X] get_vpc_links
 - [ ] import_api
+- [ ] list_routing_rules
+- [ ] put_routing_rule
 - [X] reimport_api
 - [ ] reset_authorizers_cache
 - [X] tag_resource
@@ -498,7 +503,7 @@
 
 ## athena
 <details>
-<summary>25% implemented</summary>
+<summary>26% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
@@ -530,7 +535,7 @@
 - [X] get_prepared_statement
 - [X] get_query_execution
 - [X] get_query_results
-- [ ] get_query_runtime_statistics
+- [X] get_query_runtime_statistics
 - [ ] get_session
 - [ ] get_session_status
 - [ ] get_table_metadata
@@ -955,7 +960,7 @@
 
 ## ce
 <details>
-<summary>18% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] create_anomaly_monitor
 - [ ] create_anomaly_subscription
@@ -970,8 +975,10 @@
 - [ ] get_approximate_usage_records
 - [ ] get_commitment_purchase_analysis
 - [X] get_cost_and_usage
+- [ ] get_cost_and_usage_comparisons
 - [ ] get_cost_and_usage_with_resources
 - [ ] get_cost_categories
+- [ ] get_cost_comparison_drivers
 - [ ] get_cost_forecast
 - [ ] get_dimension_values
 - [ ] get_reservation_coverage
@@ -1348,7 +1355,7 @@
 
 ## cloudtrail
 <details>
-<summary>28% implemented</summary>
+<summary>27% implemented</summary>
 
 - [X] add_tags
 - [ ] cancel_query
@@ -1369,6 +1376,7 @@
 - [ ] generate_query
 - [ ] get_channel
 - [ ] get_dashboard
+- [ ] get_event_configuration
 - [ ] get_event_data_store
 - [X] get_event_selectors
 - [ ] get_import
@@ -1388,6 +1396,7 @@
 - [X] list_tags
 - [X] list_trails
 - [ ] lookup_events
+- [ ] put_event_configuration
 - [X] put_event_selectors
 - [X] put_insight_selectors
 - [ ] put_resource_policy
@@ -3080,6 +3089,7 @@
 - [ ] export_image
 - [ ] export_transit_gateway_routes
 - [ ] export_verified_access_instance_client_configuration
+- [ ] get_active_vpn_tunnel_status
 - [ ] get_allowed_images_settings
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
@@ -6247,7 +6257,7 @@
 
 ## network-firewall
 <details>
-<summary>11% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] associate_firewall_policy
 - [ ] associate_subnets
@@ -6255,12 +6265,15 @@
 - [ ] create_firewall_policy
 - [ ] create_rule_group
 - [ ] create_tls_inspection_configuration
+- [ ] create_vpc_endpoint_association
 - [ ] delete_firewall
 - [ ] delete_firewall_policy
 - [ ] delete_resource_policy
 - [ ] delete_rule_group
 - [ ] delete_tls_inspection_configuration
+- [ ] delete_vpc_endpoint_association
 - [X] describe_firewall
+- [ ] describe_firewall_metadata
 - [ ] describe_firewall_policy
 - [ ] describe_flow_operation
 - [X] describe_logging_configuration
@@ -6268,6 +6281,7 @@
 - [ ] describe_rule_group
 - [ ] describe_rule_group_metadata
 - [ ] describe_tls_inspection_configuration
+- [ ] describe_vpc_endpoint_association
 - [ ] disassociate_subnets
 - [ ] get_analysis_report_results
 - [ ] list_analysis_reports
@@ -6278,6 +6292,7 @@
 - [ ] list_rule_groups
 - [ ] list_tags_for_resource
 - [ ] list_tls_inspection_configurations
+- [ ] list_vpc_endpoint_associations
 - [ ] put_resource_policy
 - [ ] start_analysis_report
 - [ ] start_flow_capture
@@ -10194,6 +10209,7 @@
 - eks-auth
 - entityresolution
 - evidently
+- evs
 - finspace
 - finspace-data
 - fis

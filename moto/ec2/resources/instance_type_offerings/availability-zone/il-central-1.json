@@ -1952,6 +1952,10 @@
   "Location": "il-central-1b"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "il-central-1b"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "il-central-1c"
  },
@@ -2917,6 +2921,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "il-central-1c"
+ },
+ {
+  "InstanceType": "u-12tb1.112xlarge",
   "Location": "il-central-1c"
  },
  {

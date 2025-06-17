@@ -1286,7 +1286,12 @@ class EventSourceMapping(CloudFormationModel):
 
         # optional
         self.batch_size = spec.get("BatchSize")  # type: ignore[assignment]
-        self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
+        self.starting_position = spec.get("StartingPosition")
+        if (
+            not self.starting_position
+            and "sqs" not in self._get_service_source_from_arn()
+        ):
+            self.starting_position = "TRIM_HORIZON"
         self.enabled = spec.get("Enabled", True)
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp")
         self.kafka_config = spec.get("AmazonManagedKafkaEventSourceConfig")
@@ -1316,13 +1321,14 @@ class EventSourceMapping(CloudFormationModel):
         self.function_arn: str = spec["FunctionArn"]
         self.last_modified = time.mktime(utcnow().timetuple())
 
-    def _get_service_source_from_arn(self, event_source_arn: str) -> str:
-        return event_source_arn.split(":")[2].lower()
-
-    def _validate_event_source(self, event_source_arn: str) -> bool:
-        valid_services = ("dynamodb", "kinesis", "sqs")
-        service = self._get_service_source_from_arn(event_source_arn)
-        return service in valid_services
+    def _get_service_source_from_arn(
+        self, event_source_arn: Optional[str] = None
+    ) -> str:
+        arn = event_source_arn or self.event_source_arn
+        service = arn.split(":")[2].lower()
+        if service == "sqs" and arn.endswith(".fifo"):
+            return "sqs-fifo"
+        return service
 
     @property
     def event_source_arn(self) -> str:
@@ -1330,7 +1336,8 @@ class EventSourceMapping(CloudFormationModel):
 
     @event_source_arn.setter
     def event_source_arn(self, event_source_arn: str) -> None:
-        if not self._validate_event_source(event_source_arn):
+        service = self._get_service_source_from_arn(event_source_arn)
+        if service not in ("dynamodb", "kinesis", "sqs", "sqs-fifo"):
             raise ValueError(
                 "InvalidParameterValueException", "Unsupported event source type"
             )
@@ -1341,25 +1348,24 @@ class EventSourceMapping(CloudFormationModel):
         return self._batch_size
 
     @batch_size.setter
-    def batch_size(self, batch_size: Optional[int]) -> None:
+    def batch_size(self, new_batch_size: Optional[int]) -> None:
         batch_size_service_map = {
             "kinesis": (100, 10000),
-            "dynamodb": (100, 1000),
-            "sqs": (10, 10),
+            "dynamodb": (100, 10000),
+            "sqs": (10, 10000),
+            "sqs-fifo": (10, 10),
         }
 
-        source_type = self._get_service_source_from_arn(self.event_source_arn)
+        source_type = self._get_service_source_from_arn()
         batch_size_for_source = batch_size_service_map[source_type]
 
-        if batch_size is None:
+        if new_batch_size is None:
             self._batch_size = batch_size_for_source[0]
-        elif batch_size > batch_size_for_source[1]:
-            error_message = (
-                f"BatchSize {batch_size} exceeds the max of {batch_size_for_source[1]}"
-            )
+        elif new_batch_size > batch_size_for_source[1]:
+            error_message = f"BatchSize {new_batch_size} exceeds the max of {batch_size_for_source[1]}"
             raise ValueError("InvalidParameterValueException", error_message)
         else:
-            self._batch_size = int(batch_size)
+            self._batch_size = int(new_batch_size)
 
     def get_configuration(self) -> Dict[str, Any]:
         response_dict = {
