@@ -303,7 +303,7 @@ class BlueGreenDeploymentAlreadyExistsFault(RDSClientError):
     def __init__(self, bg_name: str):
         super().__init__(
             "BlueGreenDeploymentAlreadyExistsFault",
-            f"Cannot create Bluegreen Deployment because a Bluegreen Deployment with the name {bg_name} already exists.",
+            f"A blue/green deployment with the specified name {bg_name} already exists.",
         )
 
 
@@ -311,5 +311,13 @@ class BlueGreenDeploymentNotFoundFault(RDSClientError):
     def __init__(self, bg_identifier: str):
         super().__init__(
             "BlueGreenDeploymentNotFoundFault",
-            f"Bluegreen Deployment {bg_identifier} not found.",
+            f"BlueGreenDeploymentIdentifier {bg_identifier} doesn't refer to an existing blue/green deployment.",
+        )
+
+
+class InvalidBlueGreenDeploymentStateFault(RDSClientError):
+    def __init__(self, bg_identifier: str):
+        super().__init__(
+            "InvalidBlueGreenDeploymentStateFault",
+            f"The blue/green deployment {bg_identifier} can't be switched over or deleted because there is an invalid configuration in the green environment.",
         )

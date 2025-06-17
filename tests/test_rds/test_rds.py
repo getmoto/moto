@@ -3769,14 +3769,14 @@ def test_create_blue_green_deployment_error_if_source_not_found(client):
     with pytest.raises(ClientError) as ex:
         client.create_blue_green_deployment(
             BlueGreenDeploymentName="FooBarBlueGreen",
-            Source="not_an_arn",
+            Source="arn:rds:123456789012:db:not_an_arn",
         )
 
     err = ex.value.response["Error"]
     assert (
         err["Code"] == "DBInstanceNotFound"
     )  # ToDo: Determine the correct exception thrown
-    assert err["Message"] == "DBCluster not_an_arn not found."
+    assert err["Message"] == "DBInstance arn:rds:123456789012:db:not_an_arn not found."
 
 
 @mock_aws
@@ -3851,15 +3851,89 @@ def test_describe_bluegreen_deployments_with_no_hits(client):
         )
 
     filter_response = client.describe_blue_green_deployments(
-        Filters=[
-            {
-                "Name": "source",
-                "Values": ["no-real-arn"]
-            }
-        ]
+        Filters=[{"Name": "source", "Values": ["no-real-arn"]}]
     )
 
     error = ex.value.response["Error"]
 
     assert error["Code"] == "BlueGreenDeploymentNotFoundFault"
     assert len(filter_response["BlueGreenDeployments"]) == 0
+
+
+@mock_aws
+def test_switchover_blue_green_deployment(client):
+    bg_name = "bluegreen-deployment-1"
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+    )
+
+    create_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bg_name,
+        Source=instance["DBInstanceArn"],
+    )
+
+    switchover_response = client.switchover_blue_green_deployment(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ]
+    )
+
+    describe_response = client.describe_blue_green_deployments(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ]
+    )
+
+    describe_target_instance = client.describe_db_instances(
+        DBInstanceIdentifier=describe_response["BlueGreenDeployments"][0]["Target"]
+    )
+
+    assert (
+        switchover_response["BlueGreenDeployment"]["Status"] == "SWITCHOVER_IN_PROGRESS"
+    )
+    assert (
+        switchover_response["BlueGreenDeployment"]["Source"]
+        == instance["DBInstanceArn"]
+    )
+    assert "green" in switchover_response["BlueGreenDeployment"]["Target"]
+
+    assert (
+        describe_response["BlueGreenDeployments"][0]["Status"] == "SWITCHOVER_COMPLETED"
+    )
+    assert "old" in describe_response["BlueGreenDeployments"][0]["Source"]
+    assert (
+        describe_response["BlueGreenDeployments"][0]["Target"].split(":")[-1]
+        == instance["DBInstanceIdentifier"]
+    )
+    assert (
+        describe_target_instance["DBInstances"][0]["Endpoint"] == instance["Endpoint"]
+    )
+
+
+@mock_aws
+def test_switchover_after_successful_switchover_blue_green_deployment(client):
+    bg_name = "bluegreen-deployment-1"
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+    )
+
+    create_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bg_name,
+        Source=instance["DBInstanceArn"],
+    )
+
+    client.switchover_blue_green_deployment(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ]
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.switchover_blue_green_deployment(
+            BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+                "BlueGreenDeploymentIdentifier"
+            ]
+        )
+
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidBlueGreenDeploymentStateFault"

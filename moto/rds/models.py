@@ -8,6 +8,7 @@ import re
 import string
 import uuid
 from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from functools import lru_cache, partialmethod
@@ -57,6 +58,7 @@ from .exceptions import (
     DBSubnetGroupNotFoundError,
     ExportTaskAlreadyExistsError,
     ExportTaskNotFoundError,
+    InvalidBlueGreenDeploymentStateFault,
     InvalidDBClusterSnapshotStateFault,
     InvalidDBClusterStateFault,
     InvalidDBClusterStateFaultError,
@@ -3258,6 +3260,16 @@ class RDSBackend(BaseBackend):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
 
+        if "new_db_cluster_identifier" in kwargs:
+            kwargs["endpoint"] = cluster.endpoint.replace(
+                cluster.db_cluster_identifier,
+                kwargs.get("new_db_cluster_identifier", ""),
+            )
+            kwargs["reader_endpoint"] = cluster.reader_endpoint.replace(
+                cluster.db_cluster_identifier,
+                kwargs.get("new_db_cluster_identifier", ""),
+            )
+
         kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
             if k == "db_cluster_parameter_group_name":
@@ -3981,12 +3993,15 @@ class RDSBackend(BaseBackend):
         bg_kwargs: Dict[str, Any],
     ) -> BlueGreenDeployment:
         bg_name = bg_kwargs.get("blue_green_deployment_name", "")
-        if bg_name in self.bluegreen_deployments:
-            raise BlueGreenDeploymentAlreadyExistsFault(
-                bg_name
-            )  # ToDo: Check the actual thrown exception
+        for bg_deployment in self.bluegreen_deployments.values():
+            if bg_deployment.blue_green_deployment_name == bg_name:
+                raise BlueGreenDeploymentAlreadyExistsFault(
+                    bg_name
+                )  # ToDo: Check the actual thrown exception
         bg_deployment = BlueGreenDeployment(self, **bg_kwargs)
-        self.bluegreen_deployments[bg_name] = bg_deployment  # type: ignore
+        self.bluegreen_deployments[bg_deployment.blue_green_deployment_identifier] = (
+            bg_deployment  # type: ignore
+        )
         return bg_deployment  # type: ignore
 
     def describe_blue_green_deployments(
@@ -4011,6 +4026,36 @@ class RDSBackend(BaseBackend):
         if blue_green_deployment_identifier and not bg_deployments:
             raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
         return list(bg_deployments.values())
+
+    def switchover_blue_green_deployment(
+        self,
+        blue_green_deployment_identifier: str,
+        switchover_timeout: Optional[int] = 300,
+    ) -> BlueGreenDeployment:
+        if blue_green_deployment_identifier not in self.bluegreen_deployments:
+            raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
+
+        bg_deployment = self.bluegreen_deployments[blue_green_deployment_identifier]
+
+        if bg_deployment.status != "AVAILABLE":
+            raise InvalidBlueGreenDeploymentStateFault(blue_green_deployment_identifier)
+
+        bg_deployment_before_switch = copy.copy(bg_deployment)
+
+        bg_deployment._switchover()
+        self.bluegreen_deployments[blue_green_deployment_identifier] = bg_deployment
+
+        bg_deployment_before_switch.status = (
+            bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS.name
+        )
+        bg_deployment_before_switch.switchover_details[
+            0
+        ].Status = bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS.name
+
+        return bg_deployment_before_switch
+
+    def _is_cluster(self, arn: str) -> bool:
+        return arn.split(":")[-2] == "cluster"
 
 
 class OptionGroup(RDSBaseModel):
@@ -4271,7 +4316,11 @@ class BlueGreenDeployment(RDSBaseModel):
             target_allocated_storage=kwargs.get("target_allocated_storage", None),
             target_storage_throughput=kwargs.get("target_storage_throughput", None),
         )
-        self.switchover_details = [{}]  # ToDo: Setup SwitchoverDetails
+        self.switchover_details = [
+            SwitchoverDetails(
+                self.source, self.target, self.SupportedStates.AVAILABLE.name
+            )
+        ]
         self.tasks = [{}]  # ToDo: Setup Tasks
         self.status = self.SupportedStates.AVAILABLE.name
         self.status_details = "None"  # ToDo: Check what actually shows up
@@ -4302,7 +4351,7 @@ class BlueGreenDeployment(RDSBaseModel):
         target_allocated_storage: int | None,
         target_storage_throughput: int | None,
     ) -> str:
-        source_instance = self._get_source_instance()
+        source_instance = self._get_instance(self.source)
 
         db_kwargs = {
             "engine": source_instance.engine,
@@ -4340,7 +4389,7 @@ class BlueGreenDeployment(RDSBaseModel):
                 or source_instance.allocated_storage,
                 "db_instance_identifier": self._generate_green_id(
                     source_instance.db_instance_identifier
-                ),  # ToDo: Determine real identifier
+                ),
                 "db_instance_class": target_db_instance_class
                 or source_instance.db_instance_class,
                 "storage_throughput": target_storage_throughput
@@ -4414,16 +4463,61 @@ class BlueGreenDeployment(RDSBaseModel):
                 )
             return green_instance.db_cluster_arn
 
-    def _get_source_instance(self) -> DBInstance | DBCluster:
-        try:
-            result = self.backend.describe_db_instances(
-                db_instance_identifier=self.source
+    def _get_instance(self, arn: str) -> DBInstance | DBCluster:
+        result = re.findall(r"^arn:[A-Za-z][0-9A-Za-z-:._]*", arn)
+        if len(result) == 0:
+            raise InvalidParameterValue("Provided string is not a valid arn")
+        if self.backend._is_cluster(arn):
+            return self.backend.describe_db_clusters(db_cluster_identifier=arn)[0]
+        else:
+            return self.backend.describe_db_instances(db_instance_identifier=arn)[0]
+
+    def _switchover(self):
+        source = self._get_instance(self.source)
+        target = self._get_instance(self.target)
+
+        if isinstance(source, DBCluster):
+            new_target_name = source.db_cluster_identifier
+            source_result = self.backend.modify_db_cluster(
+                {
+                    "db_cluster_identifier": source.db_cluster_identifier,
+                    "new_db_cluster_identifier": f"{source.db_cluster_identifier}-old1",
+                }
             )
-            return result[0]
-        except DBInstanceNotFoundError:
-            return self.backend.describe_db_clusters(db_cluster_identifier=self.source)[
-                0
-            ]
+        else:
+            new_target_name = source.db_instance_identifier
+            source_result = self.backend.modify_db_instance(
+                db_instance_identifier=source.db_instance_identifier,
+                db_kwargs={
+                    "new_db_instance_identifier": f"{source.db_instance_identifier}-old1"
+                },
+            )
+
+        if isinstance(target, DBCluster):
+            target_result = self.backend.modify_db_cluster(
+                {
+                    "db_cluster_identifier": target.db_cluster_identifier,
+                    "new_db_cluster_identifier": new_target_name,
+                }
+            )
+        else:
+            target_result = self.backend.modify_db_instance(
+                db_instance_identifier=target.db_instance_identifier,
+                db_kwargs={"new_db_instance_identifier": new_target_name},
+            )
+        self.source = source_result.arn
+        self.target = target_result.arn
+        self.status = self.SupportedStates.SWITCHOVER_COMPLETED.name
+        self.switchover_details = [
+            SwitchoverDetails(self.source, self.target, self.status)
+        ]
+
+
+@dataclass
+class SwitchoverDetails:
+    SourceMember: str
+    TargetMember: str
+    Status: str
 
 
 rds_backends = BackendDict(RDSBackend, "rds")

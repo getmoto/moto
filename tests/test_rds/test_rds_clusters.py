@@ -2123,6 +2123,7 @@ def test_create_blue_green_deployment_error_if_source_not_found(client):
     assert err["Code"] == "DBClusterNotFoundFault"
     assert err["Message"] == "DBCluster not_an_arn not found."
 
+
 @mock_aws
 def test_describe_bluegreen_deployments_with_filters(client):
     bg_name = "bluegreen-deployment-1"
@@ -2161,6 +2162,59 @@ def test_describe_bluegreen_deployments_with_filters(client):
         describe_with_filters_response["BlueGreenDeployments"][0]
         == create_response["BlueGreenDeployment"]
     )
+
+
+@mock_aws
+def test_switchover_blue_green_deployment(client):
+    bg_name = "bluegreen-deployment-1"
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+    )
+    cluster = client.describe_db_clusters(
+        DBClusterIdentifier="cluster-1",
+    )["DBClusters"][0]
+
+    create_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bg_name,
+        Source=cluster["DBClusterArn"],
+    )
+
+    switchover_response = client.switchover_blue_green_deployment(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ]
+    )
+
+    describe_response = client.describe_blue_green_deployments(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ]
+    )
+
+    describe_target_instance = client.describe_db_clusters(
+        DBClusterIdentifier=describe_response["BlueGreenDeployments"][0]["Target"]
+    )
+
+    assert (
+        switchover_response["BlueGreenDeployment"]["Status"] == "SWITCHOVER_IN_PROGRESS"
+    )
+    assert (
+        switchover_response["BlueGreenDeployment"]["Source"] == cluster["DBClusterArn"]
+    )
+    assert "green" in switchover_response["BlueGreenDeployment"]["Target"]
+
+    assert (
+        describe_response["BlueGreenDeployments"][0]["Status"] == "SWITCHOVER_COMPLETED"
+    )
+    assert "old" in describe_response["BlueGreenDeployments"][0]["Source"]
+    assert (
+        describe_response["BlueGreenDeployments"][0]["Target"].split(":")[-1]
+        == cluster["DBClusterIdentifier"]
+    )
+    assert (
+        describe_target_instance["DBClusters"][0]["Endpoint"].split(".")[0]
+        == cluster["Endpoint"].split(".")[0]
+    )  # ToDo: Maybe copy whole instance so endpoints stay the same?
 
 
 def create_subnet() -> str:
