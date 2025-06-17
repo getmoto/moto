@@ -773,6 +773,35 @@ def test_describe_cache_subnet_groups():
 
 
 @mock_aws
+def test_describe_cache_subnet_group_specific():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+    resp = client.describe_cache_subnet_groups(CacheSubnetGroupName="test-subnet-group")
+    assert len(resp["CacheSubnetGroups"]) == 1
+    assert resp["CacheSubnetGroups"][0]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert len(resp["CacheSubnetGroups"][0]["Subnets"]) == 2
+    assert resp["CacheSubnetGroups"][0]["SupportedNetworkTypes"] == ["ipv4"]
+
+
+@mock_aws
+def test_describe_cache_subnet_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    cache_subnet_group_unknown = "subnet_cluster_id_unknown"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_cache_subnet_groups(
+            CacheSubnetGroupName=cache_subnet_group_unknown,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheSubnetGroupNotFound"
+    assert err["Message"] == f"CacheSubnetGroup {cache_subnet_group_unknown} not found."
+
+
+@mock_aws
 def test_subnet_groups_list_tags():
     client = boto3.client("elasticache", region_name="us-east-2")
     client.create_cache_subnet_group(
