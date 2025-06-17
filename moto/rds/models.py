@@ -37,6 +37,8 @@ from moto.secretsmanager.models import FakeSecret, SecretsManagerBackend
 from moto.utilities.utils import ARN_PARTITION_REGEX, CaseInsensitiveDict, load_resource
 
 from .exceptions import (
+    BlueGreenDeploymentAlreadyExistsFault,
+    BlueGreenDeploymentNotFoundFault,
     DBClusterNotFoundError,
     DBClusterParameterGroupNotFoundError,
     DBClusterSnapshotAlreadyExistsError,
@@ -2248,6 +2250,9 @@ class RDSBackend(BaseBackend):
             GlobalCluster: self.global_clusters,
             OptionGroup: self.option_groups,
         }
+        self.bluegreen_deployments: MutableMapping[str, BlueGreenDeployment] = (
+            CaseInsensitiveDict()
+        )
 
     @property
     def kms(self) -> KmsBackend:
@@ -3972,9 +3977,40 @@ class RDSBackend(BaseBackend):
         return database.log_file_manager.files
 
     def create_blue_green_deployment(
-        self, bg_kwargs: Dict[str, Any]
+        self,
+        bg_kwargs: Dict[str, Any],
     ) -> BlueGreenDeployment:
-        return BlueGreenDeployment(self, **bg_kwargs)  # type: ignore
+        bg_name = bg_kwargs.get("blue_green_deployment_name", "")
+        if bg_name in self.bluegreen_deployments:
+            raise BlueGreenDeploymentAlreadyExistsFault(
+                bg_name
+            )  # ToDo: Check the actual thrown exception
+        bg_deployment = BlueGreenDeployment(self, **bg_kwargs)
+        self.bluegreen_deployments[bg_name] = bg_deployment  # type: ignore
+        return bg_deployment  # type: ignore
+
+    def describe_blue_green_deployments(
+        self,
+        blue_green_deployment_identifier: Optional[str] = None,
+        filters: Any = None,
+    ) -> List[BlueGreenDeployment]:
+        bg_deployments = self.bluegreen_deployments
+        if blue_green_deployment_identifier:
+            filters = merge_filters(
+                filters,
+                {
+                    "blue-green-deployment-identifier": [
+                        blue_green_deployment_identifier
+                    ]
+                },
+            )
+        if filters:
+            bg_deployments = self._filter_resources(
+                bg_deployments, filters, BlueGreenDeployment
+            )
+        if blue_green_deployment_identifier and not bg_deployments:
+            raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
+        return list(bg_deployments.values())
 
 
 class OptionGroup(RDSBaseModel):
@@ -4196,6 +4232,19 @@ class BlueGreenDeployment(RDSBaseModel):
         SWITCHOVER_FAILED = (6,)
         DELETING = 7
 
+    SUPPORTED_FILTERS = {
+        "blue-green-deployment-identifier": FilterDef(
+            ["blue_green_deployment_identifier"],
+            "System-generated BlueGreen Deployment Identifier",
+        ),
+        "blue-green-deployment-name": FilterDef(
+            ["blue_green_deployment_name"],
+            "User-provided Name for BlueGreen Deployment",
+        ),
+        "source": FilterDef(["source"], "Source Database Instance or Cluster"),
+        "target": FilterDef(["target"], "Target Database Instance or Cluster"),
+    }
+
     def __init__(
         self,
         backend: RDSBackend,
@@ -4238,6 +4287,9 @@ class BlueGreenDeployment(RDSBaseModel):
         return "bgd-" + "".join(
             random.choices(string.ascii_lowercase + string.digits, k=16)
         )
+
+    def _generate_green_id(self, db_identifier: str) -> str:
+        return "{}-green-12345".format(db_identifier)  # ToDo: Determine real identifier
 
     def _create_green_instance(
         self,
@@ -4286,7 +4338,7 @@ class BlueGreenDeployment(RDSBaseModel):
                 "storage_type": target_storage_type or source_instance.storage_type,
                 "allocated_storage": target_allocated_storage
                 or source_instance.allocated_storage,
-                "db_instance_identifier": "{}-green-12345".format(
+                "db_instance_identifier": self._generate_green_id(
                     source_instance.db_instance_identifier
                 ),  # ToDo: Determine real identifier
                 "db_instance_class": target_db_instance_class
@@ -4320,9 +4372,9 @@ class BlueGreenDeployment(RDSBaseModel):
             return green_instance.db_instance_arn
         else:
             db_cluster_specific_kwargs = {
-                "db_cluster_identifier": "{}-green-12345".format(
+                "db_cluster_identifier": self._generate_green_id(
                     source_instance.db_cluster_identifier
-                ),  # ToDo: Determine real identifier
+                ),
                 "allocated_storage": source_instance.allocated_storage,
                 "database_name": source_instance.database_name,
                 "db_cluster_parameter_group_name": target_db_cluster_parameter_group_name
@@ -4338,9 +4390,9 @@ class BlueGreenDeployment(RDSBaseModel):
                 cluster_member_specific_kwargs = {
                     "storage_type": cluster_member.storage_type,
                     "allocated_storage": cluster_member.allocated_storage,
-                    "db_instance_identifier": "{}-green-12345".format(
+                    "db_instance_identifier": self._generate_green_id(
                         cluster_member.db_instance_identifier
-                    ),  # ToDo: Determine real identifier
+                    ),
                     "db_cluster_identifier": green_instance.db_cluster_identifier,
                     "db_instance_class": cluster_member.db_instance_class,
                     "max_allocated_storage": cluster_member.max_allocated_storage,

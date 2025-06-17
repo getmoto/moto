@@ -3762,3 +3762,87 @@ def test_create_bluegreen_deployment_creates_a_green_db_instance(client):
         != instance["OptionGroupMemberships"][0]["OptionGroupName"]
     )
     assert db_describe_response["DBInstances"][0]["MasterUserSecret"] is not None
+
+
+@mock_aws
+def test_create_blue_green_deployment_error_if_source_not_found(client):
+    with pytest.raises(ClientError) as ex:
+        client.create_blue_green_deployment(
+            BlueGreenDeploymentName="FooBarBlueGreen",
+            Source="not_an_arn",
+        )
+
+    err = ex.value.response["Error"]
+    assert (
+        err["Code"] == "DBInstanceNotFound"
+    )  # ToDo: Determine the correct exception thrown
+    assert err["Message"] == "DBCluster not_an_arn not found."
+
+
+@mock_aws
+def test_create_blue_green_deployment_with_duplicate_name(client):
+    bluegreen_name = "FooBarBlueGreen"
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+    )
+
+    response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bluegreen_name,
+        Source=instance["DBInstanceArn"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_blue_green_deployment(
+            BlueGreenDeploymentName=bluegreen_name,
+            Source=instance["DBInstanceArn"],
+        )
+
+    error = ex.value.response["Error"]
+
+    assert response["BlueGreenDeployment"]["BlueGreenDeploymentName"] == bluegreen_name
+    assert error["Code"] == "BlueGreenDeploymentAlreadyExistsFault"
+    assert (
+        error["Message"]
+        == "Cannot create Bluegreen Deployment because a Bluegreen Deployment with the name FooBarBlueGreen already exists."
+    )
+
+
+@mock_aws
+def test_describe_bluegreen_deployments_with_filters(client):
+    bg_name = "bluegreen-deployment-1"
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+    )
+
+    create_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bg_name,
+        Source=instance["DBInstanceArn"],
+    )
+
+    describe_response = client.describe_blue_green_deployments(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ]
+    )
+
+    describe_with_filters_response = client.describe_blue_green_deployments(
+        Filters=[
+            {"Name": "blue-green-deployment-name", "Values": [bg_name]},
+            {"Name": "source", "Values": [instance["DBInstanceArn"]]},
+        ]
+    )
+
+    assert (
+        describe_response["BlueGreenDeployments"][0]
+        == create_response["BlueGreenDeployment"]
+    )
+    assert len(describe_with_filters_response["BlueGreenDeployments"]) > 0
+    assert (
+        describe_with_filters_response["BlueGreenDeployments"][0]
+        == create_response["BlueGreenDeployment"]
+    )
+
+
+@mock_aws
+def test_describe_bluegreen_deployments_with_no_hits(client):
+    assert False

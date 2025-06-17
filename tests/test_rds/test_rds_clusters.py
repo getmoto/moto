@@ -2111,6 +2111,19 @@ def test_create_bluegreen_deployment_creates_a_green_db_cluster(client):
         )
 
 
+@mock_aws
+def test_create_blue_green_deployment_error_if_source_not_found(client):
+    with pytest.raises(ClientError) as ex:
+        client.create_blue_green_deployment(
+            BlueGreenDeploymentName="FooBarBlueGreen",
+            Source="not_an_arn",
+        )
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "DBClusterNotFoundFault"
+    assert err["Message"] == "DBCluster not_an_arn not found."
+
+
 def create_subnet() -> str:
     ec2_client = boto3.client("ec2", DEFAULT_REGION)
     vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]

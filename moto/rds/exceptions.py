@@ -297,3 +297,19 @@ class DBProxyNotFoundFault(RDSClientError):
             "DBProxyNotFoundFault",
             f"The specified proxy name {db_proxy_identifier} doesn't correspond to a proxy owned by your Amazon Web Services account in the specified Amazon Web Services Region.",
         )
+
+
+class BlueGreenDeploymentAlreadyExistsFault(RDSClientError):
+    def __init__(self, bg_name: str):
+        super().__init__(
+            "BlueGreenDeploymentAlreadyExistsFault",
+            f"Cannot create Bluegreen Deployment because a Bluegreen Deployment with the name {bg_name} already exists.",
+        )
+
+
+class BlueGreenDeploymentNotFoundFault(RDSClientError):
+    def __init__(self, bg_identifier: str):
+        super().__init__(
+            "BlueGreenDeploymentNotFoundFault",
+            f"Bluegreen Deployment {bg_identifier} not found.",
+        )

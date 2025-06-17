@@ -787,6 +787,17 @@ class RDSResponse(BaseResponse):
         result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
 
+    def describe_blue_green_deployments(self) -> ActionResult:
+        filters = self.parameters.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        self.parameters["filters"] = filter_dict
+        all_bg_deployments = self.backend.describe_blue_green_deployments(
+            **self.parameters
+        )
+        bg_deployments, _ = self._paginate(all_bg_deployments)
+        result = {"BlueGreenDeployments": bg_deployments}
+        return ActionResult(result)
+
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 
