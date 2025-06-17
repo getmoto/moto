@@ -465,6 +465,9 @@ class ElastiCacheBackend(BaseBackend):
             if resource_type == "cluster":
                 if resource_name in self.cache_clusters:
                     return self.cache_clusters[resource_name].get_tags()
+            elif resource_type == "subnetgroup":
+                if resource_name in self.cache_subnet_groups:
+                    return self.cache_subnet_groups[resource_name].get_tags()
             else:
                 return []
         else:
