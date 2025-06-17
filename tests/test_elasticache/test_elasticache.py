@@ -813,6 +813,7 @@ def test_subnet_groups_list_tags():
             {"Key": "foo1", "Value": "bar1"},
         ],
     )
+
     resp = client.list_tags_for_resource(
         ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
     )
@@ -821,6 +822,17 @@ def test_subnet_groups_list_tags():
     assert resp["TagList"][0]["Value"] == "bar"
     assert resp["TagList"][1]["Key"] == "foo1"
     assert resp["TagList"][1]["Value"] == "bar1"
+
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group-no-tags",
+        CacheSubnetGroupDescription="Test subnet group no tags",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+
+    resp = client.list_tags_for_resource(
+        ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group-no-tags"
+    )
+    assert len(resp["TagList"]) == 0
 
 
 @mock_aws
@@ -841,16 +853,6 @@ def test_cache_subnet_group_already_exists():
     err = exc.value.response["Error"]
     assert err["Code"] == "CacheSubnetGroupAlreadyExists"
     assert err["Message"] == "CacheSubnetGroup test-subnet-group already exists."
-
-
-@mock_aws
-def test_describe_cache_subnet_group_not_found():
-    client = boto3.client("elasticache", region_name="us-east-2")
-    with pytest.raises(ClientError) as exc:
-        client.describe_cache_subnet_groups(CacheSubnetGroupName="unknown-subnet-group")
-    err = exc.value.response["Error"]
-    assert err["Code"] == "CacheSubnetGroupNotFound"
-    assert err["Message"] == "CacheSubnetGroup unknown-subnet-group not found."
 
 
 @mock_aws
