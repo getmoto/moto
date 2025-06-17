@@ -1447,6 +1447,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
 
     @storage_throughput.setter
     def storage_throughput(self, value: Optional[int]) -> None:
+        self._storage_throughput: Optional[int]
         if value and self.storage_type == "gp3":
             self._storage_throughput = value
         else:
@@ -1769,17 +1770,6 @@ class DBInstanceClustered(DBInstance):
     @storage_type.setter
     def storage_type(self, value: str) -> None:
         raise NotImplementedError("Not valid for clustered db instances.")
-
-    @property
-    def storage_throughput(self) -> Optional[int]:
-        return self._storage_throughput
-
-    @storage_throughput.setter
-    def storage_throughput(self, value: Optional[int]) -> None:
-        if value and self.storage_type == "gp3":
-            self._storage_throughput = value
-        else:
-            self._storage_throughput = None
 
 
 class DBSnapshot(EventMixin, SnapshotAttributesMixin, RDSBaseModel):
@@ -3995,12 +3985,10 @@ class RDSBackend(BaseBackend):
         bg_name = bg_kwargs.get("blue_green_deployment_name", "")
         for bg_deployment in self.bluegreen_deployments.values():
             if bg_deployment.blue_green_deployment_name == bg_name:
-                raise BlueGreenDeploymentAlreadyExistsFault(
-                    bg_name
-                )  # ToDo: Check the actual thrown exception
+                raise BlueGreenDeploymentAlreadyExistsFault(bg_name)
         bg_deployment = BlueGreenDeployment(self, **bg_kwargs)
-        self.bluegreen_deployments[bg_deployment.blue_green_deployment_identifier] = (
-            bg_deployment  # type: ignore
+        self.bluegreen_deployments[bg_deployment.blue_green_deployment_identifier] = (  # type: ignore
+            bg_deployment
         )
         return bg_deployment  # type: ignore
 
@@ -4045,7 +4033,7 @@ class RDSBackend(BaseBackend):
         bg_deployment._switchover()
         self.bluegreen_deployments[blue_green_deployment_identifier] = bg_deployment
 
-        bg_deployment_before_switch.status = (
+        bg_deployment_before_switch._set_status(
             bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS
         )
 
@@ -4060,8 +4048,8 @@ class RDSBackend(BaseBackend):
 
         if (
             delete_target
-            and bg_deployment._status
-            != bg_deployment.SupportedStates.SWITCHOVER_COMPLETED
+            and bg_deployment.status
+            != bg_deployment.SupportedStates.SWITCHOVER_COMPLETED.name
         ):
             if self._is_cluster(bg_deployment.target):
                 cluster = self.describe_db_clusters(
@@ -4080,7 +4068,7 @@ class RDSBackend(BaseBackend):
                     db_instance_identifier=instance.db_instance_identifier
                 )
 
-        bg_deployment.status = bg_deployment.SupportedStates.DELETING
+        bg_deployment._set_status(bg_deployment.SupportedStates.DELETING)
         return bg_deployment
 
     def _is_cluster(self, arn: str) -> bool:
@@ -4345,24 +4333,19 @@ class BlueGreenDeployment(RDSBaseModel):
             target_allocated_storage=kwargs.get("target_allocated_storage", None),
             target_storage_throughput=kwargs.get("target_storage_throughput", None),
         )
-        self.tasks = [{}]  # ToDo: Setup Tasks
-        self.status = self.SupportedStates.AVAILABLE
+        self.tasks: List[BlueGreenDeploymentTask] = []  # ToDo: Setup Tasks
+        self._set_status(self.SupportedStates.AVAILABLE)
         self.status_details = "None"  # ToDo: Check what actually shows up
         self.create_time = utcnow()
         self.deletion_time = None  # ToDo: Check what actually shows up
-        self.tags = tags
+        self.tags = tags or []
 
     @property
     def resource_id(self) -> str:
         return self.blue_green_deployment_identifier
 
-    @property
-    def status(self) -> str:
-        return self._status.name
-
-    @status.setter
-    def status(self, value: SupportedStates):
-        self._status = value
+    def _set_status(self, value: SupportedStates) -> None:
+        self.status = value.name
         self.switchover_details = [
             SwitchoverDetails(self.source, self.target, self.status)
         ]
@@ -4386,7 +4369,8 @@ class BlueGreenDeployment(RDSBaseModel):
         target_allocated_storage: int | None,
         target_storage_throughput: int | None,
     ) -> str:
-        source_instance = self._get_instance(self.source)
+        source_instance: DBInstance | DBCluster = self._get_instance(self.source)
+        green_instance: DBInstance | DBCluster
 
         db_kwargs = {
             "engine": source_instance.engine,
@@ -4507,9 +4491,11 @@ class BlueGreenDeployment(RDSBaseModel):
         else:
             return self.backend.describe_db_instances(db_instance_identifier=arn)[0]
 
-    def _switchover(self):
+    def _switchover(self) -> None:
         source = self._get_instance(self.source)
         target = self._get_instance(self.target)
+        source_result: DBCluster | DBInstance
+        target_result: DBCluster | DBInstance
 
         if isinstance(source, DBCluster):
             new_target_name = source.db_cluster_identifier
@@ -4542,13 +4528,19 @@ class BlueGreenDeployment(RDSBaseModel):
             )
         self.source = source_result.arn
         self.target = target_result.arn
-        self.status = self.SupportedStates.SWITCHOVER_COMPLETED
+        self._set_status(self.SupportedStates.SWITCHOVER_COMPLETED)
 
 
 @dataclass
 class SwitchoverDetails:
     SourceMember: str
     TargetMember: str
+    Status: str
+
+
+@dataclass
+class BlueGreenDeploymentTask:
+    Name: str
     Status: str
 
 

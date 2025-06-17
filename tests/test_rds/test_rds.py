@@ -3773,9 +3773,7 @@ def test_create_blue_green_deployment_error_if_source_not_found(client):
         )
 
     err = ex.value.response["Error"]
-    assert (
-        err["Code"] == "DBInstanceNotFound"
-    )  # ToDo: Determine the correct exception thrown
+    assert err["Code"] == "DBInstanceNotFound"
     assert err["Message"] == "DBInstance arn:rds:123456789012:db:not_an_arn not found."
 
 
