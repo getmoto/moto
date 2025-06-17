@@ -2123,6 +2123,45 @@ def test_create_blue_green_deployment_error_if_source_not_found(client):
     assert err["Code"] == "DBClusterNotFoundFault"
     assert err["Message"] == "DBCluster not_an_arn not found."
 
+@mock_aws
+def test_describe_bluegreen_deployments_with_filters(client):
+    bg_name = "bluegreen-deployment-1"
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+    )
+
+    cluster = client.describe_db_clusters(
+        DBClusterIdentifier="cluster-1",
+    )["DBClusters"][0]
+
+    create_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName=bg_name,
+        Source=cluster["DBClusterArn"],
+    )
+
+    describe_response = client.describe_blue_green_deployments(
+        BlueGreenDeploymentIdentifier=create_response["BlueGreenDeployment"][
+            "BlueGreenDeploymentIdentifier"
+        ]
+    )
+
+    describe_with_filters_response = client.describe_blue_green_deployments(
+        Filters=[
+            {"Name": "blue-green-deployment-name", "Values": [bg_name]},
+            {"Name": "source", "Values": [cluster["DBClusterArn"]]},
+        ]
+    )
+
+    assert (
+        describe_response["BlueGreenDeployments"][0]
+        == create_response["BlueGreenDeployment"]
+    )
+    assert len(describe_with_filters_response["BlueGreenDeployments"]) > 0
+    assert (
+        describe_with_filters_response["BlueGreenDeployments"][0]
+        == create_response["BlueGreenDeployment"]
+    )
+
 
 def create_subnet() -> str:
     ec2_client = boto3.client("ec2", DEFAULT_REGION)

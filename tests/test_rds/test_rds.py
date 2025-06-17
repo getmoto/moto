@@ -3845,4 +3845,21 @@ def test_describe_bluegreen_deployments_with_filters(client):
 
 @mock_aws
 def test_describe_bluegreen_deployments_with_no_hits(client):
-    assert False
+    with pytest.raises(ClientError) as ex:
+        client.describe_blue_green_deployments(
+            BlueGreenDeploymentIdentifier="red-yellow"
+        )
+
+    filter_response = client.describe_blue_green_deployments(
+        Filters=[
+            {
+                "Name": "source",
+                "Values": ["no-real-arn"]
+            }
+        ]
+    )
+
+    error = ex.value.response["Error"]
+
+    assert error["Code"] == "BlueGreenDeploymentNotFoundFault"
+    assert len(filter_response["BlueGreenDeployments"]) == 0
