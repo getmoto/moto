@@ -714,6 +714,10 @@ def test_create_cache_subnet_group():
     )
     assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
 
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv4"]
+
 
 @mock_aws
 def test_create_cache_subnet_group_and_mock_vpc():
@@ -749,6 +753,9 @@ def test_create_cache_subnet_group_and_mock_vpc():
         resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
     )
     assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv4"]
 
 
 @mock_aws
@@ -844,38 +851,90 @@ def test_cache_subnet_group_with_invalid_subnet_ids():
     assert err["Code"] == "InvalidSubnet"
 
 
+@mock_aws
+def test_cache_subnet_group_with_ipv4_and_ipv6_subnets():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
+    ).get("Vpc")
+
+    vpc_id = vpc.get("VpcId")
+
+    subnet_dual = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet_dual_id = subnet_dual.get("SubnetId")
+
+    ec2_client.associate_subnet_cidr_block(
+        SubnetId=subnet_dual_id, Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60"
+    )
+
+    subnet_ipv4 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24").get(
+        "Subnet"
+    )
+    subnet_ipv4_id = subnet_ipv4.get("SubnetId")
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_dual_id, subnet_ipv4_id],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    if resp["CacheSubnetGroup"]["Subnets"][0]["SubnetIdentifier"] == subnet_dual_id:
+        assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == [
+            "ipv4",
+            "dual_stack",
+        ]
+        assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == [
+            "ipv4"
+        ]
+    else:
+        assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == [
+            "ipv4"
+        ]
+        assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == [
+            "ipv4",
+            "dual_stack",
+        ]
+    assert len(resp["CacheSubnetGroup"]["SupportedNetworkTypes"]) == 2
+    assert "ipv4" in resp["CacheSubnetGroup"]["SupportedNetworkTypes"]
+    assert "dual_stack" in resp["CacheSubnetGroup"]["SupportedNetworkTypes"]
+
+
+# The following test is commented out until the create_subnet moto feature
+# adds support for Ipv6Native parameter.
+
 # @mock_aws
-# def test_cache_subnet_group_with_ipv4_and_ipv6_subnets():
+# def test_cache_subnet_group_with_ipv6_native_subnets():
 #     client = boto3.client("elasticache", region_name="us-east-2")
 #     ec2_client = boto3.client("ec2", region_name="us-east-2")
 
-#     vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16", Ipv6CidrBlock="fd00:10:20::/48").get("Vpc")
-#     # vpc_ipv6 = ec2_client.create_vpc(Ipv6CidrBlock="fd00:10:20::/48").get("Vpc")
+#     vpc = ec2_client.create_vpc(
+#         CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
+#     ).get("Vpc")
 
-#     subnet_ipv4 = ec2_client.create_subnet(
-#         VpcId=vpc,
-#         CidrBlock="10.0.0.0/24").get("Subnet")
+#     vpc_id = vpc.get("VpcId")
 
-#     subnet_ipv6 = ec2_client.create_subnet(
-#         VpcId=vpc,
-#         Ipv6CidrBlock="fd00:10:20::/64").get("Subnet")
-
-#     subnet_dual_stack = ec2_client.create_subnet(
-#         VpcId=vpc,
-#         CidrBlock="10.0.1.0/24",
-#         Ipv6CidrBlock="fd00:10:21::/64").get("Subnet")
-
-#     resp = client.create_cache_subnet_group(
-#         CacheSubnetGroupName="test-subnet-group",
-#         CacheSubnetGroupDescription="Test subnet group",
-#         SubnetIds=[subnet_ipv4.get("SubnetId"), subnet_ipv6.get("SubnetId")],
-#         Tags=[
-#             {"Key": "foo", "Value": "bar"},
-#             {"Key": "foo1", "Value": "bar1"},
-#         ],
+#     subnet_ipv6_0 = ec2_client.create_subnet(
+#         VpcId=vpc_id,
+#         Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60",
+#         Ipv6Native=True,
 #     )
+#     subnet_ipv6_0_id = subnet_ipv6_0.get("SubnetId")
 
-#     assert "ipv4" in resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"]
-#     assert "ipv6" in resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"]
-#     assert (resp["CacheSubnetGroup"]["Subnets"][2]["SupportedNetworkTypes"] == "ipv4,ipv6")
-#     assert (resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == "ipv4,ipv6,dual_stack")
+#     subnet_ipv6_1 = ec2_client.create_subnet(
+#         VpcId=vpc_id,
+#         Ipv6CidrBlock="2600:1f16:1cb1:6b10::/60",
+#         Ipv6Native=True
+#     )
+#     subnet_ipv6_1_id = subnet_ipv6_1.get("SubnetId")
+
+#     assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
+#     assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
+#     assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]

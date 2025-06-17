@@ -189,43 +189,28 @@ class CacheSubnetGroup(BaseModel):
                 subnet_response["subnet_supported_network_types"] = []
                 if subnet.vpc_id != vpcs[0]:
                     raise InvalidSubnet(subnet_id=subnet.id)
-                if subnet.ipv6_cidr_block_associations:
+
+                # ipv6 native subnets only appends ipv6
+                # You can't mix ipv6 native subnets with other types of subnets
+                if subnet.ipv6_native:
                     self.supported_network_types.append("ipv6")
                     subnet_response["subnet_supported_network_types"].append("ipv6")
-                if subnet.cidr_block:
+
+                # ipv4 only and dual_stack subnets both append ipv4
+                elif subnet.cidr_block:
                     self.supported_network_types.append("ipv4")
                     subnet_response["subnet_supported_network_types"].append("ipv4")
 
-                if (
-                    "ipv4" in subnet_response["subnet_supported_network_types"]
-                    and "ipv6" in subnet_response["subnet_supported_network_types"]
-                ):
+                if subnet.ipv6_cidr_block_associations and subnet.cidr_block:
+                    self.supported_network_types.append("dual_stack")
                     subnet_response["subnet_supported_network_types"].append(
                         "dual_stack"
                     )
-                    self.supported_network_types.append("dual_stack")
 
                 self.subnets_responses.append(subnet_response)
 
             if self.supported_network_types:
                 self.supported_network_types = list(set(self.supported_network_types))
-                if (
-                    "dual_stack" not in self.supported_network_types
-                    and ("ipv4" in self.supported_network_types)
-                    and ("ipv6" in self.supported_network_types)
-                ):
-                    self.supported_network_types.append("dual_stack")
-
-        # except Exception as e:
-        #     if "InvalidSubnet" in str(e):
-        #         for subnet_id in subnet_ids:
-        #             subnet_response = {}
-        #             subnet_response["subnet_id"] = subnet_id
-        #             subnet_response["subnet_az"] = {"Name": "us-east-1a"}
-        #             subnet_response["subnet_supported_network_types"] = ["ipv4"]
-        #             self.subnets_responses.append(subnet_response)
-        #         vpcs = ["vpc-0123456789abcdef0"]
-        #         self.supported_network_types = ["ipv4"]
 
         self.arn = f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:subnetgroup:{cache_subnet_group_name}"
         self.vpc_id = vpcs[0] if vpcs else None

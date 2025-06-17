@@ -656,7 +656,7 @@ CREATE_CACHE_SUBNET_GROUP_TEMPLATE = """<CreateCacheSubnetGroupResponse xmlns="h
             <Name>{{ subnet.subnet_az }}</Name>
           </SubnetAvailabilityZone>
           <SupportedNetworkTypes>
-            {% for network_type in subnet.subnet_network_types %}
+            {% for network_type in subnet.subnet_supported_network_types %}
               <member>{{ network_type }}</member>
             {% endfor %}
           </SupportedNetworkTypes>
@@ -693,7 +693,7 @@ DESCRIBE_CACHE_SUBNET_GROUPS_TEMPLATE = """<DescribeCacheSubnetGroupsResponse xm
               <Name>{{ subnet.subnet_az }}</Name>
             </SubnetAvailabilityZone>
             <SupportedNetworkTypes>
-              {% for network_type in subnet.subnet_network_types %}
+              {% for network_type in subnet.subnet_supported_network_types %}
               <member>{{ network_type }}</member>
               {% endfor %}
             </SupportedNetworkTypes>
