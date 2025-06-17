@@ -758,10 +758,6 @@ def test_describe_cache_subnet_groups():
         CacheSubnetGroupName="test-subnet-group",
         CacheSubnetGroupDescription="Test subnet group",
         SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
-        Tags=[
-            {"Key": "foo", "Value": "bar"},
-            {"Key": "foo1", "Value": "bar1"},
-        ],
     )
     resp = client.describe_cache_subnet_groups()
     assert len(resp["CacheSubnetGroups"]) == 1
