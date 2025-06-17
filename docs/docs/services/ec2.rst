@@ -527,7 +527,6 @@ ec2
 - [ ] export_image
 - [ ] export_transit_gateway_routes
 - [ ] export_verified_access_instance_client_configuration
-- [ ] get_active_vpn_tunnel_status
 - [ ] get_allowed_images_settings
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
