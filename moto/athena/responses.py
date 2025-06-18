@@ -220,3 +220,43 @@ class AthenaResponse(BaseResponse):
                 }
             }
         )
+
+    def get_query_runtime_statistics(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+        query_execution_id = self._get_param("QueryExecutionId")
+
+        ps = self.athena_backend.get_query_runtime_statistics(
+            query_execution_id=query_execution_id
+        )
+
+        if ps is None:
+            return self.error(f"QueryExecution {query_execution_id} was not found", 400)
+
+        return json.dumps(
+            {
+                "QueryRuntimeStatistics": {
+                    "OutputStage": {
+                        "ExecutionTime": 100,
+                        "InputBytes": 0,
+                        "InputRows": 0,
+                        "OutputBytes": 1,
+                        "OutputRows": 1,
+                        "StageId": 1,
+                        "State": ps.status,
+                    },
+                    "Rows": {
+                        "InputBytes": 0,
+                        "InputRows": 0,
+                        "OutputBytes": 2,
+                        "OutputRows": 2,
+                    },
+                    "Timeline": {
+                        "EngineExecutionTimeInMillis": 0,
+                        "QueryPlanningTimeInMillis": 0,
+                        "QueryQueueTimeInMillis": 0,
+                        "ServicePreProcessingTimeInMillis": 0,
+                        "ServiceProcessingTimeInMillis": 0,
+                        "TotalExecutionTimeInMillis": 0,
+                    },
+                }
+            }
+        )

@@ -5932,6 +5932,10 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "usw2-az2"
  },

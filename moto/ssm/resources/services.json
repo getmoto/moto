@@ -7497,6 +7497,23 @@
               }
             }
           },
+          "awstransform": {
+            "Value": "awstransform",
+            "longName": {
+              "Value": "AWS Transform"
+            },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/transform/"
+            },
+            "regions": {
+              "eu-central-1": {
+                "Value": "eu-central-1"
+              },
+              "us-east-1": {
+                "Value": "us-east-1"
+              }
+            }
+          },
           "b2bi": {
             "Value": "b2bi",
             "longName": {
@@ -31847,6 +31864,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "glue.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -33832,6 +33858,15 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "identitystore.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "identitystore.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -68195,6 +68230,15 @@
                 "Value": "ap-east-1",
                 "endpoint": {
                   "Value": "storagegateway.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "storagegateway.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
