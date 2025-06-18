@@ -3990,7 +3990,11 @@ class RDSBackend(BaseBackend):
         self.bluegreen_deployments[bg_deployment.blue_green_deployment_identifier] = (  # type: ignore
             bg_deployment
         )
-        return bg_deployment  # type: ignore
+        # update states only for the response of create command
+        bg_copy = copy.copy(bg_deployment)
+        bg_copy._set_status(bg_deployment.SupportedStates.PROVISIONING)  # type: ignore
+
+        return bg_copy  # type: ignore
 
     def describe_blue_green_deployments(
         self,
@@ -4069,6 +4073,7 @@ class RDSBackend(BaseBackend):
                 )
 
         bg_deployment._set_status(bg_deployment.SupportedStates.DELETING)
+        bg_deployment.deletion_time = utcnow()
         return bg_deployment
 
     def _is_cluster(self, arn: str) -> bool:
@@ -4333,11 +4338,20 @@ class BlueGreenDeployment(RDSBaseModel):
             target_allocated_storage=kwargs.get("target_allocated_storage", None),
             target_storage_throughput=kwargs.get("target_storage_throughput", None),
         )
-        self.tasks: List[BlueGreenDeploymentTask] = []  # ToDo: Setup Tasks
+        self.tasks = [
+            BlueGreenDeploymentTask(
+                "CREATING_READ_REPLICA_OF_SOURCE",
+                BlueGreenDeploymentTask.SupportedStates.COMPLETED.name,
+            ),
+            BlueGreenDeploymentTask(
+                "CONFIGURE_BACKUPS",
+                BlueGreenDeploymentTask.SupportedStates.COMPLETED.name,
+            ),
+        ]
         self._set_status(self.SupportedStates.AVAILABLE)
-        self.status_details = "None"  # ToDo: Check what actually shows up
+        self.status_details: str | None = None
         self.create_time = utcnow()
-        self.deletion_time = None  # ToDo: Check what actually shows up
+        self.deletion_time: datetime | None = None
         self.tags = tags or []
 
     @property
@@ -4356,7 +4370,9 @@ class BlueGreenDeployment(RDSBaseModel):
         )
 
     def _generate_green_id(self, db_identifier: str) -> str:
-        return "{}-green-12345".format(db_identifier)  # ToDo: Determine real identifier
+        return f"{db_identifier}-green-" + "".join(
+            random.choices(string.ascii_lowercase, k=6)
+        )
 
     def _create_green_instance(
         self,
@@ -4529,6 +4545,7 @@ class BlueGreenDeployment(RDSBaseModel):
         self.source = source_result.arn
         self.target = target_result.arn
         self._set_status(self.SupportedStates.SWITCHOVER_COMPLETED)
+        self.status_details = "Switchover completed"
 
 
 @dataclass
@@ -4542,6 +4559,12 @@ class SwitchoverDetails:
 class BlueGreenDeploymentTask:
     Name: str
     Status: str
+
+    class SupportedStates(Enum):
+        PENDING = (1,)
+        IN_PROGRESS = (2,)
+        COMPLETED = 3
+        FAILED = 4
 
 
 rds_backends = BackendDict(RDSBackend, "rds")

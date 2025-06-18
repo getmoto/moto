@@ -8,7 +8,7 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import DEFAULT_REGION
-from .test_rds import create_db_instance
+from .test_rds import create_db_instance, update_status_from_create_blue_green_response
 
 test_tags = [
     {
@@ -2076,7 +2076,7 @@ def test_create_bluegreen_deployment_creates_a_green_db_cluster(client):
         bluegreen_deployment_response["Target"]
         == db_describe_response["DBClusters"][0]["DBClusterArn"]
     )
-    assert bluegreen_deployment_response["Status"] == "AVAILABLE"
+    assert bluegreen_deployment_response["Status"] == "PROVISIONING"
 
     assert len(db_describe_response["DBClusters"]) > 0
     assert (
@@ -2116,12 +2116,14 @@ def test_create_blue_green_deployment_error_if_source_not_found(client):
     with pytest.raises(ClientError) as ex:
         client.create_blue_green_deployment(
             BlueGreenDeploymentName="FooBarBlueGreen",
-            Source="not_an_arn",
+            Source="arn:rds:123456789012:cluster:not_an_arn",
         )
 
     err = ex.value.response["Error"]
     assert err["Code"] == "DBClusterNotFoundFault"
-    assert err["Message"] == "DBCluster not_an_arn not found."
+    assert (
+        err["Message"] == "DBCluster arn:rds:123456789012:cluster:not_an_arn not found."
+    )
 
 
 @mock_aws
@@ -2151,6 +2153,15 @@ def test_describe_bluegreen_deployments_with_filters(client):
             {"Name": "blue-green-deployment-name", "Values": [bg_name]},
             {"Name": "source", "Values": [cluster["DBClusterArn"]]},
         ]
+    )
+
+    update_status_from_create_blue_green_response(
+        create_response["BlueGreenDeployment"]
+    )
+
+    assert (
+        describe_response["BlueGreenDeployments"][0]["Tasks"][0]["Status"]
+        == "COMPLETED"
     )
 
     assert (

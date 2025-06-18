@@ -3717,7 +3717,7 @@ def test_create_bluegreen_deployment_creates_a_green_db_instance(client):
         bluegreen_deployment_response["Target"]
         == db_describe_response["DBInstances"][0]["DBInstanceArn"]
     )
-    assert bluegreen_deployment_response["Status"] == "AVAILABLE"
+    assert bluegreen_deployment_response["Status"] == "PROVISIONING"
 
     assert len(db_describe_response["DBInstances"]) > 0
     assert (
@@ -3801,7 +3801,7 @@ def test_create_blue_green_deployment_with_duplicate_name(client):
     assert error["Code"] == "BlueGreenDeploymentAlreadyExistsFault"
     assert (
         error["Message"]
-        == "Cannot create Bluegreen Deployment because a Bluegreen Deployment with the name FooBarBlueGreen already exists."
+        == "A blue/green deployment with the specified name FooBarBlueGreen already exists."
     )
 
 
@@ -3830,6 +3830,15 @@ def test_describe_bluegreen_deployments_with_filters(client):
         ]
     )
 
+    update_status_from_create_blue_green_response(
+        create_response["BlueGreenDeployment"]
+    )
+
+    assert (
+        describe_response["BlueGreenDeployments"][0]["Tasks"][0]["Status"]
+        == "COMPLETED"
+    )
+
     assert (
         describe_response["BlueGreenDeployments"][0]
         == create_response["BlueGreenDeployment"]
@@ -3837,7 +3846,7 @@ def test_describe_bluegreen_deployments_with_filters(client):
     assert len(describe_with_filters_response["BlueGreenDeployments"]) > 0
     assert (
         describe_with_filters_response["BlueGreenDeployments"][0]
-        == create_response["BlueGreenDeployment"]
+        == describe_response["BlueGreenDeployments"][0]
     )
 
 
@@ -4016,3 +4025,12 @@ def test_delete_blue_green_deployment_when_it_does_not_exist(client):
 
     error = exc.value.response["Error"]
     assert error["Code"] == "BlueGreenDeploymentNotFoundFault"
+
+
+def update_status_from_create_blue_green_response(bg_response: dict) -> None:
+    bg_response["Status"] = "AVAILABLE"
+
+    for details in bg_response["SwitchoverDetails"]:
+        details["Status"] = "AVAILABLE"
+    for task in bg_response["Tasks"]:
+        task["Status"] = "COMPLETED"
