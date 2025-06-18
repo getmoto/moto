@@ -3994,7 +3994,7 @@ class RDSBackend(BaseBackend):
         )
         # update states only for the response of create command
         bg_copy = copy.copy(bg_deployment)
-        bg_copy._set_status(bg_deployment.SupportedStates.PROVISIONING)  # type: ignore
+        bg_copy.set_status(bg_deployment.SupportedStates.PROVISIONING)  # type: ignore
 
         return bg_copy  # type: ignore
 
@@ -4389,7 +4389,6 @@ class BlueGreenDeployment(RDSBaseModel):
     ) -> str:
         source_instance: DBInstance | DBCluster = self._get_instance(self.source)
         green_instance: DBInstance | DBCluster
-
         if source_instance.manage_master_user_password:
             raise SourceDatabaseNotSupportedFault(source_instance.arn)
 

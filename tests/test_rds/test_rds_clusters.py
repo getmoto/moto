@@ -2262,7 +2262,7 @@ def test_switchover_blue_green_deployment(client):
     assert (
         describe_target_instance["DBClusters"][0]["Endpoint"].split(".")[0]
         == cluster["Endpoint"].split(".")[0]
-    )  # ToDo: Maybe copy whole instance so endpoints stay the same?
+    )
 
 
 @mock_aws
