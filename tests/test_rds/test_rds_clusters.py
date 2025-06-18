@@ -8,7 +8,11 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import DEFAULT_REGION
-from .test_rds import create_db_instance, update_status_from_create_blue_green_response
+from .test_rds import (
+    create_db_instance,
+    create_subnet,
+    update_status_from_create_blue_green_response,
+)
 
 test_tags = [
     {
@@ -2347,10 +2351,3 @@ def test_delete_blue_green_deployment_with_source_db_cluster(client, options):
         assert len(describe_target_cluster["DBClusters"]) == 0
     else:
         assert len(describe_target_cluster["DBClusters"]) == 1
-
-
-def create_subnet() -> str:
-    ec2_client = boto3.client("ec2", DEFAULT_REGION)
-    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
-    response = ec2_client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")
-    return response["Subnet"]["SubnetId"]
