@@ -321,3 +321,11 @@ class InvalidBlueGreenDeploymentStateFault(RDSClientError):
             "InvalidBlueGreenDeploymentStateFault",
             f"The blue/green deployment {bg_identifier} can't be switched over or deleted because there is an invalid configuration in the green environment.",
         )
+
+
+class SourceDatabaseNotSupportedFault(RDSClientError):
+    def __init__(self, source_arn: str):
+        super().__init__(
+            "SourceDatabaseNotSupportedFault",
+            f"The source DB instance {source_arn} isn't supported for a blue/green deployment.",
+        )

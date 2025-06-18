@@ -3683,7 +3683,7 @@ def test_create_bluegreen_deployment_creates_a_green_db_instance(client):
         DBInstanceIdentifier="FooBar",
         DBSubnetGroupName=subnet,
         MasterUsername="Bob",
-        ManageMasterUserPassword=True,
+        ManageMasterUserPassword=False,
     )
     client.create_db_parameter_group(
         DBParameterGroupName=expected_db_parameter_group_name,
@@ -3761,7 +3761,31 @@ def test_create_bluegreen_deployment_creates_a_green_db_instance(client):
         ]
         != instance["OptionGroupMemberships"][0]["OptionGroupName"]
     )
-    assert db_describe_response["DBInstances"][0]["MasterUserSecret"] is not None
+    assert db_describe_response["DBInstances"][0].get("MasterUserSecret") is None
+
+
+@mock_aws
+def test_create_blue_green_deployment_with_managed_master_password(client):
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+        MasterUsername="Bob",
+        ManageMasterUserPassword=True,
+    )
+
+    source_arn = instance["DBInstanceArn"]
+
+    with pytest.raises(ClientError) as exc:
+        client.create_blue_green_deployment(
+            BlueGreenDeploymentName="FooBarBlueGreen",
+            Source=source_arn,
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SourceDatabaseNotSupportedFault"
+    assert (
+        err["Message"]
+        == f"The source DB instance {source_arn} isn't supported for a blue/green deployment."
+    )
 
 
 @mock_aws

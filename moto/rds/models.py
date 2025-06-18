@@ -77,6 +77,7 @@ from .exceptions import (
     RDSClientError,
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
+    SourceDatabaseNotSupportedFault,
     SubscriptionAlreadyExistError,
     SubscriptionNotFoundError,
 )
@@ -3983,6 +3984,7 @@ class RDSBackend(BaseBackend):
         bg_kwargs: Dict[str, Any],
     ) -> BlueGreenDeployment:
         bg_name = bg_kwargs.get("blue_green_deployment_name", "")
+
         for bg_deployment in self.bluegreen_deployments.values():
             if bg_deployment.blue_green_deployment_name == bg_name:
                 raise BlueGreenDeploymentAlreadyExistsFault(bg_name)
@@ -4388,6 +4390,9 @@ class BlueGreenDeployment(RDSBaseModel):
         source_instance: DBInstance | DBCluster = self._get_instance(self.source)
         green_instance: DBInstance | DBCluster
 
+        if source_instance.manage_master_user_password:
+            raise SourceDatabaseNotSupportedFault(source_instance.arn)
+
         db_kwargs = {
             "engine": source_instance.engine,
             "engine_version": target_engine_version or source_instance.engine_version,
@@ -4406,16 +4411,9 @@ class BlueGreenDeployment(RDSBaseModel):
             "tags": source_instance.tags,
             "deletion_protection": source_instance.deletion_protection,
             "enable_cloudwatch_logs_exports": source_instance.enabled_cloudwatch_logs_exports,
-            "manage_master_user_password": source_instance.manage_master_user_password,
+            "master_user_password": source_instance._master_user_password,
             "kms_key_id": source_instance.kms_key_id,
         }
-
-        if source_instance.manage_master_user_password:
-            db_kwargs["master_user_secret_kms_key_id"] = (
-                source_instance.master_user_secret.kms_key_id
-            )
-        else:
-            db_kwargs["master_user_password"] = source_instance._master_user_password
 
         if isinstance(source_instance, DBInstance):
             db_instance_specific_kwargs = {

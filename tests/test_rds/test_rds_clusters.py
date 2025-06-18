@@ -2026,7 +2026,6 @@ def test_create_bluegreen_deployment_creates_a_green_db_cluster(client):
         DBClusterIdentifier="cluster-1",
         DBSubnetGroupName=subnet,
         MasterUsername="Bob",
-        ManageMasterUserPassword=True,
         Engine="aurora-postgresql",
     )
     clustered_instances = []
@@ -2087,7 +2086,7 @@ def test_create_bluegreen_deployment_creates_a_green_db_cluster(client):
         db_describe_response["DBClusters"][0]["AllocatedStorage"]
         == cluster["AllocatedStorage"]
     )
-    assert db_describe_response["DBClusters"][0]["MasterUserSecret"] is not None
+    assert db_describe_response["DBClusters"][0].get("MasterUserSecret") is None
     assert (
         db_describe_response["DBClusters"][0]["DBClusterParameterGroup"]
         == expected_db_cluster_parameter_group_name
@@ -2109,6 +2108,44 @@ def test_create_bluegreen_deployment_creates_a_green_db_cluster(client):
                 "DBSubnetGroupName"
             ]
         )
+
+
+@mock_aws
+def test_create_blue_green_deployment_with_managed_master_password(client):
+    create_db_cluster(
+        DBClusterIdentifier="cluster-1",
+        MasterUsername="Bob",
+        ManageMasterUserPassword=True,
+        Engine="aurora-postgresql",
+    )
+    clustered_instances = []
+    for i in range(3):
+        clustered_instances.append(
+            client.create_db_instance(
+                DBInstanceIdentifier=f"test-instance-{i}",
+                DBInstanceClass="db.m1.small",
+                Engine="aurora-postgresql",
+                DBClusterIdentifier="cluster-1",
+            )
+        )
+    cluster = client.describe_db_clusters(
+        DBClusterIdentifier="cluster-1",
+    )["DBClusters"][0]
+
+    source_arn = cluster["DBClusterArn"]
+
+    with pytest.raises(ClientError) as exc:
+        client.create_blue_green_deployment(
+            BlueGreenDeploymentName="FooBarBlueGreen",
+            Source=source_arn,
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SourceDatabaseNotSupportedFault"
+    assert (
+        err["Message"]
+        == f"The source DB instance {source_arn} isn't supported for a blue/green deployment."
+    )
 
 
 @mock_aws
