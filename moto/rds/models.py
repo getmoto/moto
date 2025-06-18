@@ -4036,10 +4036,10 @@ class RDSBackend(BaseBackend):
 
         bg_deployment_before_switch = copy.copy(bg_deployment)
 
-        bg_deployment._switchover()
+        bg_deployment.switchover()
         self.bluegreen_deployments[blue_green_deployment_identifier] = bg_deployment
 
-        bg_deployment_before_switch._set_status(
+        bg_deployment_before_switch.set_status(
             bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS
         )
 
@@ -4074,7 +4074,7 @@ class RDSBackend(BaseBackend):
                     db_instance_identifier=instance.db_instance_identifier
                 )
 
-        bg_deployment._set_status(bg_deployment.SupportedStates.DELETING)
+        bg_deployment.set_status(bg_deployment.SupportedStates.DELETING)
         bg_deployment.deletion_time = utcnow()
         return bg_deployment
 
@@ -4350,7 +4350,7 @@ class BlueGreenDeployment(RDSBaseModel):
                 BlueGreenDeploymentTask.SupportedStates.COMPLETED.name,
             ),
         ]
-        self._set_status(self.SupportedStates.AVAILABLE)
+        self.set_status(self.SupportedStates.AVAILABLE)
         self.status_details: str | None = None
         self.create_time = utcnow()
         self.deletion_time: datetime | None = None
@@ -4360,7 +4360,7 @@ class BlueGreenDeployment(RDSBaseModel):
     def resource_id(self) -> str:
         return self.blue_green_deployment_identifier
 
-    def _set_status(self, value: SupportedStates) -> None:
+    def set_status(self, value: SupportedStates) -> None:
         self.status = value.name
         self.switchover_details = [
             SwitchoverDetails(self.source, self.target, self.status)
@@ -4505,7 +4505,7 @@ class BlueGreenDeployment(RDSBaseModel):
         else:
             return self.backend.describe_db_instances(db_instance_identifier=arn)[0]
 
-    def _switchover(self) -> None:
+    def switchover(self) -> None:
         source = self._get_instance(self.source)
         target = self._get_instance(self.target)
         source_result: DBCluster | DBInstance
@@ -4542,7 +4542,7 @@ class BlueGreenDeployment(RDSBaseModel):
             )
         self.source = source_result.arn
         self.target = target_result.arn
-        self._set_status(self.SupportedStates.SWITCHOVER_COMPLETED)
+        self.set_status(self.SupportedStates.SWITCHOVER_COMPLETED)
         self.status_details = "Switchover completed"
 
 
