@@ -781,6 +781,33 @@ class RDSResponse(BaseResponse):
         result = {"DescribeDBLogFiles": log_files}
         return ActionResult(result)
 
+    def create_blue_green_deployment(self) -> ActionResult:
+        bg_kwargs = self.parameters
+        bg_deployment = self.backend.create_blue_green_deployment(bg_kwargs)
+        result = {"BlueGreenDeployment": bg_deployment}
+        return ActionResult(result)
+
+    def describe_blue_green_deployments(self) -> ActionResult:
+        filters = self.parameters.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        self.parameters["filters"] = filter_dict
+        all_bg_deployments = self.backend.describe_blue_green_deployments(
+            **self.parameters
+        )
+        bg_deployments, _ = self._paginate(all_bg_deployments)
+        result = {"BlueGreenDeployments": bg_deployments}
+        return ActionResult(result)
+
+    def switchover_blue_green_deployment(self) -> ActionResult:
+        bg_deployment = self.backend.switchover_blue_green_deployment(**self.parameters)
+        result = {"BlueGreenDeployment": bg_deployment}
+        return ActionResult(result)
+
+    def delete_blue_green_deployment(self) -> ActionResult:
+        bg_deployment = self.backend.delete_blue_green_deployment(**self.parameters)
+        result = {"BlueGreenDeployment": bg_deployment}
+        return ActionResult(result)
+
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 
