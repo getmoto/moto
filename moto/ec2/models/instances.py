@@ -22,6 +22,7 @@ from moto.packages.boto.ec2.instance import Reservation
 
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
+    EC2ClientError,
     InvalidInstanceIdError,
     InvalidInstanceTypeError,
     InvalidParameterCombination,
@@ -756,7 +757,20 @@ class InstanceBackend:
     # instances are never deleted (they are kept in "terminated" state)
     # so there is no clean-up to do
     def run_instances(self, *args, **kwargs):
-        if not hasattr(self, 'id_to_instances'):
+        # Because, it is not easy to reach an instance type failure/unavailability,
+        # we raise an error when a specific tags is passed on.
+        tags = kwargs.get("tags", {})
+        instance_tags = tags.get("instance", {})
+        if (
+            "moto-error" in instance_tags
+            and instance_tags.get("moto-error", None) == "unavailable_instance_type"
+        ):
+            raise EC2ClientError(
+                "InstanceLimitExceeded",
+                "InstanceLimitExceeded: Your quota allows for 0 more running instance(s).",
+            )
+
+        if not hasattr(self, "id_to_instances"):
             self._build_instance_dict()
         result = self._original_run_instances(*args, **kwargs)
         result.id_to_instances = {}
@@ -766,12 +780,12 @@ class InstanceBackend:
             instance.reservation_id = result.id
             # delete_on_termination is True in later version of moto
             # this fix a warning in bootstrapper when instance is undeployed
-            instance.block_device_mapping['/dev/sda1'].delete_on_termination = True
+            instance.block_device_mapping["/dev/sda1"].delete_on_termination = True
 
         return result
-    
+
     def _build_instance_dict(self):
-        if not hasattr(self, 'id_to_instances'):
+        if not hasattr(self, "id_to_instances"):
             self.id_to_instances = {}
             for reservation in self.reservations.values():
                 for instance in reservation.instances:
@@ -934,13 +948,13 @@ class InstanceBackend:
 
     # ORIGINAL FUNCTION - PATCHED BELOW
     # def describe_instances(self, filters: Any = None) -> List[Reservation]:
-        # return self.all_reservations(filters)
+    # return self.all_reservations(filters)
 
     # Perfomrance patch: describe_instances to avoid double iterations on reservations
     # This a mix of all_reservations() and filter_reservations() as used by describe_instances()
-    def describe_instances(self, filters=None):    
+    def describe_instances(self, filters=None):
         filters = filters or {}
-        instance_ids = filters.get('instance-id', set())
+        instance_ids = filters.get("instance-id", set())
         if instance_ids:
             reservations = {}
             for id_ in instance_ids:
@@ -949,7 +963,9 @@ class InstanceBackend:
                     try:
                         reservations[instance.reservation_id].instances.append(instance)
                     except KeyError:
-                        reservation = copy.copy(self.reservations[instance.reservation_id])
+                        reservation = copy.copy(
+                            self.reservations[instance.reservation_id]
+                        )
                         reservation.instances = [instance]
                         reservations[instance.reservation_id] = reservation
             return list(reservations.values())
@@ -963,7 +979,7 @@ class InstanceBackend:
             if new_instances:
                 reservation = copy.copy(reservation)
                 reservation.instances = new_instances
-                result.append(reservation)            
+                result.append(reservation)
         return result
 
     def describe_instance_status(
