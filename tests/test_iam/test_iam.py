@@ -2748,7 +2748,7 @@ def test_create_role_with_tags():
     )
     # Ensure the tags field is not present in the response
     role = conn.get_role(RoleName="your-role")["Role"]
-    assert 'Tags' not in role
+    assert "Tags" not in role
 
     conn.create_role(
         RoleName="my-role",
