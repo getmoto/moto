@@ -2738,6 +2738,18 @@ def test_create_role_defaults():
 def test_create_role_with_tags():
     """Tests both the tag_role and get_role_tags capability"""
     conn = boto3.client("iam", region_name="us-east-1")
+
+    # Create a role without tags
+    conn.create_role(
+        RoleName="your-role",
+        AssumeRolePolicyDocument="{}",
+        Tags=[],
+        Description="testing",
+    )
+    # Ensure the tags field is not present in the response
+    role = conn.get_role(RoleName="your-role")["Role"]
+    assert 'Tags' not in role
+
     conn.create_role(
         RoleName="my-role",
         AssumeRolePolicyDocument="{}",
