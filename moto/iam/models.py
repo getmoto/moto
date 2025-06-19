@@ -2177,6 +2177,10 @@ class IAMBackend(BaseBackend):
             raise EntityAlreadyExists(f"Role with name {role_name} already exists.")
 
         clean_tags = self._tag_verification(tags)
+        tags = None
+        if clean_tags:
+            tags = [clean_tags[tag] for tag in clean_tags]
+
         role = Role(
             account_id=self.account_id,
             partition=self.partition,
@@ -2186,7 +2190,7 @@ class IAMBackend(BaseBackend):
             path=path,
             permissions_boundary=permissions_boundary,
             description=description,
-            tags=[clean_tags[tag] for tag in clean_tags],
+            tags=tags,
             max_session_duration=max_session_duration,
             linked_service=linked_service,
         )
