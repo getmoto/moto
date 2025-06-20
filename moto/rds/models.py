@@ -492,6 +492,7 @@ class DBCluster(RDSBaseModel):
         port: Optional[int] = None,
         preferred_backup_window: str = "01:37-02:07",
         preferred_maintenance_window: str = "wed:02:40-wed:03:10",
+        publicly_accessible: bool = False,
         storage_encrypted: bool = False,
         tags: Optional[List[Dict[str, str]]] = None,
         vpc_security_group_ids: Optional[List[str]] = None,
@@ -582,6 +583,7 @@ class DBCluster(RDSBaseModel):
         self.port = port or DBCluster.default_port(self.engine)
         self.preferred_backup_window = preferred_backup_window
         self.preferred_maintenance_window = preferred_maintenance_window
+        self.publicly_accessible = publicly_accessible
         # This should default to the default security group
         self._vpc_security_group_ids = vpc_security_group_ids or []
         self.hosted_zone_id = "".join(
