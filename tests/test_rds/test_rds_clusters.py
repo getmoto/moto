@@ -2006,3 +2006,17 @@ def test_db_cluster_identifier_is_case_insensitive(client):
 
     response = client.delete_db_cluster(DBClusterIdentifier="xXyY")
     assert response["DBCluster"]["DBClusterIdentifier"] == "xxyy"
+
+
+@mock_aws
+def test_db_cluster_attributes(client):
+    cluster = client.create_db_cluster(
+        DBClusterIdentifier="test-cluster",
+        Engine="aurora-postgresql",
+        MasterUsername="root",
+        MasterUserPassword="password",
+        PubliclyAccessible=True,
+    )["DBCluster"]
+    assert cluster["DBClusterIdentifier"] == "test-cluster"
+    assert cluster["Engine"] == "aurora-postgresql"
+    assert cluster["PubliclyAccessible"] is True
