@@ -1,6 +1,6 @@
 import re
 import string
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -148,12 +148,10 @@ class ResourceShare(BaseModel):
             "status": self.status,
         }
 
-    def update(self, **kwargs: Any) -> None:
-        self.allow_external_principals = kwargs.get(
-            "allowExternalPrincipals", self.allow_external_principals
-        )
+    def update(self, allow_external_principals: bool, name: Optional[str]) -> None:
+        self.allow_external_principals = allow_external_principals
         self.last_updated_time = utcnow()
-        self.name = kwargs.get("name", self.name)
+        self.name = name
 
 
 class ResourceAccessManagerBackend(BaseBackend):
@@ -183,16 +181,14 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(resourceShare=response)
 
-    def get_resource_shares(self, **kwargs: Any) -> Dict[str, Any]:
-        owner = kwargs["resourceOwner"]
-
-        if owner not in ["SELF", "OTHER-ACCOUNTS"]:
+    def get_resource_shares(self, resource_owner: Optional[str]) -> Dict[str, Any]:
+        if resource_owner not in ["SELF", "OTHER-ACCOUNTS"]:
             raise InvalidParameterException(
-                f"{owner} is not a valid resource owner. "
+                f"{resource_owner} is not a valid resource owner. "
                 "Specify either SELF or OTHER-ACCOUNTS and try again."
             )
 
-        if owner == "OTHER-ACCOUNTS":
+        if resource_owner == "OTHER-ACCOUNTS":
             raise NotImplementedError(
                 "Value 'OTHER-ACCOUNTS' for parameter 'resourceOwner' not implemented."
             )
@@ -201,29 +197,48 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(resourceShares=resouces)
 
-    def update_resource_share(self, **kwargs: Any) -> Dict[str, Any]:
-        arn = kwargs["resourceShareArn"]
-
+    def update_resource_share(
+        self,
+        resource_share_arn: Optional[str],
+        allow_external_principals: bool,
+        name: Optional[str],
+    ) -> Dict[str, Any]:
         resource = next(
-            (resource for resource in self.resource_shares if arn == resource.arn), None
+            (
+                resource
+                for resource in self.resource_shares
+                if resource_share_arn == resource.arn
+            ),
+            None,
         )
 
         if not resource:
-            raise UnknownResourceException(f"ResourceShare {arn} could not be found.")
+            raise UnknownResourceException(
+                f"ResourceShare {resource_share_arn} could not be found."
+            )
 
-        resource.update(**kwargs)
+        resource.update(allow_external_principals, name)
         response = resource.describe()
         response.pop("featureSet")
 
         return dict(resourceShare=response)
 
-    def delete_resource_share(self, arn: str) -> Dict[str, Any]:
+    def delete_resource_share(
+        self, resource_share_arn: Optional[str]
+    ) -> Dict[str, Any]:
         resource = next(
-            (resource for resource in self.resource_shares if arn == resource.arn), None
+            (
+                resource
+                for resource in self.resource_shares
+                if resource_share_arn == resource.arn
+            ),
+            None,
         )
 
         if not resource:
-            raise UnknownResourceException(f"ResourceShare {arn} could not be found.")
+            raise UnknownResourceException(
+                f"ResourceShare {resource_share_arn} could not be found."
+            )
 
         resource.delete()
 
@@ -235,15 +250,20 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(returnValue=True)
 
-    def get_resource_share_associations(self, **kwargs: Any) -> Dict[str, Any]:
-        association_type = kwargs["associationType"]
+    def get_resource_share_associations(
+        self,
+        association_type: Optional[str],
+        association_status: Optional[str],
+        resource_share_arns: List[str],
+        resource_arn: Optional[str],
+        principal: Optional[str],
+    ) -> Dict[str, Any]:
         if association_type not in ["PRINCIPAL", "RESOURCE"]:
             raise InvalidParameterException(
                 f"{association_type} is not a valid association type. "
                 "Specify either PRINCIPAL or RESOURCE and try again."
             )
 
-        association_status = kwargs.get("associationStatus")
         if association_status and association_status not in [
             "ASSOCIATING",
             "ASSOCIATED",
@@ -254,10 +274,6 @@ class ResourceAccessManagerBackend(BaseBackend):
             raise InvalidParameterException(
                 f"{association_status} is not a valid association status."
             )
-
-        resource_share_arns = kwargs.get("resourceShareArns", [])
-        resource_arn = kwargs.get("resourceArn")
-        principal = kwargs.get("principal")
 
         if association_type == "PRINCIPAL" and resource_arn:
             raise InvalidParameterException(
@@ -312,9 +328,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(resourceShareAssociations=associations)
 
-    def list_resource_types(self, **kwargs: Any) -> Dict[str, Any]:
-        resource_region_scope = kwargs.get("resourceRegionScope", "ALL")
-
+    def list_resource_types(self, resource_region_scope: str) -> Dict[str, Any]:
         if resource_region_scope not in ["ALL", "REGIONAL", "GLOBAL"]:
             raise InvalidParameterException(
                 f"{resource_region_scope} is not a valid resource region "
@@ -332,9 +346,9 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return dict(resourceTypes=resource_types)
 
-    def list_permissions(self, **kwargs: Any) -> Dict[str, Any]:
-        resource_type = kwargs.get("resourceType")
-        permission_type = kwargs.get("permissionType", "ALL")
+    def list_permissions(
+        self, resource_type: Optional[str], permission_type: str
+    ) -> Dict[str, Any]:
         permission_types_relation = {
             "AWS": "AWS_MANAGED",
             "LOCAL": "CUSTOMER_MANAGED",
