@@ -34,7 +34,7 @@ ram
 - [ ] list_pending_invitation_resources
 - [ ] list_permission_associations
 - [ ] list_permission_versions
-- [ ] list_permissions
+- [X] list_permissions
 - [ ] list_principals
 - [ ] list_replace_permission_associations_work
 - [ ] list_resource_share_permissions
