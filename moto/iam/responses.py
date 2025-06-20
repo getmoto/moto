@@ -252,6 +252,8 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         role = self.backend.get_role(role_name)
         role = copy(role)
+        if not role.tags:
+            role.tags = None  # type: ignore[assignment]  # empty tag-list should not be serialized
         setattr(
             role, "AssumeRolePolicyDocument", quote(role.assume_role_policy_document)
         )

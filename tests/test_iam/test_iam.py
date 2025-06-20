@@ -17,6 +17,8 @@ from moto.iam import iam_backends
 from moto.s3.responses import DEFAULT_REGION_NAME
 from tests import DEFAULT_ACCOUNT_ID
 
+from . import iam_aws_verified
+
 MOCK_CERT = """-----BEGIN CERTIFICATE-----
 MIIBpzCCARACCQCY5yOdxCTrGjANBgkqhkiG9w0BAQsFADAXMRUwEwYDVQQKDAxt
 b3RvIHRlc3RpbmcwIBcNMTgxMTA1MTkwNTIwWhgPMjI5MjA4MTkxOTA1MjBaMBcx
@@ -2734,52 +2736,45 @@ def test_create_role_defaults():
     assert role.get("Description") is None
 
 
-@mock_aws()
-def test_create_role_with_tags():
-    """Tests both the tag_role and get_role_tags capability"""
+@pytest.mark.aws_verified
+@iam_aws_verified(create_role=True, tags=[])
+def test_create_role_with_empty_tags(role_name=None):
     conn = boto3.client("iam", region_name="us-east-1")
 
-    # Create a role without tags
-    conn.create_role(
-        RoleName="your-role",
-        AssumeRolePolicyDocument="{}",
-        Tags=[],
-        Description="testing",
-    )
     # Ensure the tags field is not present in the response
-    role = conn.get_role(RoleName="your-role")["Role"]
+    role = conn.get_role(RoleName=role_name)["Role"]
     assert "Tags" not in role
 
-    conn.create_role(
-        RoleName="my-role",
-        AssumeRolePolicyDocument="{}",
-        Tags=[
-            {"Key": "somekey", "Value": "somevalue"},
-            {"Key": "someotherkey", "Value": "someothervalue"},
-        ],
-        Description="testing",
-    )
 
-    # Get role:
-    role = conn.get_role(RoleName="my-role")["Role"]
+@pytest.mark.aws_verified
+@iam_aws_verified(
+    create_role=True,
+    tags=[
+        {"Key": "somekey", "Value": "somevalue"},
+        {"Key": "someotherkey", "Value": "someothervalue"},
+    ],
+)
+def test_create_role_with_some_tags(role_name=None):
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    role = conn.get_role(RoleName=role_name)["Role"]
     assert len(role["Tags"]) == 2
-    assert role["Tags"][0]["Key"] == "somekey"
-    assert role["Tags"][0]["Value"] == "somevalue"
-    assert role["Tags"][1]["Key"] == "someotherkey"
-    assert role["Tags"][1]["Value"] == "someothervalue"
-    assert role["Description"] == "testing"
+    assert {"Key": "somekey", "Value": "somevalue"} in role["Tags"]
+    assert {"Key": "someotherkey", "Value": "someothervalue"} in role["Tags"]
 
-    # Empty is good:
-    conn.create_role(
-        RoleName="my-role2",
-        AssumeRolePolicyDocument="{}",
-        Tags=[{"Key": "somekey", "Value": ""}],
-    )
-    tags = conn.list_role_tags(RoleName="my-role2")
-    assert len(tags["Tags"]) == 1
-    assert tags["Tags"][0]["Key"] == "somekey"
-    assert tags["Tags"][0]["Value"] == ""
 
+@pytest.mark.aws_verified
+@iam_aws_verified(create_role=True, tags=[{"Key": "somekey", "Value": ""}])
+def test_create_role_with_empty_tag_value(role_name=None):
+    conn = boto3.client("iam", region_name="us-east-1")
+
+    tags = conn.list_role_tags(RoleName=role_name)
+    assert tags["Tags"] == [{"Key": "somekey", "Value": ""}]
+
+
+@mock_aws
+def test_create_role_with_wrong_tags():
+    conn = boto3.client("iam", region_name="us-east-1")
     # Test creating tags with invalid values:
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:

@@ -2186,7 +2186,7 @@ class IAMBackend(BaseBackend):
             path=path,
             permissions_boundary=permissions_boundary,
             description=description,
-            tags=[clean_tags[tag] for tag in clean_tags] or None,
+            tags=[clean_tags[tag] for tag in clean_tags],
             max_session_duration=max_session_duration,
             linked_service=linked_service,
         )
