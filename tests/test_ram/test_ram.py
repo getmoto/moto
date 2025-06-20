@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ram.models import ResourceAccessManagerBackend
 
 
 @mock_aws
@@ -530,3 +531,52 @@ def test_get_resource_share_associations_errors():
         "You cannot specify a principal when the association type is RESOURCE"
         in ex.response["Error"]["Message"]
     )
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "resource_region_scope, expect_error, error_message",
+    [
+        ({}, False, None),  # default value is "ALL"
+        ({"resourceRegionScope": "ALL"}, False, None),
+        ({"resourceRegionScope": "GLOBAL"}, False, None),
+        ({"resourceRegionScope": "REGIONAL"}, False, None),
+        (
+            {"resourceRegionScope": "INVALID"},
+            True,
+            "INVALID is not a valid resource region scope value. Specify a valid value and try again.",
+        ),
+    ],
+    ids=[
+        "default_region_scope",
+        "all_region_scope",
+        "global_region_scope",
+        "regional_region_scope",
+        "invalid_region_scope",
+    ],
+)
+def test_list_resource_types(resource_region_scope, expect_error, error_message):
+    client = boto3.client("ram", region_name="us-east-1")
+    region_scope = resource_region_scope.get("resourceRegionScope")
+
+    if expect_error:
+        with pytest.raises(ClientError) as e:
+            client.list_resource_types(**resource_region_scope)
+        ex = e.value
+        assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert "InvalidParameterException" in ex.response["Error"]["Code"]
+        assert ex.response["Error"]["Message"] == error_message
+    else:
+        response = client.list_resource_types(**resource_region_scope)
+        expected_types = ResourceAccessManagerBackend.RESOURCE_TYPES
+        if region_scope == "GLOBAL":
+            expected_types = [
+                rt for rt in expected_types if rt["resourceRegionScope"] == "GLOBAL"
+            ]
+        elif region_scope == "REGIONAL":
+            expected_types = [
+                rt for rt in expected_types if rt["resourceRegionScope"] == "REGIONAL"
+            ]
+
+        assert "resourceTypes" in response
+        assert response["resourceTypes"] == expected_types
