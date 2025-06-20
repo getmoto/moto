@@ -527,7 +527,6 @@ ec2
 - [ ] export_image
 - [ ] export_transit_gateway_routes
 - [ ] export_verified_access_instance_client_configuration
-- [ ] get_active_vpn_tunnel_status
 - [ ] get_allowed_images_settings
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
@@ -626,7 +625,6 @@ ec2
 - [X] modify_managed_prefix_list
 - [X] modify_network_interface_attribute
 - [ ] modify_private_dns_name_options
-- [ ] modify_public_ip_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_route_server
 - [X] modify_security_group_rules
