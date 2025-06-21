@@ -358,8 +358,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         # last partition (type) is case insensitive
         if resource_type and not any(
             str(permission["resourceType"]).split(":")[0] == resource_type.split(":")[0]
-            and str(permission["resourceType"]).split(":")[-1].lower()
-            == resource_type.split(":")[-1].lower()
+            and str(permission["resourceType"]).lower() == resource_type.lower()
             for permission in self.MANAGED_PERMISSIONS
         ):
             raise InvalidParameterException(f"Invalid resource type: {resource_type}")
@@ -368,8 +367,7 @@ class ResourceAccessManagerBackend(BaseBackend):
             permissions = [
                 permission
                 for permission in self.MANAGED_PERMISSIONS
-                if str(permission["resourceType"]).split(":")[-1].lower()
-                == resource_type.split(":")[-1].lower()
+                if str(permission["resourceType"]).lower() == resource_type.lower()
             ]
         else:
             permissions = self.MANAGED_PERMISSIONS
