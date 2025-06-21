@@ -347,7 +347,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         return dict(resourceTypes=resource_types)
 
     def list_permissions(
-        self, resource_type: Optional[str], permission_type: str
+        self, resource_type: str, permission_type: str
     ) -> Dict[str, Any]:
         permission_types_relation = {
             "AWS": "AWS_MANAGED",
@@ -357,8 +357,8 @@ class ResourceAccessManagerBackend(BaseBackend):
         # Here, resourceType first partition (service) is case sensitive and
         # last partition (type) is case insensitive
         if resource_type and not any(
-            permission["resourceType"].split(":")[0] == resource_type.split(":")[0]
-            and permission["resourceType"].split(":")[-1].lower()
+            str(permission["resourceType"]).split(":")[0] == resource_type.split(":")[0]
+            and str(permission["resourceType"]).split(":")[-1].lower()
             == resource_type.split(":")[-1].lower()
             for permission in self.MANAGED_PERMISSIONS
         ):
@@ -368,7 +368,7 @@ class ResourceAccessManagerBackend(BaseBackend):
             permissions = [
                 permission
                 for permission in self.MANAGED_PERMISSIONS
-                if permission["resourceType"].split(":")[-1].lower()
+                if str(permission["resourceType"]).split(":")[-1].lower()
                 == resource_type.split(":")[-1].lower()
             ]
         else:

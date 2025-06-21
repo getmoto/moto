@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 
 def format_ram_permission(
@@ -13,7 +13,7 @@ def format_ram_permission(
     is_resource_type_default: bool = True,
     permission_type: str = "AWS_MANAGED",
     default_version: bool = True,
-) -> Dict[str, str]:
+) -> Dict[str, Union[str, bool]]:
     """
     Format a RAM (Resource Access Manager) permission dictionary with the
     specified attributes.
@@ -21,20 +21,20 @@ def format_ram_permission(
     Args:
         name (str): The name of the permission.
         resource_type (str): The type of resource the permission applies to.
-        version (str, optional): The version of the permission. Defaults to "1".
-        arn_prefix (str, optional): The prefix for the permission ARN. Defaults
+        version (str): The version of the permission. Defaults to "1".
+        arn_prefix (str): The prefix for the permission ARN. Defaults
             to "arn:aws:ram::aws:permission/".
-        status (str, optional): The status of the permission. Defaults to
+        status (str): The status of the permission. Defaults to
             "ATTACHABLE".
         creation_time (str, optional): The creation time in UTC. If not
             provided, uses the current time.
         last_updated_time (str, optional): The last updated time in UTC. If
             not provided, uses the creation time.
-        is_resource_type_default (bool, optional): Whether this is the default
+        is_resource_type_default (bool): Whether this is the default
             permission for the resource type. Defaults to True.
-        permission_type (str, optional): The type of permission (e.g.,
+        permission_type (str): The type of permission (e.g.,
             "AWS_MANAGED"). Defaults to "AWS_MANAGED".
-        default_version (bool, optional): Whether this is the default version.
+        default_version (bool): Whether this is the default version.
             Defaults to True.
 
     Returns:
