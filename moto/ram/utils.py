@@ -5,13 +5,13 @@ from typing import Dict, Optional
 def format_ram_permission(
     name: str,
     resource_type: str,
-    version: Optional[str] = "1",
-    arn_prefix: Optional[str] = "arn:aws:ram::aws:permission/",
-    status: Optional[str] = "ATTACHABLE",
+    version: str = "1",
+    arn_prefix: str = "arn:aws:ram::aws:permission/",
+    status: str = "ATTACHABLE",
     creation_time: Optional[str] = None,
     last_updated_time: Optional[str] = None,
     is_resource_type_default: Optional[bool] = True,
-    permission_type: Optional[str] = "AWS_MANAGED",
+    permission_type: str = "AWS_MANAGED",
     default_version: Optional[bool] = True,
 ) -> Dict[str, str]:
     """
