@@ -637,8 +637,7 @@ def test_list_permissions(parameters, expect_error, error_message):
             expected_permissions = [
                 permission
                 for permission in expected_permissions
-                if permission["resourceType"].split(":")[-1].lower()
-                == resource_type.split(":")[-1].lower()
+                if permission["resourceType"].lower() == resource_type.lower()
             ]
 
         if permission_type and permission_type != "ALL":
