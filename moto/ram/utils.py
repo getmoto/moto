@@ -10,9 +10,9 @@ def format_ram_permission(
     status: str = "ATTACHABLE",
     creation_time: Optional[str] = None,
     last_updated_time: Optional[str] = None,
-    is_resource_type_default: Optional[bool] = True,
+    is_resource_type_default: bool = True,
     permission_type: str = "AWS_MANAGED",
-    default_version: Optional[bool] = True,
+    default_version: bool = True,
 ) -> Dict[str, str]:
     """
     Format a RAM (Resource Access Manager) permission dictionary with the
