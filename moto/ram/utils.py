@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Dict, Optional
 
 
 def format_ram_permission(
@@ -13,7 +13,7 @@ def format_ram_permission(
     is_resource_type_default: Optional[bool] = True,
     permission_type: Optional[str] = "AWS_MANAGED",
     default_version: Optional[bool] = True,
-) -> dict:
+) -> Dict[str, str]:
     """
     Format a RAM (Resource Access Manager) permission dictionary with the
     specified attributes.
