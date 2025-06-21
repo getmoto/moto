@@ -99,15 +99,15 @@ def test_delete_task_definitions_invalid_identifier():
     client = boto3.client("ecs", region_name="us-east-2")
     resp = client.delete_task_definitions(
         taskDefinitions=[
-            "nonexistent-task-definition:1",
+            "invalid-task-definition-name",
         ]
     )
 
     assert resp["taskDefinitions"] == []
     assert resp["failures"] == [
         {
-            "arn": "nonexistent-task-definition:1",
-            "reason": "The specified task definition does not exist. Specify a valid account, family, revision and try again.",
+            "arn": "invalid-task-definition-name",
+            "reason": "The specified task definition identifier is invalid. Specify a valid name or ARN and try again.",
         }
     ]
 
