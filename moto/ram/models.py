@@ -1,12 +1,16 @@
 import re
 import string
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
-from moto.organizations.models import OrganizationsBackend, organizations_backends
+from moto.organizations.models import (
+    OrganizationsBackend,
+    organizations_backends,
+)
 from moto.ram.exceptions import (
     InvalidParameterException,
     MalformedArnException,
@@ -50,7 +54,7 @@ class ResourceShare(BaseModel):
         self.partition = get_partition(region)
 
         self.allow_external_principals = kwargs.get("allowExternalPrincipals", True)
-        self.arn = f"arn:{get_partition(self.region)}:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
+        self.arn = f"arn:{self.partition}:ram:{self.region}:{account_id}:resource-share/{random.uuid4()}"
         self.creation_time = utcnow()
         self.feature_set = "STANDARD"
         self.last_updated_time = utcnow()
@@ -111,7 +115,6 @@ class ResourceShare(BaseModel):
                     f"Principal ID {principal} is malformed. Verify the ID and try again."
                 )
 
-        for principal in principals:
             self.principals.append(principal)
 
     def add_resources(self, resource_arns: List[str]) -> None:
@@ -129,7 +132,6 @@ class ResourceShare(BaseModel):
                     "You cannot share the selected resource type."
                 )
 
-        for resource in resource_arns:
             self.resource_arns.append(resource)
 
     def delete(self) -> None:
@@ -154,16 +156,104 @@ class ResourceShare(BaseModel):
         self.name = name
 
 
+class ResourceType(BaseModel):
+    def __init__(
+        self, resource_type: str, service_name: str, resource_region_scope: str
+    ):
+        self.resource_type = resource_type
+        self.service_name = service_name
+        self.resource_region_scope = resource_region_scope
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "resourceType": self.resource_type,
+            "serviceName": self.service_name,
+            "resourceRegionScope": self.resource_region_scope,
+        }
+
+
+class ManagedPermission(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        resource_type: str,
+        version: str = "1",
+        default_version: bool = True,
+        status: str = "ATTACHABLE",
+        creation_time: Optional[str] = None,
+        last_updated_time: Optional[str] = None,
+        is_resource_type_default: bool = False,
+        permission_type: str = "AWS_MANAGED",  # or "CUSTOMER_MANAGED",
+    ):
+        self.account_id = account_id
+        self.region = region
+        self.partition = get_partition(region)
+
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        arn_prefix = (
+            f"arn:{self.partition}:ram::{self.partition}:permission/"
+            if permission_type == "AWS_MANAGED"
+            else f"arn:{self.partition}:ram:{self.region}:{account_id}:permission/"
+        )
+
+        self.name = name
+        self.arn = f"{arn_prefix}{name}"
+        self.resource_type = resource_type
+        self.version = version
+        self.default_version = default_version
+        self.status = status
+        self.creation_time = creation_time or now
+        self.last_updated_time = last_updated_time or creation_time
+        self.is_resource_type_default = is_resource_type_default
+        self.permission_type = permission_type
+
+    def describe(self) -> Dict[str, Any]:
+        return {
+            "arn": self.arn,
+            "name": self.name,
+            "resourceType": self.resource_type,
+            "version": self.version,
+            "defaultVersion": self.default_version,
+            "status": self.status,
+            "creationTime": self.creation_time,
+            "lastUpdatedTime": self.last_updated_time,
+            "isResourceTypeDefault": self.is_resource_type_default,
+            "permissionType": self.permission_type,
+        }
+
+
 class ResourceAccessManagerBackend(BaseBackend):
-    RESOURCE_TYPES = RAM_RESOURCE_TYPES
-
     PERMISSION_TYPES = ["ALL", "AWS", "LOCAL"]
-
-    MANAGED_PERMISSIONS = AWS_MANAGED_PERMISSIONS
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.resource_shares: List[ResourceShare] = []
+        self.managed_permissions: List[ManagedPermission] = [
+            ManagedPermission(
+                account_id=account_id,
+                region=region_name,
+                name=permission["name"],
+                resource_type=permission["resourceType"],
+                version=permission["version"],
+                default_version=permission["defaultVersion"],
+                status=permission["status"],
+                creation_time=permission["creationTime"],
+                last_updated_time=permission["lastUpdatedTime"],
+                is_resource_type_default=permission["isResourceTypeDefault"],
+                permission_type=permission["permissionType"],
+            )
+            for permission in AWS_MANAGED_PERMISSIONS
+        ]
+        self.resource_types: List[ResourceType] = [
+            ResourceType(
+                resource_type=resource_type["resourceType"],
+                service_name=resource_type["serviceName"],
+                resource_region_scope=resource_type["resourceRegionScope"],
+            )
+            for resource_type in RAM_RESOURCE_TYPES
+        ]
 
     @property
     def organizations_backend(self) -> OrganizationsBackend:
@@ -193,9 +283,9 @@ class ResourceAccessManagerBackend(BaseBackend):
                 "Value 'OTHER-ACCOUNTS' for parameter 'resourceOwner' not implemented."
             )
 
-        resouces = [resource.describe() for resource in self.resource_shares]
+        resources = [resource.describe() for resource in self.resource_shares]
 
-        return dict(resourceShares=resouces)
+        return dict(resourceShares=resources)
 
     def update_resource_share(
         self,
@@ -336,12 +426,15 @@ class ResourceAccessManagerBackend(BaseBackend):
             )
 
         if resource_region_scope == "ALL":
-            resource_types = self.RESOURCE_TYPES
+            resource_types = [
+                resource_type.describe() for resource_type in self.resource_types
+            ]
         else:
             resource_types = [
-                resource_type
-                for resource_type in self.RESOURCE_TYPES
-                if resource_type["resourceRegionScope"] == resource_region_scope
+                resource_type_dict
+                for resource_type in self.resource_types
+                if (resource_type_dict := resource_type.describe())
+                and resource_type_dict["resourceRegionScope"] == resource_region_scope
             ]
 
         return dict(resourceTypes=resource_types)
@@ -357,20 +450,25 @@ class ResourceAccessManagerBackend(BaseBackend):
         # Here, resourceType first partition (service) is case sensitive and
         # last partition (type) is case insensitive
         if resource_type and not any(
-            str(permission["resourceType"]).split(":")[0] == resource_type.split(":")[0]
-            and str(permission["resourceType"]).lower() == resource_type.lower()
-            for permission in self.MANAGED_PERMISSIONS
+            (permission_dict := permission.describe())
+            and permission_dict["resourceType"].split(":")[0]
+            == resource_type.split(":")[0]
+            and permission_dict["resourceType"].lower() == resource_type.lower()
+            for permission in self.managed_permissions
         ):
             raise InvalidParameterException(f"Invalid resource type: {resource_type}")
 
         if resource_type:
             permissions = [
-                permission
-                for permission in self.MANAGED_PERMISSIONS
-                if str(permission["resourceType"]).lower() == resource_type.lower()
+                permission_dict
+                for permission in self.managed_permissions
+                if (permission_dict := permission.describe())
+                and permission_dict["resourceType"].lower() == resource_type.lower()
             ]
         else:
-            permissions = self.MANAGED_PERMISSIONS
+            permissions = [
+                permission.describe() for permission in self.managed_permissions
+            ]
 
         if permission_type not in self.PERMISSION_TYPES:
             raise InvalidParameterException(
