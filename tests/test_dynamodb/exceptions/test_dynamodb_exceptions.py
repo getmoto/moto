@@ -1,3 +1,4 @@
+from decimal import Decimal
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -400,13 +401,14 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_update_item_unused_attribute_name(table_name=None):
+def test_update_item_unused_attributes(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
     table = ddb.Table(table_name)
-    table.put_item(Item={"pk": "pk1", "spec": {}, "am": 0})
+    table.put_item(Item={"pk": "pk1", "spec": {}, "am": 0, "test": "text"})
 
+    # Unused Name (count), in addition to Used Name (limit)
     with pytest.raises(ClientError) as exc:
         table.update_item(
             Key={"pk": "pk1"},
@@ -421,6 +423,7 @@ def test_update_item_unused_attribute_name(table_name=None):
         == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
+    # Unused Name (count) only
     with pytest.raises(ClientError) as exc:
         table.update_item(
             Key={"pk": "pk1"},
@@ -435,10 +438,41 @@ def test_update_item_unused_attribute_name(table_name=None):
         == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
+    # Unused Value (countChange)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="SET spec.#limit = :limit",
+            ExpressionAttributeNames={"#limit": "limit"},
+            ExpressionAttributeValues={":countChange": 1, ":limit": "limit"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeValues unused in expressions: keys: {:countChange}"
+    )
+
+    # Used value in ConditionExpression
+    table.update_item(
+        Key={"pk": "pk1"},
+        UpdateExpression="SET spec.#limit = :limit",
+        ConditionExpression="begins_with(test, :t)",
+        ExpressionAttributeNames={"#limit": "limit"},
+        ExpressionAttributeValues={":t": "t", ":limit": "limit"},
+    )
+    item = table.get_item(Key={"pk": "pk1"})["Item"]
+    assert item == {
+        "spec": {"limit": "limit"},
+        "pk": "pk1",
+        "am": Decimal("0"),
+        "test": "text",
+    }
+
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_put_item_unused_attribute_name(table_name=None):
+def test_put_item_unused_attributes(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
 
     table = ddb.Table(table_name)
