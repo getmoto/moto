@@ -1144,10 +1144,14 @@ class DynamoHandler(BaseResponse):
             return {}
         if len(values) == 0:
             raise ExpressionAttributeValuesEmpty
-        for key in values.keys():
+        for key in values:
             if not key.startswith(":"):
                 raise MockValidationException(
                     f'ExpressionAttributeValues contains invalid key: Syntax error; key: "{key}"'
+                )
+            if values[key] == {"NS": []}:
+                raise MockValidationException(
+                    f"ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An number set  may not be empty for key {key}"
                 )
         return values
 

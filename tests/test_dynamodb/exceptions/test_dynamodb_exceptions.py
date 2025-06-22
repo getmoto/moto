@@ -520,6 +520,20 @@ def test_update_item_unused_attributes(table_name=None):
         "test": "text",
     }
 
+    # Used ExpressionAttributeValue, but with invalid value
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="SET x = :one",
+            ExpressionAttributeValues={":one": set()},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An number set  may not be empty for key :one"
+    )
+
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
