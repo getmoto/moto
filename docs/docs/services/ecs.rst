@@ -25,7 +25,7 @@ ecs
 - [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
-- [ ] delete_task_definitions
+- [X] delete_task_definitions
 - [X] delete_task_set
   
         The Force-parameter is not yet implemented
