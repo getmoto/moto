@@ -604,6 +604,42 @@
   "Location": "apse4-az1"
  },
  {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "apse4-az1"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
+  "Location": "apse4-az1"
+ },
+ {
   "InstanceType": "r7i.12xlarge",
   "Location": "apse4-az1"
  },
@@ -1328,6 +1364,42 @@
   "Location": "apse4-az2"
  },
  {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "apse4-az2"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
+  "Location": "apse4-az2"
+ },
+ {
   "InstanceType": "r7i.12xlarge",
   "Location": "apse4-az2"
  },
@@ -2045,6 +2117,42 @@
  },
  {
   "InstanceType": "r6g.xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.12xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.16xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.2xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.4xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.8xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.large",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.medium",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.metal",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "r7g.xlarge",
   "Location": "apse4-az3"
  },
  {

@@ -3368,6 +3368,10 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "usw2-az1"
  },
@@ -10509,6 +10513,10 @@
  },
  {
   "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "usw2-az3"
  },
  {

@@ -3356,6 +3356,10 @@
   "Location": "us-east-1a"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "us-east-1a"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "us-east-1a"
  },
@@ -9553,6 +9557,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "us-east-1c"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "us-east-1c"
  },
  {
