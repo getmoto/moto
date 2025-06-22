@@ -101460,7 +101460,12 @@
    "TotalNeuronDeviceMemoryInMiB": 8388608
   },
   "NitroEnclavesSupport": "supported",
-  "NitroTpmSupport": "unsupported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
   "PhcSupport": "unsupported",
   "PlacementGroupInfo": {
    "SupportedStrategies": [
@@ -102868,12 +102873,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
+    "BaselineBandwidthInMbps": 100000,
     "BaselineIops": 420000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
     "MaximumIops": 420000,
-    "MaximumThroughputInMBps": 7500.0
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -103033,12 +103038,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
+    "BaselineBandwidthInMbps": 100000,
     "BaselineIops": 420000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
     "MaximumIops": 420000,
-    "MaximumThroughputInMBps": 7500.0
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
@@ -103198,12 +103203,12 @@
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 60000,
+    "BaselineBandwidthInMbps": 100000,
     "BaselineIops": 420000,
-    "BaselineThroughputInMBps": 7500.0,
-    "MaximumBandwidthInMbps": 60000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
     "MaximumIops": 420000,
-    "MaximumThroughputInMBps": 7500.0
+    "MaximumThroughputInMBps": 12500.0
    },
    "EbsOptimizedSupport": "default",
    "EncryptionSupport": "supported",
