@@ -347,6 +347,19 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             return original_resource
 
 
+class DeleteTaskDefinitionFailure(BaseObject):
+    def __init__(self, reason: str, name: str, account_id: str, region_name: str):
+        self.reason = reason
+        self.arn = name
+
+    @property
+    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        response_object = self.gen_response_object()
+        response_object["reason"] = self.reason
+        response_object["arn"] = self.arn
+        return response_object
+
+
 class Task(BaseObject, ManagedState):
     def __init__(
         self,
@@ -1321,14 +1334,19 @@ class EC2ContainerServiceBackend(BaseBackend):
             ):
                 raise TaskDefinitionMemoryError(cd["name"])
 
-    def list_task_definitions(self, family_prefix: str) -> List[str]:
+    def list_task_definitions(
+        self, family_prefix: str, status: str = "ACTIVE"
+    ) -> List[str]:
         task_arns = []
         for task_definition_list in self.task_definitions.values():
             task_arns.extend(
                 [
                     task_definition.arn
                     for task_definition in task_definition_list.values()
-                    if family_prefix is None or task_definition.family == family_prefix
+                    if (
+                        family_prefix is None or task_definition.family == family_prefix
+                    )
+                    and task_definition.status == status
                 ]
             )
         return task_arns
@@ -2444,6 +2462,67 @@ class EC2ContainerServiceBackend(BaseBackend):
         if account and account.value == "disabled":
             return False
         return settings.ecs_new_arn_format()
+
+    def delete_task_definitions(
+        self, task_definitions: List[str]
+    ) -> Tuple[List[TaskDefinition], List[DeleteTaskDefinitionFailure]]:
+        if not task_definitions:
+            raise InvalidParameterException(
+                "size of TaskDefinition references list must be greater than 0"
+            )
+
+        if len(task_definitions) > 10:
+            raise InvalidParameterException(
+                "Size of TaskDefinition references list cannot exceed 10"
+            )
+
+        deleted_task_definitions = []
+        failures = []
+        for task_def in task_definitions:
+            task_definition_name = task_def.split("/")[-1]
+            if ":" in task_definition_name:
+                family, rev = task_definition_name.split(":")
+                revision = int(rev)
+            else:
+                failures.append(
+                    DeleteTaskDefinitionFailure(
+                        "The specified task definition identifier is invalid. Specify a valid name or ARN and try again.",
+                        task_def,
+                        self.account_id,
+                        self.region_name,
+                    )
+                )
+                continue
+
+            try:
+                resolved_task_def = self.task_definitions[family][revision]
+            except KeyError:
+                failures.append(
+                    DeleteTaskDefinitionFailure(
+                        "The specified task definition does not exist. Specify a valid account, family, revision and try again.",
+                        task_def,
+                        self.account_id,
+                        self.region_name,
+                    )
+                )
+                continue
+
+            if resolved_task_def.status == "ACTIVE":
+                failures.append(
+                    DeleteTaskDefinitionFailure(
+                        "The specified task definition is still in ACTIVE status. Please deregister the target and try again.",
+                        task_def,
+                        self.account_id,
+                        self.region_name,
+                    )
+                )
+                continue
+
+            del self.task_definitions[family][revision]
+            resolved_task_def.status = "DELETE_IN_PROGRESS"
+            deleted_task_definitions.append(resolved_task_def)
+
+        return deleted_task_definitions, failures
 
 
 ecs_backends = BackendDict(EC2ContainerServiceBackend, "ecs")

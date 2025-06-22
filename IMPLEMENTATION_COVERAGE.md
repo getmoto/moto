@@ -3356,7 +3356,7 @@
 
 ## ecs
 <details>
-<summary>73% implemented</summary>
+<summary>75% implemented</summary>
 
 - [X] create_capacity_provider
 - [X] create_cluster
@@ -3367,7 +3367,7 @@
 - [X] delete_capacity_provider
 - [X] delete_cluster
 - [X] delete_service
-- [ ] delete_task_definitions
+- [X] delete_task_definitions
 - [X] delete_task_set
 - [X] deregister_container_instance
 - [X] deregister_task_definition
