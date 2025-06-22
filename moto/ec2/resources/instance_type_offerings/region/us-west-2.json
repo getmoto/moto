@@ -3412,6 +3412,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "us-west-2"
  },

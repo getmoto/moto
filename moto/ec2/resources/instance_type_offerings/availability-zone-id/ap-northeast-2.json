@@ -3372,6 +3372,10 @@
   "Location": "apne2-az2"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "apne2-az2"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "apne2-az2"
  },
