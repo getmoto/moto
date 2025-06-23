@@ -8,9 +8,7 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 from . import DEFAULT_REGION
-from .test_rds import (
-    create_db_instance,
-)
+from .test_rds import create_db_instance
 
 test_tags = [
     {
