@@ -1,6 +1,7 @@
 """Handles incoming connectcampaigns requests, invokes methods, returns responses."""
 
 import json
+from typing import Dict, List, Optional, Tuple
 
 from moto.core.responses import BaseResponse
 
@@ -85,3 +86,94 @@ class ConnectCampaignServiceResponse(BaseResponse):
         response = {"connectInstanceOnboardingJobStatus": job_status}
 
         return json.dumps(response)
+
+    def start_campaign(self) -> str:
+        id = self.path.split("/")[2]
+
+        self.connectcampaigns_backend.start_campaign(
+            id=id,
+        )
+
+        return "{}"
+
+    def stop_campaign(self) -> str:
+        id = self.path.split("/")[2]
+
+        self.connectcampaigns_backend.stop_campaign(
+            id=id,
+        )
+
+        return "{}"
+
+    def pause_campaign(self) -> str:
+        id = self.path.split("/")[2]
+
+        self.connectcampaigns_backend.pause_campaign(
+            id=id,
+        )
+
+        return "{}"
+
+    def resume_campaign(self) -> str:
+        id = self.path.split("/")[2]
+
+        self.connectcampaigns_backend.resume_campaign(
+            id=id,
+        )
+
+        return "{}"
+
+    def get_campaign_state(self) -> str:
+        id = self.path.split("/")[2]
+
+        campaign_state = self.connectcampaigns_backend.get_campaign_state(
+            id=id,
+        )
+
+        response = {"state": campaign_state}
+
+        return json.dumps(response)
+
+    def list_campaigns(self) -> str:
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        filters = self._get_param("filters", {})
+
+        campaigns_result: Tuple[List[Dict[str, str]], Optional[str]] = (
+            self.connectcampaigns_backend.list_campaigns(
+                filters=filters,
+                max_results=max_results,
+                next_token=next_token,
+            )
+        )
+
+        response = {
+            "campaignSummaryList": campaigns_result[0],
+            "nextToken": campaigns_result[1],
+        }
+        return json.dumps(response)
+
+    def tag_resource(self) -> str:
+        arn = self._get_param("arn")
+        tags = self._get_param("tags")
+        self.connectcampaigns_backend.tag_resource(
+            arn=arn,
+            tags=tags,
+        )
+        return json.dumps(dict())
+
+    def untag_resource(self) -> str:
+        arn = self._get_param("arn")
+        tag_keys = self._get_param("tagKeys")
+        self.connectcampaigns_backend.untag_resource(
+            arn=arn,
+            tag_keys=tag_keys,
+        )
+        return json.dumps(dict())
+
+    def list_tags_for_resource(self) -> str:
+        arn = self._get_param("arn")
+        tags = self.connectcampaigns_backend.list_tags_for_resource(
+            arn=arn,
+        )
+        return json.dumps(dict(tags=tags))

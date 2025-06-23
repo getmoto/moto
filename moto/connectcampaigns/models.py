@@ -1,13 +1,26 @@
 """ConnectCampaignServiceBackend class with methods for supported APIs."""
 
 import uuid
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import unquote
 
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import ResourceNotFoundException, ValidationException
+
+PAGINATION_MODEL = {
+    "list_campaigns": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "output_token": "nextToken",
+        "unique_attribute": "id",
+    }
+}
 
 
 class ConnectCampaign(BaseModel):
@@ -23,6 +36,7 @@ class ConnectCampaign(BaseModel):
         self.id = str(uuid.uuid4())
         self.name = name
         self.connect_instance_id = connect_instance_id
+        self.state = "Initialized"
         self.dialer_config = dialer_config
         self.outbound_call_config = outbound_call_config
         self.region = region
@@ -93,6 +107,7 @@ class ConnectCampaignServiceBackend(BaseBackend):
         self.campaigns: Dict[str, ConnectCampaign] = {}
         self.instance_configs: Dict[str, ConnectInstanceConfig] = {}
         self.onboarding_jobs: Dict[str, ConnectInstanceOnboardingJobStatus] = {}
+        self.tagger = TaggingService()
 
     def create_campaign(
         self,
@@ -182,6 +197,126 @@ class ConnectCampaignServiceBackend(BaseBackend):
         self.instance_configs[connect_instance_id] = instance_config
 
         return job_status.to_dict()
+
+    def start_campaign(self, id: str) -> None:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        self.campaigns[id].state = "Running"
+        return
+
+    def stop_campaign(self, id: str) -> None:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        self.campaigns[id].state = "Stopped"
+        return
+
+    def pause_campaign(self, id: str) -> None:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        self.campaigns[id].state = "Paused"
+        return
+
+    def resume_campaign(self, id: str) -> None:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        self.campaigns[id].state = "Running"
+        return
+
+    def get_campaign_state(self, id: str) -> str:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        return self.campaigns[id].state
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_campaigns(
+        self,
+        filters: Optional[Dict[str, Dict[str, str]]],
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> List[Dict[str, str]]:
+        filtered_campaigns = list(self.campaigns.values())
+
+        if filters and "instanceIdFilter" in filters:
+            filter_value = filters["instanceIdFilter"]["value"]
+            filter_operator = filters["instanceIdFilter"]["operator"]
+
+            operator_logic = {
+                "Eq": lambda campaign: campaign.connect_instance_id == filter_value,
+                "Ne": lambda campaign: campaign.connect_instance_id != filter_value,
+                "Contains": lambda campaign: filter_value
+                in campaign.connect_instance_id,
+                "StartsWith": lambda campaign: campaign.connect_instance_id.startswith(
+                    filter_value
+                ),
+            }
+
+            if filter_operator not in operator_logic:
+                raise ValidationException(f"Unsupported operator: {filter_operator}")
+
+            filtered_campaigns = list(
+                filter(operator_logic[filter_operator], filtered_campaigns)
+            )
+
+        campaign_summary_list = [
+            {
+                "id": campaign.id,
+                "arn": campaign.arn,
+                "name": campaign.name,
+                "connectInstanceId": campaign.connect_instance_id,
+            }
+            for campaign in filtered_campaigns
+        ]
+        return campaign_summary_list
+
+    def tag_resource(self, arn: str, tags: Dict[str, str]) -> None:
+        arn = unquote(arn)
+        campaign = None
+        for c in self.campaigns.values():
+            if c.arn == arn:
+                campaign = c
+                break
+
+        if campaign is None:
+            raise ResourceNotFoundException(f"Resource {arn} not found")
+
+        tag_list = [{"Key": k, "Value": v} for k, v in tags.items()]
+        campaign.tags.update(tags)
+        self.tagger.tag_resource(arn, tag_list)
+        return
+
+    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+        arn = unquote(arn)
+        campaign = None
+        for c in self.campaigns.values():
+            if c.arn == arn:
+                campaign = c
+                break
+
+        if campaign is None:
+            raise ResourceNotFoundException(f"Resource {arn} not found")
+
+        if not isinstance(tag_keys, list):
+            tag_keys = [tag_keys]
+        if not tag_keys:
+            raise ValidationException("tagKeys is a required parameter")
+
+        for tag in tag_keys:
+            campaign.tags.pop(tag, None)
+        self.tagger.untag_resource_using_names(arn, tag_keys)
+        return
+
+    def list_tags_for_resource(self, arn: str) -> Dict[str, str]:
+        arn = unquote(arn)
+        campaign = None
+        for c in self.campaigns.values():
+            if c.arn == arn:
+                campaign = c
+                break
+
+        if campaign is None:
+            raise ResourceNotFoundException(f"Resource {arn} not found")
+
+        return self.tagger.get_tag_dict_for_resource(arn)
 
 
 connectcampaigns_backends = BackendDict(
