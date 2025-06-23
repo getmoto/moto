@@ -3987,18 +3987,18 @@ class RDSBackend(BaseBackend):
     ) -> BlueGreenDeployment:
         bg_name = bg_kwargs.get("blue_green_deployment_name", "")
 
-        for bg_deployment in self.bluegreen_deployments.values():
-            if bg_deployment.blue_green_deployment_name == bg_name:
+        for existing_bg in self.bluegreen_deployments.values():
+            if existing_bg.blue_green_deployment_name == bg_name:
                 raise BlueGreenDeploymentAlreadyExistsFault(bg_name)
-        bg_deployment = BlueGreenDeployment(self, **bg_kwargs)
-        self.bluegreen_deployments[bg_deployment.blue_green_deployment_identifier] = (  # type: ignore
+        bg_deployment: BlueGreenDeployment = BlueGreenDeployment(self, **bg_kwargs)
+        self.bluegreen_deployments[bg_deployment.blue_green_deployment_identifier] = (
             bg_deployment
         )
         # update states only for the response of create command
         bg_copy = copy.copy(bg_deployment)
-        bg_copy.set_status(bg_deployment.SupportedStates.PROVISIONING)  # type: ignore
+        bg_copy.set_status(bg_deployment.SupportedStates.PROVISIONING)
 
-        return bg_copy  # type: ignore
+        return bg_copy
 
     def describe_blue_green_deployments(
         self,
@@ -4295,12 +4295,12 @@ class Event:
 
 class BlueGreenDeployment(RDSBaseModel):
     class SupportedStates(Enum):
-        PROVISIONING = (1,)
-        AVAILABLE = (2,)
-        SWITCHOVER_IN_PROGRESS = (3,)
-        SWITCHOVER_COMPLETED = (4,)
-        INVALID_CONFIGURATION = (5,)
-        SWITCHOVER_FAILED = (6,)
+        PROVISIONING = 1
+        AVAILABLE = 2
+        SWITCHOVER_IN_PROGRESS = 3
+        SWITCHOVER_COMPLETED = 4
+        INVALID_CONFIGURATION = 5
+        SWITCHOVER_FAILED = 6
         DELETING = 7
 
     SUPPORTED_FILTERS = {
@@ -4560,8 +4560,8 @@ class BlueGreenDeploymentTask:
     Status: str
 
     class SupportedStates(Enum):
-        PENDING = (1,)
-        IN_PROGRESS = (2,)
+        PENDING = 1
+        IN_PROGRESS = 2
         COMPLETED = 3
         FAILED = 4
 
