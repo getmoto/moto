@@ -6,7 +6,6 @@ import string
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
-from moto.ec2.models import ec2_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
@@ -161,17 +160,19 @@ class CacheSubnetGroup(BaseModel):
         self.subnet_ids = subnet_ids
         self.tags = tags
 
-        # Get VPC details from provided subnet IDs
-        # References rds models.py
+        # Only import ec2_backends if necessary
+        from moto.ec2.models import ec2_backends
+
         ec2_backend = ec2_backends[account_id][region_name]
         self.supported_network_types = []
         self.subnets_responses = []
         vpc_exists = False
         try:
-            # Should raise InvalidSubnet if subnet_ids are invalid
+            # Get VPC details from provided subnet IDs
             subnets = ec2_backend.describe_subnets(subnet_ids=subnet_ids)
             vpc_exists = True
         except Exception as e:
+            # Should raise InvalidSubnet if subnet_ids are invalid
             if "InvalidSubnet" in str(e):
                 for subnet_id in subnet_ids:
                     subnet_response: Dict[str, Any] = {}
@@ -566,18 +567,14 @@ class ElastiCacheBackend(BaseBackend):
     def describe_cache_subnet_groups(
         self,
         cache_subnet_group_name: str,
-        max_records: int,
-        marker: str,
     ) -> List[CacheSubnetGroup]:
-        if max_records is None:
-            max_records = 100
         if cache_subnet_group_name:
             if cache_subnet_group_name in self.cache_subnet_groups:
                 cache_subnet_group = self.cache_subnet_groups[cache_subnet_group_name]
                 return list([cache_subnet_group])
             else:
                 raise CacheSubnetGroupNotFound(cache_subnet_group_name)
-        cache_subnet_groups = list(self.cache_subnet_groups.values())[:max_records]
+        cache_subnet_groups = list(self.cache_subnet_groups.values())
         return cache_subnet_groups
 
     def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:

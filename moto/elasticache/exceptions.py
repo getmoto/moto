@@ -81,11 +81,9 @@ class CacheClusterAlreadyExists(ElastiCacheException):
     code = 404
 
     def __init__(self, cache_cluster_id: str):
-        (
-            super().__init__(
-                "CacheClusterAlreadyExists",
-                message=f"Cache cluster {cache_cluster_id} already exists.",
-            ),
+        super().__init__(
+            "CacheClusterAlreadyExists",
+            message=f"Cache cluster {cache_cluster_id} already exists.",
         )
 
 
@@ -103,11 +101,9 @@ class CacheSubnetGroupAlreadyExists(ElastiCacheException):
     code = 404
 
     def __init__(self, cache_subnet_group_name: str):
-        (
-            super().__init__(
-                "CacheSubnetGroupAlreadyExists",
-                message=f"CacheSubnetGroup {cache_subnet_group_name} already exists.",
-            ),
+        super().__init__(
+            "CacheSubnetGroupAlreadyExists",
+            message=f"CacheSubnetGroup {cache_subnet_group_name} already exists.",
         )
 
 
