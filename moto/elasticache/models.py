@@ -442,18 +442,14 @@ class ElastiCacheBackend(BaseBackend):
     def describe_cache_subnet_groups(
         self,
         cache_subnet_group_name: str,
-        max_records: int,
-        marker: str,
     ) -> List[CacheSubnetGroup]:
-        if max_records is None:
-            max_records = 100
         if cache_subnet_group_name:
             if cache_subnet_group_name in self.cache_subnet_groups:
                 cache_subnet_group = self.cache_subnet_groups[cache_subnet_group_name]
                 return list([cache_subnet_group])
             else:
                 raise CacheSubnetGroupNotFound(cache_subnet_group_name)
-        cache_subnet_groups = list(self.cache_subnet_groups.values())[:max_records]
+        cache_subnet_groups = list(self.cache_subnet_groups.values())
         return cache_subnet_groups
 
     def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
