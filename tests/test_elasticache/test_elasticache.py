@@ -973,10 +973,11 @@ def test_cache_subnet_group_with_ipv6_native_subnets():
         SubnetIds=[subnet_ipv6_0_id, subnet_ipv6_1_id],
     )
 
-<<<<<<< HEAD
-#     assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
-#     assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
-#     assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
+
+
 @mock_aws
 def test_create_replication_group():
 
@@ -1025,8 +1026,3 @@ def test_create_replication_group_and_primary_cluster():
     assert resp["ReplicationGroup"]["ReplicationGroupId"] == "test-replication-group"
     assert resp["ReplicationGroup"]["PrimaryClusterId"] == primary_cluster_id
     assert primary_cluster["CacheCluster"]["CacheClusterId"] == primary_cluster_id
-=======
-    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
-    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
-    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
->>>>>>> 44908a77604a05511ecc20f8e853a24d1b00a81d

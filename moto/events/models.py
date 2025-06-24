@@ -201,9 +201,10 @@ class Rule(CloudFormationModel):
     def _send_to_cw_log_group(self, name: str, event: Dict[str, Any]) -> None:
         from moto.logs import logs_backends
 
-        event["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event["time"])  # type: ignore[arg-type]
-        )
+        if "time" in event:
+            event["time"] = iso_8601_datetime_without_milliseconds(
+                utcfromtimestamp(event["time"])
+            )
 
         log_stream_name = str(random.uuid4())
         log_events = [{"timestamp": unix_time_millis(), "message": json.dumps(event)}]
