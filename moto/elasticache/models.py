@@ -157,7 +157,6 @@ class CacheSubnetGroup(BaseModel):
         self.subnet_ids = subnet_ids
         self.tags = tags
 
-        # Get VPC details from provided subnet IDs
         # Only import ec2_backends if necessary
         from moto.ec2.models import ec2_backends
 
@@ -166,10 +165,11 @@ class CacheSubnetGroup(BaseModel):
         self.subnets_responses = []
         vpc_exists = False
         try:
-            # Should raise InvalidSubnet if subnet_ids are invalid
+            # Get VPC details from provided subnet IDs
             subnets = ec2_backend.describe_subnets(subnet_ids=subnet_ids)
             vpc_exists = True
         except Exception as e:
+            # Should raise InvalidSubnet if subnet_ids are invalid
             if "InvalidSubnet" in str(e):
                 for subnet_id in subnet_ids:
                     subnet_response: Dict[str, Any] = {}
