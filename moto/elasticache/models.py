@@ -160,6 +160,7 @@ class CacheSubnetGroup(BaseModel):
         # Get VPC details from provided subnet IDs
         # Only import ec2_backends if necessary
         from moto.ec2.models import ec2_backends
+
         ec2_backend = ec2_backends[account_id][region_name]
         self.supported_network_types = []
         self.subnets_responses = []

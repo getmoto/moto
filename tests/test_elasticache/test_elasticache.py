@@ -1,7 +1,8 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from unittest import SkipTest
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -941,7 +942,6 @@ def test_cache_subnet_group_with_ipv4_and_ipv6_subnets():
 
 # The following test will be skipped until the create_subnet moto feature
 # adds support for the Ipv6Native parameter.
-
 @mock_aws
 def test_cache_subnet_group_with_ipv6_native_subnets():
     raise SkipTest("create_subnet() does not support Ipv6Native-parameter yet")
@@ -962,16 +962,14 @@ def test_cache_subnet_group_with_ipv6_native_subnets():
     subnet_ipv6_0_id = subnet_ipv6_0.get("SubnetId")
 
     subnet_ipv6_1 = ec2_client.create_subnet(
-        VpcId=vpc_id,
-        Ipv6CidrBlock="2600:1f16:1cb1:6b10::/60",
-        Ipv6Native=True
+        VpcId=vpc_id, Ipv6CidrBlock="2600:1f16:1cb1:6b10::/60", Ipv6Native=True
     )
     subnet_ipv6_1_id = subnet_ipv6_1.get("SubnetId")
 
     resp = client.create_cache_subnet_group(
         CacheSubnetGroupName="test-subnet-group",
         CacheSubnetGroupDescription="Test subnet group",
-        SubnetIds=[subnet_ipv6_0_id, subnet_ipv6_1_id]
+        SubnetIds=[subnet_ipv6_0_id, subnet_ipv6_1_id],
     )
 
     assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
