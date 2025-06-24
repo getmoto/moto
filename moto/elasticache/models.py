@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
-from moto.ec2.models import ec2_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
@@ -159,7 +158,8 @@ class CacheSubnetGroup(BaseModel):
         self.tags = tags
 
         # Get VPC details from provided subnet IDs
-        # References rds models.py
+        # Only import ec2_backends if necessary
+        from moto.ec2.models import ec2_backends
         ec2_backend = ec2_backends[account_id][region_name]
         self.supported_network_types = []
         self.subnets_responses = []
