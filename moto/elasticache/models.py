@@ -1,5 +1,7 @@
 from re import compile as re_compile
 from typing import Any, Dict, List, Optional
+import random
+import string
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -18,6 +20,7 @@ from .exceptions import (
     InvalidParameterCombinationException,
     InvalidParameterValueException,
     InvalidSubnet,
+    ReplicationGroupAlreadyExists,
     UserAlreadyExists,
     UserNotFound,
 )
@@ -219,6 +222,126 @@ class CacheSubnetGroup(BaseModel):
         return self.tags
 
 
+class ReplicationGroup(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        replication_group_id: str,
+        replication_group_description: str,
+        global_replication_group_id: Optional[str],
+        primary_cluster_id: Optional[str],
+        automatic_failover_enabled: bool,
+        multi_az_enabled: bool,
+        num_cache_clusters: int,
+        preferred_cache_cluster_a_zs: List[str],
+        num_node_groups: int,
+        replicas_per_node_group: int,
+        node_group_configuration: List[Dict[str, Any]],
+        cache_node_type: str,
+        engine: str,
+        engine_version: str,
+        cache_parameter_group_name: str,
+        cache_subnet_group_name: str,
+        cache_security_group_names: List[str],
+        security_group_ids: List[str],
+        tags: List[Dict[str, str]],
+        snapshot_arns: List[str],
+        snapshot_name: Optional[str],
+        preferred_maintenance_window: Optional[str],
+        port: int,
+        notification_topic_arn: Optional[str],
+        auto_minor_version_upgrade: bool,
+        snapshot_retention_limit: int,
+        snapshot_window: Optional[str],
+        auth_token: Optional[str],
+        transit_encryption_enabled: bool,
+        at_rest_encryption_enabled: bool,
+        kms_key_id: Optional[str],
+        user_group_ids: List[str],
+        log_delivery_configurations: List[Dict[str, Any]],
+        data_tiering_enabled: bool,
+        network_type: str,
+        ip_discovery: str,
+        transit_encryption_mode: str,
+        cluster_mode: str = "enabled",
+        serverless_cache_snapshot_name=None
+    ):
+        self.replication_group_id = replication_group_id
+        self.replication_group_description = replication_group_description
+        self.primary_cluster_id = primary_cluster_id
+        self.port = port or 6379
+
+        # This field is only present if the API is used to create a
+        # secondary replication group associated with an existing
+        # global replication group.
+        if global_replication_group_id:
+            self.global_replication_group_id = global_replication_group_id
+            self.global_replication_group_member_role = "SECONDARY"
+        else:
+            self.global_replication_group_id = None
+
+        self.status = "available"
+        self.primary_cluster_id = primary_cluster_id if primary_cluster_id else None
+
+        # TO-DO: Implement pending modified values
+        if primary_cluster_id:
+            self.pending_automatic_failover = "enabled" if automatic_failover_enabled else "disabled"
+
+        # NCacheClusterID of primary and replicas
+        self.member_clusters = []
+        for i in range(len(num_cache_clusters)):
+            self.member_clusters.append(
+                f"{replication_group_id}-cluster-{i:0>3}"
+            )
+
+
+        # NodeGroups are cluster groups
+        # Ports used in num_node_groups would all be the same as self.port
+        random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+        region_short = "use1"
+        self.node_groups = []
+        for i in range(num_node_groups):
+            node_group: Dict[str, Any] = {}
+            node_group["node_group_id"] = f"{i:0>4}"
+            node_group["status"] = "available"
+            node_group["primary_endpoint_address"] = f"master.{replication_group_id}.random_str.{region_short}.cache.amazonaws.com"
+            node_group["reader_endpoint_address"] = f"replica.{replication_group_id}.random_str.{region_short}.cache.amazonaws.com"
+
+            if cluster_mode == "enabled":
+                node_group["slots"] = node_group_configuration[i].get("slots") if node_group_configuration else "0-16383"
+
+            node_group["node_group_members"] = []
+            # Primary if clustermode == disabled
+            primary_node = {}
+            primary_node
+            # self.node_groups.append(
+            #     {
+            #         "node_group_members": [
+            #             {
+            #                 "cache_cluster_id": member_cluster_id,
+            #                 "cache_node_id": f"{member_cluster_id}-0001",
+            #                 "preferred_availability_zone": preferred_cache_cluster_a_zs[i % len(preferred_cache_cluster_a_zs)],
+            #                 "current_role": "primary" if i == 0 else "replica",
+            #             }
+            #         ],
+            #     }
+            # )
+
+
+        self.automatic_failover_enabled = automatic_failover_enabled
+        self.multi_az_enabled = multi_az_enabled
+        self.num_cache_clusters = num_cache_clusters
+        self.preferred_cache_cluster_a_zs = preferred_cache_cluster_a_zs
+        self.num_node_groups = num_node_groups
+        self.replicas_per_node_group = replicas_per_node_group
+        self.node_group_configuration = node_group_configuration
+        self.cache_node_type = cache_node_type
+        self.engine = engine or "redis"
+        self.engine_version = engine_version
+
+
+
 class ElastiCacheBackend(BaseBackend):
     """Implementation of ElastiCache APIs."""
 
@@ -240,6 +363,7 @@ class ElastiCacheBackend(BaseBackend):
 
         self.cache_clusters: Dict[str, Any] = dict()
         self.cache_subnet_groups: Dict[str, CacheSubnetGroup] = dict()
+        self.replication_groups: Dict[str, ReplicationGroup] = dict()
 
     def create_user(
         self,
@@ -472,6 +596,96 @@ class ElastiCacheBackend(BaseBackend):
         else:
             raise InvalidARNFault(arn)
         return []
+
+    def create_replication_group(
+        self,
+        replication_group_id,
+        replication_group_description,
+        global_replication_group_id,
+        primary_cluster_id,
+        automatic_failover_enabled,
+        multi_az_enabled,
+        num_cache_clusters,
+        preferred_cache_cluster_a_zs,
+        num_node_groups,
+        replicas_per_node_group,
+        node_group_configuration,
+        cache_node_type,
+        engine,
+        engine_version,
+        cache_parameter_group_name,
+        cache_subnet_group_name,
+        cache_security_group_names,
+        security_group_ids,
+        tags,
+        snapshot_arns,
+        snapshot_name,
+        preferred_maintenance_window,
+        port,
+        notification_topic_arn,
+        auto_minor_version_upgrade,
+        snapshot_retention_limit,
+        snapshot_window,
+        auth_token,
+        transit_encryption_enabled,
+        at_rest_encryption_enabled,
+        kms_key_id,
+        user_group_ids,
+        log_delivery_configurations,
+        data_tiering_enabled,
+        network_type,
+        ip_discovery,
+        transit_encryption_mode,
+        cluster_mode,
+        serverless_cache_snapshot_name,
+    ):
+        if replication_group_id in self.replication_groups:
+            raise ReplicationGroupAlreadyExists(replication_group_id)
+        replication_group = ReplicationGroup(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            replication_group_id=replication_group_id,
+            replication_group_description=replication_group_description,
+            global_replication_group_id=global_replication_group_id,
+            primary_cluster_id=primary_cluster_id,
+            automatic_failover_enabled=automatic_failover_enabled,
+            multi_az_enabled=multi_az_enabled,
+            num_cache_clusters=num_cache_clusters,
+            preferred_cache_cluster_a_zs=preferred_cache_cluster_a_zs,
+            num_node_groups=num_node_groups,
+            replicas_per_node_group=replicas_per_node_group,
+            node_group_configuration=node_group_configuration,
+            cache_node_type=cache_node_type,
+            engine=engine,
+            engine_version=engine_version,
+            cache_parameter_group_name=cache_parameter_group_name,
+            cache_subnet_group_name=cache_subnet_group_name,
+            cache_security_group_names=cache_security_group_names,
+            security_group_ids=security_group_ids,
+            tags=tags,
+            snapshot_arns=snapshot_arns,
+            snapshot_name=snapshot_name,
+            preferred_maintenance_window=preferred_maintenance_window,
+            port=port,
+            notification_topic_arn=notification_topic_arn,
+            auto_minor_version_upgrade=auto_minor_version_upgrade,
+            snapshot_retention_limit=snapshot_retention_limit,
+            snapshot_window=snapshot_window,
+            auth_token=auth_token,
+            transit_encryption_enabled=transit_encryption_enabled,
+            at_rest_encryption_enabled=at_rest_encryption_enabled,
+            kms_key_id=kms_key_id,
+            user_group_ids=user_group_ids,
+            log_delivery_configurations=log_delivery_configurations,
+            data_tiering_enabled=data_tiering_enabled,
+            network_type=network_type,
+            ip_discovery=ip_discovery,
+            transit_encryption_mode=transit_encryption_mode,
+            cluster_mode=cluster_mode,
+            serverless_cache_snapshot_name=serverless_cache_snapshot_name
+        )
+
+        return replication_group
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

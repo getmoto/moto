@@ -760,6 +760,7 @@ def test_create_cache_subnet_group_and_mock_vpc():
 
 @mock_aws
 def test_describe_cache_subnet_groups():
+
     client = boto3.client("elasticache", region_name="us-east-2")
     client.create_cache_subnet_group(
         CacheSubnetGroupName="test-subnet-group",
@@ -969,3 +970,51 @@ def test_cache_subnet_group_with_ipv4_and_ipv6_subnets():
 #     assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
 #     assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
 #     assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
+@mock_aws
+def test_create_replication_group():
+
+    client = boto3.client("elasticache", region_name="us-east-2")
+    resp = client.create_replication_group(
+        ReplicationGroupId="test-replication-group",
+        ReplicationGroupDescription="Test replication group",
+        PrimaryClusterId="test-primary-cluster",
+        GlobalReplicationGroupId="test-global-replication-group",
+        AutomaticFailoverEnabled=True,
+        CacheNodeType="cache.t2.micro",
+        Engine="redis",
+    )
+    assert resp["ReplicationGroup"]["ReplicationGroupId"] == "test-replication-group"
+    assert resp["ReplicationGroup"]["ReplicationGroupDescription"] == "Test replication group"
+    assert resp["ReplicationGroup"]["PrimaryClusterId"] == "test-primary-cluster"
+    assert resp["ReplicationGroup"]["AutomaticFailoverEnabled"] is True
+    assert resp["ReplicationGroup"]["CacheNodeType"] == "cache.t2.micro"
+    assert resp["ReplicationGroup"]["Engine"] == "redis"
+    assert resp["ReplicationGroup"]["GlobalReplicationGroupId"] == "test-global-replication-group"
+
+
+@mock_aws
+def test_create_replication_group_and_primary_cluster():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    primary_cluster_id = "test-primary-cluster"
+    engine = "redis"
+    cache_node_type = "cache.t2.micro"
+
+    primary_cluster = client.create_cache_cluster(
+        CacheClusterId=primary_cluster_id,
+        Engine=engine,
+        NumCacheNodes=1,
+        CacheNodeType=cache_node_type,
+    )
+
+    resp = client.create_replication_group(
+        ReplicationGroupId="test-replication-group",
+        ReplicationGroupDescription="Test replication group",
+        PrimaryClusterId=primary_cluster_id,
+        AutomaticFailoverEnabled=True,
+        CacheNodeType=cache_node_type,
+        Engine=engine,
+    )
+
+    assert resp["ReplicationGroup"]["ReplicationGroupId"] == "test-replication-group"
+    assert resp["ReplicationGroup"]["PrimaryClusterId"] == primary_cluster_id
+    assert primary_cluster["CacheCluster"]["CacheClusterId"] == primary_cluster_id
