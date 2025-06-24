@@ -1,6 +1,7 @@
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from unittest import SkipTest
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -938,34 +939,41 @@ def test_cache_subnet_group_with_ipv4_and_ipv6_subnets():
     assert "dual_stack" in resp["CacheSubnetGroup"]["SupportedNetworkTypes"]
 
 
-# The following test is commented out until the create_subnet moto feature
-# adds support for Ipv6Native parameter.
+# The following test will be skipped until the create_subnet moto feature
+# adds support for the Ipv6Native parameter.
 
-# @mock_aws
-# def test_cache_subnet_group_with_ipv6_native_subnets():
-#     client = boto3.client("elasticache", region_name="us-east-2")
-#     ec2_client = boto3.client("ec2", region_name="us-east-2")
+@mock_aws
+def test_cache_subnet_group_with_ipv6_native_subnets():
+    raise SkipTest("create_subnet() does not support Ipv6Native-parameter yet")
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
 
-#     vpc = ec2_client.create_vpc(
-#         CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
-#     ).get("Vpc")
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
+    ).get("Vpc")
 
-#     vpc_id = vpc.get("VpcId")
+    vpc_id = vpc.get("VpcId")
 
-#     subnet_ipv6_0 = ec2_client.create_subnet(
-#         VpcId=vpc_id,
-#         Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60",
-#         Ipv6Native=True,
-#     )
-#     subnet_ipv6_0_id = subnet_ipv6_0.get("SubnetId")
+    subnet_ipv6_0 = ec2_client.create_subnet(
+        VpcId=vpc_id,
+        Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60",
+        Ipv6Native=True,
+    )
+    subnet_ipv6_0_id = subnet_ipv6_0.get("SubnetId")
 
-#     subnet_ipv6_1 = ec2_client.create_subnet(
-#         VpcId=vpc_id,
-#         Ipv6CidrBlock="2600:1f16:1cb1:6b10::/60",
-#         Ipv6Native=True
-#     )
-#     subnet_ipv6_1_id = subnet_ipv6_1.get("SubnetId")
+    subnet_ipv6_1 = ec2_client.create_subnet(
+        VpcId=vpc_id,
+        Ipv6CidrBlock="2600:1f16:1cb1:6b10::/60",
+        Ipv6Native=True
+    )
+    subnet_ipv6_1_id = subnet_ipv6_1.get("SubnetId")
 
-#     assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
-#     assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
-#     assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_ipv6_0_id, subnet_ipv6_1_id]
+    )
+
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
