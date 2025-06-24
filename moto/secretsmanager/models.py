@@ -36,7 +36,9 @@ from .utils import (
 MAX_RESULTS_DEFAULT = 100
 
 
-def filter_primary_region(secret: "FakeSecret", values: List[str]) -> bool:
+def filter_primary_region(
+    secret: Union["FakeSecret", "ReplicaSecret"], values: List[str]
+) -> bool:
     if isinstance(secret, FakeSecret):
         return len(secret.replicas) > 0 and secret.region in values
     elif isinstance(secret, ReplicaSecret):
@@ -329,6 +331,18 @@ class ReplicaSecret:
     @property
     def secret_id(self) -> str:
         return self.source.secret_id
+
+    @property
+    def description(self) -> Optional[str]:
+        return self.source.description
+
+    @property
+    def tags(self) -> Optional[List[Dict[str, str]]]:
+        return self.source.tags
+
+    @property
+    def owning_service(self) -> Optional[str]:
+        return self.source.owning_service
 
 
 class SecretsStore(Dict[str, Union[FakeSecret, ReplicaSecret]]):
