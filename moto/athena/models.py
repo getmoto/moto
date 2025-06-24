@@ -117,6 +117,7 @@ class Execution(BaseModel):
         self.workgroup = workgroup
         self.execution_parameters = execution_parameters
         self.start_time = time.time()
+        self.end_time = time.time()
         self.status = "SUCCEEDED"
 
         if self.config is not None and "OutputLocation" in self.config:

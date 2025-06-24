@@ -2306,6 +2306,49 @@ def test_start_replay_send_to_log_group():
 
 
 @mock_aws
+def test_send_transformed_events_to_log_group():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    logs_client = boto3.client("logs", "eu-central-1")
+    log_group_name = "/test-group"
+    rule_name = "test-rule"
+    logs_client.create_log_group(logGroupName=log_group_name)
+
+    client.put_rule(Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]}))
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "test",
+                "Arn": f"arn:aws:logs:eu-central-1:{ACCOUNT_ID}:log-group:{log_group_name}",
+                "InputTransformer": {
+                    # TODO: validate whether is this a valid template for AWS, or if certain fields are required
+                    "InputTemplate": '{"id": "test"}'
+                },
+            }
+        ],
+    )
+
+    # when
+    client.put_events(
+        Entries=[
+            {
+                "Time": datetime.now(),
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"key": "value"}),
+            }
+        ]
+    )
+
+    # then
+    log_events = logs_client.filter_log_events(logGroupName=log_group_name)["events"]
+    assert len(log_events) == 1
+    event_original = json.loads(log_events[0]["message"])
+    assert event_original == {"id": "test"}
+
+
+@mock_aws
 def test_create_and_list_connections():
     client = boto3.client("events", "eu-central-1")
 

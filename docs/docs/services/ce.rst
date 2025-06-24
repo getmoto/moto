@@ -84,10 +84,8 @@ ce
             resp = ce.get_cost_and_usage(...)
         
 
-- [ ] get_cost_and_usage_comparisons
 - [ ] get_cost_and_usage_with_resources
 - [ ] get_cost_categories
-- [ ] get_cost_comparison_drivers
 - [ ] get_cost_forecast
 - [ ] get_dimension_values
 - [ ] get_reservation_coverage

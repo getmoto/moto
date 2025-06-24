@@ -152,7 +152,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def list_task_definitions(self) -> str:
         family_prefix = self._get_param("familyPrefix")
-        task_definition_arns = self.ecs_backend.list_task_definitions(family_prefix)
+        status = self._get_param("status", "ACTIVE")
+        task_definition_arns = self.ecs_backend.list_task_definitions(
+            family_prefix, status
+        )
         return json.dumps({"taskDefinitionArns": task_definition_arns})
 
     def describe_task_definition(self) -> str:
@@ -540,3 +543,18 @@ class EC2ContainerServiceResponse(BaseResponse):
         name = self._get_param("name")
         self.ecs_backend.delete_account_setting(name)
         return "{}"
+
+    def delete_task_definitions(self) -> str:
+        task_definitions = self._get_param("taskDefinitions")
+        deleted_task_definitions, failures = self.ecs_backend.delete_task_definitions(
+            task_definitions=task_definitions,
+        )
+        return json.dumps(
+            {
+                "taskDefinitions": [
+                    td.response_object["taskDefinition"]
+                    for td in deleted_task_definitions
+                ],
+                "failures": [f.response_object for f in failures],
+            }
+        )

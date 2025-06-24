@@ -3372,6 +3372,10 @@
   "Location": "ap-northeast-2b"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "ap-northeast-2b"
  },

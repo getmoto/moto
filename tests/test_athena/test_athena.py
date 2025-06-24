@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -172,7 +174,7 @@ def test_get_query_execution(location):
     # Start Query
     exex_id = client.start_query_execution(
         QueryString=query,
-        QueryExecutionContext={"Database": database},
+        QueryExecutionContext={"Database": database, "Catalog": "awsdatacatalog"},
         ResultConfiguration={"OutputLocation": location},
     )["QueryExecutionId"]
     #
@@ -186,15 +188,24 @@ def test_get_query_execution(location):
         assert result_config["OutputLocation"] == f"{location}{exex_id}.csv"
     else:
         assert result_config["OutputLocation"] == f"{location}/{exex_id}.csv"
+    assert (
+        details["ResultReuseConfiguration"]["ResultReuseByAgeConfiguration"]["Enabled"]
+        is False
+    )
     assert details["QueryExecutionContext"]["Database"] == database
+    assert details["QueryExecutionContext"]["Catalog"] == "awsdatacatalog"
     assert details["Status"]["State"] == "SUCCEEDED"
+    assert isinstance(details["Status"]["SubmissionDateTime"], datetime)
+    assert isinstance(details["Status"]["CompletionDateTime"], datetime)
     assert details["Statistics"] == {
         "EngineExecutionTimeInMillis": 0,
         "DataScannedInBytes": 0,
         "TotalExecutionTimeInMillis": 0,
         "QueryQueueTimeInMillis": 0,
+        "ServicePreProcessingTimeInMillis": 0,
         "QueryPlanningTimeInMillis": 0,
         "ServiceProcessingTimeInMillis": 0,
+        "ResultReuseInformation": {"ReusedPreviousResult": False},
     }
     assert "WorkGroup" not in details
 
