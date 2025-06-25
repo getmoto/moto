@@ -8,7 +8,9 @@ import re
 import string
 import uuid
 from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from functools import lru_cache, partialmethod
 from re import compile as re_compile
 from typing import (
@@ -36,6 +38,8 @@ from moto.secretsmanager.models import FakeSecret, SecretsManagerBackend
 from moto.utilities.utils import ARN_PARTITION_REGEX, CaseInsensitiveDict, load_resource
 
 from .exceptions import (
+    BlueGreenDeploymentAlreadyExistsFault,
+    BlueGreenDeploymentNotFoundFault,
     DBClusterNotFoundError,
     DBClusterParameterGroupNotFoundError,
     DBClusterSnapshotAlreadyExistsError,
@@ -54,6 +58,7 @@ from .exceptions import (
     DBSubnetGroupNotFoundError,
     ExportTaskAlreadyExistsError,
     ExportTaskNotFoundError,
+    InvalidBlueGreenDeploymentStateFault,
     InvalidDBClusterSnapshotStateFault,
     InvalidDBClusterStateFault,
     InvalidDBClusterStateFaultError,
@@ -72,6 +77,7 @@ from .exceptions import (
     RDSClientError,
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
+    SourceDatabaseNotSupportedFault,
     SubscriptionAlreadyExistError,
     SubscriptionNotFoundError,
 )
@@ -504,6 +510,9 @@ class DBCluster(RDSBaseModel):
     ):
         super().__init__(backend)
         self.database_name = database_name
+        self.url_identifier = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
         self.db_cluster_identifier = db_cluster_identifier
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
@@ -575,11 +584,6 @@ class DBCluster(RDSBaseModel):
         )
         self.parameter_group = db_cluster_parameter_group_name or default_pg
         self.db_subnet_group_name = db_subnet_group_name or "default"
-        self.url_identifier = "".join(
-            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
-        )
-        self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
-        self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
         self.port = port or DBCluster.default_port(self.engine)
         self.preferred_backup_window = preferred_backup_window
         self.preferred_maintenance_window = preferred_maintenance_window
@@ -786,6 +790,14 @@ class DBCluster(RDSBaseModel):
     def members(self) -> List[DBInstanceClustered]:
         self.designate_writer()
         return self._members
+
+    @property
+    def endpoint(self) -> str:
+        return f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+
+    @property
+    def reader_endpoint(self) -> str:
+        return f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
 
     def designate_writer(self) -> None:
         if self.writer or not self._members:
@@ -1077,6 +1089,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         availability_zone: Optional[str] = None,
         manage_master_user_password: Optional[bool] = False,
         master_user_secret_kms_key_id: Optional[str] = None,
+        storage_throughput: Optional[int] = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(backend)
@@ -1180,6 +1193,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
                 option_suffix = option_suffix + "-" + semantic[1]
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
+            self.storage_throughput = storage_throughput
 
     @property
     def db_instance_identifier(self) -> str:
@@ -1435,6 +1449,18 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     @property
     def iam_database_authentication_enabled(self) -> bool:
         return self.enable_iam_database_authentication
+
+    @property
+    def storage_throughput(self) -> Optional[int]:
+        return self._storage_throughput
+
+    @storage_throughput.setter
+    def storage_throughput(self, value: Optional[int]) -> None:
+        self._storage_throughput: Optional[int]
+        if value and self.storage_type == "gp3":
+            self._storage_throughput = value
+        else:
+            self._storage_throughput = None
 
     def add_replica(self, replica: DBInstance) -> None:
         if self.region != replica.region:
@@ -2225,6 +2251,9 @@ class RDSBackend(BaseBackend):
             GlobalCluster: self.global_clusters,
             OptionGroup: self.option_groups,
         }
+        self.blue_green_deployments: MutableMapping[str, BlueGreenDeployment] = (
+            CaseInsensitiveDict()
+        )
 
     @property
     def kms(self) -> KmsBackend:
@@ -3947,6 +3976,106 @@ class RDSBackend(BaseBackend):
         database = self.databases[db_instance_identifier]
         return database.log_file_manager.files
 
+    def create_blue_green_deployment(
+        self,
+        bg_kwargs: Dict[str, Any],
+    ) -> BlueGreenDeployment:
+        bg_name = bg_kwargs.get("blue_green_deployment_name", "")
+
+        for existing_bg in self.blue_green_deployments.values():
+            if existing_bg.blue_green_deployment_name == bg_name:
+                raise BlueGreenDeploymentAlreadyExistsFault(bg_name)
+        bg_deployment: BlueGreenDeployment = BlueGreenDeployment(self, **bg_kwargs)
+        self.blue_green_deployments[bg_deployment.blue_green_deployment_identifier] = (
+            bg_deployment
+        )
+        # update states only for the response of create command
+        bg_copy = copy.copy(bg_deployment)
+        bg_copy.set_status(bg_deployment.SupportedStates.PROVISIONING)
+
+        return bg_copy
+
+    def describe_blue_green_deployments(
+        self,
+        blue_green_deployment_identifier: Optional[str] = None,
+        filters: Any = None,
+    ) -> List[BlueGreenDeployment]:
+        bg_deployments = self.blue_green_deployments
+        if blue_green_deployment_identifier:
+            filters = merge_filters(
+                filters,
+                {
+                    "blue-green-deployment-identifier": [
+                        blue_green_deployment_identifier
+                    ]
+                },
+            )
+        if filters:
+            bg_deployments = self._filter_resources(
+                bg_deployments, filters, BlueGreenDeployment
+            )
+        if blue_green_deployment_identifier and not bg_deployments:
+            raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
+        return list(bg_deployments.values())
+
+    def switchover_blue_green_deployment(
+        self,
+        blue_green_deployment_identifier: str,
+        switchover_timeout: Optional[int] = 300,
+    ) -> BlueGreenDeployment:
+        if blue_green_deployment_identifier not in self.blue_green_deployments:
+            raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
+
+        bg_deployment = self.blue_green_deployments[blue_green_deployment_identifier]
+
+        if bg_deployment.status != "AVAILABLE":
+            raise InvalidBlueGreenDeploymentStateFault(blue_green_deployment_identifier)
+
+        bg_deployment_before_switch = copy.copy(bg_deployment)
+
+        bg_deployment.switchover()
+        self.blue_green_deployments[blue_green_deployment_identifier] = bg_deployment
+
+        bg_deployment_before_switch.set_status(
+            bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS
+        )
+
+        return bg_deployment_before_switch
+
+    def delete_blue_green_deployment(
+        self, blue_green_deployment_identifier: str, delete_target: bool = False
+    ) -> BlueGreenDeployment:
+        if blue_green_deployment_identifier not in self.blue_green_deployments:
+            raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
+        bg_deployment = self.blue_green_deployments.pop(
+            blue_green_deployment_identifier
+        )
+
+        if (
+            delete_target
+            and bg_deployment.status
+            != bg_deployment.SupportedStates.SWITCHOVER_COMPLETED.name
+        ):
+            if self._is_cluster(bg_deployment.target):
+                cluster = find_cluster(bg_deployment.target)
+                for member in cluster.members:
+                    self.delete_db_instance(
+                        db_instance_identifier=member.db_instance_identifier
+                    )
+                self.delete_db_cluster(cluster_identifier=cluster.db_cluster_identifier)
+            else:
+                instance = self.find_db_from_id(bg_deployment.target)
+                self.delete_db_instance(
+                    db_instance_identifier=instance.db_instance_identifier
+                )
+
+        bg_deployment.set_status(bg_deployment.SupportedStates.DELETING)
+        bg_deployment.deletion_time = utcnow()
+        return bg_deployment
+
+    def _is_cluster(self, arn: str) -> bool:
+        return arn.split(":")[-2] == "cluster"
+
 
 class OptionGroup(RDSBaseModel):
     resource_type = "og"
@@ -4155,6 +4284,279 @@ class Event:
         self.event_categories = event_metadata["Categories"]
         self.source_arn = resource.arn
         self.date = utcnow()
+
+
+class BlueGreenDeployment(RDSBaseModel):
+    class SupportedStates(Enum):
+        PROVISIONING = 1
+        AVAILABLE = 2
+        SWITCHOVER_IN_PROGRESS = 3
+        SWITCHOVER_COMPLETED = 4
+        INVALID_CONFIGURATION = 5
+        SWITCHOVER_FAILED = 6
+        DELETING = 7
+
+    SUPPORTED_FILTERS = {
+        "blue-green-deployment-identifier": FilterDef(
+            ["blue_green_deployment_identifier"],
+            "System-generated BlueGreen Deployment Identifier",
+        ),
+        "blue-green-deployment-name": FilterDef(
+            ["blue_green_deployment_name"],
+            "User-provided Name for BlueGreen Deployment",
+        ),
+        "source": FilterDef(["source"], "Source Database Instance or Cluster"),
+        "target": FilterDef(["target"], "Target Database Instance or Cluster"),
+    }
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        blue_green_deployment_name: str,
+        source: str,
+        tags: List[Dict[str, str]] | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(backend)
+        self.blue_green_deployment_identifier = self._generate_id()
+        self.blue_green_deployment_name = blue_green_deployment_name
+        self.source = source
+        self.target = self._create_green_instance(
+            target_engine_version=kwargs.get("target_engine_version", None),
+            target_db_parameter_group_name=kwargs.get(
+                "target_db_parameter_group_name", None
+            ),
+            target_db_cluster_parameter_group_name=kwargs.get(
+                "target_db_cluster_parameter_group_name", None
+            ),
+            target_db_instance_class=kwargs.get("target_db_instance_class", None),
+            target_iops=kwargs.get("target_iops", None),
+            target_storage_type=kwargs.get("target_storage_type", None),
+            target_allocated_storage=kwargs.get("target_allocated_storage", None),
+            target_storage_throughput=kwargs.get("target_storage_throughput", None),
+        )
+        self.tasks = [
+            BlueGreenDeploymentTask(
+                "CREATING_READ_REPLICA_OF_SOURCE",
+                BlueGreenDeploymentTask.SupportedStates.COMPLETED.name,
+            ),
+            BlueGreenDeploymentTask(
+                "CONFIGURE_BACKUPS",
+                BlueGreenDeploymentTask.SupportedStates.COMPLETED.name,
+            ),
+        ]
+        self.set_status(self.SupportedStates.AVAILABLE)
+        self.status_details: str | None = None
+        self.create_time = utcnow()
+        self.deletion_time: datetime | None = None
+        self.tags = tags or []
+
+    @property
+    def resource_id(self) -> str:
+        return self.blue_green_deployment_identifier
+
+    def set_status(self, value: SupportedStates) -> None:
+        self.status = value.name
+        self.switchover_details = [
+            SwitchoverDetails(self.source, self.target, self.status)
+        ]
+
+    def _generate_id(self) -> str:
+        return "bgd-" + "".join(
+            random.choices(string.ascii_lowercase + string.digits, k=16)
+        )
+
+    def _generate_green_id(self, db_identifier: str) -> str:
+        return f"{db_identifier}-green-" + "".join(
+            random.choices(string.ascii_lowercase, k=6)
+        )
+
+    def _create_green_instance(
+        self,
+        target_engine_version: str | None,
+        target_db_parameter_group_name: str | None,
+        target_db_cluster_parameter_group_name: str | None,
+        target_db_instance_class: str | None,
+        target_iops: int | None,
+        target_storage_type: str | None,
+        target_allocated_storage: int | None,
+        target_storage_throughput: int | None,
+    ) -> str:
+        source_instance: DBInstance | DBCluster = self._get_instance(self.source)
+        green_instance: DBInstance | DBCluster
+        if source_instance.manage_master_user_password:
+            raise SourceDatabaseNotSupportedFault(source_instance.arn)
+
+        db_kwargs = {
+            "engine": source_instance.engine,
+            "engine_version": target_engine_version or source_instance.engine_version,
+            "iops": target_iops or source_instance.iops,
+            "port": source_instance.port,
+            "backup_retention_period": source_instance.backup_retention_period,
+            "character_set_name": source_instance.character_set_name,
+            "auto_minor_version_upgrade": source_instance.auto_minor_version_upgrade,
+            "copy_tags_to_snapshot": source_instance.copy_tags_to_snapshot,
+            "master_username": source_instance.master_username,
+            "multi_az": source_instance.multi_az,
+            "license_model": source_instance.license_model,
+            "preferred_backup_window": source_instance.preferred_backup_window,
+            "preferred_maintenance_window": source_instance.preferred_maintenance_window,
+            "storage_encrypted": source_instance.storage_encrypted,
+            "tags": source_instance.tags,
+            "deletion_protection": source_instance.deletion_protection,
+            "enable_cloudwatch_logs_exports": source_instance.enabled_cloudwatch_logs_exports,
+            "master_user_password": source_instance._master_user_password,
+            "kms_key_id": source_instance.kms_key_id,
+        }
+
+        if isinstance(source_instance, DBInstance):
+            db_instance_specific_kwargs = {
+                "storage_type": target_storage_type or source_instance.storage_type,
+                "allocated_storage": target_allocated_storage
+                or source_instance.allocated_storage,
+                "db_instance_identifier": self._generate_green_id(
+                    source_instance.db_instance_identifier
+                ),
+                "db_instance_class": target_db_instance_class
+                or source_instance.db_instance_class,
+                "storage_throughput": target_storage_throughput
+                or source_instance.storage_throughput
+                or None,
+                "max_allocated_storage": source_instance.max_allocated_storage,
+                "db_security_groups": source_instance.db_security_groups,
+                "db_cluster_identifier": source_instance.db_cluster_identifier,
+                "publicly_accessible": source_instance.publicly_accessible,
+                "source_db_instance_identifier": source_instance.source_db_instance_identifier,
+                "vpc_security_group_ids": source_instance.vpc_security_group_ids,
+                "ca_certificate_identifier": source_instance.ca_certificate_identifier,
+                "availability_zone": source_instance.availability_zone,
+                "db_subnet_group_name": source_instance._db_subnet_group_name,
+                "db_name": source_instance.db_name,
+            }
+            if (
+                target_db_parameter_group_name
+                or source_instance.db_parameter_group_name
+            ):
+                db_instance_specific_kwargs["db_parameter_group_name"] = (
+                    target_db_parameter_group_name
+                    or source_instance.db_parameter_group_name
+                )
+
+            green_instance = self.backend.create_db_instance(
+                db_kwargs | db_instance_specific_kwargs
+            )
+            return green_instance.db_instance_arn
+        else:
+            db_cluster_specific_kwargs = {
+                "db_cluster_identifier": self._generate_green_id(
+                    source_instance.db_cluster_identifier
+                ),
+                "allocated_storage": source_instance.allocated_storage,
+                "database_name": source_instance.database_name,
+                "db_cluster_parameter_group_name": target_db_cluster_parameter_group_name
+                or source_instance.db_cluster_parameter_group,
+                "vpc_security_group_ids": source_instance._vpc_security_group_ids,
+            }
+
+            green_instance = self.backend.create_db_cluster(
+                db_kwargs | db_cluster_specific_kwargs
+            )
+
+            for cluster_member in source_instance.members:
+                cluster_member_specific_kwargs = {
+                    "storage_type": cluster_member.storage_type,
+                    "allocated_storage": cluster_member.allocated_storage,
+                    "db_instance_identifier": self._generate_green_id(
+                        cluster_member.db_instance_identifier
+                    ),
+                    "db_cluster_identifier": green_instance.db_cluster_identifier,
+                    "db_instance_class": cluster_member.db_instance_class,
+                    "max_allocated_storage": cluster_member.max_allocated_storage,
+                    "publicly_accessible": cluster_member.publicly_accessible,
+                    "availability_zone": cluster_member.availability_zone,
+                    "db_subnet_group_name": cluster_member._db_subnet_group_name,
+                }
+                if (
+                    target_db_parameter_group_name
+                    or cluster_member.db_parameter_group_name
+                ):
+                    cluster_member_specific_kwargs["db_parameter_group_name"] = (
+                        target_db_parameter_group_name
+                        or cluster_member.db_parameter_group_name
+                    )
+
+                self.backend.create_db_instance(
+                    db_kwargs | cluster_member_specific_kwargs
+                )
+            return green_instance.db_cluster_arn
+
+    def _get_instance(self, arn: str) -> DBInstance | DBCluster:
+        result = re.findall(r"^arn:[A-Za-z][0-9A-Za-z-:._]*", arn)
+        if len(result) == 0:
+            raise InvalidParameterValue("Provided string is not a valid arn")
+        if self.backend._is_cluster(arn):
+            return find_cluster(arn)
+        else:
+            return self.backend.find_db_from_id(arn)
+
+    def switchover(self) -> None:
+        source = self._get_instance(self.source)
+        target = self._get_instance(self.target)
+        source_result: DBCluster | DBInstance
+        target_result: DBCluster | DBInstance
+
+        if isinstance(source, DBCluster):
+            new_target_name = source.db_cluster_identifier
+            source_result = self.backend.modify_db_cluster(
+                {
+                    "db_cluster_identifier": source.db_cluster_identifier,
+                    "new_db_cluster_identifier": f"{source.db_cluster_identifier}-old1",
+                }
+            )
+        else:
+            new_target_name = source.db_instance_identifier
+            source_result = self.backend.modify_db_instance(
+                db_instance_identifier=source.db_instance_identifier,
+                db_kwargs={
+                    "new_db_instance_identifier": f"{source.db_instance_identifier}-old1"
+                },
+            )
+
+        if isinstance(target, DBCluster):
+            target_result = self.backend.modify_db_cluster(
+                {
+                    "db_cluster_identifier": target.db_cluster_identifier,
+                    "new_db_cluster_identifier": new_target_name,
+                }
+            )
+        else:
+            target_result = self.backend.modify_db_instance(
+                db_instance_identifier=target.db_instance_identifier,
+                db_kwargs={"new_db_instance_identifier": new_target_name},
+            )
+        self.source = source_result.arn
+        self.target = target_result.arn
+        self.set_status(self.SupportedStates.SWITCHOVER_COMPLETED)
+        self.status_details = "Switchover completed"
+
+
+@dataclass
+class SwitchoverDetails:
+    SourceMember: str
+    TargetMember: str
+    Status: str
+
+
+@dataclass
+class BlueGreenDeploymentTask:
+    Name: str
+    Status: str
+
+    class SupportedStates(Enum):
+        PENDING = 1
+        IN_PROGRESS = 2
+        COMPLETED = 3
+        FAILED = 4
 
 
 rds_backends = BackendDict(RDSBackend, "rds")
