@@ -115,6 +115,7 @@ class ResourceShare(BaseModel):
                     f"Principal ID {principal} is malformed. Verify the ID and try again."
                 )
 
+        for principal in principals:
             self.principals.append(principal)
 
     def add_resources(self, resource_arns: List[str]) -> None:
@@ -132,6 +133,7 @@ class ResourceShare(BaseModel):
                     "You cannot share the selected resource type."
                 )
 
+        for resource in resource_arns:
             self.resource_arns.append(resource)
 
     def delete(self) -> None:
