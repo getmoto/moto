@@ -4757,7 +4757,7 @@ def test_update_item_with_global_secondary_index():
                 table.update_item(
                     Key={"id": "test1"},
                     UpdateExpression=f"SET {key_name} = :gsi_hash_key",
-                    ExpressionAttributeValues={":gsi_hash_key": v, ":abc": ""},
+                    ExpressionAttributeValues={":gsi_hash_key": v},
                 )
             err = ex.value.response["Error"]
             assert err["Code"] == "ValidationException"
