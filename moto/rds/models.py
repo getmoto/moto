@@ -510,6 +510,9 @@ class DBCluster(RDSBaseModel):
     ):
         super().__init__(backend)
         self.database_name = database_name
+        self.url_identifier = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
         self.db_cluster_identifier = db_cluster_identifier
         self.db_cluster_instance_class = kwargs.get("db_cluster_instance_class")
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
@@ -581,11 +584,6 @@ class DBCluster(RDSBaseModel):
         )
         self.parameter_group = db_cluster_parameter_group_name or default_pg
         self.db_subnet_group_name = db_subnet_group_name or "default"
-        self.url_identifier = "".join(
-            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
-        )
-        self.endpoint = f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
-        self.reader_endpoint = f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
         self.port = port or DBCluster.default_port(self.engine)
         self.preferred_backup_window = preferred_backup_window
         self.preferred_maintenance_window = preferred_maintenance_window
@@ -661,6 +659,8 @@ class DBCluster(RDSBaseModel):
     @db_cluster_identifier.setter
     def db_cluster_identifier(self, value: str) -> None:
         self._db_cluster_identifier = value.lower()
+        self.endpoint = f"{self._db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+        self.reader_endpoint = f"{self._db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
 
     @property
     def db_subnet_group(self) -> str:
@@ -2245,7 +2245,7 @@ class RDSBackend(BaseBackend):
             GlobalCluster: self.global_clusters,
             OptionGroup: self.option_groups,
         }
-        self.bluegreen_deployments: MutableMapping[str, BlueGreenDeployment] = (
+        self.blue_green_deployments: MutableMapping[str, BlueGreenDeployment] = (
             CaseInsensitiveDict()
         )
 
@@ -2332,9 +2332,8 @@ class RDSBackend(BaseBackend):
         self,
         identifier: str,
         resource_type: type[DBSnapshot] | type[DBClusterSnapshot],
-        not_found_exception: (
-            type[DBSnapshotNotFoundFault] | type[DBClusterSnapshotNotFoundError]
-        ),
+        not_found_exception: type[DBSnapshotNotFoundFault]
+        | type[DBClusterSnapshotNotFoundError],
     ) -> DBSnapshot | DBClusterSnapshot:
         region = self.region_name
         if identifier.startswith("arn"):
@@ -3253,15 +3252,15 @@ class RDSBackend(BaseBackend):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
 
-        if "new_db_cluster_identifier" in kwargs:
-            kwargs["endpoint"] = cluster.endpoint.replace(
-                cluster.db_cluster_identifier,
-                kwargs.get("new_db_cluster_identifier", ""),
-            )
-            kwargs["reader_endpoint"] = cluster.reader_endpoint.replace(
-                cluster.db_cluster_identifier,
-                kwargs.get("new_db_cluster_identifier", ""),
-            )
+        # if "new_db_cluster_identifier" in kwargs:
+        #     kwargs["endpoint"] = cluster.endpoint.replace(
+        #         cluster.db_cluster_identifier,
+        #         kwargs.get("new_db_cluster_identifier", ""),
+        #     )
+        #     kwargs["reader_endpoint"] = cluster.reader_endpoint.replace(
+        #         cluster.db_cluster_identifier,
+        #         kwargs.get("new_db_cluster_identifier", ""),
+        #     )
 
         kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
@@ -3987,11 +3986,11 @@ class RDSBackend(BaseBackend):
     ) -> BlueGreenDeployment:
         bg_name = bg_kwargs.get("blue_green_deployment_name", "")
 
-        for existing_bg in self.bluegreen_deployments.values():
+        for existing_bg in self.blue_green_deployments.values():
             if existing_bg.blue_green_deployment_name == bg_name:
                 raise BlueGreenDeploymentAlreadyExistsFault(bg_name)
         bg_deployment: BlueGreenDeployment = BlueGreenDeployment(self, **bg_kwargs)
-        self.bluegreen_deployments[bg_deployment.blue_green_deployment_identifier] = (
+        self.blue_green_deployments[bg_deployment.blue_green_deployment_identifier] = (
             bg_deployment
         )
         # update states only for the response of create command
@@ -4005,7 +4004,7 @@ class RDSBackend(BaseBackend):
         blue_green_deployment_identifier: Optional[str] = None,
         filters: Any = None,
     ) -> List[BlueGreenDeployment]:
-        bg_deployments = self.bluegreen_deployments
+        bg_deployments = self.blue_green_deployments
         if blue_green_deployment_identifier:
             filters = merge_filters(
                 filters,
@@ -4028,10 +4027,10 @@ class RDSBackend(BaseBackend):
         blue_green_deployment_identifier: str,
         switchover_timeout: Optional[int] = 300,
     ) -> BlueGreenDeployment:
-        if blue_green_deployment_identifier not in self.bluegreen_deployments:
+        if blue_green_deployment_identifier not in self.blue_green_deployments:
             raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
 
-        bg_deployment = self.bluegreen_deployments[blue_green_deployment_identifier]
+        bg_deployment = self.blue_green_deployments[blue_green_deployment_identifier]
 
         if bg_deployment.status != "AVAILABLE":
             raise InvalidBlueGreenDeploymentStateFault(blue_green_deployment_identifier)
@@ -4039,7 +4038,7 @@ class RDSBackend(BaseBackend):
         bg_deployment_before_switch = copy.copy(bg_deployment)
 
         bg_deployment.switchover()
-        self.bluegreen_deployments[blue_green_deployment_identifier] = bg_deployment
+        self.blue_green_deployments[blue_green_deployment_identifier] = bg_deployment
 
         bg_deployment_before_switch.set_status(
             bg_deployment.SupportedStates.SWITCHOVER_IN_PROGRESS
@@ -4050,9 +4049,11 @@ class RDSBackend(BaseBackend):
     def delete_blue_green_deployment(
         self, blue_green_deployment_identifier: str, delete_target: bool = False
     ) -> BlueGreenDeployment:
-        if blue_green_deployment_identifier not in self.bluegreen_deployments:
+        if blue_green_deployment_identifier not in self.blue_green_deployments:
             raise BlueGreenDeploymentNotFoundFault(blue_green_deployment_identifier)
-        bg_deployment = self.bluegreen_deployments.pop(blue_green_deployment_identifier)
+        bg_deployment = self.blue_green_deployments.pop(
+            blue_green_deployment_identifier
+        )
 
         if (
             delete_target
@@ -4060,18 +4061,14 @@ class RDSBackend(BaseBackend):
             != bg_deployment.SupportedStates.SWITCHOVER_COMPLETED.name
         ):
             if self._is_cluster(bg_deployment.target):
-                cluster = self.describe_db_clusters(
-                    db_cluster_identifier=bg_deployment.target
-                )[0]
+                cluster = find_cluster(bg_deployment.target)
                 for member in cluster.members:
                     self.delete_db_instance(
                         db_instance_identifier=member.db_instance_identifier
                     )
                 self.delete_db_cluster(cluster_identifier=cluster.db_cluster_identifier)
             else:
-                instance = self.describe_db_instances(
-                    db_instance_identifier=bg_deployment.target
-                )[0]
+                instance = self.find_db_from_id(bg_deployment.target)
                 self.delete_db_instance(
                     db_instance_identifier=instance.db_instance_identifier
                 )
@@ -4502,9 +4499,9 @@ class BlueGreenDeployment(RDSBaseModel):
         if len(result) == 0:
             raise InvalidParameterValue("Provided string is not a valid arn")
         if self.backend._is_cluster(arn):
-            return self.backend.describe_db_clusters(db_cluster_identifier=arn)[0]
+            return find_cluster(arn)
         else:
-            return self.backend.describe_db_instances(db_instance_identifier=arn)[0]
+            return self.backend.find_db_from_id(arn)
 
     def switchover(self) -> None:
         source = self._get_instance(self.source)

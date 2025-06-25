@@ -290,12 +290,15 @@ def test_create_blue_green_deployment_error_if_source_db_instance_not_found(clie
     with pytest.raises(ClientError) as ex:
         client.create_blue_green_deployment(
             BlueGreenDeploymentName="FooBarBlueGreen",
-            Source="arn:rds:123456789012:db:not_an_arn",
+            Source="arn:rds:123456789012:us-east-1:db:not_an_arn",
         )
 
     err = ex.value.response["Error"]
     assert err["Code"] == "DBInstanceNotFound"
-    assert err["Message"] == "DBInstance arn:rds:123456789012:db:not_an_arn not found."
+    assert (
+        err["Message"]
+        == "DBInstance arn:rds:123456789012:us-east-1:db:not_an_arn not found."
+    )
 
 
 @mock_aws
@@ -303,13 +306,14 @@ def test_create_blue_green_deployment_error_if_source_rds_cluster_not_found(clie
     with pytest.raises(ClientError) as ex:
         client.create_blue_green_deployment(
             BlueGreenDeploymentName="FooBarBlueGreen",
-            Source="arn:rds:123456789012:cluster:not_an_arn",
+            Source="arn:rds:123456789012:us-east-1:cluster:not_an_arn",
         )
 
     err = ex.value.response["Error"]
     assert err["Code"] == "DBClusterNotFoundFault"
     assert (
-        err["Message"] == "DBCluster arn:rds:123456789012:cluster:not_an_arn not found."
+        err["Message"]
+        == "DBCluster arn:rds:123456789012:us-east-1:cluster:not_an_arn not found."
     )
 
 
