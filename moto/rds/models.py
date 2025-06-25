@@ -659,8 +659,6 @@ class DBCluster(RDSBaseModel):
     @db_cluster_identifier.setter
     def db_cluster_identifier(self, value: str) -> None:
         self._db_cluster_identifier = value.lower()
-        self.endpoint = f"{self._db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
-        self.reader_endpoint = f"{self._db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
 
     @property
     def db_subnet_group(self) -> str:
@@ -792,6 +790,14 @@ class DBCluster(RDSBaseModel):
     def members(self) -> List[DBInstanceClustered]:
         self.designate_writer()
         return self._members
+
+    @property
+    def endpoint(self) -> str:
+        return f"{self.db_cluster_identifier}.cluster-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+
+    @property
+    def reader_endpoint(self) -> str:
+        return f"{self._db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
 
     def designate_writer(self) -> None:
         if self.writer or not self._members:
