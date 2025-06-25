@@ -797,7 +797,7 @@ class DBCluster(RDSBaseModel):
 
     @property
     def reader_endpoint(self) -> str:
-        return f"{self._db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
+        return f"{self.db_cluster_identifier}.cluster-ro-{self.url_identifier}.{self.region}.rds.amazonaws.com"
 
     def designate_writer(self) -> None:
         if self.writer or not self._members:
@@ -2338,8 +2338,9 @@ class RDSBackend(BaseBackend):
         self,
         identifier: str,
         resource_type: type[DBSnapshot] | type[DBClusterSnapshot],
-        not_found_exception: type[DBSnapshotNotFoundFault]
-        | type[DBClusterSnapshotNotFoundError],
+        not_found_exception: (
+            type[DBSnapshotNotFoundFault] | type[DBClusterSnapshotNotFoundError]
+        ),
     ) -> DBSnapshot | DBClusterSnapshot:
         region = self.region_name
         if identifier.startswith("arn"):
