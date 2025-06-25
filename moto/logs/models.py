@@ -88,7 +88,7 @@ class LogQuery(BaseModel):
     def to_result_json(self) -> Dict[str, Any]:
         return {
             "results": [
-                [{"field": key, "value": val} for key, val in result.items()]
+                [{"field": key, "value": str(val)} for key, val in result.items()]
                 for result in self.results
             ],
             "status": self.status,
