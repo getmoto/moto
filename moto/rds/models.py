@@ -3252,16 +3252,6 @@ class RDSBackend(BaseBackend):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
 
-        # if "new_db_cluster_identifier" in kwargs:
-        #     kwargs["endpoint"] = cluster.endpoint.replace(
-        #         cluster.db_cluster_identifier,
-        #         kwargs.get("new_db_cluster_identifier", ""),
-        #     )
-        #     kwargs["reader_endpoint"] = cluster.reader_endpoint.replace(
-        #         cluster.db_cluster_identifier,
-        #         kwargs.get("new_db_cluster_identifier", ""),
-        #     )
-
         kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
             if k == "db_cluster_parameter_group_name":
