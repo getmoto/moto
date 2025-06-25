@@ -2338,9 +2338,8 @@ class RDSBackend(BaseBackend):
         self,
         identifier: str,
         resource_type: type[DBSnapshot] | type[DBClusterSnapshot],
-        not_found_exception: (
-            type[DBSnapshotNotFoundFault] | type[DBClusterSnapshotNotFoundError]
-        ),
+        not_found_exception: type[DBSnapshotNotFoundFault]
+        | type[DBClusterSnapshotNotFoundError],
     ) -> DBSnapshot | DBClusterSnapshot:
         region = self.region_name
         if identifier.startswith("arn"):
