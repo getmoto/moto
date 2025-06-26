@@ -210,7 +210,6 @@ class Parameter(CloudFormationModel):
         last_modified_date: float,
         version: int,
         data_type: str,
-        tags: Optional[List[Dict[str, str]]] = None,
         labels: Optional[List[str]] = None,
         source_result: Optional[str] = None,
         tier: Optional[str] = None,
@@ -225,7 +224,6 @@ class Parameter(CloudFormationModel):
         self.last_modified_date = last_modified_date
         self.version = version
         self.data_type = data_type
-        self.tags = tags or []
         self.labels = labels or []
         self.source_result = source_result
         self.tier = tier
@@ -1850,6 +1848,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         self, parameter: Parameter, filters: Optional[List[Dict[str, Any]]] = None
     ) -> bool:
         """Return True if the given parameter matches all the filters"""
+        parameter_tags = self.list_tags_for_resource("Parameter", parameter.name)
         for filter_obj in filters or []:
             key = filter_obj["Key"]
             values = filter_obj.get("Values", [])
@@ -1879,7 +1878,11 @@ class SimpleSystemManagerBackend(BaseBackend):
                 else:
                     continue
             elif key.startswith("tag:"):
-                what = [tag["Value"] for tag in parameter.tags if tag["Key"] == key[4:]]
+                what = [
+                    tag_value
+                    for tag_key, tag_value in parameter_tags.items()
+                    if tag_key == key[4:]
+                ]
 
             if what is None or what == []:
                 return False
@@ -2132,7 +2135,6 @@ class SimpleSystemManagerBackend(BaseBackend):
                 else previous_parameter.allowed_pattern
             )
             keyid = keyid if keyid is not None else previous_parameter.keyid
-            tags = tags if tags is not None else previous_parameter.tags
             data_type = (
                 data_type if data_type is not None else previous_parameter.data_type
             )
@@ -2150,7 +2152,6 @@ class SimpleSystemManagerBackend(BaseBackend):
             keyid=keyid,
             last_modified_date=last_modified_date,
             version=version,
-            tags=tags or [],
             data_type=data_type,
             tier=tier,
             policies=policies,
