@@ -1,7 +1,7 @@
-from copy import copy
-from urllib.parse import quote
+from __future__ import annotations
 
 from moto.core.responses import ActionResult, BaseResponse
+from moto.core.serialize import never_return, return_if_not_empty, url_encode
 
 from .exceptions import IAMNotFoundException
 from .models import IAMBackend, User, iam_backends
@@ -9,6 +9,34 @@ from .utils import is_role_resource
 
 
 class IamResponse(BaseResponse):
+    # IAM is inconsistent in which attributes it returns for different operations,
+    # and some attributes require specialized processing, so we need to explicitly
+    # transform some individual response elements using specialized functions.
+    #
+    # IAM resource-listing operations, for example, return a subset of the available
+    # attributes for the resource.
+    # See: https://docs.aws.amazon.com/IAM/latest/APIReference/API_ListRoles.html
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "CreatePolicyResponse.Policy.Description": never_return,
+        "CreatePolicyResponse.Policy.Tags": return_if_not_empty,
+        "CreateRoleResponse.Role.AssumeRolePolicyDocument": url_encode,
+        "CreateRoleResponse.Role.PermissionsBoundary": return_if_not_empty,
+        "CreateRoleResponse.Role.Tags": return_if_not_empty,
+        "GetGroupPolicyResponse.PolicyDocument": url_encode,
+        "GetPolicyResponse.Policy.Description": return_if_not_empty,
+        "GetRolePolicyResponse.PolicyDocument": url_encode,
+        "GetRoleResponse.Role.AssumeRolePolicyDocument": url_encode,
+        "GetRoleResponse.Role.PermissionsBoundary": return_if_not_empty,
+        "GetRoleResponse.Role.Tags": return_if_not_empty,
+        "GetUserPolicyResponse.PolicyDocument": url_encode,
+        "ListPoliciesResponse.Policies.Policy.Description": never_return,
+        "ListPoliciesResponse.Policies.Policy.Tags": never_return,
+        "ListRolesResponse.Roles.Role.PermissionsBoundary": never_return,
+        "ListRolesResponse.Roles.Role.RoleLastUsed": never_return,
+        "ListRolesResponse.Roles.Role.Tags": never_return,
+        "ListUsersResponse.Users.User.Tags": never_return,
+    }
+
     def __init__(self) -> None:
         super().__init__(service_name="iam")
 
@@ -241,20 +269,12 @@ class IamResponse(BaseResponse):
             tags,
             max_session_duration,
         )
-        role = copy(role)
-        setattr(
-            role, "AssumeRolePolicyDocument", quote(role.assume_role_policy_document)
-        )
         result = {"Role": role}
         return ActionResult(result)
 
     def get_role(self) -> ActionResult:
         role_name = self._get_param("RoleName")
         role = self.backend.get_role(role_name)
-        role = copy(role)
-        setattr(
-            role, "AssumeRolePolicyDocument", quote(role.assume_role_policy_document)
-        )
         result = {"Role": role}
         return ActionResult(result)
 
@@ -291,7 +311,7 @@ class IamResponse(BaseResponse):
         result = {
             "RoleName": role_name,
             "PolicyName": policy_name,
-            "PolicyDocument": quote(policy_document),
+            "PolicyDocument": policy_document,
         }
         return ActionResult(result)
 
@@ -526,7 +546,7 @@ class IamResponse(BaseResponse):
         user_name = self._get_param("UserName")
 
         groups = self.backend.get_groups_for_user(user_name)
-        result = {"Groups": groups}
+        result = {"Groups": groups, "IsTruncated": False}
         return ActionResult(result)
 
     def put_group_policy(self) -> ActionResult:
@@ -548,7 +568,7 @@ class IamResponse(BaseResponse):
         policy_result = self.backend.get_group_policy(group_name, policy_name)
         result = {
             "PolicyName": policy_result["policy_name"],
-            "PolicyDocument": quote(policy_result["policy_document"]),
+            "PolicyDocument": policy_result["policy_document"],
             "GroupName": group_name,
         }
         return ActionResult(result)
@@ -663,7 +683,7 @@ class IamResponse(BaseResponse):
         policy = self.backend.get_user_policy(user_name, policy_name)
         result = {
             "PolicyName": policy["policy_name"],
-            "PolicyDocument": quote(policy["policy_document"]),
+            "PolicyDocument": policy["policy_document"],
             "UserName": policy["user_name"],
         }
         return ActionResult(result)
