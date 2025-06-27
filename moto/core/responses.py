@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import functools
 import json
@@ -5,6 +7,7 @@ import logging
 import os
 import re
 from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -24,13 +27,14 @@ from xml.dom.minidom import parseString as parseXML
 import boto3
 import requests
 import xmltodict
+from botocore.model import OperationModel, ServiceModel
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
-from moto.core.serialize import SERIALIZERS, XFormedAttributePicker
+from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
     get_service_model,
@@ -279,6 +283,14 @@ class ActionAuthenticatorMixin(object):
         return decorator
 
 
+@dataclass
+class ActionContext:
+    service_model: ServiceModel
+    operation_model: OperationModel
+    serializer_class: type[ResponseSerializer]
+    response_class: type[BaseResponse]
+
+
 class ActionResult:
     """Wrapper class for serializable results returned from `responses.py` methods."""
 
@@ -288,6 +300,34 @@ class ActionResult:
     @property
     def result(self) -> object:
         return self._result
+
+    def execute_result(self, context: ActionContext) -> TYPE_RESPONSE:
+        """
+        Execute the result in the context of the given service and operation model.
+        This is a placeholder for any logic that might be needed to process the result
+        based on the service and operation context.
+        """
+        serializer_cls = context.serializer_class
+        response_transformers = getattr(
+            context.response_class, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
+        )
+        value_picker = XFormedAttributePicker(
+            response_transformers=response_transformers
+        )
+        serializer = serializer_cls(
+            operation_model=context.operation_model,
+            pretty_print=settings.PRETTIFY_RESPONSES,
+            value_picker=value_picker,
+        )
+        serialized = serializer.serialize(self.result)
+        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
+
+class EmptyResult(ActionResult):
+    """A special ActionResult that represents an empty result."""
+
+    def __init__(self) -> None:
+        super().__init__(None)
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
@@ -595,13 +635,10 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
         serializer_cls = SERIALIZERS[service_model.protocol]
-        serializer = serializer_cls(
-            operation_model=operation_model,
-            pretty_print=settings.PRETTIFY_RESPONSES,
-            value_picker=XFormedAttributePicker(),
+        context = ActionContext(
+            service_model, operation_model, serializer_cls, self.__class__
         )
-        serialized = serializer.serialize(action_result.result)
-        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+        return action_result.execute_result(context)
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers

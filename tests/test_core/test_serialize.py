@@ -21,6 +21,9 @@ from moto.core.serialize import (
     AttributePickerContext,
     QuerySerializer,
     XFormedAttributePicker,
+    never_return,
+    return_if_not_empty,
+    url_encode,
 )
 
 
@@ -217,3 +220,25 @@ class TestXFormedAttributePicker:
         ctx = AttributePickerContext(DBInstance(), "DBInstanceClass", None)
         value = self.picker(ctx)
         assert value == "t2.medium"
+
+
+class TestResponseAttributeTransformers:
+    def test_never_return(self):
+        assert never_return(None) is None
+        assert never_return(True) is None
+        assert never_return(False) is None
+        assert never_return("Test") is None
+
+    def test_return_if_not_empty(self):
+        assert return_if_not_empty([]) is None
+        assert return_if_not_empty(None) is None
+        assert return_if_not_empty("Test") == "Test"
+        assert return_if_not_empty({}) is None
+        assert return_if_not_empty("") is None
+        assert return_if_not_empty({"key": "value"}) == {"key": "value"}
+        assert return_if_not_empty([0, 1, 2]) == [0, 1, 2]
+
+    def test_url_encode(self):
+        assert url_encode(None) is None
+        assert url_encode("Test") == "Test"
+        assert url_encode("Test String") == "Test%20String"
