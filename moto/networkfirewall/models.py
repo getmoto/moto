@@ -61,7 +61,6 @@ class NetworkFirewallModel(BaseModel):
             "Status": "READY",
             "ConfigurationSyncStateSummary": "IN_SYNC",
         }
-        # self.logging_configs: List[Dict[str, str]] = []
         self.logging_configs: Dict[str, List[Dict[str, Any]]] = {}
 
     def to_dict(self) -> Dict[str, Any]:
