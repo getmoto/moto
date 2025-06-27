@@ -1,16 +1,16 @@
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class InvalidRequestException(JsonRESTError):
+class InvalidRequestException(ServiceException):
     def __init__(self, message: str):
         super().__init__("InvalidRequestException", message)
 
 
-class ValidationException(JsonRESTError):
+class ValidationException(ServiceException):
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
 
 
-class ResourceNotFoundException(JsonRESTError):
+class ResourceNotFoundException(ServiceException):
     def __init__(self, message: str):
         super().__init__("ResourceNotFoundException", message)
