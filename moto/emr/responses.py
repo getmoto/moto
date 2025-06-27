@@ -1,7 +1,7 @@
 import re
 from typing import Any, Dict, List, Pattern
 
-from moto.core.responses import ActionResult, AWSServiceSpec, BaseResponse
+from moto.core.responses import ActionResult, AWSServiceSpec, BaseResponse, EmptyResult
 from moto.core.utils import tags_from_query_string
 
 from .exceptions import ValidationException
@@ -58,7 +58,7 @@ class ElasticMapReduceResponse(BaseResponse):
         cluster_id = self._get_param("ResourceId")
         tags = tags_from_query_string(self.querystring, prefix="Tags")
         self.backend.add_tags(cluster_id, tags)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_security_configuration(self) -> ActionResult:
         name = self._get_param("Name")
@@ -76,7 +76,7 @@ class ElasticMapReduceResponse(BaseResponse):
     def delete_security_configuration(self) -> ActionResult:
         name = self._get_param("Name")
         self.backend.delete_security_configuration(name=name)
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_cluster(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")
@@ -168,13 +168,13 @@ class ElasticMapReduceResponse(BaseResponse):
         for item in instance_groups:
             item["instance_count"] = int(item["instance_count"])
         self.backend.modify_instance_groups(instance_groups)
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_tags(self) -> ActionResult:
         cluster_id = self._get_param("ResourceId")
         tag_keys = self._get_multi_param("TagKeys.member")
         self.backend.remove_tags(cluster_id, tag_keys)
-        return ActionResult({})
+        return EmptyResult()
 
     def run_job_flow(self) -> ActionResult:
         instance_attrs = dict(
@@ -434,18 +434,18 @@ class ElasticMapReduceResponse(BaseResponse):
         termination_protection = self._get_bool_param("TerminationProtected")
         job_ids = self._get_multi_param("JobFlowIds.member")
         self.backend.set_termination_protection(job_ids, termination_protection)
-        return ActionResult({})
+        return EmptyResult()
 
     def set_visible_to_all_users(self) -> ActionResult:
         visible_to_all_users = self._get_bool_param("VisibleToAllUsers", False)
         job_ids = self._get_multi_param("JobFlowIds.member")
         self.backend.set_visible_to_all_users(job_ids, visible_to_all_users)
-        return ActionResult({})
+        return EmptyResult()
 
     def terminate_job_flows(self) -> ActionResult:
         job_ids = self._get_multi_param("JobFlowIds.member.")
         self.backend.terminate_job_flows(job_ids)
-        return ActionResult({})
+        return EmptyResult()
 
     def put_auto_scaling_policy(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")
@@ -467,7 +467,7 @@ class ElasticMapReduceResponse(BaseResponse):
     def remove_auto_scaling_policy(self) -> ActionResult:
         instance_group_id = self._get_param("InstanceGroupId")
         self.backend.remove_auto_scaling_policy(instance_group_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def get_block_public_access_configuration(self) -> ActionResult:
         configuration = self.backend.get_block_public_access_configuration()
@@ -493,4 +493,4 @@ class ElasticMapReduceResponse(BaseResponse):
                 "PermittedPublicSecurityGroupRuleRanges"
             ),
         )
-        return ActionResult({})
+        return EmptyResult()
