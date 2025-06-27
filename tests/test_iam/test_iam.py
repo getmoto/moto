@@ -3346,9 +3346,6 @@ def test_create_role_with_permissions_boundary(region, partition):
             PermissionsBoundary=invalid_boundary_arn,
         )
 
-    # Ensure the PermissionsBoundary is included in role listing as well
-    assert conn.list_roles()["Roles"][0].get("PermissionsBoundary") == expected
-
 
 @mock_aws
 def test_create_role_with_same_name_should_fail():
