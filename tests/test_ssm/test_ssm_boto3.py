@@ -1274,17 +1274,73 @@ def test_describe_parameters_tags():
         Tags=[{"Key": "spam", "Value": "eggs"}],
     )
 
+    client.put_parameter(
+        Name="/spam/was-ham",
+        Value="originally ham",
+        Type="String",
+        Tags=[{"Key": "spam", "Value": "ham"}],
+    )
+    client.add_tags_to_resource(
+        ResourceId="/spam/was-ham",
+        ResourceType="Parameter",
+        Tags=[{"Key": "spam", "Value": "eggs"}],
+    )
+
+    client.put_parameter(
+        Name="/spam/eventually-eggs",
+        Value="eventually eggs",
+        Type="String",
+    )
+    client.add_tags_to_resource(
+        ResourceId="/spam/eventually-eggs",
+        ResourceType="Parameter",
+        Tags=[{"Key": "spam", "Value": "eggs"}],
+    )
+
+    client.put_parameter(
+        Name="/spam/becomes-ham",
+        Value="was eggs",
+        Type="String",
+        Tags=[{"Key": "spam", "Value": "eggs"}],
+    )
+    client.add_tags_to_resource(
+        ResourceId="/spam/becomes-ham",
+        ResourceType="Parameter",
+        Tags=[{"Key": "spam", "Value": "ham"}],
+    )
+
+    client.put_parameter(
+        Name="/spam/remove-spam",
+        Value="was eggs",
+        Type="String",
+        Tags=[{"Key": "spam", "Value": "eggs"}],
+    )
+    client.remove_tags_from_resource(
+        ResourceId="/spam/remove-spam",
+        ResourceType="Parameter",
+        TagKeys=["spam"],
+    )
+
     parameters = client.describe_parameters(
         ParameterFilters=[{"Key": "tag:spam", "Values": ["eggs"]}]
     )["Parameters"]
-    assert len(parameters) == 1
-    assert parameters[0]["Name"] == "/spam/eggs"
+    assert len(parameters) == 3
+    assert {p["Name"] for p in parameters} == {
+        "/spam/eggs",
+        "/spam/was-ham",
+        "/spam/eventually-eggs",
+    }
 
     # Verify we can filter by the existence of a tag
     filters = [{"Key": "tag:spam"}]
     response = client.describe_parameters(ParameterFilters=filters)
-    assert len(response["Parameters"]) == 1
-    assert {p["Name"] for p in response["Parameters"]} == set(["/spam/eggs"])
+    assert len(response["Parameters"]) == 4
+    assert {p["Name"] for p in response["Parameters"]} == {
+        "/spam/eggs",
+        "/spam/was-ham",
+        "/spam/eventually-eggs",
+        "/spam/becomes-ham",
+    }
 
 
 @mock_aws
