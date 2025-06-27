@@ -1994,6 +1994,7 @@ def test_put_bucket_cors():
                     "AllowedHeaders": ["Authorization"],
                     "ExposeHeaders": ["x-amz-request-id"],
                     "MaxAgeSeconds": 123,
+                    "ID": "some-id",
                 },
                 {
                     "AllowedOrigins": ["*"],
@@ -2067,6 +2068,7 @@ def test_get_bucket_cors():
                     "AllowedHeaders": ["Authorization"],
                     "ExposeHeaders": ["x-amz-request-id"],
                     "MaxAgeSeconds": 123,
+                    "ID": "some-id",
                 },
                 {
                     "AllowedOrigins": ["*"],
@@ -2087,6 +2089,9 @@ def test_get_bucket_cors():
         assert rules["AllowedHeaders"] == ["Authorization"]
         assert rules["ExposeHeaders"] == ["x-amz-request-id"]
         assert rules["MaxAgeSeconds"] == 123
+
+    assert sum(1 for rule in resp["CORSRules"] if rule.get("ID") == "some-id") == 1
+    assert sum(1 for rule in resp["CORSRules"] if rule.get("ID") is None) == 1
 
 
 @pytest.mark.aws_verified

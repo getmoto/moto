@@ -845,6 +845,7 @@ class CorsRule(BaseModel):
         allowed_headers: Any = None,
         expose_headers: Any = None,
         max_age_seconds: Any = None,
+        id_: Any = None,
     ):
         self.allowed_methods = (
             [allowed_methods] if isinstance(allowed_methods, str) else allowed_methods
@@ -859,6 +860,7 @@ class CorsRule(BaseModel):
             [expose_headers] if isinstance(expose_headers, str) else expose_headers
         )
         self.max_age_seconds = max_age_seconds
+        self.id_ = id_
 
 
 class Notification(BaseModel):
@@ -1264,6 +1266,7 @@ class FakeBucket(CloudFormationModel):
                 rule.get("ExposeHeader", ""), str
             )
             assert isinstance(rule.get("MaxAgeSeconds", "0"), str)
+            assert isinstance(rule.get("ID", ""), str)
 
             if isinstance(rule["AllowedMethod"], str):
                 methods = [rule["AllowedMethod"]]
@@ -1281,6 +1284,7 @@ class FakeBucket(CloudFormationModel):
                     rule.get("AllowedHeader"),
                     rule.get("ExposeHeader"),
                     rule.get("MaxAgeSeconds"),
+                    rule.get("ID"),
                 )
             )
 
