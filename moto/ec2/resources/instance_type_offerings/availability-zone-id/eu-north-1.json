@@ -1320,6 +1320,10 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eun1-az1"
  },
@@ -5205,6 +5209,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "eun1-az3"
  },
  {

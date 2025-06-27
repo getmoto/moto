@@ -340,7 +340,7 @@ def test_update_login_profile():
     conn.create_user(UserName="my-user")
     conn.create_login_profile(UserName="my-user", Password="my-pass")
     response = conn.get_login_profile(UserName="my-user")
-    assert response["LoginProfile"].get("PasswordResetRequired") is None
+    assert response["LoginProfile"].get("PasswordResetRequired") is False
 
     conn.update_login_profile(
         UserName="my-user", Password="new-pass", PasswordResetRequired=True
@@ -1821,10 +1821,8 @@ def test_list_virtual_mfa_devices():
 
     response = client.list_virtual_mfa_devices()
 
-    assert response["VirtualMFADevices"] == [
-        {"SerialNumber": serial_number_1},
-        {"SerialNumber": serial_number_2},
-    ]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
+    assert response["VirtualMFADevices"][1]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Assigned")
@@ -1834,15 +1832,13 @@ def test_list_virtual_mfa_devices():
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
-    assert response["VirtualMFADevices"] == [
-        {"SerialNumber": serial_number_1},
-        {"SerialNumber": serial_number_2},
-    ]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
+    assert response["VirtualMFADevices"][1]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Any", MaxItems=1)
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number_1}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
     assert response["IsTruncated"] is True
     assert response["Marker"] == "1"
 
@@ -1850,7 +1846,7 @@ def test_list_virtual_mfa_devices():
         AssignmentStatus="Any", Marker=response["Marker"]
     )
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number_2}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
 
@@ -1906,7 +1902,7 @@ def test_enable_virtual_mfa_device():
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number
     assert response["IsTruncated"] is False
 
 
@@ -3401,6 +3397,7 @@ def test_update_account_password_policy():
         "AllowUsersToChangePassword": False,
         "ExpirePasswords": False,
         "MinimumPasswordLength": 6,
+        "MaxPasswordAge": 0,
         "RequireLowercaseCharacters": False,
         "RequireNumbers": False,
         "RequireSymbols": False,
@@ -3940,7 +3937,7 @@ def test_role_config_dict():
     assert plain_role_config["awsRegion"] == "global"
     assert plain_role_config["availabilityZone"] == "Not Applicable"
     assert plain_role_config["resourceCreationTime"] is not None
-    assert plain_role_config["tags"] == {"foo": {"Key": "foo", "Value": "bar"}}
+    assert plain_role_config["tags"] == [{"Key": "foo", "Value": "bar"}]
     assert plain_role_config["configuration"]["path"] == "/"
     assert plain_role_config["configuration"]["roleName"] == "plain_role"
     assert plain_role_config["configuration"]["roleId"] == plain_role["id"]

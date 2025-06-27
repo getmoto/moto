@@ -8,7 +8,11 @@ from moto.core.common_models import BaseModel
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
-from .exceptions import InvalidArnException
+from .exceptions import (
+    InvalidArnException,
+    ResourceNotFoundException,
+    SchemaAlreadyPublishedException,
+)
 
 PAGINATION_MODEL = {
     "list_directories": {
@@ -16,7 +20,19 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "directory_arn",
-    }
+    },
+    "list_development_schema_arns": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "schema_arn",
+    },
+    "list_published_schema_arns": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "schema_arn",
+    },
 }
 
 
@@ -50,12 +66,61 @@ class CloudDirectoryBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.directories: Dict[str, Directory] = {}
+        self.schemas_states: Dict[str, List[str]] = {
+            "development": [],
+            "published": [],
+            "applied": [],
+        }
         self.tagger = TaggingService()
+
+    def apply_schema(self, directory_arn: str, published_schema_arn: str) -> None:
+        directory = self.directories.get(directory_arn)
+        if not directory:
+            raise ResourceNotFoundException(directory_arn)
+        if published_schema_arn not in self.schemas_states["published"]:
+            raise ResourceNotFoundException(published_schema_arn)
+        directory.schema_arn = published_schema_arn
+        return
+
+    def publish_schema(
+        self, name: str, version: str, development_schema_arn: str, minor_version: str
+    ) -> str:
+        schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/published/{name}/{version}/{minor_version}"
+        if development_schema_arn in self.schemas_states["published"]:
+            raise SchemaAlreadyPublishedException(development_schema_arn)
+        if development_schema_arn in self.schemas_states["development"]:
+            self.schemas_states["development"].remove(development_schema_arn)
+            self.schemas_states["published"].append(schema_arn)
+        else:
+            raise ResourceNotFoundException(development_schema_arn)
+        return schema_arn
 
     def create_directory(self, name: str, schema_arn: str) -> Directory:
         directory = Directory(self.account_id, self.region_name, name, schema_arn)
         self.directories[directory.directory_arn] = directory
         return directory
+
+    def create_schema(self, name: str) -> str:
+        self.schema_arn = f"arn:aws:clouddirectory:{self.region_name}:{self.account_id}:schema/development/{name}"
+        self.schemas_states["development"].append(self.schema_arn)
+        return self.schema_arn
+
+    def delete_schema(self, schema_arn: str) -> None:
+        if schema_arn in self.schemas_states["development"]:
+            self.schemas_states["development"].remove(schema_arn)
+        elif schema_arn in self.schemas_states["published"]:
+            self.schemas_states["published"].remove(schema_arn)
+        else:
+            raise ResourceNotFoundException(schema_arn)
+        return
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_development_schema_arns(self) -> List[str]:
+        return self.schemas_states["development"]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_published_schema_arns(self) -> List[str]:
+        return self.schemas_states["published"]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_directories(self, state: str) -> List[Directory]:

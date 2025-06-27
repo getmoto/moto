@@ -76,18 +76,24 @@ class AthenaResponse(BaseResponse):
                 "Query": execution.query,
                 "StatementType": statement_type,
                 "ResultConfiguration": execution.config,
+                "ResultReuseConfiguration": {
+                    "ResultReuseByAgeConfiguration": {"Enabled": False}
+                },
                 "QueryExecutionContext": execution.context,
                 "Status": {
                     "State": execution.status,
                     "SubmissionDateTime": execution.start_time,
+                    "CompletionDateTime": execution.end_time,
                 },
                 "Statistics": {
                     "EngineExecutionTimeInMillis": 0,
                     "DataScannedInBytes": 0,
                     "TotalExecutionTimeInMillis": 0,
                     "QueryQueueTimeInMillis": 0,
+                    "ServicePreProcessingTimeInMillis": 0,
                     "QueryPlanningTimeInMillis": 0,
                     "ServiceProcessingTimeInMillis": 0,
+                    "ResultReuseInformation": {"ReusedPreviousResult": False},
                 },
                 "WorkGroup": execution.workgroup.name if execution.workgroup else None,
             }
@@ -217,6 +223,46 @@ class AthenaResponse(BaseResponse):
                     "WorkGroupName": ps.workgroup,  # type: ignore[union-attr]
                     "Description": ps.description,  # type: ignore[union-attr]
                     # "LastModifiedTime": ps.last_modified_time,  # type: ignore[union-attr]
+                }
+            }
+        )
+
+    def get_query_runtime_statistics(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+        query_execution_id = self._get_param("QueryExecutionId")
+
+        ps = self.athena_backend.get_query_runtime_statistics(
+            query_execution_id=query_execution_id
+        )
+
+        if ps is None:
+            return self.error(f"QueryExecution {query_execution_id} was not found", 400)
+
+        return json.dumps(
+            {
+                "QueryRuntimeStatistics": {
+                    "OutputStage": {
+                        "ExecutionTime": 100,
+                        "InputBytes": 0,
+                        "InputRows": 0,
+                        "OutputBytes": 1,
+                        "OutputRows": 1,
+                        "StageId": 1,
+                        "State": ps.status,
+                    },
+                    "Rows": {
+                        "InputBytes": 0,
+                        "InputRows": 0,
+                        "OutputBytes": 2,
+                        "OutputRows": 2,
+                    },
+                    "Timeline": {
+                        "EngineExecutionTimeInMillis": 0,
+                        "QueryPlanningTimeInMillis": 0,
+                        "QueryQueueTimeInMillis": 0,
+                        "ServicePreProcessingTimeInMillis": 0,
+                        "ServiceProcessingTimeInMillis": 0,
+                        "TotalExecutionTimeInMillis": 0,
+                    },
                 }
             }
         )

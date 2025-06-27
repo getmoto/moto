@@ -2324,6 +2324,10 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-west-2a"
  },
@@ -6916,6 +6920,10 @@
   "Location": "us-west-2b"
  },
  {
+  "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "us-west-2b"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "us-west-2b"
  },
@@ -10505,6 +10513,10 @@
  },
  {
   "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "us-west-2c"
  },
  {

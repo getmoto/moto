@@ -75,10 +75,9 @@ class OrganizationsResponse(BaseResponse):
         response = {
             "OrganizationalUnits": [
                 {"Id": ou.id, "Arn": ou.arn, "Name": ou.name} for ou in ous
-            ]
+            ],
+            "NextToken": next_token,
         }
-        if next_token:
-            response["NextToken"] = next_token
         return json.dumps(response)
 
     def list_parents(self) -> str:
@@ -118,9 +117,7 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts(
             max_results=max_results, next_token=next_token
         )
-        response = {"Accounts": accounts}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Accounts": accounts, "NextToken": next_token}
         return json.dumps(response)
 
     def list_accounts_for_parent(self) -> str:
@@ -130,9 +127,10 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"Accounts": [a.describe() for a in accounts]}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "Accounts": [a.describe() for a in accounts],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def move_account(self) -> str:

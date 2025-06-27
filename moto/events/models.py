@@ -201,9 +201,10 @@ class Rule(CloudFormationModel):
     def _send_to_cw_log_group(self, name: str, event: Dict[str, Any]) -> None:
         from moto.logs import logs_backends
 
-        event["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event["time"])  # type: ignore[arg-type]
-        )
+        if "time" in event:
+            event["time"] = iso_8601_datetime_without_milliseconds(
+                utcfromtimestamp(event["time"])
+            )
 
         log_stream_name = str(random.uuid4())
         log_events = [{"timestamp": unix_time_millis(), "message": json.dumps(event)}]
@@ -376,6 +377,9 @@ class EventBus(CloudFormationModel):
         account_id: str,
         region_name: str,
         name: str,
+        description: Optional[str] = None,
+        kms_key_identifier: Optional[str] = None,
+        dead_letter_config: Optional[Dict[str, str]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
     ):
         self.account_id = account_id
@@ -383,6 +387,13 @@ class EventBus(CloudFormationModel):
         self.name = name
         self.arn = f"arn:{get_partition(self.region)}:events:{self.region}:{account_id}:event-bus/{name}"
         self.tags = tags or []
+
+        self.description = description
+        self.kms_key_identifier = kms_key_identifier
+        self.dead_letter_config = dead_letter_config
+
+        self.creation_time = unix_time()
+        self.last_modified_time = self.creation_time
 
         self._statements: Dict[str, EventBusPolicyStatement] = {}
         self.rules: Dict[str, Rule] = OrderedDict()
@@ -1526,6 +1537,9 @@ class EventsBackend(BaseBackend):
         self,
         name: str,
         event_source_name: Optional[str] = None,
+        description: Optional[str] = None,
+        kms_key_identifier: Optional[str] = None,
+        dead_letter_config: Optional[Dict[str, str]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> EventBus:
         if name in self.event_buses:
@@ -1544,7 +1558,15 @@ class EventsBackend(BaseBackend):
                 f"Event source {event_source_name} does not exist.",
             )
 
-        event_bus = EventBus(self.account_id, self.region_name, name, tags=tags)
+        event_bus = EventBus(
+            self.account_id,
+            self.region_name,
+            name,
+            description=description,
+            kms_key_identifier=kms_key_identifier,
+            dead_letter_config=dead_letter_config,
+            tags=tags,
+        )
         self.event_buses[name] = event_bus
         if tags:
             self.tagger.tag_resource(event_bus.arn, tags)

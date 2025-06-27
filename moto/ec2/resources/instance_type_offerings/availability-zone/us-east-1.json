@@ -3356,6 +3356,10 @@
   "Location": "us-east-1a"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "us-east-1a"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
   "Location": "us-east-1a"
  },
@@ -3509,6 +3513,54 @@
  },
  {
   "InstanceType": "x2iezn.metal",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.12xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.16xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.24xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.2xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.48xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.4xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.8xlarge",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.large",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.medium",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.metal-24xl",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.metal-48xl",
+  "Location": "us-east-1a"
+ },
+ {
+  "InstanceType": "x8g.xlarge",
   "Location": "us-east-1a"
  },
  {
@@ -9505,6 +9557,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "us-east-1c"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "us-east-1c"
  },
  {
@@ -16221,6 +16277,54 @@
  },
  {
   "InstanceType": "m7i.xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.12xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.16xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.24xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.2xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.48xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.4xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.8xlarge",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.large",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.medium",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.metal-24xl",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.metal-48xl",
+  "Location": "us-east-1f"
+ },
+ {
+  "InstanceType": "m8g.xlarge",
   "Location": "us-east-1f"
  },
  {

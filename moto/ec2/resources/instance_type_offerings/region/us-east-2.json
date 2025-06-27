@@ -2200,6 +2200,10 @@
   "Location": "us-east-2"
  },
  {
+  "InstanceType": "p6-b200.48xlarge",
+  "Location": "us-east-2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-east-2"
  },
@@ -3193,6 +3197,10 @@
  },
  {
   "InstanceType": "u-12tb1.112xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "u-18tb1.112xlarge",
   "Location": "us-east-2"
  },
  {

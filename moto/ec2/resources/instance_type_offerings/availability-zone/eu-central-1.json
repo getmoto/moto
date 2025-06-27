@@ -1996,6 +1996,10 @@
   "Location": "eu-central-1a"
  },
  {
+  "InstanceType": "p4de.24xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "eu-central-1a"
  },
@@ -2905,6 +2909,10 @@
  },
  {
   "InstanceType": "u-9tb1.112xlarge",
+  "Location": "eu-central-1a"
+ },
+ {
+  "InstanceType": "u7i-6tb.112xlarge",
   "Location": "eu-central-1a"
  },
  {
@@ -8249,6 +8257,10 @@
  },
  {
   "InstanceType": "mac2-m2.metal",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "p4de.24xlarge",
   "Location": "eu-central-1c"
  },
  {

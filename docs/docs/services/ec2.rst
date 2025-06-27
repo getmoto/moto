@@ -87,6 +87,7 @@ ec2
 - [X] create_customer_gateway
 - [X] create_default_subnet
 - [X] create_default_vpc
+- [ ] create_delegate_mac_volume_ownership_task
 - [X] create_dhcp_options
 - [X] create_egress_only_internet_gateway
 - [X] create_fleet
@@ -109,6 +110,9 @@ ec2
 - [ ] create_local_gateway_route_table
 - [ ] create_local_gateway_route_table_virtual_interface_group_association
 - [ ] create_local_gateway_route_table_vpc_association
+- [ ] create_local_gateway_virtual_interface
+- [ ] create_local_gateway_virtual_interface_group
+- [ ] create_mac_system_integrity_protection_modification_task
 - [X] create_managed_prefix_list
 - [X] create_nat_gateway
 - [X] create_network_acl
@@ -194,6 +198,8 @@ ec2
 - [ ] delete_local_gateway_route_table
 - [ ] delete_local_gateway_route_table_virtual_interface_group_association
 - [ ] delete_local_gateway_route_table_vpc_association
+- [ ] delete_local_gateway_virtual_interface
+- [ ] delete_local_gateway_virtual_interface_group
 - [X] delete_managed_prefix_list
 - [X] delete_nat_gateway
 - [X] delete_network_acl
@@ -348,6 +354,7 @@ ec2
 - [ ] describe_local_gateways
 - [ ] describe_locked_snapshots
 - [ ] describe_mac_hosts
+- [ ] describe_mac_modification_tasks
 - [X] describe_managed_prefix_lists
 - [ ] describe_moving_addresses
 - [X] describe_nat_gateways
@@ -359,6 +366,7 @@ ec2
 - [ ] describe_network_interface_attribute
 - [ ] describe_network_interface_permissions
 - [X] describe_network_interfaces
+- [ ] describe_outpost_lags
 - [ ] describe_placement_groups
 - [ ] describe_prefix_lists
 - [ ] describe_principal_id_format
@@ -379,6 +387,7 @@ ec2
 - [X] describe_security_group_rules
 - [ ] describe_security_group_vpc_associations
 - [X] describe_security_groups
+- [ ] describe_service_link_virtual_interfaces
 - [ ] describe_snapshot_attribute
 - [ ] describe_snapshot_tier_status
 - [X] describe_snapshots
@@ -603,7 +612,7 @@ ec2
 - [ ] modify_instance_event_window
 - [ ] modify_instance_maintenance_options
 - [ ] modify_instance_metadata_defaults
-- [ ] modify_instance_metadata_options
+- [X] modify_instance_metadata_options
 - [ ] modify_instance_network_performance_options
 - [ ] modify_instance_placement
 - [ ] modify_ipam
@@ -618,7 +627,7 @@ ec2
 - [ ] modify_private_dns_name_options
 - [ ] modify_reserved_instances
 - [ ] modify_route_server
-- [ ] modify_security_group_rules
+- [X] modify_security_group_rules
 - [ ] modify_snapshot_attribute
 - [ ] modify_snapshot_tier
 - [X] modify_spot_fleet_request

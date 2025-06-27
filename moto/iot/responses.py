@@ -59,9 +59,8 @@ class IoTResponse(BaseResponse):
             "maxResults", 50
         )  # not the default, but makes testing easier
         thing_type_name = self._get_param("thingTypeName")
-        thing_types = self.iot_backend.list_thing_types(thing_type_name=thing_type_name)
-
-        thing_types = [_.to_dict() for _ in thing_types]
+        _types = self.iot_backend.list_thing_types(thing_type_name=thing_type_name)
+        thing_types = [_.to_dict() for _ in _types]
         if previous_next_token is None:
             result = thing_types[0:max_results]
             next_token = str(max_results) if len(thing_types) > max_results else None

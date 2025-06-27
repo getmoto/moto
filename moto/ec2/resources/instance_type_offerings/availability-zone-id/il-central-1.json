@@ -1952,6 +1952,10 @@
   "Location": "ilc1-az2"
  },
  {
+  "InstanceType": "u-12tb1.112xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "ilc1-az3"
  },
@@ -2917,6 +2921,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "u-12tb1.112xlarge",
   "Location": "ilc1-az3"
  },
  {

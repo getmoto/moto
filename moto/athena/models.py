@@ -117,6 +117,7 @@ class Execution(BaseModel):
         self.workgroup = workgroup
         self.execution_parameters = execution_parameters
         self.start_time = time.time()
+        self.end_time = time.time()
         self.status = "SUCCEEDED"
 
         if self.config is not None and "OutputLocation" in self.config:
@@ -450,6 +451,13 @@ class AthenaBackend(BaseBackend):
             ps = self.prepared_statements[statement_name]
             if ps.workgroup == work_group:
                 return ps
+        return None
+
+    def get_query_runtime_statistics(
+        self, query_execution_id: str
+    ) -> Optional[Execution]:
+        if query_execution_id in self.executions:
+            return self.executions[query_execution_id]
         return None
 
 

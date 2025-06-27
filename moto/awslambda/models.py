@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import calendar
 import copy
@@ -61,6 +63,7 @@ from .exceptions import (
     ValidationException,
 )
 from .utils import (
+    make_event_source_mapping_arn,
     make_function_arn,
     make_function_ver_arn,
     make_layer_arn,
@@ -1272,12 +1275,23 @@ class FunctionUrlConfig:
 class EventSourceMapping(CloudFormationModel):
     def __init__(self, spec: Dict[str, Any]):
         # required
+        self.region = spec["RegionName"]
+        self.account_id = spec["AccountId"]
+        self.uuid = str(random.uuid4())
         self.function_name = spec["FunctionName"]
         self.event_source_arn = spec["EventSourceArn"]
+        self.arn: str = make_event_source_mapping_arn(
+            self.region, self.account_id, self.uuid
+        )
 
         # optional
         self.batch_size = spec.get("BatchSize")  # type: ignore[assignment]
-        self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
+        self.starting_position = spec.get("StartingPosition")
+        if (
+            not self.starting_position
+            and "sqs" not in self._get_service_source_from_arn()
+        ):
+            self.starting_position = "TRIM_HORIZON"
         self.enabled = spec.get("Enabled", True)
         self.starting_position_timestamp = spec.get("StartingPositionTimestamp")
         self.kafka_config = spec.get("AmazonManagedKafkaEventSourceConfig")
@@ -1300,21 +1314,21 @@ class EventSourceMapping(CloudFormationModel):
             "SelfManagedKafkaEventSourceConfig"
         )
         self.source_access_config = spec.get("SourceAccessConfigurations")
-        self.tags = spec.get("Tags")
+        self.tags = spec.get("Tags") or dict()
         self.topics = spec.get("Topics")
         self.tumbling_window = spec.get("TumblingWindowInSeconds")
 
         self.function_arn: str = spec["FunctionArn"]
-        self.uuid = str(random.uuid4())
         self.last_modified = time.mktime(utcnow().timetuple())
 
-    def _get_service_source_from_arn(self, event_source_arn: str) -> str:
-        return event_source_arn.split(":")[2].lower()
-
-    def _validate_event_source(self, event_source_arn: str) -> bool:
-        valid_services = ("dynamodb", "kinesis", "sqs")
-        service = self._get_service_source_from_arn(event_source_arn)
-        return service in valid_services
+    def _get_service_source_from_arn(
+        self, event_source_arn: Optional[str] = None
+    ) -> str:
+        arn = event_source_arn or self.event_source_arn
+        service = arn.split(":")[2].lower()
+        if service == "sqs" and arn.endswith(".fifo"):
+            return "sqs-fifo"
+        return service
 
     @property
     def event_source_arn(self) -> str:
@@ -1322,7 +1336,8 @@ class EventSourceMapping(CloudFormationModel):
 
     @event_source_arn.setter
     def event_source_arn(self, event_source_arn: str) -> None:
-        if not self._validate_event_source(event_source_arn):
+        service = self._get_service_source_from_arn(event_source_arn)
+        if service not in ("dynamodb", "kinesis", "sqs", "sqs-fifo"):
             raise ValueError(
                 "InvalidParameterValueException", "Unsupported event source type"
             )
@@ -1333,31 +1348,31 @@ class EventSourceMapping(CloudFormationModel):
         return self._batch_size
 
     @batch_size.setter
-    def batch_size(self, batch_size: Optional[int]) -> None:
+    def batch_size(self, new_batch_size: Optional[int]) -> None:
         batch_size_service_map = {
             "kinesis": (100, 10000),
-            "dynamodb": (100, 1000),
-            "sqs": (10, 10),
+            "dynamodb": (100, 10000),
+            "sqs": (10, 10000),
+            "sqs-fifo": (10, 10),
         }
 
-        source_type = self._get_service_source_from_arn(self.event_source_arn)
+        source_type = self._get_service_source_from_arn()
         batch_size_for_source = batch_size_service_map[source_type]
 
-        if batch_size is None:
+        if new_batch_size is None:
             self._batch_size = batch_size_for_source[0]
-        elif batch_size > batch_size_for_source[1]:
-            error_message = (
-                f"BatchSize {batch_size} exceeds the max of {batch_size_for_source[1]}"
-            )
+        elif new_batch_size > batch_size_for_source[1]:
+            error_message = f"BatchSize {new_batch_size} exceeds the max of {batch_size_for_source[1]}"
             raise ValueError("InvalidParameterValueException", error_message)
         else:
-            self._batch_size = int(batch_size)
+            self._batch_size = int(new_batch_size)
 
     def get_configuration(self) -> Dict[str, Any]:
         response_dict = {
             "UUID": self.uuid,
             "BatchSize": self.batch_size,
             "EventSourceArn": self.event_source_arn,
+            "EventSourceMappingArn": self.arn,
             "FunctionArn": self.function_arn,
             "LastModified": self.last_modified,
             "LastProcessingResult": None,
@@ -2066,6 +2081,8 @@ class LambdaBackend(BaseBackend):
         for param in required:
             if not spec.get(param):
                 raise RESTError("InvalidParameterValueException", f"Missing {param}")
+        spec["RegionName"] = self.region_name
+        spec["AccountId"] = self.account_id
 
         # Validate function name
         func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
@@ -2410,17 +2427,32 @@ class LambdaBackend(BaseBackend):
         func = self._lambdas.get_arn(function_arn)
         func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
 
-    def list_tags(self, resource: str) -> Dict[str, str]:
-        return self._lambdas.get_function_by_name_or_arn_with_qualifier(resource).tags
+    def _get_resource_by_arn(self, arn: str) -> EventSourceMapping | LambdaFunction:
+        arn_breakdown = arn.split(":")
+        resource_type = arn_breakdown[len(arn_breakdown) - 2]
+        resource_name = arn_breakdown[len(arn_breakdown) - 1]
+        if resource_type == "event-source-mapping":
+            esm = self._event_source_mappings.get(resource_name)
+            if not esm:
+                raise RESTError(
+                    "ResourceNotFoundException",
+                    f"Event source mapping {resource_name} not found.",
+                )
+            return esm
+        return self._lambdas.get_function_by_name_or_arn_with_qualifier(arn)
 
-    def tag_resource(self, resource: str, tags: Dict[str, str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
-        fn.tags.update(tags)
+    def list_tags(self, resource_arn: str) -> Dict[str, str]:
+        resource = self._get_resource_by_arn(resource_arn)
+        return resource.tags
 
-    def untag_resource(self, resource: str, tagKeys: List[str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        resource.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tagKeys: List[str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
         for key in tagKeys:
-            fn.tags.pop(key, None)
+            resource.tags.pop(key, None)
 
     def add_permission(
         self, function_name: str, qualifier: str, raw: str
@@ -2536,7 +2568,7 @@ class LambdaBackend(BaseBackend):
         fn.reserved_concurrency = None
         return fn.reserved_concurrency
 
-    def get_function_concurrency(self, function_name: str) -> str:
+    def get_function_concurrency(self, function_name: str) -> Optional[str]:
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 

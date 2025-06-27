@@ -1,8 +1,6 @@
 import base64
 import json
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from threading import Event, Thread
-from typing import Optional, Tuple
+from http.server import BaseHTTPRequestHandler
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -13,6 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.x509 import load_pem_x509_certificate
 
 from moto import mock_aws, settings
+from tests.test_core.utilities import SimpleServer
 
 # Original Request
 # https://github.com/getmoto/moto/discussions/7985
@@ -41,37 +40,6 @@ class WebRequestHandler(BaseHTTPRequestHandler):
         self.do_GET()
 
 
-class ThreadedSnsReceiver:
-    def __init__(self):
-        self._port = 0
-
-        self._thread: Optional[Thread] = None
-        self._ip_address = "0.0.0.0"
-        self._server: Optional[HTTPServer] = None
-        self._server_ready_event = Event()
-
-    def _server_entry(self) -> None:
-        self._server = HTTPServer(("0.0.0.0", 0), WebRequestHandler)
-        self._server_ready_event.set()
-        self._server.serve_forever()
-
-    def start(self) -> None:
-        self._thread = Thread(target=self._server_entry, daemon=True)
-        self._thread.start()
-        self._server_ready_event.wait()
-
-    def get_host_and_port(self) -> Tuple[str, int]:
-        assert self._server is not None, "Make sure to call start() first"
-        host, port = self._server.server_address
-        return (str(host), port)
-
-    def stop(self) -> None:
-        if self._server:
-            self._server.shutdown()
-
-        self._thread.join()  # type: ignore[union-attr]
-
-
 @mock_aws
 class TestHTTPMessageVerification:
     MESSAGES_RECEIVED = {}
@@ -79,7 +47,7 @@ class TestHTTPMessageVerification:
     def setup_method(self, *args):
         if not settings.TEST_DECORATOR_MODE:
             raise SkipTest("Can only be tested using decorators")
-        self.server = ThreadedSnsReceiver()
+        self.server = SimpleServer(WebRequestHandler)
         self.server.start()
 
     def teardown_method(self, *args):

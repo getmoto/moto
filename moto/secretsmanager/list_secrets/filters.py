@@ -2,7 +2,7 @@ import re
 from typing import TYPE_CHECKING, Iterator, List, Union
 
 if TYPE_CHECKING:
-    from ..models import FakeSecret
+    from ..models import FakeSecret, ReplicaSecret
 
 
 def name_filter(secret: "FakeSecret", names: List[str]) -> bool:
@@ -29,19 +29,21 @@ def owning_service_filter(secret: "FakeSecret", owning_services: List[str]) -> b
     )
 
 
-def tag_key(secret: "FakeSecret", tag_keys: List[str]) -> bool:
+def tag_key(secret: Union["FakeSecret", "ReplicaSecret"], tag_keys: List[str]) -> bool:
     if not secret.tags:
         return False
     return _matcher(tag_keys, [tag["Key"] for tag in secret.tags])
 
 
-def tag_value(secret: "FakeSecret", tag_values: List[str]) -> bool:
+def tag_value(
+    secret: Union["FakeSecret", "ReplicaSecret"], tag_values: List[str]
+) -> bool:
     if not secret.tags:
         return False
     return _matcher(tag_values, [tag["Value"] for tag in secret.tags])
 
 
-def filter_all(secret: "FakeSecret", values: List[str]) -> bool:
+def filter_all(secret: Union["FakeSecret", "ReplicaSecret"], values: List[str]) -> bool:
     attributes = [secret.name]
     if secret.description:
         attributes.append(secret.description)

@@ -107,9 +107,10 @@ class DirectoryServiceResponse(BaseResponse):
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
 
-        response = {"DirectoryDescriptions": [x.to_dict() for x in directories]}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "DirectoryDescriptions": [x.to_dict() for x in directories],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def disable_sso(self) -> str:
@@ -161,9 +162,7 @@ class DirectoryServiceResponse(BaseResponse):
         except InvalidToken as exc:
             raise InvalidNextTokenException() from exc
 
-        response = {"Tags": tags}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Tags": tags, "NextToken": next_token}
         return json.dumps(response)
 
     def create_trust(self) -> str:

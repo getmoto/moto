@@ -1360,6 +1360,32 @@ class GlueBackend(BaseBackend):
 
         return response
 
+    def delete_resource_policy(
+        self,
+        resource_arn: Optional[str] = None,
+        policy_hash_condition: Optional[str] = None,
+    ) -> Dict[str, str]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        if resource_arn not in self.resource_policies:
+            raise EntityNotFoundException(
+                "Policy does not exist",
+            )
+        policy_dict = self.resource_policies.get(resource_arn, {})
+
+        if (
+            policy_hash_condition
+            and policy_dict
+            and policy_hash_condition != policy_dict.get("PolicyHash")
+        ):
+            raise JsonRESTError(
+                "ConcurrentModificationException", "Policy hash condition not met"
+            )
+
+        del self.resource_policies[resource_arn]
+        return {}
+
 
 class FakeDatabase(BaseModel):
     def __init__(

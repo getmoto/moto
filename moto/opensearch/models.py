@@ -150,7 +150,6 @@ class OpenSearchDomain(BaseModel):
         return {
             "Endpoint": self.endpoint,
             "Endpoints": self.endpoints,
-            "EngineVersion": self.engine_version.to_dict(),
             "ClusterConfig": self.cluster_config,
             "EBSOptions": self.ebs_options,
             "AccessPolicies": self.access_policies,
@@ -177,6 +176,7 @@ class OpenSearchDomain(BaseModel):
             "ARN": self.arn,
             "Created": True,
             "Deleted": self.deleted,
+            "EngineVersion": self.engine_version.options,
             "Processing": self.processing,
             "UpgradeProcessing": False,
         }
@@ -186,7 +186,9 @@ class OpenSearchDomain(BaseModel):
         return dct
 
     def to_config_dict(self) -> Dict[str, Any]:
-        dct: Dict[str, Any] = dict()
+        dct = {
+            "EngineVersion": self.engine_version.to_dict(),
+        }
         for key, value in self.dct_options().items():
             if value is not None:
                 dct[key] = {"Options": value}
@@ -303,8 +305,10 @@ class OpenSearchServiceBackend(BaseBackend):
             self.add_tags(domain.arn, tag_list)
         return domain
 
-    def get_compatible_versions(self, domain_name: str) -> List[Dict[str, Any]]:
-        if domain_name not in self.domains:
+    def get_compatible_versions(
+        self, domain_name: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        if domain_name and domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         return compatible_versions
 

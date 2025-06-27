@@ -9,6 +9,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.utilities.distutils_version import LooseVersion
 
 from ..markers import requires_docker
@@ -123,6 +124,10 @@ def test_create_event_source_mapping():
         "MinimumPollers": 12,
         "MaximumPollers": 13,
     }
+    expected_esm_arn = (
+        f"arn:aws:lambda:us-east-1:{ACCOUNT_ID}:event-source-mapping:{response['UUID']}"
+    )
+    assert response["EventSourceMappingArn"] == expected_esm_arn
 
 
 @pytest.mark.network
@@ -657,3 +662,37 @@ def test_delete_event_source_mapping():
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
     assert err["Message"] == "The resource you requested does not exist."
+
+
+@mock_aws
+def test_event_source_mapping_tagging_lifecycle():
+    iam = boto3.client("iam", region_name="us-east-1")
+    iam_role = iam.create_role(RoleName="role", AssumeRolePolicyDocument="{}")
+    client = boto3.client("lambda", region_name="us-east-1")
+    client.create_function(
+        FunctionName="any-function-name",
+        Runtime="python3.6",
+        Role=iam_role["Role"]["Arn"],
+        Handler="any-handler",
+        Code={
+            "ZipFile": b"any zip file",
+        },
+    )
+    sqs = boto3.client("sqs", region_name="us-east-1")
+    queue_url = sqs.create_queue(QueueName="any-queue-name")
+    queue_arn = sqs.get_queue_attributes(
+        QueueUrl=queue_url["QueueUrl"], AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+    event_source_mapping = client.create_event_source_mapping(
+        FunctionName="any-function-name",
+        EventSourceArn=queue_arn,
+    )
+    esm_arn = event_source_mapping["EventSourceMappingArn"]
+    tags = {"foo": "bar", "baz": "qux"}
+    client.tag_resource(Resource=esm_arn, Tags=tags)
+    resp = client.list_tags(Resource=esm_arn)
+    for key, value in tags.items():
+        assert resp["Tags"][key] == value
+    client.untag_resource(Resource=esm_arn, TagKeys=["foo"])
+    resp = client.list_tags(Resource=esm_arn)
+    assert resp["Tags"] == {"baz": "qux"}

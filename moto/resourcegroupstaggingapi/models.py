@@ -7,6 +7,10 @@ from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
+from moto.connectcampaigns.models import (
+    ConnectCampaignServiceBackend,
+    connectcampaigns_backends,
+)
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
@@ -210,6 +214,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def cloudwatch_backend(self) -> CloudWatchBackend:
         return cloudwatch_backends[self.account_id][self.region_name]
 
+    @property
+    def connectcampaigns_backend(self) -> Optional[ConnectCampaignServiceBackend]:
+        # Connect Campaigns service has limited region availability
+        if self.region_name in connectcampaigns_backends[self.account_id].regions:
+            return connectcampaigns_backends[self.account_id][self.region_name]
+        return None
+
     def _get_resources_generator(
         self,
         tag_filters: Optional[List[Dict[str, Any]]] = None,
@@ -387,6 +398,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                             "ResourceARN": arn,
                             "Tags": tags,
                         }
+
+        # Connect Campaigns v1
+        if self.connectcampaigns_backend:
+            if not resource_type_filters or "connectcampaigns" in resource_type_filters:
+                connectcampaigns_backend: ConnectCampaignServiceBackend = (
+                    connectcampaigns_backends[self.account_id][self.region_name]
+                )
+                for campaign in connectcampaigns_backend.campaigns.values():
+                    tags = connectcampaigns_backend.tagger.list_tags_for_resource(
+                        campaign.arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{campaign.arn}", "Tags": tags}
 
         # DMS
         if not resource_type_filters or "dms:endpoint" in resource_type_filters:
@@ -759,7 +784,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Step Functions
         if not resource_type_filters or "states:stateMachine" in resource_type_filters:
             for state_machine in self.stepfunctions_backend.state_machines:
-                tags = format_tag_keys(state_machine.tags, ["key", "value"])
+                tags = format_tag_keys(
+                    state_machine.backend.get_tags_list_for_state_machine(
+                        state_machine.arn
+                    ),
+                    [
+                        state_machine.backend.tagger.key_name,
+                        state_machine.backend.tagger.value_name,
+                    ],
+                )
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": state_machine.arn, "Tags": tags}
