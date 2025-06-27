@@ -3240,6 +3240,8 @@ def test_role_policy_encoding():
         RoleName=role_name, AssumeRolePolicyDocument=json.dumps(assume_policy_document)
     )
     assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
+    resp = conn.get_role(RoleName=role_name)
+    assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
     conn.put_role_policy(
         RoleName=role_name,
         PolicyName=policy_name,
