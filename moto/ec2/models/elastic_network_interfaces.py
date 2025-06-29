@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from moto.core.common_models import CloudFormationModel
@@ -20,6 +22,19 @@ from ..utils import (
     random_private_ip,
     random_public_ip,
 )
+
+
+class Attachment:
+    def __init__(self, eni: NetworkInterface):
+        self.attach_time = eni.attach_time
+        self.attachment_id = eni.attachment_id
+        self.delete_on_termination = eni.delete_on_termination
+        self.device_index = eni.device_index
+        self.network_card_index = 0
+        assert eni.instance is not None, "ENI must be attached to an instance"
+        self.instance_id = eni.instance.id
+        self.instance_owner_id = eni.instance.owner_id
+        self.status = "attached"
 
 
 class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
@@ -53,7 +68,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.attachment_id: Optional[str] = None
         self.attach_time: Optional[str] = None
         self.delete_on_termination = delete_on_termination
-        self.description = description
+        self.description = description or ""
         self.source_dest_check = True
 
         self.public_ip: Optional[str] = None
@@ -146,6 +161,12 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
     @property
     def owner_id(self) -> str:
         return self.ec2_backend.account_id
+
+    @property
+    def attachment(self) -> Optional[Attachment]:
+        if self.attachment_id:
+            return Attachment(self)
+        return None
 
     @property
     def association(self) -> Dict[str, Any]:  # type: ignore[misc]

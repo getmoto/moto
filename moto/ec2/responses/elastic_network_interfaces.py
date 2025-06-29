@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult
 from moto.ec2.exceptions import InvalidParameterValueErrorUnknownAttribute
 from moto.ec2.utils import add_tag_specification, get_attribute_value
 
@@ -42,7 +43,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(DELETE_NETWORK_INTERFACE_RESPONSE)
         return template.render()
 
-    def describe_network_interface_attribute(self) -> str:
+    def describe_network_interface_attribute(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         attribute = self._get_param("Attribute")
 
@@ -50,25 +51,18 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
 
         eni = self.ec2_backend.get_all_network_interfaces([eni_id])[0]
 
+        result = {"NetworkInterfaceId": eni.id}
         if attribute == "description":
-            template = self.response_template(
-                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_DESCRIPTION
-            )
+            result["Description"] = {"Value": eni.description}
         elif attribute == "groupSet":
-            template = self.response_template(
-                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_GROUPSET
-            )
+            result["Groups"] = eni.group_set
         elif attribute == "sourceDestCheck":
-            template = self.response_template(
-                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_SOURCEDESTCHECK
-            )
+            result["SourceDestCheck"] = {"Value": eni.source_dest_check}
         elif attribute == "attachment":
-            template = self.response_template(
-                DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_ATTACHMENT
-            )
+            result["Attachment"] = eni.attachment
         else:
             raise InvalidParameterValueErrorUnknownAttribute(attribute)
-        return template.render(eni=eni)
+        return ActionResult(result)
 
     def describe_network_interfaces(self) -> str:
         eni_ids = self._get_multi_param("NetworkInterfaceId")
@@ -381,49 +375,3 @@ DELETE_NETWORK_INTERFACE_RESPONSE = """
     <requestId>34b5b3b4-d0c5-49b9-b5e2-a468ef6adcd8</requestId>
     <return>true</return>
 </DeleteNetworkInterfaceResponse>"""
-
-DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_DESCRIPTION = """
-<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-    <description>
-        <value>{{ eni.description }}</value>
-    </description>
-</DescribeNetworkInterfaceAttributeResponse>"""
-
-DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_GROUPSET = """
-<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-    <groupSet>
-        {% for group in eni.group_set %}
-        <item>
-            <groupId>{{ group.id }}</groupId>
-            <groupName>{{ group.name }}</groupName>
-        </item>
-        {% endfor %}
-    </groupSet>
-</DescribeNetworkInterfaceAttributeResponse>"""
-
-DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_SOURCEDESTCHECK = """
-<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-    <sourceDestCheck>
-        <value>{{ "true" if eni.source_dest_check == True else "false" }}</value>
-    </sourceDestCheck>
-</DescribeNetworkInterfaceAttributeResponse>"""
-
-DESCRIBE_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE_ATTACHMENT = """
-<DescribeNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-    {% if eni.attachment_id %}
-    <attachment>
-        <attachTime>{{ eni.attach_time }}</attachTime>
-        <attachmentId>{{ eni.attachment_id }}</attachmentId>
-        <deleteOnTermination>{{ 'true' if eni.delete_on_termination else 'false' }}</deleteOnTermination>
-        <deviceIndex>{{ eni.device_index }}</deviceIndex>
-        <networkCardIndex>0</networkCardIndex>
-        <instanceId>{{ eni.instance.id }}</instanceId>
-        <instanceOwnerId>{{ eni.instance.owner_id }}</instanceOwnerId>
-        <status>attached</status>
-    </attachment>
-    {% endif %}
-</DescribeNetworkInterfaceAttributeResponse>"""
