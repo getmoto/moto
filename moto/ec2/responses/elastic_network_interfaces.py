@@ -73,18 +73,21 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
         return template.render(enis=enis)
 
-    def attach_network_interface(self) -> str:
+    def attach_network_interface(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         instance_id = self._get_param("InstanceId")
         device_index = self._get_param("DeviceIndex")
 
         self.error_on_dryrun()
 
-        attachment_id = self.ec2_backend.attach_network_interface(
+        attachment = self.ec2_backend.attach_network_interface(
             eni_id, instance_id, device_index
         )
-        template = self.response_template(ATTACH_NETWORK_INTERFACE_RESPONSE)
-        return template.render(attachment_id=attachment_id)
+        result = {
+            "AttachmentId": attachment.attachment_id,
+            "NetworkCardIndex": attachment.network_card_index,
+        }
+        return ActionResult(result)
 
     def detach_network_interface(self) -> ActionResult:
         attachment_id = self._get_param("AttachmentId")
@@ -352,8 +355,3 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
     {% endfor %}
     </networkInterfaceSet>
 </DescribeNetworkInterfacesResponse>"""
-
-ATTACH_NETWORK_INTERFACE_RESPONSE = """<AttachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <attachmentId>{{ attachment_id }}</attachmentId>
-</AttachNetworkInterfaceResponse>"""

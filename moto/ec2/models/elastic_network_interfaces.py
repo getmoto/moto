@@ -356,10 +356,12 @@ class NetworkInterfaceBackend:
 
     def attach_network_interface(
         self, eni_id: str, instance_id: str, device_index: int
-    ) -> str:
+    ) -> Attachment:
         eni = self.get_network_interface(eni_id)
         instance = self.get_instance(instance_id)  # type: ignore[attr-defined]
-        return instance.attach_eni(eni, device_index)
+        instance.attach_eni(eni, device_index)
+        assert isinstance(eni.attachment, Attachment)
+        return eni.attachment
 
     def detach_network_interface(self, attachment_id: str) -> None:
         for eni in self.enis.values():
