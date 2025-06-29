@@ -593,6 +593,36 @@ def test_describe_configuration_set():
     )
     assert config_set["ConfigurationSet"]["Name"] == name
 
+    conn.create_configuration_set_event_destination(
+        ConfigurationSetName=name,
+        EventDestination={
+            "Name": "event_destination_1",
+            "Enabled": True,
+            "MatchingEventTypes": ["send", "reject", "bounce"],
+            "SNSDestination": {
+                "TopicARN": "arn:aws:sns:us-east-1:123456789012:myTopic"
+            },
+        },
+    )
+
+    config_set = conn.describe_configuration_set(
+        ConfigurationSetName=name,
+        ConfigurationSetAttributeNames=["eventDestinations"],
+    )
+    assert config_set["ConfigurationSet"]["Name"] == name
+    assert config_set["EventDestinations"][0]["Name"] == "event_destination_1"
+    assert config_set["EventDestinations"][0]["Enabled"] is True
+    assert (
+        config_set["EventDestinations"][0]["SNSDestination"]["TopicARN"]
+        == "arn:aws:sns:us-east-1:123456789012:myTopic"
+    )
+    for event_type in ["send", "reject", "bounce"]:
+        assert event_type in config_set["EventDestinations"][0]["MatchingEventTypes"]
+    for event_type in ["complaint", "delivery", "open", "click", "renderingFailure"]:
+        assert (
+            event_type not in config_set["EventDestinations"][0]["MatchingEventTypes"]
+        )
+
 
 @mock_aws
 def test_list_configuration_sets():
