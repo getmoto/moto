@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from moto.core.common_models import CloudFormationModel
 
@@ -463,10 +463,12 @@ class NetworkInterfaceBackend:
 
     def unassign_ipv6_addresses(
         self, eni_id: str, ips: Optional[List[str]] = None
-    ) -> NetworkInterface:
+    ) -> Tuple[NetworkInterface, List[str]]:
+        unassigned_addresses = []
         eni = self.get_network_interface(eni_id)
         if ips:
             for ip in eni.ipv6_addresses.copy():
                 if ip in ips:
+                    unassigned_addresses.append(ip)
                     eni.ipv6_addresses.remove(ip)
-        return eni
+        return eni, unassigned_addresses
