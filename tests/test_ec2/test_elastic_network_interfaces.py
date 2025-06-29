@@ -870,11 +870,15 @@ def test_unassign_ipv6_addresses():
         SubnetId=subnet.id, Ipv6Addresses=[{"Ipv6Address": ipv6_orig}]
     )
 
-    ec2client.assign_ipv6_addresses(
+    resp = ec2client.assign_ipv6_addresses(
         NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2, ipv6_3]
     )
+    assert resp["AssignedIpv6Addresses"] == [ipv6_orig, ipv6_2, ipv6_3]
 
-    ec2client.unassign_ipv6_addresses(NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2])
+    resp = ec2client.unassign_ipv6_addresses(
+        NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2]
+    )
+    assert resp["UnassignedIpv6Addresses"] == [ipv6_2]
 
     resp = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]

@@ -136,42 +136,26 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         self.ec2_backend.unassign_private_ip_addresses(eni_id, private_ip_address)
         return EmptyResult()
 
-    def assign_ipv6_addresses(self) -> str:
+    def assign_ipv6_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         ipv6_count = self._get_int_param("Ipv6AddressCount", 0)
         ipv6_addresses = self._get_multi_param("Ipv6Addresses")
         eni = self.ec2_backend.assign_ipv6_addresses(eni_id, ipv6_addresses, ipv6_count)
-        template = self.response_template(ASSIGN_IPV6_ADDRESSES)
-        return template.render(eni=eni)
+        result = {
+            "AssignedIpv6Addresses": eni.ipv6_addresses,
+            "NetworkInterfaceId": eni.id,
+        }
+        return ActionResult(result)
 
-    def unassign_ipv6_addresses(self) -> str:
+    def unassign_ipv6_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         ips = self._get_multi_param("Ipv6Addresses")
         eni = self.ec2_backend.unassign_ipv6_addresses(eni_id, ips)
-        template = self.response_template(UNASSIGN_IPV6_ADDRESSES)
-        return template.render(eni=eni, unassigned_ips=ips)
-
-
-ASSIGN_IPV6_ADDRESSES = """<AssignIpv6AddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>c36d17eb-a0ba-4d38-8727-example</requestId>
-    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-    <assignedIpv6Addresses>
-        {% for address in eni.ipv6_addresses %}
-        <item>{{address}}</item>
-        {% endfor %}
-    </assignedIpv6Addresses>
-</AssignIpv6AddressesResponse>
-"""
-
-UNASSIGN_IPV6_ADDRESSES = """<UnassignIpv6AddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>94d446d7-fc8e-4918-94f9-example</requestId>
-    <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-    <unassignedIpv6Addresses>
-        {% for address in unassigned_ips %}
-        <item>{{address}}</item>
-        {% endfor %}
-    </unassignedIpv6Addresses>
-</UnassignIpv6AddressesResponse>"""
+        result = {
+            "NetworkInterfaceId": eni.id,
+            "UnassignedIpv6Addresses": ips,
+        }
+        return ActionResult(result)
 
 
 CREATE_NETWORK_INTERFACE_RESPONSE = """
