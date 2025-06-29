@@ -3196,18 +3196,6 @@
   "Location": "us-east-2"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "u-18tb1.112xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "u-24tb1.112xlarge",
-  "Location": "us-east-2"
- },
- {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "us-east-2"
  },
@@ -3217,10 +3205,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "us-east-2"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "us-east-2"
  },
  {

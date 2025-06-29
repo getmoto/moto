@@ -1600,10 +1600,6 @@
   "Location": "eu-west-3a"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "eu-west-3a"
- },
- {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-west-3a"
  },

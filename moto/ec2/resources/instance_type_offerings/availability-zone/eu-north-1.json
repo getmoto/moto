@@ -1900,10 +1900,6 @@
   "Location": "eu-north-1a"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "eu-north-1a"
- },
- {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-north-1a"
  },

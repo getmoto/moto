@@ -4292,10 +4292,6 @@
   "Location": "eu-west-2b"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "eu-west-2b"
- },
- {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-west-2b"
  },
@@ -6397,10 +6393,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "eu-west-2c"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "eu-west-2c"
  },
  {

@@ -2028,10 +2028,6 @@
   "Location": "eu-north-1"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "eu-north-1"
- },
- {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eu-north-1"
  },

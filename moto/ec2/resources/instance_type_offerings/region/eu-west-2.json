@@ -2212,10 +2212,6 @@
   "Location": "eu-west-2"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "eu-west-2"
- },
- {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-west-2"
  },

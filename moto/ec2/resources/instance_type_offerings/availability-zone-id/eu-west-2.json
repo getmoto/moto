@@ -2020,10 +2020,6 @@
   "Location": "euw2-az1"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "euw2-az1"
- },
- {
   "InstanceType": "x1.16xlarge",
   "Location": "euw2-az1"
  },
@@ -6397,10 +6393,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "euw2-az3"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "euw2-az3"
  },
  {
