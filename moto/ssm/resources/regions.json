@@ -3663,6 +3663,15 @@
               "artifact": {
                 "Value": "artifact"
               },
+              "athena": {
+                "Value": "athena",
+                "endpoint": {
+                  "Value": "athena.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aurora": {
                 "Value": "aurora",
                 "endpoint": {
@@ -3793,6 +3802,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ds": {
+                "Value": "ds",
+                "endpoint": {
+                  "Value": "ds.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4972,6 +4990,15 @@
                 "Value": "connect-contact-lens",
                 "endpoint": {
                   "Value": "contact-lens.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -7752,6 +7779,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "connectcases": {
                 "Value": "connectcases",
                 "endpoint": {
@@ -7900,6 +7936,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-northeast-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9656,14 +9701,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              }
-            },
-            "wavelength-zones": {
-              "apne2-wl1-cjj-wlz1": {
-                "Value": "apne2-wl1-cjj-wlz1"
-              },
-              "apne2-wl1-sel-wlz1": {
-                "Value": "apne2-wl1-sel-wlz1"
               }
             }
           },
@@ -15073,6 +15110,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "shield": {
                 "Value": "shield",
                 "endpoint": {
@@ -15932,6 +15978,15 @@
                 "Value": "connect-contact-lens",
                 "endpoint": {
                   "Value": "contact-lens.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24274,6 +24329,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "gamelift": {
+                "Value": "gamelift"
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -25372,6 +25430,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "gamelift": {
+                "Value": "gamelift"
               },
               "glue": {
                 "Value": "glue",
@@ -31250,6 +31311,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "bcm-data-exports": {
+                "Value": "bcm-data-exports",
+                "endpoint": {
+                  "Value": "bcm-data-exports.cn-northwest-1.api.amazonwebservices.com.cn"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -35378,17 +35445,6 @@
                   "Value": "HTTPS"
                 }
               }
-            },
-            "wavelength-zones": {
-              "euc1-wl1-ber-wlz1": {
-                "Value": "euc1-wl1-ber-wlz1"
-              },
-              "euc1-wl1-dtm-wlz1": {
-                "Value": "euc1-wl1-dtm-wlz1"
-              },
-              "euc1-wl1-muc-wlz1": {
-                "Value": "euc1-wl1-muc-wlz1"
-              }
             }
           },
           "eu-central-2": {
@@ -36603,6 +36659,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47780,12 +47845,6 @@
               }
             },
             "wavelength-zones": {
-              "euw2-wl1-lon-wlz1": {
-                "Value": "euw2-wl1-lon-wlz1"
-              },
-              "euw2-wl1-man-wlz1": {
-                "Value": "euw2-wl1-man-wlz1"
-              },
               "euw2-wl2-man-wlz1": {
                 "Value": "euw2-wl2-man-wlz1"
               }
@@ -52688,6 +52747,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -65083,6 +65151,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "schemas": {
                 "Value": "schemas",
                 "endpoint": {
@@ -66861,6 +66938,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

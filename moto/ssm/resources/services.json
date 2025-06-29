@@ -5908,6 +5908,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "athena.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -8484,6 +8493,12 @@
           },
           "bcm-data-exports": {
             "regions": {
+              "cn-northwest-1": {
+                "Value": "cn-northwest-1",
+                "endpoint": {
+                  "Value": "bcm-data-exports.cn-northwest-1.api.amazonwebservices.com.cn"
+                }
+              },
               "us-east-1": {
                 "Value": "us-east-1",
                 "endpoint": {
@@ -16898,6 +16913,33 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-northeast-1": {
+                "Value": "ap-northeast-1",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-northeast-2": {
+                "Value": "ap-northeast-2",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-1": {
+                "Value": "ap-southeast-1",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-2": {
                 "Value": "ap-southeast-2",
                 "endpoint": {
@@ -21137,6 +21179,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "ds.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -21458,6 +21509,15 @@
                 "Value": "ap-northeast-1",
                 "endpoint": {
                   "Value": "dsql.ap-northeast-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-northeast-2": {
+                "Value": "ap-northeast-2",
+                "endpoint": {
+                  "Value": "dsql.ap-northeast-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31245,6 +31305,12 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "ap-southeast-5": {
+                "Value": "ap-southeast-5"
+              },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7"
               },
               "ca-central-1": {
                 "Value": "ca-central-1",
@@ -61348,6 +61414,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "us-gov-east-1": {
+                "Value": "us-gov-east-1",
+                "endpoint": {
+                  "Value": "scheduler.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1",
+                "endpoint": {
+                  "Value": "scheduler.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "us-west-1": {
                 "Value": "us-west-1",
                 "endpoint": {
@@ -64261,6 +64345,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-south-2": {
+                "Value": "ap-south-2",
+                "endpoint": {
+                  "Value": "email.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
                 "endpoint": {
@@ -64301,6 +64394,15 @@
                 "Value": "eu-central-1",
                 "endpoint": {
                   "Value": "email.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-central-2": {
+                "Value": "eu-central-2",
+                "endpoint": {
+                  "Value": "email.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64355,6 +64457,15 @@
                 "Value": "il-central-1",
                 "endpoint": {
                   "Value": "email.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "me-central-1": {
+                "Value": "me-central-1",
+                "endpoint": {
+                  "Value": "email.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
