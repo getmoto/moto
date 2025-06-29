@@ -117,22 +117,24 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
             "ElasticNetworkInterfaces(AmazonVPC).reset_network_interface_attribute is not yet implemented"
         )
 
-    def assign_private_ip_addresses(self) -> str:
+    def assign_private_ip_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         secondary_ips_count = self._get_int_param("SecondaryPrivateIpAddressCount", 0)
         private_ip_addresses = self._get_multi_param("PrivateIpAddress")
         eni = self.ec2_backend.assign_private_ip_addresses(
             eni_id, private_ip_addresses, secondary_ips_count
         )
-        template = self.response_template(ASSIGN_PRIVATE_IP_ADDRESSES)
-        return template.render(eni=eni)
+        result = {
+            "NetworkInterfaceId": eni.id,
+            "AssignedPrivateIpAddresses": eni.private_ip_addresses,
+        }
+        return ActionResult(result)
 
-    def unassign_private_ip_addresses(self) -> str:
+    def unassign_private_ip_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         private_ip_address = self._get_multi_param("PrivateIpAddress")
-        eni = self.ec2_backend.unassign_private_ip_addresses(eni_id, private_ip_address)
-        template = self.response_template(UNASSIGN_PRIVATE_IP_ADDRESSES)
-        return template.render(eni=eni)
+        self.ec2_backend.unassign_private_ip_addresses(eni_id, private_ip_address)
+        return EmptyResult()
 
     def assign_ipv6_addresses(self) -> str:
         eni_id = self._get_param("NetworkInterfaceId")
@@ -148,34 +150,6 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         eni = self.ec2_backend.unassign_ipv6_addresses(eni_id, ips)
         template = self.response_template(UNASSIGN_IPV6_ADDRESSES)
         return template.render(eni=eni, unassigned_ips=ips)
-
-
-ASSIGN_PRIVATE_IP_ADDRESSES = """<AssignPrivateIpAddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-  <requestId>3fb591ba-558c-48f8-ae6b-c2f9d6d06425</requestId>
-  <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-  <assignedPrivateIpAddressesSet>
-    {% for address in eni.private_ip_addresses %}
-    <item>
-        <privateIpAddress>{{ address.PrivateIpAddress }}</privateIpAddress>
-    </item>
-    {% endfor %}
-  </assignedPrivateIpAddressesSet>
-  <return>true</return>
-</AssignPrivateIpAddressesResponse>"""
-
-
-UNASSIGN_PRIVATE_IP_ADDRESSES = """<UnAssignPrivateIpAddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-  <requestId>3fb591ba-558c-48f8-ae6b-c2f9d6d06425</requestId>
-  <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-  <assignedPrivateIpAddressesSet>
-    {% for address in eni.private_ip_addresses %}
-    <item>
-        <privateIpAddress>{{ address.PrivateIpAddress }}</privateIpAddress>
-    </item>
-    {% endfor %}
-  </assignedPrivateIpAddressesSet>
-  <return>true</return>
-</UnAssignPrivateIpAddressesResponse>"""
 
 
 ASSIGN_IPV6_ADDRESSES = """<AssignIpv6AddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
