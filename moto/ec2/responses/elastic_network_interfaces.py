@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult
+from moto.core.responses import ActionResult, EmptyResult
 from moto.ec2.exceptions import InvalidParameterValueErrorUnknownAttribute
 from moto.ec2.utils import add_tag_specification, get_attribute_value
 
@@ -34,14 +34,13 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
         return template.render(eni=eni)
 
-    def delete_network_interface(self) -> str:
+    def delete_network_interface(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
 
         self.error_on_dryrun()
 
         self.ec2_backend.delete_network_interface(eni_id)
-        template = self.response_template(DELETE_NETWORK_INTERFACE_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
     def describe_network_interface_attribute(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
@@ -87,16 +86,15 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         template = self.response_template(ATTACH_NETWORK_INTERFACE_RESPONSE)
         return template.render(attachment_id=attachment_id)
 
-    def detach_network_interface(self) -> str:
+    def detach_network_interface(self) -> ActionResult:
         attachment_id = self._get_param("AttachmentId")
 
         self.error_on_dryrun()
 
         self.ec2_backend.detach_network_interface(attachment_id)
-        template = self.response_template(DETACH_NETWORK_INTERFACE_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def modify_network_interface_attribute(self) -> str:
+    def modify_network_interface_attribute(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         group_ids = self._get_multi_param("SecurityGroupId")
         source_dest_check = get_attribute_value("SourceDestCheck", self.querystring)
@@ -107,7 +105,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         self.ec2_backend.modify_network_interface_attribute(
             eni_id, group_ids, source_dest_check, description
         )
-        return MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE
+        return EmptyResult()
 
     def reset_network_interface_attribute(self) -> str:
         self.error_on_dryrun()
@@ -359,19 +357,3 @@ ATTACH_NETWORK_INTERFACE_RESPONSE = """<AttachNetworkInterfaceResponse xmlns="ht
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <attachmentId>{{ attachment_id }}</attachmentId>
 </AttachNetworkInterfaceResponse>"""
-
-DETACH_NETWORK_INTERFACE_RESPONSE = """<DetachNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>true</return>
-</DetachNetworkInterfaceResponse>"""
-
-MODIFY_NETWORK_INTERFACE_ATTRIBUTE_RESPONSE = """<ModifyNetworkInterfaceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>true</return>
-</ModifyNetworkInterfaceAttributeResponse>"""
-
-DELETE_NETWORK_INTERFACE_RESPONSE = """
-<DeleteNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <requestId>34b5b3b4-d0c5-49b9-b5e2-a468ef6adcd8</requestId>
-    <return>true</return>
-</DeleteNetworkInterfaceResponse>"""
