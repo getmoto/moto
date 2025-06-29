@@ -6,7 +6,7 @@ from ._base_response import EC2BaseResponse
 
 
 class ElasticNetworkInterfaces(EC2BaseResponse):
-    def create_network_interface(self) -> str:
+    def create_network_interface(self) -> ActionResult:
         subnet_id = self._get_param("SubnetId")
         private_ip_address = self._get_param("PrivateIpAddress")
         private_ip_addresses = self._get_multi_param("PrivateIpAddresses")
@@ -31,8 +31,8 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
             ipv6_addresses=ipv6_addresses,
             ipv6_address_count=ipv6_address_count,
         )
-        template = self.response_template(CREATE_NETWORK_INTERFACE_RESPONSE)
-        return template.render(eni=eni)
+        result = {"NetworkInterface": eni}
+        return ActionResult(result)
 
     def delete_network_interface(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
@@ -63,15 +63,15 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
             raise InvalidParameterValueErrorUnknownAttribute(attribute)
         return ActionResult(result)
 
-    def describe_network_interfaces(self) -> str:
+    def describe_network_interfaces(self) -> ActionResult:
         eni_ids = self._get_multi_param("NetworkInterfaceId")
         filters = self._filters_from_querystring()
 
         self.error_on_dryrun()
 
         enis = self.ec2_backend.get_all_network_interfaces(eni_ids, filters)
-        template = self.response_template(DESCRIBE_NETWORK_INTERFACES_RESPONSE)
-        return template.render(enis=enis)
+        result = {"NetworkInterfaces": enis}
+        return ActionResult(result)
 
     def attach_network_interface(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
@@ -158,160 +158,3 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
             "UnassignedIpv6Addresses": unassigned_ipv6_addresses,
         }
         return ActionResult(result)
-
-
-CREATE_NETWORK_INTERFACE_RESPONSE = """
-<CreateNetworkInterfaceResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <requestId>2c6021ec-d705-445a-9780-420d0c7ab793</requestId>
-    <networkInterface>
-        <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-        <subnetId>{{ eni.subnet.id }}</subnetId>
-        <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
-        <availabilityZone>{{ eni.subnet.availability_zone }}</availabilityZone>
-        {% if eni.description %}
-        <description>{{ eni.description }}</description>
-        {% endif %}
-        <ownerId>{{ eni.owner_id }}</ownerId>
-        <requesterId>AIDARCSPW2WNREUEN7XFM</requesterId>
-        <requesterManaged>False</requesterManaged>
-        <status>{{ eni.status }}</status>
-        <macAddress>{{ eni.mac_address }}</macAddress>
-        {% if eni.private_ip_address %}
-          <privateIpAddress>{{ eni.private_ip_address }}</privateIpAddress>
-        {% endif %}
-        {% if eni.private_dns_name %}
-        <privateDnsName>{{ eni.private_dns_name }}</privateDnsName>
-        {% endif %}
-        <sourceDestCheck>{{ "true" if eni.source_dest_check == True else "false" }}</sourceDestCheck>
-        <groupSet>
-        {% for group in eni.group_set %}
-            <item>
-                <groupId>{{ group.id }}</groupId>
-                <groupName>{{ group.name }}</groupName>
-             </item>
-         {% endfor %}
-         </groupSet>
-        {% if eni.association %}
-        <association>
-            <publicIp>{{ eni.public_ip }}</publicIp>
-            <ipOwnerId>{{ eni.owner_id }}</ipOwnerId>
-            <allocationId>{{ eni.association.allocationId }}</allocationId>
-            <associationId>{{ eni.association.associationId }}</associationId>
-            <natEnabled>true</natEnabled>
-        </association>
-        {% endif %}
-        <tagSet>
-          {% for tag in eni.get_tags() %}
-              <item>
-                  <key>{{ tag.key }}</key>
-                  <value>{{ tag.value }}</value>
-              </item>
-          {% endfor %}
-        </tagSet>
-        <privateIpAddressesSet>
-          {% for address in eni.private_ip_addresses %}
-          <item>
-            <privateIpAddress>{{ address.PrivateIpAddress }}</privateIpAddress>
-            {% if address.privateDnsName %}
-            <privateDnsName>{{ address.PrivateDnsName }}</privateDnsName>
-            {% endif %}
-            <primary>{{ "true" if address.Primary == True else "false" }}</primary>
-          </item>
-          {% endfor %}
-        </privateIpAddressesSet>
-        <ipv6AddressesSet>
-        {% for address in eni.ipv6_addresses %}
-            <item>
-                <ipv6Address>{{address}}</ipv6Address>
-            </item>
-        {% endfor %}
-        </ipv6AddressesSet>
-        <interfaceType>{{ eni.interface_type }}</interfaceType>
-    </networkInterface>
-</CreateNetworkInterfaceResponse>
-"""
-
-DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <requestId>ddb0aaf1-8b65-4f0a-94fa-654b18b8a204</requestId>
-    <networkInterfaceSet>
-    {% for eni in enis %}
-        <item>
-            <networkInterfaceId>{{ eni.id }}</networkInterfaceId>
-            <subnetId>{{ eni.subnet.id }}</subnetId>
-            <vpcId>{{ eni.subnet.vpc_id }}</vpcId>
-            <availabilityZone>{{ eni.subnet.availability_zone }}</availabilityZone>
-            {% if eni.description %}
-            <description>{{ eni.description }}</description>
-            {% endif %}
-            <ownerId>{{ eni.owner_id }}</ownerId>
-            <requesterId>AIDARCSPW2WNREUEN7XFM</requesterId>
-            <requesterManaged>False</requesterManaged>
-            <status>{{ eni.status }}</status>
-            <macAddress>{{ eni.mac_address }}</macAddress>
-            {% if eni.private_ip_address %}
-            <privateIpAddress>{{ eni.private_ip_address }}</privateIpAddress>
-            {% endif %}
-            {% if eni.private_dns_name %}
-            <privateDnsName>{{ eni.private_dns_name }}</privateDnsName>
-            {% endif %}
-            <sourceDestCheck>{{ "true" if eni.source_dest_check == True else "false" }}</sourceDestCheck>
-            <groupSet>
-            {% for group in eni.group_set %}
-                <item>
-                    <groupId>{{ group.id }}</groupId>
-                    <groupName>{{ group.name }}</groupName>
-                </item>
-            {% endfor %}
-            </groupSet>
-            {% if eni.association %}
-            <association>
-                <publicIp>{{ eni.public_ip }}</publicIp>
-                <ipOwnerId>{{ eni.owner_id }}</ipOwnerId>
-                <allocationId>{{ eni.association.allocationId }}</allocationId>
-                <associationId>{{ eni.association.associationId }}</associationId>
-                <natEnabled>true</natEnabled>
-            </association>
-            {% endif %}
-            {% if eni.attachment_id %}
-            <attachment>
-                <attachTime>{{ eni.attach_time }}</attachTime>
-                <attachmentId>{{ eni.attachment_id }}</attachmentId>
-                <deleteOnTermination>{{ 'true' if eni.delete_on_termination else 'false' }}</deleteOnTermination>
-                <deviceIndex>{{ eni.device_index }}</deviceIndex>
-                <networkCardIndex>0</networkCardIndex>
-                <instanceId>{{ eni.instance.id }}</instanceId>
-                <instanceOwnerId>{{ eni.instance.owner_id }}</instanceOwnerId>
-                <status>attached</status>
-            </attachment>
-            {% endif %}
-            <tagSet>
-            {% for tag in eni.get_tags() %}
-                <item>
-                    <key>{{ tag.key }}</key>
-                    <value>{{ tag.value }}</value>
-                </item>
-            {% endfor %}
-            </tagSet>
-            <privateIpAddressesSet>
-            {% for address in eni.private_ip_addresses %}
-            <item>
-                <privateIpAddress>{{ address.PrivateIpAddress }}</privateIpAddress>
-                {% if address.privateDnsName %}
-                <privateDnsName>{{ address.PrivateDnsName }}</privateDnsName>
-                {% endif %}
-                <primary>{{ "true" if address.Primary == True else "false" }}</primary>
-            </item>
-            {% endfor %}
-            </privateIpAddressesSet>
-            <ipv6AddressesSet>
-                {% for address in eni.ipv6_addresses %}
-                <item>
-                    <ipv6Address>{{address}}</ipv6Address>
-                </item>
-                {% endfor %}
-            </ipv6AddressesSet>
-            <interfaceType>{{ eni.interface_type }}</interfaceType>
-        </item>
-    {% endfor %}
-    </networkInterfaceSet>
-</DescribeNetworkInterfacesResponse>"""

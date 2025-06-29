@@ -24,7 +24,11 @@ def test_elastic_network_interfaces():
         == "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    eni_id = ec2resource.create_network_interface(SubnetId=subnet.id).id
+    eni = ec2resource.create_network_interface(SubnetId=subnet.id)
+    assert eni.availability_zone == subnet.availability_zone
+    assert eni.subnet_id == subnet.id
+    assert eni.vpc_id == vpc.id
+    eni_id = eni.id
 
     my_enis = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
         "NetworkInterfaces"

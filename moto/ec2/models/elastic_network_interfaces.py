@@ -131,7 +131,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
         if self.subnet:
             vpc = self.ec2_backend.get_vpc(self.subnet.vpc_id)
-            if vpc and vpc.enable_dns_hostnames:
+            if vpc and vpc.enable_dns_hostnames in [True, "True", "true"]:
                 self.private_dns_name = generate_dns_from_ip(self.private_ip_address)
                 for address in self.private_ip_addresses:
                     if address.get("Primary", None):
@@ -169,6 +169,11 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         return None
 
     @property
+    def network_interface_ipv6_addresses_list(self) -> list[dict[str, str]]:
+        addresses = [{"Ipv6Address": ip} for ip in self.ipv6_addresses if ip]
+        return addresses
+
+    @property
     def association(self) -> Dict[str, Any]:  # type: ignore[misc]
         association: Dict[str, Any] = {}
         if self.public_ip:
@@ -179,7 +184,22 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             if eip:
                 association["allocationId"] = eip.allocation_id or None
                 association["associationId"] = eip.association_id or None
+            association["natEnabled"] = (
+                True  # FIXME: Was hardcoded in original XML template.
+            )
         return association
+
+    @property
+    def availability_zone(self) -> str:
+        return self.subnet.availability_zone
+
+    @property
+    def vpc_id(self) -> str:
+        return self.subnet.vpc_id
+
+    @property
+    def subnet_id(self) -> str:
+        return self.subnet.id
 
     @staticmethod
     def cloudformation_name_type() -> str:
