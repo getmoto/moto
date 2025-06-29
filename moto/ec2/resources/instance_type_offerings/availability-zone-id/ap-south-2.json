@@ -996,10 +996,6 @@
   "Location": "aps2-az1"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "aps2-az1"
- },
- {
   "InstanceType": "x2idn.16xlarge",
   "Location": "aps2-az1"
  },

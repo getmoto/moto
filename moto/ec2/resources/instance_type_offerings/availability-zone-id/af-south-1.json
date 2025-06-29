@@ -864,19 +864,11 @@
   "Location": "afs1-az1"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "afs1-az1"
- },
- {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "afs1-az1"
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "afs1-az1"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "afs1-az1"
  },
  {
@@ -1888,10 +1880,6 @@
   "Location": "afs1-az2"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "afs1-az2"
- },
- {
   "InstanceType": "x1.16xlarge",
   "Location": "afs1-az2"
  },
@@ -2829,10 +2817,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "afs1-az3"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "afs1-az3"
  },
  {

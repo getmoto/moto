@@ -260,6 +260,42 @@
   "Location": "ilc1-az1"
  },
  {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "ilc1-az1"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
+  "Location": "ilc1-az1"
+ },
+ {
   "InstanceType": "d3.2xlarge",
   "Location": "ilc1-az1"
  },
@@ -1244,6 +1280,42 @@
   "Location": "ilc1-az2"
  },
  {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
   "InstanceType": "d3.2xlarge",
   "Location": "ilc1-az2"
  },
@@ -1949,10 +2021,6 @@
  },
  {
   "InstanceType": "t4g.xlarge",
-  "Location": "ilc1-az2"
- },
- {
-  "InstanceType": "u-12tb1.112xlarge",
   "Location": "ilc1-az2"
  },
  {
@@ -2216,6 +2284,42 @@
   "Location": "ilc1-az3"
  },
  {
+  "InstanceType": "c7g.12xlarge",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.16xlarge",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.2xlarge",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.4xlarge",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.8xlarge",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.large",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.medium",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.metal",
+  "Location": "ilc1-az3"
+ },
+ {
+  "InstanceType": "c7g.xlarge",
+  "Location": "ilc1-az3"
+ },
+ {
   "InstanceType": "d3.2xlarge",
   "Location": "ilc1-az3"
  },
@@ -2921,10 +3025,6 @@
  },
  {
   "InstanceType": "t4g.xlarge",
-  "Location": "ilc1-az3"
- },
- {
-  "InstanceType": "u-12tb1.112xlarge",
   "Location": "ilc1-az3"
  },
  {
