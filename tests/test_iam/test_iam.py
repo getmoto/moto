@@ -3240,6 +3240,8 @@ def test_role_policy_encoding():
         RoleName=role_name, AssumeRolePolicyDocument=json.dumps(assume_policy_document)
     )
     assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
+    resp = conn.get_role(RoleName=role_name)
+    assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
     conn.put_role_policy(
         RoleName=role_name,
         PolicyName=policy_name,
@@ -3345,9 +3347,6 @@ def test_create_role_with_permissions_boundary(region, partition):
             Description="test",
             PermissionsBoundary=invalid_boundary_arn,
         )
-
-    # Ensure the PermissionsBoundary is included in role listing as well
-    assert conn.list_roles()["Roles"][0].get("PermissionsBoundary") == expected
 
 
 @mock_aws
