@@ -116,7 +116,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
         if self.subnet:
             vpc = self.ec2_backend.get_vpc(self.subnet.vpc_id)
-            if vpc and vpc.enable_dns_hostnames:
+            if vpc and vpc.enable_dns_hostnames in [True, "True", "true"]:
                 self.private_dns_name = generate_dns_from_ip(self.private_ip_address)
                 for address in self.private_ip_addresses:
                     if address.get("Primary", None):

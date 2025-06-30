@@ -3888,6 +3888,8 @@ def test_remove_tg(update_params):
 def setup_ecs(client, ec2):
     """test helper"""
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    ec2_client = boto3.client("ec2", region_name=ECS_REGION)
+    ec2_client.modify_vpc_attribute(VpcId=vpc.id, EnableDnsHostnames={"Value": True})
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/18")
     sg = ec2.create_security_group(
         VpcId=vpc.id, GroupName="test-ecs", Description="moto ecs"
