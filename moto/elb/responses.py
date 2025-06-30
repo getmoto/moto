@@ -189,6 +189,19 @@ class ELBResponse(BaseResponse):
                 load_balancer_name, connection_settings=connection_settings
             )
 
+        additional_attributes_raw = self._get_multi_param(
+            "LoadBalancerAttributes.AdditionalAttributes.member"
+        )
+        additional_attributes = []
+        for attr in additional_attributes_raw:
+            key = attr.get("Key")
+            value = attr.get("Value")
+            additional_attributes.append({"Key": key, "Value": value})
+
+        if additional_attributes:
+            self.elb_backend.modify_load_balancer_attributes(
+                load_balancer_name, additional_attributes=additional_attributes
+            )
         template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
         return template.render(
             load_balancer=load_balancer, attributes=load_balancer.attributes
@@ -744,6 +757,14 @@ DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns
         <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
         {% endif %}
       </ConnectionDraining>
+      <AdditionalAttributes>
+        {% for attribute in attributes.additional_attributes %}
+        <member>
+          <Key>{{ attribute[0] }}</Key>
+          <Value>{{ attribute[1] }}</Value>
+        </member>
+        {% endfor %}
+      </AdditionalAttributes>
     </LoadBalancerAttributes>
   </DescribeLoadBalancerAttributesResult>
   <ResponseMetadata>
@@ -778,6 +799,14 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
         <Enabled>false</Enabled>
         {% endif %}
       </ConnectionDraining>
+      <AdditionalAttributes>
+        {% for attribute in attributes.additional_attributes %}
+        <member>
+          <Key>{{ attribute[0] }}</Key>
+          <Value>{{ attribute[1] }}</Value>
+        </member>
+        {% endfor %}
+      </AdditionalAttributes>
     </LoadBalancerAttributes>
   </ModifyLoadBalancerAttributesResult>
   <ResponseMetadata>
