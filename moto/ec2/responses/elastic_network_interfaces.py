@@ -150,11 +150,11 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
     def unassign_ipv6_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         ips = self._get_multi_param("Ipv6Addresses")
-        eni, unassigned_ipv6_addresses = self.ec2_backend.unassign_ipv6_addresses(
+        unassigned_ipv6_addresses = self.ec2_backend.unassign_ipv6_addresses(
             eni_id, ips
         )
         result = {
-            "NetworkInterfaceId": eni.id,
+            "NetworkInterfaceId": eni_id,
             "UnassignedIpv6Addresses": unassigned_ipv6_addresses,
         }
         return ActionResult(result)
