@@ -257,7 +257,7 @@ CREATE_NETWORK_INTERFACE_RESPONSE = """
           {% for address in eni.private_ip_addresses %}
           <item>
             <privateIpAddress>{{ address.PrivateIpAddress }}</privateIpAddress>
-            {% if address.PrivateDnsName %}
+            {% if address.privateDnsName %}
             <privateDnsName>{{ address.PrivateDnsName }}</privateDnsName>
             {% endif %}
             <primary>{{ "true" if address.Primary == True else "false" }}</primary>
@@ -341,7 +341,7 @@ DESCRIBE_NETWORK_INTERFACES_RESPONSE = """<DescribeNetworkInterfacesResponse xml
             {% for address in eni.private_ip_addresses %}
             <item>
                 <privateIpAddress>{{ address.PrivateIpAddress }}</privateIpAddress>
-                {% if address.PrivateDnsName %}
+                {% if address.privateDnsName %}
                 <privateDnsName>{{ address.PrivateDnsName }}</privateDnsName>
                 {% endif %}
                 <primary>{{ "true" if address.Primary == True else "false" }}</primary>
