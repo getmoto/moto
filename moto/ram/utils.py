@@ -1,5 +1,18 @@
 from datetime import datetime, timezone
-from typing import Dict, Optional, Union
+from typing import Optional, TypedDict
+
+
+class ManagedPermissionDict(TypedDict):
+    arn: str
+    version: str
+    defaultVersion: bool
+    name: str
+    resourceType: str
+    status: str
+    creationTime: str
+    lastUpdatedTime: str
+    isResourceTypeDefault: bool
+    permissionType: str
 
 
 def format_ram_permission(
@@ -13,7 +26,7 @@ def format_ram_permission(
     is_resource_type_default: bool = True,
     permission_type: str = "AWS_MANAGED",
     default_version: bool = True,
-) -> Dict[str, Union[str, bool]]:
+) -> ManagedPermissionDict:
     """
     Format a RAM (Resource Access Manager) permission dictionary with the
     specified attributes.
@@ -38,7 +51,7 @@ def format_ram_permission(
             Defaults to True.
 
     Returns:
-        dict: A dictionary representing the formatted RAM permission.
+        ManagedPermissionDict: A dictionary representing the formatted RAM permission.
     """
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
     creation_time = creation_time or now

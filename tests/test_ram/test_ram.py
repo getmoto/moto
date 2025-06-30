@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ram.models import ResourceAccessManagerBackend
+from moto.ram.utils import AWS_MANAGED_PERMISSIONS, RAM_RESOURCE_TYPES
 
 
 @mock_aws
@@ -569,7 +569,7 @@ def test_list_resource_types(resource_region_scope, expect_error, error_message)
         assert ex.response["Error"]["Message"] == error_message
     else:
         response = client.list_resource_types(**resource_region_scope)
-        expected_types = ResourceAccessManagerBackend.RESOURCE_TYPES
+        expected_types = RAM_RESOURCE_TYPES
         if region_scope == "GLOBAL":
             expected_types = [
                 rt for rt in expected_types if rt["resourceRegionScope"] == "GLOBAL"
@@ -632,7 +632,7 @@ def test_list_permissions(parameters, expect_error, error_message):
         response = client.list_permissions(**parameters)
 
         # then
-        expected_permissions = ResourceAccessManagerBackend.MANAGED_PERMISSIONS
+        expected_permissions = AWS_MANAGED_PERMISSIONS
         if resource_type:
             expected_permissions = [
                 permission
