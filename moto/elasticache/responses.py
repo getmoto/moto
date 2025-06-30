@@ -228,7 +228,7 @@ class ElastiCacheResponse(BaseResponse):
         automatic_failover_enabled = self._get_param("AutomaticFailoverEnabled")
         multi_az_enabled = self._get_param("MultiAZEnabled")
         num_cache_clusters = self._get_param("NumCacheClusters")
-        preferred_cache_cluster_a_zs = self._get_param("PreferredCacheClusterAZs")
+        preferred_cache_cluster_azs = self._get_param("PreferredCacheClusterAZs")
         num_node_groups = self._get_param("NumNodeGroups")
         replicas_per_node_group = self._get_param("ReplicasPerNodeGroup")
         node_group_configuration = self._get_param("NodeGroupConfiguration")
@@ -268,7 +268,7 @@ class ElastiCacheResponse(BaseResponse):
             automatic_failover_enabled=automatic_failover_enabled,
             multi_az_enabled=multi_az_enabled,
             num_cache_clusters=num_cache_clusters,
-            preferred_cache_cluster_a_zs=preferred_cache_cluster_a_zs,
+            preferred_cache_cluster_azs=preferred_cache_cluster_azs,
             num_node_groups=num_node_groups,
             replicas_per_node_group=replicas_per_node_group,
             node_group_configuration=node_group_configuration,
