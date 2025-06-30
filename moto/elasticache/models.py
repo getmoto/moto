@@ -234,22 +234,7 @@ class ReplicationGroup(BaseModel):
         num_node_groups: int,
         replicas_per_node_group: int,
         node_group_configuration: List[Dict[str, Any]],
-        engine: str = "redis",
-        engine_version: str,
-        cache_parameter_group_name: str,
-        cache_subnet_group_name: str,
-        cache_security_group_names: List[str],
-        security_group_ids: List[str],
-        tags: List[Dict[str, str]],
-        snapshot_arns: List[str],
-        snapshot_name: Optional[str],
-        preferred_maintenance_window: Optional[str],
-        notification_topic_arn: Optional[str],
-
-
-
-
-        serverless_cache_snapshot_name: str = None,
+        preferred_maintenance_window: Optional[str] = None,
         replication_group_description: str = None,
         primary_cluster_id: Optional[str] = None,
         automatic_failover_enabled: bool = False,
@@ -268,9 +253,20 @@ class ReplicationGroup(BaseModel):
         log_delivery_configurations: List[Dict[str, Any]] = [],
         data_tiering_enabled: bool = False,
         auto_minor_version_upgrade: bool = False,
+        engine: str = "redis",
         network_type: str = "ipv4",
         ip_discovery: str = "ipv4",
         transit_encryption_mode: str = "required",
+        cache_security_group_names: List[str] = [],
+        cache_subnet_group_name: str = None,
+        security_group_ids: List[str] = [],
+        tags: List[Dict[str, str]] = [],
+        notification_topic_arn: Optional[str] = None,
+        serverless_cache_snapshot_name: str = None,
+        cache_parameter_group_name: str = None,
+        engine_version: str = None,
+        snapshot_arns: List[str] = [],
+        snapshot_name: Optional[str] = None,
     ):
         self.replication_group_id = replication_group_id
         self.replication_group_description = replication_group_description
@@ -434,6 +430,23 @@ class ReplicationGroup(BaseModel):
         self.engine = engine
 
 
+        # Parameters not returned by create or describe replication group
+        self.cache_security_group_names = cache_security_group_names
+        self.cache_subnet_group_name = cache_subnet_group_name
+        self.security_group_ids = security_group_ids
+        self.tags = tags
+        self.preferred_maintenance_window = preferred_maintenance_window
+        self.notification_topic_arn = notification_topic_arn
+        self.serverless_cache_snapshot_name = serverless_cache_snapshot_name
+        self.cache_parameter_group_name = cache_parameter_group_name
+        self.engine_version = engine_version
+        self.snapshot_arns = snapshot_arns
+        self.snapshot_name = snapshot_name
+
+
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
 
 class ElastiCacheBackend(BaseBackend):
     """Implementation of ElastiCache APIs."""
@@ -680,6 +693,9 @@ class ElastiCacheBackend(BaseBackend):
             elif resource_type == "subnetgroup":
                 if resource_name in self.cache_subnet_groups:
                     return self.cache_subnet_groups[resource_name].get_tags()
+            elif resource_type == "replicationgroup":
+                if resource_name in self.replication_groups:
+                    return self.replication_groups[resource_name].get_tags()
             else:
                 return []
         else:
