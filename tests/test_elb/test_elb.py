@@ -680,7 +680,7 @@ def test_default_attributes():
     assert attributes["AccessLog"] == {"Enabled": False}
     assert attributes["ConnectionDraining"] == {"Enabled": False}
     assert attributes["ConnectionSettings"] == {"IdleTimeout": 60}
-    # assert attributes["AdditionalAttributes"] == []
+    assert attributes["AdditionalAttributes"] == []
 
 
 @mock_aws
