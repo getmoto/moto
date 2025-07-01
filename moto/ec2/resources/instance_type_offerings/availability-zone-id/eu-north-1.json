@@ -1900,10 +1900,6 @@
   "Location": "eun1-az1"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "eun1-az1"
- },
- {
   "InstanceType": "x2idn.16xlarge",
   "Location": "eun1-az1"
  },

@@ -1864,23 +1864,11 @@
   "Location": "apne2-az1"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "apne2-az1"
- },
- {
-  "InstanceType": "u-24tb1.112xlarge",
-  "Location": "apne2-az1"
- },
- {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "apne2-az1"
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "apne2-az1"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "apne2-az1"
  },
  {
@@ -5140,23 +5128,11 @@
   "Location": "apne2-az3"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "u-24tb1.112xlarge",
-  "Location": "apne2-az3"
- },
- {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "apne2-az3"
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "apne2-az3"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "apne2-az3"
  },
  {

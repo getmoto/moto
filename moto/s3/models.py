@@ -229,6 +229,14 @@ class FakeKey(BaseModel, ManagedState):
     def set_metadata(self, metadata: Any, replace: bool = False) -> None:
         if replace:
             self._metadata = {}  # type: ignore
+        # Remove AWS-specific Content-Encoding
+        if encoding := metadata.pop("Content-Encoding", None):
+            # Remove 'aws-chunked', but keep any other (user-provided) content encoding
+            encoding = ",".join(
+                [enc for enc in encoding.split(",") if enc != "aws-chunked"]
+            )
+            if encoding:
+                metadata["Content-Encoding"] = encoding
         self._metadata.update(metadata)
 
     def set_storage_class(self, storage: Optional[str]) -> None:

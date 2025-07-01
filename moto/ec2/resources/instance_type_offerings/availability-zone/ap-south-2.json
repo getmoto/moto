@@ -996,10 +996,6 @@
   "Location": "ap-south-2a"
  },
  {
-  "InstanceType": "u-9tb1.112xlarge",
-  "Location": "ap-south-2a"
- },
- {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-south-2a"
  },
