@@ -185,9 +185,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             if eip:
                 association["allocationId"] = eip.allocation_id or None
                 association["associationId"] = eip.association_id or None
-            association["natEnabled"] = (
-                True  # FIXME: Was hardcoded in original XML template.
-            )
+            association["natEnabled"] = True
         return association
 
     @property
