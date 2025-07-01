@@ -2163,6 +2163,10 @@ def test_run_task_awsvpc_network():
 
     # ECS setup
     setup_resources = setup_ecs(client, ec2)
+    subnet = setup_resources[0]
+    ec2_client.modify_vpc_attribute(
+        VpcId=subnet.vpc.id, EnableDnsHostnames={"Value": True}
+    )
 
     # Execute
     response = client.run_task(
@@ -2211,6 +2215,10 @@ def test_run_task_awsvpc_network__unknown_sec_group():
 
     # ECS setup
     setup_resources = setup_ecs(client, ec2)
+    subnet = setup_resources[0]
+    ec2_client.modify_vpc_attribute(
+        VpcId=subnet.vpc.id, EnableDnsHostnames={"Value": True}
+    )
 
     # Execute
     task = client.run_task(
