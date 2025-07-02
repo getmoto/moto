@@ -280,7 +280,7 @@ def test_describe_unknown_cluster_security_group(is_json):
         response = json.loads(res.data.decode("utf-8"))
     else:
         response = xmltodict.parse(res.data.decode("utf-8"), dict_constructor=dict)[
-            "RedshiftClientError"
+            "ErrorResponse"
         ]
     error = response["Error"]
 
