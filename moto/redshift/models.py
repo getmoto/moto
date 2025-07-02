@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import datetime
 from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Optional
@@ -263,8 +262,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         return [
             parameter_group
             for parameter_group in self.redshift_backend.describe_cluster_parameter_groups()
-            if parameter_group.cluster_parameter_group_name
-            in self.cluster_parameter_group_name
+            if parameter_group.name in self.cluster_parameter_group_name
         ]
 
     @property
@@ -288,7 +286,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
     def cluster_parameter_group_status_list(self) -> List[Dict[str, str]]:
         return [
             {
-                "ParameterGroupName": group.cluster_parameter_group_name,
+                "ParameterGroupName": group.name,
                 "ParameterApplyStatus": "in-sync",
             }
             for group in self.parameter_groups
@@ -348,12 +346,6 @@ class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
         self.snapshot_copy_grant_name = snapshot_copy_grant_name
         self.kms_key_id = kms_key_id
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "SnapshotCopyGrantName": self.snapshot_copy_grant_name,
-            "KmsKeyId": self.kms_key_id,
-        }
-
 
 class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
     resource_type = "subnetgroup"
@@ -372,6 +364,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.description = description
         self.subnet_ids = subnet_ids
+        self.status = "Complete"
         if not self.subnets:
             raise InvalidSubnetError(subnet_ids)
 
@@ -416,22 +409,16 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
     def resource_id(self) -> str:
         return self.cluster_subnet_group_name
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "VpcId": self.vpc_id,
-            "Description": self.description,
-            "ClusterSubnetGroupName": self.cluster_subnet_group_name,
-            "SubnetGroupStatus": "Complete",
-            "Subnets": [
-                {
-                    "SubnetStatus": "Active",
-                    "SubnetIdentifier": subnet.id,
-                    "SubnetAvailabilityZone": {"Name": subnet.availability_zone},
-                }
-                for subnet in self.subnets
-            ],
-            "Tags": self.tags,
-        }
+    @property
+    def subnet_list(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "SubnetStatus": "Active",
+                "SubnetIdentifier": subnet.id,
+                "SubnetAvailabilityZone": {"Name": subnet.availability_zone},
+            }
+            for subnet in self.subnets
+        ]
 
 
 class SecurityGroup(TaggableResourceMixin, BaseModel):
@@ -449,19 +436,12 @@ class SecurityGroup(TaggableResourceMixin, BaseModel):
         self.cluster_security_group_name = cluster_security_group_name
         self.description = description
         self.ingress_rules: List[str] = []
+        self.ec2_security_groups: list[str] = []
+        self.ip_ranges: list[str] = []
 
     @property
     def resource_id(self) -> str:
         return self.cluster_security_group_name
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "EC2SecurityGroups": [],
-            "IPRanges": [],
-            "Description": self.description,
-            "ClusterSecurityGroupName": self.cluster_security_group_name,
-            "Tags": self.tags,
-        }
 
 
 class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
@@ -477,8 +457,8 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
         tags: Optional[List[Dict[str, str]]] = None,
     ):
         super().__init__(account_id, region_name, tags)
-        self.cluster_parameter_group_name = cluster_parameter_group_name
-        self.group_family = group_family
+        self.name = cluster_parameter_group_name
+        self.family = group_family
         self.description = description
 
     @staticmethod
@@ -512,15 +492,7 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
 
     @property
     def resource_id(self) -> str:
-        return self.cluster_parameter_group_name
-
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "ParameterGroupFamily": self.group_family,
-            "Description": self.description,
-            "ParameterGroupName": self.cluster_parameter_group_name,
-            "Tags": self.tags,
-        }
+        return self.name
 
 
 class Snapshot(TaggableResourceMixin, BaseModel):
@@ -537,38 +509,33 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         snapshot_type: str = "manual",
     ):
         super().__init__(account_id, region_name, tags)
-        self.cluster = copy.copy(cluster)
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = snapshot_type
         self.status = "available"
         self.create_time = utcnow()
         self.iam_roles_arn = iam_roles_arn or []
+        self.cluster_identifier = cluster.cluster_identifier
+        self.port = cluster.port
+        self.availability_zone = cluster.availability_zone
+        self.master_username = cluster.master_username
+        self.master_user_password = cluster.master_user_password
+        self.cluster_version = cluster.cluster_version
+        self.node_type = cluster.node_type
+        self.number_of_nodes = cluster.number_of_nodes
+        self.db_name = cluster.db_name
+        self.enhanced_vpc_routing = cluster.enhanced_vpc_routing
+        self.encrypted = cluster.encrypted
 
     @property
     def resource_id(self) -> str:
-        return f"{self.cluster.cluster_identifier}/{self.snapshot_identifier}"
+        return f"{self.cluster_identifier}/{self.snapshot_identifier}"
 
-    def to_json(self) -> Dict[str, Any]:
-        return {
-            "SnapshotIdentifier": self.snapshot_identifier,
-            "ClusterIdentifier": self.cluster.cluster_identifier,
-            "SnapshotCreateTime": self.create_time,
-            "Status": self.status,
-            "Port": self.cluster.port,
-            "AvailabilityZone": self.cluster.availability_zone,
-            "MasterUsername": self.cluster.master_username,
-            "ClusterVersion": self.cluster.cluster_version,
-            "SnapshotType": self.snapshot_type,
-            "NodeType": self.cluster.node_type,
-            "NumberOfNodes": self.cluster.number_of_nodes,
-            "DBName": self.cluster.db_name,
-            "Tags": self.tags,
-            "EnhancedVpcRouting": self.cluster.enhanced_vpc_routing,
-            "IamRoles": [
-                {"ApplyStatus": "in-sync", "IamRoleArn": iam_role_arn}
-                for iam_role_arn in self.iam_roles_arn
-            ],
-        }
+    @property
+    def iam_roles(self) -> List[Dict[str, str]]:
+        return [
+            {"ApplyStatus": "in-sync", "IamRoleArn": iam_role_arn}
+            for iam_role_arn in self.iam_roles_arn
+        ]
 
 
 class RedshiftBackend(BaseBackend):
@@ -904,7 +871,7 @@ class RedshiftBackend(BaseBackend):
         if cluster_identifier:
             cluster_snapshots = []
             for snapshot in self.snapshots.values():
-                if snapshot.cluster.cluster_identifier == cluster_identifier:
+                if snapshot.cluster_identifier == cluster_identifier:
                     if snapshot.snapshot_type in snapshot_types:
                         cluster_snapshots.append(snapshot)
             if cluster_snapshots:
@@ -937,21 +904,21 @@ class RedshiftBackend(BaseBackend):
             snapshot_identifier=snapshot_identifier
         )[0]
         create_kwargs = {
-            "node_type": snapshot.cluster.node_type,
-            "master_username": snapshot.cluster.master_username,
-            "master_user_password": snapshot.cluster.master_user_password,
-            "db_name": snapshot.cluster.db_name,
+            "node_type": snapshot.node_type,
+            "master_username": snapshot.master_username,
+            "master_user_password": snapshot.master_user_password,
+            "db_name": snapshot.db_name,
             "cluster_type": "multi-node"
-            if snapshot.cluster.number_of_nodes > 1
+            if snapshot.number_of_nodes > 1
             else "single-node",
-            "availability_zone": snapshot.cluster.availability_zone,
-            "port": snapshot.cluster.port,
-            "cluster_version": snapshot.cluster.cluster_version,
-            "number_of_nodes": snapshot.cluster.number_of_nodes,
-            "encrypted": snapshot.cluster.encrypted,
-            "tags": snapshot.cluster.tags,
+            "availability_zone": snapshot.availability_zone,
+            "port": snapshot.port,
+            "cluster_version": snapshot.cluster_version,
+            "number_of_nodes": snapshot.number_of_nodes,
+            "encrypted": snapshot.encrypted,
+            "tags": snapshot.tags,
             "restored_from_snapshot": True,
-            "enhanced_vpc_routing": snapshot.cluster.enhanced_vpc_routing,
+            "enhanced_vpc_routing": snapshot.enhanced_vpc_routing,
         }
         create_kwargs.update(kwargs)
         return self.create_cluster(**create_kwargs)

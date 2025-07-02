@@ -202,7 +202,7 @@ class RedshiftResponse(BaseResponse):
             tags=tags,
         )
 
-        return ActionResult({"ClusterSubnetGroup": subnet_group.to_json()})
+        return ActionResult({"ClusterSubnetGroup": subnet_group})
 
     def describe_cluster_subnet_groups(self) -> ActionResult:
         subnet_identifier = self._get_param("ClusterSubnetGroupName")
@@ -210,13 +210,7 @@ class RedshiftResponse(BaseResponse):
             subnet_identifier
         )
 
-        return ActionResult(
-            {
-                "ClusterSubnetGroups": [
-                    subnet_group.to_json() for subnet_group in subnet_groups
-                ]
-            }
-        )
+        return ActionResult({"ClusterSubnetGroups": subnet_groups})
 
     def delete_cluster_subnet_group(self) -> ActionResult:
         subnet_identifier = self._get_param("ClusterSubnetGroupName")
@@ -235,7 +229,7 @@ class RedshiftResponse(BaseResponse):
             tags=tags,
         )
 
-        return ActionResult({"ClusterSecurityGroup": security_group.to_json()})
+        return ActionResult({"ClusterSecurityGroup": security_group})
 
     def describe_cluster_security_groups(self) -> ActionResult:
         cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
@@ -243,13 +237,7 @@ class RedshiftResponse(BaseResponse):
             cluster_security_group_name
         )
 
-        return ActionResult(
-            {
-                "ClusterSecurityGroups": [
-                    security_group.to_json() for security_group in security_groups
-                ]
-            }
-        )
+        return ActionResult({"ClusterSecurityGroups": security_groups})
 
     def delete_cluster_security_group(self) -> ActionResult:
         security_group_identifier = self._get_param("ClusterSecurityGroupName")
@@ -264,22 +252,20 @@ class RedshiftResponse(BaseResponse):
         security_group = self.redshift_backend.authorize_cluster_security_group_ingress(
             cluster_security_group_name, cidr_ip
         )
-
-        return ActionResult(
-            {
-                "ClusterSecurityGroup": {
-                    "ClusterSecurityGroupName": cluster_security_group_name,
-                    "Description": security_group.description,
-                    "IPRanges": [
-                        {
-                            "Status": "authorized",
-                            "CIDRIP": cidr_ip,
-                            "Tags": security_group.tags,
-                        },
-                    ],
-                }
+        result = {
+            "ClusterSecurityGroup": {
+                "ClusterSecurityGroupName": cluster_security_group_name,
+                "Description": security_group.description,
+                "IPRanges": [
+                    {
+                        "Status": "authorized",
+                        "CIDRIP": cidr_ip,
+                        "Tags": security_group.tags,
+                    },
+                ],
             }
-        )
+        }
+        return ActionResult(result)
 
     def create_cluster_parameter_group(self) -> ActionResult:
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
@@ -291,7 +277,7 @@ class RedshiftResponse(BaseResponse):
             cluster_parameter_group_name, group_family, description, self.region, tags
         )
 
-        return ActionResult({"ClusterParameterGroup": parameter_group.to_json()})
+        return ActionResult({"ClusterParameterGroup": parameter_group})
 
     def describe_cluster_parameter_groups(self) -> ActionResult:
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
@@ -299,13 +285,7 @@ class RedshiftResponse(BaseResponse):
             cluster_parameter_group_name
         )
 
-        return ActionResult(
-            {
-                "ParameterGroups": [
-                    parameter_group.to_json() for parameter_group in parameter_groups
-                ]
-            }
-        )
+        return ActionResult({"ParameterGroups": parameter_groups})
 
     def delete_cluster_parameter_group(self) -> ActionResult:
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
@@ -323,7 +303,7 @@ class RedshiftResponse(BaseResponse):
         snapshot = self.redshift_backend.create_cluster_snapshot(
             cluster_identifier, snapshot_identifier, self.region, tags
         )
-        return ActionResult({"Snapshot": snapshot.to_json()})
+        return ActionResult({"Snapshot": snapshot})
 
     def describe_cluster_snapshots(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
@@ -332,15 +312,13 @@ class RedshiftResponse(BaseResponse):
         snapshots = self.redshift_backend.describe_cluster_snapshots(
             cluster_identifier, snapshot_identifier, snapshot_type
         )
-        return ActionResult(
-            {"Snapshots": [snapshot.to_json() for snapshot in snapshots]}
-        )
+        return ActionResult({"Snapshots": snapshots})
 
     def delete_cluster_snapshot(self) -> ActionResult:
         snapshot_identifier = self._get_param("SnapshotIdentifier")
         snapshot = self.redshift_backend.delete_cluster_snapshot(snapshot_identifier)
 
-        return ActionResult({"Snapshot": snapshot.to_json()})
+        return ActionResult({"Snapshot": snapshot})
 
     def create_snapshot_copy_grant(self) -> ActionResult:
         copy_grant_kwargs = {
@@ -352,7 +330,7 @@ class RedshiftResponse(BaseResponse):
         copy_grant = self.redshift_backend.create_snapshot_copy_grant(
             **copy_grant_kwargs
         )
-        return ActionResult({"SnapshotCopyGrant": copy_grant.to_json()})
+        return ActionResult({"SnapshotCopyGrant": copy_grant})
 
     def delete_snapshot_copy_grant(self) -> ActionResult:
         copy_grant_kwargs = {
@@ -369,9 +347,7 @@ class RedshiftResponse(BaseResponse):
         copy_grants = self.redshift_backend.describe_snapshot_copy_grants(
             **copy_grant_kwargs
         )
-        return ActionResult(
-            {"SnapshotCopyGrants": [copy_grant.to_json() for copy_grant in copy_grants]}
-        )
+        return ActionResult({"SnapshotCopyGrants": copy_grants})
 
     def create_tags(self) -> ActionResult:
         resource_name = self._get_param("ResourceName")
