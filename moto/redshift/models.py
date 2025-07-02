@@ -7,7 +7,7 @@ from dateutil.tz import tzutc
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds
+from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.ec2.models.security_groups import SecurityGroup as EC2SecurityGroup
 from moto.moto_api._internal import mock_random
@@ -100,7 +100,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         super().__init__(redshift_backend.account_id, region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
-        self.create_time = iso_8601_datetime_with_milliseconds()
+        self.create_time = utcnow()
         self.status = "available"
         self.node_type = node_type
         self.master_username = master_username
@@ -539,7 +539,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self.snapshot_identifier = snapshot_identifier
         self.snapshot_type = snapshot_type
         self.status = "available"
-        self.create_time = iso_8601_datetime_with_milliseconds()
+        self.create_time = utcnow()
         self.iam_roles_arn = iam_roles_arn or []
 
     @property
