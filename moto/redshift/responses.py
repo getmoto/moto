@@ -101,7 +101,7 @@ class RedshiftResponse(BaseResponse):
             "allow_version_upgrade": self._get_bool_param("AllowVersionUpgrade"),
             "number_of_nodes": self._get_int_param("NumberOfNodes"),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
-            "encrypted": self._get_param("Encrypted"),
+            "encrypted": self._get_bool_param("Encrypted", False),
             "region_name": self.region,
             "tags": self.unpack_list_params("Tags", "Tag"),
             "iam_roles_arn": self._get_iam_roles(),

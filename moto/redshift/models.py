@@ -89,7 +89,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         allow_version_upgrade: str,
         number_of_nodes: str,
         publicly_accessible: str,
-        encrypted: str,
+        encrypted: bool,
         region_name: str,
         tags: Optional[List[Dict[str, str]]] = None,
         iam_roles_arn: Optional[List[str]] = None,
@@ -607,10 +607,7 @@ class RedshiftBackend(BaseBackend):
         cluster_identifier = kwargs["cluster_identifier"]
         cluster = self.clusters[cluster_identifier]
         if cluster.cluster_snapshot_copy_status is None:
-            if (
-                cluster.encrypted == "true"
-                and kwargs["snapshot_copy_grant_name"] is None
-            ):
+            if cluster.encrypted and kwargs["snapshot_copy_grant_name"] is None:
                 raise InvalidParameterValueError(
                     "SnapshotCopyGrantName is required for Snapshot Copy on KMS encrypted clusters."
                 )
