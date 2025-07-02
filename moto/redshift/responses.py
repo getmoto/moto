@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 import xmltodict
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import RedshiftBackend, redshift_backends
 
@@ -34,7 +34,7 @@ class RedshiftResponse(BaseResponse):
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.current_account][self.region]
 
-    def get_response(self, response: Any) -> str:
+    def get_response(self, response: Any) -> ActionResult:
         if self.request_json:
             return json.dumps(response)
         else:
@@ -112,35 +112,17 @@ class RedshiftResponse(BaseResponse):
         cluster["ClusterStatus"] = "creating"
         return ActionResult({"Cluster": cluster})
 
-    def pause_cluster(self) -> str:
+    def pause_cluster(self) -> ActionResult:
         cluster_id = self._get_param("ClusterIdentifier")
         cluster = self.redshift_backend.pause_cluster(cluster_id).to_json()
-        return self.get_response(
-            {
-                "PauseClusterResponse": {
-                    "PauseClusterResult": {"Cluster": cluster},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster})
 
-    def resume_cluster(self) -> str:
+    def resume_cluster(self) -> ActionResult:
         cluster_id = self._get_param("ClusterIdentifier")
         cluster = self.redshift_backend.resume_cluster(cluster_id).to_json()
-        return self.get_response(
-            {
-                "ResumeClusterResponse": {
-                    "ResumeClusterResult": {"Cluster": cluster},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster})
 
-    def restore_from_cluster_snapshot(self) -> str:
+    def restore_from_cluster_snapshot(self) -> ActionResult:
         enhanced_vpc_routing = self._get_bool_param("EnhancedVpcRouting")
         node_type = self._get_param("NodeType")
         number_of_nodes = self._get_int_param("NumberOfNodes")
@@ -176,35 +158,15 @@ class RedshiftResponse(BaseResponse):
             **restore_kwargs
         ).to_json()
         cluster["ClusterStatus"] = "creating"
-        return self.get_response(
-            {
-                "RestoreFromClusterSnapshotResponse": {
-                    "RestoreFromClusterSnapshotResult": {"Cluster": cluster},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster})
 
-    def describe_clusters(self) -> str:
+    def describe_clusters(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         clusters = self.redshift_backend.describe_clusters(cluster_identifier)
 
-        return self.get_response(
-            {
-                "DescribeClustersResponse": {
-                    "DescribeClustersResult": {
-                        "Clusters": [cluster.to_json() for cluster in clusters]
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Clusters": [cluster.to_json() for cluster in clusters]})
 
-    def modify_cluster(self) -> str:
+    def modify_cluster(self) -> ActionResult:
         request_kwargs = {
             "cluster_identifier": self._get_param("ClusterIdentifier"),
             "new_cluster_identifier": self._get_param("NewClusterIdentifier"),
@@ -240,18 +202,9 @@ class RedshiftResponse(BaseResponse):
 
         cluster = self.redshift_backend.modify_cluster(**cluster_kwargs)
 
-        return self.get_response(
-            {
-                "ModifyClusterResponse": {
-                    "ModifyClusterResult": {"Cluster": cluster.to_json()},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster.to_json()})
 
-    def delete_cluster(self) -> str:
+    def delete_cluster(self) -> ActionResult:
         request_kwargs = {
             "cluster_identifier": self._get_param("ClusterIdentifier"),
             "final_cluster_snapshot_identifier": self._get_param(
@@ -262,18 +215,9 @@ class RedshiftResponse(BaseResponse):
 
         cluster = self.redshift_backend.delete_cluster(**request_kwargs)
 
-        return self.get_response(
-            {
-                "DeleteClusterResponse": {
-                    "DeleteClusterResult": {"Cluster": cluster.to_json()},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster.to_json()})
 
-    def create_cluster_subnet_group(self) -> str:
+    def create_cluster_subnet_group(self) -> ActionResult:
         cluster_subnet_group_name = self._get_param("ClusterSubnetGroupName")
         description = self._get_param("Description")
         subnet_ids = self._get_subnet_ids()
@@ -287,55 +231,29 @@ class RedshiftResponse(BaseResponse):
             tags=tags,
         )
 
-        return self.get_response(
-            {
-                "CreateClusterSubnetGroupResponse": {
-                    "CreateClusterSubnetGroupResult": {
-                        "ClusterSubnetGroup": subnet_group.to_json()
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"ClusterSubnetGroup": subnet_group.to_json()})
 
-    def describe_cluster_subnet_groups(self) -> str:
+    def describe_cluster_subnet_groups(self) -> ActionResult:
         subnet_identifier = self._get_param("ClusterSubnetGroupName")
         subnet_groups = self.redshift_backend.describe_cluster_subnet_groups(
             subnet_identifier
         )
 
-        return self.get_response(
+        return ActionResult(
             {
-                "DescribeClusterSubnetGroupsResponse": {
-                    "DescribeClusterSubnetGroupsResult": {
-                        "ClusterSubnetGroups": [
-                            subnet_group.to_json() for subnet_group in subnet_groups
-                        ]
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
+                "ClusterSubnetGroups": [
+                    subnet_group.to_json() for subnet_group in subnet_groups
+                ]
             }
         )
 
-    def delete_cluster_subnet_group(self) -> str:
+    def delete_cluster_subnet_group(self) -> ActionResult:
         subnet_identifier = self._get_param("ClusterSubnetGroupName")
         self.redshift_backend.delete_cluster_subnet_group(subnet_identifier)
 
-        return self.get_response(
-            {
-                "DeleteClusterSubnetGroupResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    }
-                }
-            }
-        )
+        return EmptyResult()
 
-    def create_cluster_security_group(self) -> str:
+    def create_cluster_security_group(self) -> ActionResult:
         cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
         description = self._get_param("Description")
         tags = self.unpack_list_params("Tags", "Tag")
@@ -346,56 +264,29 @@ class RedshiftResponse(BaseResponse):
             tags=tags,
         )
 
-        return self.get_response(
-            {
-                "CreateClusterSecurityGroupResponse": {
-                    "CreateClusterSecurityGroupResult": {
-                        "ClusterSecurityGroup": security_group.to_json()
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"ClusterSecurityGroup": security_group.to_json()})
 
-    def describe_cluster_security_groups(self) -> str:
+    def describe_cluster_security_groups(self) -> ActionResult:
         cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
         security_groups = self.redshift_backend.describe_cluster_security_groups(
             cluster_security_group_name
         )
 
-        return self.get_response(
+        return ActionResult(
             {
-                "DescribeClusterSecurityGroupsResponse": {
-                    "DescribeClusterSecurityGroupsResult": {
-                        "ClusterSecurityGroups": [
-                            security_group.to_json()
-                            for security_group in security_groups
-                        ]
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
+                "ClusterSecurityGroups": [
+                    security_group.to_json() for security_group in security_groups
+                ]
             }
         )
 
-    def delete_cluster_security_group(self) -> str:
+    def delete_cluster_security_group(self) -> ActionResult:
         security_group_identifier = self._get_param("ClusterSecurityGroupName")
         self.redshift_backend.delete_cluster_security_group(security_group_identifier)
 
-        return self.get_response(
-            {
-                "DeleteClusterSecurityGroupResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    }
-                }
-            }
-        )
+        return EmptyResult()
 
-    def authorize_cluster_security_group_ingress(self) -> str:
+    def authorize_cluster_security_group_ingress(self) -> ActionResult:
         cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
         cidr_ip = self._get_param("CIDRIP")
 
@@ -403,27 +294,23 @@ class RedshiftResponse(BaseResponse):
             cluster_security_group_name, cidr_ip
         )
 
-        return self.get_response(
+        return ActionResult(
             {
-                "AuthorizeClusterSecurityGroupIngressResponse": {
-                    "AuthorizeClusterSecurityGroupIngressResult": {
-                        "ClusterSecurityGroup": {
-                            "ClusterSecurityGroupName": cluster_security_group_name,
-                            "Description": security_group.description,
-                            "IPRanges": [
-                                {
-                                    "Status": "authorized",
-                                    "CIDRIP": cidr_ip,
-                                    "Tags": security_group.tags,
-                                },
-                            ],
-                        }
-                    }
+                "ClusterSecurityGroup": {
+                    "ClusterSecurityGroupName": cluster_security_group_name,
+                    "Description": security_group.description,
+                    "IPRanges": [
+                        {
+                            "Status": "authorized",
+                            "CIDRIP": cidr_ip,
+                            "Tags": security_group.tags,
+                        },
+                    ],
                 }
             }
         )
 
-    def create_cluster_parameter_group(self) -> str:
+    def create_cluster_parameter_group(self) -> ActionResult:
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
         group_family = self._get_param("ParameterGroupFamily")
         description = self._get_param("Description")
@@ -433,58 +320,31 @@ class RedshiftResponse(BaseResponse):
             cluster_parameter_group_name, group_family, description, self.region, tags
         )
 
-        return self.get_response(
-            {
-                "CreateClusterParameterGroupResponse": {
-                    "CreateClusterParameterGroupResult": {
-                        "ClusterParameterGroup": parameter_group.to_json()
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"ClusterParameterGroup": parameter_group.to_json()})
 
-    def describe_cluster_parameter_groups(self) -> str:
+    def describe_cluster_parameter_groups(self) -> ActionResult:
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
         parameter_groups = self.redshift_backend.describe_cluster_parameter_groups(
             cluster_parameter_group_name
         )
 
-        return self.get_response(
+        return ActionResult(
             {
-                "DescribeClusterParameterGroupsResponse": {
-                    "DescribeClusterParameterGroupsResult": {
-                        "ParameterGroups": [
-                            parameter_group.to_json()
-                            for parameter_group in parameter_groups
-                        ]
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
+                "ParameterGroups": [
+                    parameter_group.to_json() for parameter_group in parameter_groups
+                ]
             }
         )
 
-    def delete_cluster_parameter_group(self) -> str:
+    def delete_cluster_parameter_group(self) -> ActionResult:
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
         self.redshift_backend.delete_cluster_parameter_group(
             cluster_parameter_group_name
         )
 
-        return self.get_response(
-            {
-                "DeleteClusterParameterGroupResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    }
-                }
-            }
-        )
+        return EmptyResult()
 
-    def create_cluster_snapshot(self) -> str:
+    def create_cluster_snapshot(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")
         tags = self.unpack_list_params("Tags", "Tag")
@@ -492,53 +352,26 @@ class RedshiftResponse(BaseResponse):
         snapshot = self.redshift_backend.create_cluster_snapshot(
             cluster_identifier, snapshot_identifier, self.region, tags
         )
-        return self.get_response(
-            {
-                "CreateClusterSnapshotResponse": {
-                    "CreateClusterSnapshotResult": {"Snapshot": snapshot.to_json()},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Snapshot": snapshot.to_json()})
 
-    def describe_cluster_snapshots(self) -> str:
+    def describe_cluster_snapshots(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")
         snapshot_type = self._get_param("SnapshotType")
         snapshots = self.redshift_backend.describe_cluster_snapshots(
             cluster_identifier, snapshot_identifier, snapshot_type
         )
-        return self.get_response(
-            {
-                "DescribeClusterSnapshotsResponse": {
-                    "DescribeClusterSnapshotsResult": {
-                        "Snapshots": [snapshot.to_json() for snapshot in snapshots]
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
+        return ActionResult(
+            {"Snapshots": [snapshot.to_json() for snapshot in snapshots]}
         )
 
-    def delete_cluster_snapshot(self) -> str:
+    def delete_cluster_snapshot(self) -> ActionResult:
         snapshot_identifier = self._get_param("SnapshotIdentifier")
         snapshot = self.redshift_backend.delete_cluster_snapshot(snapshot_identifier)
 
-        return self.get_response(
-            {
-                "DeleteClusterSnapshotResponse": {
-                    "DeleteClusterSnapshotResult": {"Snapshot": snapshot.to_json()},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Snapshot": snapshot.to_json()})
 
-    def create_snapshot_copy_grant(self) -> str:
+    def create_snapshot_copy_grant(self) -> ActionResult:
         copy_grant_kwargs = {
             "snapshot_copy_grant_name": self._get_param("SnapshotCopyGrantName"),
             "kms_key_id": self._get_param("KmsKeyId"),
@@ -548,35 +381,16 @@ class RedshiftResponse(BaseResponse):
         copy_grant = self.redshift_backend.create_snapshot_copy_grant(
             **copy_grant_kwargs
         )
-        return self.get_response(
-            {
-                "CreateSnapshotCopyGrantResponse": {
-                    "CreateSnapshotCopyGrantResult": {
-                        "SnapshotCopyGrant": copy_grant.to_json()
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"SnapshotCopyGrant": copy_grant.to_json()})
 
-    def delete_snapshot_copy_grant(self) -> str:
+    def delete_snapshot_copy_grant(self) -> ActionResult:
         copy_grant_kwargs = {
             "snapshot_copy_grant_name": self._get_param("SnapshotCopyGrantName")
         }
         self.redshift_backend.delete_snapshot_copy_grant(**copy_grant_kwargs)
-        return self.get_response(
-            {
-                "DeleteSnapshotCopyGrantResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    }
-                }
-            }
-        )
+        return EmptyResult()
 
-    def describe_snapshot_copy_grants(self) -> str:
+    def describe_snapshot_copy_grants(self) -> ActionResult:
         copy_grant_kwargs = {
             "snapshot_copy_grant_name": self._get_param("SnapshotCopyGrantName")
         }
@@ -584,72 +398,36 @@ class RedshiftResponse(BaseResponse):
         copy_grants = self.redshift_backend.describe_snapshot_copy_grants(
             **copy_grant_kwargs
         )
-        return self.get_response(
-            {
-                "DescribeSnapshotCopyGrantsResponse": {
-                    "DescribeSnapshotCopyGrantsResult": {
-                        "SnapshotCopyGrants": [
-                            copy_grant.to_json() for copy_grant in copy_grants
-                        ]
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
+        return ActionResult(
+            {"SnapshotCopyGrants": [copy_grant.to_json() for copy_grant in copy_grants]}
         )
 
-    def create_tags(self) -> str:
+    def create_tags(self) -> ActionResult:
         resource_name = self._get_param("ResourceName")
         tags = self.unpack_list_params("Tags", "Tag")
 
         self.redshift_backend.create_tags(resource_name, tags)
 
-        return self.get_response(
-            {
-                "CreateTagsResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    }
-                }
-            }
-        )
+        return EmptyResult()
 
-    def describe_tags(self) -> str:
+    def describe_tags(self) -> ActionResult:
         resource_name = self._get_param("ResourceName")
         resource_type = self._get_param("ResourceType")
 
         tagged_resources = self.redshift_backend.describe_tags(
             resource_name, resource_type
         )
-        return self.get_response(
-            {
-                "DescribeTagsResponse": {
-                    "DescribeTagsResult": {"TaggedResources": tagged_resources},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"TaggedResources": tagged_resources})
 
-    def delete_tags(self) -> str:
+    def delete_tags(self) -> ActionResult:
         resource_name = self._get_param("ResourceName")
         tag_keys = self.unpack_list_params("TagKeys", "TagKey")
 
         self.redshift_backend.delete_tags(resource_name, tag_keys)
 
-        return self.get_response(
-            {
-                "DeleteTagsResponse": {
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    }
-                }
-            }
-        )
+        return EmptyResult()
 
-    def enable_snapshot_copy(self) -> str:
+    def enable_snapshot_copy(self) -> ActionResult:
         snapshot_copy_kwargs = {
             "cluster_identifier": self._get_param("ClusterIdentifier"),
             "destination_region": self._get_param("DestinationRegion"),
@@ -658,35 +436,17 @@ class RedshiftResponse(BaseResponse):
         }
         cluster = self.redshift_backend.enable_snapshot_copy(**snapshot_copy_kwargs)
 
-        return self.get_response(
-            {
-                "EnableSnapshotCopyResponse": {
-                    "EnableSnapshotCopyResult": {"Cluster": cluster.to_json()},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster.to_json()})
 
-    def disable_snapshot_copy(self) -> str:
+    def disable_snapshot_copy(self) -> ActionResult:
         snapshot_copy_kwargs = {
             "cluster_identifier": self._get_param("ClusterIdentifier")
         }
         cluster = self.redshift_backend.disable_snapshot_copy(**snapshot_copy_kwargs)
 
-        return self.get_response(
-            {
-                "DisableSnapshotCopyResponse": {
-                    "DisableSnapshotCopyResult": {"Cluster": cluster.to_json()},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster.to_json()})
 
-    def modify_snapshot_copy_retention_period(self) -> str:
+    def modify_snapshot_copy_retention_period(self) -> ActionResult:
         snapshot_copy_kwargs = {
             "cluster_identifier": self._get_param("ClusterIdentifier"),
             "retention_period": self._get_param("RetentionPeriod"),
@@ -695,20 +455,9 @@ class RedshiftResponse(BaseResponse):
             **snapshot_copy_kwargs
         )
 
-        return self.get_response(
-            {
-                "ModifySnapshotCopyRetentionPeriodResponse": {
-                    "ModifySnapshotCopyRetentionPeriodResult": {
-                        "Clusters": [cluster.to_json()]
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Clusters": [cluster.to_json()]})
 
-    def get_cluster_credentials(self) -> str:
+    def get_cluster_credentials(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         db_user = self._get_param("DbUser")
         auto_create = self._get_bool_param("AutoCreate", False)
@@ -718,18 +467,9 @@ class RedshiftResponse(BaseResponse):
             cluster_identifier, db_user, auto_create, duration_seconds
         )
 
-        return self.get_response(
-            {
-                "GetClusterCredentialsResponse": {
-                    "GetClusterCredentialsResult": cluster_credentials,
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult(cluster_credentials)
 
-    def enable_logging(self) -> str:
+    def enable_logging(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         bucket_name = self._get_param("BucketName")
         s3_key_prefix = self._get_param("S3KeyPrefix")
@@ -742,45 +482,18 @@ class RedshiftResponse(BaseResponse):
             log_destination_type=log_destination_type,
             log_exports=log_exports,
         )
-        return self.get_response(
-            {
-                "EnableLoggingResponse": {
-                    "EnableLoggingResult": config,
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult(config)
 
-    def disable_logging(self) -> str:
+    def disable_logging(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         config = self.redshift_backend.disable_logging(
             cluster_identifier=cluster_identifier,
         )
-        return self.get_response(
-            {
-                "DisableLoggingResponse": {
-                    "DisableLoggingResult": config,
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult(config)
 
-    def describe_logging_status(self) -> str:
+    def describe_logging_status(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         config = self.redshift_backend.describe_logging_status(
             cluster_identifier=cluster_identifier,
         )
-        return self.get_response(
-            {
-                "DescribeLoggingStatusResponse": {
-                    "DescribeLoggingStatusResult": config,
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult(config)
