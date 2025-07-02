@@ -119,7 +119,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     @property
     def comprehend_backend(self) -> ComprehendBackend:
-        return comprehend_backends[self.account_id][self.region_name]
+        # aws Comprehend has limited region availability
+        if self.region_name in comprehend_backends[self.account_id].regions:
+            return comprehend_backends[self.account_id][self.region_name]
+        return None
 
     @property
     def rds_backend(self) -> RDSBackend:
