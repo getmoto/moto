@@ -6,6 +6,11 @@ from .models import RedshiftBackend, redshift_backends
 
 
 class RedshiftResponse(BaseResponse):
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "CreateClusterResult.Cluster.ClusterStatus": lambda _: "creating",
+        "RestoreFromClusterSnapshotResult.Cluster.ClusterStatus": lambda _: "creating",
+    }
+
     def __init__(self) -> None:
         super().__init__(service_name="redshift")
 
@@ -78,18 +83,17 @@ class RedshiftResponse(BaseResponse):
             "enhanced_vpc_routing": self._get_bool_param("EnhancedVpcRouting", False),
             "kms_key_id": self._get_param("KmsKeyId"),
         }
-        cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
-        cluster["ClusterStatus"] = "creating"
+        cluster = self.redshift_backend.create_cluster(**cluster_kwargs)
         return ActionResult({"Cluster": cluster})
 
     def pause_cluster(self) -> ActionResult:
         cluster_id = self._get_param("ClusterIdentifier")
-        cluster = self.redshift_backend.pause_cluster(cluster_id).to_json()
+        cluster = self.redshift_backend.pause_cluster(cluster_id)
         return ActionResult({"Cluster": cluster})
 
     def resume_cluster(self) -> ActionResult:
         cluster_id = self._get_param("ClusterIdentifier")
-        cluster = self.redshift_backend.resume_cluster(cluster_id).to_json()
+        cluster = self.redshift_backend.resume_cluster(cluster_id)
         return ActionResult({"Cluster": cluster})
 
     def restore_from_cluster_snapshot(self) -> ActionResult:
@@ -124,17 +128,14 @@ class RedshiftResponse(BaseResponse):
             restore_kwargs["node_type"] = node_type
         if number_of_nodes is not None:
             restore_kwargs["number_of_nodes"] = number_of_nodes
-        cluster = self.redshift_backend.restore_from_cluster_snapshot(
-            **restore_kwargs
-        ).to_json()
-        cluster["ClusterStatus"] = "creating"
+        cluster = self.redshift_backend.restore_from_cluster_snapshot(**restore_kwargs)
         return ActionResult({"Cluster": cluster})
 
     def describe_clusters(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         clusters = self.redshift_backend.describe_clusters(cluster_identifier)
 
-        return ActionResult({"Clusters": [cluster.to_json() for cluster in clusters]})
+        return ActionResult({"Clusters": clusters})
 
     def modify_cluster(self) -> ActionResult:
         request_kwargs = {
@@ -172,7 +173,7 @@ class RedshiftResponse(BaseResponse):
 
         cluster = self.redshift_backend.modify_cluster(**cluster_kwargs)
 
-        return ActionResult({"Cluster": cluster.to_json()})
+        return ActionResult({"Cluster": cluster})
 
     def delete_cluster(self) -> ActionResult:
         request_kwargs = {
@@ -185,7 +186,7 @@ class RedshiftResponse(BaseResponse):
 
         cluster = self.redshift_backend.delete_cluster(**request_kwargs)
 
-        return ActionResult({"Cluster": cluster.to_json()})
+        return ActionResult({"Cluster": cluster})
 
     def create_cluster_subnet_group(self) -> ActionResult:
         cluster_subnet_group_name = self._get_param("ClusterSubnetGroupName")
@@ -406,7 +407,7 @@ class RedshiftResponse(BaseResponse):
         }
         cluster = self.redshift_backend.enable_snapshot_copy(**snapshot_copy_kwargs)
 
-        return ActionResult({"Cluster": cluster.to_json()})
+        return ActionResult({"Cluster": cluster})
 
     def disable_snapshot_copy(self) -> ActionResult:
         snapshot_copy_kwargs = {
@@ -414,7 +415,7 @@ class RedshiftResponse(BaseResponse):
         }
         cluster = self.redshift_backend.disable_snapshot_copy(**snapshot_copy_kwargs)
 
-        return ActionResult({"Cluster": cluster.to_json()})
+        return ActionResult({"Cluster": cluster})
 
     def modify_snapshot_copy_retention_period(self) -> ActionResult:
         snapshot_copy_kwargs = {
@@ -425,7 +426,7 @@ class RedshiftResponse(BaseResponse):
             **snapshot_copy_kwargs
         )
 
-        return ActionResult({"Clusters": [cluster.to_json()]})
+        return ActionResult({"Clusters": [cluster]})
 
     def get_cluster_credentials(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")

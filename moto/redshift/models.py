@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 import datetime
 from collections import OrderedDict
@@ -236,7 +238,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         raise UnformattedGetAttTemplateException()
 
     @property
-    def endpoint(self) -> str:
+    def address(self) -> str:
         return f"{self.cluster_identifier}.cg034hpkmmjt.{self.region}.redshift.amazonaws.com"
 
     @property
@@ -275,68 +277,68 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
     def resume(self) -> None:
         self.status = "available"
 
-    def to_json(self) -> Dict[str, Any]:
-        json_response = {
-            "MasterUsername": self.master_username,
-            "MasterUserPassword": "****",
-            "ClusterVersion": self.cluster_version,
-            "VpcSecurityGroups": [
-                {"Status": "active", "VpcSecurityGroupId": group.id}
-                for group in self.vpc_security_groups
-            ],
-            "ClusterSubnetGroupName": self.cluster_subnet_group_name,
-            "AvailabilityZone": self.availability_zone,
-            "ClusterStatus": self.status,
-            "NumberOfNodes": self.number_of_nodes,
-            "AutomatedSnapshotRetentionPeriod": self.automated_snapshot_retention_period,
-            "PubliclyAccessible": self.publicly_accessible,
-            "Encrypted": self.encrypted,
-            "DBName": self.db_name,
-            "PreferredMaintenanceWindow": self.preferred_maintenance_window,
-            "ClusterParameterGroups": [
-                {
-                    "ParameterApplyStatus": "in-sync",
-                    "ParameterGroupName": group.cluster_parameter_group_name,
-                }
-                for group in self.parameter_groups
-            ],
-            "ClusterSecurityGroups": [
-                {
-                    "Status": "active",
-                    "ClusterSecurityGroupName": group.cluster_security_group_name,
-                }
-                for group in self.security_groups
-            ],
-            "Port": self.port,
-            "NodeType": self.node_type,
-            "ClusterIdentifier": self.cluster_identifier,
-            "AllowVersionUpgrade": self.allow_version_upgrade,
-            "Endpoint": {"Address": self.endpoint, "Port": self.port},
-            "ClusterCreateTime": self.create_time,
-            "PendingModifiedValues": [],
-            "Tags": self.tags,
-            "EnhancedVpcRouting": self.enhanced_vpc_routing,
-            "IamRoles": [
-                {"ApplyStatus": "in-sync", "IamRoleArn": iam_role_arn}
-                for iam_role_arn in self.iam_roles_arn
-            ],
-            "KmsKeyId": self.kms_key_id,
-            "TotalStorageCapacityInMegaBytes": self.total_storage_capacity,
-        }
-        if self.restored_from_snapshot:
-            json_response["RestoreStatus"] = {
-                "Status": "completed",
-                "CurrentRestoreRateInMegaBytesPerSecond": 123.0,
-                "SnapshotSizeInMegaBytes": 123,
-                "ProgressInMegaBytes": 123,
-                "ElapsedTimeInSeconds": 123,
-                "EstimatedTimeToCompletionInSeconds": 123,
+    @property
+    def vpc_security_group_membership_list(self) -> List[Dict[str, str]]:
+        return [
+            {"VpcSecurityGroupId": group.id, "Status": "active"}
+            for group in self.vpc_security_groups
+        ]
+
+    @property
+    def cluster_parameter_group_status_list(self) -> List[Dict[str, str]]:
+        return [
+            {
+                "ParameterGroupName": group.cluster_parameter_group_name,
+                "ParameterApplyStatus": "in-sync",
             }
-        if self.cluster_snapshot_copy_status is not None:
-            json_response["ClusterSnapshotCopyStatus"] = (
-                self.cluster_snapshot_copy_status
-            )
-        return json_response
+            for group in self.parameter_groups
+        ]
+
+    @property
+    def cluster_security_group_membership_list(self) -> List[Dict[str, str]]:
+        return [
+            {
+                "ClusterSecurityGroupName": group.cluster_security_group_name,
+                "Status": "active",
+            }
+            for group in self.security_groups
+        ]
+
+    @property
+    def endpoint(self) -> Dict[str, str | int]:
+        return {
+            "Address": self.address,
+            "Port": self.port,
+        }
+
+    @property
+    def pending_modified_values(self) -> list[str]:
+        return []
+
+    @property
+    def iam_roles(self) -> List[Dict[str, str]]:
+        return [
+            {"ApplyStatus": "in-sync", "IamRoleArn": iam_role_arn}
+            for iam_role_arn in self.iam_roles_arn
+        ]
+
+    @property
+    def total_storage_capacity_in_mega_bytes(self) -> int:
+        return self.total_storage_capacity
+
+    @property
+    def restore_status(self) -> Optional[Dict[str, Any]]:
+        if not self.restored_from_snapshot:
+            return None
+        status = {
+            "Status": "completed",
+            "CurrentRestoreRateInMegaBytesPerSecond": 123.0,
+            "SnapshotSizeInMegaBytes": 123,
+            "ProgressInMegaBytes": 123,
+            "ElapsedTimeInSeconds": 123,
+            "EstimatedTimeToCompletionInSeconds": 123,
+        }
+        return status
 
 
 class SnapshotCopyGrant(TaggableResourceMixin, BaseModel):
