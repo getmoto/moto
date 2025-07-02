@@ -71,7 +71,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     def __init__(
         self,
-        redshift_backend: "RedshiftBackend",
+        redshift_backend: RedshiftBackend,
         cluster_identifier: str,
         node_type: str,
         master_username: str,
@@ -177,14 +177,14 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         return "AWS::Redshift::Cluster"
 
     @classmethod
-    def create_from_cloudformation_json(  # type: ignore[misc]
+    def create_from_cloudformation_json(
         cls,
         resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Cluster":
+    ) -> Cluster:
         redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -241,7 +241,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         return f"{self.cluster_identifier}.cg034hpkmmjt.{self.region}.redshift.amazonaws.com"
 
     @property
-    def security_groups(self) -> List["SecurityGroup"]:
+    def security_groups(self) -> List[SecurityGroup]:
         return [
             security_group
             for security_group in self.redshift_backend.describe_cluster_security_groups()
@@ -250,7 +250,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         ]
 
     @property
-    def vpc_security_groups(self) -> List["EC2SecurityGroup"]:
+    def vpc_security_groups(self) -> List[EC2SecurityGroup]:
         return [
             security_group
             for security_group in self.redshift_backend.ec2_backend.describe_security_groups()
@@ -258,7 +258,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         ]
 
     @property
-    def parameter_groups(self) -> List["ParameterGroup"]:
+    def parameter_groups(self) -> List[ParameterGroup]:
         return [
             parameter_group
             for parameter_group in self.redshift_backend.describe_cluster_parameter_groups()
@@ -378,14 +378,14 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
         return "AWS::Redshift::ClusterSubnetGroup"
 
     @classmethod
-    def create_from_cloudformation_json(  # type: ignore[misc]
+    def create_from_cloudformation_json(
         cls,
         resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "SubnetGroup":
+    ) -> SubnetGroup:
         redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -398,7 +398,7 @@ class SubnetGroup(TaggableResourceMixin, CloudFormationModel):
         return subnet_group
 
     @property
-    def subnets(self) -> Any:  # type: ignore[misc]
+    def subnets(self) -> Any:
         return self.ec2_backend.describe_subnets(filters={"subnet-id": self.subnet_ids})
 
     @property
@@ -471,14 +471,14 @@ class ParameterGroup(TaggableResourceMixin, CloudFormationModel):
         return "AWS::Redshift::ClusterParameterGroup"
 
     @classmethod
-    def create_from_cloudformation_json(  # type: ignore[misc]
+    def create_from_cloudformation_json(
         cls,
         resource_name: str,
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "ParameterGroup":
+    ) -> ParameterGroup:
         redshift_backend = redshift_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
 
@@ -974,7 +974,7 @@ class RedshiftBackend(BaseBackend):
         return resource
 
     @staticmethod
-    def _describe_tags_for_resources(resources: Iterable[Any]) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def _describe_tags_for_resources(resources: Iterable[Any]) -> List[Dict[str, Any]]:
         tagged_resources = []
         for resource in resources:
             for tag in resource.tags:
