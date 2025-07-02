@@ -68,14 +68,14 @@ class RedshiftResponse(BaseResponse):
             ),
             "port": self._get_int_param("Port"),
             "cluster_version": self._get_param("ClusterVersion"),
-            "allow_version_upgrade": self._get_bool_param("AllowVersionUpgrade"),
+            "allow_version_upgrade": self._get_bool_param("AllowVersionUpgrade", True),
             "number_of_nodes": self._get_int_param("NumberOfNodes"),
-            "publicly_accessible": self._get_param("PubliclyAccessible"),
+            "publicly_accessible": self._get_bool_param("PubliclyAccessible", False),
             "encrypted": self._get_bool_param("Encrypted", False),
             "region_name": self.region,
             "tags": self.unpack_list_params("Tags", "Tag"),
             "iam_roles_arn": self._get_iam_roles(),
-            "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting"),
+            "enhanced_vpc_routing": self._get_bool_param("EnhancedVpcRouting", False),
             "kms_key_id": self._get_param("KmsKeyId"),
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()

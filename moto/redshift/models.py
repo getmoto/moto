@@ -86,14 +86,14 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         automated_snapshot_retention_period: str,
         port: str,
         cluster_version: str,
-        allow_version_upgrade: str,
+        allow_version_upgrade: bool,
         number_of_nodes: str,
-        publicly_accessible: str,
+        publicly_accessible: bool,
         encrypted: bool,
         region_name: str,
         tags: Optional[List[Dict[str, str]]] = None,
         iam_roles_arn: Optional[List[str]] = None,
-        enhanced_vpc_routing: Optional[str] = None,
+        enhanced_vpc_routing: Optional[bool] = False,
         restored_from_snapshot: bool = False,
         kms_key_id: Optional[str] = None,
     ):
@@ -107,16 +107,12 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         self.master_user_password = master_user_password
         self.db_name = db_name if db_name else "dev"
         self.vpc_security_group_ids = vpc_security_group_ids
-        self.enhanced_vpc_routing = (
-            enhanced_vpc_routing if enhanced_vpc_routing is not None else False
-        )
+        self.enhanced_vpc_routing = enhanced_vpc_routing
         self.cluster_subnet_group_name = cluster_subnet_group_name
         self.publicly_accessible = publicly_accessible
         self.encrypted = encrypted
 
-        self.allow_version_upgrade = (
-            allow_version_upgrade if allow_version_upgrade is not None else True
-        )
+        self.allow_version_upgrade = allow_version_upgrade
         self.cluster_version = cluster_version if cluster_version else "1.0"
         self.port = int(port) if port else 5439
         self.automated_snapshot_retention_period = (
