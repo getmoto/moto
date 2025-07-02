@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 
 import xmltodict
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse
 
 from .models import RedshiftBackend, redshift_backends
 
@@ -75,7 +75,7 @@ class RedshiftResponse(BaseResponse):
             subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
         return subnet_ids
 
-    def create_cluster(self) -> str:
+    def create_cluster(self) -> ActionResult:
         cluster_kwargs = {
             "cluster_identifier": self._get_param("ClusterIdentifier"),
             "node_type": self._get_param("NodeType"),
@@ -110,16 +110,7 @@ class RedshiftResponse(BaseResponse):
         }
         cluster = self.redshift_backend.create_cluster(**cluster_kwargs).to_json()
         cluster["ClusterStatus"] = "creating"
-        return self.get_response(
-            {
-                "CreateClusterResponse": {
-                    "CreateClusterResult": {"Cluster": cluster},
-                    "ResponseMetadata": {
-                        "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                    },
-                }
-            }
-        )
+        return ActionResult({"Cluster": cluster})
 
     def pause_cluster(self) -> str:
         cluster_id = self._get_param("ClusterIdentifier")

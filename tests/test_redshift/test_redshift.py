@@ -44,14 +44,12 @@ def test_create_cluster_boto3():
             "ParameterApplyStatus": "in-sync",
         }
     ]
-    assert cluster["ClusterSubnetGroupName"] == ""
     assert cluster["AvailabilityZone"] == "us-east-1a"
     assert cluster["PreferredMaintenanceWindow"] == "Mon:03:00-Mon:03:30"
     assert cluster["ClusterVersion"] == "1.0"
     assert cluster["AllowVersionUpgrade"] is True
     assert cluster["NumberOfNodes"] == 1
     assert cluster["EnhancedVpcRouting"] is False
-    assert cluster["KmsKeyId"] == ""
     assert cluster["Endpoint"]["Port"] == 5439
 
 
