@@ -25,7 +25,7 @@ def test_describe_clusters():
     res = test_client.get("/?Action=DescribeClusters")
 
     result = res.data.decode("utf-8")
-    assert "<Clusters></Clusters>" in result
+    assert ("<Clusters></Clusters>" in result or "<Clusters/>" in result)
 
 
 @mock_aws
