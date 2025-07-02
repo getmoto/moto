@@ -118,13 +118,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return logs_backends[self.account_id][self.region_name]
 
     @property
-    def comprehend_backend(self) -> ComprehendBackend:
-        # aws Comprehend has limited region availability
-        if self.region_name in comprehend_backends[self.account_id].regions:
-            return comprehend_backends[self.account_id][self.region_name]
-        return None
-
-    @property
     def rds_backend(self) -> RDSBackend:
         return rds_backends[self.account_id][self.region_name]
 
@@ -192,6 +185,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # Workspaces service has limited region availability
         if self.region_name in workspaces_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
+        return None
+
+    @property
+    def comprehend_backend(self) -> Optional[ComprehendBackend]:
+        # aws Comprehend has limited region availability
+        if self.region_name in comprehend_backends[self.account_id].regions:
+            return comprehend_backends[self.account_id][self.region_name]
         return None
 
     @property
@@ -319,28 +319,29 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
 
         # Comprehend
-        if not resource_type_filters or "comprehend" in resource_type_filters:
-            for document_classifier in self.comprehend_backend.classifiers.values():
-                tags = self.comprehend_backend.tagger.list_tags_for_resource(
-                    document_classifier.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": f"{document_classifier.arn}",
-                    "Tags": tags,
-                }
+        if self.comprehend_backend:
+            if not resource_type_filters or "comprehend" in resource_type_filters:
+                for document_classifier in self.comprehend_backend.classifiers.values():
+                    tags = self.comprehend_backend.tagger.list_tags_for_resource(
+                        document_classifier.arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{document_classifier.arn}",
+                        "Tags": tags,
+                    }
 
-            for entity_recognizer in self.comprehend_backend.recognizers.values():
-                tags = self.comprehend_backend.tagger.list_tags_for_resource(
-                    entity_recognizer.arn
-                )["Tags"]
-                if not tags or not tag_filter(tags):
-                    continue
-                yield {
-                    "ResourceARN": f"{entity_recognizer.arn}",
-                    "Tags": tags,
-                }
+                for entity_recognizer in self.comprehend_backend.recognizers.values():
+                    tags = self.comprehend_backend.tagger.list_tags_for_resource(
+                        entity_recognizer.arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{entity_recognizer.arn}",
+                        "Tags": tags,
+                    }
 
         # S3
         if (
