@@ -1,29 +1,8 @@
-import json
-from typing import Any, Dict, List
-
-import xmltodict
+from typing import Any, List
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import RedshiftBackend, redshift_backends
-
-
-def itemize(data: Any) -> Dict[str, Any]:
-    """
-    The xmltodict.unparse requires we modify the shape of the input dictionary slightly. Instead of a dict of the form:
-        {'key': ['value1', 'value2']}
-    We must provide:
-        {'key': {'item': ['value1', 'value2']}}
-    """
-    if isinstance(data, dict):
-        ret = {}
-        for key in data:
-            ret[key] = itemize(data[key])
-        return ret
-    elif isinstance(data, list):
-        return {"item": [itemize(value) for value in data]}
-    else:
-        return data
 
 
 class RedshiftResponse(BaseResponse):
@@ -33,15 +12,6 @@ class RedshiftResponse(BaseResponse):
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.current_account][self.region]
-
-    def get_response(self, response: Any) -> ActionResult:
-        if self.request_json:
-            return json.dumps(response)
-        else:
-            xml = xmltodict.unparse(itemize(response), full_document=False)
-            if hasattr(xml, "decode"):
-                xml = xml.decode("utf-8")
-            return xml
 
     def unpack_list_params(self, label: str, child_label: str) -> Any:
         root = self._get_multi_param_dict(label) or {}
