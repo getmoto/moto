@@ -2,30 +2,10 @@ import json
 from typing import Any, Dict, List
 
 import xmltodict
-from jinja2 import Template
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import RedshiftBackend, redshift_backends
-
-
-def convert_json_error_to_xml(json_error: Any) -> str:
-    error = json.loads(json_error)
-    code = error["Error"]["Code"]
-    message = error["Error"]["Message"]
-    template = Template(
-        """
-        <RedshiftClientError>
-            <Error>
-              <Code>{{ code }}</Code>
-              <Message>{{ message }}</Message>
-              <Type>Sender</Type>
-            </Error>
-            <RequestId>6876f774-7273-11e4-85dc-39e55ca848d1</RequestId>
-        </RedshiftClientError>"""
-    )
-    return template.render(code=code, message=message)
 
 
 def itemize(data: Any) -> Dict[str, Any]:
@@ -62,12 +42,6 @@ class RedshiftResponse(BaseResponse):
             if hasattr(xml, "decode"):
                 xml = xml.decode("utf-8")
             return xml
-
-    def call_action(self) -> TYPE_RESPONSE:
-        status, headers, body = super().call_action()
-        if status >= 400 and not self.request_json:
-            body = convert_json_error_to_xml(body)
-        return status, headers, body
 
     def unpack_list_params(self, label: str, child_label: str) -> Any:
         root = self._get_multi_param_dict(label) or {}

@@ -591,7 +591,7 @@ def test_authorize_security_group_ingress():
         client.authorize_cluster_security_group_ingress(
             ClusterSecurityGroupName="invalid_security_group", CIDRIP="192.168.10.0/28"
         )
-    assert ex.value.response["Error"]["Code"] == "ClusterSecurityGroupNotFoundFault"
+    assert ex.value.response["Error"]["Code"] == "ClusterSecurityGroupNotFound"
 
     assert (
         ex.value.response["Error"]["Message"]
