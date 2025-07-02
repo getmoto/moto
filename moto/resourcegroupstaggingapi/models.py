@@ -7,6 +7,8 @@ from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
+
+# from moto.comprehend.models import ComprehendBackend, comprehend_backends
 from moto.connectcampaigns.models import (
     ConnectCampaignServiceBackend,
     connectcampaigns_backends,
@@ -115,6 +117,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def logs_backend(self) -> LogsBackend:
         return logs_backends[self.account_id][self.region_name]
+
+    # @property
+    # def comprehend_backend(self) -> ComprehendBackend:
+    #     return comprehend_backends[self.account_id][self.region_name]
 
     @property
     def rds_backend(self) -> RDSBackend:
@@ -309,6 +315,30 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
+
+        # Comprehend
+        # if not resource_type_filters or "comprehend" in resource_type_filters:
+        #     for document_classifier in self.comprehend_backend.classifiers.values():
+        #         tags = self.comprehend_backend.tagger.list_tags_for_resource(
+        #             document_classifier.arn
+        #         )["Tags"]
+        #         if not tags or not tag_filter(tags):
+        #             continue
+        #         yield {
+        #             "ResourceARN": f"{document_classifier.arn}",
+        #             "Tags": tags,
+        #         }
+
+        #     for entity_recognizer in self.comprehend_backend.recognizers.values():
+        #         tags = self.comprehend_backend.tagger.list_tags_for_resource(
+        #             entity_recognizer.arn
+        #         )["Tags"]
+        #         if not tags or not tag_filter(tags):
+        #             continue
+        #         yield {
+        #             "ResourceARN": f"{entity_recognizer.arn}",
+        #             "Tags": tags,
+        #         }
 
         # S3
         if (
