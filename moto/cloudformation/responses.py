@@ -170,7 +170,7 @@ class CloudFormationResponse(BaseResponse):
                 message="An error occurred (ValidationError) when calling the CreateChangeSet operation: Either Template URL or Template Body must be specified."
             )
 
-    def create_change_set(self) -> str:
+    def create_change_set(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         change_set_name = self._get_param("ChangeSetName")
         stack_body = self._get_param("TemplateBody")
@@ -217,20 +217,8 @@ class CloudFormationResponse(BaseResponse):
             role_arn=role_arn,
             change_set_type=update_or_create,
         )
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreateChangeSetResponse": {
-                        "CreateChangeSetResult": {
-                            "Id": change_set_id,
-                            "StackId": stack_id,
-                        }
-                    }
-                }
-            )
-        else:
-            template = self.response_template(CREATE_CHANGE_SET_RESPONSE_TEMPLATE)
-            return template.render(stack_id=stack_id, change_set_id=change_set_id)
+        result = {"Id": change_set_id, "StackId": stack_id}
+        return ActionResult(result)
 
     def delete_change_set(self) -> str:
         change_set_name = self._get_param("ChangeSetName")
@@ -386,7 +374,7 @@ class CloudFormationResponse(BaseResponse):
                 message=f"Stack:{stack.stack_id} is in ROLLBACK_COMPLETE state and can not be updated.",
             )
 
-    def update_stack(self) -> str:
+    def update_stack(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         role_arn = self._get_param("RoleARN")
         template_url = self._get_param("TemplateURL")
@@ -427,14 +415,8 @@ class CloudFormationResponse(BaseResponse):
             parameters=incoming_params,
             tags=tags,
         )
-        if self.request_json:
-            stack_body = {
-                "UpdateStackResponse": {"UpdateStackResult": {"StackId": stack.name}}
-            }
-            return json.dumps(stack_body)
-        else:
-            template = self.response_template(UPDATE_STACK_RESPONSE_TEMPLATE)
-            return template.render(stack=stack)
+        result = {"StackId": stack.stack_id}
+        return ActionResult(result)
 
     def delete_stack(self) -> ActionResult:
         name_or_stack_id = self.querystring.get("StackName")[0]  # type: ignore[index]
@@ -469,7 +451,7 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
         return template.render(description=description)
 
-    def create_stack_set(self) -> str:
+    def create_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         if not re.match(r"^[a-zA-Z][-a-zA-Z0-9]*$", stackset_name):
             raise ValidationError(
@@ -507,19 +489,10 @@ class CloudFormationResponse(BaseResponse):
             exec_role=exec_role,
             description=description,
         )
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreateStackSetResponse": {
-                        "CreateStackSetResult": {"StackSetId": stackset.id}
-                    }
-                }
-            )
-        else:
-            template = self.response_template(CREATE_STACK_SET_RESPONSE_TEMPLATE)
-            return template.render(stackset=stackset)
+        result = {"StackSetId": stackset.id}
+        return ActionResult(result)
 
-    def create_stack_instances(self) -> str:
+    def create_stack_instances(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         accounts = self._get_multi_param("Accounts.member")
         regions = self._get_multi_param("Regions.member")
@@ -541,8 +514,8 @@ class CloudFormationResponse(BaseResponse):
             parameters,
             deployment_targets=deployment_targets,
         )
-        template = self.response_template(CREATE_STACK_INSTANCES_TEMPLATE)
-        return template.render(operation_id=operation_id)
+        result = {"OperationId": operation_id}
+        return ActionResult(result)
 
     def delete_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
@@ -629,7 +602,7 @@ class CloudFormationResponse(BaseResponse):
         )
         return template.render(operation=operation)
 
-    def update_stack_set(self) -> str:
+    def update_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         operation_id = self._get_param("OperationId")
         description = self._get_param("Description")
@@ -660,10 +633,10 @@ class CloudFormationResponse(BaseResponse):
             operation_id=operation_id,
         )
 
-        template = self.response_template(UPDATE_STACK_SET_RESPONSE_TEMPLATE)
-        return template.render(operation=operation)
+        result = {"OperationId": operation["OperationId"]}
+        return ActionResult(result)
 
-    def update_stack_instances(self) -> str:
+    def update_stack_instances(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         accounts = self._get_multi_param("Accounts.member")
         regions = self._get_multi_param("Regions.member")
@@ -671,8 +644,8 @@ class CloudFormationResponse(BaseResponse):
         operation = self.cloudformation_backend.update_stack_instances(
             stackset_name, accounts, regions, parameters
         )
-        template = self.response_template(UPDATE_STACK_INSTANCES_RESPONSE_TEMPLATE)
-        return template.render(operation=operation)
+        result = {"OperationId": operation["OperationId"]}
+        return ActionResult(result)
 
     def get_stack_policy(self) -> str:
         stack_name = self._get_param("StackName")
@@ -730,35 +703,6 @@ CREATE_STACK_NAME_EXISTS_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://clo
   <RequestId>950ff8d7-812a-44b3-bb0c-9b271b954104</RequestId>
 </ErrorResponse>"""
 
-UPDATE_STACK_RESPONSE_TEMPLATE = """<UpdateStackResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <UpdateStackResult>
-    <StackId>{{ stack.stack_id }}</StackId>
-  </UpdateStackResult>
-  <ResponseMetadata>
-    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
-  </ResponseMetadata>
-</UpdateStackResponse>
-"""
-
-CREATE_CHANGE_SET_RESPONSE_TEMPLATE = """<CreateStackResponse>
-  <CreateChangeSetResult>
-    <Id>{{change_set_id}}</Id>
-    <StackId>{{ stack_id }}</StackId>
-  </CreateChangeSetResult>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</CreateStackResponse>
-"""
-
-DELETE_CHANGE_SET_RESPONSE_TEMPLATE = """<DeleteChangeSetResponse>
-  <DeleteChangeSetResult>
-  </DeleteChangeSetResult>
-  <ResponseMetadata>
-    <RequestId>3d3200a1-810e-3023-6cc3-example</RequestId>
-  </ResponseMetadata>
-</DeleteChangeSetResponse>
-"""
 
 DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
   <DescribeChangeSetResult>
@@ -1026,15 +970,6 @@ LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.ama
   </ResponseMetadata>
 </ListExportsResponse>"""
 
-CREATE_STACK_SET_RESPONSE_TEMPLATE = """<CreateStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <CreateStackSetResult>
-    <StackSetId>{{ stackset.id }}</StackSetId>
-  </CreateStackSetResult>
-  <ResponseMetadata>
-    <RequestId>f457258c-391d-41d1-861f-example</RequestId>
-  </ResponseMetadata>
-</CreateStackSetResponse>
-"""
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <DescribeStackSetResult>
@@ -1075,16 +1010,6 @@ DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http:
   </ResponseMetadata>
 </DescribeStackSetResponse>"""
 
-
-CREATE_STACK_INSTANCES_TEMPLATE = """<CreateStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <CreateStackInstancesResult>
-    <OperationId>{{ operation_id }}</OperationId>
-  </CreateStackInstancesResult>
-  <ResponseMetadata>
-    <RequestId>6b29f7e3-69be-4d32-b374-example</RequestId>
-  </ResponseMetadata>
-</CreateStackInstancesResponse>
-"""
 
 LIST_STACK_INSTANCES_TEMPLATE = """<ListStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <ListStackInstancesResult>
@@ -1168,25 +1093,6 @@ LIST_STACK_SETS_TEMPLATE = """<ListStackSetsResponse xmlns="http://internal.amaz
 </ListStackSetsResponse>
 """
 
-UPDATE_STACK_INSTANCES_RESPONSE_TEMPLATE = """<UpdateStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <UpdateStackInstancesResult>
-    <OperationId>{{ operation }}</OperationId>
-  </UpdateStackInstancesResult>
-  <ResponseMetadata>
-    <RequestId>bdbf8e94-19b6-4ce4-af85-example</RequestId>
-  </ResponseMetadata>
-</UpdateStackInstancesResponse>
-"""
-
-UPDATE_STACK_SET_RESPONSE_TEMPLATE = """<UpdateStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <UpdateStackSetResult>
-    <OperationId>{{ operation.OperationId }}</OperationId>
-  </UpdateStackSetResult>
-  <ResponseMetadata>
-    <RequestId>adac907b-17e3-43e6-a254-example</RequestId>
-  </ResponseMetadata>
-</UpdateStackSetResponse>
-"""
 
 LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE = """<ListStackSetOperationsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <ListStackSetOperationsResult>
