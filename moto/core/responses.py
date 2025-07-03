@@ -633,7 +633,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
-        serializer_cls = SERIALIZERS[service_model.protocol]
+        protocol = service_model.protocol
+        protocol += "-json" if protocol == "query" and self.request_json else ""
+        serializer_cls = SERIALIZERS[protocol]
         context = ActionContext(
             service_model, operation_model, serializer_cls, self.__class__
         )

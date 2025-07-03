@@ -1,0 +1,196 @@
+[
+  {
+    "description": "Scalar members",
+    "metadata": {
+      "protocol": "query"
+    },
+    "shapes": {
+      "OutputShape": {
+        "type": "structure",
+        "members": {
+          "Str": {
+            "shape": "StringType"
+          },
+          "Num": {
+            "shape": "IntegerType",
+            "locationName": "FooNum"
+          },
+          "FalseBool": {
+            "shape": "BooleanType"
+          },
+          "TrueBool": {
+            "shape": "BooleanType"
+          },
+          "Float": {
+            "shape": "FloatType"
+          },
+          "Double": {
+            "shape": "DoubleType"
+          },
+          "Long": {
+            "shape": "LongType"
+          },
+          "Char": {
+            "shape": "CharType"
+          },
+          "Timestamp": {
+            "shape": "TimestampType"
+          }
+        }
+      },
+      "StringType": {
+        "type": "string"
+      },
+      "IntegerType": {
+        "type": "integer"
+      },
+      "BooleanType": {
+        "type": "boolean"
+      },
+      "FloatType": {
+        "type": "float"
+      },
+      "DoubleType": {
+        "type": "double"
+      },
+      "LongType": {
+        "type": "long"
+      },
+      "CharType": {
+        "type": "character"
+      },
+      "TimestampType": {
+        "type": "timestamp"
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "resultWrapper": "OperationNameResult",
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "Str": "myname",
+          "Num": 123,
+          "FalseBool": false,
+          "TrueBool": true,
+          "Float": 1.2,
+          "Double": 1.3,
+          "Long": 200,
+          "Char": "a",
+          "Timestamp": 1422172800
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "{\"OperationNameResponse\": {\"OperationNameResult\": {\"Str\": \"myname\", \"FooNum\": 123, \"FalseBool\": false, \"TrueBool\": true, \"Float\": 1.2, \"Double\": 1.3, \"Long\": 200, \"Char\": \"a\", \"Timestamp\": \"2015-01-25T08:00:00Z\"}, \"ResponseMetadata\": {\"RequestId\": \"request-id\"}}}"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Lists",
+    "metadata": {
+      "protocol": "query"
+    },
+    "shapes": {
+      "OutputShape": {
+        "type": "structure",
+        "members": {
+          "ListMember": {
+            "shape": "ListShape"
+          }
+        }
+      },
+      "ListShape": {
+        "type": "list",
+        "member": {
+          "shape": "StringType"
+        }
+      },
+      "StringType": {
+        "type": "string"
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "output": {
+            "resultWrapper": "OperationNameResult",
+            "shape": "OutputShape"
+          },
+          "name": "OperationName"
+        },
+        "result": {
+          "ListMember": [
+            "abc",
+            "123"
+          ]
+        },
+        "response": {
+          "status_code": 200,
+          "headers": {},
+          "body": "{\"OperationNameResponse\": {\"OperationNameResult\": {\"ListMember\": [\"abc\", \"123\"]}, \"ResponseMetadata\": {\"RequestId\": \"request-id\"}}}"
+        }
+      }
+    ]
+  },
+  {
+    "description": "Modeled exceptions",
+    "metadata": {
+      "protocol": "query"
+    },
+    "shapes": {
+      "ExceptionShape": {
+        "exception": true,
+        "type": "structure",
+        "members": {
+          "BodyMember": {
+            "shape": "StringType"
+          },
+          "Message": {
+            "shape": "StringType"
+          }
+        }
+      },
+      "OtherExceptionShape": {
+        "exception": true,
+        "type": "structure",
+        "members": {
+          "BodyMember": {
+            "shape": "StringType"
+          }
+        }
+      },
+      "StringType": {
+        "type": "string"
+      }
+    },
+    "cases": [
+      {
+        "given": {
+          "errors": [
+            {
+              "shape": "ExceptionShape"
+            }
+          ],
+          "name": "OperationName"
+        },
+        "error": {
+          "BodyMember": "mybody",
+          "Message": "mymessage"
+        },
+        "errorCode": "ExceptionShape",
+        "errorMessage": "mymessage",
+        "response": {
+          "status_code": 400,
+          "headers": {},
+          "body": "{\"Error\": {\"Type\": \"Sender\", \"Code\": \"ExceptionShape\", \"Message\": \"mymessage\", \"BodyMember\": \"mybody\"}, \"RequestId\": \"request-id\"}"
+        }
+      }
+    ]
+  }
+]

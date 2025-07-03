@@ -856,6 +856,59 @@ class QuerySerializer(BaseXMLSerializer):
         return resp
 
 
+class QueryJSONSerializer(QuerySerializer):
+    """Specialized case for query protocol requests that contain ContentType=JSON parameter."""
+
+    CONTENT_TYPE = "application/json"
+
+    def _serialized_error_to_response(
+        self,
+        resp: ResponseDict,
+        error: Exception,
+        shape: ErrorShape,
+        serialized_error: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        error_wrapper = {
+            "Error": serialized_error,
+            "RequestId": self.context.request_id,
+        }
+        resp["body"] = self._serialize_body(error_wrapper)
+        status_code = shape.metadata.get("error", {}).get(
+            "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
+        )
+        resp["status_code"] = status_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        return resp
+
+    def _serialize_body(self, body: Mapping[str, Any]) -> str:
+        body_encoded = json.dumps(body, indent=4 if self.pretty_print else None)
+        return body_encoded
+
+    def _serialize_type_boolean(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        # We're slightly more permissive here than we should be because the
+        # moto backends are not consistent in how they store boolean values.
+        # TODO: This should eventually be turned into a strict `is True` check.
+        boolean_value = True if value in [True, "True", "true"] else False
+        self._default_serialize(serialized, boolean_value, shape, key)
+
+    def _serialize_type_list(
+        self, serialized: Serialized, value: Any, shape: ListShape, key: str
+    ) -> None:
+        list_obj = []
+        serialized[key] = list_obj
+        for list_item in value:
+            wrapper = {}
+            assert isinstance(shape.member, Shape)  # mypy hint
+            item_key = shape.member.name
+            self._serialize(wrapper, list_item, shape.member, item_key)
+            if item_key in wrapper:
+                list_obj.append(wrapper[item_key])
+            else:
+                list_obj.append(list_item)
+
+
 class EC2Serializer(QuerySerializer):
     def _serialize_body(self, body: Mapping[str, Any]) -> str:
         body_serialized = xmltodict.unparse(
@@ -923,6 +976,7 @@ SERIALIZERS = {
     "ec2": EC2Serializer,
     "json": JSONSerializer,
     "query": QuerySerializer,
+    "query-json": QueryJSONSerializer,
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
