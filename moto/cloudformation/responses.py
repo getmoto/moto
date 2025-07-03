@@ -6,7 +6,7 @@ import yaml
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.exceptions import S3ClientError
 
 from .exceptions import MissingParameterError, ValidationError
@@ -252,19 +252,13 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE)
         return template.render(change_set=change_set)
 
-    def execute_change_set(self) -> str:
+    def execute_change_set(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         change_set_name = self._get_param("ChangeSetName")
         self.cloudformation_backend.execute_change_set(
             stack_name=stack_name, change_set_name=change_set_name
         )
-        if self.request_json:
-            return json.dumps(
-                {"ExecuteChangeSetResponse": {"ExecuteChangeSetResult": {}}}
-            )
-        else:
-            template = self.response_template(EXECUTE_CHANGE_SET_RESPONSE_TEMPLATE)
-            return template.render()
+        return EmptyResult()
 
     def describe_stacks(self) -> str:
         stack_name_or_id = self._get_param("StackName")
@@ -442,15 +436,11 @@ class CloudFormationResponse(BaseResponse):
             template = self.response_template(UPDATE_STACK_RESPONSE_TEMPLATE)
             return template.render(stack=stack)
 
-    def delete_stack(self) -> str:
+    def delete_stack(self) -> ActionResult:
         name_or_stack_id = self.querystring.get("StackName")[0]  # type: ignore[index]
 
         self.cloudformation_backend.delete_stack(name_or_stack_id)
-        if self.request_json:
-            return json.dumps({"DeleteStackResponse": {"DeleteStackResult": {}}})
-        else:
-            template = self.response_template(DELETE_STACK_RESPONSE_TEMPLATE)
-            return template.render()
+        return EmptyResult()
 
     def list_exports(self) -> str:
         token = self._get_param("NextToken")
@@ -554,11 +544,10 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(CREATE_STACK_INSTANCES_TEMPLATE)
         return template.render(operation_id=operation_id)
 
-    def delete_stack_set(self) -> str:
+    def delete_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         self.cloudformation_backend.delete_stack_set(stackset_name)
-        template = self.response_template(DELETE_STACK_SET_RESPONSE_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def delete_stack_instances(self) -> str:
         stackset_name = self._get_param("StackSetName")
@@ -612,14 +601,13 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE)
         return template.render(operations=operations)
 
-    def stop_stack_set_operation(self) -> str:
+    def stop_stack_set_operation(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         operation_id = self._get_param("OperationId")
         self.cloudformation_backend.stop_stack_set_operation(
             stackset_name, operation_id
         )
-        template = self.response_template(STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_stack_set_operation(self) -> str:
         stackset_name = self._get_param("StackSetName")
@@ -823,15 +811,6 @@ DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
   </DescribeChangeSetResult>
 </DescribeChangeSetResponse>"""
 
-EXECUTE_CHANGE_SET_RESPONSE_TEMPLATE = """<ExecuteChangeSetResponse>
-  <ExecuteChangeSetResult>
-      <ExecuteChangeSetResult/>
-  </ExecuteChangeSetResult>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</ExecuteChangeSetResponse>
-"""
 
 DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
   <DescribeStacksResult>
@@ -1026,12 +1005,6 @@ GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
   </ResponseMetadata>
 </GetTemplateResponse>"""
 
-DELETE_STACK_RESPONSE_TEMPLATE = """<DeleteStackResponse>
-  <ResponseMetadata>
-    <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
-  </ResponseMetadata>
-</DeleteStackResponse>
-"""
 
 LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
   <ListExportsResult>
@@ -1102,12 +1075,6 @@ DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http:
   </ResponseMetadata>
 </DescribeStackSetResponse>"""
 
-DELETE_STACK_SET_RESPONSE_TEMPLATE = """<DeleteStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <DeleteStackSetResult/>
-  <ResponseMetadata>
-    <RequestId>c35ec2d0-d69f-4c4d-9bd7-example</RequestId>
-  </ResponseMetadata>
-</DeleteStackSetResponse>"""
 
 CREATE_STACK_INSTANCES_TEMPLATE = """<CreateStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <CreateStackInstancesResult>
@@ -1241,13 +1208,6 @@ LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE = """<ListStackSetOperationsResponse
 </ListStackSetOperationsResponse>
 """
 
-STOP_STACK_SET_OPERATION_RESPONSE_TEMPLATE = """<StopStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <StopStackSetOperationResult/>
-  <ResponseMetadata>
-    <RequestId>2188554a-07c6-4396-b2c5-example</RequestId>
-  </ResponseMetadata>
-</StopStackSetOperationResponse>
-"""
 
 DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <DescribeStackSetOperationResult>
