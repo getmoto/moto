@@ -229,11 +229,11 @@ class ReplicationGroup(BaseModel):
         account_id: str,
         region_name: str,
         replication_group_id: str,
-        num_cache_clusters: int,
-        preferred_cache_cluster_azs: List[str],
-        num_node_groups: int,
-        replicas_per_node_group: int,
-        node_group_configuration: List[Dict[str, Any]],
+        preferred_cache_cluster_azs: List[str] = None,
+        num_cache_clusters: int = 1,
+        num_node_groups: int = 1,
+        replicas_per_node_group: int = 0,
+        node_group_configuration: List[Dict[str, Any]] = None,
         preferred_maintenance_window: Optional[str] = None,
         replication_group_description: str = None,
         primary_cluster_id: Optional[str] = None,
@@ -270,8 +270,11 @@ class ReplicationGroup(BaseModel):
     ):
         self.replication_group_id = replication_group_id
         self.replication_group_description = replication_group_description
-        self.primary_cluster_id = primary_cluster_id
         self.port = port
+
+        # Default to available and not including PendingModifiedValues
+        # until global_replication_group is added.
+        self.status = "available"
 
         # This field is only present if the API is used to create a
         # secondary replication group associated with an existing
@@ -282,48 +285,77 @@ class ReplicationGroup(BaseModel):
         else:
             self.global_replication_group_id = None
 
-        self.status = "available"
-        self.primary_cluster_id = primary_cluster_id if primary_cluster_id else None
+        self.primary_cluster_id = primary_cluster_id
 
-        # TO-DO: Implement pending modified values
         if primary_cluster_id:
             self.pending_automatic_failover = "enabled" if automatic_failover_enabled else "disabled"
-
-        # CacheClusterID of primary and replicas
-        self.member_clusters = []
-        for i in range(len(num_cache_clusters)):
-            self.member_clusters.append(
-                f"{replication_group_id}-cluster-{i+1:0>3}"
-            )
-
-        # num_node_groups mostly used for cluster-enabled replication groups.
-        # Default is 1.
-        if (cluster_mode == "disabled") or not num_node_groups:
-            num_node_groups = 1
 
         # NodeGroups are cluster groups
         # Ports used in num_node_groups would all be the same as self.port
         random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
         region_short = "use1"
-        replication_group_domain = f"{replication_group_id}.random_str.{region_short}.cache.amazonaws.com"
+        replication_group_domain = f"{replication_group_id}.{random_str}.{region_short}.cache.amazonaws.com"
         self.node_groups = []
-
+        # member_clusters consist of CacheClusterIDs of primary and replicas
+        self.member_clusters = []
 
         for i in range(len(num_node_groups)):
             node_group: Dict[str, Any] = {}
             node_group["node_group_id"] = f"{i+1:0>4}"
             node_group["status"] = "available"
-            node_group["primary_endpoint_address"] = f"master.{replication_group_domain}"
-            node_group["reader_endpoint_address"] = f"replica.{replication_group_domain}"
-
             node_group["node_group_members"] = []
 
             if cluster_mode == "enabled":
-                node_group["slots"] = node_group_configuration[i].get("slots") if node_group_configuration else "0-16383"
-                # To-Do: Add in cluster enabled details
-                # Shards use num_replicas_per_node
+                if i == 0:
+                    node_group["slots"] = "0-5461"
+                else:
+                    # slots cannot overlap among node groups
+                    node_group["slots"] = f"{(5460*(i)) + (i+1)}-{(5460*(i+1)) + (i+1)}"
 
-                # Non Node Group details
+                self._set_node_members_clusters_enabled(
+                    self,
+                    member_clusters = self.member_clusters,
+                    replication_group_id = replication_group_id,
+                    replicas_per_node_group = replicas_per_node_group,
+                    node_group_configuration = node_group_configuration,
+                    node_group = node_group
+                )()
+                # primary_node = {}
+                # primary_node.cache_cluster_id = f"{replication_group_id}-{node_group['node_group_id']}-001"
+                # primary_node.cache_node_id = node_group["node_group_id"]
+
+                # # Set the PreferredAvailabilityZone,
+                # # default to us-east-1a for moto only
+                # primary_node.preferred_availability_zone = "us-east-1a"
+
+                # for configs in node_group_configuration:
+                #     if (configs.get("NodeGroupId") == node_group["node_group_id"]
+                #         and configs.get("PrimaryAvailabilityZone")):
+                #         primary_node.preferred_availability_zone = configs.get("PrimaryAvailabilityZone")
+
+                # node_group["node_group_members"].append(primary_node)
+                # self.member_clusters.append(primary_node.cache_cluster_id)
+
+                #  Loop through the number of replicas per node group
+                # for r in range(1, replicas_per_node_group + 1):
+                #     replica_node = {}
+                #     # r + 1 because primary is 001
+                #     replica_node.cache_cluster_id = f"{replication_group_id}-{node_group['node_group_id']}-{r+1:0>3}"
+                #     replica_node.cache_node_id = node_group["node_group_id"]
+
+                #     # Set the ReplicaAvailabiilityZone,
+                #     # default to us-east-1b for moto only
+                #     replica_node.preferred_availability_zone = "us-east-1b"
+
+                #     for configs in node_group_configuration:
+                #         if (configs.get("NodeGroupId") == node_group["node_group_id"]
+                #             and configs.get("ReplicaAvailabilityZones")):
+                #             if len(configs.get("ReplicaAvailabilityZones")) >= r:
+                #                 replica_node.preferred_availability_zone = configs.get("ReplicaAvailabilityZones")[r-1]
+
+                #     node_group["node_group_members"].append(replica_node)
+                #     self.member_clusters.append(replica_node.cache_cluster_id)
+
                 self.configuration_endpoint = {
                     "Address": f"clustercfg.{replication_group_domain}",
                     "Port": self.port
@@ -334,64 +366,67 @@ class ReplicationGroup(BaseModel):
                     self.member_clusters_outpost_arns.extend(node_group_configuration.get("SecondaryOutpostArns", []))
 
             elif cluster_mode == "disabled":
-                # if cluster_mode == "disabled"
-                primary_node = {}
-                primary_node.cache_cluster_id = f"{replication_group_id}-001"
-                primary_node.cache_node_id = node_group["node_group_id"]
-                primary_node.read_endpoint = {
-                    "Address": f"{primary_node.cache_cluster_id}.{replication_group_domain}",
-                    "Port": self.port
-                }
-                # primary_node.preferred_availability_zone = node_group_configuration["PrimaryAvailabilityZone"] if "PrimaryAvailabilityZone" in node_group_configuration else "us-east-2a"
-                # primary_node.preferred_outpost_arn = node_group_configuration["PrimaryOutpostArn"] if "PrimaryOutpostArn" in node_group_configuration else None
-                if preferred_cache_cluster_azs:
-                    primary_node.preferred_availability_zone = preferred_cache_cluster_azs[0]
-                else:
-                    primary_node.preferred_availability_zone = "us-east-1a"
+                node_group["primary_endpoint_address"] = f"master.{replication_group_domain}"
+                node_group["reader_endpoint_address"] = f"replica.{replication_group_domain}"
 
-                primary_node.current_role = "primary"
-                node_group["node_group_members"].append(primary_node)
+                self._set_node_members_clusters_disabled(
+                    member_clusters=self.member_clusters,
+                    replication_group_id=replication_group_id,
+                    replication_group_domain=replication_group_domain,
+                    node_group=node_group,
+                    preferred_cache_cluster_azs=preferred_cache_cluster_azs,
+                    node_group=node_group
+                )
+                # primary_node = {}
+                # primary_node.cache_cluster_id = f"{replication_group_id}-001"
+                # primary_node.cache_node_id = node_group["node_group_id"]
+                # primary_node.read_endpoint = {
+                #     "Address": f"{primary_node.cache_cluster_id}.{replication_group_domain}",
+                #     "Port": self.port
+                # }
 
-                # Use num_cache_clusters when cluster_mode is disabled
-                for r in range(1, len(num_cache_clusters)):
-                    replica_node = {}
-                    # r + 2 because primary is 001
-                    replica_node.cache_cluster_id = f"{replication_group_id}-{r+1:0>3}"
-                    replica_node.cache_node_id = node_group["node_group_id"]
-                    replica_node.read_endpoint = {
-                        "Address": f"{replica_node.cache_cluster_id}.{replication_group_id}.random_str.",
-                        "Port": self.port
-                    }
+                # if preferred_cache_cluster_azs:
+                #     primary_node.preferred_availability_zone = preferred_cache_cluster_azs[0]
+                # else:
+                #     primary_node.preferred_availability_zone = "us-east-1a"
 
-                    if preferred_cache_cluster_azs:
-                        if len(preferred_cache_cluster_azs) >= r:
-                            replica_az = preferred_cache_cluster_azs[r]
-                        elif len(preferred_cache_cluster_azs) >= 2:
-                            replica_az = preferred_cache_cluster_azs[1]
-                        else:
-                            replica_az = preferred_cache_cluster_azs[0]
-                    else:
-                        replica_az = "us-east-1b"
+                # primary_node.current_role = "primary"
+                # node_group["node_group_members"].append(primary_node)
+                # self.member_clusters.append(primary_node.cache_cluster_id)
 
-                    replica_node.preferred_availability_zone = replica_az
-                    replica_node.current_role = "replica"
+                # # Use num_cache_clusters when cluster_mode is disabled
+                # for r in range(1, num_cache_clusters):
+                #     replica_node = {}
+                #     # r + 1 because primary is 001
+                #     replica_node.cache_cluster_id = f"{replication_group_id}-{r+1:0>3}"
+                #     replica_node.cache_node_id = node_group["node_group_id"]
+                #     replica_node.read_endpoint = {
+                #         "Address": f"{replica_node.cache_cluster_id}.{replication_group_id}.random_str.",
+                #         "Port": self.port
+                #     }
 
-                    # primary_node.preferred_outpost_arn = node_group_configuration["PrimaryOutpostArn"] if "PrimaryOutpostArn" in node_group_configuration else None
-                    node_group["node_group_members"].append(replica_node)
+                #     if preferred_cache_cluster_azs:
+                #         if len(preferred_cache_cluster_azs) >= r:
+                #             replica_az = preferred_cache_cluster_azs[r]
+                #         elif len(preferred_cache_cluster_azs) >= 2:
+                #             replica_az = preferred_cache_cluster_azs[1]
+                #         else:
+                #             replica_az = preferred_cache_cluster_azs[0]
+                #     else:
+                #         replica_az = "us-east-1b"
+
+                #     replica_node.preferred_availability_zone = replica_az
+                #     replica_node.current_role = "replica"
+
+                #     # primary_node.preferred_outpost_arn = node_group_configuration["PrimaryOutpostArn"] if "PrimaryOutpostArn" in node_group_configuration else None
+                #     node_group["node_group_members"].append(replica_node)
+                #     self.member_clusters.append(replica_node.cache_cluster_id)
 
         # Default uses the first replication group member cluster ID
         self.snapshotting_cluster_id = f"{replication_group_id}-001"
 
-        if automatic_failover_enabled:
-            self.automatic_failover = "enabled"
-        else:
-            self.automatic_failover = "disabled"
-
-        if multi_az_enabled:
-            self.multi_az = "enabled"
-        else:
-            self.multi_az = "disabled"
-
+        self.automatic_failover = "enabled" if automatic_failover_enabled else "disabled"
+        self.multi_az = "enabled" if multi_az_enabled else "disabled"
         self.snapshot_retention_limit = snapshot_retention_limit
         self.snapshot_window = snapshot_window
         self.cluster_enabled = True if cluster_mode == "enabled" else False
@@ -403,23 +438,7 @@ class ReplicationGroup(BaseModel):
         self.kms_key_id = kms_key_id
         self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:replicationgroup:{replication_group_id}"
         self.user_group_ids = user_group_ids
-
-        # Log Delivery Configurations
-        if log_delivery_configurations:
-            self.log_delivery_configurations = []
-            for log_delivery_configuration in log_delivery_configurations:
-                if "LogFormat" not in log_delivery_configuration:
-                    log_delivery_configuration["LogFormat"] = "text"
-                if "DestinationType" not in log_delivery_configuration:
-                    log_delivery_configuration["DestinationType"] = "cloudwatch-logs"
-                if "DestinationDetails" not in log_delivery_configuration:
-                    log_delivery_configuration["DestinationDetails"] = {}
-
-                log_delivery_configuration["Status"] = "active"
-                log_delivery_configuration["Message"] = "Log delivery configuration is active."
-
-                self.log_delivery_configurations.append(log_delivery_configuration)
-
+        self.log_delivery_configurations = self._get_log_delivery_configurations(log_delivery_configurations)
         self.replication_group_create_time = utcnow()
         self.data_tiering = "enabled" if data_tiering_enabled else "disabled"
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
@@ -428,7 +447,6 @@ class ReplicationGroup(BaseModel):
         self.transit_encryption_mode = transit_encryption_mode
         self.cluster_mode = cluster_mode
         self.engine = engine
-
 
         # Parameters not returned by create or describe replication group
         self.cache_security_group_names = cache_security_group_names
@@ -443,10 +461,127 @@ class ReplicationGroup(BaseModel):
         self.snapshot_arns = snapshot_arns
         self.snapshot_name = snapshot_name
 
-
-
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
+
+    def _get_log_delivery_configurations(self, log_delivery_configurations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        log_delivery_configurations_resp = []
+        for log_delivery_configuration in log_delivery_configurations:
+            if "LogFormat" not in log_delivery_configuration:
+                log_delivery_configuration["LogFormat"] = "text"
+            if "DestinationType" not in log_delivery_configuration:
+                log_delivery_configuration["DestinationType"] = "cloudwatch-logs"
+            if "DestinationDetails" not in log_delivery_configuration:
+                log_delivery_configuration["DestinationDetails"] = {}
+            if "LogType" not in log_delivery_configuration:
+                log_delivery_configuration["LogType"] = "slow-log"
+
+            log_delivery_configuration["Status"] = "active"
+            log_delivery_configuration["Message"] = "Log delivery configuration is active."
+
+            self.log_delivery_configurations.append(log_delivery_configuration)
+        return log_delivery_configurations_resp
+
+    # This method will set populate the node_group with node_group_members
+    # and member_clusters with the cache_cluster_ids of the primary and replicas.
+    def _set_node_members_clusters_enabled(
+        self,
+        member_clusters: Dict[str, Any],
+        replication_group_id: str,
+        replicas_per_node_group: int,
+        node_group_configuration: List[Dict[str, Any]],
+        node_group: Dict[str, Any]
+        ) -> None:
+
+        primary_node = {}
+        primary_node.cache_cluster_id = f"{replication_group_id}-{node_group['node_group_id']}-001"
+        primary_node.cache_node_id = node_group["node_group_id"]
+
+        # Set the PreferredAvailabilityZone,
+        # default to us-east-1a for moto only
+        primary_node.preferred_availability_zone = "us-east-1a"
+
+        for configs in node_group_configuration:
+            if (configs.get("NodeGroupId") == node_group["node_group_id"]
+                and configs.get("PrimaryAvailabilityZone")):
+                primary_node.preferred_availability_zone = configs.get("PrimaryAvailabilityZone")
+
+        node_group["node_group_members"].append(primary_node)
+        member_clusters.append(primary_node.cache_cluster_id)
+
+        #  Loop through the number of replicas per node group
+        for r in range(1, replicas_per_node_group + 1):
+            replica_node = {}
+            # r + 1 because primary is 001
+            replica_node.cache_cluster_id = f"{replication_group_id}-{node_group['node_group_id']}-{r+1:0>3}"
+            replica_node.cache_node_id = node_group["node_group_id"]
+
+            # Set the ReplicaAvailabiilityZone,
+            # default to us-east-1b for moto only
+            replica_node.preferred_availability_zone = "us-east-1b"
+
+            for configs in node_group_configuration:
+                if (configs.get("NodeGroupId") == node_group["node_group_id"]
+                    and configs.get("ReplicaAvailabilityZones")):
+                    if len(configs.get("ReplicaAvailabilityZones")) >= r:
+                        replica_node.preferred_availability_zone = configs.get("ReplicaAvailabilityZones")[r-1]
+
+
+            node_group["node_group_members"].append(replica_node)
+            self.member_clusters.append(replica_node.cache_cluster_id)
+
+    def _set_node_members_clusters_disabled(
+        self,
+        member_clusters: Dict[str, Any],
+        replication_group_id: str,
+        replication_group_domain: str,
+        node_group: Dict[str, Any],
+        preferred_cache_cluster_azs: List[str],
+        num_cache_clusters: int
+    ):
+        primary_node = {}
+        primary_node.cache_cluster_id = f"{replication_group_id}-001"
+        primary_node.cache_node_id = node_group["node_group_id"]
+        primary_node.read_endpoint = {
+            "Address": f"{primary_node.cache_cluster_id}.{replication_group_domain}",
+            "Port": self.port
+        }
+
+        if preferred_cache_cluster_azs:
+            primary_node.preferred_availability_zone = preferred_cache_cluster_azs[0]
+        else:
+            primary_node.preferred_availability_zone = "us-east-1a"
+
+        primary_node.current_role = "primary"
+        node_group["node_group_members"].append(primary_node)
+        member_clusters.append(primary_node.cache_cluster_id)
+
+        # Use num_cache_clusters when cluster_mode is disabled
+        for r in range(1, num_cache_clusters):
+            replica_node = {}
+            # r + 1 because primary is 001
+            replica_node.cache_cluster_id = f"{replication_group_id}-{r+1:0>3}"
+            replica_node.cache_node_id = node_group["node_group_id"]
+            replica_node.read_endpoint = {
+                "Address": f"{replica_node.cache_cluster_id}.{replication_group_id}.random_str.",
+                "Port": self.port
+            }
+
+            if preferred_cache_cluster_azs:
+                if len(preferred_cache_cluster_azs) >= r:
+                    replica_az = preferred_cache_cluster_azs[r]
+                elif len(preferred_cache_cluster_azs) >= 2:
+                    replica_az = preferred_cache_cluster_azs[1]
+                else:
+                    replica_az = preferred_cache_cluster_azs[0]
+            else:
+                replica_az = "us-east-1b"
+
+            replica_node.preferred_availability_zone = replica_az
+            replica_node.current_role = "replica"
+
+            node_group["node_group_members"].append(replica_node)
+            self.member_clusters.append(replica_node.cache_cluster_id)
 
 class ElastiCacheBackend(BaseBackend):
     """Implementation of ElastiCache APIs."""
