@@ -220,17 +220,11 @@ class CloudFormationResponse(BaseResponse):
         result = {"Id": change_set_id, "StackId": stack_id}
         return ActionResult(result)
 
-    def delete_change_set(self) -> str:
+    def delete_change_set(self) -> ActionResult:
         change_set_name = self._get_param("ChangeSetName")
 
         self.cloudformation_backend.delete_change_set(change_set_name=change_set_name)
-        if self.request_json:
-            return json.dumps(
-                {"DeleteChangeSetResponse": {"DeleteChangeSetResult": {}}}
-            )
-        else:
-            template = self.response_template(DELETE_CHANGE_SET_RESPONSE_TEMPLATE)
-            return template.render()
+        return EmptyResult()
 
     def describe_change_set(self) -> str:
         change_set_name = self._get_param("ChangeSetName")
