@@ -516,7 +516,7 @@ class CloudFormationResponse(BaseResponse):
         self.cloudformation_backend.delete_stack_set(stackset_name)
         return EmptyResult()
 
-    def delete_stack_instances(self) -> str:
+    def delete_stack_instances(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         accounts = self._get_multi_param("Accounts.member")
         regions = self._get_multi_param("Regions.member")
@@ -524,8 +524,8 @@ class CloudFormationResponse(BaseResponse):
             stackset_name, accounts, regions
         )
 
-        template = self.response_template(DELETE_STACK_INSTANCES_TEMPLATE)
-        return template.render(operation=operation)
+        result = {"OperationId": operation.operations[-1]["OperationId"]}
+        return ActionResult(result)
 
     def describe_stack_set(self) -> str:
         stackset_name = self._get_param("StackSetName")
@@ -1025,15 +1025,6 @@ LIST_STACK_INSTANCES_TEMPLATE = """<ListStackInstancesResponse xmlns="http://int
 </ListStackInstancesResponse>
 """
 
-DELETE_STACK_INSTANCES_TEMPLATE = """<DeleteStackInstancesResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <DeleteStackInstancesResult>
-    <OperationId>{{ operation.OperationId }}</OperationId>
-  </DeleteStackInstancesResult>
-  <ResponseMetadata>
-    <RequestId>e5325090-66f6-4ecd-a531-example</RequestId>
-  </ResponseMetadata>
-</DeleteStackInstancesResponse>
-"""
 
 DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
   <DescribeStackInstanceResult>
