@@ -641,11 +641,11 @@ class CloudFormationResponse(BaseResponse):
         result = {"OperationId": operation["OperationId"]}
         return ActionResult(result)
 
-    def get_stack_policy(self) -> str:
+    def get_stack_policy(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         policy = self.cloudformation_backend.get_stack_policy(stack_name)
-        template = self.response_template(GET_STACK_POLICY_RESPONSE)
-        return template.render(policy=policy)
+        result = {"StackPolicyBody": policy}
+        return ActionResult(result)
 
     def set_stack_policy(self) -> ActionResult:
         stack_name = self._get_param("StackName")
@@ -1185,15 +1185,3 @@ GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://clo
   </ResponseMetadata>
 </GetTemplateSummaryResponse>
 """
-
-
-GET_STACK_POLICY_RESPONSE = """<GetStackPolicyResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <GetStackPolicyResult>
-    {% if policy %}
-    <StackPolicyBody>{{ policy }}</StackPolicyBody>
-    {% endif %}
-  </GetStackPolicyResult>
-  <ResponseMetadata>
-    <RequestId>e9e39eb6-1c05-4f0e-958a-b63f420e0a07</RequestId>
-  </ResponseMetadata>
-</GetStackPolicyResponse>"""
