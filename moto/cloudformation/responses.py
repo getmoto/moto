@@ -560,13 +560,13 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(LIST_STACK_INSTANCES_TEMPLATE)
         return template.render(instances=instances)
 
-    def list_stack_set_operations(self) -> str:
+    def list_stack_set_operations(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         operations = self.cloudformation_backend.list_stack_set_operations(
             stackset_name
         )
-        template = self.response_template(LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE)
-        return template.render(operations=operations)
+        result = {"Summaries": operations}
+        return ActionResult(result)
 
     def stop_stack_set_operation(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
@@ -1076,27 +1076,6 @@ LIST_STACK_SETS_TEMPLATE = """<ListStackSetsResponse xmlns="http://internal.amaz
     <RequestId>4dcacb73-841e-4ed8-b335-example</RequestId>
   </ResponseMetadata>
 </ListStackSetsResponse>
-"""
-
-
-LIST_STACK_SET_OPERATIONS_RESPONSE_TEMPLATE = """<ListStackSetOperationsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <ListStackSetOperationsResult>
-    <Summaries>
-    {% for operation in operations %}
-      <member>
-        <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
-        <OperationId>{{ operation.OperationId }}</OperationId>
-        <Action>{{ operation.Action }}</Action>
-        <EndTimestamp>{{ operation.EndTimestamp }}</EndTimestamp>
-        <Status>{{ operation.Status }}</Status>
-      </member>
-    {% endfor %}
-    </Summaries>
-  </ListStackSetOperationsResult>
-  <ResponseMetadata>
-    <RequestId>65b9d9be-08bb-4a43-9a21-example</RequestId>
-  </ResponseMetadata>
-</ListStackSetOperationsResponse>
 """
 
 
