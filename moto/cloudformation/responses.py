@@ -11,7 +11,7 @@ from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.exceptions import S3ClientError
 
 from .exceptions import MissingParameterError, ValidationError
-from .models import CloudFormationBackend, FakeStack, cloudformation_backends
+from .models import CloudFormationBackend, FakeStack, StackSet, cloudformation_backends
 from .utils import get_stack_from_s3_url, yaml_tag_constructor
 
 
@@ -27,6 +27,18 @@ class StackResourceDTO:
         self.creation_time = stack.creation_time
         self.timestamp = "2010-07-27T22:27:28Z"  # Hardcoded in original XML template.
         self.resource_status = stack.status
+
+
+class StackSetOperationDTO:
+    def __init__(self, operation: Dict[str, Any], stack_set: StackSet) -> None:
+        self.execution_role_name = stack_set.execution_role
+        self.administration_role_arn = stack_set.admin_role
+        self.stack_set_id = stack_set.id
+        self.creation_timestamp = operation["CreationTimestamp"]
+        self.operation_id = operation["OperationId"]
+        self.action = operation["Action"]
+        self.end_timestamp = operation.get("EndTimestamp", None)
+        self.status = operation["Status"]
 
 
 class StackSummaryDTO:
@@ -598,14 +610,14 @@ class CloudFormationResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_stack_set_operation(self) -> str:
+    def describe_stack_set_operation(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         operation_id = self._get_param("OperationId")
         stackset, operation = self.cloudformation_backend.describe_stack_set_operation(
             stackset_name, operation_id
         )
-        template = self.response_template(DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE)
-        return template.render(stackset=stackset, operation=operation)
+        result = {"StackSetOperation": StackSetOperationDTO(operation, stackset)}
+        return ActionResult(result)
 
     def list_stack_set_operation_results(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
