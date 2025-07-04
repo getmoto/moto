@@ -303,26 +303,12 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
         return template.render(resources=resources)
 
-    def get_template(self) -> str:
+    def get_template(self) -> ActionResult:
         name_or_stack_id = self.querystring.get("StackName")[0]  # type: ignore[index]
         stack_template = self.cloudformation_backend.get_template(name_or_stack_id)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "GetTemplateResponse": {
-                        "GetTemplateResult": {
-                            "TemplateBody": stack_template,
-                            "ResponseMetadata": {
-                                "RequestId": "2d06e36c-ac1d-11e0-a958-f9382b6eb86bEXAMPLE"
-                            },
-                        }
-                    }
-                }
-            )
-        else:
-            template = self.response_template(GET_TEMPLATE_RESPONSE_TEMPLATE)
-            return template.render(stack_template=stack_template)
+        result = {"TemplateBody": stack_template}
+        return ActionResult(result)
 
     def get_template_summary(self) -> str:
         stack_name = self._get_param("StackName")
@@ -933,15 +919,6 @@ LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
     <RequestId>2d06e36c-ac1d-11e0-a958-f9382b6eb86b</RequestId>
   </ResponseMetadata>
 </ListStackResourcesResponse>"""
-
-GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
-  <GetTemplateResult>
-    <TemplateBody>{{ stack_template }}</TemplateBody>
-  </GetTemplateResult>
-  <ResponseMetadata>
-    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
-  </ResponseMetadata>
-</GetTemplateResponse>"""
 
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
