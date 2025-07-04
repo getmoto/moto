@@ -269,7 +269,7 @@ class FakeStackInstance(BaseModel):
             stack_id = generate_stack_id(
                 "hiddenstackfor" + self.name, self.region_name, self.account_id
             )
-            self.stack = FakeStack(
+            self.stack = Stack(
                 stack_id=stack_id,
                 name=self.name,
                 template=self.template,
@@ -395,7 +395,7 @@ class FakeStackInstances(BaseModel):
                 return self.stack_instances[i]
 
 
-class FakeStack(CloudFormationModel):
+class Stack(CloudFormationModel):
     def __init__(
         self,
         stack_id: str,
@@ -593,7 +593,7 @@ class FakeStack(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "FakeStack":
+    ) -> "Stack":
         cf_backend: CloudFormationBackend = cloudformation_backends[account_id][
             region_name
         ]
@@ -618,7 +618,7 @@ class FakeStack(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "FakeStack":
+    ) -> "Stack":
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, account_id, region_name
         )
@@ -653,7 +653,7 @@ class FakeChangeSet(BaseModel):
         change_set_type: str,
         change_set_id: str,
         change_set_name: str,
-        stack: FakeStack,
+        stack: Stack,
         template: str,
         parameters: Dict[str, str],
         description: str,
@@ -760,8 +760,8 @@ ClientRequestToken='{self.client_request_token}'"""
 
 
 def filter_stacks(
-    all_stacks: List[FakeStack], status_filter: Optional[List[str]]
-) -> List[FakeStack]:
+    all_stacks: List[Stack], status_filter: Optional[List[str]]
+) -> List[Stack]:
     filtered_stacks = []
     if not status_filter:
         return all_stacks
@@ -780,9 +780,9 @@ class CloudFormationBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.stacks: Dict[str, FakeStack] = OrderedDict()
+        self.stacks: Dict[str, Stack] = OrderedDict()
         self.stacksets: Dict[str, StackSet] = OrderedDict()
-        self.deleted_stacks: Dict[str, FakeStack] = {}
+        self.deleted_stacks: Dict[str, Stack] = {}
         self.exports: Dict[str, Export] = OrderedDict()
         self.change_sets: Dict[str, FakeChangeSet] = OrderedDict()
 
@@ -797,7 +797,7 @@ class CloudFormationBackend(BaseBackend):
 
     def _resolve_update_parameters(
         self,
-        instance: Union[FakeStack, StackSet],
+        instance: Union[Stack, StackSet],
         incoming_params: List[Dict[str, str]],
     ) -> Dict[str, str]:
         parameters = dict(
@@ -987,14 +987,14 @@ class CloudFormationBackend(BaseBackend):
         enable_termination_protection: Optional[bool] = False,
         timeout_in_mins: Optional[int] = None,
         stack_policy_body: Optional[str] = None,
-    ) -> FakeStack:
+    ) -> Stack:
         """
         The functionality behind EnableTerminationProtection is not yet implemented.
         """
         if name in [stack.name for stack in self.stacks.values()]:
             raise AlreadyExistsException(f"Stack {name} already exists")
         stack_id = generate_stack_id(name, self.region_name, self.account_id)
-        new_stack = FakeStack(
+        new_stack = Stack(
             stack_id=stack_id,
             name=name,
             template=template,
@@ -1040,7 +1040,7 @@ class CloudFormationBackend(BaseBackend):
                 raise ValidationError(stack_name)
         else:
             stack_id = generate_stack_id(stack_name, self.region_name, self.account_id)
-            stack = FakeStack(
+            stack = Stack(
                 stack_id=stack_id,
                 name=stack_name,
                 template={},
@@ -1146,7 +1146,7 @@ class CloudFormationBackend(BaseBackend):
         stack.status = f"{change_set.change_set_type}_COMPLETE"
         stack.template = change_set.template
 
-    def describe_stacks(self, name_or_stack_id: str) -> List[FakeStack]:
+    def describe_stacks(self, name_or_stack_id: str) -> List[Stack]:
         stacks = self.stacks.values()
         if name_or_stack_id:
             for stack in stacks:
@@ -1178,13 +1178,13 @@ class CloudFormationBackend(BaseBackend):
     def list_change_sets(self) -> Iterable[FakeChangeSet]:
         return self.change_sets.values()
 
-    def list_stacks(self, status_filter: Optional[List[str]] = None) -> List[FakeStack]:
+    def list_stacks(self, status_filter: Optional[List[str]] = None) -> List[Stack]:
         total_stacks = [v for v in self.stacks.values()] + [
             v for v in self.deleted_stacks.values()
         ]
         return filter_stacks(total_stacks, status_filter)
 
-    def get_stack(self, name_or_stack_id: str) -> FakeStack:
+    def get_stack(self, name_or_stack_id: str) -> Stack:
         all_stacks = dict(self.deleted_stacks, **self.stacks)
         if name_or_stack_id in all_stacks:
             # Lookup by stack id - deleted stacks incldued
@@ -1203,7 +1203,7 @@ class CloudFormationBackend(BaseBackend):
         role_arn: Optional[str],
         parameters: List[Dict[str, Any]],
         tags: Optional[Dict[str, str]],
-    ) -> FakeStack:
+    ) -> Stack:
         stack = self.get_stack(name)
         resolved_parameters = self._resolve_update_parameters(
             instance=stack, incoming_params=parameters
@@ -1230,7 +1230,7 @@ class CloudFormationBackend(BaseBackend):
 
     def describe_stack_resource(
         self, stack_name: str, logical_resource_id: str
-    ) -> Tuple[FakeStack, Type[CloudFormationModel]]:
+    ) -> Tuple[Stack, Type[CloudFormationModel]]:
         stack = self.get_stack(stack_name)
 
         for stack_resource in stack.stack_resources:
@@ -1244,7 +1244,7 @@ class CloudFormationBackend(BaseBackend):
 
     def describe_stack_resources(
         self, stack_name: str
-    ) -> Tuple[FakeStack, Iterable[Type[CloudFormationModel]]]:
+    ) -> Tuple[Stack, Iterable[Type[CloudFormationModel]]]:
         stack = self.get_stack(stack_name)
         return stack, stack.stack_resources
 
@@ -1292,7 +1292,7 @@ class CloudFormationBackend(BaseBackend):
     def validate_template(self, template: str) -> List[Any]:
         return validate_template_cfn_lint(template)
 
-    def _validate_export_uniqueness(self, stack: FakeStack) -> None:
+    def _validate_export_uniqueness(self, stack: Stack) -> None:
         new_stack_export_names = [x.name for x in stack.exports]
         export_names = self.exports.keys()
         if not set(export_names).isdisjoint(new_stack_export_names):
