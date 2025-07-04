@@ -287,12 +287,12 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_STACK_RESOURCES_RESPONSE)
         return template.render(stack=stack, resources=resources)
 
-    def describe_stack_events(self) -> str:
+    def describe_stack_events(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         events = self.cloudformation_backend.describe_stack_events(stack_name)
 
-        template = self.response_template(DESCRIBE_STACK_EVENTS_RESPONSE)
-        return template.render(events=events)
+        result = {"StackEvents": events[::-1]}
+        return ActionResult(result)
 
     def list_change_sets(self) -> ActionResult:
         change_sets = self.cloudformation_backend.list_change_sets()
@@ -860,30 +860,6 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
       </StackResources>
     </DescribeStackResourcesResult>
 </DescribeStackResourcesResponse>"""
-
-DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <DescribeStackEventsResult>
-    <StackEvents>
-      {% for event in events[::-1] %}
-      <member>
-        <Timestamp>{{ event.timestamp.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
-        <ResourceStatus>{{ event.resource_status }}</ResourceStatus>
-        <StackId>{{ event.stack_id }}</StackId>
-        <EventId>{{ event.event_id }}</EventId>
-        <LogicalResourceId>{{ event.logical_resource_id }}</LogicalResourceId>
-        {% if event.resource_status_reason %}<ResourceStatusReason>{{ event.resource_status_reason }}</ResourceStatusReason>{% endif %}
-        <StackName>{{ event.stack_name }}</StackName>
-        <PhysicalResourceId>{{ event.physical_resource_id }}</PhysicalResourceId>
-        {% if event.resource_properties %}<ResourceProperties>{{ event.resource_properties }}</ResourceProperties>{% endif %}
-        <ResourceType>{{ event.resource_type }}</ResourceType>
-      </member>
-      {% endfor %}
-    </StackEvents>
-  </DescribeStackEventsResult>
-  <ResponseMetadata>
-    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
-  </ResponseMetadata>
-</DescribeStackEventsResponse>"""
 
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
