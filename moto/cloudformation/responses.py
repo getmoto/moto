@@ -101,6 +101,16 @@ class CloudFormationResponse(BaseResponse):
         ]
         if x
         else [],
+        "DescribeStackSetOutput.StackSet.Parameters": lambda x: [
+            {"ParameterKey": k, "ParameterValue": v} for k, v in x.items()
+        ]
+        if x
+        else [],
+        "DescribeStackSetOutput.StackSet.Tags": lambda x: [
+            {"Key": k, "Value": v} for k, v in x.items()
+        ]
+        if x
+        else [],
     }
 
     def __init__(self) -> None:
@@ -573,15 +583,15 @@ class CloudFormationResponse(BaseResponse):
         result = {"OperationId": operation.operations[-1]["OperationId"]}
         return ActionResult(result)
 
-    def describe_stack_set(self) -> str:
+    def describe_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         stackset = self.cloudformation_backend.describe_stack_set(stackset_name)
 
         if not stackset.execution_role:
             stackset.execution_role = "AWSCloudFormationStackSetExecutionRole"
 
-        template = self.response_template(DESCRIBE_STACK_SET_RESPONSE_TEMPLATE)
-        return template.render(stackset=stackset)
+        result = {"StackSet": stackset}
+        return ActionResult(result)
 
     def describe_stack_instance(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
@@ -798,43 +808,3 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
     {% endif %}
   </DescribeStacksResult>
 </DescribeStacksResponse>"""
-
-
-DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <DescribeStackSetResult>
-    <StackSet>
-      <Capabilities/>
-      <StackSetARN>{{ stackset.arn }}</StackSetARN>
-      <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
-      <AdministrationRoleARN>{{ stackset.admin_role }}</AdministrationRoleARN>
-      <StackSetId>{{ stackset.id }}</StackSetId>
-      <TemplateBody>{{ stackset.template }}</TemplateBody>
-      <StackSetName>{{ stackset.name }}</StackSetName>
-        <Parameters>
-        {% for param_name, param_value in stackset.parameters.items() %}
-          <member>
-            <ParameterKey>{{ param_name }}</ParameterKey>
-            <ParameterValue>{{ param_value }}</ParameterValue>
-          </member>
-        {% endfor %}
-        </Parameters>
-        <Tags>
-          {% for tag_key, tag_value in stackset.tags.items() %}
-            <member>
-              <Key>{{ tag_key }}</Key>
-              <Value>{{ tag_value }}</Value>
-            </member>
-          {% endfor %}
-        </Tags>
-      <Status>{{ stackset.status }}</Status>
-      <PermissionModel>{{ stackset.permission_model }}</PermissionModel>
-      {% if stackset.description %}
-      <Description>{{ stackset.description }}</Description>
-      {% endif %}
-      <ManagedExecution><Active>false</Active></ManagedExecution>
-    </StackSet>
-  </DescribeStackSetResult>
-  <ResponseMetadata>
-    <RequestId>d8b64e11-5332-46e1-9603-example</RequestId>
-  </ResponseMetadata>
-</DescribeStackSetResponse>"""

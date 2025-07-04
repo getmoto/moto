@@ -79,6 +79,22 @@ class StackSet(BaseModel):
         self.operations: List[Dict[str, Any]] = []
         self.permission_model = permission_model or "SELF_MANAGED"
 
+    @property
+    def administration_role_arn(self) -> str:
+        return self.admin_role
+
+    @property
+    def template_body(self) -> str:
+        return self.template
+
+    @property
+    def execution_role_name(self) -> str:
+        return self.execution_role
+
+    @property
+    def managed_execution(self) -> Dict[str, Any]:
+        return {"Active": False}
+
     def _create_operation(
         self,
         operation_id: str,
