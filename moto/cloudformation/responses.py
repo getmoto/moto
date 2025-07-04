@@ -296,12 +296,23 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(LIST_STACKS_RESPONSE)
         return template.render(stacks=stacks)
 
-    def list_stack_resources(self) -> str:
+    def list_stack_resources(self) -> ActionResult:
         stack_name_or_id = self._get_param("StackName")
         resources = self.cloudformation_backend.list_stack_resources(stack_name_or_id)
-
-        template = self.response_template(LIST_STACKS_RESOURCES_RESPONSE)
-        return template.render(resources=resources)
+        # FIXME: This was migrated from the original XML template, including hardcoded values.
+        result = {
+            "StackResourceSummaries": [
+                {
+                    "ResourceStatus": "CREATE_COMPLETE",
+                    "LogicalResourceId": getattr(resource, "logical_resource_id", ""),
+                    "LastUpdateTimestamp": "2011-06-21T20:15:58Z",
+                    "PhysicalResourceId": getattr(resource, "physical_resource_id", ""),
+                    "ResourceType": getattr(resource, "type", ""),
+                }
+                for resource in resources
+            ]
+        }
+        return ActionResult(result)
 
     def get_template(self) -> ActionResult:
         name_or_stack_id = self.querystring.get("StackName")[0]  # type: ignore[index]
@@ -900,25 +911,6 @@ LIST_STACKS_RESPONSE = """<ListStacksResponse>
   </StackSummaries>
  </ListStacksResult>
 </ListStacksResponse>"""
-
-LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
-  <ListStackResourcesResult>
-    <StackResourceSummaries>
-      {% for resource in resources %}
-      <member>
-        <ResourceStatus>CREATE_COMPLETE</ResourceStatus>
-        <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
-        <LastUpdatedTimestamp>2011-06-21T20:15:58Z</LastUpdatedTimestamp>
-        <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-        <ResourceType>{{ resource.resource_type }}</ResourceType>
-      </member>
-      {% endfor %}
-    </StackResourceSummaries>
-  </ListStackResourcesResult>
-  <ResponseMetadata>
-    <RequestId>2d06e36c-ac1d-11e0-a958-f9382b6eb86b</RequestId>
-  </ResponseMetadata>
-</ListStackResourcesResponse>"""
 
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
