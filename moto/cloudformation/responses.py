@@ -418,11 +418,11 @@ class CloudFormationResponse(BaseResponse):
         self.cloudformation_backend.delete_stack(name_or_stack_id)
         return EmptyResult()
 
-    def list_exports(self) -> str:
+    def list_exports(self) -> ActionResult:
         token = self._get_param("NextToken")
         exports, next_token = self.cloudformation_backend.list_exports(tokenstr=token)
-        template = self.response_template(LIST_EXPORTS_RESPONSE)
-        return template.render(exports=exports, next_token=next_token)
+        result = {"Exports": exports, "NextToken": next_token}
+        return ActionResult(result)
 
     def validate_template(self) -> str:
         template_body = self._get_param("TemplateBody")
@@ -942,27 +942,6 @@ GET_TEMPLATE_RESPONSE_TEMPLATE = """<GetTemplateResponse>
     <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
   </ResponseMetadata>
 </GetTemplateResponse>"""
-
-
-LIST_EXPORTS_RESPONSE = """<ListExportsResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <ListExportsResult>
-    <Exports>
-      {% for export in exports %}
-      <member>
-        <ExportingStackId>{{ export.exporting_stack_id }}</ExportingStackId>
-        <Name>{{ export.name }}</Name>
-        <Value>{{ export.value }}</Value>
-      </member>
-      {% endfor %}
-    </Exports>
-    {% if next_token %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </ListExportsResult>
-  <ResponseMetadata>
-    <RequestId>5ccc7dcd-744c-11e5-be70-example</RequestId>
-  </ResponseMetadata>
-</ListExportsResponse>"""
 
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
