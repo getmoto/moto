@@ -859,6 +859,7 @@ def test_delete_stack_set__while_instances_are_running():
     )
     with pytest.raises(ClientError) as exc:
         cf.delete_stack_set(StackSetName="a")
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
     err = exc.value.response["Error"]
     assert err["Code"] == "StackSetNotEmptyException"
     assert err["Message"] == "StackSet is not empty"
