@@ -427,7 +427,7 @@ class CloudFormationResponse(BaseResponse):
         result = {"Exports": exports, "NextToken": next_token}
         return ActionResult(result)
 
-    def validate_template(self) -> str:
+    def validate_template(self) -> ActionResult:
         template_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
         if template_url:
@@ -445,8 +445,13 @@ class CloudFormationResponse(BaseResponse):
             description = yaml.load(template_body, Loader=yaml.Loader)["Description"]
         except (ParserError, ScannerError, KeyError):
             pass
-        template = self.response_template(VALIDATE_STACK_RESPONSE_TEMPLATE)
-        return template.render(description=description)
+        result = {
+            "Description": description,
+            "Parameters": [],
+            "Capabilities": [],
+            "DeclaredTransforms": [],
+        }
+        return ActionResult(result)
 
     def create_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
@@ -669,17 +674,6 @@ class CloudFormationResponse(BaseResponse):
             stack_name, policy_body=policy_body
         )
         return EmptyResult()
-
-
-VALIDATE_STACK_RESPONSE_TEMPLATE = """<ValidateTemplateResponse>
-        <ValidateTemplateResult>
-        <Capabilities></Capabilities>
-<CapabilitiesReason></CapabilitiesReason>
-<DeclaredTransforms></DeclaredTransforms>
-<Description>{{ description }}</Description>
-<Parameters></Parameters>
-</ValidateTemplateResult>
-</ValidateTemplateResponse>"""
 
 
 DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
