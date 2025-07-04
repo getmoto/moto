@@ -1,17 +1,32 @@
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import yaml
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
 
+from moto.core.common_models import CloudFormationModel
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.exceptions import S3ClientError
 
 from .exceptions import MissingParameterError, ValidationError
 from .models import CloudFormationBackend, FakeStack, cloudformation_backends
 from .utils import get_stack_from_s3_url, yaml_tag_constructor
+
+
+class StackResourceDTO:
+    def __init__(self, stack: FakeStack, resource: Type[CloudFormationModel]) -> None:
+        self.stack_id = stack.stack_id
+        self.stack_name = stack.name
+        # FIXME: None of these attributes are part of CloudFormationModel interface...
+        self.logical_resource_id = getattr(resource, "logical_resource_id", None)
+        self.physical_resource_id = getattr(resource, "physical_resource_id", None)
+        self.resource_type = getattr(resource, "type", None)
+        self.stack_status = stack.status
+        self.creation_time = stack.creation_time
+        self.timestamp = "2010-07-27T22:27:28Z"  # Hardcoded in original XML template.
+        self.resource_status = stack.status
 
 
 class StackSummaryDTO:
@@ -268,24 +283,27 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_STACKS_TEMPLATE)
         return template.render(stacks=stacks_resp, next_token=next_token)
 
-    def describe_stack_resource(self) -> str:
+    def describe_stack_resource(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         logical_resource_id = self._get_param("LogicalResourceId")
         stack, resource = self.cloudformation_backend.describe_stack_resource(
             stack_name, logical_resource_id
         )
+        result = {"StackResourceDetail": StackResourceDTO(stack, resource)}
+        return ActionResult(result)
 
-        template = self.response_template(DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE)
-        return template.render(stack=stack, resource=resource)
-
-    def describe_stack_resources(self) -> str:
+    def describe_stack_resources(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         stack, resources = self.cloudformation_backend.describe_stack_resources(
             stack_name
         )
 
-        template = self.response_template(DESCRIBE_STACK_RESOURCES_RESPONSE)
-        return template.render(stack=stack, resources=resources)
+        result = {
+            "StackResources": [
+                StackResourceDTO(stack, resource) for resource in resources
+            ]
+        }
+        return ActionResult(result)
 
     def describe_stack_events(self) -> ActionResult:
         stack_name = self._get_param("StackName")
@@ -828,38 +846,6 @@ DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
     {% endif %}
   </DescribeStacksResult>
 </DescribeStacksResponse>"""
-
-DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
-  <DescribeStackResourceResult>
-    <StackResourceDetail>
-      <StackId>{{ stack.stack_id }}</StackId>
-      <StackName>{{ stack.name }}</StackName>
-      <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
-      <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-      <ResourceType>{{ resource.resource_type }}</ResourceType>
-      <Timestamp>2010-07-27T22:27:28Z</Timestamp>
-      <ResourceStatus>{{ stack.status }}</ResourceStatus>
-    </StackResourceDetail>
-  </DescribeStackResourceResult>
-</DescribeStackResourceResponse>"""
-
-DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
-    <DescribeStackResourcesResult>
-      <StackResources>
-        {% for resource in resources %}
-        <member>
-          <StackId>{{ stack.stack_id }}</StackId>
-          <StackName>{{ stack.name }}</StackName>
-          <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
-          <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-          <ResourceType>{{ resource.resource_type }}</ResourceType>
-          <Timestamp>2010-07-27T22:27:28Z</Timestamp>
-          <ResourceStatus>{{ stack.status }}</ResourceStatus>
-        </member>
-        {% endfor %}
-      </StackResources>
-    </DescribeStackResourcesResult>
-</DescribeStackResourcesResponse>"""
 
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
