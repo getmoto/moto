@@ -26,7 +26,7 @@ from .exceptions import (
     StackSetNotFoundException,
     ValidationError,
 )
-from .parsing import Export, Output, OutputMap, ResourceMap
+from .parsing import Export, OutputMap, ResourceMap
 from .utils import (
     generate_changeset_id,
     generate_stack_id,
@@ -396,6 +396,11 @@ class FakeStackInstances(BaseModel):
 
 
 class Stack(CloudFormationModel):
+    class Meta:
+        serialization_aliases = {
+            "Parameters": "stack_parameters",
+        }
+
     def __init__(
         self,
         stack_id: str,
@@ -429,7 +434,7 @@ class Stack(CloudFormationModel):
         self.role_arn = role_arn
         self.tags = tags if tags else {}
         self.events: List[FakeEvent] = []
-        self.timeout_in_mins = timeout_in_mins
+        self.timeout_in_minutes = timeout_in_mins
         self.policy = stack_policy_body or ""
 
         self.cross_stack_resources: Dict[str, Export] = cross_stack_resources or {}
@@ -443,6 +448,7 @@ class Stack(CloudFormationModel):
         self.output_map = self._create_output_map()
         self.creation_time = utcnow()
         self.status = "CREATE_PENDING"
+        self.disable_rollback = False
 
     def has_template(self, other_template: str) -> bool:
         self._parse_template()
@@ -504,16 +510,41 @@ class Stack(CloudFormationModel):
             return json.loads(template)
 
     @property
-    def stack_parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
-        return self.resource_map.resolved_parameters
+    def stack_parameters(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
+        parameters = [
+            {
+                "ParameterKey": k,
+                "ParameterValue": v
+                if v not in self.resource_map.no_echo_parameter_keys
+                else "****",
+            }
+            for k, v in self.resource_map.resolved_parameters.items()
+        ]
+        return parameters
 
     @property
     def stack_resources(self) -> Iterable[Type[CloudFormationModel]]:
         return self.resource_map.values()
 
     @property
-    def stack_outputs(self) -> List[Output]:
-        return [v for v in self.output_map.values() if v]
+    def outputs(self) -> Optional[List[Dict[str, Any]]]:
+        def get_export_name(output_value: Any) -> Optional[str]:
+            for export in self.exports:
+                if output_value == export.value:
+                    return export.name
+            return None
+
+        outputs = [
+            {
+                "OutputKey": o.key,
+                "OutputValue": o.value,
+                "Description": o.description,
+                "ExportName": get_export_name(o.value),
+            }
+            for o in self.output_map.values()
+            if o
+        ]
+        return outputs if outputs else None
 
     @property
     def exports(self) -> List[Export]:

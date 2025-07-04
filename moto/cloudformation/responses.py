@@ -11,12 +11,12 @@ from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.exceptions import S3ClientError
 
 from .exceptions import MissingParameterError, ValidationError
-from .models import CloudFormationBackend, FakeStack, StackSet, cloudformation_backends
+from .models import CloudFormationBackend, Stack, StackSet, cloudformation_backends
 from .utils import get_stack_from_s3_url, yaml_tag_constructor
 
 
 class StackResourceDTO:
-    def __init__(self, stack: FakeStack, resource: Type[CloudFormationModel]) -> None:
+    def __init__(self, stack: Stack, resource: Type[CloudFormationModel]) -> None:
         self.stack_id = stack.stack_id
         self.stack_name = stack.name
         # FIXME: None of these attributes are part of CloudFormationModel interface...
@@ -42,7 +42,7 @@ class StackSetOperationDTO:
 
 
 class StackSummaryDTO:
-    def __init__(self, stack: FakeStack) -> None:
+    def __init__(self, stack: Stack) -> None:
         self.stack_id = stack.stack_id
         self.stack_status = stack.status
         self.stack_name = stack.name
@@ -107,6 +107,11 @@ class CloudFormationResponse(BaseResponse):
         if x
         else [],
         "DescribeStackSetOutput.StackSet.Tags": lambda x: [
+            {"Key": k, "Value": v} for k, v in x.items()
+        ]
+        if x
+        else [],
+        "DescribeStacksOutput.Stacks.Stack.Tags": lambda x: [
             {"Key": k, "Value": v} for k, v in x.items()
         ]
         if x
@@ -294,7 +299,7 @@ class CloudFormationResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_stacks(self) -> str:
+    def describe_stacks(self) -> ActionResult:
         stack_name_or_id = self._get_param("StackName")
         token = self._get_param("NextToken")
         stacks = self.cloudformation_backend.describe_stacks(stack_name_or_id)
@@ -308,8 +313,8 @@ class CloudFormationResponse(BaseResponse):
         next_token = None
         if len(stacks) > (start + max_results):
             next_token = stacks_resp[-1].stack_id
-        template = self.response_template(DESCRIBE_STACKS_TEMPLATE)
-        return template.render(stacks=stacks_resp, next_token=next_token)
+        result = {"Stacks": stacks_resp, "NextToken": next_token}
+        return ActionResult(result)
 
     def describe_stack_resource(self) -> ActionResult:
         stack_name = self._get_param("StackName")
@@ -398,7 +403,7 @@ class CloudFormationResponse(BaseResponse):
         self,
         incoming_params: Optional[List[Dict[str, Any]]],
         stack_body: str,
-        old_stack: FakeStack,
+        old_stack: Stack,
     ) -> None:
         if incoming_params and stack_body:
             new_params = self._get_param_values(
@@ -412,7 +417,7 @@ class CloudFormationResponse(BaseResponse):
                     old_stack.name, message="No updates are to be performed."
                 )
 
-    def _validate_status(self, stack: FakeStack) -> None:
+    def _validate_status(self, stack: Stack) -> None:
         if stack.status == "ROLLBACK_COMPLETE":
             raise ValidationError(
                 stack.stack_id,
@@ -734,77 +739,3 @@ class CloudFormationResponse(BaseResponse):
             stack_name, policy_body=policy_body
         )
         return EmptyResult()
-
-
-DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
-  <DescribeStacksResult>
-    <Stacks>
-      {% for stack in stacks %}
-      <member>
-        <StackName>{{ stack.name }}</StackName>
-        <StackId>{{ stack.stack_id }}</StackId>
-        {% if stack.change_set_id %}
-        <ChangeSetId>{{ stack.change_set_id }}</stack.timeout_in_minsChangeSetId>
-        {% endif %}
-        <Description><![CDATA[{{ stack.description }}]]></Description>
-        <CreationTime>{{ stack.creation_time_iso_8601 }}</CreationTime>
-        <StackStatus>{{ stack.status }}</StackStatus>
-        {% if stack.notification_arns %}
-        <NotificationARNs>
-          {% for notification_arn in stack.notification_arns %}
-          <member>{{ notification_arn }}</member>
-          {% endfor %}
-        </NotificationARNs>
-        {% else %}
-        <NotificationARNs/>
-        {% endif %}
-        <DisableRollback>false</DisableRollback>
-        {%if stack.stack_outputs %}
-        <Outputs>
-        {% for output in stack.stack_outputs %}
-          <member>
-            <OutputKey>{{ output.key }}</OutputKey>
-            <OutputValue>{{ output.value }}</OutputValue>
-            {% for export in stack.exports if export.value == output.value %}
-                <ExportName>{{ export.name }}</ExportName>
-            {% endfor %}
-            {% if output.description %}<Description>{{ output.description }}</Description>{% endif %}
-          </member>
-        {% endfor %}
-        </Outputs>
-        {% endif %}
-        <Parameters>
-        {% for param_name, param_value in stack.stack_parameters.items() %}
-          <member>
-            <ParameterKey>{{ param_name }}</ParameterKey>
-            {% if param_name in stack.resource_map.no_echo_parameter_keys %}
-                <ParameterValue>****</ParameterValue>
-            {% else %}
-                <ParameterValue>{{ param_value }}</ParameterValue>
-            {% endif %}
-          </member>
-        {% endfor %}
-        </Parameters>
-        {% if stack.role_arn %}
-        <RoleARN>{{ stack.role_arn }}</RoleARN>
-        {% endif %}
-        <Tags>
-          {% for tag_key, tag_value in stack.tags.items() %}
-            <member>
-              <Key>{{ tag_key }}</Key>
-              <Value>{{ tag_value }}</Value>
-            </member>
-          {% endfor %}
-        </Tags>
-        <EnableTerminationProtection>{{ 'true' if stack.enable_termination_protection else 'false' }}</EnableTerminationProtection>
-        {% if stack.timeout_in_mins %}
-        <TimeoutInMinutes>{{ stack.timeout_in_mins }}</TimeoutInMinutes>
-        {% endif %}
-      </member>
-      {% endfor %}
-    </Stacks>
-    {% if next_token %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </DescribeStacksResult>
-</DescribeStacksResponse>"""
