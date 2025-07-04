@@ -14,6 +14,15 @@ from .models import CloudFormationBackend, FakeStack, cloudformation_backends
 from .utils import get_stack_from_s3_url, yaml_tag_constructor
 
 
+class StackSummaryDTO:
+    def __init__(self, stack: FakeStack) -> None:
+        self.stack_id = stack.stack_id
+        self.stack_status = stack.status
+        self.stack_name = stack.name
+        self.creation_time = stack.creation_time
+        self.template_description = stack.description
+
+
 def get_template_summary_response_from_template(template_body: str) -> Dict[str, Any]:
     def get_resource_types(template_dict: Dict[str, Any]) -> List[Any]:
         resources = {}
@@ -290,11 +299,11 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(LIST_CHANGE_SETS_RESPONSE)
         return template.render(change_sets=change_sets)
 
-    def list_stacks(self) -> str:
+    def list_stacks(self) -> ActionResult:
         status_filter = self._get_multi_param("StackStatusFilter.member")
         stacks = self.cloudformation_backend.list_stacks(status_filter)
-        template = self.response_template(LIST_STACKS_RESPONSE)
-        return template.render(stacks=stacks)
+        result = {"StackSummaries": [StackSummaryDTO(stack) for stack in stacks]}
+        return ActionResult(result)
 
     def list_stack_resources(self) -> ActionResult:
         stack_name_or_id = self._get_param("StackName")
@@ -895,22 +904,6 @@ LIST_CHANGE_SETS_RESPONSE = """<ListChangeSetsResponse>
   </Summaries>
  </ListChangeSetsResult>
 </ListChangeSetsResponse>"""
-
-LIST_STACKS_RESPONSE = """<ListStacksResponse>
- <ListStacksResult>
-  <StackSummaries>
-    {% for stack in stacks %}
-    <member>
-        <StackId>{{ stack.stack_id }}</StackId>
-        <StackStatus>{{ stack.status }}</StackStatus>
-        <StackName>{{ stack.name }}</StackName>
-        <CreationTime>{{ stack.creation_time_iso_8601 }}</CreationTime>
-        <TemplateDescription>{{ stack.description }}</TemplateDescription>
-    </member>
-    {% endfor %}
-  </StackSummaries>
- </ListStacksResult>
-</ListStacksResponse>"""
 
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
