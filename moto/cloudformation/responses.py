@@ -607,16 +607,29 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE)
         return template.render(stackset=stackset, operation=operation)
 
-    def list_stack_set_operation_results(self) -> str:
+    def list_stack_set_operation_results(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         operation_id = self._get_param("OperationId")
         operation = self.cloudformation_backend.list_stack_set_operation_results(
             stackset_name, operation_id
         )
-        template = self.response_template(
-            LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE
-        )
-        return template.render(operation=operation)
+        # FIXME: Hardcoded response values come from original XML template.
+        result = {
+            "Summaries": [
+                {
+                    "AccountGateResult": {
+                        "StatusReason": f"Function not found: arn:aws:lambda:us-west-2:{account}:function:AWSCloudFormationStackSetAccountGate",
+                        "Status": "SKIPPED",
+                    },
+                    "Region": region,
+                    "Account": account,
+                    "Status": operation["Status"],
+                }
+                for instance in operation["Instances"]
+                for account, region in instance.items()
+            ]
+        }
+        return ActionResult(result)
 
     def update_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
@@ -911,28 +924,4 @@ DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationRes
     <RequestId>2edc27b6-9ce2-486a-a192-example</RequestId>
   </ResponseMetadata>
 </DescribeStackSetOperationResponse>
-"""
-
-LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationResultsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <ListStackSetOperationResultsResult>
-    <Summaries>
-    {% for instance in operation.Instances %}
-    {% for account, region in instance.items() %}
-      <member>
-        <AccountGateResult>
-          <StatusReason>Function not found: arn:aws:lambda:us-west-2:{{ account }}:function:AWSCloudFormationStackSetAccountGate</StatusReason>
-          <Status>SKIPPED</Status>
-        </AccountGateResult>
-        <Region>{{ region }}</Region>
-        <Account>{{ account }}</Account>
-        <Status>{{ operation.Status }}</Status>
-      </member>
-    {% endfor %}
-    {% endfor %}
-    </Summaries>
-  </ListStackSetOperationResultsResult>
-  <ResponseMetadata>
-    <RequestId>ac05a9ce-5f98-4197-a29b-example</RequestId>
-  </ResponseMetadata>
-</ListStackSetOperationResultsResponse>
 """
