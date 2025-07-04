@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from collections import OrderedDict
 from datetime import timedelta
@@ -614,7 +616,7 @@ class Stack(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Stack":
+    ) -> Stack:
         cf_backend: CloudFormationBackend = cloudformation_backends[account_id][
             region_name
         ]
@@ -639,7 +641,7 @@ class Stack(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-    ) -> "Stack":
+    ) -> Stack:
         cls.delete_from_cloudformation_json(
             original_resource.name, cloudformation_json, account_id, region_name
         )
