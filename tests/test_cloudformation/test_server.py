@@ -16,7 +16,7 @@ def test_cloudformation_server_get():
     create_stack_resp = test_client.action_data(
         "CreateStack", StackName=stack_name, TemplateBody=json.dumps(template_body)
     )
-    assert "<CreateStackResponse>" in create_stack_resp
+    assert "</CreateStackResponse>" in create_stack_resp
     assert "<StackId>" in create_stack_resp
     stack_id_from_create = re.search(
         "<StackId>(.*)</StackId>", create_stack_resp
