@@ -1619,6 +1619,9 @@ def test_describe_change_set(stack_template, change_template):
     assert change_set["ChangeSetName"] == "NewChangeSet2"
     assert change_set["StackName"] == "NewStack"
     assert len(change_set["Changes"]) == 2
+    assert change_set["Parameters"] == [
+        {"ParameterKey": "KeyName", "ParameterValue": "value"}
+    ]
 
     # Execute change set
     cf.execute_change_set(ChangeSetName="NewChangeSet2")

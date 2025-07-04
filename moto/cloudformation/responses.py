@@ -90,6 +90,19 @@ def get_template_summary_response_from_template(template_body: str) -> Dict[str,
 
 
 class CloudFormationResponse(BaseResponse):
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "DescribeChangeSetOutput.Changes": lambda x: [
+            {"Type": "Resource", "ResourceChange": c} for c in x
+        ]
+        if x
+        else [],
+        "DescribeChangeSetOutput.Parameters": lambda x: [
+            {"ParameterKey": k, "ParameterValue": v} for k, v in x.items()
+        ]
+        if x
+        else [],
+    }
+
     def __init__(self) -> None:
         super().__init__(service_name="cloudformation")
 
@@ -256,13 +269,12 @@ class CloudFormationResponse(BaseResponse):
         self.cloudformation_backend.delete_change_set(change_set_name=change_set_name)
         return EmptyResult()
 
-    def describe_change_set(self) -> str:
+    def describe_change_set(self) -> ActionResult:
         change_set_name = self._get_param("ChangeSetName")
         change_set = self.cloudformation_backend.describe_change_set(
             change_set_name=change_set_name
         )
-        template = self.response_template(DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE)
-        return template.render(change_set=change_set)
+        return ActionResult(change_set)
 
     def execute_change_set(self) -> ActionResult:
         stack_name = self._get_param("StackName")
@@ -712,58 +724,6 @@ class CloudFormationResponse(BaseResponse):
             stack_name, policy_body=policy_body
         )
         return EmptyResult()
-
-
-DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
-  <DescribeChangeSetResult>
-    <ChangeSetId>{{ change_set.change_set_id }}</ChangeSetId>
-    <ChangeSetName>{{ change_set.change_set_name }}</ChangeSetName>
-    <StackId>{{ change_set.stack_id }}</StackId>
-    <StackName>{{ change_set.stack_name }}</StackName>
-    <Description>{{ change_set.description }}</Description>
-    <Parameters>
-      {% for param_name, param_value in change_set.parameters.items() %}
-       <member>
-          <ParameterKey>{{ param_name }}</ParameterKey>
-          <ParameterValue>{{ param_value }}</ParameterValue>
-        </member>
-      {% endfor %}
-    </Parameters>
-    <CreationTime>{{ change_set.creation_time_iso_8601 }}</CreationTime>
-    <ExecutionStatus>{{ change_set.execution_status }}</ExecutionStatus>
-    <Status>{{ change_set.status }}</Status>
-    <StatusReason>{{ change_set.status_reason }}</StatusReason>
-    {% if change_set.notification_arns %}
-    <NotificationARNs>
-      {% for notification_arn in change_set.notification_arns %}
-      <member>{{ notification_arn }}</member>
-      {% endfor %}
-    </NotificationARNs>
-    {% else %}
-    <NotificationARNs/>
-    {% endif %}
-    {% if change_set.role_arn %}
-    <RoleARN>{{ change_set.role_arn }}</RoleARN>
-    {% endif %}
-    {% if change_set.changes %}
-    <Changes>
-      {% for change in change_set.changes %}
-      <member>
-        <Type>Resource</Type>
-        <ResourceChange>
-            <Action>{{ change.action }}</Action>
-            <LogicalResourceId>{{ change.logical_resource_id }}</LogicalResourceId>
-            <ResourceType>{{ change.resource_type }}</ResourceType>
-        </ResourceChange>
-      </member>
-      {% endfor %}
-    </Changes>
-    {% endif %}
-    {% if next_token %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </DescribeChangeSetResult>
-</DescribeChangeSetResponse>"""
 
 
 DESCRIBE_STACKS_TEMPLATE = """<DescribeStacksResponse>
