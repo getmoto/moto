@@ -63,7 +63,7 @@ class StackSet(BaseModel):
         )
         self.execution_role = execution_role or "AWSCloudFormationStackSetExecutionRole"
         self.status = "ACTIVE"
-        self.instances = FakeStackInstances(
+        self.instances = StackInstances(
             account_id=account_id,
             region=region,
             template=template,
@@ -228,7 +228,7 @@ class StackSet(BaseModel):
         return operation
 
 
-class FakeStackInstance(BaseModel):
+class StackInstance(BaseModel):
     def __init__(
         self,
         account_id: str,
@@ -301,7 +301,7 @@ class FakeStackInstance(BaseModel):
         }
 
 
-class FakeStackInstances(BaseModel):
+class StackInstances(BaseModel):
     def __init__(
         self,
         account_id: str,
@@ -318,7 +318,7 @@ class FakeStackInstances(BaseModel):
         self.stackset_id = stackset_id
         self.stack_name = f"StackSet-{stackset_id}"
         self.stackset_name = stackset_name
-        self.stack_instances: List[FakeStackInstance] = []
+        self.stack_instances: List[StackInstance] = []
 
     @property
     def org_backend(self) -> OrganizationsBackend:
@@ -348,7 +348,7 @@ class FakeStackInstances(BaseModel):
 
         new_instances = []
         for region, account in targets:
-            instance = FakeStackInstance(
+            instance = StackInstance(
                 account_id=account,
                 region_name=region,
                 stackset_id=self.stackset_id,
@@ -383,7 +383,7 @@ class FakeStackInstances(BaseModel):
             instance.delete()
             self.stack_instances.remove(instance)
 
-    def get_instance(self, account: str, region: str) -> FakeStackInstance:  # type: ignore[return]
+    def get_instance(self, account: str, region: str) -> StackInstance:  # type: ignore[return]
         for i, instance in enumerate(self.stack_instances):
             if instance.region_name == region and instance.account_id == account:
                 return self.stack_instances[i]
@@ -427,7 +427,7 @@ class Stack(CloudFormationModel):
         self.notification_arns = notification_arns if notification_arns else []
         self.role_arn = role_arn
         self.tags = tags if tags else {}
-        self.events: List[FakeEvent] = []
+        self.events: List[Event] = []
         self.timeout_in_minutes = timeout_in_mins
         self.policy = stack_policy_body or ""
 
@@ -474,7 +474,7 @@ class Stack(CloudFormationModel):
         resource_status_reason: Optional[str] = None,
         resource_properties: Optional[str] = None,
     ) -> None:
-        event = FakeEvent(
+        event = Event(
             stack_id=self.stack_id,
             stack_name=self.name,
             logical_resource_id=self.name,
@@ -661,14 +661,14 @@ class Stack(CloudFormationModel):
         cf_backend.delete_stack(resource_name)
 
 
-class FakeChange(BaseModel):
+class Change(BaseModel):
     def __init__(self, action: str, logical_resource_id: str, resource_type: str):
         self.action = action
         self.logical_resource_id = logical_resource_id
         self.resource_type = resource_type
 
 
-class FakeChangeSet(BaseModel):
+class ChangeSet(BaseModel):
     def __init__(
         self,
         change_set_type: str,
@@ -711,7 +711,7 @@ class FakeChangeSet(BaseModel):
         except (ParserError, ScannerError):
             self.template_dict = json.loads(self.template)
 
-    def diff(self) -> List[FakeChange]:
+    def diff(self) -> List[Change]:
         changes = []
         resources_by_action = self.stack.resource_map.build_change_set_actions(
             self.template_dict
@@ -719,7 +719,7 @@ class FakeChangeSet(BaseModel):
         for action, resources in resources_by_action.items():
             for resource_name, resource in resources.items():
                 changes.append(
-                    FakeChange(
+                    Change(
                         action=action,
                         logical_resource_id=resource_name,
                         resource_type=resource["ResourceType"],
@@ -731,7 +731,7 @@ class FakeChangeSet(BaseModel):
         self.stack.resource_map.update(self.template_dict, self.parameters)
 
 
-class FakeEvent(BaseModel):
+class Event(BaseModel):
     def __init__(
         self,
         stack_id: str,
@@ -801,7 +801,7 @@ class CloudFormationBackend(BaseBackend):
         self.stacksets: Dict[str, StackSet] = OrderedDict()
         self.deleted_stacks: Dict[str, Stack] = {}
         self.exports: Dict[str, Export] = OrderedDict()
-        self.change_sets: Dict[str, FakeChangeSet] = OrderedDict()
+        self.change_sets: Dict[str, ChangeSet] = OrderedDict()
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1078,7 +1078,7 @@ class CloudFormationBackend(BaseBackend):
             change_set_name, self.region_name, self.account_id
         )
 
-        new_change_set = FakeChangeSet(
+        new_change_set = ChangeSet(
             change_set_type=change_set_type,
             change_set_id=change_set_id,
             change_set_name=change_set_name,
@@ -1116,7 +1116,7 @@ class CloudFormationBackend(BaseBackend):
                     break
             del self.change_sets[to_delete]
 
-    def describe_change_set(self, change_set_name: str) -> Optional[FakeChangeSet]:
+    def describe_change_set(self, change_set_name: str) -> Optional[ChangeSet]:
         change_set = None
         if change_set_name in self.change_sets:
             # This means arn was passed in
@@ -1192,7 +1192,7 @@ class CloudFormationBackend(BaseBackend):
         stack_set = self.describe_stack_set(stackset_name)
         return [i.to_dict() for i in stack_set.instances.stack_instances]
 
-    def list_change_sets(self) -> Iterable[FakeChangeSet]:
+    def list_change_sets(self) -> Iterable[ChangeSet]:
         return self.change_sets.values()
 
     def list_stacks(self, status_filter: Optional[List[str]] = None) -> List[Stack]:
@@ -1300,7 +1300,7 @@ class CloudFormationBackend(BaseBackend):
             next_token = str(token + 100) if len(all_exports) > token + 100 else None
         return exports, next_token
 
-    def describe_stack_events(self, stack_name: str) -> List[FakeEvent]:
+    def describe_stack_events(self, stack_name: str) -> List[Event]:
         return self.get_stack(stack_name).events
 
     def get_template(self, name_or_stack_id: str) -> Union[str, Dict[str, Any]]:
