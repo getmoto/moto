@@ -34,7 +34,7 @@ from .utils import (
 )
 
 
-class FakeStackSet(BaseModel):
+class StackSet(BaseModel):
     def __init__(
         self,
         stackset_id: str,
@@ -760,7 +760,7 @@ class CloudFormationBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.stacks: Dict[str, FakeStack] = OrderedDict()
-        self.stacksets: Dict[str, FakeStackSet] = OrderedDict()
+        self.stacksets: Dict[str, StackSet] = OrderedDict()
         self.deleted_stacks: Dict[str, FakeStack] = {}
         self.exports: Dict[str, Export] = OrderedDict()
         self.change_sets: Dict[str, FakeChangeSet] = OrderedDict()
@@ -776,7 +776,7 @@ class CloudFormationBackend(BaseBackend):
 
     def _resolve_update_parameters(
         self,
-        instance: Union[FakeStack, FakeStackSet],
+        instance: Union[FakeStack, StackSet],
         incoming_params: List[Dict[str, str]],
     ) -> Dict[str, str]:
         parameters = dict(
@@ -810,12 +810,12 @@ class CloudFormationBackend(BaseBackend):
         admin_role: Optional[str],
         exec_role: Optional[str],
         description: Optional[str],
-    ) -> FakeStackSet:
+    ) -> StackSet:
         """
         The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
         """
         stackset_id = generate_stackset_id(name)
-        new_stackset = FakeStackSet(
+        new_stackset = StackSet(
             stackset_id=stackset_id,
             account_id=self.account_id,
             name=name,
@@ -831,7 +831,7 @@ class CloudFormationBackend(BaseBackend):
         self.stacksets[stackset_id] = new_stackset
         return new_stackset
 
-    def describe_stack_set(self, name: str) -> FakeStackSet:
+    def describe_stack_set(self, name: str) -> StackSet:
         stacksets = self.stacksets.keys()
         if name in stacksets and self.stacksets[name].status != "DELETED":
             return self.stacksets[name]
@@ -844,7 +844,7 @@ class CloudFormationBackend(BaseBackend):
         raise StackSetNotFoundException(name)
 
     def delete_stack_set(self, name: str) -> None:
-        stackset_to_delete: Optional[FakeStackSet] = None
+        stackset_to_delete: Optional[StackSet] = None
         if name in self.stacksets:
             stackset_to_delete = self.stacksets[name]
         for stackset in self.stacksets.values():
@@ -857,7 +857,7 @@ class CloudFormationBackend(BaseBackend):
             # We don't remove StackSets from the list - they still show up when calling list_stack_sets
             stackset_to_delete.delete()
 
-    def list_stack_sets(self) -> Iterable[FakeStackSet]:
+    def list_stack_sets(self) -> Iterable[StackSet]:
         return self.stacksets.values()
 
     def list_stack_set_operations(self, stackset_name: str) -> List[Dict[str, Any]]:
@@ -870,7 +870,7 @@ class CloudFormationBackend(BaseBackend):
 
     def describe_stack_set_operation(
         self, stackset_name: str, operation_id: str
-    ) -> Tuple[FakeStackSet, Dict[str, Any]]:
+    ) -> Tuple[StackSet, Dict[str, Any]]:
         stackset = self.describe_stack_set(stackset_name)
         operation = stackset.get_operation(operation_id)
         return stackset, operation
@@ -947,7 +947,7 @@ class CloudFormationBackend(BaseBackend):
 
     def delete_stack_instances(
         self, stackset_name: str, accounts: List[str], regions: List[str]
-    ) -> FakeStackSet:
+    ) -> StackSet:
         """
         The following parameters are not  yet implemented: DeploymentTargets, OperationPreferences, RetainStacks, OperationId, CallAs
         """
