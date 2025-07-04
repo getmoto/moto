@@ -571,7 +571,7 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_STACK_SET_RESPONSE_TEMPLATE)
         return template.render(stackset=stackset)
 
-    def describe_stack_instance(self) -> str:
+    def describe_stack_instance(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         account = self._get_param("StackInstanceAccount")
         region = self._get_param("StackInstanceRegion")
@@ -579,9 +579,8 @@ class CloudFormationResponse(BaseResponse):
         instance = self.cloudformation_backend.describe_stack_instance(
             stackset_name, account, region
         )
-        template = self.response_template(DESCRIBE_STACK_INSTANCE_TEMPLATE)
-        rendered = template.render(instance=instance)
-        return rendered
+        result = {"StackInstance": instance}
+        return ActionResult(result)
 
     def list_stack_sets(self) -> ActionResult:
         stacksets = self.cloudformation_backend.list_stack_sets()
@@ -879,61 +878,3 @@ DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http:
     <RequestId>d8b64e11-5332-46e1-9603-example</RequestId>
   </ResponseMetadata>
 </DescribeStackSetResponse>"""
-
-
-DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <DescribeStackInstanceResult>
-    <StackInstance>
-      <StackId>{{ instance["StackId"] }}</StackId>
-      <StackSetId>{{ instance["StackSetId"] }}</StackSetId>
-    {% if instance["ParameterOverrides"] %}
-      <ParameterOverrides>
-      {% for override in instance["ParameterOverrides"] %}
-      {% if override['ParameterKey'] or override['ParameterValue'] %}
-        <member>
-          <ParameterKey>{{ override["ParameterKey"] }}</ParameterKey>
-          <UsePreviousValue>false</UsePreviousValue>
-          <ParameterValue>{{ override["ParameterValue"] }}</ParameterValue>
-        </member>
-      {% endif %}
-      {% endfor %}
-      </ParameterOverrides>
-    {% else %}
-      <ParameterOverrides/>
-    {% endif %}
-      <Region>{{ instance["Region"] }}</Region>
-      <Account>{{ instance["Account"] }}</Account>
-      <Status>{{ instance["Status"] }}</Status>
-      <StackInstanceStatus>
-          <DetailedStatus>{{ instance["StackInstanceStatus"]["DetailedStatus"] }}</DetailedStatus>
-      </StackInstanceStatus>
-    </StackInstance>
-  </DescribeStackInstanceResult>
-  <ResponseMetadata>
-    <RequestId>c6c7be10-0343-4319-8a25-example</RequestId>
-  </ResponseMetadata>
-</DescribeStackInstanceResponse>
-"""
-
-
-DESCRIBE_STACKSET_OPERATION_RESPONSE_TEMPLATE = """<DescribeStackSetOperationResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <DescribeStackSetOperationResult>
-    <StackSetOperation>
-      <ExecutionRoleName>{{ stackset.execution_role }}</ExecutionRoleName>
-      <AdministrationRoleARN>{{ stackset.admin_role }}</AdministrationRoleARN>
-      <StackSetId>{{ stackset.id }}</StackSetId>
-      <CreationTimestamp>{{ operation.CreationTimestamp }}</CreationTimestamp>
-      <OperationId>{{ operation.OperationId }}</OperationId>
-      <Action>{{ operation.Action }}</Action>
-      <OperationPreferences>
-        <RegionOrder/>
-      </OperationPreferences>
-      <EndTimestamp>{{ operation.EndTimestamp }}</EndTimestamp>
-      <Status>{{ operation.Status }}</Status>
-    </StackSetOperation>
-  </DescribeStackSetOperationResult>
-  <ResponseMetadata>
-    <RequestId>2edc27b6-9ce2-486a-a192-example</RequestId>
-  </ResponseMetadata>
-</DescribeStackSetOperationResponse>
-"""
