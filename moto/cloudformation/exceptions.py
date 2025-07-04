@@ -8,7 +8,7 @@ class CloudFormationError(ServiceException):
 
 
 class UnformattedGetAttTemplateException(Exception):
-    message = (
+    description = (
         "Template error: resource {0} does not support attribute type {1} in Fn::GetAtt"
     )
     status_code = 400
