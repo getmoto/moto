@@ -650,7 +650,7 @@ class CloudFormationResponse(BaseResponse):
     def get_stack_policy(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         policy = self.cloudformation_backend.get_stack_policy(stack_name)
-        result = {"StackPolicyBody": policy}
+        result = {"StackPolicyBody": policy if policy else None}
         return ActionResult(result)
 
     def set_stack_policy(self) -> ActionResult:
