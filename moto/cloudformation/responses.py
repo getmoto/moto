@@ -294,10 +294,10 @@ class CloudFormationResponse(BaseResponse):
         template = self.response_template(DESCRIBE_STACK_EVENTS_RESPONSE)
         return template.render(events=events)
 
-    def list_change_sets(self) -> str:
+    def list_change_sets(self) -> ActionResult:
         change_sets = self.cloudformation_backend.list_change_sets()
-        template = self.response_template(LIST_CHANGE_SETS_RESPONSE)
-        return template.render(change_sets=change_sets)
+        result = {"Summaries": change_sets}
+        return ActionResult(result)
 
     def list_stacks(self) -> ActionResult:
         status_filter = self._get_multi_param("StackStatusFilter.member")
@@ -884,26 +884,6 @@ DESCRIBE_STACK_EVENTS_RESPONSE = """<DescribeStackEventsResponse xmlns="http://c
     <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
   </ResponseMetadata>
 </DescribeStackEventsResponse>"""
-
-LIST_CHANGE_SETS_RESPONSE = """<ListChangeSetsResponse>
- <ListChangeSetsResult>
-  <Summaries>
-    {% for change_set in change_sets %}
-    <member>
-        <StackId>{{ change_set.stack_id }}</StackId>
-        <StackName>{{ change_set.stack_name }}</StackName>
-        <ChangeSetId>{{ change_set.change_set_id }}</ChangeSetId>
-        <ChangeSetName>{{ change_set.change_set_name }}</ChangeSetName>
-        <ExecutionStatus>{{ change_set.execution_status }}</ExecutionStatus>
-        <Status>{{ change_set.status }}</Status>
-        <StatusReason>{{ change_set.status_reason }}</StatusReason>
-        <CreationTime>2011-05-23T15:47:44Z</CreationTime>
-        <Description>{{ change_set.description }}</Description>
-    </member>
-    {% endfor %}
-  </Summaries>
- </ListChangeSetsResult>
-</ListChangeSetsResponse>"""
 
 
 DESCRIBE_STACK_SET_RESPONSE_TEMPLATE = """<DescribeStackSetResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
