@@ -1,6 +1,6 @@
 import json
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import yaml
@@ -9,11 +9,7 @@ from yaml.scanner import ScannerError
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import (
-    iso_8601_datetime_with_milliseconds,
-    iso_8601_datetime_without_milliseconds,
-    utcnow,
-)
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.moto_api._internal import mock_random
 from moto.organizations.models import OrganizationsBackend, organizations_backends
 from moto.sns.models import sns_backends
@@ -109,10 +105,8 @@ class StackSet(BaseModel):
             "OperationId": operation_id,
             "Action": action,
             "Status": status,
-            "CreationTimestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f"),
-            "EndTimestamp": (datetime.now() + timedelta(minutes=2)).strftime(
-                "%Y-%m-%dT%H:%M:%S.%f"
-            ),
+            "CreationTimestamp": utcnow(),
+            "EndTimestamp": utcnow() + timedelta(minutes=2),
             "Instances": [
                 {account: region} for account in accounts for region in regions
             ],
@@ -474,10 +468,6 @@ class Stack(CloudFormationModel):
     def _create_output_map(self) -> OutputMap:
         return OutputMap(self.resource_map, self.template_dict, self.stack_id)
 
-    @property
-    def creation_time_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.creation_time)
-
     def _add_stack_event(
         self,
         resource_status: str,
@@ -720,10 +710,6 @@ class FakeChangeSet(BaseModel):
             self.template_dict = yaml.load(self.template, Loader=yaml.Loader)
         except (ParserError, ScannerError):
             self.template_dict = json.loads(self.template)
-
-    @property
-    def creation_time_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.creation_time)
 
     def diff(self) -> List[FakeChange]:
         changes = []
