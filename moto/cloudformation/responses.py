@@ -58,7 +58,22 @@ def get_template_summary_response_from_template(template_body: str) -> Dict[str,
         template_dict = json.loads(template_body)
 
     resources_types = get_resource_types(template_dict)
-    template_dict["resourceTypes"] = resources_types
+    template_dict["ResourceTypes"] = resources_types
+    template_dict["Version"] = template_dict["AWSTemplateFormatVersion"]
+    parameters = []
+    for key, value in template_dict.get("Parameters", {}).items():
+        parameter = {
+            "ParameterKey": key,
+            "Description": value.get("Description", ""),
+            "DefaultValue": value.get("Default", None),
+            "NoEcho": value.get("NoEcho", False),
+            "ParameterType": value.get("Type", "String"),
+            "ParameterConstraints": {},
+        }
+        if "AllowedValues" in value:
+            parameter["ParameterConstraints"]["AllowedValues"] = value["AllowedValues"]
+        parameters.append(parameter)
+    template_dict["Parameters"] = parameters
     return template_dict
 
 
@@ -327,7 +342,7 @@ class CloudFormationResponse(BaseResponse):
         result = {"TemplateBody": stack_template}
         return ActionResult(result)
 
-    def get_template_summary(self) -> str:
+    def get_template_summary(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         template_url = self._get_param("TemplateURL")
         stack_body = self._get_param("TemplateBody")
@@ -343,8 +358,7 @@ class CloudFormationResponse(BaseResponse):
             stack_body = self._get_stack_from_s3_url(template_url)
 
         template_summary = get_template_summary_response_from_template(stack_body)
-        template = self.response_template(GET_TEMPLATE_SUMMARY_TEMPLATE)
-        return template.render(template_summary=template_summary)
+        return ActionResult(template_summary)
 
     def _validate_different_update(
         self,
@@ -921,44 +935,4 @@ LIST_STACK_SET_OPERATION_RESULTS_RESPONSE_TEMPLATE = """<ListStackSetOperationRe
     <RequestId>ac05a9ce-5f98-4197-a29b-example</RequestId>
   </ResponseMetadata>
 </ListStackSetOperationResultsResponse>
-"""
-
-# https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_GetTemplateSummary.html
-# TODO:implement fields: ResourceIdentifierSummaries, Capabilities, CapabilitiesReason
-GET_TEMPLATE_SUMMARY_TEMPLATE = """<GetTemplateSummaryResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <GetTemplateSummaryResult>
-    <Description>{{ template_summary.Description }}</Description>
-    {% for resource in template_summary.resourceTypes %}
-      <ResourceTypes>
-        <member>{{ resource }}</member>
-      </ResourceTypes>
-    {% endfor %}
-    <Parameters>
-        {% for k,p in template_summary.get('Parameters',{}).items() %}
-        <member>
-            <ParameterKey>{{ k }}</ParameterKey> ,
-            <Description>{{ p.get('Description', '') }}</Description>,
-            {% if p.Default %}
-            <DefaultValue>{{ p.Default }}</DefaultValue>
-            {% endif %}
-            <NoEcho>{{ p.get('NoEcho', False) }}</NoEcho>
-            <ParameterType>{{ p.get('Type', 'String') }}</ParameterType>
-            <ParameterConstraints>
-              {% if p.AllowedValues %}
-              <AllowedValues>
-                {% for v in p.AllowedValues %}
-                <member>{{ v }}</member>
-                {% endfor %}
-              </AllowedValues>
-              {% endif %}
-            </ParameterConstraints>
-        </member>
-        {% endfor %}
-    </Parameters>
-    <Version>{{ template_summary.AWSTemplateFormatVersion }}</Version>
-  </GetTemplateSummaryResult>
-  <ResponseMetadata>
-    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
-  </ResponseMetadata>
-</GetTemplateSummaryResponse>
 """
