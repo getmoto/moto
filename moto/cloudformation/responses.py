@@ -549,10 +549,10 @@ class CloudFormationResponse(BaseResponse):
         rendered = template.render(instance=instance)
         return rendered
 
-    def list_stack_sets(self) -> str:
+    def list_stack_sets(self) -> ActionResult:
         stacksets = self.cloudformation_backend.list_stack_sets()
-        template = self.response_template(LIST_STACK_SETS_TEMPLATE)
-        return template.render(stacksets=stacksets)
+        result = {"Summaries": stacksets}
+        return ActionResult(result)
 
     def list_stack_instances(self) -> str:
         stackset_name = self._get_param("StackSetName")
@@ -1058,24 +1058,6 @@ DESCRIBE_STACK_INSTANCE_TEMPLATE = """<DescribeStackInstanceResponse xmlns="http
     <RequestId>c6c7be10-0343-4319-8a25-example</RequestId>
   </ResponseMetadata>
 </DescribeStackInstanceResponse>
-"""
-
-LIST_STACK_SETS_TEMPLATE = """<ListStackSetsResponse xmlns="http://internal.amazon.com/coral/com.amazonaws.maestro.service.v20160713/">
-  <ListStackSetsResult>
-    <Summaries>
-    {% for stackset in stacksets %}
-      <member>
-        <StackSetName>{{ stackset.name }}</StackSetName>
-        <StackSetId>{{ stackset.id }}</StackSetId>
-        <Status>{{ stackset.status }}</Status>
-      </member>
-    {% endfor %}
-    </Summaries>
-  </ListStackSetsResult>
-  <ResponseMetadata>
-    <RequestId>4dcacb73-841e-4ed8-b335-example</RequestId>
-  </ResponseMetadata>
-</ListStackSetsResponse>
 """
 
 
