@@ -20,7 +20,12 @@ from moto.sns.models import sns_backends
 from moto.utilities.utils import get_partition
 
 from .custom_model import CustomModel
-from .exceptions import StackSetNotEmpty, StackSetNotFoundException, ValidationError
+from .exceptions import (
+    AlreadyExistsException,
+    StackSetNotEmpty,
+    StackSetNotFoundException,
+    ValidationError,
+)
 from .parsing import Export, Output, OutputMap, ResourceMap
 from .utils import (
     generate_changeset_id,
@@ -970,6 +975,8 @@ class CloudFormationBackend(BaseBackend):
         """
         The functionality behind EnableTerminationProtection is not yet implemented.
         """
+        if name in [stack.name for stack in self.stacks.values()]:
+            raise AlreadyExistsException(f"Stack {name} already exists")
         stack_id = generate_stack_id(name, self.region_name, self.account_id)
         new_stack = FakeStack(
             stack_id=stack_id,

@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import yaml
 from yaml.parser import ParserError
@@ -123,7 +123,7 @@ class CloudFormationResponse(BaseResponse):
 
         return 200, {"status": 200}, json.dumps("{}")
 
-    def create_stack(self) -> Union[str, Tuple[int, Dict[str, int], str]]:
+    def create_stack(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
@@ -136,12 +136,6 @@ class CloudFormationResponse(BaseResponse):
             (item["key"], item["value"])
             for item in self._get_list_prefix("Tags.member")
         )
-
-        if self.stack_name_exists(new_stack_name=stack_name):
-            template = self.response_template(
-                CREATE_STACK_NAME_EXISTS_RESPONSE_TEMPLATE
-            )
-            return 400, {"status": 400}, template.render(name=stack_name)
 
         parameters = self._get_params_from_list(parameters_list)
 
@@ -160,23 +154,8 @@ class CloudFormationResponse(BaseResponse):
             timeout_in_mins=timeout_in_mins,
             stack_policy_body=stack_policy_body,
         )
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreateStackResponse": {
-                        "CreateStackResult": {"StackId": stack.stack_id}
-                    }
-                }
-            )
-        else:
-            template = self.response_template(CREATE_STACK_RESPONSE_TEMPLATE)
-            return template.render(stack=stack)
-
-    def stack_name_exists(self, new_stack_name: str) -> bool:
-        for stack in self.cloudformation_backend.stacks.values():
-            if stack.name == new_stack_name:
-                return True
-        return False
+        result = {"StackId": stack.stack_id}
+        return ActionResult(result)
 
     def validate_template_and_stack_body(self) -> None:
         if (
@@ -701,25 +680,6 @@ VALIDATE_STACK_RESPONSE_TEMPLATE = """<ValidateTemplateResponse>
 <Parameters></Parameters>
 </ValidateTemplateResult>
 </ValidateTemplateResponse>"""
-
-CREATE_STACK_RESPONSE_TEMPLATE = """<CreateStackResponse>
-  <CreateStackResult>
-    <StackId>{{ stack.stack_id }}</StackId>
-  </CreateStackResult>
-  <ResponseMetadata>
-    <RequestId>b9b4b068-3a41-11e5-94eb-example</RequestId>
-    </ResponseMetadata>
-</CreateStackResponse>
-"""
-
-CREATE_STACK_NAME_EXISTS_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <Error>
-    <Type>Sender</Type>
-    <Code>AlreadyExistsException</Code>
-    <Message>Stack [{{ name }}] already exists</Message>
-  </Error>
-  <RequestId>950ff8d7-812a-44b3-bb0c-9b271b954104</RequestId>
-</ErrorResponse>"""
 
 
 DESCRIBE_CHANGE_SET_RESPONSE_TEMPLATE = """<DescribeChangeSetResponse>
