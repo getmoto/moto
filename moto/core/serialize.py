@@ -857,6 +857,8 @@ class QuerySerializer(BaseXMLSerializer):
 
 
 class QueryJSONSerializer(QuerySerializer):
+    """Specialized case for query protocol requests that contain ContentType=JSON parameter."""
+
     CONTENT_TYPE = "application/json"
 
     def _serialized_error_to_response(
