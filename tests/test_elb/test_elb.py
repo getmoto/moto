@@ -680,6 +680,7 @@ def test_default_attributes():
     assert attributes["AccessLog"] == {"Enabled": False}
     assert attributes["ConnectionDraining"] == {"Enabled": False}
     assert attributes["ConnectionSettings"] == {"IdleTimeout": 60}
+    assert attributes["AdditionalAttributes"] == []
 
 
 @mock_aws
@@ -1073,6 +1074,24 @@ def test_modify_attributes():
     lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName="my-lb")
     assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Enabled"] is True
     assert lb_attrs["LoadBalancerAttributes"]["ConnectionDraining"]["Timeout"] == 45
+
+    # Add additional attributes
+    client.modify_load_balancer_attributes(
+        LoadBalancerName="my-lb",
+        LoadBalancerAttributes={
+            "AdditionalAttributes": [
+                {
+                    "Key": "elb.http.desyncmitigationmode",
+                    "Value": "monitor",
+                }
+            ]
+        },
+    )
+    lb_attrs = client.describe_load_balancer_attributes(LoadBalancerName="my-lb")
+    assert lb_attrs["LoadBalancerAttributes"]["AdditionalAttributes"][0] == {
+        "Key": "elb.http.desyncmitigationmode",
+        "Value": "monitor",
+    }
 
 
 @mock_aws

@@ -269,6 +269,7 @@ class FakeLoadBalancer(CloudFormationModel):
         attributes["connection_draining"] = {"enabled": False}
         attributes["access_log"] = {"enabled": False}
         attributes["connection_settings"] = {"idle_timeout": 60}
+        attributes["additional_attributes"] = []
 
         return attributes
 
@@ -551,6 +552,7 @@ class ELBBackend(BaseBackend):
         connection_settings: Optional[Dict[str, Any]] = None,
         connection_draining: Optional[Dict[str, Any]] = None,
         access_log: Optional[Dict[str, Any]] = None,
+        additional_attributes: Optional[List[Dict[str, str]]] = None,
     ) -> None:
         load_balancer = self.get_load_balancer(load_balancer_name)
         if cross_zone:
@@ -565,6 +567,16 @@ class ELBBackend(BaseBackend):
                 )
         if access_log:
             load_balancer.attributes["access_log"] = access_log
+        if additional_attributes:
+            load_balancer.attributes["additional_attributes"] = [
+                (attr["Key"], attr["Value"]) for attr in additional_attributes
+            ]
+        else:
+            if not load_balancer.attributes["additional_attributes"]:
+                load_balancer.attributes["additional_attributes"] = []
+            load_balancer.attributes["additional_attributes"].append(
+                ("elb.http.desyncmitigationmode", "defensive")
+            )
 
     def create_load_balancer_policy(
         self,
