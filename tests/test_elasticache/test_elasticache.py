@@ -1001,28 +1001,34 @@ def test_create_replication_group():
 
 
 @mock_aws
-def test_create_replication_group_and_primary_cluster():
+def test_create_replication_group_cluster_disabled():
     client = boto3.client("elasticache", region_name="us-east-2")
-    primary_cluster_id = "test-primary-cluster"
-    engine = "redis"
-    cache_node_type = "cache.t2.micro"
-
-    primary_cluster = client.create_cache_cluster(
-        CacheClusterId=primary_cluster_id,
-        Engine=engine,
-        NumCacheNodes=1,
-        CacheNodeType=cache_node_type,
-    )
 
     resp = client.create_replication_group(
-        ReplicationGroupId="test-replication-group",
-        ReplicationGroupDescription="Test replication group",
-        PrimaryClusterId=primary_cluster_id,
+        ReplicationGroupId="test-cluster-disabled",
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
         AutomaticFailoverEnabled=True,
-        CacheNodeType=cache_node_type,
-        Engine=engine,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
     )
 
-    assert resp["ReplicationGroup"]["ReplicationGroupId"] == "test-replication-group"
-    assert resp["ReplicationGroup"]["PrimaryClusterId"] == primary_cluster_id
-    assert primary_cluster["CacheCluster"]["CacheClusterId"] == primary_cluster_id
+    print(resp)
+    print(resp)
+    replication_group = resp["ReplicationGroup"]
+    assert replication_group["ReplicationGroupId"] == "test-cluster-disabled"
+    assert replication_group["Description"] == "test replication group"
+    assert replication_group["Status"] == "available"
+    assert len(replication_group["NodeGroups"]) == 1
+    assert len(resp["ReplicationGroup"]["MemberClusters"]) == 3
+    assert resp["ReplicationGroup"]["MemberClusters"] == [
+        "test-cluster-disabled-0001",
+        "test-cluster-disabled-0002",
+        "test-cluster-disabled-0003",
+    ]
+
