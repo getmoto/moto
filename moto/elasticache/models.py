@@ -271,33 +271,26 @@ class ReplicationGroup(BaseModel):
         self.replication_group_id = replication_group_id
         self.replication_group_description = replication_group_description
         self.port = port
-
-        # Default to available and not including PendingModifiedValues
-        # until global_replication_group is added.
         self.status = "available"
 
-        # This field is only present if the API is used to create a
-        # secondary replication group associated with an existing
-        # global replication group.
+        # This field is only present if we are creating a
+        # secondary replication group and associating it with an existing
+        # global replication group and primary cluster.
         if global_replication_group_id:
             self.global_replication_group_id = global_replication_group_id
             self.global_replication_group_member_role = "SECONDARY"
         else:
             self.global_replication_group_id = None
 
+        # Leaving off PendingModifiedValues for now
+        # until global_replication_group is implemented.
         self.primary_cluster_id = primary_cluster_id
 
-        if primary_cluster_id:
-            self.pending_automatic_failover = "enabled" if automatic_failover_enabled else "disabled"
-
-        # NodeGroups are cluster groups
-        # Ports used in num_node_groups would all be the same as self.port
+        self.node_groups = []
         random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
         region_short = "use1"
         replication_group_domain = f"{replication_group_id}.{random_str}.{region_short}.cache.amazonaws.com"
-        self.node_groups = []
-        # member_clusters consist of CacheClusterIDs of primary and replicas
-        self.member_clusters = []
+        self.member_clusters = [] # member_clusters consist of CacheClusterIDs of primary and replicas
 
         for i in range(len(num_node_groups)):
             node_group: Dict[str, Any] = {}
@@ -375,7 +368,8 @@ class ReplicationGroup(BaseModel):
                     replication_group_domain=replication_group_domain,
                     node_group=node_group,
                     preferred_cache_cluster_azs=preferred_cache_cluster_azs,
-                    node_group=node_group
+                    node_group=node_group,
+                    num_cache_clusters=num_cache_clusters
                 )
                 # primary_node = {}
                 # primary_node.cache_cluster_id = f"{replication_group_id}-001"
@@ -466,20 +460,20 @@ class ReplicationGroup(BaseModel):
 
     def _get_log_delivery_configurations(self, log_delivery_configurations: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         log_delivery_configurations_resp = []
+
         for log_delivery_configuration in log_delivery_configurations:
-            if "LogFormat" not in log_delivery_configuration:
-                log_delivery_configuration["LogFormat"] = "text"
-            if "DestinationType" not in log_delivery_configuration:
-                log_delivery_configuration["DestinationType"] = "cloudwatch-logs"
-            if "DestinationDetails" not in log_delivery_configuration:
-                log_delivery_configuration["DestinationDetails"] = {}
-            if "LogType" not in log_delivery_configuration:
-                log_delivery_configuration["LogType"] = "slow-log"
+            log_config_resp = {}
+            log_config_resp.log_type = log_delivery_configuration.get("LogType", "slow-log")
+            log_config_resp.destination_type = log_delivery_configuration.get("DestinationType", "cloudwatch-logs")
+            log_config_resp.destination_details = {}
+            if log_delivery_configuration.get("DestinationDetails"):
+                log_config_resp.destination_details.cloudwatch_log_group = log_delivery_configuration.get("DestinationDetails", {}).get("CloudWatchLogGroup", "")
+                log_config_resp.destination_details.kinesis_stream = log_delivery_configuration.get("DestinationDetails", {}).get("KinesisStream", "")
+            log_config_resp.log_format = log_delivery_configuration.get("LogFormat", "text")
+            log_config_resp.status = "active"
+            log_config_resp.message = "Log delivery configuration is active."
 
-            log_delivery_configuration["Status"] = "active"
-            log_delivery_configuration["Message"] = "Log delivery configuration is active."
-
-            self.log_delivery_configurations.append(log_delivery_configuration)
+            log_delivery_configurations_resp.append(log_config_resp)
         return log_delivery_configurations_resp
 
     # This method will set populate the node_group with node_group_members

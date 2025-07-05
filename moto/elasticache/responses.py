@@ -814,7 +814,6 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
       <% if replication_group.primary_cluster_id %}>
       <PendingModifiedValues>
         <PrimaryClusterId>{{ replication_group.primary_cluster_id }}</PrimaryClusterId>
-        <AuomaticFailoverStatus>{{ replication_group.pending_automatic_failover_status }}</AutomaticFailoverStatus>
       </PendingModifiedValues>
       {% endif %}
       <MemberClusters>
@@ -827,6 +826,19 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
         <member>
           <NodeGroupId>{{ node_group.node_group_id }}</NodeGroupId>
           <Status>{{ node_group.status }}</Status>
+          <% if replication_group.cluster_mode == "enabled" %>
+          <Slots>{{ node_group.slots }}</Slots>
+          <NodeGroupMembers>
+            {% for node in node_group.node_group_members %}
+            <member>
+              <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
+              <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
+              <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
+            </member>
+            {$ endfor %}
+          </NodeGroupMembers>
+          <% endif %>
+          <% if replication_group.cluster_mode == "disabled" %>
           <PrimaryEndpoint>
             <Address>{{ node_group.primary_endpoint_address }}</Address>
             <Port>{{ self.port }}</Port>
@@ -835,51 +847,47 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
             <Address>{{ node_group.reader_endpoint_address }}</Address>
             <Port>{{ self.port }}</Port>
           </ReaderEndpoint>
-          <CacheNodeType>{{ node_group.cache_node_type }}</CacheNodeType>
-          <PreferredAvailabilityZone>{{ node_group.preferred_availability_zone }}</PreferredAvailabilityZone>
-          <PreferredOutpostArn>{{ node_group.preferred_outpost_arn }}</PreferredOutpostArn>
-          <ReplicaCount>{{ node_group.replica_count }}</ReplicaCount>
-          {% if node_group.slots %}
-          <Slots>{{ node_group.slots }}</Slots>
-          {% endif %}
+          {% for node_group in replication_group.node_groups %}
           <NodeGroupMembers>
-            {% for node in node_group.node_group_members %}
-            <member>
-              <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
-              <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
-              <ReadEndpoint>
-                <Address>{{ node.read_endpoint.address }}</Address>
-                <Port>{{ node.read_endpoint.port }}</Port>
-              </ReadEndpoint>
-              <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
-              <PreferredOutpostArn>{{ node.preferred_outpost_arn }}</PreferredOutpostArn>
-              <CurrentRole>{{ node.current_role }}</CurrentRole>
-            </member>
-            {% endfor %}
+          {% for node in node_group.node_group_members %}
+          <member>
+            <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
+            <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
+            <ReadEndpoint>
+              <Address>{{ node.read_endpoint.address }}</Address>
+              <Port>{{ node.read_endpoint.port }}</Port>
+            </ReadEndpoint>
+            <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
+            <CurrentRole>{{ node.current_role }}</CurrentRole>
+          </member>
           </NodeGroupMembers>
+          {% endfor %}
+          <% endif %>
         </member>
         {% endfor %}
       </NodeGroups>
       <SnapshottingClusterId>{{ replication_group.snapshotting_cluster_id }}</SnapshottingClusterId>
-      <AutomaticFailoverEnabled>{{ replication_group.automatic_failover_enabled|lower }}</AutomaticFailoverEnabled>
-      <MultiAZEnabled>{{ replication_group.multi_az_enabled|lower }}</MultiAZEnabled>
+      <AutomaticFailover>{{ replication_group.automatic_failover }}</AutomaticFailover>
+      <MultiAZ>{{ replication_group.multi_az_enabled }}</MultiAZ>
+      <% if cluster_mode == "enabled" %}
       <ConfigurationEndpoint>
         <Address>{{ replication_group.configuration_endpoint.address }}</Address>
         <Port>{{ replication_group.configuration_endpoint.port }}</Port>
       </ConfigurationEndpoint>
-      <SnapshotRetentionLimit>{{ replication_group.snapshot_retention_limit }}</SnapshotRetentionLimit>
-      <SnapshotWindow>{{ replication_group.snapshot_window }}</SnapshotWindow>
-      <ClusterEnabled>{{ replication_group.cluster_enabled|lower }}</ClusterEnabled>
-      <CacheNodeType>{{ replication_group.cache_node_type }}</CacheNodeType>
-      <AuthTokenEnabled>{{ replication_group.auth_token is not none }}</AuthTokenEnabled>
-      <AuthTokenLastModifiedDate>{{ replication_group.auth_token_last_modified_date }}</AuthTokenLastModifiedDate>
-      <TransitEncryptionEnabled>{{ replication_group.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
-      <AtRestEncryptionEnabled>{{ replication_group.at_rest_encryption_enabled|lower }}</AtRestEncryptionEnabled>
       <MemberClustersOutpostArns>
         {% for outpost_arn in replication_group.member_clusters_outpost_arns %}
         <member>{{ outpost_arn }}</member>
         {% endfor %}
       </MemberClustersOutpostArns>
+      <% endif %>
+      <SnapshotRetentionLimit>{{ replication_group.snapshot_retention_limit }}</SnapshotRetentionLimit>
+      <SnapshotWindow>{{ replication_group.snapshot_window }}</SnapshotWindow>
+      <ClusterEnabled>{{ replication_group.cluster_enabled|lower }}</ClusterEnabled>
+      <CacheNodeType>{{ replication_group.cache_node_type }}</CacheNodeType>
+      <AuthTokenEnabled>{{ replication_group.auth_token_enabled }}</AuthTokenEnabled>
+      <AuthTokenLastModifiedDate>{{ replication_group.auth_token_last_modified_date }}</AuthTokenLastModifiedDate>
+      <TransitEncryptionEnabled>{{ replication_group.transit_encryption_enabled|lower }}</TransitEncryptionEnabled>
+      <AtRestEncryptionEnabled>{{ replication_group.at_rest_encryption_enabled|lower }}</AtRestEncryptionEnabled>
       <KmsKeyId>{{ replication_group.kms_key_id }}</KmsKeyId>
       <ARN>{{ replication_group.arn }}</ARN>
       <UserGroupIds>
@@ -887,18 +895,23 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
         <member>{{ user_group_id }}</member>
         {% endfor %}
       </UserGroupIds>
+      <%if replication_group.log_delivery_configurations %>
       <LogDeliveryConfigurations>
         {% for log_delivery_configuration in replication_group.log_delivery_configurations %}
         <member>
           <LogType>{{ log_delivery_configuration.log_type }}</LogType>
           <DestinationType>{{ log_delivery_configuration.destination_type }}</DestinationType>
           <DestinationDetails>
+            <%if log_delivery_configuration.destination_details.cloudwatch_log_group %>
             <CloudWatchLogsDetails>
-              <LogGroup>{{ log_delivery_configuration.cloud_watch_logs_details.log_group }}</LogGroup>
+              <LogGroup>{{ log_delivery_configuration.destination_details.cloudwatch_log_group }}</LogGroup>
             </CloudWatchLogsDetails>
+            <% endif %>
+            <%if log_delivery_configuration.destination_details.kinesis_stream %>
             <KinesisFirehoseDetails>
-              <DeliveryStream>{{ log_delivery_configuration.kinesis_firehose_details.delivery_stream }}</DeliveryStream>
+              <DeliveryStream>{{ log_delivery_configuration.destination_details.kinesis_stream }}</DeliveryStream>
             </KinesisFirehoseDetails>
+            <% endif %>
           </DestinationDetails>
           <LogFormat>{{ log_delivery_configuration.log_format }}</LogFormat>
           <Status>{{ log_delivery_configuration.status }}</Status>
@@ -906,8 +919,9 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
         </member>
         {% endfor %}
       </LogDeliveryConfigurations>
+      <% endif %>
       <ReplicationGroupCreateTime>{{ replication_group.replication_group_create_time }}</ReplicationGroupCreateTime>
-      <DataTiering>{{ replication_group.data_tiering_enabled|lower }}</DataTiering>
+      <DataTiering>{{ replication_group.data_tiering }}</DataTiering>
       <AutoMinorVersionUpgrade>{{ replication_group.auto_minor_version_upgrade|lower }}</AutoMinorVersionUpgrade>
       <NetworkType>{{ replication_group.network_type }}</NetworkType>
       <IpDiscovery>{{ replication_group.ip_discovery }}</IpDiscovery>
