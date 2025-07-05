@@ -19,8 +19,11 @@ jobs:
     - name: Install dependencies
       run: |
         pip install boto3 pytest sagemaker
-        # https://github.com/aws/sagemaker-python-sdk/issues/5116
-        pip install graphene
+        # Test fails with this particular version of sagemaker_core
+        # E       pydantic_core._pydantic_core.ValidationError: 1 validation error for TrainingJob.create
+        # E       session
+        # E         Input should be a valid dictionary or instance of Session [type=model_type, input_value=Session(region_name='us-east-1'), input_type=Session]
+        pip install sagemaker_core!=1.0.42
     - name: Run tests
       run: |
         mkdir ~/.aws
