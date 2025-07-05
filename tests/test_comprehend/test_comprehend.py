@@ -875,3 +875,36 @@ def test_update_endpoint():
         resp["DesiredModelArn"]
         == "arn:aws:comprehend:ap-southeast-1:123456789012:document-classifier/tf-acc-test-1726651689102157637"
     )
+
+
+@mock_aws
+def test_tags_from_resourcegroupsapi():
+    client = boto3.client("comprehend", region_name="ap-southeast-1")
+    arn = client.create_document_classifier(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        DocumentClassifierName="tf-acc-test-1726651689102157637",
+        VersionName="terraform-20221003201727469000000002",
+        OutputDataConfig=OUTPUT_DATA_CONFIG,
+        ClientRequestToken="unique-token",
+        VolumeKmsKeyId="kms-key-id",
+        VpcConfig={"SecurityGroupIds": ["sg-12345678"], "Subnets": ["subnet-12345678"]},
+        Mode="MULTI_CLASS",
+        Tags=[{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}],
+        ModelKmsKeyId="model-kms-key-id",
+        ModelPolicy="model-policy",
+    )["DocumentClassifierArn"]
+
+    resource_groups_client = boto3.client(
+        "resourcegroupstaggingapi", region_name="ap-southeast-1"
+    )
+    tags = resource_groups_client.get_resources(
+        ResourceARNList=[arn],
+    )["ResourceTagMappingList"]
+    assert len(tags) == 1
+    assert tags[0]["ResourceARN"] == arn
+    assert tags[0]["Tags"] == [
+        {"Key": "k1", "Value": "v1"},
+        {"Key": "k2", "Value": "v2"},
+    ]
