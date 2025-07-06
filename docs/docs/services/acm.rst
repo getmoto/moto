@@ -32,5 +32,6 @@ acm
         
 
 - [ ] resend_validation_email
+- [ ] revoke_certificate
 - [ ] update_certificate_options
 

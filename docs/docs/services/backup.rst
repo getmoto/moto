@@ -16,6 +16,7 @@ backup
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] associate_backup_vault_mpa_approval_team
 - [ ] cancel_legal_hold
 - [X] create_backup_plan
 - [ ] create_backup_selection
@@ -24,6 +25,7 @@ backup
 - [ ] create_legal_hold
 - [ ] create_logically_air_gapped_backup_vault
 - [ ] create_report_plan
+- [ ] create_restore_access_backup_vault
 - [ ] create_restore_testing_plan
 - [ ] create_restore_testing_selection
 - [X] delete_backup_plan
@@ -48,6 +50,7 @@ backup
 - [ ] describe_report_job
 - [ ] describe_report_plan
 - [ ] describe_restore_job
+- [ ] disassociate_backup_vault_mpa_approval_team
 - [ ] disassociate_recovery_point
 - [ ] disassociate_recovery_point_from_parent
 - [ ] export_backup_plan_template
@@ -92,6 +95,7 @@ backup
 - [ ] list_recovery_points_by_resource
 - [ ] list_report_jobs
 - [ ] list_report_plans
+- [ ] list_restore_access_backup_vaults
 - [ ] list_restore_job_summaries
 - [ ] list_restore_jobs
 - [ ] list_restore_jobs_by_protected_resource
@@ -106,6 +110,7 @@ backup
 - [ ] put_backup_vault_lock_configuration
 - [ ] put_backup_vault_notifications
 - [ ] put_restore_validation_result
+- [ ] revoke_restore_access_backup_vault
 - [ ] start_backup_job
 - [ ] start_copy_job
 - [ ] start_report_job
