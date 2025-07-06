@@ -975,7 +975,6 @@ def test_cache_subnet_group_with_ipv6_native_subnets():
     assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
     assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
     assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
-<<<<<<< HEAD
 
 
 @mock_aws
@@ -1152,5 +1151,3 @@ def test_create_replication_group_cluster_enabled():
         assert True
     else:
         assert False
-=======
->>>>>>> master
