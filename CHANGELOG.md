@@ -1,6 +1,64 @@
 Moto Changelog
 ==============
 
+
+
+5.1.7
+-----
+Docker Digest for 5.1.7: <autopopulateddigest>
+
+    New Methods:
+
+        * Connect-Campaigns:
+            * get_campaign_state()
+            * list_campaigns()
+            * list_tags_for_resource()
+            * pause_campaign()
+            * resume_campaign()
+            * start_campaign()
+            * stop_campaign()
+            * tag_resource()
+            * untag_resource()
+
+        * ECS:
+            * delete_task_definitions()
+
+        * ElastiCache:
+            * create_cache_subnet_group()
+            * describe_cache_subnet_groups()
+
+        * RAM:
+            * list_permissions()
+            * list_resource_types()
+
+        * RDS:
+            * create_blue_green_deployment()
+            * delete_blue_green_deployment()
+            * describe_blue_green_deployments()
+            * switchover_blue_green_deployment()
+
+    Miscellaneous:
+        * Athena: get_query_execution() now returns some additional attributes: 'ResultReuseConfiguration', 'Status.CompletionDateTime', 'Status.ServicePreProcessingTimeInMillis', 'Status.ResultReuseInformation'
+        * DynamoDB: query() now validates that all attributes in the KeyConditionExpression are actually keys
+        * DynamoDB: update_item() now validates unused ExpressionAttributeNames/ExpressionAttributeValues
+        * EC2: modify_vpc_attribute() now correctly handles the EnableDnsHostnames-attribute
+        * ECS: list_task_definitions() now supports the status-parameter
+        * ELB: describe_load_balancer_attributes() now returns the AdditionalAttributes-attribute
+        * ElastiCache: list_tags_for_resource() now supports SubnetGroups
+        * EventBridge: put_events() no longer throws a KeyError: 'time' for targets with a custom InputTemplate that do not specify the time
+        * Logs: get_query_results() now returns values as strings, in-line with how AWS behaves
+        * NetworkFirewall: describe_logging_configuration() no longer throws an error for LoggingConfigurations without tags
+        * RDS: create_db_cluster() now supports the PubliclyAccessible-parameter
+        * ResourceGroupTaggingAPI: get_resources() now supports resources from Comprehend: DocumentClassifiers and EntityRecognizers
+        * ResourceGroupTaggingAPI: get_resources() now supports resources from ConnectCampaign: Campaigns
+        * S3: get_bucket_cors() now returns the ID-attribute for CORS-rules
+        * S3: get_object() no longer returns the ContentEncoding=aws-chunked
+        * SecretsManager: list_secrets() now supports filtering by tags/description/owning-service for ReplicaSecrets
+        * ServiceDiscovery: create_public_dns_namespace()/create_private_dns_namespace() now actually creates a HostedZone in Route53
+        * SES: describe_configuration_set() now supports ConfigurationSetAttributeNames=["eventDestinations"] (other names are not yet supported)
+        * SSM: describe_parameters() now correctly returns tag-updates from add_tags_to_resource() and remove_tags_from_resource()
+
+
 5.1.6
 -----
 Docker Digest for 5.1.6: _sha256:0afd091e9d26ba1660ad54708ff1e853ffa1f437f057c91163b47d35155a852b_

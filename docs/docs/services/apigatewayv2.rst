@@ -35,6 +35,7 @@ apigatewayv2
         The following parameters are not yet implemented: ResponseModels, ResponseParameters
         
 
+- [ ] create_routing_rule
 - [X] create_stage
 - [X] create_vpc_link
 - [ ] delete_access_log_settings
@@ -51,6 +52,7 @@ apigatewayv2
 - [X] delete_route_request_parameter
 - [X] delete_route_response
 - [ ] delete_route_settings
+- [ ] delete_routing_rule
 - [X] delete_stage
 - [X] delete_vpc_link
 - [ ] export_api
@@ -91,12 +93,15 @@ apigatewayv2
         Pagination is not yet implemented
         
 
+- [ ] get_routing_rule
 - [X] get_stage
 - [X] get_stages
 - [X] get_tags
 - [X] get_vpc_link
 - [X] get_vpc_links
 - [ ] import_api
+- [ ] list_routing_rules
+- [ ] put_routing_rule
 - [X] reimport_api
   
         Only YAML is supported at the moment. Full OpenAPI-support is not guaranteed. Only limited validation is implemented
