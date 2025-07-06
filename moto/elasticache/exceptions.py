@@ -136,6 +136,7 @@ class InvalidSubnet(ElastiCacheException):
             message=f"Subnet {subnet_id} is invalid.",
         )
 
+
 class ReplicationGroupAlreadyExists(ElastiCacheException):
     code = 404
 
