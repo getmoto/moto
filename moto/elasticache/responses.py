@@ -231,7 +231,7 @@ class ElastiCacheResponse(BaseResponse):
         preferred_cache_cluster_azs = self._get_param("PreferredCacheClusterAZs")
         num_node_groups = self._get_int_param("NumNodeGroups")
         replicas_per_node_group = self._get_int_param("ReplicasPerNodeGroup")
-        node_group_configuration = self._get_param("NodeGroupConfiguration")
+        node_group_configuration = self._get_multi_param_dict("NodeGroupConfiguration").get("NodeGroupConfiguration") or []
         cache_node_type = self._get_param("CacheNodeType")
         engine = self._get_param("Engine")
         engine_version = self._get_param("EngineVersion")
@@ -828,6 +828,15 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
           <Status>{{ node_group.status }}</Status>
           {% if replication_group.cluster_mode == "enabled" %}
           <Slots>{{ node_group.slots }}</Slots>
+          <NodeGroupMembers>
+            {% for node in node_group.node_group_members %}
+            <member>
+              <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
+              <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
+              <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
+            </member>
+            {% endfor %}
+          </NodeGroupMembers>
           {% endif %}
           {% if replication_group.cluster_mode == "disabled" %}
           <PrimaryEndpoint>
@@ -933,18 +942,18 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
       #   <member>
       #     <NodeGroupId>{{ node_group.node_group_id }}</NodeGroupId>
       #     <Status>{{ node_group.status }}</Status>
-      #     {% if replication_group.cluster_mode == "enabled" %}
-      #     <Slots>{{ node_group.slots }}</Slots>
-      #     <NodeGroupMembers>
-      #       {% for node in node_group.node_group_members %}
-      #       <member>
-      #         <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
-      #         <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
-      #         <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
-      #       </member>
-      #       {% endfor %}
-      #     </NodeGroupMembers>
-      #     {% endif %}
+          # {% if replication_group.cluster_mode == "enabled" %}
+          # <Slots>{{ node_group.slots }}</Slots>
+          # <NodeGroupMembers>
+          #   {% for node in node_group.node_group_members %}
+          #   <member>
+          #     <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
+          #     <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
+          #     <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
+          #   </member>
+          #   {% endfor %}
+          # </NodeGroupMembers>
+          # {% endif %}
       #     {% if replication_group.cluster_mode == "disabled" %}
       #     <PrimaryEndpoint>
       #       <Address>{{ node_group.primary_endpoint_address }}</Address>

@@ -313,58 +313,19 @@ class ReplicationGroup(BaseModel):
                     # slots cannot overlap among node groups
                     node_group["slots"] = f"{(5460*(i)) + (i+1)}-{(5460*(i+1)) + (i+1)}"
 
+                self.member_clusters_outpost_arns = []
                 self._set_node_members_clusters_enabled(
-                    self,
                     member_clusters = self.member_clusters,
                     replication_group_id = replication_group_id,
                     replicas_per_node_group = replicas_per_node_group,
                     node_group_configuration = node_group_configuration,
-                    node_group = node_group
-                )()
-                # primary_node = {}
-                # primary_node.cache_cluster_id = f"{replication_group_id}-{node_group['node_group_id']}-001"
-                # primary_node.cache_node_id = node_group["node_group_id"]
-
-                # # Set the PreferredAvailabilityZone,
-                # # default to us-east-1a for moto only
-                # primary_node.preferred_availability_zone = "us-east-1a"
-
-                # for configs in node_group_configuration:
-                #     if (configs.get("NodeGroupId") == node_group["node_group_id"]
-                #         and configs.get("PrimaryAvailabilityZone")):
-                #         primary_node.preferred_availability_zone = configs.get("PrimaryAvailabilityZone")
-
-                # node_group["node_group_members"].append(primary_node)
-                # self.member_clusters.append(primary_node.cache_cluster_id)
-
-                #  Loop through the number of replicas per node group
-                # for r in range(1, replicas_per_node_group + 1):
-                #     replica_node = {}
-                #     # r + 1 because primary is 001
-                #     replica_node.cache_cluster_id = f"{replication_group_id}-{node_group['node_group_id']}-{r+1:0>3}"
-                #     replica_node.cache_node_id = node_group["node_group_id"]
-
-                #     # Set the ReplicaAvailabiilityZone,
-                #     # default to us-east-1b for moto only
-                #     replica_node.preferred_availability_zone = "us-east-1b"
-
-                #     for configs in node_group_configuration:
-                #         if (configs.get("NodeGroupId") == node_group["node_group_id"]
-                #             and configs.get("ReplicaAvailabilityZones")):
-                #             if len(configs.get("ReplicaAvailabilityZones")) >= r:
-                #                 replica_node.preferred_availability_zone = configs.get("ReplicaAvailabilityZones")[r-1]
-
-                #     node_group["node_group_members"].append(replica_node)
-                #     self.member_clusters.append(replica_node.cache_cluster_id)
+                    node_group = node_group,
+                    member_clusters_outpost_arns = self.member_clusters_outpost_arns
+                )
 
                 self.configuration_endpoint = {
                     "Address": f"clustercfg.{replication_group_domain}"
                 }
-
-                self.member_clusters_outpost_arns = [node_group_configuration.get("PrimaryOutpostArn", None)]
-                if node_group_configuration.get("SecondaryOutpostArns"):
-                    self.member_clusters_outpost_arns.extend(node_group_configuration.get("SecondaryOutpostArns", []))
-
 
             # self.cluster_mode is disabled or not set
             else:
@@ -449,13 +410,15 @@ class ReplicationGroup(BaseModel):
     # and member_clusters with the cache_cluster_ids of the primary and replicas.
     def _set_node_members_clusters_enabled(
         self,
-        member_clusters: Dict[str, Any],
+        member_clusters: List[str],
         replication_group_id: str,
         replicas_per_node_group: int,
         node_group_configuration: List[Dict[str, Any]],
-        node_group: Dict[str, Any]
+        node_group: Dict[str, Any],
+        member_clusters_outpost_arns: List[str]
         ) -> None:
 
+        replica_count = replicas_per_node_group
         primary_node = {}
         primary_node["cache_cluster_id"] = f"{replication_group_id}-{node_group['node_group_id']}-001"
         primary_node["cache_node_id"] = node_group["node_group_id"]
@@ -464,38 +427,58 @@ class ReplicationGroup(BaseModel):
         # default to us-east-1a for moto only
         primary_node["preferred_availability_zone"] = "us-east-1a"
 
-        for configs in node_group_configuration:
-            if (configs.get("NodeGroupId") == node_group["node_group_id"]
-                and configs.get("PrimaryAvailabilityZone")):
-                primary_node["preferred_availability_zone"] = configs.get("PrimaryAvailabilityZone")
+        # With node_group_configurations
+        node_config = {}
+        if node_group_configuration:
+            for config in node_group_configuration:
+                if node_group["node_group_id"] == config.get("NodeGroupId"):
+                    node_config = config
+                    # overwrite slots if part of node config
+                    if config.get("Slots"):
+                        node_group["slots"] = config.get("Slots")
+                    replica_count = config.get("ReplicaCount", replicas_per_node_group)
+                    primary_node["preferred_availability_zone"] = config.get("PrimaryAvailabilityZone", "us-east-1a")
+                    if config.get("PrimaryOutpostArn"):
+                        member_clusters_outpost_arns.append(node_group_configuration.get("PrimaryOutpostArn"))
+                    if config.get("SecondaryOutpostArns"):
+                        member_clusters_outpost_arns.append(node_group_configuration.get("SecondaryOutpostArns"))
 
         node_group["node_group_members"].append(primary_node)
         member_clusters.append(primary_node["cache_cluster_id"])
 
         #  Loop through the number of replicas per node group
-        for r in range(1, replicas_per_node_group + 1):
+        for r in range(1, replica_count + 1):
             replica_node = {}
             # r + 1 because primary is 001
-            primary_node["cache_cluster_id"] = f"{replication_group_id}-{node_group['node_group_id']}-{r+1:0>3}"
-            primary_node["cache_node_id"] = node_group["node_group_id"]
+            replica_node["cache_cluster_id"] = f"{replication_group_id}-{node_group['node_group_id']}-{r+1:0>3}"
+            replica_node["cache_node_id"] = node_group["node_group_id"]
 
             # Set the ReplicaAvailabiilityZone,
             # default to us-east-1b for moto only
             replica_node["preferred_availability_zone"] = "us-east-1b"
 
-            for configs in node_group_configuration:
-                if (configs.get("NodeGroupId") == node_group["node_group_id"]
-                    and configs.get("ReplicaAvailabilityZones")):
-                    if len(configs.get("ReplicaAvailabilityZones")) >= r:
-                        replica_node["preferred_availability_zone"] = configs.get("ReplicaAvailabilityZones")[r-1]
+            if node_config:
+                if node_config.get("ReplicaAvailabilityZones"):
+                    if len(node_config.get("ReplicaAvailabilityZones")) >= r:
+                        replica_node["preferred_availability_zone"] = node_config.get("ReplicaAvailabilityZones")[r-1]
+                    elif len(node_config.get("ReplicaAvailabilityZones")) >= 1:
+                        replica_node["preferred_availability_zone"] = node_config.get("ReplicaAvailabilityZones")[1]
 
+            # if node_group_configuration:
+            #     for configs in node_group_configuration:
+            #         if (configs.get("NodeGroupId") == node_group["node_group_id"]
+            #             and configs.get("ReplicaAvailabilityZones")):
+            #             if len(configs.get("ReplicaAvailabilityZones")) >= r:
+            #                 replica_node["preferred_availability_zone"] = configs.get("ReplicaAvailabilityZones")[r-1]
+            #             elif len(configs.get("ReplicaAvailabilityZones")) >= 1:
+            #                 replica_node["preferred_availability_zone"] = configs.get("ReplicaAvailabilityZones")[1]
 
             node_group["node_group_members"].append(replica_node)
             member_clusters.append(replica_node["cache_cluster_id"])
 
     def _set_node_members_clusters_disabled(
         self,
-        member_clusters: Dict[str, Any],
+        member_clusters: List[str],
         replication_group_id: str,
         replication_group_domain: str,
         node_group: Dict[str, Any],
