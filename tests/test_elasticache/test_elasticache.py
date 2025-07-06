@@ -3,7 +3,6 @@ from unittest import SkipTest
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-import re
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -763,7 +762,6 @@ def test_create_cache_subnet_group_and_mock_vpc():
 
 @mock_aws
 def test_describe_cache_subnet_groups():
-
     client = boto3.client("elasticache", region_name="us-east-2")
     client.create_cache_subnet_group(
         CacheSubnetGroupName="test-subnet-group",
@@ -981,7 +979,6 @@ def test_cache_subnet_group_with_ipv6_native_subnets():
 
 @mock_aws
 def test_create_replication_group():
-
     client = boto3.client("elasticache", region_name="us-east-2")
     resp = client.create_replication_group(
         ReplicationGroupId="test-replication-group",
@@ -993,12 +990,18 @@ def test_create_replication_group():
         Engine="redis",
     )
     assert resp["ReplicationGroup"]["ReplicationGroupId"] == "test-replication-group"
-    assert resp["ReplicationGroup"]["ReplicationGroupDescription"] == "Test replication group"
+    assert (
+        resp["ReplicationGroup"]["ReplicationGroupDescription"]
+        == "Test replication group"
+    )
     assert resp["ReplicationGroup"]["PrimaryClusterId"] == "test-primary-cluster"
     assert resp["ReplicationGroup"]["AutomaticFailoverEnabled"] is True
     assert resp["ReplicationGroup"]["CacheNodeType"] == "cache.t2.micro"
     assert resp["ReplicationGroup"]["Engine"] == "redis"
-    assert resp["ReplicationGroup"]["GlobalReplicationGroupId"] == "test-global-replication-group"
+    assert (
+        resp["ReplicationGroup"]["GlobalReplicationGroupId"]
+        == "test-global-replication-group"
+    )
 
 
 @mock_aws
@@ -1021,8 +1024,6 @@ def test_create_replication_group_cluster_disabled():
         SnapshotWindow="06:00-07:00",
     )
 
-    print(resp)
-    print(resp)
     replication_group = resp["ReplicationGroup"]
     cache_node_id = "0001"
     assert replication_group["ReplicationGroupId"] == replication_group_id
@@ -1032,7 +1033,7 @@ def test_create_replication_group_cluster_disabled():
     assert resp["ReplicationGroup"]["MemberClusters"] == [
         f"{replication_group_id}-001",
         f"{replication_group_id}-002",
-        f"{replication_group_id}-003"
+        f"{replication_group_id}-003",
     ]
     assert len(replication_group["NodeGroups"]) == 1
     assert replication_group["NodeGroups"][0]["NodeGroupId"] == cache_node_id
@@ -1050,9 +1051,15 @@ def test_create_replication_group_cluster_disabled():
     assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-002"
     assert replication_group["MultiAZ"] == "enabled"
     assert replication_group["SnapshotRetentionLimit"] == 1
-    assert replication_group["ClusterEnabled"] == False
+    if not replication_group["ClusterEnabled"]:
+        assert True
+    else:
+        assert False
     assert replication_group["CacheNodeType"] == "cache.t4g.micro"
-    assert replication_group["ARN"] == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:replicationgroup:{replication_group_id}"
+    assert (
+        replication_group["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:replicationgroup:{replication_group_id}"
+    )
     assert replication_group["NetworkType"] == "ipv4"
     assert replication_group["ClusterMode"] == "disabled"
     assert replication_group["Engine"] == "redis"
@@ -1081,31 +1088,66 @@ def test_create_replication_group_cluster_enabled():
             {
                 "NodeGroupId": "0001",
                 "PrimaryAvailabilityZone": "us-east-2a",
-                "ReplicaAvailabilityZones": ["us-east-2b", "us-east-2c"]
+                "ReplicaAvailabilityZones": ["us-east-2b", "us-east-2c"],
             },
             {
                 "NodeGroupId": "0003",
                 "PrimaryAvailabilityZone": "us-east-2b",
-                "ReplicaAvailabilityZones": ["us-east-2a", "us-east-2c"]
+                "ReplicaAvailabilityZones": ["us-east-2a", "us-east-2c"],
             },
             {
                 "NodeGroupId": "0002",
                 "PrimaryAvailabilityZone": "us-east-2c",
-                "ReplicaAvailabilityZones": ["us-east-2b", "us-east-2a"]
+                "ReplicaAvailabilityZones": ["us-east-2b", "us-east-2a"],
             },
         ],
     )
 
-    print(resp)
-    print(resp)
     replication_group = resp["ReplicationGroup"]
     assert replication_group["ReplicationGroupId"] == replication_group_id
     assert len(replication_group["MemberClusters"]) == 9
-    assert replication_group["NodeGroups"][0]["NodeGroupMembers"][0]["CacheClusterId"] == f"{replication_group_id}-0001-001"
-    assert replication_group["NodeGroups"][0]["NodeGroupMembers"][0]["PreferredAvailabilityZone"] == "us-east-2a"
-    assert replication_group["NodeGroups"][0]["NodeGroupMembers"][1]["PreferredAvailabilityZone"] == "us-east-2b"
-    assert replication_group["NodeGroups"][0]["NodeGroupMembers"][2]["PreferredAvailabilityZone"] == "us-east-2c"
-    assert replication_group["NodeGroups"][0]["NodeGroupMembers"][0]["PreferredAvailabilityZone"] == "us-east-2a"
-    assert replication_group["NodeGroups"][0]["NodeGroupMembers"][1]["PreferredAvailabilityZone"] == "us-east-2b"
-    assert replication_group["NodeGroups"][0]["NodeGroupMembers"][2]["PreferredAvailabilityZone"] == "us-east-2c"
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][0]["CacheClusterId"]
+        == f"{replication_group_id}-0001-001"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][0][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2a"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][1][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2b"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][2][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2c"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][0][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2a"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][1][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2b"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][2][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2c"
+    )
 
+    if replication_group["ClusterEnabled"]:
+        assert True
+    else:
+        assert False
