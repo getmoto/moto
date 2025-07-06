@@ -58,7 +58,16 @@ import calendar
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Generator, Mapping, MutableMapping, Optional, TypedDict, Union
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Mapping,
+    MutableMapping,
+    Optional,
+    TypedDict,
+    Union,
+)
 
 import xmltodict
 from botocore import xform_name
@@ -68,6 +77,7 @@ from botocore.model import (
     MapShape,
     NoShapeFoundError,
     OperationModel,
+    ServiceModel,
     Shape,
     StructureShape,
 )
@@ -255,6 +265,7 @@ class ResponseSerializer(ShapeHelpersMixin):
             value_picker = DefaultAttributePicker()
         self._value_picker = value_picker
         self._timestamp_serializer = TimestampSerializer(self.DEFAULT_TIMESTAMP_FORMAT)
+        self.path = []
 
     def _create_default_response(self) -> ResponseDict:
         response_dict: ResponseDict = {
@@ -334,7 +345,14 @@ class ResponseSerializer(ShapeHelpersMixin):
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
 
     def get_value(self, value: Any, key: str, shape: Shape) -> Any:
-        context = AttributePickerContext(obj=value, key=key, shape=shape)
+        context = AttributePickerContext(
+            obj=value,
+            key=key,
+            shape=shape,
+            operation_model=self.operation_model,
+            service_model=self.operation_model.service_model,
+            key_path=".".join(self.path),
+        )
         return self._value_picker(context)
 
     @staticmethod
@@ -377,7 +395,12 @@ class ResponseSerializer(ShapeHelpersMixin):
         method = getattr(
             self, "_serialize_type_%s" % shape.type_name, self._default_serialize
         )
+        if not key:
+            self.path.append(shape.name)
+        else:
+            self.path.append(key)
         method(serialized, value, shape, key)
+        self.path.pop()
 
     @staticmethod
     def _default_serialize(
@@ -555,9 +578,10 @@ class BaseJSONSerializer(ResponseSerializer):
             # a __current__ key on a wrapper dict to serialize each
             # list item before appending it to the serialized list.
             assert isinstance(shape.member, Shape)  # mypy hint
-            self._serialize(wrapper, list_item, shape.member, "__current__")
-            if "__current__" in wrapper:
-                list_obj.append(wrapper["__current__"])
+            item_key = shape.member.name
+            self._serialize(wrapper, list_item, shape.member, item_key)
+            if item_key in wrapper:
+                list_obj.append(wrapper[item_key])
             else:
                 list_obj.append(list_item)
 
@@ -677,9 +701,10 @@ class BaseXMLSerializer(ResponseSerializer):
             items_name = self.get_serialized_name(shape.member, "member")
             serialized[key] = {items_name: list_obj}
         for list_item in value:
+            item_key = shape.member.name
             wrapper = {}
-            self._serialize(wrapper, list_item, shape.member, "__current__")
-            list_obj.append(wrapper["__current__"])
+            self._serialize(wrapper, list_item, shape.member, item_key)
+            list_obj.append(wrapper[item_key])
         if not list_obj:
             serialized[key] = ""
 
@@ -831,6 +856,59 @@ class QuerySerializer(BaseXMLSerializer):
         return resp
 
 
+class QueryJSONSerializer(QuerySerializer):
+    """Specialized case for query protocol requests that contain ContentType=JSON parameter."""
+
+    CONTENT_TYPE = "application/json"
+
+    def _serialized_error_to_response(
+        self,
+        resp: ResponseDict,
+        error: Exception,
+        shape: ErrorShape,
+        serialized_error: MutableMapping[str, Any],
+    ) -> ResponseDict:
+        error_wrapper = {
+            "Error": serialized_error,
+            "RequestId": self.context.request_id,
+        }
+        resp["body"] = self._serialize_body(error_wrapper)
+        status_code = shape.metadata.get("error", {}).get(
+            "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
+        )
+        resp["status_code"] = status_code
+        resp["headers"]["Content-Type"] = self.CONTENT_TYPE
+        return resp
+
+    def _serialize_body(self, body: Mapping[str, Any]) -> str:
+        body_encoded = json.dumps(body, indent=4 if self.pretty_print else None)
+        return body_encoded
+
+    def _serialize_type_boolean(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        # We're slightly more permissive here than we should be because the
+        # moto backends are not consistent in how they store boolean values.
+        # TODO: This should eventually be turned into a strict `is True` check.
+        boolean_value = True if value in [True, "True", "true"] else False
+        self._default_serialize(serialized, boolean_value, shape, key)
+
+    def _serialize_type_list(
+        self, serialized: Serialized, value: Any, shape: ListShape, key: str
+    ) -> None:
+        list_obj = []
+        serialized[key] = list_obj
+        for list_item in value:
+            wrapper = {}
+            assert isinstance(shape.member, Shape)  # mypy hint
+            item_key = shape.member.name
+            self._serialize(wrapper, list_item, shape.member, item_key)
+            if item_key in wrapper:
+                list_obj.append(wrapper[item_key])
+            else:
+                list_obj.append(list_item)
+
+
 class EC2Serializer(QuerySerializer):
     def _serialize_body(self, body: Mapping[str, Any]) -> str:
         body_serialized = xmltodict.unparse(
@@ -898,6 +976,7 @@ SERIALIZERS = {
     "ec2": EC2Serializer,
     "json": JSONSerializer,
     "query": QuerySerializer,
+    "query-json": QueryJSONSerializer,
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
@@ -908,6 +987,9 @@ class AttributePickerContext:
     obj: Any
     key: str
     shape: Shape
+    operation_model: OperationModel | None = None
+    service_model: ServiceModel | None = None
+    key_path: str = ""
 
 
 class DefaultAttributePicker:
@@ -915,14 +997,19 @@ class DefaultAttributePicker:
         return get_value(context.obj, context.key, None)
 
 
-class AliasedAttributePicker(DefaultAttributePicker):
+class AttributePicker(DefaultAttributePicker):
     """Uses alias providers to find the value of an attribute in a Python object"""
 
     def __init__(
-        self, alias_providers: list[type[AttributeAliasProvider]] | None = None
+        self,
+        alias_providers: list[type[AttributeAliasProvider]] | None = None,
+        response_transformers: dict[str, Callable[[Any], Any]] | None = None,
     ) -> None:
         self.alias_providers = (
             alias_providers if alias_providers is not None else DEFAULT_ALIAS_PROVIDERS
+        )
+        self.response_transformers = (
+            response_transformers if response_transformers is not None else {}
         )
 
     def __call__(self, context: AttributePickerContext) -> Any:
@@ -933,6 +1020,10 @@ class AliasedAttributePicker(DefaultAttributePicker):
                 break
         else:
             value = None
+        key_path = f"{context.key_path}.{context.key}"
+        if key_path in self.response_transformers:
+            transform = self.response_transformers[key_path]
+            value = transform(value)
         return value
 
     def get_possible_keys(self, context: AttributePickerContext) -> Generator[str]:
@@ -944,7 +1035,7 @@ class AliasedAttributePicker(DefaultAttributePicker):
                 yield alias
 
 
-class XFormedAttributePicker(AliasedAttributePicker):
+class XFormedAttributePicker(AttributePicker):
     """Can be injected into a ResponseSerializer to aid in plucking AWS model
     attributes specified in `camelCase` or `PascalCase` from Python objects
     with standard `snake_case` attribute names.
@@ -1089,3 +1180,29 @@ DEFAULT_ALIAS_PROVIDERS = [
     ClassPrefixAlias,
     ModelAlias,
 ]
+
+
+# Response transformers can be used to modify the value of a key in the response.
+def never_return(_: Any) -> None:
+    """
+    A utility function that is used to ensure that certain attributes are never returned
+    in the response. This is useful for attributes that should not be exposed or are not
+    relevant in the context of the response.
+    """
+    return None
+
+
+def return_if_not_empty(value: Any) -> Any:
+    """
+    A utility function that returns the value if it is not empty (i.e., not None, "", {}, or []),
+    otherwise returns None. This is useful for attributes that should only be included in the
+    response if they have a meaningful value.
+    """
+    return value if value not in [None, "", {}, []] else None
+
+
+def url_encode(value: Any) -> Any:
+    """A utility function that url encodes a value before inclusion in a response."""
+    from urllib.parse import quote
+
+    return quote(value) if isinstance(value, str) else value

@@ -135,6 +135,7 @@ class InvalidSubnet(ElastiCacheException):
             "InvalidSubnet",
             message=f"Subnet {subnet_id} is invalid.",
         )
+<<<<<<< HEAD
 
 
 class ReplicationGroupAlreadyExists(ElastiCacheException):
@@ -145,3 +146,5 @@ class ReplicationGroupAlreadyExists(ElastiCacheException):
             "ReplicationGroupAlreadyExists",
             message=f"Replication group {replication_group_id} already exists.",
         )
+=======
+>>>>>>> master

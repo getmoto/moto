@@ -1220,10 +1220,6 @@
   "Location": "eu-south-1"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "eu-south-1"
- },
- {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "eu-south-1"
  },

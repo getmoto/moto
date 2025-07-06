@@ -3075,6 +3075,9 @@ S3_BUCKET_CORS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <AllowedHeader>{{ header }}</AllowedHeader>
       {% endfor %}
     {% endif %}
+    {% if cors.id_ is not none %}
+    <ID>{{ cors.id_ }}</ID>
+    {% endif %}
     {% if cors.exposed_headers is not none %}
       {% for header in cors.exposed_headers %}
       <ExposeHeader>{{ header }}</ExposeHeader>

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import functools
 import json
@@ -5,6 +7,7 @@ import logging
 import os
 import re
 from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -23,14 +26,14 @@ from xml.dom.minidom import parseString as parseXML
 
 import boto3
 import requests
-import xmltodict
+from botocore.model import OperationModel, ServiceModel
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
-from moto.core.serialize import SERIALIZERS, XFormedAttributePicker
+from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
     get_service_model,
@@ -279,6 +282,14 @@ class ActionAuthenticatorMixin(object):
         return decorator
 
 
+@dataclass
+class ActionContext:
+    service_model: ServiceModel
+    operation_model: OperationModel
+    serializer_class: type[ResponseSerializer]
+    response_class: type[BaseResponse]
+
+
 class ActionResult:
     """Wrapper class for serializable results returned from `responses.py` methods."""
 
@@ -288,6 +299,34 @@ class ActionResult:
     @property
     def result(self) -> object:
         return self._result
+
+    def execute_result(self, context: ActionContext) -> TYPE_RESPONSE:
+        """
+        Execute the result in the context of the given service and operation model.
+        This is a placeholder for any logic that might be needed to process the result
+        based on the service and operation context.
+        """
+        serializer_cls = context.serializer_class
+        response_transformers = getattr(
+            context.response_class, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
+        )
+        value_picker = XFormedAttributePicker(
+            response_transformers=response_transformers
+        )
+        serializer = serializer_cls(
+            operation_model=context.operation_model,
+            pretty_print=settings.PRETTIFY_RESPONSES,
+            value_picker=value_picker,
+        )
+        serialized = serializer.serialize(self.result)
+        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
+
+class EmptyResult(ActionResult):
+    """A special ActionResult that represents an empty result."""
+
+    def __init__(self) -> None:
+        super().__init__(None)
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
@@ -594,14 +633,13 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
-        serializer_cls = SERIALIZERS[service_model.protocol]
-        serializer = serializer_cls(
-            operation_model=operation_model,
-            pretty_print=settings.PRETTIFY_RESPONSES,
-            value_picker=XFormedAttributePicker(),
+        protocol = service_model.protocol
+        protocol += "-json" if protocol == "query" and self.request_json else ""
+        serializer_cls = SERIALIZERS[protocol]
+        context = ActionContext(
+            service_model, operation_model, serializer_cls, self.__class__
         )
-        serialized = serializer.serialize(action_result.result)
-        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+        return action_result.execute_result(context)
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
@@ -1238,80 +1276,3 @@ def flatten_json_request_body(
     if prefix:
         prefix = prefix + "."
     return dict((prefix + k, v) for k, v in flat.items())
-
-
-def xml_to_json_response(
-    service_spec: Any, operation: str, xml: str, result_node: Any = None
-) -> Dict[str, Any]:
-    """Convert rendered XML response to JSON for use with boto3."""
-
-    def transform(value: Any, spec: Dict[str, Any]) -> Any:
-        """Apply transformations to make the output JSON comply with the
-        expected form. This function applies:
-
-          (1) Type cast to nodes with "type" property (e.g., 'true' to
-              True). XML field values are all in text so this step is
-              necessary to convert it to valid JSON objects.
-
-          (2) Squashes "member" nodes to lists.
-
-        """
-        if len(spec) == 1:
-            return from_str(value, spec)
-
-        od: Dict[str, Any] = OrderedDict()
-        for k, v in value.items():
-            if k.startswith("@"):
-                continue
-
-            if k not in spec:
-                # this can happen when with an older version of
-                # botocore for which the node in XML template is not
-                # defined in service spec.
-                log.warning("Field %s is not defined by the botocore version in use", k)
-                continue
-
-            if spec[k]["type"] == "list":
-                if v is None:
-                    od[k] = []
-                elif len(spec[k]["member"]) == 1:
-                    if isinstance(v["member"], list):
-                        od[k] = transform(v["member"], spec[k]["member"])
-                    else:
-                        od[k] = [transform(v["member"], spec[k]["member"])]
-                elif isinstance(v["member"], list):
-                    od[k] = [transform(o, spec[k]["member"]) for o in v["member"]]
-                elif isinstance(v["member"], (OrderedDict, dict)):
-                    od[k] = [transform(v["member"], spec[k]["member"])]
-                else:
-                    raise ValueError("Malformatted input")
-            elif spec[k]["type"] == "map":
-                if v is None:
-                    od[k] = {}
-                else:
-                    items = (
-                        [v["entry"]] if not isinstance(v["entry"], list) else v["entry"]
-                    )
-                    for item in items:
-                        key = from_str(item["key"], spec[k]["key"])
-                        val = from_str(item["value"], spec[k]["value"])
-                        if k not in od:
-                            od[k] = {}
-                        od[k][key] = val
-            else:
-                if v is None:
-                    od[k] = None
-                else:
-                    od[k] = transform(v, spec[k])
-        return od
-
-    dic = xmltodict.parse(xml)
-    output_spec = service_spec.output_spec(operation)
-    try:
-        for k in result_node or (operation + "Response", operation + "Result"):
-            dic = dic[k]
-    except KeyError:
-        return None  # type: ignore[return-value]
-    else:
-        return transform(dic, output_spec)
-    return None

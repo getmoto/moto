@@ -19,7 +19,10 @@ from .exceptions import (
     InvalidParameterCombinationException,
     InvalidParameterValueException,
     InvalidSubnet,
+<<<<<<< HEAD
     ReplicationGroupAlreadyExists,
+=======
+>>>>>>> master
     UserAlreadyExists,
     UserNotFound,
 )
@@ -579,7 +582,11 @@ class ElastiCacheBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
+<<<<<<< HEAD
             r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot|subnetgroup|replicationgroup):.*$"
+=======
+            r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot|subnetgroup):.*$"
+>>>>>>> master
         )
         self.users = dict()
         self.users["default"] = User(
