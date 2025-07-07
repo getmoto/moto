@@ -234,7 +234,9 @@ class ElastiCacheResponse(BaseResponse):
         node_group_configuration = (
             self._get_multi_param_dict("NodeGroupConfiguration").get(
                 "NodeGroupConfiguration"
-            ) if self._get_multi_param_dict("NodeGroupConfiguration") else []
+            )
+            if self._get_multi_param_dict("NodeGroupConfiguration")
+            else []
         )
         cache_node_type = self._get_param("CacheNodeType")
         engine = self._get_param("Engine")
@@ -308,18 +310,20 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(CREATE_REPLICATION_GROUP_TEMPLATE)
         return template.render(replication_group=replication_group)
 
-
     def describe_replication_groups(self) -> str:
         replication_group_id = self._get_param("ReplicationGroupId")
         max_records = self._get_param("MaxRecords")
         marker = self._get_param("Marker")
-        replication_groups, marker = self.elasticache_backend.describe_replication_groups(
-            replication_group_id=replication_group_id,
-            marker=marker,
-            max_records=max_records,
+        replication_groups, marker = (
+            self.elasticache_backend.describe_replication_groups(
+                replication_group_id=replication_group_id,
+                marker=marker,
+                max_records=max_records,
+            )
         )
         template = self.response_template(DESCRIBE_REPLICATION_GROUPS_TEMPLATE)
         return template.render(marker=marker, replication_groups=replication_groups)
+
 
 USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
     <UserName>{{ user.name }}</UserName>

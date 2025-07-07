@@ -333,7 +333,9 @@ class ReplicationGroup(BaseModel):
                 )
 
                 self.configuration_endpoint: Dict[str, Any] = {}
-                self.configuration_endpoint["address"] = f"clustercfg.{replication_group_domain}"
+                self.configuration_endpoint["address"] = (
+                    f"clustercfg.{replication_group_domain}"
+                )
                 self.configuration_endpoint["port"] = self.port
 
             # self.cluster_mode is disabled or not set
@@ -920,7 +922,9 @@ class ElastiCacheBackend(BaseBackend):
         return replication_group
 
     @paginate(PAGINATION_MODEL)
-    def describe_replication_groups(self, replication_group_id: str) -> List[ReplicationGroup]:
+    def describe_replication_groups(
+        self, replication_group_id: str
+    ) -> List[ReplicationGroup]:
         if replication_group_id:
             if replication_group_id in self.replication_groups:
                 replication_group = self.replication_groups[replication_group_id]

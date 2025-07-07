@@ -1186,7 +1186,7 @@ def test_describe_replication_groups():
         CacheSubnetGroupName="test-elasticache-subnet-group",
         SnapshotRetentionLimit=1,
         SnapshotWindow="06:00-07:00",
-        ClusterMode="enabled"
+        ClusterMode="enabled",
     )
 
     describe_resp = client.describe_replication_groups()
@@ -1275,7 +1275,7 @@ def test_describe_replication_groups_cluster_enabled():
         CacheSubnetGroupName="test-elasticache-subnet-group",
         SnapshotRetentionLimit=1,
         SnapshotWindow="06:00-07:00",
-        ClusterMode="enabled"
+        ClusterMode="enabled",
     )
 
     describe_resp = client.describe_replication_groups(
