@@ -1067,13 +1067,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -2835,13 +2829,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -3675,6 +3663,15 @@
               "artifact": {
                 "Value": "artifact"
               },
+              "athena": {
+                "Value": "athena",
+                "endpoint": {
+                  "Value": "athena.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aurora": {
                 "Value": "aurora",
                 "endpoint": {
@@ -3805,6 +3802,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ds": {
+                "Value": "ds",
+                "endpoint": {
+                  "Value": "ds.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4002,6 +4008,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lakeformation": {
+                "Value": "lakeformation",
+                "endpoint": {
+                  "Value": "lakeformation.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "lambda": {
                 "Value": "lambda",
                 "endpoint": {
@@ -4084,6 +4099,15 @@
                 "Value": "redshift",
                 "endpoint": {
                   "Value": "redshift.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-data": {
+                "Value": "redshift-data",
+                "endpoint": {
+                  "Value": "redshift-data.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4966,6 +4990,15 @@
                 "Value": "connect-contact-lens",
                 "endpoint": {
                   "Value": "contact-lens.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -5983,13 +6016,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -7752,6 +7779,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "connectcases": {
                 "Value": "connectcases",
                 "endpoint": {
@@ -7900,6 +7936,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.ap-northeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.ap-northeast-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8638,13 +8683,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -8842,6 +8881,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-northeast-2.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -9656,14 +9701,6 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
-              }
-            },
-            "wavelength-zones": {
-              "apne2-wl1-cjj-wlz1": {
-                "Value": "apne2-wl1-cjj-wlz1"
-              },
-              "apne2-wl1-sel-wlz1": {
-                "Value": "apne2-wl1-sel-wlz1"
               }
             }
           },
@@ -10788,6 +10825,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-northeast-3.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -10814,6 +10857,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -12787,13 +12833,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -12981,6 +13021,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ap-south-1.amazonaws.com"
+                }
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -13016,6 +13062,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -14530,6 +14579,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "internetmonitor": {
                 "Value": "internetmonitor",
                 "endpoint": {
@@ -15056,6 +15123,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -15920,6 +15996,15 @@
                 "Value": "connect-contact-lens",
                 "endpoint": {
                   "Value": "contact-lens.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "connectcampaigns": {
+                "Value": "connectcampaigns",
+                "endpoint": {
+                  "Value": "connect-campaigns.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -16856,13 +16941,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -19649,13 +19728,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -21741,13 +21814,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -23034,6 +23101,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "internetmonitor": {
                 "Value": "internetmonitor",
                 "endpoint": {
@@ -23851,6 +23936,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appsync": {
+                "Value": "appsync",
+                "endpoint": {
+                  "Value": "appsync.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -24271,6 +24365,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "gamelift": {
+                "Value": "gamelift"
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -24320,6 +24417,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24968,6 +25083,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appsync": {
+                "Value": "appsync",
+                "endpoint": {
+                  "Value": "appsync.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -25361,6 +25485,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "gamelift": {
+                "Value": "gamelift"
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -25401,6 +25528,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -27316,13 +27461,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -27514,6 +27653,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.ca-central-1.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -28497,6 +28642,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appsync": {
+                "Value": "appsync",
+                "endpoint": {
+                  "Value": "appsync.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "arc-zonal-shift": {
                 "Value": "arc-zonal-shift",
                 "endpoint": {
@@ -28984,6 +29138,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30295,6 +30467,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "inspector2": {
                 "Value": "inspector2",
                 "endpoint": {
@@ -31229,6 +31410,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "bcm-data-exports": {
+                "Value": "bcm-data-exports",
+                "endpoint": {
+                  "Value": "bcm-data-exports.cn-northwest-1.api.amazonwebservices.com.cn"
+                }
+              },
               "budgets": {
                 "Value": "budgets",
                 "endpoint": {
@@ -31734,6 +31921,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.cn-northwest-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32766,7 +32962,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "backup": {
                 "Value": "backup",
@@ -34134,13 +34336,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -35363,17 +35559,6 @@
                   "Value": "HTTPS"
                 }
               }
-            },
-            "wavelength-zones": {
-              "euc1-wl1-ber-wlz1": {
-                "Value": "euc1-wl1-ber-wlz1"
-              },
-              "euc1-wl1-dtm-wlz1": {
-                "Value": "euc1-wl1-dtm-wlz1"
-              },
-              "euc1-wl1-muc-wlz1": {
-                "Value": "euc1-wl1-muc-wlz1"
-              }
             }
           },
           "eu-central-2": {
@@ -36588,6 +36773,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38037,13 +38231,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -40939,6 +41127,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudhsmv2": {
+                "Value": "cloudhsmv2",
+                "endpoint": {
+                  "Value": "cloudhsmv2.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudshell": {
                 "Value": "cloudshell",
                 "endpoint": {
@@ -41405,6 +41602,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -43896,13 +44111,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -46699,13 +46908,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -47783,12 +47986,6 @@
               }
             },
             "wavelength-zones": {
-              "euw2-wl1-lon-wlz1": {
-                "Value": "euw2-wl1-lon-wlz1"
-              },
-              "euw2-wl1-man-wlz1": {
-                "Value": "euw2-wl1-man-wlz1"
-              },
               "euw2-wl2-man-wlz1": {
                 "Value": "euw2-wl2-man-wlz1"
               }
@@ -48994,13 +49191,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -50346,6 +50537,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, HTTP"
+                }
+              },
               "drs": {
                 "Value": "drs",
                 "endpoint": {
@@ -50641,6 +50841,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.il-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52096,6 +52314,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "internetmonitor": {
                 "Value": "internetmonitor",
                 "endpoint": {
@@ -52253,13 +52489,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -52694,6 +52924,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -53933,13 +54172,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -55140,6 +55373,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56839,13 +57090,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -57037,6 +57282,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "observabilityadmin": {
+                "Value": "observabilityadmin",
+                "endpoint": {
+                  "Value": "observabilityadmin.sa-east-1.amazonaws.com"
                 }
               },
               "opensearchserverless": {
@@ -58144,7 +58395,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "b2bi": {
                 "Value": "b2bi",
@@ -59746,13 +60003,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace",
@@ -62728,13 +62979,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -64787,13 +65032,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -64904,6 +65143,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.us-gov-east-1.amazonaws.com"
                 }
               },
               "pi": {
@@ -65102,6 +65347,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.us-gov-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66525,13 +66779,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -66651,6 +66899,12 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
+                }
+              },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.us-gov-west-1.amazonaws.com"
                 }
               },
               "pi": {
@@ -66885,6 +67139,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -68425,13 +68688,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -68602,6 +68859,15 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.us-west-1.amazonaws.com"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "opsworkschefautomate": {
@@ -71146,13 +71412,7 @@
                 }
               },
               "managedservices": {
-                "Value": "managedservices",
-                "endpoint": {
-                  "Value": "amscm.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace",

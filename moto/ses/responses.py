@@ -1,5 +1,5 @@
 import base64
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import utcnow
@@ -217,8 +217,21 @@ class EmailResponse(BaseResponse):
     def describe_configuration_set(self) -> str:
         configuration_set_name = self.querystring.get("ConfigurationSetName")[0]  # type: ignore
         config_set = self.backend.describe_configuration_set(configuration_set_name)
+
+        attribute_names = self._get_multi_param(
+            "ConfigurationSetAttributeNames.member."
+        )
+
+        event_destination: Optional[Dict[str, Any]] = None
+        if "eventDestinations" in attribute_names:
+            event_destination = self.backend.config_set_event_destination.get(
+                configuration_set_name
+            )
+
         template = self.response_template(DESCRIBE_CONFIGURATION_SET)
-        return template.render(name=config_set.configuration_set_name)
+        return template.render(
+            name=config_set.configuration_set_name, event_destination=event_destination
+        )
 
     def create_configuration_set_event_destination(self) -> str:
         configuration_set_name = self._get_param("ConfigurationSetName")
@@ -612,6 +625,24 @@ DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://
     <ConfigurationSet>
       <Name>{{ name }}</Name>
     </ConfigurationSet>
+    {% if event_destination %}
+    <EventDestinations>
+      <member>
+        <Name>{{ event_destination["Name"] }}</Name>
+        <Enabled>{{ event_destination["Enabled"] }}</Enabled>
+        <MatchingEventTypes>
+        {% for event_matching_type in event_destination["EventMatchingTypes"] | sort %}
+          <member>{{ event_matching_type }}</member>
+        {% endfor %}
+        </MatchingEventTypes>
+        {% if "SNSDestination" in event_destination %}
+        <SNSDestination>
+          <TopicARN>{{ event_destination["SNSDestination"] }}</TopicARN>
+        </SNSDestination>
+        {% endif %}
+      </member>
+    </EventDestinations>
+    {% endif %}
   </DescribeConfigurationSetResult>
   <ResponseMetadata>
     <RequestId>8e410745-c1bd-4450-82e0-f968cf2105f2</RequestId>

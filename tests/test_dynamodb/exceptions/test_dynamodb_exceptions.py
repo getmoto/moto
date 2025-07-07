@@ -1,3 +1,4 @@
+from decimal import Decimal
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -142,29 +143,80 @@ def test_query_gsi_with_wrong_key_attribute_names_throws_exception():
     assert err["Message"] == "Query condition missed key schema element: gsiK1SortKey"
 
 
-@mock_aws
-def test_query_table_with_wrong_key_attribute_names_throws_exception():
-    item = {
-        "partitionKey": "pk-1",
-        "someAttribute": "lore ipsum",
-    }
-
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_gsi=True)
+def test_query_table_with_wrong_attrs_used_in_key_condition_expression(table_name=None):
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
-    )
-    table = dynamodb.Table("test-table")
-    table.put_item(Item=item)
+    table = dynamodb.Table(table_name)
 
     # check using wrong name for sort key throws exception
     with pytest.raises(ClientError) as exc:
         table.query(
             KeyConditionExpression="wrongName = :pk",
             ExpressionAttributeValues={":pk": "pk"},
-        )["Items"]
+        )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
-    assert err["Message"] == "Query condition missed key schema element: partitionKey"
+    assert err["Message"] == "Query condition missed key schema element: pk"
+
+    # Using PK of Index when querying Table is wrong
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="gsi_pk = :pk",
+            ExpressionAttributeValues={":pk": "pk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: pk"
+
+    # Using PK of Table when querying Index is actually correct
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            IndexName="test_gsi",
+            KeyConditionExpression="pk = :pk",
+            ExpressionAttributeValues={":pk": "pk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: gsi_pk"
+
+    # Using both PK and SK is acceptable
+    items = table.query(
+        KeyConditionExpression="pk = :pk AND sk = :sk",
+        ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+    )["Items"]
+    assert items == []
+
+    # Using PK and SK on the Index is wrong
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            IndexName="test_gsi",
+            KeyConditionExpression="pk = :pk AND sk = :sk",
+            ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+    # Using GSI PK and SK on the Index is wrong
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            IndexName="test_gsi",
+            KeyConditionExpression="gsi_pk = :pk AND sk = :sk",
+            ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query key condition not supported"
+
+    # Using GSI PK and SK on the Table is wrong
+    with pytest.raises(ClientError) as exc:
+        table.query(
+            KeyConditionExpression="gsi_pk = :pk AND sk = :sk",
+            ExpressionAttributeValues={":pk": "pk", ":sk": "sk"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "Query condition missed key schema element: pk"
 
 
 @pytest.mark.aws_verified
@@ -400,13 +452,14 @@ class TestUpdateExpressionClausesWithClashingExpressions(BaseTest):
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_update_item_unused_attribute_name(table_name=None):
+def test_update_item_unused_attributes(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
     table = ddb.Table(table_name)
-    table.put_item(Item={"pk": "pk1", "spec": {}, "am": 0})
+    table.put_item(Item={"pk": "pk1", "spec": {}, "am": 0, "test": "text"})
 
+    # Unused Name (count), in addition to Used Name (limit)
     with pytest.raises(ClientError) as exc:
         table.update_item(
             Key={"pk": "pk1"},
@@ -421,6 +474,7 @@ def test_update_item_unused_attribute_name(table_name=None):
         == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
+    # Unused Name (count) only
     with pytest.raises(ClientError) as exc:
         table.update_item(
             Key={"pk": "pk1"},
@@ -435,10 +489,55 @@ def test_update_item_unused_attribute_name(table_name=None):
         == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
     )
 
+    # Unused Value (countChange)
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="SET spec.#limit = :limit",
+            ExpressionAttributeNames={"#limit": "limit"},
+            ExpressionAttributeValues={":countChange": 1, ":limit": "limit"},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Value provided in ExpressionAttributeValues unused in expressions: keys: {:countChange}"
+    )
+
+    # Used value in ConditionExpression
+    table.update_item(
+        Key={"pk": "pk1"},
+        UpdateExpression="SET spec.#limit = :limit",
+        ConditionExpression="begins_with(test, :t)",
+        ExpressionAttributeNames={"#limit": "limit"},
+        ExpressionAttributeValues={":t": "t", ":limit": "limit"},
+    )
+    item = table.get_item(Key={"pk": "pk1"})["Item"]
+    assert item == {
+        "spec": {"limit": "limit"},
+        "pk": "pk1",
+        "am": Decimal("0"),
+        "test": "text",
+    }
+
+    # Used ExpressionAttributeValue, but with invalid value
+    with pytest.raises(ClientError) as exc:
+        table.update_item(
+            Key={"pk": "pk1"},
+            UpdateExpression="SET x = :one",
+            ExpressionAttributeValues={":one": set()},
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "ExpressionAttributeValues contains invalid value: One or more parameter values were invalid: An number set  may not be empty for key :one"
+    )
+
 
 @pytest.mark.aws_verified
 @dynamodb_aws_verified()
-def test_put_item_unused_attribute_name(table_name=None):
+def test_put_item_unused_attributes(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
 
     table = ddb.Table(table_name)
@@ -487,8 +586,8 @@ def test_query_unused_attribute_name(table_name=None):
 
     with pytest.raises(ClientError) as exc:
         table.query(
-            KeyConditionExpression="(#0 = x) AND (begins_with(#1, a))",
-            ExpressionAttributeNames={"#0": "pk", "#1": "sk", "#count": "count"},
+            KeyConditionExpression="(#0 = x)",
+            ExpressionAttributeNames={"#0": "pk", "#count": "count"},
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"

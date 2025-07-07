@@ -7,6 +7,11 @@ from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
 from moto.cloudfront.models import CloudFrontBackend, cloudfront_backends
 from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
+from moto.comprehend.models import ComprehendBackend, comprehend_backends
+from moto.connectcampaigns.models import (
+    ConnectCampaignServiceBackend,
+    connectcampaigns_backends,
+)
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
@@ -183,6 +188,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
+    def comprehend_backend(self) -> Optional[ComprehendBackend]:
+        # aws Comprehend has limited region availability
+        if self.region_name in comprehend_backends[self.account_id].regions:
+            return comprehend_backends[self.account_id][self.region_name]
+        return None
+
+    @property
     def kafka_backend(self) -> KafkaBackend:
         return kafka_backends[self.account_id][self.region_name]
 
@@ -209,6 +221,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def cloudwatch_backend(self) -> CloudWatchBackend:
         return cloudwatch_backends[self.account_id][self.region_name]
+
+    @property
+    def connectcampaigns_backend(self) -> Optional[ConnectCampaignServiceBackend]:
+        # Connect Campaigns service has limited region availability
+        if self.region_name in connectcampaigns_backends[self.account_id].regions:
+            return connectcampaigns_backends[self.account_id][self.region_name]
+        return None
 
     def _get_resources_generator(
         self,
@@ -299,6 +318,31 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
 
+        # Comprehend
+        if self.comprehend_backend:
+            if not resource_type_filters or "comprehend" in resource_type_filters:
+                for document_classifier in self.comprehend_backend.classifiers.values():
+                    tags = self.comprehend_backend.tagger.list_tags_for_resource(
+                        document_classifier.arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{document_classifier.arn}",
+                        "Tags": tags,
+                    }
+
+                for entity_recognizer in self.comprehend_backend.recognizers.values():
+                    tags = self.comprehend_backend.tagger.list_tags_for_resource(
+                        entity_recognizer.arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{entity_recognizer.arn}",
+                        "Tags": tags,
+                    }
+
         # S3
         if (
             not resource_type_filters
@@ -387,6 +431,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                             "ResourceARN": arn,
                             "Tags": tags,
                         }
+
+        # Connect Campaigns v1
+        if self.connectcampaigns_backend:
+            if not resource_type_filters or "connectcampaigns" in resource_type_filters:
+                connectcampaigns_backend: ConnectCampaignServiceBackend = (
+                    connectcampaigns_backends[self.account_id][self.region_name]
+                )
+                for campaign in connectcampaigns_backend.campaigns.values():
+                    tags = connectcampaigns_backend.tagger.list_tags_for_resource(
+                        campaign.arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{campaign.arn}", "Tags": tags}
 
         # DMS
         if not resource_type_filters or "dms:endpoint" in resource_type_filters:

@@ -204,7 +204,6 @@ class Topic(CloudFormationModel):
                         "SNS:Subscribe",
                         "SNS:ListSubscriptionsByTopic",
                         "SNS:Publish",
-                        "SNS:Receive",
                     ],
                     "Resource": make_arn_for_topic(self.account_id, name, region_name),
                     "Condition": {"StringEquals": {"AWS:SourceOwner": str(account_id)}},

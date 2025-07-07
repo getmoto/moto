@@ -170,6 +170,7 @@ s3
 - [X] put_object_retention
 - [X] put_object_tagging
 - [X] put_public_access_block
+- [ ] rename_object
 - [X] restore_object
 - [X] select_object_content
   

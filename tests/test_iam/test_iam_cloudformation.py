@@ -385,6 +385,7 @@ Resources:
   ThePolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
+      Description: "test description"
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -413,7 +414,7 @@ Resources:
     policy = iam_client.get_policy(PolicyArn=policy_arn)["Policy"]
     assert policy["Arn"] == policy_arn
     assert policy["PolicyName"] == expected_name
-    assert policy["Description"] == ""
+    assert policy["Description"] == "test description"
     assert policy["Path"] == "/"
 
 

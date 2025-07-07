@@ -3164,10 +3164,6 @@
   "Location": "ap-northeast-1"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "ap-northeast-1"
- },
- {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "ap-northeast-1"
  },
@@ -3177,10 +3173,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "ap-northeast-1"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "ap-northeast-1"
  },
  {

@@ -16,6 +16,8 @@ network-firewall
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_network_firewall_transit_gateway_attachment
+- [ ] associate_availability_zones
 - [ ] associate_firewall_policy
 - [ ] associate_subnets
 - [X] create_firewall
@@ -25,6 +27,7 @@ network-firewall
 - [ ] create_vpc_endpoint_association
 - [ ] delete_firewall
 - [ ] delete_firewall_policy
+- [ ] delete_network_firewall_transit_gateway_attachment
 - [ ] delete_resource_policy
 - [ ] delete_rule_group
 - [ ] delete_tls_inspection_configuration
@@ -37,8 +40,10 @@ network-firewall
 - [ ] describe_resource_policy
 - [ ] describe_rule_group
 - [ ] describe_rule_group_metadata
+- [ ] describe_rule_group_summary
 - [ ] describe_tls_inspection_configuration
 - [ ] describe_vpc_endpoint_association
+- [ ] disassociate_availability_zones
 - [ ] disassociate_subnets
 - [ ] get_analysis_report_results
 - [ ] list_analysis_reports
@@ -51,11 +56,13 @@ network-firewall
 - [ ] list_tls_inspection_configurations
 - [ ] list_vpc_endpoint_associations
 - [ ] put_resource_policy
+- [ ] reject_network_firewall_transit_gateway_attachment
 - [ ] start_analysis_report
 - [ ] start_flow_capture
 - [ ] start_flow_flush
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_availability_zone_change_protection
 - [ ] update_firewall_analysis_settings
 - [ ] update_firewall_delete_protection
 - [ ] update_firewall_description

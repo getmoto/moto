@@ -34,11 +34,11 @@ ram
 - [ ] list_pending_invitation_resources
 - [ ] list_permission_associations
 - [ ] list_permission_versions
-- [ ] list_permissions
+- [X] list_permissions
 - [ ] list_principals
 - [ ] list_replace_permission_associations_work
 - [ ] list_resource_share_permissions
-- [ ] list_resource_types
+- [X] list_resource_types
 - [ ] list_resources
 - [ ] promote_permission_created_from_policy
 - [ ] promote_resource_share_created_from_policy

@@ -507,6 +507,58 @@ def test_list_task_definitions_with_family_prefix():
 
 
 @mock_aws
+def test_list_task_definitions_with_status_filter():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    td2_response = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world2",
+                "image": "docker/hello-world2:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY2"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    client.deregister_task_definition(
+        taskDefinition=td2_response["taskDefinition"]["taskDefinitionArn"]
+    )
+    response = client.list_task_definitions(status="ACTIVE")
+    assert len(response["taskDefinitionArns"]) == 1
+    assert (
+        response["taskDefinitionArns"][0]
+        == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:1"
+    )
+    response = client.list_task_definitions(status="INACTIVE")
+    assert len(response["taskDefinitionArns"]) == 1
+    assert (
+        response["taskDefinitionArns"][0]
+        == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:2"
+    )
+
+
+@mock_aws
 def test_describe_task_definitions():
     client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
@@ -2111,6 +2163,10 @@ def test_run_task_awsvpc_network():
 
     # ECS setup
     setup_resources = setup_ecs(client, ec2)
+    subnet = setup_resources[0]
+    ec2_client.modify_vpc_attribute(
+        VpcId=subnet.vpc.id, EnableDnsHostnames={"Value": True}
+    )
 
     # Execute
     response = client.run_task(
@@ -2159,6 +2215,10 @@ def test_run_task_awsvpc_network__unknown_sec_group():
 
     # ECS setup
     setup_resources = setup_ecs(client, ec2)
+    subnet = setup_resources[0]
+    ec2_client.modify_vpc_attribute(
+        VpcId=subnet.vpc.id, EnableDnsHostnames={"Value": True}
+    )
 
     # Execute
     task = client.run_task(

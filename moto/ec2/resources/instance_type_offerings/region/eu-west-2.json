@@ -1448,6 +1448,14 @@
   "Location": "eu-west-2"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "eu-west-2"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "eu-west-2"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "eu-west-2"
  },
@@ -2201,10 +2209,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "eu-west-2"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "eu-west-2"
  },
  {
