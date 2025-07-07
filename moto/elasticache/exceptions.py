@@ -145,3 +145,13 @@ class ReplicationGroupAlreadyExists(ElastiCacheException):
             "ReplicationGroupAlreadyExists",
             message=f"Replication group {replication_group_id} already exists.",
         )
+
+
+class ReplicationGroupNotFound(ElastiCacheException):
+    code = 404
+
+    def __init__(self, replication_group_id: str):
+        super().__init__(
+            "ReplicationGroupNotFound",
+            message=f"Replication group {replication_group_id} not found.",
+        )

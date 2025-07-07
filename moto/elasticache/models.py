@@ -20,6 +20,7 @@ from .exceptions import (
     InvalidParameterValueException,
     InvalidSubnet,
     ReplicationGroupAlreadyExists,
+    ReplicationGroupNotFound,
     UserAlreadyExists,
     UserNotFound,
 )
@@ -331,9 +332,9 @@ class ReplicationGroup(BaseModel):
                     member_clusters_outpost_arns=self.member_clusters_outpost_arns,
                 )
 
-                self.configuration_endpoint = {
-                    "Address": f"clustercfg.{replication_group_domain}"
-                }
+                self.configuration_endpoint: Dict[str, Any] = {}
+                self.configuration_endpoint["address"] = f"clustercfg.{replication_group_domain}"
+                self.configuration_endpoint["port"] = self.port
 
             # self.cluster_mode is disabled or not set
             else:
@@ -915,7 +916,19 @@ class ElastiCacheBackend(BaseBackend):
             serverless_cache_snapshot_name=serverless_cache_snapshot_name,
         )
 
+        self.replication_groups[replication_group_id] = replication_group
         return replication_group
+
+    @paginate(PAGINATION_MODEL)
+    def describe_replication_groups(self, replication_group_id: str) -> List[ReplicationGroup]:
+        if replication_group_id:
+            if replication_group_id in self.replication_groups:
+                replication_group = self.replication_groups[replication_group_id]
+                return list([replication_group])
+            else:
+                raise ReplicationGroupNotFound(replication_group_id)
+        replication_groups = list(self.replication_groups.values())
+        return replication_groups
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")
