@@ -309,7 +309,7 @@ class ReplicationGroup(BaseModel):
 
         for i in range(num_node_groups):
             node_group: Dict[str, Any] = {}
-            node_group["node_group_id"] = f"{i+1:0>4}"
+            node_group["node_group_id"] = f"{i + 1:0>4}"
             node_group["status"] = "available"
             node_group["node_group_members"] = []
 
@@ -318,7 +318,9 @@ class ReplicationGroup(BaseModel):
                     node_group["slots"] = "0-5461"
                 else:
                     # slots cannot overlap among node groups
-                    node_group["slots"] = f"{(5460*(i)) + (i+1)}-{(5460*(i+1)) + (i+1)}"
+                    node_group["slots"] = (
+                        f"{(5460 * (i)) + (i + 1)}-{(5460 * (i + 1)) + (i + 1)}"
+                    )
 
                 replicas_per_node_group = replicas_per_node_group or 0
                 self._set_node_members_clusters_enabled(
@@ -425,14 +427,14 @@ class ReplicationGroup(BaseModel):
                 log_config_resp["destination_details"] = {}
                 if log_delivery_configuration.get("DestinationDetails"):
                     log_config_resp["destination_details"]["cloudwatch_log_group"] = (
-                        log_delivery_configuration.get(
-                            "DestinationDetails", {}
-                        ).get("CloudWatchLogGroup", "")
+                        log_delivery_configuration.get("DestinationDetails", {}).get(
+                            "CloudWatchLogGroup", ""
+                        )
                     )
                     log_config_resp["destination_details"]["kinesis_stream"] = (
-                        log_delivery_configuration.get(
-                            "DestinationDetails", {}
-                        ).get("KinesisStream", "")
+                        log_delivery_configuration.get("DestinationDetails", {}).get(
+                            "KinesisStream", ""
+                        )
                     )
                 log_config_resp["log_format"] = log_delivery_configuration.get(
                     "LogFormat", "text"
@@ -497,7 +499,7 @@ class ReplicationGroup(BaseModel):
             replica_node = {}
             # r + 1 because primary is 001
             replica_node["cache_cluster_id"] = (
-                f"{replication_group_id}-{node_group['node_group_id']}-{r+1:0>3}"
+                f"{replication_group_id}-{node_group['node_group_id']}-{r + 1:0>3}"
             )
             replica_node["cache_node_id"] = node_group["node_group_id"]
 
@@ -543,7 +545,7 @@ class ReplicationGroup(BaseModel):
         primary_node["cache_node_id"] = node_group["node_group_id"]
         primary_node["read_endpoint"] = {}
         primary_node["read_endpoint"]["address"] = (
-            f"{primary_node["cache_cluster_id"]}.{replication_group_domain}"
+            f"{primary_node['cache_cluster_id']}.{replication_group_domain}"
         )
         primary_node["read_endpoint"]["port"] = self.port
 
@@ -565,11 +567,11 @@ class ReplicationGroup(BaseModel):
         for r in range(1, num_cache_clusters):
             replica_node: Dict[str, Any] = {}
             # r + 1 because primary is 001
-            replica_node["cache_cluster_id"] = f"{replication_group_id}-{r+1:0>3}"
+            replica_node["cache_cluster_id"] = f"{replication_group_id}-{r + 1:0>3}"
             replica_node["cache_node_id"] = node_group["node_group_id"]
             replica_node["read_endpoint"] = {}
             replica_node["read_endpoint"]["address"] = (
-                f"{replica_node["cache_cluster_id"]}.{replication_group_domain}"
+                f"{replica_node['cache_cluster_id']}.{replication_group_domain}"
             )
             replica_node["read_endpoint"]["port"] = self.port
 
