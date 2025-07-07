@@ -18,6 +18,7 @@ amp
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
+- [ ] create_query_logging_configuration
 - [X] create_rule_groups_namespace
   
         The ClientToken-parameter is not yet implemented
@@ -31,6 +32,7 @@ amp
 
 - [ ] delete_alert_manager_definition
 - [X] delete_logging_configuration
+- [ ] delete_query_logging_configuration
 - [X] delete_rule_groups_namespace
   
         The ClientToken-parameter is not yet implemented
@@ -44,6 +46,7 @@ amp
 
 - [ ] describe_alert_manager_definition
 - [X] describe_logging_configuration
+- [ ] describe_query_logging_configuration
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
@@ -62,6 +65,7 @@ amp
 - [X] tag_resource
 - [X] untag_resource
 - [X] update_logging_configuration
+- [ ] update_query_logging_configuration
 - [ ] update_scraper
 - [X] update_workspace_alias
   
