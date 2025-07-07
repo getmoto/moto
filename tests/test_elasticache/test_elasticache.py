@@ -1089,11 +1089,17 @@ def test_create_replication_group_cluster_enabled():
                 "NodeGroupId": "0001",
                 "PrimaryAvailabilityZone": "us-east-2a",
                 "ReplicaAvailabilityZones": ["us-east-2b", "us-east-2c"],
+                "PrimaryOutpostArn": f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef0",
+                "ReplicaOutpostArns": [
+                    f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef1",
+                    f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef2",
+                ],
             },
             {
                 "NodeGroupId": "0003",
                 "PrimaryAvailabilityZone": "us-east-2b",
-                "ReplicaAvailabilityZones": ["us-east-2a", "us-east-2c"],
+                "ReplicaCount": 1,
+                "ReplicaAvailabilityZones": ["us-east-2a"],
             },
             {
                 "NodeGroupId": "0002",
@@ -1105,7 +1111,7 @@ def test_create_replication_group_cluster_enabled():
 
     replication_group = resp["ReplicationGroup"]
     assert replication_group["ReplicationGroupId"] == replication_group_id
-    assert len(replication_group["MemberClusters"]) == 9
+    assert len(replication_group["MemberClusters"]) == 10
     assert (
         replication_group["NodeGroups"][0]["NodeGroupMembers"][0]["CacheClusterId"]
         == f"{replication_group_id}-0001-001"
