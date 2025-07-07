@@ -1289,3 +1289,36 @@ def test_describe_replication_groups_cluster_enabled():
         assert True
     else:
         assert False
+
+
+@mock_aws
+def test_replication_groups_list_tags():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test-cluster-disabled"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    resp = client.list_tags_for_resource(
+        ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:replicationgroup:{replication_group_id}"
+    )
+    assert len(resp["TagList"]) == 2
+    assert resp["TagList"][0]["Key"] == "foo"
+    assert resp["TagList"][0]["Value"] == "bar"
+    assert resp["TagList"][1]["Key"] == "foo1"
+    assert resp["TagList"][1]["Value"] == "bar1"
