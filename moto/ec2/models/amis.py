@@ -78,6 +78,7 @@ class Ami(TaggedEC2Resource):
         self.creation_date = creation_date or utc_date_and_time()
         self.product_codes = product_codes
         self.boot_mode = boot_mode
+        self.instance_id: Optional[str] = None
 
         if tags is not None:
             self.add_tags(tags)
@@ -128,6 +129,10 @@ class Ami(TaggedEC2Resource):
     def is_public_string(self) -> str:
         return str(self.is_public).lower()
 
+    @property
+    def source_instance_id(self) -> Optional[str]:
+        return self.instance_id
+
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
     ) -> Any:
@@ -153,6 +158,8 @@ class Ami(TaggedEC2Resource):
             return self.product_codes
         elif filter_name == "product-code.type":
             return "marketplace"  # devpay is not (yet?) supported
+        elif filter_name == "source-instance-id":
+            return self.source_instance_id
         else:
             return super().get_filter_value(filter_name, "DescribeImages")
 
