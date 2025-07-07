@@ -854,6 +854,7 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
               <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
               <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
               <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
+              <PreferredOutpostArn>{{ node.preferred_outpost_arn }}</PreferredOutpostArn>
             </member>
             {% endfor %}
           </NodeGroupMembers>
@@ -888,7 +889,7 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
       <SnapshottingClusterId>{{ replication_group.snapshotting_cluster_id }}</SnapshottingClusterId>
       <AutomaticFailover>{{ replication_group.automatic_failover }}</AutomaticFailover>
       <MultiAZ>{{ replication_group.multi_az }}</MultiAZ>
-      {% if cluster_mode == "enabled" %}
+      {% if replication_group.cluster_mode == "enabled" %}
       <ConfigurationEndpoint>
         <Address>{{ replication_group.configuration_endpoint.address }}</Address>
         <Port>{{ replication_group.configuration_endpoint.port }}</Port>
@@ -997,6 +998,7 @@ DESCRIBE_REPLICATION_GROUPS_TEMPLATE = """<DescribeReplicationGroupsResponse xml
                 <CacheClusterId>{{ node.cache_cluster_id }}</CacheClusterId>
                 <CacheNodeId>{{ node.cache_node_id }}</CacheNodeId>
                 <PreferredAvailabilityZone>{{ node.preferred_availability_zone }}</PreferredAvailabilityZone>
+                <PreferredOutpostArn>{{ node.preferred_outpost_arn }}</PreferredOutpostArn>
               </member>
               {% endfor %}
             </NodeGroupMembers>

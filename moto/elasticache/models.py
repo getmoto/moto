@@ -302,9 +302,8 @@ class ReplicationGroup(BaseModel):
         replication_group_domain = (
             f"{replication_group_id}.{random_str}.{region_short}.cache.amazonaws.com"
         )
-        self.member_clusters: List[
-            str
-        ] = []  # member_clusters consist of CacheClusterIDs of primary and replicas
+        self.member_clusters: List[str] = []
+        self.member_clusters_outpost_arns: List[str] = []
         if not num_node_groups:
             num_node_groups = 1
 
@@ -321,7 +320,6 @@ class ReplicationGroup(BaseModel):
                     # slots cannot overlap among node groups
                     node_group["slots"] = f"{(5460*(i)) + (i+1)}-{(5460*(i+1)) + (i+1)}"
 
-                self.member_clusters_outpost_arns: List[str] = []
                 replicas_per_node_group = replicas_per_node_group or 0
                 self._set_node_members_clusters_enabled(
                     member_clusters=self.member_clusters,
@@ -368,7 +366,7 @@ class ReplicationGroup(BaseModel):
         self.snapshot_retention_limit = snapshot_retention_limit or 0
         self.snapshot_window = snapshot_window or "05:00-6:00"
         self.snapshotting_cluster_id = None
-        if snapshot_retention_limit > 0:
+        if self.snapshot_retention_limit > 0:
             if len(self.member_clusters) > 1:
                 self.snapshotting_cluster_id = self.member_clusters[1]
             else:
@@ -476,16 +474,20 @@ class ReplicationGroup(BaseModel):
                     # overwrite slots if part of node config
                     if config.get("Slots"):
                         node_group["slots"] = config.get("Slots")
-                    replica_count = config.get("ReplicaCount", replicas_per_node_group)
+
+                    replica_count_val = config.get("ReplicaCount")
+                    if replica_count_val is not None:
+                        replica_count = int(replica_count_val)
+                    else:
+                        replica_count = replicas_per_node_group
+
                     primary_node["preferred_availability_zone"] = config.get(
                         "PrimaryAvailabilityZone", "us-east-1a"
                     )
-                    primary_outpost_arn = config.get("PrimaryOutpostArn")
+                    primary_outpost_arn = config.get("PrimaryOutpostArn", "")
                     if primary_outpost_arn:
+                        primary_node["preferred_outpost_arn"] = primary_outpost_arn
                         member_clusters_outpost_arns.append(primary_outpost_arn)
-                    secondary_outpost_arn = config.get("SecondaryOutpostArns")
-                    if secondary_outpost_arn:
-                        member_clusters_outpost_arns.extend(secondary_outpost_arn)
 
         node_group["node_group_members"].append(primary_node)
         member_clusters.append(primary_node["cache_cluster_id"])
@@ -510,6 +512,18 @@ class ReplicationGroup(BaseModel):
                         replica_node["preferred_availability_zone"] = replica_az[r - 1]
                     elif len(replica_az) >= 1:
                         replica_node["preferred_availability_zone"] = replica_az[1]
+                replica_outpost_arns = node_config.get("ReplicaOutpostArns", [])
+                if replica_outpost_arns:
+                    if len(replica_outpost_arns) >= r:
+                        replica_node["preferred_outpost_arn"] = replica_outpost_arns[
+                            r - 1
+                        ]
+                    elif len(replica_outpost_arns) >= 1:
+                        replica_node["preferred_outpost_arn"] = replica_outpost_arns[1]
+
+                    member_clusters_outpost_arns.append(
+                        replica_node["preferred_outpost_arn"]
+                    )
 
             node_group["node_group_members"].append(replica_node)
             member_clusters.append(replica_node["cache_cluster_id"])
