@@ -230,10 +230,9 @@ class ElastiCacheResponse(BaseResponse):
         preferred_cache_cluster_azs = self._get_param("PreferredCacheClusterAZs")
         num_node_groups = self._get_int_param("NumNodeGroups")
         replicas_per_node_group = self._get_int_param("ReplicasPerNodeGroup")
-
         node_group_configuration = (
             self._get_multi_param_dict("NodeGroupConfiguration").get(
-                "NodeGroupConfiguration"
+                "NodeGroupConfiguration", []
             )
             if self._get_multi_param_dict("NodeGroupConfiguration")
             else []
