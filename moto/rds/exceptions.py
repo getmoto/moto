@@ -149,6 +149,14 @@ class DBSnapshotAlreadyExistsError(RDSClientError):
         )
 
 
+class DBShardGroupNotFoundFault(RDSClientError):
+    def __init__(self, db_shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupNotFoundFault",
+            f"DBShardGroup {db_shard_group_identifier} not found.",
+        )
+
+
 class InvalidParameterValue(RDSClientError):
     def __init__(self, message: str):
         super().__init__("InvalidParameterValue", message)

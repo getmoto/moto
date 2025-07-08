@@ -53,6 +53,7 @@ from .exceptions import (
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
+    DBShardGroupNotFoundFault,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundFault,
     DBSubnetGroupNotFoundError,
@@ -2208,6 +2209,51 @@ class DBInstanceAutomatedBackup:
         return status
 
 
+class DBShardGroup(RDSBaseModel):
+    resource_type = "shard-group"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_shard_group_identifier: str,
+        db_cluster_identifier: str,
+        max_acu: float,
+        compute_redundancy: Optional[int] = None,
+        min_acu: Optional[float] = None,
+        publicly_accessible: Optional[bool] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_shard_group_identifier = db_shard_group_identifier
+        self.db_cluster_identifier = db_cluster_identifier
+        self.compute_redundancy = compute_redundancy
+        self.max_acu = max_acu
+        self.min_acu = min_acu
+        self.status = "available"
+        self.db_shard_group_resource_id = (
+            f"shard-group-{self.db_shard_group_identifier}"
+        )
+        self.endpoint = f"{self.db_cluster_identifier}.{self.region}.rds.amazonaws.com"
+        self.db_shard_group_arn = f"arn:aws:rds:{self.region}:{self.account_id}:shard-group:{self.db_shard_group_identifier}"
+        self.publicly_accessible = publicly_accessible
+        self.tags = tags or []
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "db_shard_group_identifier": self.db_shard_group_identifier,
+            "db_cluster_identifier": self.db_cluster_identifier,
+            "compute_redundancy": self.compute_redundancy,
+            "max_acu": self.max_acu,
+            "min_acu": self.min_acu,
+            "endpoint": self.endpoint,
+            "status": self.status,
+            "db_shard_group_arn": self.db_shard_group_arn,
+            "db_shard_group_resource_id": self.db_shard_group_resource_id,
+            "publicly_accessible": self.publicly_accessible,
+            "tag_list": self.tags,
+        }
+
+
 class RDSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -2231,6 +2277,7 @@ class RDSBackend(BaseBackend):
             str, DBClusterParameterGroup
         ] = CaseInsensitiveDict()
         self.option_groups: MutableMapping[str, OptionGroup] = CaseInsensitiveDict()
+        self.shard_groups: Dict[str, DBShardGroup] = {}
         self.security_groups: Dict[str, DBSecurityGroup] = {}
         self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
@@ -2244,6 +2291,7 @@ class RDSBackend(BaseBackend):
             DBParameterGroup: self.db_parameter_groups,
             DBProxy: self.db_proxies,
             DBSecurityGroup: self.security_groups,
+            DBShardGroup: self.shard_groups,
             DBSnapshot: self.database_snapshots,
             DBSubnetGroup: self.subnet_groups,
             EventSubscription: self.event_subscriptions,
@@ -4072,6 +4120,26 @@ class RDSBackend(BaseBackend):
         bg_deployment.set_status(bg_deployment.SupportedStates.DELETING)
         bg_deployment.deletion_time = utcnow()
         return bg_deployment
+
+    def create_db_shard_group(self, kwargs: Dict[str, Any]) -> DBShardGroup:
+        db_shard_group = DBShardGroup(self, **kwargs)
+        self.shard_groups[db_shard_group.db_shard_group_identifier] = (
+            db_shard_group.to_dict()
+        )
+        return db_shard_group
+
+    def describe_db_shard_groups(
+        self,
+        db_shard_group_identifier: Optional[str],
+        filter: Optional[Dict[str, List[str]]],
+    ) -> List[DBShardGroup]:
+        if db_shard_group_identifier:
+            # TODO: add filter for filter param.
+            if db_shard_group_identifier not in self.shard_groups:
+                raise DBShardGroupNotFoundFault(db_shard_group_identifier)
+            return [self.shard_groups[db_shard_group_identifier]]
+
+        return list(self.shard_groups)
 
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"

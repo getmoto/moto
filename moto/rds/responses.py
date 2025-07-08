@@ -129,6 +129,21 @@ class RDSResponse(BaseResponse):
         result = {"DBSnapshot": snapshot}
         return ActionResult(result)
 
+    def create_db_shard_group(self) -> ActionResult:
+        kwargs = self.parameters
+        db_shard_group = self.backend.create_db_shard_group(kwargs)
+        return ActionResult(db_shard_group)
+
+    def describe_db_shard_groups(self) -> ActionResult:
+        db_shard_group_identifier = self.parameters.get("DBShardGroupIdentifier", None)
+        filters = self.parameters.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        shard_groups = self.backend.describe_db_shard_groups(
+            db_shard_group_identifier, filter_dict
+        )
+        result = {"DBShardGroups": shard_groups, "Marker": None}
+        return ActionResult(result)
+
     def copy_db_snapshot(self) -> ActionResult:
         target_snapshot_identifier = self.parameters.get("TargetDBSnapshotIdentifier")
         self.backend.validate_db_snapshot_identifier(
