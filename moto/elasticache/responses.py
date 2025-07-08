@@ -191,6 +191,34 @@ class ElastiCacheResponse(BaseResponse):
         tags = self.elasticache_backend.list_tags_for_resource(arn)
         return template.render(tags=tags)
 
+    def create_cache_subnet_group(self) -> str:
+        cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
+        cache_subnet_group_description = self._get_param("CacheSubnetGroupDescription")
+        subnet_ids = self._get_multi_param_dict("SubnetIds").get("SubnetIdentifier", [])
+        tags = (self._get_multi_param_dict("Tags") or {}).get("Tag", [])
+        cache_subnet_group = self.elasticache_backend.create_cache_subnet_group(
+            cache_subnet_group_name=cache_subnet_group_name,
+            cache_subnet_group_description=cache_subnet_group_description,
+            subnet_ids=subnet_ids,
+            tags=tags,
+        )
+        template = self.response_template(CREATE_CACHE_SUBNET_GROUP_TEMPLATE)
+        return template.render(cache_subnet_group=cache_subnet_group)
+
+    def describe_cache_subnet_groups(self) -> str:
+        cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
+        max_records = self._get_param("MaxRecords")
+        marker = self._get_param("Marker")
+        cache_subnet_groups, marker = (
+            self.elasticache_backend.describe_cache_subnet_groups(
+                cache_subnet_group_name=cache_subnet_group_name,
+                marker=marker,
+                max_records=max_records,
+            )
+        )
+        template = self.response_template(DESCRIBE_CACHE_SUBNET_GROUPS_TEMPLATE)
+        return template.render(marker=marker, cache_subnet_groups=cache_subnet_groups)
+
 
 USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
     <UserName>{{ user.name }}</UserName>
@@ -610,3 +638,76 @@ LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://
     <RequestId>8c21ba39-a598-11e4-b688-194eaf8658fa</RequestId>
   </ResponseMetadata>
 </ListTagsForResourceResponse>"""
+
+CREATE_CACHE_SUBNET_GROUP_TEMPLATE = """<CreateCacheSubnetGroupResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <CreateCacheSubnetGroupResult>
+    <CacheSubnetGroup>
+      <CacheSubnetGroupName>{{ cache_subnet_group.cache_subnet_group_name }}</CacheSubnetGroupName>
+      <CacheSubnetGroupDescription>{{ cache_subnet_group.cache_subnet_group_description }}</CacheSubnetGroupDescription>
+      <VpcId>{{ cache_subnet_group.vpc_id }}</VpcId>
+      <Subnets>
+        {% for subnet in cache_subnet_group.subnets_responses %}
+        <Subnet>
+          <SubnetIdentifier>{{ subnet.subnet_id }}</SubnetIdentifier>
+          <SubnetAvailabilityZone>
+            <Name>{{ subnet.subnet_az }}</Name>
+          </SubnetAvailabilityZone>
+          <SupportedNetworkTypes>
+            {% for network_type in subnet.subnet_supported_network_types %}
+              <member>{{ network_type }}</member>
+            {% endfor %}
+          </SupportedNetworkTypes>
+        </Subnet>
+        {% endfor %}
+      </Subnets>
+      <ARN>{{ cache_subnet_group.arn }}</ARN>
+      <SupportedNetworkTypes>
+        {% for network_type in cache_subnet_group.supported_network_types %}
+          <member>{{ network_type }}</member>
+        {% endfor %}
+      </SupportedNetworkTypes>
+    </CacheSubnetGroup>
+  </CreateCacheSubnetGroupResult>
+</CreateCacheSubnetGroupResponse>"""
+
+DESCRIBE_CACHE_SUBNET_GROUPS_TEMPLATE = """<DescribeCacheSubnetGroupsResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
+  <ResponseMetadata>
+    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
+  </ResponseMetadata>
+  <DescribeCacheSubnetGroupsResult>
+    {% if marker %}<Marker>{{ marker }}</Marker>{% endif %}
+    <CacheSubnetGroups>
+      {% for cache_subnet_group in cache_subnet_groups %}
+      <member>
+        <CacheSubnetGroupName>{{ cache_subnet_group.cache_subnet_group_name }}</CacheSubnetGroupName>
+        <CacheSubnetGroupDescription>{{ cache_subnet_group.cache_subnet_group_description }}</CacheSubnetGroupDescription>
+        <VpcId>{{ cache_subnet_group.vpc_id }}</VpcId>
+        <Subnets>
+          {% for subnet in cache_subnet_group.subnets_responses %}
+          <Subnet>
+            <SubnetIdentifier>{{ subnet.subnet_id }}</SubnetIdentifier>
+            <SubnetAvailabilityZone>
+              <Name>{{ subnet.subnet_az }}</Name>
+            </SubnetAvailabilityZone>
+            <SupportedNetworkTypes>
+              {% for network_type in subnet.subnet_supported_network_types %}
+              <member>{{ network_type }}</member>
+              {% endfor %}
+            </SupportedNetworkTypes>
+          </Subnet>
+          {% endfor %}
+        </Subnets>
+        <ARN>{{ cache_subnet_group.arn }}</ARN>
+        <SupportedNetworkTypes>
+          {% for network_type in cache_subnet_group.supported_network_types %}
+          <member>{{ network_type }}</member>
+          {% endfor %}
+        </SupportedNetworkTypes>
+      </member>
+      {% endfor %}
+    </CacheSubnetGroups>
+  </DescribeCacheSubnetGroupsResult>
+</DescribeCacheSubnetGroupsResponse>"""

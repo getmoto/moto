@@ -88,11 +88,10 @@ class KinesisVideoBackend(BaseBackend):
             streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
             if len(streams) == 0:
                 raise ResourceNotFoundException()
-            stream = streams[0]
-        elif stream_arn:
-            stream = self.streams.get(stream_arn)
-            if stream is None:
-                raise ResourceNotFoundException()
+            return streams[0]
+        # Assume stream_arn is supplied instead
+        if not (stream := self.streams.get(stream_arn)):
+            raise ResourceNotFoundException()
         return stream
 
     def describe_stream(self, stream_name: str, stream_arn: str) -> Dict[str, Any]:

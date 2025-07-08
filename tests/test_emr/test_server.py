@@ -11,5 +11,4 @@ def test_describe_jobflows():
 
     res = test_client.get("/?Action=DescribeJobFlows")
 
-    assert b"<DescribeJobFlowsResult>" in res.data
-    assert b"<JobFlows>" in res.data
+    assert b"JobFlows" in res.data

@@ -160,6 +160,7 @@ class ConditionExpressionParser:
         self.expression_attribute_values = expression_attribute_values
 
         self.expr_attr_names_found: List[str] = []
+        self.expr_attr_values_found: List[str] = []
 
     def parse(self) -> Union[Op, "Func"]:
         """Returns a syntax tree for the expression.
@@ -214,6 +215,7 @@ class ConditionExpressionParser:
         node = nodes[0]
 
         self.expr_attr_names_found.extend(self._find_literals(node))
+        self.expr_attr_values_found.extend(self._find_expr_attr_values(node))
 
         op = self._make_op_condition(node)
         return op
@@ -264,11 +266,24 @@ class ConditionExpressionParser:
     @classmethod
     def _find_literals(cls, parent: Node) -> List[str]:  # type: ignore
         literals: List[str] = []
-        if parent.kind == "LITERAL" and parent.nonterminal == "IDENTIFIER":
+        if (
+            parent.kind == cls.Kind.LITERAL
+            and parent.nonterminal == cls.Nonterminal.IDENTIFIER
+        ):
             literals.append(parent.text)
         else:
             for child in parent.children:
                 literals.extend(cls._find_literals(child))
+        return literals
+
+    @classmethod
+    def _find_expr_attr_values(cls, parent: Node) -> List[str]:  # type: ignore
+        literals: List[str] = []
+        if parent.kind == ConditionExpressionParser.Kind.EXPRESSION_ATTRIBUTE_VALUE:
+            literals.append(parent.text)
+        else:
+            for child in parent.children:
+                literals.extend(cls._find_expr_attr_values(child))
         return literals
 
     @classmethod

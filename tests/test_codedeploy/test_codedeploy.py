@@ -326,11 +326,14 @@ def test_get_deployment_group():
     client.create_application(
         applicationName=application_name, computePlatform="Lambda"
     )
-    client.create_deployment_group(
+
+    response = client.create_deployment_group(
         applicationName=application_name,
         deploymentGroupName=deployment_group_name,
         serviceRoleArn=service_role_arn,
     )
+
+    deployment_group_id = response["deploymentGroupId"]
 
     response = client.get_deployment_group(
         applicationName=application_name, deploymentGroupName=deployment_group_name
@@ -340,6 +343,7 @@ def test_get_deployment_group():
 
     # required fields
     assert deployment_group_info["applicationName"] == application_name
+    assert deployment_group_info["deploymentGroupId"] == deployment_group_id
     assert deployment_group_info["deploymentGroupName"] == deployment_group_name
     assert deployment_group_info["serviceRoleArn"] == service_role_arn
 
@@ -553,3 +557,96 @@ def test_list_deployment_groups():
 
     resp = client.list_deployment_groups(applicationName=application_name)
     assert len(resp["deploymentGroups"]) == 2
+
+    # ensure both deployment group names are in the response
+    assert set([deployment_group_name, deployment_group_name2]) == set(
+        resp["deploymentGroups"]
+    )
+
+
+@mock_aws
+def test_application_tagging():
+    client = boto3.client("codedeploy", region_name="us-west-2")
+    app_name = "test-tag-application"
+    initial_tags = [{"Key": "Environment", "Value": "Test"}]
+
+    response = client.create_application(
+        applicationName=app_name, computePlatform="Server", tags=initial_tags
+    )
+
+    app_arn = f"arn:aws:codedeploy:us-west-2:123456789012:application:{app_name}"
+
+    response = client.list_tags_for_resource(ResourceArn=app_arn)
+    assert "Tags" in response
+    assert len(response["Tags"]) == 1
+    assert response["Tags"][0]["Key"] == "Environment"
+    assert response["Tags"][0]["Value"] == "Test"
+
+
+@mock_aws
+def test_deployment_group_tagging():
+    client = boto3.client("codedeploy", region_name="us-west-2")
+    app_name = "test-tag-dg-app"
+    dg_name = "test-tag-deployment-group"
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+
+    client.create_application(applicationName=app_name, computePlatform="Server")
+
+    initial_tags = [{"Key": "Team", "Value": "Platform"}]
+    client.create_deployment_group(
+        applicationName=app_name,
+        deploymentGroupName=dg_name,
+        serviceRoleArn=service_role_arn,
+        tags=initial_tags,
+    )
+
+    dg_arn = f"arn:aws:codedeploy:us-west-2:123456789012:deploymentgroup:{app_name}/{dg_name}"
+
+    response = client.list_tags_for_resource(ResourceArn=dg_arn)
+    assert "Tags" in response
+    assert len(response["Tags"]) == 1
+    assert response["Tags"][0]["Key"] == "Team"
+    assert response["Tags"][0]["Value"] == "Platform"
+
+
+@mock_aws
+def test_deployment_inherits_tags():
+    """Test that deployments inherit tags from deployment groups."""
+    client = boto3.client("codedeploy", region_name="us-west-2")
+    app_name = "test-tag-inherit-app"
+    dg_name = "test-tag-inherit-group"
+    service_role_arn = "arn:aws:iam::123456789012:role/CodeDeployDemoRole"
+
+    client.create_application(applicationName=app_name, computePlatform="Server")
+
+    dg_tags = [{"Key": "Environment", "Value": "Production"}]
+    client.create_deployment_group(
+        applicationName=app_name,
+        deploymentGroupName=dg_name,
+        serviceRoleArn=service_role_arn,
+        tags=dg_tags,
+    )
+
+    response = client.create_deployment(
+        applicationName=app_name,
+        deploymentGroupName=dg_name,
+        revision={
+            "revisionType": "S3",
+            "s3Location": {
+                "bucket": "my-bucket",
+                "key": "my-key",
+                "bundleType": "zip",
+                "version": "1",
+                "eTag": "my-etag",
+            },
+        },
+    )
+    deployment_id = response["deploymentId"]
+
+    deployment_arn = (
+        f"arn:aws:codedeploy:us-west-2:123456789012:deployment:{deployment_id}"
+    )
+
+    response = client.list_tags_for_resource(ResourceArn=deployment_arn)
+    assert "Tags" in response
+    assert len(response["Tags"]) == 1

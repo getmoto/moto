@@ -45,7 +45,7 @@ textract
 
 - [X] start_document_text_detection
   
-        The following parameters have not yet been implemented: ClientRequestToken, JobTag, NotificationChannel, OutputConfig, KmsKeyID
+        The following parameters have not yet been implemented: ClientRequestToken, JobTag, OutputConfig, KmsKeyID
         
 
 - [ ] start_expense_analysis

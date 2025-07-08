@@ -10,11 +10,14 @@ from moto.core.utils import aws_api_matches
 from ..exceptions import (
     InvalidCIDRSubnetError,
     InvalidGroupIdMalformedError,
+    InvalidParameterCombination,
+    InvalidParameterValue,
     InvalidPermissionDuplicateError,
     InvalidPermissionNotFoundError,
     InvalidSecurityGroupDuplicateError,
     InvalidSecurityGroupNotFoundError,
     InvalidSecurityGroupRuleIdNotFoundError,
+    MissingParameter,
     MissingParameterError,
     MotoNotImplementedError,
     RulesPerSecurityGroupLimitExceededError,
@@ -524,6 +527,13 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             return self.id
         raise UnformattedGetAttTemplateException()
 
+    def get_rule(self, rule_id: str) -> Optional[SecurityRule]:
+        """Retrieve a security group rule by its ID."""
+        for rule in list(itertools.chain(self.egress_rules, self.ingress_rules)):
+            if rule.id == rule_id:
+                return rule
+        return None
+
     def add_ingress_rule(self, rule: SecurityRule) -> None:
         if rule in self.ingress_rules:
             raise InvalidPermissionDuplicateError()
@@ -784,6 +794,69 @@ class SecurityGroupBackend:
                 is_egress=is_egress,
                 tags=tags,
             )
+
+    def modify_security_group_rules(
+        self,
+        group_id: str,
+        rules: dict[str, dict[str, Any]],
+    ) -> None:
+        group = self.get_security_group_by_name_or_id(group_id)
+        if group is None:
+            raise InvalidSecurityGroupNotFoundError(group_id)
+
+        for rule_id, new_rule in rules.items():
+            cidr_ipv4 = new_rule.get("CidrIpv4")
+            cidr_ipv6 = new_rule.get("CidrIpv6")
+            prefix_list_id = new_rule.get("PrefixListId")
+            reference_group_id = new_rule.get("ReferencedGroupId")
+
+            set_param_count = sum(
+                item is not None
+                for item in [cidr_ipv4, cidr_ipv6, prefix_list_id, reference_group_id]
+            )
+            if set_param_count > 1:
+                raise InvalidParameterCombination(
+                    "Only one of cidrIp, cidrIpv6, prefixListId, or referencedGroupId can be specified"
+                )
+            if set_param_count < 1:
+                raise MissingParameter(
+                    "The request must contain exactly one of: cidrIp, cidrIpv6, prefixListId, or referencedGroupId"
+                )
+
+            existing_rule = group.get_rule(rule_id)
+            if existing_rule is None:
+                raise InvalidSecurityGroupRuleIdNotFoundError(rule_id)
+
+            ip_protocol = new_rule.get("IpProtocol")
+            if ip_protocol is None:
+                raise InvalidParameterValue(
+                    "Invalid value 'null' for protocol. VPC security group rules must specify protocols explicitly."
+                )
+
+            from_port = new_rule.get("FromPort")
+            to_port = new_rule.get("ToPort")
+            if from_port is None or to_port is None:
+                raise InvalidParameterValue(
+                    "Invalid value for portRange. Must specify both from and to ports with TCP/UDP."
+                )
+
+            if cidr_ipv4 and "CidrIpv6" in existing_rule.ip_range:
+                raise InvalidParameterValue(
+                    f"Invalid rule type for security group rule '{rule_id}'. You may not specify CidrIpv6 for an existing IPv4 CIDR rule."
+                )
+
+            existing_rule.ip_protocol = ip_protocol
+            existing_rule.from_port = from_port
+            existing_rule.to_port = to_port
+
+            # TODO: Handle cidr_ipv6, prefix_list_id and reference_group_id
+
+            description = new_rule.get("Description")
+            if description is not None:
+                existing_rule.ip_range["Description"] = description
+
+            if cidr_ipv4 is not None:
+                existing_rule.ip_range["CidrIp"] = cidr_ipv4
 
     def authorize_security_group_ingress(
         self,

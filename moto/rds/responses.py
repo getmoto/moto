@@ -129,6 +129,21 @@ class RDSResponse(BaseResponse):
         result = {"DBSnapshot": snapshot}
         return ActionResult(result)
 
+    def create_db_shard_group(self) -> ActionResult:
+        kwargs = self.parameters
+        db_shard_group = self.backend.create_db_shard_group(kwargs)
+        return ActionResult(db_shard_group)
+
+    def describe_db_shard_groups(self) -> ActionResult:
+        db_shard_group_identifier = self.parameters.get("DBShardGroupIdentifier", None)
+        filters = self.parameters.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        shard_groups = self.backend.describe_db_shard_groups(
+            db_shard_group_identifier, filter_dict
+        )
+        result = {"DBShardGroups": shard_groups, "Marker": None}
+        return ActionResult(result)
+
     def copy_db_snapshot(self) -> ActionResult:
         target_snapshot_identifier = self.parameters.get("TargetDBSnapshotIdentifier")
         self.backend.validate_db_snapshot_identifier(
@@ -804,6 +819,33 @@ class RDSResponse(BaseResponse):
     def describe_db_log_files(self) -> ActionResult:
         log_files = self.backend.describe_db_log_files(**self.parameters)
         result = {"DescribeDBLogFiles": log_files}
+        return ActionResult(result)
+
+    def create_blue_green_deployment(self) -> ActionResult:
+        bg_kwargs = self.parameters
+        bg_deployment = self.backend.create_blue_green_deployment(bg_kwargs)
+        result = {"BlueGreenDeployment": bg_deployment}
+        return ActionResult(result)
+
+    def describe_blue_green_deployments(self) -> ActionResult:
+        filters = self.parameters.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        self.parameters["filters"] = filter_dict
+        all_bg_deployments = self.backend.describe_blue_green_deployments(
+            **self.parameters
+        )
+        bg_deployments, _ = self._paginate(all_bg_deployments)
+        result = {"BlueGreenDeployments": bg_deployments}
+        return ActionResult(result)
+
+    def switchover_blue_green_deployment(self) -> ActionResult:
+        bg_deployment = self.backend.switchover_blue_green_deployment(**self.parameters)
+        result = {"BlueGreenDeployment": bg_deployment}
+        return ActionResult(result)
+
+    def delete_blue_green_deployment(self) -> ActionResult:
+        bg_deployment = self.backend.delete_blue_green_deployment(**self.parameters)
+        result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
 
     def _paginate(self, resources: List[Any]) -> Tuple[List[Any], Optional[str]]:

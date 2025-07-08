@@ -229,6 +229,14 @@ class FakeKey(BaseModel, ManagedState):
     def set_metadata(self, metadata: Any, replace: bool = False) -> None:
         if replace:
             self._metadata = {}  # type: ignore
+        # Remove AWS-specific Content-Encoding
+        if encoding := metadata.pop("Content-Encoding", None):
+            # Remove 'aws-chunked', but keep any other (user-provided) content encoding
+            encoding = ",".join(
+                [enc for enc in encoding.split(",") if enc != "aws-chunked"]
+            )
+            if encoding:
+                metadata["Content-Encoding"] = encoding
         self._metadata.update(metadata)
 
     def set_storage_class(self, storage: Optional[str]) -> None:
@@ -845,6 +853,7 @@ class CorsRule(BaseModel):
         allowed_headers: Any = None,
         expose_headers: Any = None,
         max_age_seconds: Any = None,
+        id_: Any = None,
     ):
         self.allowed_methods = (
             [allowed_methods] if isinstance(allowed_methods, str) else allowed_methods
@@ -859,6 +868,7 @@ class CorsRule(BaseModel):
             [expose_headers] if isinstance(expose_headers, str) else expose_headers
         )
         self.max_age_seconds = max_age_seconds
+        self.id_ = id_
 
 
 class Notification(BaseModel):
@@ -1264,6 +1274,7 @@ class FakeBucket(CloudFormationModel):
                 rule.get("ExposeHeader", ""), str
             )
             assert isinstance(rule.get("MaxAgeSeconds", "0"), str)
+            assert isinstance(rule.get("ID", ""), str)
 
             if isinstance(rule["AllowedMethod"], str):
                 methods = [rule["AllowedMethod"]]
@@ -1281,6 +1292,7 @@ class FakeBucket(CloudFormationModel):
                     rule.get("AllowedHeader"),
                     rule.get("ExposeHeader"),
                     rule.get("MaxAgeSeconds"),
+                    rule.get("ID"),
                 )
             )
 

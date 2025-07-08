@@ -211,9 +211,9 @@ class ACMPCAResponse(BaseResponse):
             resource_owner=resource_owner,
         )
 
-        response = {"CertificateAuthorities": [ca.to_json() for ca in cas]}
-
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "CertificateAuthorities": [ca.to_json() for ca in cas],
+            "NextToken": next_token,
+        }
 
         return json.dumps(response)

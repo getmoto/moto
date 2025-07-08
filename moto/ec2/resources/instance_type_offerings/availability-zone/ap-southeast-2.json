@@ -832,6 +832,30 @@
   "Location": "ap-southeast-2a"
  },
  {
+  "InstanceType": "i4g.16xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i4g.2xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i4g.4xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i4g.8xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i4g.large",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i4g.xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
   "InstanceType": "i4i.12xlarge",
   "Location": "ap-southeast-2a"
  },
@@ -869,6 +893,50 @@
  },
  {
   "InstanceType": "i4i.xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "ap-southeast-2a"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
   "Location": "ap-southeast-2a"
  },
  {
@@ -2536,10 +2604,6 @@
   "Location": "ap-southeast-2a"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "ap-southeast-2a"
- },
- {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "ap-southeast-2a"
  },
@@ -3649,6 +3713,50 @@
  },
  {
   "InstanceType": "i4i.xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "ap-southeast-2b"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
   "Location": "ap-southeast-2b"
  },
  {
@@ -5360,10 +5468,6 @@
   "Location": "ap-southeast-2b"
  },
  {
-  "InstanceType": "u-12tb1.112xlarge",
-  "Location": "ap-southeast-2b"
- },
- {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "ap-southeast-2b"
  },
@@ -6469,6 +6573,50 @@
  },
  {
   "InstanceType": "i4i.xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.12xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.18xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.24xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.2xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.3xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.48xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.6xlarge",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.large",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.metal-24xl",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.metal-48xl",
+  "Location": "ap-southeast-2c"
+ },
+ {
+  "InstanceType": "i7ie.xlarge",
   "Location": "ap-southeast-2c"
  },
  {
@@ -8105,10 +8253,6 @@
  },
  {
   "InstanceType": "trn1.32xlarge",
-  "Location": "ap-southeast-2c"
- },
- {
-  "InstanceType": "u-12tb1.112xlarge",
   "Location": "ap-southeast-2c"
  },
  {

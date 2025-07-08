@@ -115,6 +115,47 @@ class S3ControlResponse(BaseResponse):
         name = self.path.split("/")[-2]
         return account_id, name
 
+    def put_storage_lens_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        request = xmltodict.parse(self.body)["PutStorageLensConfigurationRequest"]
+        storage_lens_configuration = request.get("StorageLensConfiguration")
+        tags = request.get("Tags")
+        self.backend.put_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+            storage_lens_configuration=storage_lens_configuration,
+            tags=tags,
+        )
+        return ""
+
+    def get_storage_lens_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-1]
+        storage_lens_configuration = self.backend.get_storage_lens_configuration(
+            config_id=config_id,
+            account_id=account_id,
+        )
+        # TODO: Add support for all fields in the response
+        # https://docs.aws.amazon.com/AmazonS3/latest/API/API_control_GetStorageLensConfiguration.html
+        template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TEMPLATE)
+        return template.render(config=storage_lens_configuration.config)
+
+    def list_storage_lens_configurations(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        next_token = params.get("nextToken")
+        storage_lens_configuration_list, next_token = (
+            self.backend.list_storage_lens_configurations(
+                account_id=account_id,
+                next_token=next_token,
+            )
+        )
+        template = self.response_template(LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE)
+        return template.render(
+            next_token=next_token, configs=storage_lens_configuration_list
+        )
+
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
@@ -186,4 +227,52 @@ GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE = """<GetAccessPointPolicyResult>
       <IsPublic>true</IsPublic>
   </PolicyStatus>
 </GetAccessPointPolicyResult>
+"""
+
+
+GET_STORAGE_LENS_CONFIGURATION_TEMPLATE = """
+<StorageLensConfiguration>
+   <Id>{{config.get("Id")}}</Id>
+   {% if config.get("DataExport") %}
+   <DataExport>
+      {% if config["DataExport"]["S3BucketDestination"] %}
+      <S3BucketDestination>
+         <AccountId>{{config["DataExport"]["S3BucketDestination"]["AccountId"]}}</AccountId>
+         <Arn>{{config["DataExport"]["S3BucketDestination"]["Arn"]}}</Arn>
+         {% if config["DataExport"]["S3BucketDestination"].get("Encryption") %}
+         <Encryption>
+            {% if config["DataExport"]["S3BucketDestination"]["Encryption"].get("SSEKMS") %}
+            <SSE-KMS>
+               <KeyId>config["DataExport"]["S3BucketDestination"]["Encryption"]["KeyId"]</KeyId>
+            </SSE-KMS>
+            {% endif %}
+            {% if "SSE-S3" in config["DataExport"]["S3BucketDestination"]["Encryption"] %}
+            <SSE-S3>
+            </SSE-S3>
+            {% endif %}
+         </Encryption>
+         {% endif %}
+      </S3BucketDestination>
+      {% endif %}
+   </DataExport>
+   {% endif %}
+   <IsEnabled>{{config["IsEnabled"]}}</IsEnabled>
+</StorageLensConfiguration>
+"""
+
+
+LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE = """
+<ListStorageLensConfigurationsResult>
+   {% if next_token %}
+   <NextToken>{{ next_token }}</NextToken>
+   {% endif %}
+   {% for config in configs %}
+   <StorageLensConfiguration>
+      <HomeRegion></HomeRegion>
+      <Id>{{ config.config.get("Id") }}</Id>
+      <IsEnabled>{{ config.config.get("IsEnabled") }}</IsEnabled>
+      <StorageLensArn>{{ config.arn }}</StorageLensArn>
+    </StorageLensConfiguration>
+    {% endfor %}
+</ListStorageLensConfigurationsResult>
 """

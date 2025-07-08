@@ -1,3 +1,4 @@
+import json
 import re
 import time
 from datetime import datetime
@@ -8,6 +9,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ram.utils import AWS_MANAGED_PERMISSIONS, RAM_RESOURCE_TYPES
 
 
 @mock_aws
@@ -530,3 +532,123 @@ def test_get_resource_share_associations_errors():
         "You cannot specify a principal when the association type is RESOURCE"
         in ex.response["Error"]["Message"]
     )
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "resource_region_scope, expect_error, error_message",
+    [
+        ({}, False, None),  # default value is "ALL"
+        ({"resourceRegionScope": "ALL"}, False, None),
+        ({"resourceRegionScope": "GLOBAL"}, False, None),
+        ({"resourceRegionScope": "REGIONAL"}, False, None),
+        (
+            {"resourceRegionScope": "INVALID"},
+            True,
+            "INVALID is not a valid resource region scope value. Specify a valid value and try again.",
+        ),
+    ],
+    ids=[
+        "default_region_scope",
+        "all_region_scope",
+        "global_region_scope",
+        "regional_region_scope",
+        "invalid_region_scope",
+    ],
+)
+def test_list_resource_types(resource_region_scope, expect_error, error_message):
+    client = boto3.client("ram", region_name="us-east-1")
+    region_scope = resource_region_scope.get("resourceRegionScope")
+
+    if expect_error:
+        with pytest.raises(ClientError) as e:
+            client.list_resource_types(**resource_region_scope)
+        ex = e.value
+        assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert "InvalidParameterException" in ex.response["Error"]["Code"]
+        assert ex.response["Error"]["Message"] == error_message
+    else:
+        response = client.list_resource_types(**resource_region_scope)
+        expected_types = RAM_RESOURCE_TYPES
+        if region_scope == "GLOBAL":
+            expected_types = [
+                rt for rt in expected_types if rt["resourceRegionScope"] == "GLOBAL"
+            ]
+        elif region_scope == "REGIONAL":
+            expected_types = [
+                rt for rt in expected_types if rt["resourceRegionScope"] == "REGIONAL"
+            ]
+
+        assert "resourceTypes" in response
+        assert response["resourceTypes"] == expected_types
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "parameters, expect_error, error_message",
+    [
+        ({}, False, None),
+        ({"resourceType": "glue:catalog"}, False, None),
+        ({"permissionType": "ALL"}, False, None),
+        ({"resourceType": "glue:catalog", "permissionType": "AWS"}, False, None),
+        (
+            {"resourceType": "gluE:catalog", "permissionType": "AWS"},
+            True,
+            "Invalid resource type: gluE:catalog",
+        ),
+        (
+            {"resourceType": "glue:catalog", "permissionType": "INVALID"},
+            True,
+            "INVALID is not a valid scope. Must be one of: ALL, AWS, LOCAL.",
+        ),
+    ],
+    ids=[
+        "default_params",
+        "valid_resource_type",
+        "valid_permission_type",
+        "valid_resource_type_and_permission_type",
+        "invalid_resource_type",
+        "invalid_permission_type",
+    ],
+)
+def test_list_permissions(parameters, expect_error, error_message):
+    client = boto3.client("ram", region_name="us-east-1")
+    permission_types_relation = {
+        "AWS": "AWS_MANAGED",
+        "LOCAL": "CUSTOMER_MANAGED",
+    }
+    resource_type = parameters.get("resourceType")
+    permission_type = parameters.get("permissionType")
+
+    # when
+    if expect_error:
+        with pytest.raises(ClientError) as e:
+            client.list_permissions(**parameters)
+        ex = e.value
+        assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+        assert "InvalidParameterException" in ex.response["Error"]["Code"]
+        assert ex.response["Error"]["Message"] == error_message
+    else:
+        response = client.list_permissions(**parameters)
+
+        # then
+        expected_permissions = AWS_MANAGED_PERMISSIONS
+        if resource_type:
+            expected_permissions = [
+                permission
+                for permission in expected_permissions
+                if permission["resourceType"].lower() == resource_type.lower()
+            ]
+
+        if permission_type and permission_type != "ALL":
+            expected_permissions = [
+                permission
+                for permission in expected_permissions
+                if permission_types_relation.get(permission_type)
+                == permission["permissionType"]
+            ]
+
+        assert "permissions" in response
+        assert json.dumps(response["permissions"], default=str) == json.dumps(
+            expected_permissions, default=str
+        )

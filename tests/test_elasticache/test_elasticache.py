@@ -1,3 +1,5 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -689,3 +691,287 @@ def test_list_tags_cache_cluster():
         {"Value": "bar", "Key": "foo"},
         {"Value": "bar1", "Key": "foo1"},
     ]
+
+
+@mock_aws
+def test_create_cache_subnet_group():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    assert (
+        resp["CacheSubnetGroup"]["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert resp["CacheSubnetGroup"]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert (
+        resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    )
+    assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
+
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv4"]
+
+
+@mock_aws
+def test_create_cache_subnet_group_and_mock_vpc():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    # Create a subnet group with two subnets
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16").get("Vpc")
+    vpc_id = vpc.get("VpcId")
+    subnet_1 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet_2 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24").get(
+        "Subnet"
+    )
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_1.get("SubnetId"), subnet_2.get("SubnetId")],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    assert (
+        resp["CacheSubnetGroup"]["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert resp["CacheSubnetGroup"]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert (
+        resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    )
+    assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv4"]
+
+
+@mock_aws
+def test_describe_cache_subnet_groups():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+    resp = client.describe_cache_subnet_groups()
+    assert len(resp["CacheSubnetGroups"]) == 1
+    assert resp["CacheSubnetGroups"][0]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert len(resp["CacheSubnetGroups"][0]["Subnets"]) == 2
+
+
+@mock_aws
+def test_describe_cache_subnet_group_specific():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+    resp = client.describe_cache_subnet_groups(CacheSubnetGroupName="test-subnet-group")
+    assert len(resp["CacheSubnetGroups"]) == 1
+    assert resp["CacheSubnetGroups"][0]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert len(resp["CacheSubnetGroups"][0]["Subnets"]) == 2
+    assert resp["CacheSubnetGroups"][0]["SupportedNetworkTypes"] == ["ipv4"]
+
+
+@mock_aws
+def test_describe_cache_subnet_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    cache_subnet_group_unknown = "subnet_cluster_id_unknown"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_cache_subnet_groups(
+            CacheSubnetGroupName=cache_subnet_group_unknown,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheSubnetGroupNotFound"
+    assert err["Message"] == f"CacheSubnetGroup {cache_subnet_group_unknown} not found."
+
+
+@mock_aws
+def test_subnet_groups_list_tags():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    resp = client.list_tags_for_resource(
+        ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert len(resp["TagList"]) == 2
+    assert resp["TagList"][0]["Key"] == "foo"
+    assert resp["TagList"][0]["Value"] == "bar"
+    assert resp["TagList"][1]["Key"] == "foo1"
+    assert resp["TagList"][1]["Value"] == "bar1"
+
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group-no-tags",
+        CacheSubnetGroupDescription="Test subnet group no tags",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+
+    resp = client.list_tags_for_resource(
+        ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group-no-tags"
+    )
+    assert len(resp["TagList"]) == 0
+
+
+@mock_aws
+def test_cache_subnet_group_already_exists():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_cache_subnet_group(
+            CacheSubnetGroupName="test-subnet-group",
+            CacheSubnetGroupDescription="Test subnet group",
+            SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheSubnetGroupAlreadyExists"
+    assert err["Message"] == "CacheSubnetGroup test-subnet-group already exists."
+
+
+@mock_aws
+def test_cache_subnet_group_with_invalid_subnet_ids():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16").get("Vpc")
+    vpc2 = ec2_client.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc")
+    subnet1 = ec2_client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet2 = ec2_client.create_subnet(
+        VpcId=vpc2["VpcId"], CidrBlock="10.1.0.0/24"
+    ).get("Subnet")
+
+    with pytest.raises(ClientError) as exc:
+        client.create_cache_subnet_group(
+            CacheSubnetGroupName="test-subnet-group",
+            CacheSubnetGroupDescription="Test subnet group",
+            SubnetIds=[subnet1["SubnetId"], subnet2["SubnetId"]],
+            Tags=[
+                {"Key": "foo", "Value": "bar"},
+                {"Key": "foo1", "Value": "bar1"},
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidSubnet"
+
+
+@mock_aws
+def test_cache_subnet_group_with_ipv4_and_ipv6_subnets():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
+    ).get("Vpc")
+
+    vpc_id = vpc.get("VpcId")
+
+    subnet_dual = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet_dual_id = subnet_dual.get("SubnetId")
+
+    ec2_client.associate_subnet_cidr_block(
+        SubnetId=subnet_dual_id, Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60"
+    )
+
+    subnet_ipv4 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24").get(
+        "Subnet"
+    )
+    subnet_ipv4_id = subnet_ipv4.get("SubnetId")
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_dual_id, subnet_ipv4_id],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    if resp["CacheSubnetGroup"]["Subnets"][0]["SubnetIdentifier"] == subnet_dual_id:
+        assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == [
+            "ipv4",
+            "dual_stack",
+        ]
+        assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == [
+            "ipv4"
+        ]
+    else:
+        assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == [
+            "ipv4"
+        ]
+        assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == [
+            "ipv4",
+            "dual_stack",
+        ]
+    assert len(resp["CacheSubnetGroup"]["SupportedNetworkTypes"]) == 2
+    assert "ipv4" in resp["CacheSubnetGroup"]["SupportedNetworkTypes"]
+    assert "dual_stack" in resp["CacheSubnetGroup"]["SupportedNetworkTypes"]
+
+
+# The following test will be skipped until the create_subnet moto feature
+# adds support for the Ipv6Native parameter.
+@mock_aws
+def test_cache_subnet_group_with_ipv6_native_subnets():
+    raise SkipTest("create_subnet() does not support Ipv6Native-parameter yet")
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
+    ).get("Vpc")
+
+    vpc_id = vpc.get("VpcId")
+
+    subnet_ipv6_0 = ec2_client.create_subnet(
+        VpcId=vpc_id,
+        Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60",
+        Ipv6Native=True,
+    )
+    subnet_ipv6_0_id = subnet_ipv6_0.get("SubnetId")
+
+    subnet_ipv6_1 = ec2_client.create_subnet(
+        VpcId=vpc_id, Ipv6CidrBlock="2600:1f16:1cb1:6b10::/60", Ipv6Native=True
+    )
+    subnet_ipv6_1_id = subnet_ipv6_1.get("SubnetId")
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_ipv6_0_id, subnet_ipv6_1_id],
+    )
+
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]

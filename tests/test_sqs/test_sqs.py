@@ -3139,6 +3139,84 @@ def test_message_attributes_contains_trace_header():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "attribute",
+    [
+        "MessageGroupId",
+        "MessageDeduplicationId",
+        "ApproximateFirstReceiveTimestamp",
+        "ApproximateReceiveCount",
+        "SenderId",
+        "SentTimestamp",
+        "SequenceNumber",
+    ],
+)
+def test_message_system_attributes_contains_system_attribute(attribute):
+    sqs = boto3.resource("sqs", region_name=REGION)
+    conn = boto3.client("sqs", region_name=REGION)
+    q_name = str(uuid4())[0:6] + ".fifo"
+    q_resp = conn.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+        },
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageGroupId="group1",
+        MessageDeduplicationId="dedup1",
+    )
+
+    messages = conn.receive_message(
+        QueueUrl=queue.url,
+        MaxNumberOfMessages=2,
+        MessageSystemAttributeNames=[attribute],
+    )["Messages"]
+
+    assert messages[0]["Attributes"].get(attribute) is not None
+
+
+@mock_aws
+def test_message_system_attributes_contains_all_attributes():
+    sqs = boto3.resource("sqs", region_name=REGION)
+    conn = boto3.client("sqs", region_name=REGION)
+    q_name = str(uuid4())[0:6] + ".fifo"
+    q_resp = conn.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+        },
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageGroupId="group1",
+        MessageDeduplicationId="dedup1",
+    )
+
+    messages = conn.receive_message(
+        QueueUrl=queue.url,
+        MaxNumberOfMessages=2,
+        MessageSystemAttributeNames=["All"],
+    )["Messages"]
+
+    assert messages[0]["Attributes"]["MessageGroupId"] == "group1"
+    assert messages[0]["Attributes"]["MessageDeduplicationId"] == "dedup1"
+    assert messages[0]["Attributes"]["ApproximateFirstReceiveTimestamp"] is not None
+    assert messages[0]["Attributes"]["ApproximateReceiveCount"] == "1"
+    assert messages[0]["Attributes"]["SenderId"] is not None
+    assert messages[0]["Attributes"]["SentTimestamp"] is not None
+    assert messages[0]["Attributes"]["SequenceNumber"] is not None
+
+
+@mock_aws
 def test_receive_message_again_preserves_attributes():
     sqs = boto3.resource("sqs", region_name=REGION)
     conn = boto3.client("sqs", region_name=REGION)

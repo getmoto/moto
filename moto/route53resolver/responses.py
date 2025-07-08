@@ -231,9 +231,7 @@ class Route53ResolverResponse(BaseResponse):
             resource_arn=resource_arn, next_token=next_token, max_results=max_results
         )
 
-        response = {"Tags": tags}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Tags": tags, "NextToken": next_token}
         return json.dumps(response)
 
     def tag_resource(self) -> str:

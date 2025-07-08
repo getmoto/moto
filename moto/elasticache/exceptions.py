@@ -81,11 +81,9 @@ class CacheClusterAlreadyExists(ElastiCacheException):
     code = 404
 
     def __init__(self, cache_cluster_id: str):
-        (
-            super().__init__(
-                "CacheClusterAlreadyExists",
-                message=f"Cache cluster {cache_cluster_id} already exists.",
-            ),
+        super().__init__(
+            "CacheClusterAlreadyExists",
+            message=f"Cache cluster {cache_cluster_id} already exists.",
         )
 
 
@@ -99,6 +97,26 @@ class CacheClusterNotFound(ElastiCacheException):
         )
 
 
+class CacheSubnetGroupAlreadyExists(ElastiCacheException):
+    code = 404
+
+    def __init__(self, cache_subnet_group_name: str):
+        super().__init__(
+            "CacheSubnetGroupAlreadyExists",
+            message=f"CacheSubnetGroup {cache_subnet_group_name} already exists.",
+        )
+
+
+class CacheSubnetGroupNotFound(ElastiCacheException):
+    code = 404
+
+    def __init__(self, cache_subnet_group_name: str):
+        super().__init__(
+            "CacheSubnetGroupNotFound",
+            message=f"CacheSubnetGroup {cache_subnet_group_name} not found.",
+        )
+
+
 class InvalidARNFault(ElastiCacheException):
     code = 400
 
@@ -106,4 +124,14 @@ class InvalidARNFault(ElastiCacheException):
         super().__init__(
             "InvalidARNFault",
             message=f"ARN {arn} is invalid.",
+        )
+
+
+class InvalidSubnet(ElastiCacheException):
+    code = 404
+
+    def __init__(self, subnet_id: str):
+        super().__init__(
+            "InvalidSubnet",
+            message=f"Subnet {subnet_id} is invalid.",
         )

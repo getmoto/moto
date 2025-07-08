@@ -5,6 +5,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random as random
+from moto.route53 import route53_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -275,7 +276,17 @@ class ServiceDiscoveryBackend(BaseBackend):
             if namespace.vpc == vpc:
                 raise ConflictingDomainExists(vpc)
         dns_properties = (properties or {}).get("DnsProperties", {})
-        dns_properties["HostedZoneId"] = "hzi"
+
+        # create the hosted zone
+        hosted_zone = route53_backends[self.account_id][
+            get_partition(self.region_name)
+        ].create_hosted_zone(
+            f"{name}-hz",
+            private_zone=True,
+            comment=f"hosted zone for private dns namespace {name}",
+        )
+
+        dns_properties["HostedZoneId"] = hosted_zone.id
         namespace = Namespace(
             account_id=self.account_id,
             region=self.region_name,
@@ -304,7 +315,17 @@ class ServiceDiscoveryBackend(BaseBackend):
         properties: Dict[str, Any],
     ) -> str:
         dns_properties = (properties or {}).get("DnsProperties", {})
-        dns_properties["HostedZoneId"] = "hzi"
+
+        # create the hosted zone
+        hosted_zone = route53_backends[self.account_id][
+            get_partition(self.region_name)
+        ].create_hosted_zone(
+            f"{name}-hz",
+            private_zone=False,
+            comment=f"hosted zone for public dns namespace {name}",
+        )
+
+        dns_properties["HostedZoneId"] = hosted_zone.id
         namespace = Namespace(
             account_id=self.account_id,
             region=self.region_name,

@@ -1320,6 +1320,10 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eun1-az1"
  },
@@ -1893,10 +1897,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "eun1-az1"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "eun1-az1"
  },
  {
@@ -5205,6 +5205,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "eun1-az3"
  },
  {

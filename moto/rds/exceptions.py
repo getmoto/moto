@@ -163,6 +163,14 @@ class DBSnapshotAlreadyExistsError(RDSClientError):
         )
 
 
+class DBShardGroupNotFoundFault(RDSClientError):
+    def __init__(self, db_shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupNotFoundFault",
+            f"DBShardGroup {db_shard_group_identifier} not found.",
+        )
+
+
 class InvalidParameterValue(RDSClientError):
     def __init__(self, message: str):
         super().__init__("InvalidParameterValue", message)
@@ -310,4 +318,36 @@ class DBProxyNotFoundFault(RDSClientError):
         super().__init__(
             "DBProxyNotFoundFault",
             f"The specified proxy name {db_proxy_identifier} doesn't correspond to a proxy owned by your Amazon Web Services account in the specified Amazon Web Services Region.",
+        )
+
+
+class BlueGreenDeploymentAlreadyExistsFault(RDSClientError):
+    def __init__(self, bg_name: str):
+        super().__init__(
+            "BlueGreenDeploymentAlreadyExistsFault",
+            f"A blue/green deployment with the specified name {bg_name} already exists.",
+        )
+
+
+class BlueGreenDeploymentNotFoundFault(RDSClientError):
+    def __init__(self, bg_identifier: str):
+        super().__init__(
+            "BlueGreenDeploymentNotFoundFault",
+            f"BlueGreenDeploymentIdentifier {bg_identifier} doesn't refer to an existing blue/green deployment.",
+        )
+
+
+class InvalidBlueGreenDeploymentStateFault(RDSClientError):
+    def __init__(self, bg_identifier: str):
+        super().__init__(
+            "InvalidBlueGreenDeploymentStateFault",
+            f"The blue/green deployment {bg_identifier} can't be switched over or deleted because there is an invalid configuration in the green environment.",
+        )
+
+
+class SourceDatabaseNotSupportedFault(RDSClientError):
+    def __init__(self, source_arn: str):
+        super().__init__(
+            "SourceDatabaseNotSupportedFault",
+            f"The source DB instance {source_arn} isn't supported for a blue/green deployment.",
         )

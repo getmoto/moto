@@ -1376,6 +1376,10 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eu-north-1"
  },
@@ -2021,10 +2025,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "eu-north-1"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "eu-north-1"
  },
  {

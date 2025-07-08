@@ -10,6 +10,8 @@ from moto.sns.models import (
     DEFAULT_EFFECTIVE_DELIVERY_POLICY,
     DEFAULT_PAGE_SIZE,
 )
+from tests import aws_verified
+from tests.test_sns import sns_sqs_aws_verified
 
 
 @mock_aws
@@ -26,6 +28,60 @@ def test_subscribe_sms():
     assert "SubscriptionArn" in resp
 
 
+@pytest.mark.aws_verified
+@aws_verified
+def test_subscribe_unknown_topic():
+    identity = boto3.client("sts", "us-east-1").get_caller_identity()
+    account_id = identity["Account"]
+    client = boto3.client("sns", region_name="us-east-1")
+    arn = f"arn:aws:sns:us-east-1:{account_id}:some-topic"
+
+    with pytest.raises(ClientError) as exc:
+        client.subscribe(TopicArn=arn, Protocol="sqs", Endpoint="asdf")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "NotFound"
+    assert err["Message"] == "Topic does not exist"
+
+
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified()
+def test_subscribe_unknown_sqs_queue(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
+    client = boto3.client("sns", region_name="us-east-1")
+
+    # Subscribing to an unknown queue is not a problem
+    unknown_queue = queue_arn.replace(queue_name, "unknown")
+    subscription_arn = client.subscribe(
+        TopicArn=topic_arn, Protocol="sqs", Endpoint=unknown_queue
+    )["SubscriptionArn"]
+
+    # Clean up
+    client.unsubscribe(SubscriptionArn=subscription_arn)
+
+    # Subscribing to something that is not an ARN is a problem though
+    with pytest.raises(ClientError) as exc:
+        client.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint="unknown")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameter"
+    assert err["Message"] == "Invalid parameter: SQS endpoint ARN"
+
+
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified()
+def test_subscribe_sqs_queue_url(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
+    client = boto3.client("sns", region_name="us-east-1")
+
+    queue = boto3.resource("sqs", "us-east-1").Queue(queue_name)
+    with pytest.raises(ClientError) as exc:
+        client.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue.url)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameter"
+    assert err["Message"] == "Invalid parameter: SQS endpoint ARN"
+
+
 @mock_aws
 def test_double_subscription():
     client = boto3.client("sns", region_name="us-east-1")
@@ -34,10 +90,10 @@ def test_double_subscription():
     arn = resp["TopicArn"]
 
     resp1 = client.subscribe(
-        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:us-east-1:000000000000:foo"
     )
     resp2 = client.subscribe(
-        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:elasticmq:000000000000:foo"
+        TopicArn=arn, Protocol="sqs", Endpoint="arn:aws:sqs:us-east-1:000000000000:foo"
     )
 
     assert resp1["SubscriptionArn"] == resp2["SubscriptionArn"]
@@ -316,17 +372,16 @@ def test_delete_subscriptions_on_delete_topic():
     sqs = boto3.client("sqs", region_name="us-east-1")
     conn = boto3.client("sns", region_name="us-east-1")
 
-    queue = sqs.create_queue(QueueName="test-queue")
+    sqs.create_queue(QueueName="test-queue")
     topic = conn.create_topic(Name="some-topic")
 
-    conn.subscribe(
-        TopicArn=topic.get("TopicArn"), Protocol="sqs", Endpoint=queue.get("QueueUrl")
-    )
+    queue_url = f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue"
+    conn.subscribe(TopicArn=topic["TopicArn"], Protocol="sqs", Endpoint=queue_url)
     subscriptions = conn.list_subscriptions()["Subscriptions"]
 
     assert len(subscriptions) == 1
 
-    conn.delete_topic(TopicArn=topic.get("TopicArn"))
+    conn.delete_topic(TopicArn=topic["TopicArn"])
 
     subscriptions = conn.list_subscriptions()["Subscriptions"]
     assert len(subscriptions) == 0

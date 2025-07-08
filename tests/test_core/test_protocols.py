@@ -75,6 +75,7 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
         "ec2": "text/xml",
         "json": "application/x-amz-json-1.0",
         "query": "text/xml",
+        "query-json": "application/json",
         "rest-xml": "text/xml",
         "rest-json": "application/json",
     }
