@@ -424,18 +424,12 @@ class ReplicationGroup(BaseModel):
                 log_config_resp["destination_type"] = log_delivery_configuration.get(
                     "DestinationType", "cloudwatch-logs"
                 )
-                log_config_resp["destination_details"] = {}
-                if log_delivery_configuration.get("DestinationDetails"):
-                    log_config_resp["destination_details"]["cloudwatch_log_group"] = (
-                        log_delivery_configuration.get("DestinationDetails", {}).get(
-                            "CloudWatchLogGroup", ""
-                        )
-                    )
-                    log_config_resp["destination_details"]["kinesis_stream"] = (
-                        log_delivery_configuration.get("DestinationDetails", {}).get(
-                            "KinesisStream", ""
-                        )
-                    )
+                dest_name = log_delivery_configuration.get("DestinationDetails")
+                if dest_name:
+                    log_config_resp["dest_name"] = dest_name
+                else:
+                    log_config_resp["dest_name"] = "test"
+
                 log_config_resp["log_format"] = log_delivery_configuration.get(
                     "LogFormat", "text"
                 )

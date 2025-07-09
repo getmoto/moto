@@ -995,6 +995,17 @@ def test_create_replication_group_cluster_disabled():
         CacheSubnetGroupName="test-elasticache-subnet-group",
         SnapshotRetentionLimit=1,
         SnapshotWindow="06:00-07:00",
+        LogDeliveryConfigurations=[
+            {
+                "LogType": "slow-log",
+                "DestinationType": "cloudwatch-logs",
+                "DestinationDetails": {
+                    "CloudWatchLogsDetails": {"LogGroup": "test-log-group"}
+                },
+                "LogFormat": "json",
+                "Enabled": True,
+            }
+        ],
     )
 
     replication_group = resp["ReplicationGroup"]
@@ -1036,6 +1047,14 @@ def test_create_replication_group_cluster_disabled():
     assert replication_group["NetworkType"] == "ipv4"
     assert replication_group["ClusterMode"] == "disabled"
     assert replication_group["Engine"] == "redis"
+
+    log_config = replication_group["LogDeliveryConfigurations"][0]
+    assert log_config["LogType"] == "slow-log"
+    assert log_config["DestinationType"] == "cloudwatch-logs"
+    assert log_config["DestinationDetails"] == {
+        "CloudWatchLogsDetails": {"LogGroup": "test-log-group"}
+    }
+    assert log_config["LogFormat"] == "json"
 
 
 @mock_aws
@@ -1121,6 +1140,23 @@ def test_create_replication_group_cluster_enabled():
 
 
 @mock_aws
+def test_create_replication_groups_single_snapshot():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test-single"
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+    )
+
+    replication_group = resp["ReplicationGroup"]
+    assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-001"
+
+
+@mock_aws
 def test_describe_replication_groups():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -1171,7 +1207,6 @@ def test_describe_replication_groups_cluster_disabled():
         ReplicationGroupDescription="test replication group",
         Engine="redis",
         CacheNodeType="cache.t4g.micro",
-        NumNodeGroups=1,
         ReplicasPerNodeGroup=2,
         AutomaticFailoverEnabled=True,
         MultiAZEnabled=True,

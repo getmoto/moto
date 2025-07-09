@@ -258,7 +258,13 @@ class ElastiCacheResponse(BaseResponse):
         at_rest_encryption_enabled = self._get_bool_param("AtRestEncryptionEnabled")
         kms_key_id = self._get_param("KmsKeyId")
         user_group_ids = self._get_param("UserGroupIds")
-        log_delivery_configurations = self._get_param("LogDeliveryConfigurations")
+        log_delivery_configurations = (
+            self._get_multi_param_dict("LogDeliveryConfigurations").get(
+                "LogDeliveryConfigurationRequest", []
+            )
+            if self._get_multi_param_dict("LogDeliveryConfigurations")
+            else []
+        )
         data_tiering_enabled = self._get_param("DataTieringEnabled")
         network_type = self._get_param("NetworkType")
         ip_discovery = self._get_param("IpDiscovery")
@@ -926,14 +932,14 @@ CREATE_REPLICATION_GROUP_TEMPLATE = """<CreateReplicationGroupResponse xmlns="ht
           <LogType>{{ log_delivery_configuration.log_type }}</LogType>
           <DestinationType>{{ log_delivery_configuration.destination_type }}</DestinationType>
           <DestinationDetails>
-            {% if log_delivery_configuration.destination_details.cloudwatch_log_group %}
+            {% if log_delivery_configuration.destination_type == "cloudwatch-logs" %}
             <CloudWatchLogsDetails>
-              <LogGroup>{{ log_delivery_configuration.destination_details.cloudwatch_log_group }}</LogGroup>
+              <LogGroup>{{ log_delivery_configuration.dest_name }}</LogGroup>
             </CloudWatchLogsDetails>
             {% endif %}
-            {% if log_delivery_configuration.destination_details.kinesis_stream %}
+            {% if log_delivery_configuration.destination_type == "kinesis-firehose" %}
             <KinesisFirehoseDetails>
-              <DeliveryStream>{{ log_delivery_configuration.destination_details.kinesis_stream }}</DeliveryStream>
+              <DeliveryStream>{{ log_delivery_configuration.dest_name }}</DeliveryStream>
             </KinesisFirehoseDetails>
             {% endif %}
           </DestinationDetails>
