@@ -215,6 +215,9 @@ DESCRIBE_IMAGES_RESPONSE = """<DescribeImagesResponse xmlns="http://ec2.amazonaw
             {% endfor %}
           </tagSet>
           <hypervisor>xen</hypervisor>
+          {% if image.source_instance_id %}
+          <sourceInstanceId>{{ image.source_instance_id }}</sourceInstanceId>
+          {% endif %}
         </item>
     {% endfor %}
   </imagesSet>
