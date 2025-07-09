@@ -2293,7 +2293,6 @@ class RDSBackend(BaseBackend):
             DBProxy: self.db_proxies,
             DBSecurityGroup: self.security_groups,
             DBShardGroup: self.shard_groups,
-            DBShardGroup: self.shard_groups,
             DBSnapshot: self.database_snapshots,
             DBSubnetGroup: self.subnet_groups,
             EventSubscription: self.event_subscriptions,
