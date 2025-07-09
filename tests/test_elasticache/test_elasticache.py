@@ -1140,7 +1140,7 @@ def test_create_replication_group_cluster_enabled():
 
 
 @mock_aws
-def test_create_replication_groups_single_snapshot():
+def test_create_replication_groups_single_disabled():
     client = boto3.client("elasticache", region_name="us-east-2")
     replication_group_id = "test-single"
     resp = client.create_replication_group(
@@ -1150,10 +1150,33 @@ def test_create_replication_groups_single_snapshot():
         CacheNodeType="cache.t4g.micro",
         CacheSubnetGroupName="test-elasticache-subnet-group",
         SnapshotRetentionLimit=1,
+        ClusterMode="disabled",
     )
 
     replication_group = resp["ReplicationGroup"]
     assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-001"
+
+
+@mock_aws
+def test_create_replication_groups_single_enabled():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test-single"
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        NodeGroupConfiguration=[{"NodeGroupId": "0001", "Slots": "0-5461"}],
+        ClusterMode="enabled",
+    )
+
+    replication_group = resp["ReplicationGroup"]
+    assert (
+        replication_group["SnapshottingClusterId"] == f"{replication_group_id}-0001-001"
+    )
+    assert replication_group["NodeGroups"][0]["Slots"] == "0-5461"
 
 
 @mock_aws

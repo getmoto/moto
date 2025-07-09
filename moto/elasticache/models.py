@@ -269,9 +269,7 @@ class ReplicationGroup(BaseModel):
         snapshot_arns: Optional[List[str]],
         snapshot_name: Optional[str],
     ):
-        if tags is None:
-            tags = []
-
+        tags = tags or []
         self.cluster_mode = cluster_mode or "disabled"
         self.replication_group_id = replication_group_id
         self.replication_group_description = replication_group_description
