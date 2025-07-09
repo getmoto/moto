@@ -1304,6 +1304,8 @@ def test_describe_replication_groups_cluster_enabled():
         SnapshotRetentionLimit=1,
         SnapshotWindow="06:00-07:00",
         ClusterMode="enabled",
+        GlobalReplicationGroupId="test-global-replication-group",
+        PrimaryClusterId="test-global-replication-group-001",
     )
 
     describe_resp = client.describe_replication_groups(
