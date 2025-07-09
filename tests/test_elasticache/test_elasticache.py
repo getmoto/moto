@@ -1259,6 +1259,19 @@ def test_describe_replication_groups_cluster_enabled():
 
 
 @mock_aws
+def test_describe_replication_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_replication_groups(ReplicationGroupId=replication_group_id)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ReplicationGroupNotFound"
+    assert err["Message"] == f"Replication group {replication_group_id} not found."
+
+
+@mock_aws
 def test_replication_groups_list_tags():
     client = boto3.client("elasticache", region_name="us-east-2")
     replication_group_id = "test-cluster-disabled"
@@ -1289,3 +1302,36 @@ def test_replication_groups_list_tags():
     assert resp["TagList"][0]["Value"] == "bar"
     assert resp["TagList"][1]["Key"] == "foo1"
     assert resp["TagList"][1]["Value"] == "bar1"
+
+
+@mock_aws
+def test_replication_groups_already_exists():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.create_replication_group(
+            ReplicationGroupId=replication_group_id,
+            ReplicationGroupDescription="test replication group",
+            Engine="redis",
+            CacheNodeType="cache.t4g.micro",
+            NumNodeGroups=1,
+            ReplicasPerNodeGroup=2,
+            AutomaticFailoverEnabled=True,
+            MultiAZEnabled=True,
+            CacheSubnetGroupName="test-elasticache-subnet-group",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ReplicationGroupAlreadyExists"
+    assert err["Message"] == f"Replication group {replication_group_id} already exists."
