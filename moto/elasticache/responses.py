@@ -227,7 +227,13 @@ class ElastiCacheResponse(BaseResponse):
         automatic_failover_enabled = self._get_bool_param("AutomaticFailoverEnabled")
         multi_az_enabled = self._get_bool_param("MultiAZEnabled")
         num_cache_clusters = self._get_int_param("NumCacheClusters")
-        preferred_cache_cluster_azs = self._get_param("PreferredCacheClusterAZs")
+        preferred_cache_cluster_azs = (
+            self._get_multi_param_dict("PreferredCacheClusterAZs").get(
+                "AvailabilityZone", []
+            )
+            if self._get_multi_param_dict("PreferredCacheClusterAZs")
+            else []
+        )
         num_node_groups = self._get_int_param("NumNodeGroups")
         replicas_per_node_group = self._get_int_param("ReplicasPerNodeGroup")
         node_group_configuration = (

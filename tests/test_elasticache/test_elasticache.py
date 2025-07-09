@@ -1236,6 +1236,8 @@ def test_describe_replication_groups_cluster_disabled():
         CacheSubnetGroupName="test-elasticache-subnet-group",
         SnapshotRetentionLimit=1,
         SnapshotWindow="06:00-07:00",
+        PreferredCacheClusterAZs=["us-east-2a", "us-east-2b", "us-east-2c"],
+        ClusterMode="disabled",
     )
 
     describe_resp = client.describe_replication_groups(
@@ -1260,6 +1262,7 @@ def test_describe_replication_groups_cluster_disabled():
     assert len(node_group_members) == 3
     assert node_group_members[0]["CacheClusterId"] == f"{replication_group_id}-001"
     assert node_group_members[0]["CacheNodeId"] == cache_node_id
+    assert node_group_members[0]["PreferredAvailabilityZone"] == "us-east-2a"
     assert node_group_members[0]["CurrentRole"] == "primary"
     assert node_group_members[1]["CurrentRole"] == "replica"
     assert node_group_members[2]["CurrentRole"] == "replica"
