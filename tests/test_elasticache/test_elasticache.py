@@ -1236,7 +1236,7 @@ def test_describe_replication_groups_cluster_disabled():
         CacheSubnetGroupName="test-elasticache-subnet-group",
         SnapshotRetentionLimit=1,
         SnapshotWindow="06:00-07:00",
-        PreferredCacheClusterAZs=["us-east-2a", "us-east-2b", "us-east-2c"],
+        PreferredCacheClusterAZs=["us-east-2a", "us-east-2b"],
         ClusterMode="disabled",
     )
 
