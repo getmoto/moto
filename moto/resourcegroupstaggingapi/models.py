@@ -491,6 +491,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         continue
                     yield {"ResourceARN": f"{task.task_arn}", "Tags": tags}
 
+        if not resource_type_filters or "ecs:task-definition" in resource_type_filters:
+            for task_definition_dict in self.ecs_backend.task_definitions.values():
+                for task_definition in task_definition_dict.values():
+                    tags = format_tag_keys(task_definition.tags, ["key", "value"])
+                    if not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{task_definition.arn}", "Tags": tags}
+
         # EC2 Resources
         ec2_resource_types = {
             "ec2:image": self.ec2_backend.amis.values(),
