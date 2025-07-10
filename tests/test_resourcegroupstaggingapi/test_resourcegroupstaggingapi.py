@@ -341,7 +341,7 @@ def test_get_resources_ecs():
         TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
     )
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert task_def_one_arn in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    assert task_def_one_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
 
 
 @mock_aws
