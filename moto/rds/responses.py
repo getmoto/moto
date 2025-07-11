@@ -129,6 +129,21 @@ class RDSResponse(BaseResponse):
         result = {"DBSnapshot": snapshot}
         return ActionResult(result)
 
+    def create_db_shard_group(self) -> ActionResult:
+        kwargs = self.parameters
+        db_shard_group = self.backend.create_db_shard_group(kwargs)
+        return ActionResult(db_shard_group)
+
+    def describe_db_shard_groups(self) -> ActionResult:
+        db_shard_group_identifier = self.parameters.get("DBShardGroupIdentifier", None)
+        filters = self.parameters.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        shard_groups = self.backend.describe_db_shard_groups(
+            db_shard_group_identifier, filter_dict
+        )
+        result = {"DBShardGroups": shard_groups, "Marker": None}
+        return ActionResult(result)
+
     def copy_db_snapshot(self) -> ActionResult:
         target_snapshot_identifier = self.parameters.get("TargetDBSnapshotIdentifier")
         self.backend.validate_db_snapshot_identifier(
@@ -259,6 +274,31 @@ class RDSResponse(BaseResponse):
             security_group_name, cidr_ip
         )
         result = {"DBSecurityGroup": security_group}
+        return ActionResult(result)
+
+    def create_db_shard_group(self) -> ActionResult:
+        # shard_group_identifier = self.parameters.get("DBShardIdentifier")
+        # cluster_identifier = self.parameters.get("DBClusterIdentifier")
+        # max_acu = self.parameters.get("MaxACU")
+        # tags = self.parameters.get("Tags", [])
+        # shard_group = self.backend.create_db_shard_group(
+        #     shard_group_identifier, cluster_identifier, max_acu, tags
+        # )
+
+
+        # result = {"DBShardGroups": shard_group}
+        # return ActionResult(result)
+        print("RESPONSE WAS CALLED")
+        kwargs = self.parameters
+        shard_groups = self.backend.create_db_shard_group(kwargs)
+        result = {"DBShardGroup": shard_groups}
+        print("DBG reponse: ", result['DBShardGroup'].db_shard_group_identifier)
+        return ActionResult(result)
+
+    def describe_shard_groups(self) -> ActionResult:
+        shard_group_name = self.parameters.get("DBShardGroupName")
+        shard_groups = self.backend.describe_db_shard_groups(shard_group_name)
+        result = {"DBShardGroup": shard_groups}
         return ActionResult(result)
 
     def create_db_subnet_group(self) -> ActionResult:
