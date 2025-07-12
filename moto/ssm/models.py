@@ -359,10 +359,13 @@ class Parameter(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        ssm_backend = ssm_backends[account_id][region_name]
-        properties = cloudformation_json["Properties"]
+        resource = resource_name
 
-        ssm_backend.delete_parameter(properties.get("Name"))
+        ssm_backend = ssm_backends[account_id][region_name]
+        if not resource:
+            properties = cloudformation_json["Properties"]
+            resource = properties.get("Name")
+        ssm_backend.delete_parameter(resource)
 
     @property
     def physical_resource_id(self) -> str:
