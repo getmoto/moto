@@ -174,7 +174,7 @@ def test_create_load_balancer_with_invalid_certificate():
             AvailabilityZones=["us-east-2a"],
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "CertificateNotFoundException"
+    assert err["Code"] == "CertificateNotFound"
 
 
 @mock_aws
@@ -467,7 +467,7 @@ def test_create_lb_listener_with_invalid_ssl_certificate():
             ],
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "CertificateNotFoundException"
+    assert err["Code"] == "CertificateNotFound"
 
 
 @mock_aws
