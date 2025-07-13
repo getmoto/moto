@@ -281,15 +281,14 @@ class ELBResponse(BaseResponse):
 
         return EmptyResult()
 
-    def describe_load_balancer_policies(self) -> str:
+    def describe_load_balancer_policies(self) -> ActionResult:
         load_balancer_name = self.querystring.get("LoadBalancerName")[0]  # type: ignore
         names = self._get_multi_param("PolicyNames.member.")
         policies = self.elb_backend.describe_load_balancer_policies(
             lb_name=load_balancer_name, policy_names=names
         )
-
-        template = self.response_template(DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE)
-        return template.render(policies=policies)
+        result = {"PolicyDescriptions": policies}
+        return ActionResult(result)
 
     def describe_instance_health(self) -> ActionResult:
         lb_name = self._get_param("LoadBalancerName")
@@ -430,31 +429,6 @@ class ELBResponse(BaseResponse):
         )
         result = {"Subnets": all_subnets}
         return ActionResult(result)
-
-
-DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE = """<DescribeLoadBalancerPoliciesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DescribeLoadBalancerPoliciesResult>
-    <PolicyDescriptions>
-      {% for policy in policies %}
-      <member>
-        <PolicyName>{{ policy.policy_name }}</PolicyName>
-        <PolicyTypeName>{{ policy.policy_type_name }}</PolicyTypeName>
-        <PolicyAttributeDescriptions>
-          {% for attr in policy.attributes %}
-              <member>
-                <AttributeName>{{ attr["AttributeName"] }}</AttributeName>
-                <AttributeValue>{{ attr["AttributeValue"] }}</AttributeValue>
-              </member>
-          {% endfor %}
-        </PolicyAttributeDescriptions>
-      </member>
-      {% endfor %}
-    </PolicyDescriptions>
-  </DescribeLoadBalancerPoliciesResult>
-  <ResponseMetadata>
-    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
-  </ResponseMetadata>
-</DescribeLoadBalancerPoliciesResponse>"""
 
 
 DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
