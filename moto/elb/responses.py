@@ -1,4 +1,4 @@
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
 from .models import ELBBackend, FakeLoadBalancer, elb_backends
@@ -32,16 +32,14 @@ class ELBResponse(BaseResponse):
         template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
         return template.render(load_balancer=load_balancer)
 
-    def create_load_balancer_listeners(self) -> str:
+    def create_load_balancer_listeners(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         ports = self._get_list_prefix("Listeners.member")
 
         self.elb_backend.create_load_balancer_listeners(
             name=load_balancer_name, ports=ports
         )
-
-        template = self.response_template(CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_load_balancers(self) -> str:
         names = self._get_multi_param("LoadBalancerNames.member")
@@ -67,30 +65,26 @@ class ELBResponse(BaseResponse):
             marker=next_marker,
         )
 
-    def delete_load_balancer_listeners(self) -> str:
+    def delete_load_balancer_listeners(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         ports = self._get_multi_param("LoadBalancerPorts.member")
         ports = [int(port) for port in ports]
 
         self.elb_backend.delete_load_balancer_listeners(load_balancer_name, ports)
-        template = self.response_template(DELETE_LOAD_BALANCER_LISTENERS)
-        return template.render()
+        return EmptyResult()
 
-    def delete_load_balancer(self) -> str:
+    def delete_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         self.elb_backend.delete_load_balancer(load_balancer_name)
-        template = self.response_template(DELETE_LOAD_BALANCER_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def delete_load_balancer_policy(self) -> str:
+    def delete_load_balancer_policy(self) -> ActionResult:
         load_balancer_name = self.querystring.get("LoadBalancerName")[0]  # type: ignore
         names = self._get_param("PolicyName")
         self.elb_backend.delete_load_balancer_policy(
             lb_name=load_balancer_name, policy_name=names
         )
-
-        template = self.response_template(DELETE_LOAD_BALANCER_POLICY)
-        return template.render()
+        return EmptyResult()
 
     def apply_security_groups_to_load_balancer(self) -> str:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -125,7 +119,7 @@ class ELBResponse(BaseResponse):
         )
         return template.render(load_balancer=load_balancer)
 
-    def set_load_balancer_listener_ssl_certificate(self) -> str:
+    def set_load_balancer_listener_ssl_certificate(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         ssl_certificate_id = self.querystring["SSLCertificateId"][0]
         lb_port = self.querystring["LoadBalancerPort"][0]
@@ -133,9 +127,7 @@ class ELBResponse(BaseResponse):
         self.elb_backend.set_load_balancer_listener_ssl_certificate(
             load_balancer_name, lb_port, ssl_certificate_id
         )
-
-        template = self.response_template(SET_LOAD_BALANCER_SSL_CERTIFICATE)
-        return template.render()
+        return EmptyResult()
 
     def deregister_instances_from_load_balancer(self) -> str:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -207,7 +199,7 @@ class ELBResponse(BaseResponse):
             load_balancer=load_balancer, attributes=load_balancer.attributes
         )
 
-    def create_load_balancer_policy(self) -> str:
+    def create_load_balancer_policy(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
 
         policy_name = self._get_param("PolicyName")
@@ -217,11 +209,9 @@ class ELBResponse(BaseResponse):
         self.elb_backend.create_load_balancer_policy(
             load_balancer_name, policy_name, policy_type_name, policy_attrs
         )
+        return EmptyResult()
 
-        template = self.response_template(CREATE_LOAD_BALANCER_POLICY_TEMPLATE)
-        return template.render()
-
-    def create_app_cookie_stickiness_policy(self) -> str:
+    def create_app_cookie_stickiness_policy(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
 
         policy_name = self._get_param("PolicyName")
@@ -230,11 +220,9 @@ class ELBResponse(BaseResponse):
         self.elb_backend.create_app_cookie_stickiness_policy(
             load_balancer_name, policy_name, cookie_name
         )
+        return EmptyResult()
 
-        template = self.response_template(CREATE_APP_COOKIE_STICKINESS_POLICY_TEMPLATE)
-        return template.render()
-
-    def create_lb_cookie_stickiness_policy(self) -> str:
+    def create_lb_cookie_stickiness_policy(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
 
         policy_name = self._get_param("PolicyName")
@@ -247,11 +235,9 @@ class ELBResponse(BaseResponse):
         self.elb_backend.create_lb_cookie_stickiness_policy(
             load_balancer_name, policy_name, cookie_expiration_period
         )
+        return EmptyResult()
 
-        template = self.response_template(CREATE_LB_COOKIE_STICKINESS_POLICY_TEMPLATE)
-        return template.render()
-
-    def set_load_balancer_policies_of_listener(self) -> str:
+    def set_load_balancer_policies_of_listener(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
         load_balancer_port = int(self._get_param("LoadBalancerPort"))
@@ -267,13 +253,9 @@ class ELBResponse(BaseResponse):
                 load_balancer_name, load_balancer_port, policies
             )
         # else: explode?
+        return EmptyResult()
 
-        template = self.response_template(
-            SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE
-        )
-        return template.render()
-
-    def set_load_balancer_policies_for_backend_server(self) -> str:
+    def set_load_balancer_policies_for_backend_server(self) -> ActionResult:
         load_balancer_name = self.querystring.get("LoadBalancerName")[0]  # type: ignore
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
         instance_port = int(self.querystring.get("InstancePort")[0])  # type: ignore
@@ -288,10 +270,7 @@ class ELBResponse(BaseResponse):
             )
         # else: explode?
 
-        template = self.response_template(
-            SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE
-        )
-        return template.render()
+        return EmptyResult()
 
     def describe_load_balancer_policies(self) -> str:
         load_balancer_name = self.querystring.get("LoadBalancerName")[0]  # type: ignore
@@ -310,7 +289,7 @@ class ELBResponse(BaseResponse):
         template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
         return template.render(instances=instances)
 
-    def add_tags(self) -> str:
+    def add_tags(self) -> ActionResult:
         for key, value in self.querystring.items():
             if "LoadBalancerNames.member" in key:
                 load_balancer_name = value[0]
@@ -320,10 +299,9 @@ class ELBResponse(BaseResponse):
 
                 self._add_tags(elb)
 
-        template = self.response_template(ADD_TAGS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def remove_tags(self) -> str:
+    def remove_tags(self) -> ActionResult:
         for key in self.querystring:
             if "LoadBalancerNames.member" in key:
                 number = key.split(".")[2]
@@ -339,8 +317,7 @@ class ELBResponse(BaseResponse):
                         if t_key.split(".")[3] == "Key":
                             elb.remove_tag(t_val[0])
 
-        template = self.response_template(REMOVE_TAGS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_tags(self) -> str:
         elbs = []
@@ -437,20 +414,6 @@ class ELBResponse(BaseResponse):
         return template.render(subnets=all_subnets)
 
 
-ADD_TAGS_TEMPLATE = """<AddTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <AddTagsResult/>
-  <ResponseMetadata>
-    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
-  </ResponseMetadata>
-</AddTagsResponse>"""
-
-REMOVE_TAGS_TEMPLATE = """<RemoveTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <RemoveTagsResult/>
-  <ResponseMetadata>
-    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
-  </ResponseMetadata>
-</RemoveTagsResponse>"""
-
 DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeTagsResult>
     <TagDescriptions>
@@ -509,19 +472,6 @@ CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://ela
   </ResponseMetadata>
 </CreateLoadBalancerResponse>"""
 
-CREATE_LOAD_BALANCER_LISTENERS_TEMPLATE = """<CreateLoadBalancerListenersResponse xmlns="http://elasticloadbalancing.amazon aws.com/doc/2012-06-01/">
-  <CreateLoadBalancerListenersResult/>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-</CreateLoadBalancerListenersResponse>"""
-
-DELETE_LOAD_BALANCER_TEMPLATE = """<DeleteLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DeleteLoadBalancerResult/>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DeleteLoadBalancerResponse>"""
 
 DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeLoadBalancersResult>
@@ -711,28 +661,6 @@ DEREGISTER_INSTANCES_TEMPLATE = """<DeregisterInstancesFromLoadBalancerResponse 
   </ResponseMetadata>
 </DeregisterInstancesFromLoadBalancerResponse>"""
 
-SET_LOAD_BALANCER_SSL_CERTIFICATE = """<SetLoadBalancerListenerSSLCertificateResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
- <SetLoadBalancerListenerSSLCertificateResult/>
-<ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-</ResponseMetadata>
-</SetLoadBalancerListenerSSLCertificateResponse>"""
-
-
-DELETE_LOAD_BALANCER_LISTENERS = """<DeleteLoadBalancerListenersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
- <DeleteLoadBalancerListenersResult/>
-<ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-</ResponseMetadata>
-</DeleteLoadBalancerListenersResponse>"""
-
-
-DELETE_LOAD_BALANCER_POLICY = """<DeleteLoadBalancerPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
- <DeleteLoadBalancerPolicyResult/>
-<ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-</ResponseMetadata>
-</DeleteLoadBalancerPolicyResponse>"""
 
 DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeLoadBalancerAttributesResult>
@@ -815,45 +743,6 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
 </ModifyLoadBalancerAttributesResponse>
 """
 
-CREATE_LOAD_BALANCER_POLICY_TEMPLATE = """<CreateLoadBalancerPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <CreateLoadBalancerPolicyResult/>
-  <ResponseMetadata>
-      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-  </ResponseMetadata>
-</CreateLoadBalancerPolicyResponse>
-"""
-
-CREATE_LB_COOKIE_STICKINESS_POLICY_TEMPLATE = """<CreateLBCookieStickinessPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <CreateLBCookieStickinessPolicyResult/>
-  <ResponseMetadata>
-      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-  </ResponseMetadata>
-</CreateLBCookieStickinessPolicyResponse>
-"""
-
-CREATE_APP_COOKIE_STICKINESS_POLICY_TEMPLATE = """<CreateAppCookieStickinessPolicyResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <CreateAppCookieStickinessPolicyResult/>
-  <ResponseMetadata>
-      <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-  </ResponseMetadata>
-</CreateAppCookieStickinessPolicyResponse>
-"""
-
-SET_LOAD_BALANCER_POLICIES_OF_LISTENER_TEMPLATE = """<SetLoadBalancerPoliciesOfListenerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-    <SetLoadBalancerPoliciesOfListenerResult/>
-    <ResponseMetadata>
-        <RequestId>07b1ecbc-1100-11e3-acaf-dd7edEXAMPLE</RequestId>
-    </ResponseMetadata>
-</SetLoadBalancerPoliciesOfListenerResponse>
-"""
-
-SET_LOAD_BALANCER_POLICIES_FOR_BACKEND_SERVER_TEMPLATE = """<SetLoadBalancerPoliciesForBackendServerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-    <SetLoadBalancerPoliciesForBackendServerResult/>
-    <ResponseMetadata>
-        <RequestId>0eb9b381-dde0-11e2-8d78-6ddbaEXAMPLE</RequestId>
-    </ResponseMetadata>
-</SetLoadBalancerPoliciesForBackendServerResponse>
-"""
 
 DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <DescribeInstanceHealthResult>
