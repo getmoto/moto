@@ -4,7 +4,16 @@ from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
 from .models import ELBBackend, FakeLoadBalancer, elb_backends
 
 
+def transform_dict(data: dict[str, str]) -> list[dict[str, str]]:
+    transformed = [{"Key": key, "Value": value} for key, value in data.items()]
+    return transformed
+
+
 class ELBResponse(BaseResponse):
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "DescribeTagsOutput.TagDescriptions.TagDescription.Tags": transform_dict,
+    }
+
     def __init__(self) -> None:
         super().__init__(service_name="elb")
 
@@ -319,7 +328,7 @@ class ELBResponse(BaseResponse):
 
         return EmptyResult()
 
-    def describe_tags(self) -> str:
+    def describe_tags(self) -> ActionResult:
         elbs = []
         for key in self.querystring:
             if "LoadBalancerNames.member" in key:
@@ -331,9 +340,12 @@ class ELBResponse(BaseResponse):
                 if not elb:
                     raise LoadBalancerNotFoundError(load_balancer_name)
                 elbs.append(elb)
-
-        template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
-        return template.render(load_balancers=elbs)
+        result = {
+            "TagDescriptions": [
+                {"LoadBalancerName": elb.name, "Tags": elb.tags} for elb in elbs
+            ]
+        }
+        return ActionResult(result)
 
     def _add_tags(self, elb: FakeLoadBalancer) -> None:
         tag_values = []
@@ -412,30 +424,6 @@ class ELBResponse(BaseResponse):
         )
         template = self.response_template(DETACH_LB_FROM_SUBNETS_TEMPLATE)
         return template.render(subnets=all_subnets)
-
-
-DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DescribeTagsResult>
-    <TagDescriptions>
-      {% for elb in load_balancers %}
-      <member>
-        <LoadBalancerName>{{ elb.name }}</LoadBalancerName>
-        <Tags>
-          {% for key, value in elb.tags.items() %}
-          <member>
-            <Value>{{ value }}</Value>
-            <Key>{{ key }}</Key>
-          </member>
-          {% endfor %}
-        </Tags>
-      </member>
-      {% endfor %}
-    </TagDescriptions>
-  </DescribeTagsResult>
-  <ResponseMetadata>
-    <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
-  </ResponseMetadata>
-</DescribeTagsResponse>"""
 
 
 DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE = """<DescribeLoadBalancerPoliciesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
