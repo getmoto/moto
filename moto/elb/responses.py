@@ -95,14 +95,14 @@ class ELBResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def apply_security_groups_to_load_balancer(self) -> str:
+    def apply_security_groups_to_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         security_group_ids = self._get_multi_param("SecurityGroups.member")
         self.elb_backend.apply_security_groups_to_load_balancer(
             load_balancer_name, security_group_ids
         )
-        template = self.response_template(APPLY_SECURITY_GROUPS_TEMPLATE)
-        return template.render(security_group_ids=security_group_ids)
+        result = {"SecurityGroups": security_group_ids}
+        return ActionResult(result)
 
     def configure_health_check(self) -> str:
         check = self.elb_backend.configure_health_check(
@@ -116,17 +116,17 @@ class ELBResponse(BaseResponse):
         template = self.response_template(CONFIGURE_HEALTH_CHECK_TEMPLATE)
         return template.render(check=check)
 
-    def register_instances_with_load_balancer(self) -> str:
+    def register_instances_with_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         instance_ids = [
             list(param.values())[0]
             for param in self._get_list_prefix("Instances.member")
         ]
-        template = self.response_template(REGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.register_instances(
             load_balancer_name, instance_ids
         )
-        return template.render(load_balancer=load_balancer)
+        result = {"Instances": [load_balancer.instance_ids]}
+        return ActionResult(result)
 
     def set_load_balancer_listener_ssl_certificate(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -138,17 +138,17 @@ class ELBResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def deregister_instances_from_load_balancer(self) -> str:
+    def deregister_instances_from_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         instance_ids = [
             list(param.values())[0]
             for param in self._get_list_prefix("Instances.member")
         ]
-        template = self.response_template(DEREGISTER_INSTANCES_TEMPLATE)
         load_balancer = self.elb_backend.deregister_instances(
             load_balancer_name, instance_ids
         )
-        return template.render(load_balancer=load_balancer)
+        result = {"Instances": [load_balancer.instance_ids]}
+        return ActionResult(result)
 
     def describe_load_balancer_attributes(self) -> str:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -371,7 +371,7 @@ class ELBResponse(BaseResponse):
         for tag_key, tag_value in zip(tag_keys, tag_values):
             elb.add_tag(tag_key, tag_value)
 
-    def enable_availability_zones_for_load_balancer(self) -> str:
+    def enable_availability_zones_for_load_balancer(self) -> ActionResult:
         params = self._get_params()
         load_balancer_name = params.get("LoadBalancerName")
         availability_zones = params.get("AvailabilityZones")
@@ -381,12 +381,10 @@ class ELBResponse(BaseResponse):
                 availability_zones=availability_zones,  # type: ignore[arg-type]
             )
         )
-        template = self.response_template(
-            ENABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE
-        )
-        return template.render(availability_zones=availability_zones)
+        result = {"AvailabilityZones": availability_zones}
+        return ActionResult(result)
 
-    def disable_availability_zones_for_load_balancer(self) -> str:
+    def disable_availability_zones_for_load_balancer(self) -> ActionResult:
         params = self._get_params()
         load_balancer_name = params.get("LoadBalancerName")
         availability_zones = params.get("AvailabilityZones")
@@ -396,12 +394,10 @@ class ELBResponse(BaseResponse):
                 availability_zones=availability_zones,  # type: ignore[arg-type]
             )
         )
-        template = self.response_template(
-            DISABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE
-        )
-        return template.render(availability_zones=availability_zones)
+        result = {"AvailabilityZones": availability_zones}
+        return ActionResult(result)
 
-    def attach_load_balancer_to_subnets(self) -> str:
+    def attach_load_balancer_to_subnets(self) -> ActionResult:
         params = self._get_params()
         load_balancer_name = params.get("LoadBalancerName")
         subnets = params.get("Subnets")
@@ -410,10 +406,10 @@ class ELBResponse(BaseResponse):
             load_balancer_name,  # type: ignore[arg-type]
             subnets,  # type: ignore[arg-type]
         )
-        template = self.response_template(ATTACH_LB_TO_SUBNETS_TEMPLATE)
-        return template.render(subnets=all_subnets)
+        result = {"Subnets": all_subnets}
+        return ActionResult(result)
 
-    def detach_load_balancer_from_subnets(self) -> str:
+    def detach_load_balancer_from_subnets(self) -> ActionResult:
         params = self._get_params()
         load_balancer_name = params.get("LoadBalancerName")
         subnets = params.get("Subnets")
@@ -422,8 +418,8 @@ class ELBResponse(BaseResponse):
             load_balancer_name,  # type: ignore[arg-type]
             subnets,  # type: ignore[arg-type]
         )
-        template = self.response_template(DETACH_LB_FROM_SUBNETS_TEMPLATE)
-        return template.render(subnets=all_subnets)
+        result = {"Subnets": all_subnets}
+        return ActionResult(result)
 
 
 DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE = """<DescribeLoadBalancerPoliciesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
@@ -581,18 +577,6 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
-APPLY_SECURITY_GROUPS_TEMPLATE = """<ApplySecurityGroupsToLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <ApplySecurityGroupsToLoadBalancerResult>
-    <SecurityGroups>
-      {% for security_group_id in security_group_ids %}
-      <member>{{ security_group_id }}</member>
-      {% endfor %}
-    </SecurityGroups>
-  </ApplySecurityGroupsToLoadBalancerResult>
-  <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
-  </ResponseMetadata>
-</ApplySecurityGroupsToLoadBalancerResponse>"""
 
 CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
   <ConfigureHealthCheckResult>
@@ -608,36 +592,6 @@ CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http:/
     <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
   </ResponseMetadata>
 </ConfigureHealthCheckResponse>"""
-
-REGISTER_INSTANCES_TEMPLATE = """<RegisterInstancesWithLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <RegisterInstancesWithLoadBalancerResult>
-    <Instances>
-      {% for instance_id in load_balancer.instance_ids %}
-        <member>
-          <InstanceId>{{ instance_id }}</InstanceId>
-        </member>
-      {% endfor %}
-    </Instances>
-  </RegisterInstancesWithLoadBalancerResult>
-  <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
-  </ResponseMetadata>
-</RegisterInstancesWithLoadBalancerResponse>"""
-
-DEREGISTER_INSTANCES_TEMPLATE = """<DeregisterInstancesFromLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DeregisterInstancesFromLoadBalancerResult>
-    <Instances>
-      {% for instance_id in load_balancer.instance_ids %}
-        <member>
-          <InstanceId>{{ instance_id }}</InstanceId>
-        </member>
-      {% endfor %}
-    </Instances>
-  </DeregisterInstancesFromLoadBalancerResult>
-  <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
-  </ResponseMetadata>
-</DeregisterInstancesFromLoadBalancerResponse>"""
 
 
 DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
@@ -739,55 +693,3 @@ DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="ht
     <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeInstanceHealthResponse>"""
-
-ENABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE = """<EnableAvailabilityZonesForLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <EnableAvailabilityZonesForLoadBalancerResult>
-    <AvailabilityZones>
-{% for az in availability_zones %}
-      <AvailabilityZone>{{ az }}</AvailabilityZone>
-{% endfor %}
-    </AvailabilityZones>
-  </EnableAvailabilityZonesForLoadBalancerResult>
-</EnableAvailabilityZonesForLoadBalancerResponse>"""
-
-DISABLE_AVAILABILITY_ZONES_FOR_LOAD_BALANCER_TEMPLATE = """<DisableAvailabilityZonesForLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <DisableAvailabilityZonesForLoadBalancerResult>
-    <AvailabilityZones>
-{% for az in availability_zones %}
-      <AvailabilityZone>{{ az }}</AvailabilityZone>
-{% endfor %}
-    </AvailabilityZones>
-  </DisableAvailabilityZonesForLoadBalancerResult>
-</DisableAvailabilityZonesForLoadBalancerResponse>"""
-
-ATTACH_LB_TO_SUBNETS_TEMPLATE = """<AttachLoadBalancerToSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <AttachLoadBalancerToSubnetsResult>
-    <Subnets>
-      {% for subnet in subnets %}
-      <member>{{ subnet }}</member>
-      {% endfor %}
-    </Subnets>
-  </AttachLoadBalancerToSubnetsResult>
-  <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
-  </ResponseMetadata>
-</AttachLoadBalancerToSubnetsResponse>"""
-
-DETACH_LB_FROM_SUBNETS_TEMPLATE = """<DetachLoadBalancerFromSubnetsResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DetachLoadBalancerFromSubnetsResult>
-    <Subnets>
-      {% for subnet in subnets %}
-      <member>{{ subnet }}</member>
-      {% endfor %}
-    </Subnets>
-  </DetachLoadBalancerFromSubnetsResult>
-  <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
-  </ResponseMetadata>
-</DetachLoadBalancerFromSubnetsResponse>"""
