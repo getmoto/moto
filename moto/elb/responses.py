@@ -104,7 +104,7 @@ class ELBResponse(BaseResponse):
         result = {"SecurityGroups": security_group_ids}
         return ActionResult(result)
 
-    def configure_health_check(self) -> str:
+    def configure_health_check(self) -> ActionResult:
         check = self.elb_backend.configure_health_check(
             load_balancer_name=self._get_param("LoadBalancerName"),
             timeout=self._get_param("HealthCheck.Timeout"),
@@ -113,8 +113,8 @@ class ELBResponse(BaseResponse):
             interval=self._get_param("HealthCheck.Interval"),
             target=self._get_param("HealthCheck.Target"),
         )
-        template = self.response_template(CONFIGURE_HEALTH_CHECK_TEMPLATE)
-        return template.render(check=check)
+        result = {"HealthCheck": check}
+        return ActionResult(result)
 
     def register_instances_with_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -586,22 +586,6 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
     <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
-
-
-CONFIGURE_HEALTH_CHECK_TEMPLATE = """<ConfigureHealthCheckResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <ConfigureHealthCheckResult>
-    <HealthCheck>
-      <Interval>{{ check.interval }}</Interval>
-      <Target>{{ check.target }}</Target>
-      <HealthyThreshold>{{ check.healthy_threshold }}</HealthyThreshold>
-      <Timeout>{{ check.timeout }}</Timeout>
-      <UnhealthyThreshold>{{ check.unhealthy_threshold }}</UnhealthyThreshold>
-    </HealthCheck>
-  </ConfigureHealthCheckResult>
-  <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
-  </ResponseMetadata>
-</ConfigureHealthCheckResponse>"""
 
 
 DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
