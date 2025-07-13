@@ -291,12 +291,22 @@ class ELBResponse(BaseResponse):
         template = self.response_template(DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE)
         return template.render(policies=policies)
 
-    def describe_instance_health(self) -> str:
+    def describe_instance_health(self) -> ActionResult:
         lb_name = self._get_param("LoadBalancerName")
         instances = self._get_params().get("Instances", [])
         instances = self.elb_backend.describe_instance_health(lb_name, instances)
-        template = self.response_template(DESCRIBE_INSTANCE_HEALTH_TEMPLATE)
-        return template.render(instances=instances)
+        result = {
+            "InstanceStates": [
+                {
+                    "Description": "N/A",
+                    "InstanceId": instance["InstanceId"],
+                    "State": instance["State"],
+                    "ReasonCode": "N/A",
+                }
+                for instance in instances
+            ]
+        }
+        return ActionResult(result)
 
     def add_tags(self) -> ActionResult:
         for key, value in self.querystring.items():
@@ -674,22 +684,3 @@ MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="htt
   </ResponseMetadata>
 </ModifyLoadBalancerAttributesResponse>
 """
-
-
-DESCRIBE_INSTANCE_HEALTH_TEMPLATE = """<DescribeInstanceHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DescribeInstanceHealthResult>
-    <InstanceStates>
-      {% for instance in instances %}
-      <member>
-        <Description>N/A</Description>
-        <InstanceId>{{ instance['InstanceId'] }}</InstanceId>
-        <State>{{ instance['State'] }}</State>
-        <ReasonCode>N/A</ReasonCode>
-      </member>
-      {% endfor %}
-    </InstanceStates>
-  </DescribeInstanceHealthResult>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DescribeInstanceHealthResponse>"""
