@@ -64,14 +64,12 @@ def test_create_load_balancer(zones, region_name):
         "LoadBalancerPort": 80,
         "InstanceProtocol": "TCP",
         "InstancePort": 8080,
-        "SSLCertificateId": "None",
     }
     assert http == {
         "Protocol": "HTTP",
         "LoadBalancerPort": 81,
         "InstanceProtocol": "HTTP",
         "InstancePort": 9000,
-        "SSLCertificateId": "None",
     }
 
 
@@ -400,7 +398,7 @@ def test_create_lb_listener_with_ssl_certificate_from_acm():
     assert len(listeners) == 2
 
     assert listeners[0]["Listener"]["Protocol"] == "HTTP"
-    assert listeners[0]["Listener"]["SSLCertificateId"] == "None"
+    assert listeners[0]["Listener"].get("SSLCertificateId") is None
 
     assert listeners[1]["Listener"]["Protocol"] == "TCP"
     assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
@@ -440,7 +438,7 @@ def test_create_lb_listener_with_ssl_certificate_from_iam():
     assert len(listeners) == 2
 
     assert listeners[0]["Listener"]["Protocol"] == "HTTP"
-    assert listeners[0]["Listener"]["SSLCertificateId"] == "None"
+    assert listeners[0]["Listener"].get("SSLCertificateId") is None
 
     assert listeners[1]["Listener"]["Protocol"] == "TCP"
     assert listeners[1]["Listener"]["SSLCertificateId"] == certificate_arn
@@ -503,7 +501,7 @@ def test_set_sslcertificate():
 
     listener = elb["ListenerDescriptions"][0]["Listener"]
     assert listener["LoadBalancerPort"] == 80
-    assert listener["SSLCertificateId"] == "None"
+    assert "SSLCertificateId" not in listener
 
     listener = elb["ListenerDescriptions"][1]["Listener"]
     assert listener["LoadBalancerPort"] == 81

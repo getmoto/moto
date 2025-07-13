@@ -1,7 +1,11 @@
+from collections import defaultdict
+from typing import Any
+
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import DuplicateTagKeysError, LoadBalancerNotFoundError
-from .models import ELBBackend, FakeLoadBalancer, elb_backends
+from .models import ELBBackend, LoadBalancer, elb_backends
+from .policies import Policy
 
 
 def transform_dict(data: dict[str, str]) -> list[dict[str, str]]:
@@ -9,13 +13,32 @@ def transform_dict(data: dict[str, str]) -> list[dict[str, str]]:
     return transformed
 
 
-def transform_tuple_list(data: list[tuple]) -> list[dict[str, str]]:
+def transform_tuple_list(data: list[tuple[str, str]]) -> list[dict[str, str]]:
     transformed = [{"Key": t[0], "Value": t[1]} for t in data]
+    return transformed
+
+
+def transform_policies(policies: list[Policy]) -> dict[str, Any]:
+    segmented_policies = defaultdict(list)
+    for policy in policies:
+        if policy.policy_type_name in [
+            "AppCookieStickinessPolicy",
+            "LbCookieStickinessPolicy",
+        ]:
+            segmented_policies[policy.policy_type_name].append(policy)
+        else:
+            segmented_policies["OtherPolicy"].append(policy)
+    transformed = {
+        "AppCookieStickinessPolicies": segmented_policies["AppCookieStickinessPolicy"],
+        "LBCookieStickinessPolicies": segmented_policies["LbCookieStickinessPolicy"],
+        "OtherPolicies": [p.policy_name for p in segmented_policies["OtherPolicy"]],
+    }
     return transformed
 
 
 class ELBResponse(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "DescribeAccessPointsOutput.LoadBalancerDescriptions.LoadBalancerDescription.Policies": transform_policies,
         "DescribeLoadBalancerAttributesOutput.LoadBalancerAttributes.AdditionalAttributes": transform_tuple_list,
         "DescribeTagsOutput.TagDescriptions.TagDescription.Tags": transform_dict,
         "ModifyLoadBalancerAttributesOutput.LoadBalancerAttributes.AdditionalAttributes": transform_tuple_list,
@@ -57,7 +80,7 @@ class ELBResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_load_balancers(self) -> str:
+    def describe_load_balancers(self) -> ActionResult:
         names = self._get_multi_param("LoadBalancerNames.member")
         all_load_balancers = list(self.elb_backend.describe_load_balancers(names))
         marker = self._get_param("Marker")
@@ -74,12 +97,11 @@ class ELBResponse(BaseResponse):
         if len(all_load_balancers) > start + page_size:
             next_marker = load_balancers_resp[-1].name
 
-        template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
-        return template.render(
-            ACCOUNT_ID=self.current_account,
-            load_balancers=load_balancers_resp,
-            marker=next_marker,
-        )
+        result = {
+            "LoadBalancerDescriptions": load_balancers_resp,
+            "NextMarker": next_marker,
+        }
+        return ActionResult(result)
 
     def delete_load_balancer_listeners(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -364,7 +386,7 @@ class ELBResponse(BaseResponse):
         }
         return ActionResult(result)
 
-    def _add_tags(self, elb: FakeLoadBalancer) -> None:
+    def _add_tags(self, elb: LoadBalancer) -> None:
         tag_values = []
         tag_keys = []
 
@@ -437,134 +459,3 @@ class ELBResponse(BaseResponse):
         )
         result = {"Subnets": all_subnets}
         return ActionResult(result)
-
-
-DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DescribeLoadBalancersResult>
-    <LoadBalancerDescriptions>
-      {% for load_balancer in load_balancers %}
-        <member>
-          <SecurityGroups>
-            {% for security_group_id in load_balancer.security_groups %}
-            <member>{{ security_group_id }}</member>
-            {% endfor %}
-          </SecurityGroups>
-          {% if load_balancer.vpc_id %}
-          <SourceSecurityGroup>
-              <OwnerAlias>{{ ACCOUNT_ID }}</OwnerAlias>
-              <GroupName>default</GroupName>
-          </SourceSecurityGroup>
-          {% endif %}
-          <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
-          <CreatedTime>{{ load_balancer.created_time.isoformat() }}</CreatedTime>
-          <HealthCheck>
-            {% if load_balancer.health_check %}
-              <Interval>{{ load_balancer.health_check.interval }}</Interval>
-              <Target>{{ load_balancer.health_check.target }}</Target>
-              <HealthyThreshold>{{ load_balancer.health_check.healthy_threshold }}</HealthyThreshold>
-              <Timeout>{{ load_balancer.health_check.timeout }}</Timeout>
-              <UnhealthyThreshold>{{ load_balancer.health_check.unhealthy_threshold }}</UnhealthyThreshold>
-            {% else %}
-              <Target></Target>
-            {% endif %}
-          </HealthCheck>
-          {% if load_balancer.vpc_id %}
-          <VPCId>{{ load_balancer.vpc_id }}</VPCId>
-          {% else %}
-          <VPCId />
-          {% endif %}
-          <ListenerDescriptions>
-            {% for listener in load_balancer.listeners %}
-              <member>
-                <PolicyNames>
-                  {% for policy_name in listener.policy_names %}
-                    <member>{{ policy_name }}</member>
-                  {% endfor %}
-                </PolicyNames>
-                <Listener>
-                  <Protocol>{{ listener.protocol }}</Protocol>
-                  <LoadBalancerPort>{{ listener.load_balancer_port }}</LoadBalancerPort>
-                  <InstanceProtocol>{{ listener.protocol }}</InstanceProtocol>
-                  <InstancePort>{{ listener.instance_port }}</InstancePort>
-                  <SSLCertificateId>{{ listener.ssl_certificate_id }}</SSLCertificateId>
-                </Listener>
-              </member>
-            {% endfor %}
-          </ListenerDescriptions>
-          <Instances>
-            {% for instance_id in load_balancer.instance_ids %}
-              <member>
-                <InstanceId>{{ instance_id }}</InstanceId>
-              </member>
-            {% endfor %}
-          </Instances>
-          <Policies>
-            <AppCookieStickinessPolicies>
-            {% for policy in load_balancer.policies %}
-                {% if policy.policy_type_name == "AppCookieStickinessPolicy" %}
-                    <member>
-                        <CookieName>{{ policy.cookie_name }}</CookieName>
-                        <PolicyName>{{ policy.policy_name }}</PolicyName>
-                    </member>
-                {% endif %}
-            {% endfor %}
-            </AppCookieStickinessPolicies>
-            <LBCookieStickinessPolicies>
-            {% for policy in load_balancer.policies %}
-                {% if policy.policy_type_name == "LbCookieStickinessPolicy" %}
-                    <member>
-                        {% if policy.cookie_expiration_period %}
-                        <CookieExpirationPeriod>{{ policy.cookie_expiration_period }}</CookieExpirationPeriod>
-                        {% endif %}
-                        <PolicyName>{{ policy.policy_name }}</PolicyName>
-                    </member>
-                {% endif %}
-            {% endfor %}
-            </LBCookieStickinessPolicies>
-            <OtherPolicies>
-            {% for policy in load_balancer.policies %}
-                {% if policy.policy_type_name not in ["AppCookieStickinessPolicy", "LbCookieStickinessPolicy"] %}
-                    <member>{{ policy.policy_name }}</member>
-                {% endif %}
-            {% endfor %}
-            </OtherPolicies>
-          </Policies>
-          <AvailabilityZones>
-            {% for zone in load_balancer.zones %}
-              <member>{{ zone }}</member>
-            {% endfor %}
-          </AvailabilityZones>
-          <CanonicalHostedZoneName>{{ load_balancer.dns_name }}</CanonicalHostedZoneName>
-          <CanonicalHostedZoneNameID>Z3ZONEID</CanonicalHostedZoneNameID>
-          <Scheme>{{ load_balancer.scheme }}</Scheme>
-          <DNSName>{{ load_balancer.dns_name }}</DNSName>
-          <BackendServerDescriptions>
-          {% for backend in load_balancer.backends %}
-            {% if backend.policy_names %}
-            <member>
-                <InstancePort>{{ backend.instance_port }}</InstancePort>
-                <PolicyNames>
-                    {% for policy in backend.policy_names %}
-                    <member>{{ policy }}</member>
-                    {% endfor %}
-                </PolicyNames>
-            </member>
-            {% endif %}
-          {% endfor %}
-          </BackendServerDescriptions>
-          <Subnets>
-          {% for subnet in load_balancer.subnets %}
-              <member>{{ subnet }}</member>
-          {% endfor %}
-          </Subnets>
-        </member>
-      {% endfor %}
-    </LoadBalancerDescriptions>
-    {% if marker %}
-    <NextMarker>{{ marker }}</NextMarker>
-    {% endif %}
-  </DescribeLoadBalancersResult>
-  <ResponseMetadata>
-    <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
-  </ResponseMetadata>
-</DescribeLoadBalancersResponse>"""
