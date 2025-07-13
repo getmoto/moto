@@ -501,7 +501,7 @@ def test_set_sslcertificate():
 
     listener = elb["ListenerDescriptions"][0]["Listener"]
     assert listener["LoadBalancerPort"] == 80
-    assert "SSLCertificateId" not in listener
+    assert listener.get("SSLCertificateId") is None
 
     listener = elb["ListenerDescriptions"][1]["Listener"]
     assert listener["LoadBalancerPort"] == 81
