@@ -9,9 +9,16 @@ def transform_dict(data: dict[str, str]) -> list[dict[str, str]]:
     return transformed
 
 
+def transform_tuple_list(data: list[tuple]) -> list[dict[str, str]]:
+    transformed = [{"Key": t[0], "Value": t[1]} for t in data]
+    return transformed
+
+
 class ELBResponse(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "DescribeLoadBalancerAttributesOutput.LoadBalancerAttributes.AdditionalAttributes": transform_tuple_list,
         "DescribeTagsOutput.TagDescriptions.TagDescription.Tags": transform_dict,
+        "ModifyLoadBalancerAttributesOutput.LoadBalancerAttributes.AdditionalAttributes": transform_tuple_list,
     }
 
     def __init__(self) -> None:
@@ -150,13 +157,13 @@ class ELBResponse(BaseResponse):
         result = {"Instances": [load_balancer.instance_ids]}
         return ActionResult(result)
 
-    def describe_load_balancer_attributes(self) -> str:
+    def describe_load_balancer_attributes(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
-        template = self.response_template(DESCRIBE_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=load_balancer.attributes)
+        result = {"LoadBalancerAttributes": load_balancer.attributes}
+        return ActionResult(result)
 
-    def modify_load_balancer_attributes(self) -> str:
+    def modify_load_balancer_attributes(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
 
@@ -203,10 +210,11 @@ class ELBResponse(BaseResponse):
             self.elb_backend.modify_load_balancer_attributes(
                 load_balancer_name, additional_attributes=additional_attributes
             )
-        template = self.response_template(MODIFY_ATTRIBUTES_TEMPLATE)
-        return template.render(
-            load_balancer=load_balancer, attributes=load_balancer.attributes
-        )
+        result = {
+            "LoadBalancerName": load_balancer.name,
+            "LoadBalancerAttributes": load_balancer.attributes,
+        }
+        return ActionResult(result)
 
     def create_load_balancer_policy(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -560,85 +568,3 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
     <RequestId>f9880f01-7852-629d-a6c3-3ae2-666a409287e6dc0c</RequestId>
   </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
-
-
-DESCRIBE_ATTRIBUTES_TEMPLATE = """<DescribeLoadBalancerAttributesResponse  xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <DescribeLoadBalancerAttributesResult>
-    <LoadBalancerAttributes>
-      <AccessLog>
-        <Enabled>{{ attributes["access_log"]["enabled"] }}</Enabled>
-        {% if attributes["access_log"]["enabled"] == 'true' %}
-        <S3BucketName>{{ attributes["access_log"]["s3_bucket_name"] }}</S3BucketName>
-        <S3BucketPrefix>{{ attributes["access_log"]["s3_bucket_prefix"] }}</S3BucketPrefix>
-        <EmitInterval>{{ attributes["access_log"]["emit_interval"] }}</EmitInterval>
-        {% endif %}
-      </AccessLog>
-      <ConnectionSettings>
-        <IdleTimeout>{{ attributes["connection_settings"]["idle_timeout"] }}</IdleTimeout>
-      </ConnectionSettings>
-      <CrossZoneLoadBalancing>
-        <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
-      </CrossZoneLoadBalancing>
-      <ConnectionDraining>
-        <Enabled>{{ attributes["connection_draining"]["enabled"] }}</Enabled>
-        {% if attributes["connection_draining"]["timeout"] %}
-        <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
-        {% endif %}
-      </ConnectionDraining>
-      <AdditionalAttributes>
-        {% for attribute in attributes.additional_attributes %}
-        <member>
-          <Key>{{ attribute[0] }}</Key>
-          <Value>{{ attribute[1] }}</Value>
-        </member>
-        {% endfor %}
-      </AdditionalAttributes>
-    </LoadBalancerAttributes>
-  </DescribeLoadBalancerAttributesResult>
-  <ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-  </ResponseMetadata>
-</DescribeLoadBalancerAttributesResponse>
-"""
-
-MODIFY_ATTRIBUTES_TEMPLATE = """<ModifyLoadBalancerAttributesResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <ModifyLoadBalancerAttributesResult>
-  <LoadBalancerName>{{ load_balancer.name }}</LoadBalancerName>
-    <LoadBalancerAttributes>
-      <AccessLog>
-        <Enabled>{{ attributes["access_log"]["enabled"] == 'true' }}</Enabled>
-        {% if attributes["access_log"]["enabled"] == 'true' %}
-        <S3BucketName>{{ attributes["access_log"]["s3_bucket_name"] }}</S3BucketName>
-        <S3BucketPrefix>{{ attributes["access_log"]["s3_bucket_prefix"] }}</S3BucketPrefix>
-        <EmitInterval>{{ attributes["access_log"]["emit_interval"] }}</EmitInterval>
-        {% endif %}
-      </AccessLog>
-      <ConnectionSettings>
-        <IdleTimeout>{{ attributes["connection_settings"]["idle_timeout"] }}</IdleTimeout>
-      </ConnectionSettings>
-      <CrossZoneLoadBalancing>
-        <Enabled>{{ attributes.cross_zone_load_balancing.enabled }}</Enabled>
-      </CrossZoneLoadBalancing>
-      <ConnectionDraining>
-        {% if attributes["connection_draining"]["enabled"] == 'true' %}
-        <Enabled>true</Enabled>
-        <Timeout>{{ attributes["connection_draining"]["timeout"] }}</Timeout>
-        {% else %}
-        <Enabled>false</Enabled>
-        {% endif %}
-      </ConnectionDraining>
-      <AdditionalAttributes>
-        {% for attribute in attributes.additional_attributes %}
-        <member>
-          <Key>{{ attribute[0] }}</Key>
-          <Value>{{ attribute[1] }}</Value>
-        </member>
-        {% endfor %}
-      </AdditionalAttributes>
-    </LoadBalancerAttributes>
-  </ModifyLoadBalancerAttributesResult>
-  <ResponseMetadata>
-    <RequestId>83c88b9d-12b7-11e3-8b82-87b12EXAMPLE</RequestId>
-  </ResponseMetadata>
-</ModifyLoadBalancerAttributesResponse>
-"""
