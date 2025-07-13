@@ -21,7 +21,7 @@ class ELBResponse(BaseResponse):
     def elb_backend(self) -> ELBBackend:
         return elb_backends[self.current_account][self.region]
 
-    def create_load_balancer(self) -> str:
+    def create_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         availability_zones = self._get_multi_param("AvailabilityZones.member")
         ports = self._get_list_prefix("Listeners.member")
@@ -38,8 +38,8 @@ class ELBResponse(BaseResponse):
             security_groups=security_groups,
         )
         self._add_tags(load_balancer)
-        template = self.response_template(CREATE_LOAD_BALANCER_TEMPLATE)
-        return template.render(load_balancer=load_balancer)
+        result = {"DNSName": load_balancer.dns_name}
+        return ActionResult(result)
 
     def create_load_balancer_listeners(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
@@ -449,16 +449,6 @@ DESCRIBE_LOAD_BALANCER_POLICIES_TEMPLATE = """<DescribeLoadBalancerPoliciesRespo
     <RequestId>360e81f7-1100-11e4-b6ed-0f30EXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeLoadBalancerPoliciesResponse>"""
-
-
-CREATE_LOAD_BALANCER_TEMPLATE = """<CreateLoadBalancerResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
-  <CreateLoadBalancerResult>
-    <DNSName>{{ load_balancer.dns_name }}</DNSName>
-  </CreateLoadBalancerResult>
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-</CreateLoadBalancerResponse>"""
 
 
 DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2012-06-01/">
