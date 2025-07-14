@@ -66,7 +66,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     )
 
     # Put Object
-    s3_client.put_object(Bucket=bucket_name, Key="keyname", Body="bodyofnewobject")
+    s3_client.put_object(Bucket=bucket_name, Key="key name", Body="bodyofnewobject")
 
     # Find the output of AWSLambda
     expected_msg = "FINISHED_PRINTING_EVENT"
@@ -100,7 +100,7 @@ def test_objectcreated_put__invokes_lambda(match_events, actual_event):
     assert records[0]["s3"]["configurationId"] == "s3eventtriggerslambda"
     assert "object" in records[0]["s3"]
     assert records[0]["s3"]["object"]["eTag"] == "61ea96c3c8d2c76fc5a42bfccb6affd9"
-    assert records[0]["s3"]["object"]["key"] == "keyname"
+    assert records[0]["s3"]["object"]["key"] == "key+name"
     assert records[0]["s3"]["object"]["size"] == 15
 
 
