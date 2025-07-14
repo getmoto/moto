@@ -12,10 +12,10 @@ from .exceptions import (
 from .utils import make_arn
 
 
-class FakeEnvironment(BaseModel):
+class Environment(BaseModel):
     def __init__(
         self,
-        application: "FakeApplication",
+        application: "Application",
         environment_name: str,
         solution_stack_name: str,
         tags: Dict[str, str],
@@ -47,7 +47,7 @@ class FakeEnvironment(BaseModel):
         return self.application.region
 
 
-class FakeApplication(BaseModel):
+class Application(BaseModel):
     def __init__(
         self,
         backend: "EBBackend",
@@ -55,7 +55,7 @@ class FakeApplication(BaseModel):
     ):
         self.backend = weakref.proxy(backend)  # weakref to break cycles
         self.application_name = application_name
-        self.environments: Dict[str, FakeEnvironment] = dict()
+        self.environments: Dict[str, Environment] = dict()
         self.account_id = self.backend.account_id
         self.region = self.backend.region_name
         self.arn = make_arn(
@@ -64,11 +64,11 @@ class FakeApplication(BaseModel):
 
     def create_environment(
         self, environment_name: str, solution_stack_name: str, tags: Dict[str, str]
-    ) -> FakeEnvironment:
+    ) -> Environment:
         if environment_name in self.environments:
             raise InvalidParameterValueError(message="")
 
-        env = FakeEnvironment(
+        env = Environment(
             application=self,
             environment_name=environment_name,
             solution_stack_name=solution_stack_name,
@@ -82,29 +82,29 @@ class FakeApplication(BaseModel):
 class EBBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.applications: Dict[str, FakeApplication] = dict()
+        self.applications: Dict[str, Application] = dict()
 
-    def create_application(self, application_name: str) -> FakeApplication:
+    def create_application(self, application_name: str) -> Application:
         if application_name in self.applications:
             raise InvalidParameterValueError(
                 f"Application {application_name} already exists."
             )
-        new_app = FakeApplication(backend=self, application_name=application_name)
+        new_app = Application(backend=self, application_name=application_name)
         self.applications[application_name] = new_app
         return new_app
 
     def create_environment(
         self,
-        app: FakeApplication,
+        app: Application,
         environment_name: str,
         stack_name: str,
         tags: Dict[str, str],
-    ) -> FakeEnvironment:
+    ) -> Environment:
         return app.create_environment(
             environment_name=environment_name, solution_stack_name=stack_name, tags=tags
         )
 
-    def describe_environments(self) -> List[FakeEnvironment]:
+    def describe_environments(self) -> List[Environment]:
         envs = []
         for app in self.applications.values():
             for env in app.environments.values():
@@ -140,7 +140,7 @@ class EBBackend(BaseBackend):
             )
         return res.tags
 
-    def _find_environment_by_arn(self, arn: str) -> FakeEnvironment:
+    def _find_environment_by_arn(self, arn: str) -> Environment:
         for app in self.applications.keys():
             for env in self.applications[app].environments.values():
                 if env.environment_arn == arn:
