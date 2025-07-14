@@ -5,7 +5,6 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 
 from .exceptions import (
-    ApplicationNotFound,
     InvalidParameterValueError,
     ResourceNotFoundException,
 )
@@ -151,11 +150,8 @@ class EBBackend(BaseBackend):
         self,
         application_name: str,
     ) -> None:
-        if application_name:
-            if application_name in self.applications:
-                self.applications.pop(application_name)
-            else:
-                raise ApplicationNotFound(application_name)
+        if application_name in self.applications:
+            self.applications.pop(application_name)
 
 
 eb_backends = BackendDict(EBBackend, "elasticbeanstalk")
