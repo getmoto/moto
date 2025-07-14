@@ -1767,9 +1767,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         #
         # Second, go through the list of instances
         # It may contain FakeKeys created earlier, which are no longer tracked
-        for mp in FakeMultipart.instances:  # type: ignore
+        for mp in FakeMultipart.instances_tracked:  # type: ignore
             mp.dispose()
-        for key in FakeKey.instances:  # type: ignore
+        for key in FakeKey.instances_tracked:  # type: ignore
             key.dispose()
         super().reset()
 
