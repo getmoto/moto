@@ -160,3 +160,5 @@ def test_list_available_solution_stacks():
     stacks = conn.list_available_solution_stacks()
     assert len(stacks["SolutionStacks"]) > 0
     assert len(stacks["SolutionStacks"]) == len(stacks["SolutionStackDetails"])
+    assert "SolutionStackName" in stacks["SolutionStackDetails"][0]
+    assert "PermittedFileTypes" in stacks["SolutionStackDetails"][0]
