@@ -37,7 +37,7 @@ class DBSecurityGroupNotFoundError(RDSClientError):
         )
 
 
-class DBShardGroupAlredyExistsError(RDSClientError):
+class DBShardGroupAlreadyExistsError(RDSClientError):
     def __init__(self, shard_group_identifier: str):
         super().__init__(
             "DBShardGroupAlreadyExistsFault",

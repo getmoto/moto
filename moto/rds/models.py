@@ -53,7 +53,7 @@ from .exceptions import (
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
-    DBShardGroupAlredyExistsError,
+    DBShardGroupAlreadyExistsError,
     DBShardGroupNotFoundFault,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundFault,
@@ -4144,19 +4144,19 @@ class RDSBackend(BaseBackend):
         min_acu = kwargs.get("min_acu")
 
         if db_shard_group_identifier in self.shard_groups:
-            raise DBShardGroupAlredyExistsError(db_shard_group_identifier)
+            raise DBShardGroupAlreadyExistsError(db_shard_group_identifier)
 
         if db_cluster_identifier not in self.clusters:
             raise DBClusterNotFoundError(db_cluster_identifier)
 
         if compute_redundancy not in (None, 0, 1, 2):
             raise InvalidParameterValue(
-                f"Invalid ComputeRedundancy value '{compute_redundancy}'. "
+                f"Invalid ComputeRedundancy value: '{compute_redundancy}'. "
                 "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
             )
 
         if "min_acu" in kwargs and min_acu >= max_acu:
-            raise InvalidParameterValue("min_acu cannot be larger than mac_acu")
+            raise InvalidParameterValue("min_acu cannot be larger than max_acu")
 
         self.shard_groups[db_shard_group.db_shard_group_identifier] = db_shard_group
         return db_shard_group
