@@ -833,6 +833,7 @@ def test_create_db_snapshots(client):
         snapshot = client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
         )["DBSnapshot"]
+        
     assert snapshot["Engine"] == "postgres"
     assert snapshot["DBInstanceIdentifier"] == "db-primary-1"
     assert snapshot["DBSnapshotIdentifier"] == "g-1"
@@ -1881,38 +1882,6 @@ def test_remove_tags_security_group(client):
 
     result = client.list_tags_for_resource(ResourceName=resource)
     assert result["TagList"] == [{"Value": "bar1", "Key": "foo1"}]
-
-
-@mock_aws
-def test_create_db_shard_group(client):
-    cluster_response = client.create_db_cluster(
-        DBClusterIdentifier="test_db_cluster_identifier",
-        Engine="aurora-postgresql",
-        MasterUsername="admin",
-        MasterUserPassword="root-password",
-    )
-
-    result = client.create_db_shard_group(
-        DBShardGroupIdentifier="test_db_shard_group_identifier",
-        DBClusterIdentifier="test_db_cluster_identifier",
-        ComputeRedundancy=0,
-        MaxACU=24,
-        MinACU=1,
-        PubliclyAccessible=False,
-        Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
-    )
-    print("DGB test: ", result)
-    shard_group = result["DBShardGroup"]
-    assert shard_group["DBShardGroupIdentifier"] == "test_db_shard_group_identifier"
-    assert shard_group["DBClusterIdentifier"] == "test_db_cluster_identifier"
-    assert shard_group["ComputeRedundancy"] == 0
-    assert shard_group["MaxACU"] == 24
-    assert shard_group["MinACU"] == 1
-    assert shard_group["PubliclyAccessible"] is False
-    assert shard_group["TagList"] == [
-        {"Value": "bar", "Key": "foo"},
-        {"Value": "bar1", "Key": "foo1"},
-    ]
 
 
 @mock_aws

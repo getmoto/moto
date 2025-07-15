@@ -44,13 +44,6 @@ class DBShardGroupAlredyExistsError(RDSClientError):
             f"DB Shard Group {shard_group_identifier} already exists.",
         )
 
-class DBShardGroupNotFoundError(RDSClientError):
-    def __init__(self, db_shard_group_name: str):
-        super().__init__(
-            "DBShardGroupNotFoundFault",
-            f"DB Shard Group {db_shard_group_name} not found.",
-        )
-
 class DBSubnetGroupNotFoundError(RDSClientError):
     def __init__(self, subnet_group_name: str):
         super().__init__(

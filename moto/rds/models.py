@@ -54,6 +54,7 @@ from .exceptions import (
     DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
     DBShardGroupNotFoundFault,
+    DBShardGroupAlredyExistsError,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundFault,
     DBSubnetGroupNotFoundError,
@@ -2212,6 +2213,17 @@ class DBInstanceAutomatedBackup:
 class DBShardGroup(RDSBaseModel):
     resource_type = "shard-group"
 
+    SUPPORTED_FILTERS = {
+        "db-shard-group-id": FilterDef(
+            ["db_shard_group_identifier"],
+            "DB Shard Group Identifier",
+        ),
+        "db-cluster-id": FilterDef(
+            ["db_cluster_identifier"],
+            "DB Cluster Identifier",
+        ),
+    }
+
     def __init__(
         self,
         backend: RDSBackend,
@@ -2277,7 +2289,6 @@ class RDSBackend(BaseBackend):
             str, DBClusterParameterGroup
         ] = CaseInsensitiveDict()
         self.option_groups: MutableMapping[str, OptionGroup] = CaseInsensitiveDict()
-        self.shard_groups: Dict[str, DBShardGroup] = {}
         self.security_groups: Dict[str, DBSecurityGroup] = {}
         self.shard_groups: Dict[str, DBShardGroup] = {}
         self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
@@ -2951,80 +2962,6 @@ class RDSBackend(BaseBackend):
         security_group.authorize_cidr(cidr_ip)
         return security_group
 
-    # def create_db_shard_group(
-    #     self,
-    #     db_shard_group_identifier: str,
-    #     db_cluster_identifier: str,
-    #     max_acu: float,
-    #     compute_redundancy: Optional[int],
-    #     min_acu: Optional[float] = None,
-    #     publicly_accessible: Optional[bool] = None,
-    #     tags: Optional[List[Dict[str, str]]] = None,
-    # ) -> DBShardGroup:
-    #     if db_shard_group_identifier in self.shard_groups:
-    #         raise DBShardGroupAlredyExistsError(db_shard_group_identifier)
-    #     if db_cluster_identifier not in self.clusters:
-    #         raise DBClusterNotFoundError(db_cluster_identifier)
-    #     if compute_redundancy not in (None, 0, 1, 2):
-    #         raise InvalidParameterValue(
-    #             f"Invalid ComputeRedundancy value '{compute_redundancy}'. "
-    #             "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
-    #         )
-    #     if min_acu is not None and min_acu >= max_acu:
-    #         raise InvalidParameterValue("min_acu cannot be larger than mac_acu")
-    #     shard_group = DBShardGroup(
-    #         self,
-    #         db_shard_group_identifier,
-    #         db_cluster_identifier,
-    #         compute_redundancy,
-    #         max_acu,
-    #         min_acu,
-    #         publicly_accessible,
-    #         tags,
-    #     )
-    #     self.shard_groups[db_shard_group_identifier] = shard_group
-    #     return shard_group
-
-    def create_db_shard_group(self, kwargs: Any) -> DBShardGroup:
-        # # db_shard_group_identifier = kwargs["db_shard_group_identifier"]
-        # # db_cluster_identifier = kwargs["db_cluster_identifier"]
-        # # compute_redundancy = kwargs["compute_redundancy"]
-
-
-        db_shard_group_identifier = kwargs["db_shard_group_identifier"]
-        # db_cluster_identifier = kwargs["db_cluster_identifier"]
-        # compute_redundancy = kwargs.get("compute_redundancy")
-        # # max_acu = kwargs["max_acu"]
-        # # min_acu = kwargs.get("min_acu")
-        # # publicly_accessible = kwargs.get("publicly_accessible")
-        # # tags = kwargs.get("tags", [])
-
-        # if db_shard_group_identifier in self.shard_groups:
-        #     raise DBShardGroupAlredyExistsError(db_shard_group_identifier)
-        # if db_cluster_identifier not in self.clusters:
-        #     raise DBClusterNotFoundError(db_cluster_identifier)
-        # if compute_redundancy not in (None, 0, 1, 2):
-        #     raise InvalidParameterValue(
-        #         f"Invalid ComputeRedundancy value '{compute_redundancy}'. "
-        #         "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
-        #     )
-        # if "min_acu" in kwargs and kwargs.get("min_acu") >= kwargs.get("max_acu"):
-        #     raise InvalidParameterValue("min_acu cannot be larger than mac_acu")
-        
-        print("MODEL WAS CALLED")
-        shard_group = DBShardGroup(self, **kwargs)
-        self.shard_groups[db_shard_group_identifier] = shard_group
-        print("DBG model:", shard_group.db_shard_group_identifier)
-        return shard_group
-    
-    def describe_db_shard_groups(self, shard_group_name: str) -> List[DBShardGroup]:
-        if shard_group_name:
-            if shard_group_name in self.shard_groups:
-                return [self.shard_groups[shard_group_name]]
-            else:
-                raise DBShardGroupNotFoundError(shard_group_name)
-        return list(self.shard_groups.values())
-    
     def create_subnet_group(
         self,
         subnet_name: str,
@@ -4198,23 +4135,52 @@ class RDSBackend(BaseBackend):
 
     def create_db_shard_group(self, kwargs: Dict[str, Any]) -> DBShardGroup:
         db_shard_group = DBShardGroup(self, **kwargs)
+
+        # Validate
+        db_shard_group_identifier = kwargs["db_shard_group_identifier"]
+        db_cluster_identifier = kwargs["db_cluster_identifier"]
+        compute_redundancy = kwargs.get("compute_redundancy")
+        max_acu = kwargs["max_acu"]
+        min_acu = kwargs.get("min_acu")
+
+        if db_shard_group_identifier in self.shard_groups:
+            raise DBShardGroupAlredyExistsError(db_shard_group_identifier)
+        
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+
+        if compute_redundancy not in (None, 0, 1, 2):
+            raise InvalidParameterValue(
+                f"Invalid ComputeRedundancy value '{compute_redundancy}'. "
+                "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
+            )
+
+        if "min_acu" in kwargs and min_acu >= max_acu:
+            raise InvalidParameterValue("min_acu cannot be larger than mac_acu")
+
         self.shard_groups[db_shard_group.db_shard_group_identifier] = (
-            db_shard_group.to_dict()
+            db_shard_group
         )
         return db_shard_group
 
     def describe_db_shard_groups(
         self,
         db_shard_group_identifier: Optional[str],
-        filter: Optional[Dict[str, List[str]]],
+        filters: Optional[Dict[str, List[str]]],
     ) -> List[DBShardGroup]:
+        shard_groups = self.shard_groups
         if db_shard_group_identifier:
-            # TODO: add filter for filter param.
-            if db_shard_group_identifier not in self.shard_groups:
-                raise DBShardGroupNotFoundFault(db_shard_group_identifier)
-            return [self.shard_groups[db_shard_group_identifier]]
+            filters = merge_filters(
+                filters, {"db-shard-group-id": [db_shard_group_identifier]}
+            )
+        if filters:
+            shard_groups = self._filter_resources(shard_groups, filters, DBShardGroup)
+            print("DBG FILTER: ",  filters)
+            print('DBG IN FILTERS: ', shard_groups.values())
+        if db_shard_group_identifier and not shard_groups:
+            raise DBShardGroupNotFoundFault(db_shard_group_identifier)
+        return list(shard_groups.values())
 
-        return list(self.shard_groups)
 
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"
