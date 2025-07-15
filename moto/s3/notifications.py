@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List
+from urllib.parse import quote_plus
 
 from moto.core.utils import unix_time
 
@@ -73,6 +74,8 @@ def _get_s3_event(
     # s3:ObjectCreated:Put --> ObjectCreated:Put
     event_name = event_name[3:]
     event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
+    # https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-content-structure.html
+    key_name = quote_plus(key.name)
     return {
         "Records": [
             {
@@ -88,7 +91,7 @@ def _get_s3_event(
                         "name": bucket.name,
                         "arn": bucket.arn,
                     },
-                    "object": {"key": key.name, "size": key.size, "eTag": etag},
+                    "object": {"key": key_name, "size": key.size, "eTag": etag},
                 },
             }
         ]
