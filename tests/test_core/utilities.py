@@ -25,7 +25,7 @@ class SimpleServer:
 
     def get_host_and_port(self) -> Tuple[str, int]:
         assert self._server
-        host, port = self._server.server_address
+        host, port = self._server.server_address[:2]
         return str(host), port
 
     def stop(self) -> None:
