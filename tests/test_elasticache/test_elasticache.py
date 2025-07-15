@@ -1035,10 +1035,7 @@ def test_create_replication_group_cluster_disabled():
     assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-002"
     assert replication_group["MultiAZ"] == "enabled"
     assert replication_group["SnapshotRetentionLimit"] == 1
-    if not replication_group["ClusterEnabled"]:
-        assert True
-    else:
-        assert False
+    assert not replication_group["ClusterEnabled"]
     assert replication_group["CacheNodeType"] == "cache.t4g.micro"
     assert (
         replication_group["ARN"]
@@ -1315,10 +1312,7 @@ def test_describe_replication_groups_cluster_enabled():
     replication_group = describe_resp["ReplicationGroups"][0]
     assert replication_group["ReplicationGroupId"] == replication_group_id
     assert len(replication_group["MemberClusters"]) == 9
-    if replication_group["ClusterEnabled"]:
-        assert True
-    else:
-        assert False
+    assert replication_group["ClusterEnabled"]
 
 
 @mock_aws
