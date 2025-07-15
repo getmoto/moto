@@ -3963,6 +3963,51 @@
                   "Value": "HTTPS"
                 }
               },
+              "fsx": {
+                "Value": "fsx",
+                "endpoint": {
+                  "Value": "fsx.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-lustre": {
+                "Value": "fsx-lustre",
+                "endpoint": {
+                  "Value": "fsx.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-ontap": {
+                "Value": "fsx-ontap",
+                "endpoint": {
+                  "Value": "fsx.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-openzfs": {
+                "Value": "fsx-openzfs",
+                "endpoint": {
+                  "Value": "fsx.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fsx-windows": {
+                "Value": "fsx-windows",
+                "endpoint": {
+                  "Value": "fsx.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -3994,6 +4039,15 @@
                 "Value": "kinesis",
                 "endpoint": {
                   "Value": "kinesis.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kinesisanalytics": {
+                "Value": "kinesisanalytics",
+                "endpoint": {
+                  "Value": "kinesisanalytics.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4177,6 +4231,24 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "sagemaker": {
+                "Value": "sagemaker",
+                "endpoint": {
+                  "Value": "api.sagemaker.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "secretsmanager": {
@@ -9693,6 +9765,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -14574,6 +14655,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -23083,6 +23182,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "internetmonitor": {
                 "Value": "internetmonitor",
                 "endpoint": {
@@ -24386,6 +24503,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -24744,6 +24879,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25479,6 +25623,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -25780,6 +25942,15 @@
                 "Value": "savingsplans",
                 "endpoint": {
                   "Value": "savingsplans.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29071,6 +29242,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -30372,6 +30561,15 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.cn-north-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.cn-north-1.amazonaws.com.cn"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -31827,6 +32025,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.cn-northwest-1.amazonaws.com.cn"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "inspector2": {
                 "Value": "inspector2",
                 "endpoint": {
@@ -32854,7 +33061,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "backup": {
                 "Value": "backup",
@@ -41013,6 +41226,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "cloudhsmv2": {
+                "Value": "cloudhsmv2",
+                "endpoint": {
+                  "Value": "cloudhsmv2.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "cloudshell": {
                 "Value": "cloudshell",
                 "endpoint": {
@@ -41479,6 +41701,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -47057,6 +47297,12 @@
                   "Value": "HTTPS"
                 }
               },
+              "pcs": {
+                "Value": "pcs",
+                "endpoint": {
+                  "Value": "pcs.eu-west-2.amazonaws.com"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -50705,6 +50951,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -51963,6 +52227,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "elasticbeanstalk": {
+                "Value": "elasticbeanstalk",
+                "endpoint": {
+                  "Value": "elasticbeanstalk.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "elb": {
                 "Value": "elb",
                 "endpoint": {
@@ -52150,6 +52423,24 @@
                 "Value": "imagebuilder",
                 "endpoint": {
                   "Value": "imagebuilder.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55201,6 +55492,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "inspector-scan": {
+                "Value": "inspector-scan",
+                "endpoint": {
+                  "Value": "inspector-scan.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "inspector2": {
+                "Value": "inspector2",
+                "endpoint": {
+                  "Value": "inspector2.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -55511,6 +55820,15 @@
                 "Value": "sagemaker-runtime",
                 "endpoint": {
                   "Value": "runtime.sagemaker.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -58200,7 +58518,13 @@
                 }
               },
               "awstransform": {
-                "Value": "awstransform"
+                "Value": "awstransform",
+                "endpoint": {
+                  "Value": "transform.us-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "b2bi": {
                 "Value": "b2bi",
@@ -68658,6 +68982,15 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.us-west-1.amazonaws.com"
+                }
+              },
+              "opensearchserverless": {
+                "Value": "opensearchserverless",
+                "endpoint": {
+                  "Value": "aoss.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "opsworkschefautomate": {

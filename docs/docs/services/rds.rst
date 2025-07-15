@@ -27,7 +27,7 @@ rds
 - [X] copy_db_parameter_group
 - [X] copy_db_snapshot
 - [ ] copy_option_group
-- [ ] create_blue_green_deployment
+- [X] create_blue_green_deployment
 - [ ] create_custom_db_engine_version
 - [X] create_db_cluster
 - [ ] create_db_cluster_endpoint
@@ -47,7 +47,7 @@ rds
 - [ ] create_integration
 - [X] create_option_group
 - [ ] create_tenant_database
-- [ ] delete_blue_green_deployment
+- [X] delete_blue_green_deployment
 - [ ] delete_custom_db_engine_version
 - [X] delete_db_cluster
 - [ ] delete_db_cluster_automated_backup
@@ -70,7 +70,7 @@ rds
 - [ ] delete_tenant_database
 - [X] deregister_db_proxy_targets
 - [ ] describe_account_attributes
-- [ ] describe_blue_green_deployments
+- [X] describe_blue_green_deployments
 - [ ] describe_certificates
 - [ ] describe_db_cluster_automated_backups
 - [ ] describe_db_cluster_backtracks
@@ -182,7 +182,7 @@ rds
 - [X] stop_db_cluster
 - [X] stop_db_instance
 - [ ] stop_db_instance_automated_backups_replication
-- [ ] switchover_blue_green_deployment
+- [X] switchover_blue_green_deployment
 - [ ] switchover_global_cluster
 - [ ] switchover_read_replica
 

@@ -35,6 +35,7 @@ cloudtrail
 - [ ] generate_query
 - [ ] get_channel
 - [ ] get_dashboard
+- [ ] get_event_configuration
 - [ ] get_event_data_store
 - [X] get_event_selectors
 - [ ] get_import
@@ -58,6 +59,7 @@ cloudtrail
 
 - [X] list_trails
 - [ ] lookup_events
+- [ ] put_event_configuration
 - [X] put_event_selectors
 - [X] put_insight_selectors
 - [ ] put_resource_policy
