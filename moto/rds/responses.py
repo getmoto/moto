@@ -276,7 +276,6 @@ class RDSResponse(BaseResponse):
         result = {"DBSecurityGroup": security_group}
         return ActionResult(result)
 
-
     def create_db_subnet_group(self) -> ActionResult:
         subnet_name = self.parameters.get("DBSubnetGroupName")
         description = self.parameters.get("DBSubnetGroupDescription")

@@ -833,7 +833,7 @@ def test_create_db_snapshots(client):
         snapshot = client.create_db_snapshot(
             DBInstanceIdentifier="db-primary-1", DBSnapshotIdentifier="g-1"
         )["DBSnapshot"]
-        
+
     assert snapshot["Engine"] == "postgres"
     assert snapshot["DBInstanceIdentifier"] == "db-primary-1"
     assert snapshot["DBSnapshotIdentifier"] == "g-1"

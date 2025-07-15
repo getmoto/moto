@@ -53,8 +53,8 @@ from .exceptions import (
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
-    DBShardGroupNotFoundFault,
     DBShardGroupAlredyExistsError,
+    DBShardGroupNotFoundFault,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundFault,
     DBSubnetGroupNotFoundError,
@@ -2016,7 +2016,7 @@ class DBSecurityGroup(CloudFormationModel, RDSBaseModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         backend = rds_backends[account_id][region_name]
-        backend.delete_security_group(self.group_name)
+        backend.delete_security_group(self.name)
 
 
 class DBSubnetGroup(CloudFormationModel, RDSBaseModel):
@@ -4145,7 +4145,7 @@ class RDSBackend(BaseBackend):
 
         if db_shard_group_identifier in self.shard_groups:
             raise DBShardGroupAlredyExistsError(db_shard_group_identifier)
-        
+
         if db_cluster_identifier not in self.clusters:
             raise DBClusterNotFoundError(db_cluster_identifier)
 
@@ -4158,9 +4158,7 @@ class RDSBackend(BaseBackend):
         if "min_acu" in kwargs and min_acu >= max_acu:
             raise InvalidParameterValue("min_acu cannot be larger than mac_acu")
 
-        self.shard_groups[db_shard_group.db_shard_group_identifier] = (
-            db_shard_group
-        )
+        self.shard_groups[db_shard_group.db_shard_group_identifier] = db_shard_group
         return db_shard_group
 
     def describe_db_shard_groups(
@@ -4175,12 +4173,9 @@ class RDSBackend(BaseBackend):
             )
         if filters:
             shard_groups = self._filter_resources(shard_groups, filters, DBShardGroup)
-            print("DBG FILTER: ",  filters)
-            print('DBG IN FILTERS: ', shard_groups.values())
         if db_shard_group_identifier and not shard_groups:
             raise DBShardGroupNotFoundFault(db_shard_group_identifier)
         return list(shard_groups.values())
-
 
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"

@@ -5,19 +5,21 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID
 
+
 @pytest.fixture(name="client")
 @mock_aws
 def get_rds_client():
     return boto3.client("rds", region_name="us-east-2")
 
+
 @mock_aws
 def test_create_db_shard_group(client):
     client.create_db_cluster(
-            DBClusterIdentifier="test_db_cluster_identifier",
-            Engine="aurora-postgresql",
-            MasterUsername="admin",
-            MasterUserPassword="root-password",
-        )
+        DBClusterIdentifier="test_db_cluster_identifier",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="root-password",
+    )
     shard_group = client.create_db_shard_group(
         DBShardGroupIdentifier="shardgroup1",
         DBClusterIdentifier="test_db_cluster_identifier",
@@ -37,13 +39,23 @@ def test_create_db_shard_group(client):
 @mock_aws
 def test_create_db_shard_group_duplicate(client):
     client.create_db_cluster(
-            DBClusterIdentifier="test_db_cluster_identifier",
-            Engine="aurora-postgresql",
-            MasterUsername="admin",
-            MasterUserPassword="root-password",
-        )
-    
+        DBClusterIdentifier="test_db_cluster_identifier",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="root-password",
+    )
+
     client.create_db_shard_group(
+        DBShardGroupIdentifier="shardgroup1",
+        DBClusterIdentifier="test_db_cluster_identifier",
+        MaxACU=100,
+        MinACU=50,
+        PubliclyAccessible=True,
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+    )
+
+    with pytest.raises(ClientError):
+        client.create_db_shard_group(
             DBShardGroupIdentifier="shardgroup1",
             DBClusterIdentifier="test_db_cluster_identifier",
             MaxACU=100,
@@ -52,71 +64,65 @@ def test_create_db_shard_group_duplicate(client):
             Tags=[{"Key": "Environment", "Value": "Test"}],
         )
 
-    with pytest.raises(ClientError):
-        client.create_db_shard_group(
-                DBShardGroupIdentifier="shardgroup1",
-                DBClusterIdentifier="test_db_cluster_identifier",
-                MaxACU=100,
-                MinACU=50,
-                PubliclyAccessible=True,
-                Tags=[{"Key": "Environment", "Value": "Test"}],
-            )
 
 @mock_aws
 def test_shard_group_cluster_not_found(client):
     with pytest.raises(ClientError):
         client.create_db_shard_group(
-                DBShardGroupIdentifier="shardgroup1",
-                DBClusterIdentifier="test_db_cluster_identifier",
-                MaxACU=100,
-                MinACU=50,
-                PubliclyAccessible=True,
-                Tags=[{"Key": "Environment", "Value": "Test"}],
-            )
+            DBShardGroupIdentifier="shardgroup1",
+            DBClusterIdentifier="test_db_cluster_identifier",
+            MaxACU=100,
+            MinACU=50,
+            PubliclyAccessible=True,
+            Tags=[{"Key": "Environment", "Value": "Test"}],
+        )
+
 
 @mock_aws
 def test_shard_group_cluster_invalid_compute_redundancy(client):
     client.create_db_cluster(
-            DBClusterIdentifier="test_db_cluster_identifier",
-            Engine="aurora-postgresql",
-            MasterUsername="admin",
-            MasterUserPassword="root-password",
-        )
+        DBClusterIdentifier="test_db_cluster_identifier",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="root-password",
+    )
     with pytest.raises(ClientError):
         client.create_db_shard_group(
-                DBShardGroupIdentifier="shardgroup1",
-                DBClusterIdentifier="test_db_cluster_identifier",
-                ComputeRedundancy=3,
-                MaxACU=100,
-                MinACU=50,
-                PubliclyAccessible=True,
-                Tags=[{"Key": "Environment", "Value": "Test"}],
-            )
+            DBShardGroupIdentifier="shardgroup1",
+            DBClusterIdentifier="test_db_cluster_identifier",
+            ComputeRedundancy=3,
+            MaxACU=100,
+            MinACU=50,
+            PubliclyAccessible=True,
+            Tags=[{"Key": "Environment", "Value": "Test"}],
+        )
 
 
 @mock_aws
 def test_shard_group_cluster_invalid_max_min_acu(client):
     client.create_db_cluster(
-            DBClusterIdentifier="test_db_cluster_identifier",
-            Engine="aurora-postgresql",
-            MasterUsername="admin",
-            MasterUserPassword="root-password",
-        )
+        DBClusterIdentifier="test_db_cluster_identifier",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="root-password",
+    )
     with pytest.raises(ClientError):
         client.create_db_shard_group(
-                DBShardGroupIdentifier="shardgroup1",
-                DBClusterIdentifier="test_db_cluster_identifier",
-                ComputeRedundancy=1,
-                MaxACU=0,
-                MinACU=100,
-                PubliclyAccessible=True,
-                Tags=[{"Key": "Environment", "Value": "Test"}],
-            )
+            DBShardGroupIdentifier="shardgroup1",
+            DBClusterIdentifier="test_db_cluster_identifier",
+            ComputeRedundancy=1,
+            MaxACU=0,
+            MinACU=100,
+            PubliclyAccessible=True,
+            Tags=[{"Key": "Environment", "Value": "Test"}],
+        )
+
 
 @mock_aws
 def test_describe_db_shard_group_initial(client):
     shard_groups = client.describe_db_shard_groups()
     assert len(shard_groups["DBShardGroups"]) == 0
+
 
 @mock_aws
 def test_describe_db_shard_group_non_existent(client):
@@ -125,14 +131,15 @@ def test_describe_db_shard_group_non_existent(client):
     with pytest.raises(ClientError):
         client.describe_db_shard_groups(DBShardGroupIdentifier="shardgroup1")
 
+
 @mock_aws
 def test_describe_db_shard_group_after_creation(client):
     client.create_db_cluster(
-            DBClusterIdentifier="test_db_cluster_identifier",
-            Engine="aurora-postgresql",
-            MasterUsername="admin",
-            MasterUserPassword="root-password",
-        )
+        DBClusterIdentifier="test_db_cluster_identifier",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="root-password",
+    )
 
     client.create_db_shard_group(
         DBShardGroupIdentifier="shardgroup1",
@@ -158,11 +165,11 @@ def test_describe_db_shard_group_after_creation(client):
 @mock_aws
 def test_describe_db_shard_group_filter_by_cluster_id(client):
     client.create_db_cluster(
-            DBClusterIdentifier="test_db_cluster_identifier",
-            Engine="aurora-postgresql",
-            MasterUsername="admin",
-            MasterUserPassword="root-password",
-        )
+        DBClusterIdentifier="test_db_cluster_identifier",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="root-password",
+    )
     client.create_db_shard_group(
         DBShardGroupIdentifier="shardgroup1",
         DBClusterIdentifier="test_db_cluster_identifier",
