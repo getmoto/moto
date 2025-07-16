@@ -5,7 +5,7 @@ from typing import Any, Dict
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import camelcase_to_underscores
 
-from .exceptions import InvalidParameterValue, SNSNotFoundError
+from .exceptions import InvalidParameterValue, SNSInvalidParameter, SNSNotFoundError
 from .models import SNSBackend, sns_backends
 from .utils import is_e164
 
@@ -29,10 +29,6 @@ class SNSResponse(BaseResponse):
     @property
     def backend(self) -> SNSBackend:
         return sns_backends[self.current_account][self.region]
-
-    def _error(self, code: str, message: str, sender: str = "Sender") -> str:
-        template = self.response_template(ERROR_RESPONSE)
-        return template.render(code=code, message=message, sender=sender)
 
     def _get_attributes(self) -> Dict[str, str]:
         attributes = self._get_list_prefix("Attributes.entry")
@@ -216,12 +212,7 @@ class SNSResponse(BaseResponse):
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
-                return (
-                    self._error(
-                        "InvalidParameter", "Phone number does not meet the E164 format"
-                    ),
-                    dict(status=400),
-                )
+                raise SNSInvalidParameter("Phone number does not meet the E164 format")
         elif target_arn is not None:
             arn = target_arn
         else:
@@ -241,8 +232,7 @@ class SNSResponse(BaseResponse):
                 message_structure=message_structure,
             )
         except ValueError as err:
-            error_response = self._error("InvalidParameter", str(err))
-            return error_response, dict(status=400)
+            raise SNSInvalidParameter(str(err))
 
         result = {"MessageId": message_id}
         return ActionResult(result)
@@ -323,13 +313,9 @@ class SNSResponse(BaseResponse):
 
     def get_endpoint_attributes(self) -> ActionResult:
         arn = self._get_param("EndpointArn")
-        try:
-            attributes = self.backend.get_endpoint_attributes(arn)
-            result = {"Attributes": attributes}
-            return ActionResult(result)
-        except SNSNotFoundError:
-            error_response = self._error("NotFound", "Endpoint does not exist")
-            return error_response, dict(status=404)
+        attributes = self.backend.get_endpoint_attributes(arn)
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
     def set_endpoint_attributes(self) -> ActionResult:
         arn = self._get_param("EndpointArn")
@@ -393,11 +379,9 @@ class SNSResponse(BaseResponse):
     ) -> ActionResult:
         number = self._get_param("phoneNumber")
         if self.OPT_OUT_PHONE_NUMBER_REGEX.match(number) is None:
-            error_response = self._error(
-                code="InvalidParameter",
-                message="Invalid parameter: PhoneNumber Reason: input incorrectly formatted",
+            raise SNSInvalidParameter(
+                "Invalid parameter: PhoneNumber Reason: input incorrectly formatted"
             )
-            return error_response, dict(status=400)
 
         x = self.backend.check_if_phone_number_is_opted_out(number)
         result = {"isOptedOut": x}
@@ -437,8 +421,7 @@ class SNSResponse(BaseResponse):
         arn = self._get_param("TopicArn")
 
         if arn not in self.backend.topics:
-            error_response = self._error("NotFound", "Topic does not exist")
-            return error_response, dict(status=404)
+            raise SNSNotFoundError("Topic does not exist")
 
         # Once Tokens are stored by the `subscribe` endpoint and distributed
         # to the client somehow, then we can check validity of tokens
@@ -477,19 +460,9 @@ class SNSResponse(BaseResponse):
         return EmptyResult()
 
     @staticmethod
-    def serve_pem(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def serve_pem(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         sns = SNSResponse()
         sns.setup_class(request, full_url, headers)
         key_name = full_url.split("/")[-1]
         key = sns.backend._message_public_keys[key_name]
         return 200, {}, key
-
-
-ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <Error>
-    <Type>{{ sender }}</Type>
-    <Code>{{ code }}</Code>
-    <Message>{{ message }}</Message>
-  </Error>
-  <RequestId>9dd01905-5012-5f99-8663-4b3ecd0dfaef</RequestId>
-</ErrorResponse>"""
