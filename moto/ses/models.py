@@ -132,11 +132,9 @@ class RawMessage(BaseModel):
 
 class SESQuota(BaseModel):
     def __init__(self, sent: int):
-        self.sent = sent
-
-    @property
-    def sent_past_24(self) -> int:
-        return self.sent
+        self.sent_last24_hours = sent
+        self.max24_hour_send = 200
+        self.max_send_rate = 1
 
 
 class ConfigurationSet(BaseModel):

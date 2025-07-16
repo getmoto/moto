@@ -41,17 +41,23 @@ class EmailResponse(BaseResponse):
         result = {"VerifiedEmailAddresses": email_addresses}
         return ActionResult(result)
 
-    def verify_domain_dkim(self) -> str:
+    def verify_domain_dkim(self) -> ActionResult:
         domain = self.querystring.get("Domain")[0]  # type: ignore
         self.backend.verify_domain(domain)
-        template = self.response_template(VERIFY_DOMAIN_DKIM_RESPONSE)
-        return template.render()
+        result = {
+            "DkimTokens": [
+                "vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf",
+                "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
+                "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2",
+            ]
+        }
+        return ActionResult(result)
 
-    def verify_domain_identity(self) -> str:
+    def verify_domain_identity(self) -> ActionResult:
         domain = self.querystring.get("Domain")[0]  # type: ignore
         self.backend.verify_domain(domain)
-        template = self.response_template(VERIFY_DOMAIN_IDENTITY_RESPONSE)
-        return template.render()
+        result = {"VerificationToken": "QTKknzFg2J4ygwa+XvHAxUl1hyHoY0gVfZdfjIedHZ0="}
+        return ActionResult(result)
 
     def delete_identity(self) -> ActionResult:
         domain = self.querystring.get("Identity")[0]  # type: ignore
@@ -166,10 +172,9 @@ class EmailResponse(BaseResponse):
         result = {"MessageId": message.id}
         return ActionResult(result)
 
-    def get_send_quota(self) -> str:
+    def get_send_quota(self) -> ActionResult:
         quota = self.backend.get_send_quota()
-        template = self.response_template(GET_SEND_QUOTA_RESPONSE)
-        return template.render(quota=quota)
+        return ActionResult(quota)
 
     def get_identity_notification_attributes(self) -> str:
         identities = self._get_params()["Identities"]
@@ -405,41 +410,6 @@ class EmailResponse(BaseResponse):
         template = self.response_template(GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE)
         return template.render(dkim_attributes=dkim_attributes)
 
-
-VERIFY_DOMAIN_DKIM_RESPONSE = """<VerifyDomainDkimResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyDomainDkimResult>
-    <DkimTokens>
-      <member>vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf</member>
-      <member>3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy</member>
-      <member>wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2</member>
-    </DkimTokens>
-    </VerifyDomainDkimResult>
-    <ResponseMetadata>
-      <RequestId>9662c15b-c469-11e1-99d1-797d6ecd6414</RequestId>
-    </ResponseMetadata>
-</VerifyDomainDkimResponse>"""
-
-VERIFY_DOMAIN_IDENTITY_RESPONSE = """\
-<VerifyDomainIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyDomainIdentityResult>
-    <VerificationToken>QTKknzFg2J4ygwa+XvHAxUl1hyHoY0gVfZdfjIedHZ0=</VerificationToken>
-  </VerifyDomainIdentityResult>
-  <ResponseMetadata>
-    <RequestId>94f6368e-9bf2-11e1-8ee7-c98a0037a2b6</RequestId>
-  </ResponseMetadata>
-</VerifyDomainIdentityResponse>"""
-
-
-GET_SEND_QUOTA_RESPONSE = """<GetSendQuotaResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetSendQuotaResult>
-    <SentLast24Hours>{{ quota.sent_past_24 }}</SentLast24Hours>
-    <Max24HourSend>200.0</Max24HourSend>
-    <MaxSendRate>1.0</MaxSendRate>
-  </GetSendQuotaResult>
-  <ResponseMetadata>
-    <RequestId>273021c6-c866-11e0-b926-699e21c3af9e</RequestId>
-  </ResponseMetadata>
-</GetSendQuotaResponse>"""
 
 GET_IDENTITY_NOTIFICATION_ATTRIBUTES = """<GetIdentityNotificationAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <GetIdentityNotificationAttributesResult>
