@@ -1,4 +1,3 @@
-import json
 import re
 from collections import defaultdict
 from typing import Any, Dict, Tuple, Union
@@ -105,95 +104,24 @@ class SNSResponse(BaseResponse):
         attributes = self._get_attributes()
         tags = self._get_tags()
         topic = self.backend.create_topic(name, attributes, tags)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreateTopicResponse": {
-                        "CreateTopicResult": {"TopicArn": topic.arn},
-                        "ResponseMetadata": {
-                            "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(CREATE_TOPIC_TEMPLATE)
         return template.render(topic=topic)
 
     def list_topics(self) -> str:
         next_token = self._get_param("NextToken")
         topics, next_token = self.backend.list_topics(next_token=next_token)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListTopicsResponse": {
-                        "ListTopicsResult": {
-                            "Topics": [{"TopicArn": topic.arn} for topic in topics],
-                            "NextToken": next_token,
-                        }
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
-                    },
-                }
-            )
-
         template = self.response_template(LIST_TOPICS_TEMPLATE)
         return template.render(topics=topics, next_token=next_token)
 
     def delete_topic(self) -> str:
         topic_arn = self._get_param("TopicArn")
         self.backend.delete_topic(topic_arn)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "DeleteTopicResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
-                        }
-                    }
-                }
-            )
-
         template = self.response_template(DELETE_TOPIC_TEMPLATE)
         return template.render()
 
     def get_topic_attributes(self) -> str:
         topic_arn = self._get_param("TopicArn")
         topic = self.backend.get_topic(topic_arn)
-
-        if self.request_json:
-            attributes = {
-                "Owner": topic.account_id,
-                "Policy": topic.policy,
-                "TopicArn": topic.arn,
-                "DisplayName": topic.display_name,
-                "SubscriptionsPending": topic.subscriptions_pending,
-                "SubscriptionsConfirmed": topic.subscriptions_confimed,
-                "SubscriptionsDeleted": topic.subscriptions_deleted,
-                "DeliveryPolicy": topic.delivery_policy,
-                "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
-            }
-            if topic.kms_master_key_id:
-                attributes["KmsMasterKeyId"] = topic.kms_master_key_id
-            if topic.fifo_topic == "true":
-                attributes["FifoTopic"] = topic.fifo_topic
-                attributes["ContentBasedDeduplication"] = (
-                    topic.content_based_deduplication
-                )
-            response = {
-                "GetTopicAttributesResponse": {
-                    "GetTopicAttributesResult": {"Attributes": attributes},
-                    "ResponseMetadata": {
-                        "RequestId": "057f074c-33a7-11df-9540-99d0768312d3"
-                    },
-                }
-            }
-            return json.dumps(response)
-
         template = self.response_template(GET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render(topic=topic)
 
@@ -203,18 +131,6 @@ class SNSResponse(BaseResponse):
         attribute_name = camelcase_to_underscores(attribute_name)
         attribute_value = self._get_param("AttributeValue")
         self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SetTopicAttributesResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
-                        }
-                    }
-                }
-            )
-
         template = self.response_template(SET_TOPIC_ATTRIBUTES_TEMPLATE)
         return template.render()
 
@@ -239,36 +155,12 @@ class SNSResponse(BaseResponse):
                     subscription.arn, attr_name, attr_value
                 )
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SubscribeResponse": {
-                        "SubscribeResult": {"SubscriptionArn": subscription.arn},
-                        "ResponseMetadata": {
-                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(SUBSCRIBE_TEMPLATE)
         return template.render(subscription=subscription)
 
     def unsubscribe(self) -> str:
         subscription_arn = self._get_param("SubscriptionArn")
         self.backend.unsubscribe(subscription_arn)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "UnsubscribeResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
-                        }
-                    }
-                }
-            )
-
         template = self.response_template(UNSUBSCRIBE_TEMPLATE)
         return template.render()
 
@@ -277,31 +169,6 @@ class SNSResponse(BaseResponse):
         subscriptions, next_token = self.backend.list_subscriptions(
             next_token=next_token
         )
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListSubscriptionsResponse": {
-                        "ListSubscriptionsResult": {
-                            "Subscriptions": [
-                                {
-                                    "TopicArn": subscription.topic.arn,
-                                    "Protocol": subscription.protocol,
-                                    "SubscriptionArn": subscription.arn,
-                                    "Owner": subscription.topic.account_id,
-                                    "Endpoint": subscription.endpoint,
-                                }
-                                for subscription in subscriptions
-                            ],
-                            "NextToken": next_token,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(LIST_SUBSCRIPTIONS_TEMPLATE)
         return template.render(subscriptions=subscriptions, next_token=next_token)
 
@@ -311,31 +178,6 @@ class SNSResponse(BaseResponse):
         subscriptions, next_token = self.backend.list_subscriptions_by_topic(
             topic_arn, next_token=next_token
         )
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListSubscriptionsByTopicResponse": {
-                        "ListSubscriptionsByTopicResult": {
-                            "Subscriptions": [
-                                {
-                                    "TopicArn": subscription.topic.arn,
-                                    "Protocol": subscription.protocol,
-                                    "SubscriptionArn": subscription.arn,
-                                    "Owner": subscription.topic.account_id,
-                                    "Endpoint": subscription.endpoint,
-                                }
-                                for subscription in subscriptions
-                            ],
-                            "NextToken": next_token,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE)
         return template.render(subscriptions=subscriptions, next_token=next_token)
 
@@ -382,18 +224,6 @@ class SNSResponse(BaseResponse):
             error_response = self._error("InvalidParameter", str(err))
             return error_response, dict(status=400)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "PublishResponse": {
-                        "PublishResult": {"MessageId": message_id},
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(PUBLISH_TEMPLATE)
         return template.render(message_id=message_id)
 
@@ -426,42 +256,12 @@ class SNSResponse(BaseResponse):
         platform_application = self.backend.create_platform_application(
             name, platform, attributes
         )
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreatePlatformApplicationResponse": {
-                        "CreatePlatformApplicationResult": {
-                            "PlatformApplicationArn": platform_application.arn
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937b"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(CREATE_PLATFORM_APPLICATION_TEMPLATE)
         return template.render(platform_application=platform_application)
 
     def get_platform_application_attributes(self) -> str:
         arn = self._get_param("PlatformApplicationArn")
         attributes = self.backend.get_platform_application_attributes(arn)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "GetPlatformApplicationAttributesResponse": {
-                        "GetPlatformApplicationAttributesResult": {
-                            "Attributes": attributes
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render(attributes=attributes)
 
@@ -470,63 +270,17 @@ class SNSResponse(BaseResponse):
         attributes = self._get_attributes()
 
         self.backend.set_platform_application_attributes(arn, attributes)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SetPlatformApplicationAttributesResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-12df-8963-01868b7c937f"
-                        }
-                    }
-                }
-            )
-
         template = self.response_template(SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
         return template.render()
 
     def list_platform_applications(self) -> str:
         applications = self.backend.list_platform_applications()
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListPlatformApplicationsResponse": {
-                        "ListPlatformApplicationsResult": {
-                            "PlatformApplications": [
-                                {
-                                    "PlatformApplicationArn": application.arn,
-                                    "attributes": application.attributes,
-                                }
-                                for application in applications
-                            ],
-                            "NextToken": None,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937c"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(LIST_PLATFORM_APPLICATIONS_TEMPLATE)
         return template.render(applications=applications)
 
     def delete_platform_application(self) -> str:
         platform_arn = self._get_param("PlatformApplicationArn")
         self.backend.delete_platform_application(platform_arn)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "DeletePlatformApplicationResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937e"
-                        }
-                    }
-                }
-            )
-
         template = self.response_template(DELETE_PLATFORM_APPLICATION_TEMPLATE)
         return template.render()
 
@@ -541,21 +295,6 @@ class SNSResponse(BaseResponse):
         platform_endpoint = self.backend.create_platform_endpoint(
             application, custom_user_data, token, attributes
         )
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreatePlatformEndpointResponse": {
-                        "CreatePlatformEndpointResult": {
-                            "EndpointArn": platform_endpoint.arn
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3779-11df-8963-01868b7c937b"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(CREATE_PLATFORM_ENDPOINT_TEMPLATE)
         return template.render(platform_endpoint=platform_endpoint)
 
@@ -563,28 +302,6 @@ class SNSResponse(BaseResponse):
         application_arn = self._get_param("PlatformApplicationArn")
         self.backend.get_application(application_arn)
         endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListEndpointsByPlatformApplicationResponse": {
-                        "ListEndpointsByPlatformApplicationResult": {
-                            "Endpoints": [
-                                {
-                                    "Attributes": endpoint.attributes,
-                                    "EndpointArn": endpoint.arn,
-                                }
-                                for endpoint in endpoints
-                            ],
-                            "NextToken": None,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
         template = self.response_template(
             LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE
         )
@@ -594,19 +311,6 @@ class SNSResponse(BaseResponse):
         arn = self._get_param("EndpointArn")
         try:
             attributes = self.backend.get_endpoint_attributes(arn)
-
-            if self.request_json:
-                return json.dumps(
-                    {
-                        "GetEndpointAttributesResponse": {
-                            "GetEndpointAttributesResult": {"Attributes": attributes},
-                            "ResponseMetadata": {
-                                "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
-                            },
-                        }
-                    }
-                )
-
             template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
             return template.render(attributes=attributes)
         except SNSNotFoundError:
@@ -619,35 +323,12 @@ class SNSResponse(BaseResponse):
 
         self.backend.set_endpoint_attributes(arn, attributes)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SetEndpointAttributesResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384bc68d-3775-12df-8963-01868b7c937f"
-                        }
-                    }
-                }
-            )
-
         template = self.response_template(SET_ENDPOINT_ATTRIBUTES_TEMPLATE)
         return template.render()
 
     def delete_endpoint(self) -> str:
         arn = self._get_param("EndpointArn")
         self.backend.delete_endpoint(arn)
-
-        if self.request_json:
-            return json.dumps(
-                {
-                    "DeleteEndpointResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384bc68d-3775-12df-8963-01868b7c937f"
-                        }
-                    }
-                }
-            )
-
         template = self.response_template(DELETE_ENDPOINT_TEMPLATE)
         return template.render()
 
