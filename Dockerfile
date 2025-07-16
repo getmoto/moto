@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED 1
 
 WORKDIR /moto/
 RUN  pip3 --no-cache-dir install --upgrade pip setuptools && \
-     pip3 --no-cache-dir install ".[server]"
+     pip3 --no-cache-dir install --editable ".[server]"
 
 # Install cURL
 RUN  apt-get update && \
