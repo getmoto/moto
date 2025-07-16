@@ -20,7 +20,7 @@ class SNSResponse(BaseResponse):
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "ListTagsForResourceResponse.Tags": transform_tags  # TODO: transform shape TagList
+        "ListTagsForResourceResponse.Tags": transform_tags,  # TODO: transform shape TagList
     }
 
     def __init__(self) -> None:
@@ -125,11 +125,27 @@ class SNSResponse(BaseResponse):
         self.backend.delete_topic(topic_arn)
         return EmptyResult()
 
-    def get_topic_attributes(self) -> str:
+    def get_topic_attributes(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         topic = self.backend.get_topic(topic_arn)
-        template = self.response_template(GET_TOPIC_ATTRIBUTES_TEMPLATE)
-        return template.render(topic=topic)
+        attributes = {
+            "Owner": topic.account_id,
+            "Policy": topic.policy,
+            "TopicArn": topic.arn,
+            "DisplayName": topic.display_name,
+            "SubscriptionsPending": topic.subscriptions_pending,
+            "SubscriptionsConfirmed": topic.subscriptions_confimed,
+            "SubscriptionsDeleted": topic.subscriptions_deleted,
+            "DeliveryPolicy": topic.delivery_policy,
+            "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
+        }
+        if topic.kms_master_key_id:
+            attributes["KmsMasterKeyId"] = topic.kms_master_key_id
+        if topic.fifo_topic == "true":
+            attributes["FifoTopic"] = topic.fifo_topic
+            attributes["ContentBasedDeduplication"] = topic.content_based_deduplication
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
     def set_topic_attributes(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
@@ -467,69 +483,6 @@ class SNSResponse(BaseResponse):
         key_name = full_url.split("/")[-1]
         key = sns.backend._message_public_keys[key_name]
         return 200, {}, key
-
-
-GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetTopicAttributesResult>
-    <Attributes>
-      <entry>
-        <key>Owner</key>
-        <value>{{ topic.account_id }}</value>
-      </entry>
-      <entry>
-        <key>Policy</key>
-        <value>{{ topic.policy }}</value>
-      </entry>
-      <entry>
-        <key>TopicArn</key>
-        <value>{{ topic.arn }}</value>
-      </entry>
-      <entry>
-        <key>DisplayName</key>
-        <value>{{ topic.display_name }}</value>
-      </entry>
-      <entry>
-        <key>SubscriptionsPending</key>
-        <value>{{ topic.subscriptions_pending }}</value>
-      </entry>
-      <entry>
-        <key>SubscriptionsConfirmed</key>
-        <value>{{ topic.subscriptions_confimed }}</value>
-      </entry>
-      <entry>
-        <key>SubscriptionsDeleted</key>
-        <value>{{ topic.subscriptions_deleted }}</value>
-      </entry>
-      <entry>
-        <key>DeliveryPolicy</key>
-        <value>{{ topic.delivery_policy }}</value>
-      </entry>
-      <entry>
-        <key>EffectiveDeliveryPolicy</key>
-        <value>{{ topic.effective_delivery_policy }}</value>
-      </entry>
-      {% if topic.kms_master_key_id %}
-      <entry>
-        <key>KmsMasterKeyId</key>
-        <value>{{ topic.kms_master_key_id }}</value>
-      </entry>
-      {% endif %}
-      {% if topic.fifo_topic == 'true' %}
-      <entry>
-        <key>FifoTopic</key>
-        <value>{{ topic.fifo_topic }}</value>
-      </entry>
-      <entry>
-        <key>ContentBasedDeduplication</key>
-        <value>{{ topic.content_based_deduplication }}</value>
-      </entry>
-      {% endif %}
-    </Attributes>
-  </GetTopicAttributesResult>
-  <ResponseMetadata>
-    <RequestId>057f074c-33a7-11df-9540-99d0768312d3</RequestId>
-  </ResponseMetadata>
-</GetTopicAttributesResponse>"""
 
 
 ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
