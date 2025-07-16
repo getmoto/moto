@@ -1,14 +1,8 @@
-from typing import Any
-
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class SesError(RESTError):
-    code = 400
-
-    def __init__(self, error_type: str, message: str, *args: Any, **kwargs: Any):
-        kwargs.setdefault("template", "wrapped_single_error")
-        super().__init__(error_type, message, *args, **kwargs)
+class SesError(ServiceException):
+    pass
 
 
 class MessageRejectedError(SesError):

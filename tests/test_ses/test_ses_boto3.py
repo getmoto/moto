@@ -1315,7 +1315,7 @@ def test_render_template():
 
     with pytest.raises(ClientError) as ex:
         conn.test_render_template(**kwargs)
-    assert ex.value.response["Error"]["Code"] == "MissingRenderingAttributeException"
+    assert ex.value.response["Error"]["Code"] == "MissingRenderingAttribute"
     assert (
         ex.value.response["Error"]["Message"]
         == "Attribute 'favoriteanimal' is not present in the rendering data."
