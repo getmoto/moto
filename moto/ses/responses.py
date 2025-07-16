@@ -1,7 +1,7 @@
 import base64
 from typing import Any, Dict, List, Optional
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import utcnow
 
 from .exceptions import ValidationError
@@ -16,17 +16,15 @@ class EmailResponse(BaseResponse):
     def backend(self) -> SESBackend:
         return ses_backends[self.current_account][self.region]
 
-    def verify_email_identity(self) -> str:
+    def verify_email_identity(self) -> ActionResult:
         address = self.querystring.get("EmailAddress")[0]  # type: ignore
         self.backend.verify_email_identity(address)
-        template = self.response_template(VERIFY_EMAIL_IDENTITY)
-        return template.render()
+        return EmptyResult()
 
-    def verify_email_address(self) -> str:
+    def verify_email_address(self) -> ActionResult:
         address = self.querystring.get("EmailAddress")[0]  # type: ignore
         self.backend.verify_email_address(address)
-        template = self.response_template(VERIFY_EMAIL_ADDRESS)
-        return template.render()
+        return EmptyResult()
 
     def list_identities(self) -> str:
         identity_type = self._get_param("IdentityType")
@@ -55,11 +53,10 @@ class EmailResponse(BaseResponse):
         template = self.response_template(VERIFY_DOMAIN_IDENTITY_RESPONSE)
         return template.render()
 
-    def delete_identity(self) -> str:
+    def delete_identity(self) -> ActionResult:
         domain = self.querystring.get("Identity")[0]  # type: ignore
         self.backend.delete_identity(domain)
-        template = self.response_template(DELETE_IDENTITY_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
     def send_email(self) -> str:
         bodydatakey = "Message.Body.Text.Data"
@@ -183,36 +180,32 @@ class EmailResponse(BaseResponse):
         template = self.response_template(GET_IDENTITY_NOTIFICATION_ATTRIBUTES)
         return template.render(identities=identities)
 
-    def set_identity_feedback_forwarding_enabled(self) -> str:
+    def set_identity_feedback_forwarding_enabled(self) -> ActionResult:
         identity = self._get_param("Identity")
         enabled = self._get_bool_param("ForwardingEnabled")
         self.backend.set_identity_feedback_forwarding_enabled(identity, enabled)
-        template = self.response_template(SET_IDENTITY_FORWARDING_ENABLED_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def set_identity_notification_topic(self) -> str:
+    def set_identity_notification_topic(self) -> ActionResult:
         identity = self.querystring.get("Identity")[0]  # type: ignore
         not_type = self.querystring.get("NotificationType")[0]  # type: ignore
         sns_topic = self.querystring.get("SnsTopic")
         if sns_topic:
             sns_topic = sns_topic[0]
-
         self.backend.set_identity_notification_topic(identity, not_type, sns_topic)
-        template = self.response_template(SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
     def get_send_statistics(self) -> str:
         statistics = self.backend.get_send_statistics()
         template = self.response_template(GET_SEND_STATISTICS)
         return template.render(all_statistics=[statistics])
 
-    def create_configuration_set(self) -> str:
+    def create_configuration_set(self) -> ActionResult:
         configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]  # type: ignore
         self.backend.create_configuration_set(
             configuration_set_name=configuration_set_name
         )
-        template = self.response_template(CREATE_CONFIGURATION_SET)
-        return template.render()
+        return EmptyResult()
 
     def describe_configuration_set(self) -> str:
         configuration_set_name = self.querystring.get("ConfigurationSetName")[0]  # type: ignore
@@ -233,7 +226,7 @@ class EmailResponse(BaseResponse):
             name=config_set.configuration_set_name, event_destination=event_destination
         )
 
-    def create_configuration_set_event_destination(self) -> str:
+    def create_configuration_set_event_destination(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
         is_configuration_event_enabled = self.querystring.get(
             "EventDestination.Enabled"
@@ -245,23 +238,19 @@ class EmailResponse(BaseResponse):
         event_matching_types = self._get_multi_param(
             "EventDestination.MatchingEventTypes.member"
         )
-
         event_destination = {
             "Name": configuration_event_name,
             "Enabled": is_configuration_event_enabled,
             "EventMatchingTypes": event_matching_types,
             "SNSDestination": event_topic_arn,
         }
-
         self.backend.create_configuration_set_event_destination(
             configuration_set_name=configuration_set_name,
             event_destination=event_destination,
         )
+        return EmptyResult()
 
-        template = self.response_template(CREATE_CONFIGURATION_SET_EVENT_DESTINATION)
-        return template.render()
-
-    def create_template(self) -> str:
+    def create_template(self) -> ActionResult:
         template_data = self._get_dict_param("Template")
         template_info = {}
         template_info["text_part"] = template_data.get("._text_part", "")
@@ -270,10 +259,9 @@ class EmailResponse(BaseResponse):
         template_info["subject_part"] = template_data.get("._subject_part", "")
         template_info["Timestamp"] = utcnow()
         self.backend.add_template(template_info=template_info)
-        template = self.response_template(CREATE_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def update_template(self) -> str:
+    def update_template(self) -> ActionResult:
         template_data = self._get_dict_param("Template")
         template_info = {}
         template_info["text_part"] = template_data.get("._text_part", "")
@@ -282,8 +270,7 @@ class EmailResponse(BaseResponse):
         template_info["subject_part"] = template_data.get("._subject_part", "")
         template_info["Timestamp"] = utcnow()
         self.backend.update_template(template_info=template_info)
-        template = self.response_template(UPDATE_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def get_template(self) -> str:
         template_name = self._get_param("TemplateName")
@@ -302,23 +289,21 @@ class EmailResponse(BaseResponse):
         template = self.response_template(RENDER_TEMPLATE)
         return template.render(template=rendered_template)
 
-    def delete_template(self) -> str:
+    def delete_template(self) -> ActionResult:
         name = self._get_param("TemplateName")
         self.backend.delete_template(name)
-        return self.response_template(DELETE_TEMPLATE).render()
+        return EmptyResult()
 
-    def create_receipt_rule_set(self) -> str:
+    def create_receipt_rule_set(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         self.backend.create_receipt_rule_set(rule_set_name)
-        template = self.response_template(CREATE_RECEIPT_RULE_SET)
-        return template.render()
+        return EmptyResult()
 
-    def create_receipt_rule(self) -> str:
+    def create_receipt_rule(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         rule = self._get_dict_param("Rule.")
         self.backend.create_receipt_rule(rule_set_name, rule)
-        template = self.response_template(CREATE_RECEIPT_RULE)
-        return template.render()
+        return EmptyResult()
 
     def describe_receipt_rule_set(self) -> str:
         rule_set_name = self._get_param("RuleSetName")
@@ -351,16 +336,13 @@ class EmailResponse(BaseResponse):
         template = self.response_template(DESCRIBE_RECEIPT_RULE)
         return template.render(rule=rule)
 
-    def update_receipt_rule(self) -> str:
+    def update_receipt_rule(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         rule = self._get_dict_param("Rule.")
-
         self.backend.update_receipt_rule(rule_set_name, rule)
+        return EmptyResult()
 
-        template = self.response_template(UPDATE_RECEIPT_RULE)
-        return template.render()
-
-    def set_identity_mail_from_domain(self) -> str:
+    def set_identity_mail_from_domain(self) -> ActionResult:
         identity = self._get_param("Identity")
         mail_from_domain = self._get_param("MailFromDomain")
         behavior_on_mx_failure = self._get_param("BehaviorOnMXFailure")
@@ -368,9 +350,7 @@ class EmailResponse(BaseResponse):
         self.backend.set_identity_mail_from_domain(
             identity, mail_from_domain, behavior_on_mx_failure
         )
-
-        template = self.response_template(SET_IDENTITY_MAIL_FROM_DOMAIN)
-        return template.render()
+        return EmptyResult()
 
     def get_identity_mail_from_domain_attributes(self) -> str:
         identities = self._get_multi_param("Identities.member.")
@@ -391,15 +371,13 @@ class EmailResponse(BaseResponse):
         template = self.response_template(GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE)
         return template.render(verification_attributes=verification_attributes)
 
-    def delete_configuration_set(self) -> str:
+    def delete_configuration_set(self) -> ActionResult:
         params = self._get_params()
         configuration_set_name = params.get("ConfigurationSetName")
-        if configuration_set_name:
-            self.backend.delete_configuration_set(
-                configuration_set_name=str(configuration_set_name),
-            )
-            template = self.response_template(DELETE_CONFIGURATION_SET_TEMPLATE)
-        return template.render()
+        self.backend.delete_configuration_set(
+            configuration_set_name=str(configuration_set_name)
+        )
+        return EmptyResult()
 
     def list_configuration_sets(self) -> str:
         params = self._get_params()
@@ -415,17 +393,14 @@ class EmailResponse(BaseResponse):
             configuration_sets=config_set_names, next_token=next_token
         )
 
-    def update_configuration_set_reputation_metrics_enabled(self) -> str:
+    def update_configuration_set_reputation_metrics_enabled(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
         enabled = self._get_param("Enabled")
         self.backend.update_configuration_set_reputation_metrics_enabled(
             configuration_set_name=configuration_set_name,
             enabled=enabled,
         )
-        template = self.response_template(
-            UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE
-        )
-        return template.render()
+        return EmptyResult()
 
     def get_identity_dkim_attributes(self) -> str:
         identities = self._get_multi_param("Identities.member.")
@@ -433,20 +408,6 @@ class EmailResponse(BaseResponse):
         template = self.response_template(GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE)
         return template.render(dkim_attributes=dkim_attributes)
 
-
-VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyEmailIdentityResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</VerifyEmailIdentityResponse>"""
-
-VERIFY_EMAIL_ADDRESS = """<VerifyEmailAddressResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyEmailAddressResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</VerifyEmailAddressResponse>"""
 
 LIST_IDENTITIES_RESPONSE = """<ListIdentitiesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <ListIdentitiesResult>
@@ -497,12 +458,6 @@ VERIFY_DOMAIN_IDENTITY_RESPONSE = """\
   </ResponseMetadata>
 </VerifyDomainIdentityResponse>"""
 
-DELETE_IDENTITY_RESPONSE = """<DeleteIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <DeleteIdentityResult/>
-  <ResponseMetadata>
-    <RequestId>d96bd874-9bf2-11e1-8ee7-c98a0037a2b6</RequestId>
-  </ResponseMetadata>
-</DeleteIdentityResponse>"""
 
 SEND_EMAIL_RESPONSE = """<SendEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <SendEmailResult>
@@ -580,19 +535,6 @@ GET_IDENTITY_NOTIFICATION_ATTRIBUTES = """<GetIdentityNotificationAttributesResp
   </ResponseMetadata>
 </GetIdentityNotificationAttributesResponse>"""
 
-SET_IDENTITY_FORWARDING_ENABLED_RESPONSE = """<SetIdentityFeedbackForwardingEnabledResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SetIdentityFeedbackForwardingEnabledResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</SetIdentityFeedbackForwardingEnabledResponse>"""
-
-SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE = """<SetIdentityNotificationTopicResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SetIdentityNotificationTopicResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</SetIdentityNotificationTopicResponse>"""
 
 GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <GetSendStatisticsResult>
@@ -613,12 +555,6 @@ GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.
   </ResponseMetadata>
 </GetSendStatisticsResponse>"""
 
-CREATE_CONFIGURATION_SET = """<CreateConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateConfigurationSetResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</CreateConfigurationSetResponse>"""
 
 DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <DescribeConfigurationSetResult>
@@ -649,26 +585,6 @@ DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://
   </ResponseMetadata>
 </DescribeConfigurationSetResponse>"""
 
-CREATE_CONFIGURATION_SET_EVENT_DESTINATION = """<CreateConfigurationSetEventDestinationResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateConfigurationSetEventDestinationResult/>
-  <ResponseMetadata>
-    <RequestId>67e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</CreateConfigurationSetEventDestinationResponse>"""
-
-CREATE_TEMPLATE = """<CreateTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateTemplateResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-  </ResponseMetadata>
-</CreateTemplateResponse>"""
-
-UPDATE_TEMPLATE = """<UpdateTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <UpdateTemplateResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-  </ResponseMetadata>
-</UpdateTemplateResponse>"""
 
 GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
     <GetTemplateResult>
@@ -713,27 +629,6 @@ RENDER_TEMPLATE = """
 </TestRenderTemplateResponse>
 """
 
-DELETE_TEMPLATE = """<DeleteTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <DeleteTemplateResult>
-    </DeleteTemplateResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</DeleteTemplateResponse>"""
-
-CREATE_RECEIPT_RULE_SET = """<CreateReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateReceiptRuleSetResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</CreateReceiptRuleSetResponse>"""
-
-CREATE_RECEIPT_RULE = """<CreateReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateReceiptRuleResult/>
-  <ResponseMetadata>
-    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</CreateReceiptRuleResponse>"""
 
 DESCRIBE_RECEIPT_RULE_SET = """<DescribeReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <DescribeReceiptRuleSetResult>
@@ -829,19 +724,6 @@ DESCRIBE_RECEIPT_RULE = """<DescribeReceiptRuleResponse xmlns="http://ses.amazon
 </DescribeReceiptRuleResponse>
 """
 
-UPDATE_RECEIPT_RULE = """<UpdateReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <UpdateReceiptRuleResult/>
-  <ResponseMetadata>
-    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</UpdateReceiptRuleResponse>"""
-
-SET_IDENTITY_MAIL_FROM_DOMAIN = """<SetIdentityMailFromDomainResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SetIdentityMailFromDomainResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</SetIdentityMailFromDomainResponse>"""
 
 GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES = """<GetIdentityMailFromDomainAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <GetIdentityMailFromDomainAttributesResult>
@@ -888,12 +770,6 @@ GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE = """<GetIdentityVerificationAttri
   </ResponseMetadata>
 </GetIdentityVerificationAttributesResponse>"""
 
-DELETE_CONFIGURATION_SET_TEMPLATE = """<DeleteConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <DeleteConfigurationSetResult/>
-</DeleteConfigurationSetResponse>"""
 
 LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <ResponseMetadata>
@@ -911,12 +787,6 @@ LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http
   </ListConfigurationSetsResult>
 </ListConfigurationSetsResponse>"""
 
-UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE = """<UpdateConfigurationSetReputationMetricsEnabledResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <UpdateConfigurationSetReputationMetricsEnabledResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</UpdateConfigurationSetReputationMetricsEnabledResponse>"""
 
 GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE = """<GetIdentityDkimAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <GetIdentityDkimAttributesResult>
