@@ -26,20 +26,20 @@ class EmailResponse(BaseResponse):
         self.backend.verify_email_address(address)
         return EmptyResult()
 
-    def list_identities(self) -> str:
+    def list_identities(self) -> ActionResult:
         identity_type = self._get_param("IdentityType")
         if identity_type not in [None, "EmailAddress", "Domain"]:
             raise ValidationError(
                 f"Value '{identity_type}' at 'identityType' failed to satisfy constraint: Member must satisfy enum value set: [Domain, EmailAddress]"
             )
         identities = self.backend.list_identities(identity_type)
-        template = self.response_template(LIST_IDENTITIES_RESPONSE)
-        return template.render(identities=identities)
+        result = {"Identities": identities}
+        return ActionResult(result)
 
-    def list_verified_email_addresses(self) -> str:
+    def list_verified_email_addresses(self) -> ActionResult:
         email_addresses = self.backend.list_verified_email_addresses()
-        template = self.response_template(LIST_VERIFIED_EMAIL_RESPONSE)
-        return template.render(email_addresses=email_addresses)
+        result = {"VerifiedEmailAddresses": email_addresses}
+        return ActionResult(result)
 
     def verify_domain_dkim(self) -> str:
         domain = self.querystring.get("Domain")[0]  # type: ignore
@@ -58,7 +58,7 @@ class EmailResponse(BaseResponse):
         self.backend.delete_identity(domain)
         return EmptyResult()
 
-    def send_email(self) -> str:
+    def send_email(self) -> ActionResult:
         bodydatakey = "Message.Body.Text.Data"
         if "Message.Body.Html.Data" in self.querystring:
             bodydatakey = "Message.Body.Html.Data"
@@ -80,10 +80,10 @@ class EmailResponse(BaseResponse):
                 destinations[dest_type].append(address[0])
 
         message = self.backend.send_email(source, subject, body, destinations)
-        template = self.response_template(SEND_EMAIL_RESPONSE)
-        return template.render(message=message)
+        result = {"MessageId": message.id}
+        return ActionResult(result)
 
-    def send_templated_email(self) -> str:
+    def send_templated_email(self) -> ActionResult:
         source = self.querystring.get("Source")[0]  # type: ignore
         template: List[str] = self.querystring.get("Template")  # type: ignore
         template_data: List[str] = self.querystring.get("TemplateData")  # type: ignore
@@ -105,11 +105,10 @@ class EmailResponse(BaseResponse):
         message = self.backend.send_templated_email(
             source, template, template_data, destinations
         )
-        return self.response_template(SEND_TEMPLATED_EMAIL_RESPONSE).render(
-            message=message
-        )
+        result = {"MessageId": message.id}
+        return ActionResult(result)
 
-    def send_bulk_templated_email(self) -> str:
+    def send_bulk_templated_email(self) -> ActionResult:
         source = self.querystring.get("Source")[0]  # type: ignore
         template = self.querystring.get("Template")
         template_data = self.querystring.get("DefaultTemplateData")
@@ -144,11 +143,10 @@ class EmailResponse(BaseResponse):
             template_data,  # type: ignore
             destinations,
         )
-        template = self.response_template(SEND_BULK_TEMPLATED_EMAIL_RESPONSE)
-        result = template.render(message=message)
-        return result
+        result = {"Status": [{"MessageId": msg_id} for msg_id in message.ids]}
+        return ActionResult(result)
 
-    def send_raw_email(self) -> str:
+    def send_raw_email(self) -> ActionResult:
         source = self.querystring.get("Source")
         if source is not None:
             (source,) = source
@@ -164,10 +162,9 @@ class EmailResponse(BaseResponse):
             if address is None:
                 break
             destinations.append(address[0])
-
         message = self.backend.send_raw_email(source, destinations, raw_data)  # type: ignore[arg-type]
-        template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
-        return template.render(message=message)
+        result = {"MessageId": message.id}
+        return ActionResult(result)
 
     def get_send_quota(self) -> str:
         quota = self.backend.get_send_quota()
@@ -409,32 +406,6 @@ class EmailResponse(BaseResponse):
         return template.render(dkim_attributes=dkim_attributes)
 
 
-LIST_IDENTITIES_RESPONSE = """<ListIdentitiesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ListIdentitiesResult>
-    <Identities>
-        {% for identity in identities %}
-          <member>{{ identity }}</member>
-        {% endfor %}
-    </Identities>
-  </ListIdentitiesResult>
-  <ResponseMetadata>
-    <RequestId>cacecf23-9bf1-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</ListIdentitiesResponse>"""
-
-LIST_VERIFIED_EMAIL_RESPONSE = """<ListVerifiedEmailAddressesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ListVerifiedEmailAddressesResult>
-    <VerifiedEmailAddresses>
-        {% for email in email_addresses %}
-          <member>{{ email }}</member>
-        {% endfor %}
-    </VerifiedEmailAddresses>
-  </ListVerifiedEmailAddressesResult>
-  <ResponseMetadata>
-    <RequestId>cacecf23-9bf1-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</ListVerifiedEmailAddressesResponse>"""
-
 VERIFY_DOMAIN_DKIM_RESPONSE = """<VerifyDomainDkimResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <VerifyDomainDkimResult>
     <DkimTokens>
@@ -458,46 +429,6 @@ VERIFY_DOMAIN_IDENTITY_RESPONSE = """\
   </ResponseMetadata>
 </VerifyDomainIdentityResponse>"""
 
-
-SEND_EMAIL_RESPONSE = """<SendEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendEmailResult>
-    <MessageId>{{ message.id }}</MessageId>
-  </SendEmailResult>
-  <ResponseMetadata>
-    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
-  </ResponseMetadata>
-</SendEmailResponse>"""
-
-SEND_TEMPLATED_EMAIL_RESPONSE = """<SendTemplatedEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendTemplatedEmailResult>
-    <MessageId>{{ message.id }}</MessageId>
-  </SendTemplatedEmailResult>
-  <ResponseMetadata>
-    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
-  </ResponseMetadata>
-</SendTemplatedEmailResponse>"""
-
-SEND_BULK_TEMPLATED_EMAIL_RESPONSE = """<SendBulkTemplatedEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendBulkTemplatedEmailResult>
-    {% for id in message.ids %}
-        <BulkEmailDestinationStatus>
-            <MessageId>{{ id }}</MessageId>
-        </BulkEmailDestinationStatus>
-    {% endfor %}
-  </SendBulkTemplatedEmailResult>
-  <ResponseMetadata>
-    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
-  </ResponseMetadata>
-</SendBulkTemplatedEmailResponse>"""
-
-SEND_RAW_EMAIL_RESPONSE = """<SendRawEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendRawEmailResult>
-    <MessageId>{{ message.id }}</MessageId>
-  </SendRawEmailResult>
-  <ResponseMetadata>
-    <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173b49</RequestId>
-  </ResponseMetadata>
-</SendRawEmailResponse>"""
 
 GET_SEND_QUOTA_RESPONSE = """<GetSendQuotaResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <GetSendQuotaResult>
