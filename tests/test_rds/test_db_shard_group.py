@@ -67,6 +67,7 @@ def test_create_db_shard_group_duplicate(client):
     assert err["Code"] == "DBShardGroupAlreadyExists"
     assert err["Message"] == "DB Shard Group shardgroup1 already exists."
 
+
 @mock_aws
 def test_shard_group_cluster_not_found(client):
     with pytest.raises(ClientError) as ex:
@@ -81,6 +82,7 @@ def test_shard_group_cluster_not_found(client):
     err = ex.value.response["Error"]
     assert err["Code"] == "DBClusterNotFoundFault"
     assert err["Message"] == "DBCluster test_db_cluster_identifier not found."
+
 
 @mock_aws
 def test_shard_group_cluster_invalid_compute_redundancy(client):
@@ -102,7 +104,11 @@ def test_shard_group_cluster_invalid_compute_redundancy(client):
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterValue"
-    assert err["Message"] == "Invalid ComputeRedundancy value: '3'. Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
+    assert (
+        err["Message"]
+        == "Invalid ComputeRedundancy value: '3'. Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
+    )
+
 
 @mock_aws
 def test_shard_group_cluster_invalid_max_min_acu(client):
