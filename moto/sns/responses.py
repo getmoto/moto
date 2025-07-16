@@ -1,6 +1,6 @@
 import re
 from collections import defaultdict
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import camelcase_to_underscores
@@ -263,11 +263,11 @@ class SNSResponse(BaseResponse):
         result = {"PlatformApplicationArn": platform_application.arn}
         return ActionResult(result)
 
-    def get_platform_application_attributes(self) -> str:
+    def get_platform_application_attributes(self) -> ActionResult:
         arn = self._get_param("PlatformApplicationArn")
         attributes = self.backend.get_platform_application_attributes(arn)
-        template = self.response_template(GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=attributes)
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
     def set_platform_application_attributes(self) -> ActionResult:
         arn = self._get_param("PlatformApplicationArn")
@@ -276,10 +276,10 @@ class SNSResponse(BaseResponse):
         self.backend.set_platform_application_attributes(arn, attributes)
         return EmptyResult()
 
-    def list_platform_applications(self) -> str:
+    def list_platform_applications(self) -> ActionResult:
         applications = self.backend.list_platform_applications()
-        template = self.response_template(LIST_PLATFORM_APPLICATIONS_TEMPLATE)
-        return template.render(applications=applications)
+        result = {"PlatformApplications": applications}
+        return ActionResult(result)
 
     def delete_platform_application(self) -> ActionResult:
         platform_arn = self._get_param("PlatformApplicationArn")
@@ -298,21 +298,19 @@ class SNSResponse(BaseResponse):
         result = {"EndpointArn": platform_endpoint.arn}
         return ActionResult(result)
 
-    def list_endpoints_by_platform_application(self) -> str:
+    def list_endpoints_by_platform_application(self) -> ActionResult:
         application_arn = self._get_param("PlatformApplicationArn")
         self.backend.get_application(application_arn)
         endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
-        template = self.response_template(
-            LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE
-        )
-        return template.render(endpoints=endpoints)
+        result = {"Endpoints": endpoints}
+        return ActionResult(result)
 
-    def get_endpoint_attributes(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_endpoint_attributes(self) -> ActionResult:
         arn = self._get_param("EndpointArn")
         try:
             attributes = self.backend.get_endpoint_attributes(arn)
-            template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
-            return template.render(attributes=attributes)
+            result = {"Attributes": attributes}
+            return ActionResult(result)
         except SNSNotFoundError:
             error_response = self._error("NotFound", "Endpoint does not exist")
             return error_response, dict(status=404)
@@ -328,11 +326,11 @@ class SNSResponse(BaseResponse):
         self.backend.delete_endpoint(arn)
         return EmptyResult()
 
-    def get_subscription_attributes(self) -> str:
+    def get_subscription_attributes(self) -> ActionResult:
         arn = self._get_param("SubscriptionArn")
         attributes = self.backend.get_subscription_attributes(arn)
-        template = self.response_template(GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=attributes)
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
     def set_subscription_attributes(self) -> ActionResult:
         arn = self._get_param("SubscriptionArn")
@@ -365,16 +363,14 @@ class SNSResponse(BaseResponse):
 
         return EmptyResult()
 
-    def get_sms_attributes(self) -> str:
+    def get_sms_attributes(self) -> ActionResult:
         filter_list = set()
         for key, value in self.querystring.items():
             if key.startswith("attributes.member.1"):
                 filter_list.add(value[0])
-
-        result = self.backend.get_sms_attributes(filter_list)
-
-        template = self.response_template(GET_SMS_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=result)
+        attributes = self.backend.get_sms_attributes(filter_list)
+        result = {"attributes": attributes}
+        return ActionResult(result)
 
     def check_if_phone_number_is_opted_out(
         self,
@@ -536,85 +532,6 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
 </GetTopicAttributesResponse>"""
 
 
-LIST_PLATFORM_APPLICATIONS_TEMPLATE = """<ListPlatformApplicationsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListPlatformApplicationsResult>
-    <PlatformApplications>
-    {% for application in applications %}
-      <member>
-      <PlatformApplicationArn>{{ application.arn }}</PlatformApplicationArn>
-        <Attributes>
-        {% for attribute in application.attributes %}
-          <entry>
-            <key>{{ attribute }}</key>
-            <value>{{ application.attributes[attribute] }}</value>
-          </entry>
-        {% endfor %}
-        </Attributes>
-      </member>
-    {% endfor %}
-    </PlatformApplications>
-  </ListPlatformApplicationsResult>
-  <ResponseMetadata>
-    <RequestId>315a335e-85d8-52df-9349-791283cbb529</RequestId>
-  </ResponseMetadata>
-</ListPlatformApplicationsResponse>"""
-
-GET_ENDPOINT_ATTRIBUTES_TEMPLATE = """<GetEndpointAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetEndpointAttributesResult>
-    <Attributes>
-    {% for attribute in attributes %}
-      <entry>
-        <key>{{ attribute }}</key>
-        <value>{{ attributes[attribute] }}</value>
-      </entry>
-    {% endfor %}
-    </Attributes>
-  </GetEndpointAttributesResult>
-  <ResponseMetadata>
-    <RequestId>6c725a19-a142-5b77-94f9-1055a9ea04e7</RequestId>
-  </ResponseMetadata>
-</GetEndpointAttributesResponse>"""
-
-LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE = """<ListEndpointsByPlatformApplicationResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListEndpointsByPlatformApplicationResult>
-    <Endpoints>
-      {% for endpoint in endpoints %}
-      <member>
-        <EndpointArn>{{ endpoint.arn }}</EndpointArn>
-        <Attributes>
-          {% for attribute in endpoint.attributes %}
-          <entry>
-            <key>{{ attribute }}</key>
-            <value>{{ endpoint.attributes[attribute] }}</value>
-          </entry>
-          {% endfor %}
-        </Attributes>
-      </member>
-      {% endfor %}
-    </Endpoints>
-  </ListEndpointsByPlatformApplicationResult>
-  <ResponseMetadata>
-    <RequestId>9a48768c-dac8-5a60-aec0-3cc27ea08d96</RequestId>
-  </ResponseMetadata>
-</ListEndpointsByPlatformApplicationResponse>"""
-
-GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE = """<GetPlatformApplicationAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetPlatformApplicationAttributesResult>
-    <Attributes>
-    {% for attribute in attributes %}
-      <entry>
-        <key>{{ attribute }}</key>
-        <value>{{ attributes[attribute] }}</value>
-      </entry>
-    {% endfor %}
-    </Attributes>
-  </GetPlatformApplicationAttributesResult>
-  <ResponseMetadata>
-    <RequestId>74848df2-87f6-55ed-890c-c7be80442462</RequestId>
-  </ResponseMetadata>
-</GetPlatformApplicationAttributesResponse>"""
-
-
 LIST_SUBSCRIPTIONS_TEMPLATE = """<ListSubscriptionsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <ListSubscriptionsResult>
     <Subscriptions>
@@ -658,43 +575,6 @@ LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE = """<ListSubscriptionsByTopicResponse xmln
     <RequestId>384ac68d-3775-11df-8963-01868b7c937a</RequestId>
   </ResponseMetadata>
 </ListSubscriptionsByTopicResponse>"""
-
-
-# Not responding aws system attribetus like 'Owner' and 'SubscriptionArn'
-GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE = """<GetSubscriptionAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetSubscriptionAttributesResult>
-    <Attributes>
-      {% for name, value in attributes.items() %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>{{ value }}</value>
-      </entry>
-      {% endfor %}
-    </Attributes>
-  </GetSubscriptionAttributesResult>
-  <ResponseMetadata>
-    <RequestId>057f074c-33a7-11df-9540-99d0768312d3</RequestId>
-  </ResponseMetadata>
-</GetSubscriptionAttributesResponse>"""
-
-
-GET_SMS_ATTRIBUTES_TEMPLATE = """<GetSMSAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetSMSAttributesResult>
-    <attributes>
-      {% for name, value in attributes.items() %}
-      {% if value %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>{{ value }}</value>
-      </entry>
-      {% endif %}
-      {% endfor %}
-    </attributes>
-  </GetSMSAttributesResult>
-  <ResponseMetadata>
-    <RequestId>287f9554-8db3-5e66-8abc-c76f0186db7e</RequestId>
-  </ResponseMetadata>
-</GetSMSAttributesResponse>"""
 
 
 ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
