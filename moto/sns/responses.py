@@ -99,19 +99,19 @@ class SNSResponse(BaseResponse):
 
         return transformed_message_attributes
 
-    def create_topic(self) -> str:
+    def create_topic(self) -> ActionResult:
         name = self._get_param("Name")
         attributes = self._get_attributes()
         tags = self._get_tags()
         topic = self.backend.create_topic(name, attributes, tags)
-        template = self.response_template(CREATE_TOPIC_TEMPLATE)
-        return template.render(topic=topic)
+        result = {"TopicArn": topic.arn}
+        return ActionResult(result)
 
-    def list_topics(self) -> str:
+    def list_topics(self) -> ActionResult:
         next_token = self._get_param("NextToken")
         topics, next_token = self.backend.list_topics(next_token=next_token)
-        template = self.response_template(LIST_TOPICS_TEMPLATE)
-        return template.render(topics=topics, next_token=next_token)
+        result = {"Topics": topics, "NextToken": next_token}
+        return ActionResult(result)
 
     def delete_topic(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
@@ -132,7 +132,7 @@ class SNSResponse(BaseResponse):
         self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
         return EmptyResult()
 
-    def subscribe(self) -> str:
+    def subscribe(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         endpoint = self._get_param("Endpoint")
         protocol = self._get_param("Protocol")
@@ -153,8 +153,8 @@ class SNSResponse(BaseResponse):
                     subscription.arn, attr_name, attr_value
                 )
 
-        template = self.response_template(SUBSCRIBE_TEMPLATE)
-        return template.render(subscription=subscription)
+        result = {"SubscriptionArn": subscription.arn}
+        return ActionResult(result)
 
     def unsubscribe(self) -> ActionResult:
         subscription_arn = self._get_param("SubscriptionArn")
@@ -178,7 +178,7 @@ class SNSResponse(BaseResponse):
         template = self.response_template(LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE)
         return template.render(subscriptions=subscriptions, next_token=next_token)
 
-    def publish(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def publish(self) -> ActionResult:
         target_arn = self._get_param("TargetArn")
         topic_arn = self._get_param("TopicArn")
         phone_number = self._get_param("PhoneNumber")
@@ -221,8 +221,8 @@ class SNSResponse(BaseResponse):
             error_response = self._error("InvalidParameter", str(err))
             return error_response, dict(status=400)
 
-        template = self.response_template(PUBLISH_TEMPLATE)
-        return template.render(message_id=message_id)
+        result = {"MessageId": message_id}
+        return ActionResult(result)
 
     def publish_batch(self) -> str:
         topic_arn = self._get_param("TopicArn")
@@ -246,15 +246,15 @@ class SNSResponse(BaseResponse):
         template = self.response_template(PUBLISH_BATCH_TEMPLATE)
         return template.render(successful=successful, failed=failed)
 
-    def create_platform_application(self) -> str:
+    def create_platform_application(self) -> ActionResult:
         name = self._get_param("Name")
         platform = self._get_param("Platform")
         attributes = self._get_attributes()
         platform_application = self.backend.create_platform_application(
             name, platform, attributes
         )
-        template = self.response_template(CREATE_PLATFORM_APPLICATION_TEMPLATE)
-        return template.render(platform_application=platform_application)
+        result = {"PlatformApplicationArn": platform_application.arn}
+        return ActionResult(result)
 
     def get_platform_application_attributes(self) -> str:
         arn = self._get_param("PlatformApplicationArn")
@@ -279,19 +279,17 @@ class SNSResponse(BaseResponse):
         self.backend.delete_platform_application(platform_arn)
         return EmptyResult()
 
-    def create_platform_endpoint(self) -> str:
+    def create_platform_endpoint(self) -> ActionResult:
         application_arn = self._get_param("PlatformApplicationArn")
         application = self.backend.get_application(application_arn)
-
         custom_user_data = self._get_param("CustomUserData")
         token = self._get_param("Token")
         attributes = self._get_attributes()
-
         platform_endpoint = self.backend.create_platform_endpoint(
             application, custom_user_data, token, attributes
         )
-        template = self.response_template(CREATE_PLATFORM_ENDPOINT_TEMPLATE)
-        return template.render(platform_endpoint=platform_endpoint)
+        result = {"EndpointArn": platform_endpoint.arn}
+        return ActionResult(result)
 
     def list_endpoints_by_platform_application(self) -> str:
         application_arn = self._get_param("PlatformApplicationArn")
@@ -373,7 +371,7 @@ class SNSResponse(BaseResponse):
 
     def check_if_phone_number_is_opted_out(
         self,
-    ) -> Union[str, Tuple[str, Dict[str, int]]]:
+    ) -> ActionResult:
         number = self._get_param("phoneNumber")
         if self.OPT_OUT_PHONE_NUMBER_REGEX.match(number) is None:
             error_response = self._error(
@@ -383,13 +381,13 @@ class SNSResponse(BaseResponse):
             return error_response, dict(status=400)
 
         x = self.backend.check_if_phone_number_is_opted_out(number)
-        template = self.response_template(CHECK_IF_OPTED_OUT_TEMPLATE)
-        return template.render(opt_out=str(x).lower())
+        result = {"isOptedOut": x}
+        return ActionResult(result)
 
-    def list_phone_numbers_opted_out(self) -> str:
+    def list_phone_numbers_opted_out(self) -> ActionResult:
         numbers = self.backend.list_phone_numbers_opted_out()
-        template = self.response_template(LIST_OPTOUT_TEMPLATE)
-        return template.render(opt_outs=numbers)
+        result = {"phoneNumbers": numbers}
+        return ActionResult(result)
 
     def opt_in_phone_number(self) -> ActionResult:
         number = self._get_param("phoneNumber")
@@ -416,7 +414,7 @@ class SNSResponse(BaseResponse):
         self.backend.remove_permission(topic_arn, label)
         return EmptyResult()
 
-    def confirm_subscription(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def confirm_subscription(self) -> ActionResult:
         arn = self._get_param("TopicArn")
 
         if arn not in self.backend.topics:
@@ -438,8 +436,8 @@ class SNSResponse(BaseResponse):
         #     )
         #     return error_response, dict(status=400)
 
-        template = self.response_template(CONFIRM_SUBSCRIPTION_TEMPLATE)
-        return template.render(sub_arn=f"{arn}:68762e72-e9b1-410a-8b3b-903da69ee1d5")
+        result = {"SubscriptionArn": f"{arn}:68762e72-e9b1-410a-8b3b-903da69ee1d5"}
+        return ActionResult(result)
 
     def list_tags_for_resource(self) -> str:
         arn = self._get_param("ResourceArn")
@@ -468,34 +466,6 @@ class SNSResponse(BaseResponse):
         key_name = full_url.split("/")[-1]
         key = sns.backend._message_public_keys[key_name]
         return 200, {}, key
-
-
-CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-     <CreateTopicResult>
-       <TopicArn>{{ topic.arn }}</TopicArn>
-     </CreateTopicResult>
-     <ResponseMetadata>
-       <RequestId>a8dec8b3-33a4-11df-8963-01868b7c937a</RequestId>
-     </ResponseMetadata>
-   </CreateTopicResponse>"""
-
-LIST_TOPICS_TEMPLATE = """<ListTopicsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListTopicsResult>
-    <Topics>
-    {% for topic in topics %}
-      <member>
-        <TopicArn>{{ topic.arn }}</TopicArn>
-      </member>
-    {% endfor %}
-    </Topics>
-    {% if next_token  %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </ListTopicsResult>
-  <ResponseMetadata>
-    <RequestId>3f1478c7-33a9-11df-9540-99d0768312d3</RequestId>
-  </ResponseMetadata>
-</ListTopicsResponse>"""
 
 
 GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -560,24 +530,6 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
   </ResponseMetadata>
 </GetTopicAttributesResponse>"""
 
-
-CREATE_PLATFORM_APPLICATION_TEMPLATE = """<CreatePlatformApplicationResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <CreatePlatformApplicationResult>
-    <PlatformApplicationArn>{{ platform_application.arn }}</PlatformApplicationArn>
-  </CreatePlatformApplicationResult>
-  <ResponseMetadata>
-    <RequestId>b6f0e78b-e9d4-5a0e-b973-adc04e8a4ff9</RequestId>
-  </ResponseMetadata>
-</CreatePlatformApplicationResponse>"""
-
-CREATE_PLATFORM_ENDPOINT_TEMPLATE = """<CreatePlatformEndpointResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <CreatePlatformEndpointResult>
-    <EndpointArn>{{ platform_endpoint.arn }}</EndpointArn>
-  </CreatePlatformEndpointResult>
-  <ResponseMetadata>
-    <RequestId>6613341d-3e15-53f7-bf3c-7e56994ba278</RequestId>
-  </ResponseMetadata>
-</CreatePlatformEndpointResponse>"""
 
 LIST_PLATFORM_APPLICATIONS_TEMPLATE = """<ListPlatformApplicationsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <ListPlatformApplicationsResult>
@@ -656,25 +608,6 @@ GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE = """<GetPlatformApplicationAttribu
     <RequestId>74848df2-87f6-55ed-890c-c7be80442462</RequestId>
   </ResponseMetadata>
 </GetPlatformApplicationAttributesResponse>"""
-
-PUBLISH_TEMPLATE = """<PublishResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <PublishResult>
-    <MessageId>{{ message_id }}</MessageId>
-  </PublishResult>
-  <ResponseMetadata>
-    <RequestId>f187a3c1-376f-11df-8963-01868b7c937a</RequestId>
-  </ResponseMetadata>
-</PublishResponse>"""
-
-
-SUBSCRIBE_TEMPLATE = """<SubscribeResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <SubscribeResult>
-    <SubscriptionArn>{{ subscription.arn }}</SubscriptionArn>
-  </SubscribeResult>
-  <ResponseMetadata>
-    <RequestId>c4407779-24a4-56fa-982c-3d927f93a775</RequestId>
-  </ResponseMetadata>
-</SubscribeResponse>"""
 
 
 LIST_SUBSCRIPTIONS_TEMPLATE = """<ListSubscriptionsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
@@ -758,14 +691,6 @@ GET_SMS_ATTRIBUTES_TEMPLATE = """<GetSMSAttributesResponse xmlns="http://sns.ama
   </ResponseMetadata>
 </GetSMSAttributesResponse>"""
 
-CHECK_IF_OPTED_OUT_TEMPLATE = """<CheckIfPhoneNumberIsOptedOutResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <CheckIfPhoneNumberIsOptedOutResult>
-    <isOptedOut>{{ opt_out }}</isOptedOut>
-  </CheckIfPhoneNumberIsOptedOutResult>
-  <ResponseMetadata>
-    <RequestId>287f9554-8db3-5e66-8abc-c76f0186db7e</RequestId>
-  </ResponseMetadata>
-</CheckIfPhoneNumberIsOptedOutResponse>"""
 
 ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <Error>
@@ -776,28 +701,6 @@ ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-3
   <RequestId>9dd01905-5012-5f99-8663-4b3ecd0dfaef</RequestId>
 </ErrorResponse>"""
 
-LIST_OPTOUT_TEMPLATE = """<ListPhoneNumbersOptedOutResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListPhoneNumbersOptedOutResult>
-    <phoneNumbers>
-      {% for item in opt_outs %}
-      <member>{{ item }}</member>
-      {% endfor %}
-    </phoneNumbers>
-  </ListPhoneNumbersOptedOutResult>
-  <ResponseMetadata>
-    <RequestId>985e196d-a237-51b6-b33a-4b5601276b38</RequestId>
-  </ResponseMetadata>
-</ListPhoneNumbersOptedOutResponse>"""
-
-
-CONFIRM_SUBSCRIPTION_TEMPLATE = """<ConfirmSubscriptionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ConfirmSubscriptionResult>
-    <SubscriptionArn>{{ sub_arn }}</SubscriptionArn>
-  </ConfirmSubscriptionResult>
-  <ResponseMetadata>
-    <RequestId>16eb4dde-7b3c-5b3e-a22a-1fe2a92d3293</RequestId>
-  </ResponseMetadata>
-</ConfirmSubscriptionResponse>"""
 
 LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <ListTagsForResourceResult>
