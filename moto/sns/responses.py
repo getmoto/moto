@@ -10,11 +10,18 @@ from .models import SNSBackend, sns_backends
 from .utils import is_e164
 
 
+def transform_tags(tags: dict[str, str]) -> list[dict[str, str]]:
+    return [{"Key": key, "Value": value} for key, value in tags.items()]
+
+
 class SNSResponse(BaseResponse):
     SMS_ATTR_REGEX = re.compile(
         r"^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$"
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "ListTagsForResourceResponse.Tags": transform_tags  # TODO: transform shape TagList
+    }
 
     def __init__(self) -> None:
         super().__init__(service_name="sns")
@@ -439,13 +446,11 @@ class SNSResponse(BaseResponse):
         result = {"SubscriptionArn": f"{arn}:68762e72-e9b1-410a-8b3b-903da69ee1d5"}
         return ActionResult(result)
 
-    def list_tags_for_resource(self) -> str:
+    def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("ResourceArn")
-
-        result = self.backend.list_tags_for_resource(arn)
-
-        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
-        return template.render(tags=result)
+        tags = self.backend.list_tags_for_resource(arn)
+        result = {"Tags": tags}
+        return ActionResult(result)
 
     def tag_resource(self) -> ActionResult:
         arn = self._get_param("ResourceArn")
@@ -700,23 +705,6 @@ ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-3
   </Error>
   <RequestId>9dd01905-5012-5f99-8663-4b3ecd0dfaef</RequestId>
 </ErrorResponse>"""
-
-
-LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListTagsForResourceResult>
-    <Tags>
-      {% for name, value in tags.items() %}
-      <member>
-        <Key>{{ name }}</Key>
-        <Value>{{ value }}</Value>
-      </member>
-      {% endfor %}
-    </Tags>
-  </ListTagsForResourceResult>
-  <ResponseMetadata>
-    <RequestId>97fa763f-861b-5223-a946-20251f2a42e2</RequestId>
-  </ResponseMetadata>
-</ListTagsForResourceResponse>"""
 
 
 PUBLISH_BATCH_TEMPLATE = """<PublishBatchResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
