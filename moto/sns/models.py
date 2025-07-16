@@ -215,6 +215,7 @@ class Topic(CloudFormationModel):
 class Subscription(BaseModel):
     def __init__(self, account_id: str, topic: Topic, endpoint: str, protocol: str):
         self.account_id = account_id
+        self.owner = account_id
         self.topic = topic
         self.endpoint = endpoint
         self.protocol = protocol
@@ -223,6 +224,10 @@ class Subscription(BaseModel):
         self._filter_policy = None  # filter policy as a dict, not json.
         self._filter_policy_matcher: Optional[FilterPolicyMatcher] = None
         self.confirmed = False
+
+    @property
+    def topic_arn(self) -> str:
+        return self.topic.arn
 
     def publish(
         self,

@@ -168,22 +168,22 @@ class SNSResponse(BaseResponse):
         self.backend.unsubscribe(subscription_arn)
         return EmptyResult()
 
-    def list_subscriptions(self) -> str:
+    def list_subscriptions(self) -> ActionResult:
         next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions(
             next_token=next_token
         )
-        template = self.response_template(LIST_SUBSCRIPTIONS_TEMPLATE)
-        return template.render(subscriptions=subscriptions, next_token=next_token)
+        result = {"Subscriptions": subscriptions, "NextToken": next_token}
+        return ActionResult(result)
 
-    def list_subscriptions_by_topic(self) -> str:
+    def list_subscriptions_by_topic(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions_by_topic(
             topic_arn, next_token=next_token
         )
-        template = self.response_template(LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE)
-        return template.render(subscriptions=subscriptions, next_token=next_token)
+        result = {"Subscriptions": subscriptions, "NextToken": next_token}
+        return ActionResult(result)
 
     def publish(self) -> ActionResult:
         target_arn = self._get_param("TargetArn")
@@ -231,7 +231,7 @@ class SNSResponse(BaseResponse):
         result = {"MessageId": message_id}
         return ActionResult(result)
 
-    def publish_batch(self) -> str:
+    def publish_batch(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         publish_batch_request_entries = self._get_multi_param(
             "PublishBatchRequestEntries.member"
@@ -250,8 +250,8 @@ class SNSResponse(BaseResponse):
             topic_arn=topic_arn,
             publish_batch_request_entries=publish_batch_request_entries,
         )
-        template = self.response_template(PUBLISH_BATCH_TEMPLATE)
-        return template.render(successful=successful, failed=failed)
+        result = {"Successful": successful, "Failed": failed}
+        return ActionResult(result)
 
     def create_platform_application(self) -> ActionResult:
         name = self._get_param("Name")
@@ -532,51 +532,6 @@ GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns
 </GetTopicAttributesResponse>"""
 
 
-LIST_SUBSCRIPTIONS_TEMPLATE = """<ListSubscriptionsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListSubscriptionsResult>
-    <Subscriptions>
-    {% for subscription in subscriptions %}
-      <member>
-        <TopicArn>{{ subscription.topic.arn }}</TopicArn>
-        <Protocol>{{ subscription.protocol }}</Protocol>
-        <SubscriptionArn>{{ subscription.arn }}</SubscriptionArn>
-        <Owner>{{ subscription.account_id }}</Owner>
-        <Endpoint>{{ subscription.endpoint }}</Endpoint>
-      </member>
-    {% endfor %}
-    </Subscriptions>
-    {% if next_token  %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </ListSubscriptionsResult>
-  <ResponseMetadata>
-    <RequestId>384ac68d-3775-11df-8963-01868b7c937a</RequestId>
-  </ResponseMetadata>
-</ListSubscriptionsResponse>"""
-
-LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE = """<ListSubscriptionsByTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListSubscriptionsByTopicResult>
-    <Subscriptions>
-    {% for subscription in subscriptions %}
-      <member>
-        <TopicArn>{{ subscription.topic.arn }}</TopicArn>
-        <Protocol>{{ subscription.protocol }}</Protocol>
-        <SubscriptionArn>{{ subscription.arn }}</SubscriptionArn>
-        <Owner>{{ subscription.account_id }}</Owner>
-        <Endpoint>{{ subscription.endpoint }}</Endpoint>
-      </member>
-    {% endfor %}
-    </Subscriptions>
-    {% if next_token  %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </ListSubscriptionsByTopicResult>
-  <ResponseMetadata>
-    <RequestId>384ac68d-3775-11df-8963-01868b7c937a</RequestId>
-  </ResponseMetadata>
-</ListSubscriptionsByTopicResponse>"""
-
-
 ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
   <Error>
     <Type>{{ sender }}</Type>
@@ -585,30 +540,3 @@ ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-3
   </Error>
   <RequestId>9dd01905-5012-5f99-8663-4b3ecd0dfaef</RequestId>
 </ErrorResponse>"""
-
-
-PUBLISH_BATCH_TEMPLATE = """<PublishBatchResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <PublishBatchResult>
-    <Successful>
-{% for successful in successful %}
-      <member>
-        <Id>{{ successful["Id"] }}</Id>
-        <MessageId>{{ successful["MessageId"] }}</MessageId>
-      </member>
-{% endfor %}
-    </Successful>
-    <Failed>
-{% for failed in failed %}
-      <member>
-        <Id>{{ failed["Id"] }}</Id>
-        <Code>{{ failed["Code"] }}</Code>
-        <Message>{{ failed["Message"] }}</Message>
-        <SenderFault>{{'true' if failed["SenderFault"] else 'false'}}</SenderFault>
-      </member>
-{% endfor %}
-    </Failed>
-  </PublishBatchResult>
-</PublishBatchResponse>"""
