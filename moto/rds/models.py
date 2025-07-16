@@ -3196,6 +3196,21 @@ class RDSBackend(BaseBackend):
         db_parameter_group.update_parameters(db_parameter_group_parameters)
 
         return db_parameter_group
+    
+    def modify_db_cluster_parameter_group(
+        self,
+        db_cluster_parameter_group_name: str,
+        db_cluster_parameter_group_parameters: Iterable[Dict[str, Any]],
+    ) -> DBClusterParameterGroup:
+        if db_cluster_parameter_group_name not in self.db_cluster_parameter_groups:
+            raise DBClusterParameterGroupNotFoundError(db_cluster_parameter_group_name)
+
+        db_cluster_parameter_group = self.db_cluster_parameter_groups[
+            db_cluster_parameter_group_name
+        ]
+        db_cluster_parameter_group.update_cluster_parameters(db_cluster_parameter_group_parameters)
+
+        return db_cluster_parameter_group
 
     def describe_db_cluster_parameters(self) -> List[Dict[str, Any]]:
         return []
@@ -4238,6 +4253,11 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def resource_id(self) -> str:
         return self.name
+    
+    def update_cluster_parameters(self, new_parameters: Iterable[Dict[str, Any]]) -> None:
+        for new_parameter in new_parameters:
+            parameter = self.parameters[new_parameter["ParameterName"]]
+            parameter.update(new_parameter)
 
 
 class Event:
