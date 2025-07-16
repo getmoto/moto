@@ -2250,21 +2250,6 @@ class DBShardGroup(RDSBaseModel):
         self.publicly_accessible = publicly_accessible
         self.tags = tags or []
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "db_shard_group_identifier": self.db_shard_group_identifier,
-            "db_cluster_identifier": self.db_cluster_identifier,
-            "compute_redundancy": self.compute_redundancy,
-            "max_acu": self.max_acu,
-            "min_acu": self.min_acu,
-            "endpoint": self.endpoint,
-            "status": self.status,
-            "db_shard_group_arn": self.db_shard_group_arn,
-            "db_shard_group_resource_id": self.db_shard_group_resource_id,
-            "publicly_accessible": self.publicly_accessible,
-            "tag_list": self.tags,
-        }
-
 
 class RDSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):

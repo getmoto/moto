@@ -54,7 +54,7 @@ def test_create_db_shard_group_duplicate(client):
         Tags=[{"Key": "Environment", "Value": "Test"}],
     )
 
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.create_db_shard_group(
             DBShardGroupIdentifier="shardgroup1",
             DBClusterIdentifier="test_db_cluster_identifier",
@@ -63,11 +63,13 @@ def test_create_db_shard_group_duplicate(client):
             PubliclyAccessible=True,
             Tags=[{"Key": "Environment", "Value": "Test"}],
         )
-
+    err = ex.value.response["Error"]
+    assert err["Code"] == "DBShardGroupAlreadyExists"
+    assert err["Message"] == "DB Shard Group shardgroup1 already exists."
 
 @mock_aws
 def test_shard_group_cluster_not_found(client):
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.create_db_shard_group(
             DBShardGroupIdentifier="shardgroup1",
             DBClusterIdentifier="test_db_cluster_identifier",
@@ -76,7 +78,9 @@ def test_shard_group_cluster_not_found(client):
             PubliclyAccessible=True,
             Tags=[{"Key": "Environment", "Value": "Test"}],
         )
-
+    err = ex.value.response["Error"]
+    assert err["Code"] == "DBClusterNotFoundFault"
+    assert err["Message"] == "DBCluster test_db_cluster_identifier not found."
 
 @mock_aws
 def test_shard_group_cluster_invalid_compute_redundancy(client):
@@ -86,7 +90,7 @@ def test_shard_group_cluster_invalid_compute_redundancy(client):
         MasterUsername="admin",
         MasterUserPassword="root-password",
     )
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.create_db_shard_group(
             DBShardGroupIdentifier="shardgroup1",
             DBClusterIdentifier="test_db_cluster_identifier",
@@ -96,7 +100,9 @@ def test_shard_group_cluster_invalid_compute_redundancy(client):
             PubliclyAccessible=True,
             Tags=[{"Key": "Environment", "Value": "Test"}],
         )
-
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "Invalid ComputeRedundancy value: '3'. Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
 
 @mock_aws
 def test_shard_group_cluster_invalid_max_min_acu(client):
@@ -106,7 +112,7 @@ def test_shard_group_cluster_invalid_max_min_acu(client):
         MasterUsername="admin",
         MasterUserPassword="root-password",
     )
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.create_db_shard_group(
             DBShardGroupIdentifier="shardgroup1",
             DBClusterIdentifier="test_db_cluster_identifier",
@@ -116,6 +122,9 @@ def test_shard_group_cluster_invalid_max_min_acu(client):
             PubliclyAccessible=True,
             Tags=[{"Key": "Environment", "Value": "Test"}],
         )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert err["Message"] == "min_acu cannot be larger than max_acu"
 
 
 @mock_aws
@@ -128,8 +137,11 @@ def test_describe_db_shard_group_initial(client):
 def test_describe_db_shard_group_non_existent(client):
     shard_groups = client.describe_db_shard_groups()
     assert len(shard_groups["DBShardGroups"]) == 0
-    with pytest.raises(ClientError):
+    with pytest.raises(ClientError) as ex:
         client.describe_db_shard_groups(DBShardGroupIdentifier="shardgroup1")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "DBShardGroupNotFound"
+    assert err["Message"] == "DBShardGroup shardgroup1 not found."
 
 
 @mock_aws
