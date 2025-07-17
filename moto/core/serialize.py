@@ -355,10 +355,22 @@ class ResponseSerializer(ShapeHelpersMixin):
         )
         return self._value_picker(context)
 
-    @staticmethod
-    def _get_error_shape_name(error: Exception) -> str:
-        shape_name = getattr(error, "code", error.__class__.__name__)
-        return shape_name
+    def _get_error_shape_name(self, error: Exception) -> str:
+        shape_lookups = [error.__class__.__name__]
+        if hasattr(error, "code"):
+            shape_lookups.append(getattr(error, "code"))
+        service_model = self.operation_model.service_model
+        for lookup in shape_lookups:
+            shape = service_model.shape_for_error_code(lookup)  # type: ignore[arg-type]
+            if shape is not None:
+                return shape.name
+            try:
+                shape = service_model.shape_for(lookup)
+            except NoShapeFoundError:
+                continue
+            if shape is not None:
+                return shape.name
+        return error.__class__.__name__
 
     def _get_error_shape(self, error: Exception) -> ErrorShape:
         shape_name = self._get_error_shape_name(error)
@@ -649,7 +661,7 @@ class BaseXMLSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        sender_fault = shape.metadata.get("error", {}).get("senderFault", True)
+        sender_fault = shape.metadata.get("error", {}).get("senderFault", False)
         serialized["Type"] = "Sender" if sender_fault else "Receiver"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
