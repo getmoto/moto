@@ -37,6 +37,14 @@ class DBSecurityGroupNotFoundError(RDSClientError):
         )
 
 
+class DBShardGroupAlreadyExistsError(RDSClientError):
+    def __init__(self, shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupAlreadyExistsFault",
+            f"DB Shard Group {shard_group_identifier} already exists.",
+        )
+
+
 class DBSubnetGroupNotFoundError(RDSClientError):
     def __init__(self, subnet_group_name: str):
         super().__init__(
@@ -146,6 +154,14 @@ class DBSnapshotAlreadyExistsError(RDSClientError):
         super().__init__(
             "DBSnapshotAlreadyExists",
             f"Cannot create the snapshot because a snapshot with the identifier {database_snapshot_identifier} already exists.",
+        )
+
+
+class DBShardGroupNotFoundFault(RDSClientError):
+    def __init__(self, db_shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupNotFoundFault",
+            f"DBShardGroup {db_shard_group_identifier} not found.",
         )
 
 
