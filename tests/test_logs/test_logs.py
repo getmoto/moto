@@ -92,7 +92,6 @@ def test_destinations_no_prefix():
     role_arn = "arn:aws:iam::123456789012:role/my-subscription-role"
     target_arn = "arn:aws:kinesis:us-east-1:123456789012:stream/my-kinesis-stream"
 
-
     response = conn.put_destination(
         destinationName=destination_name,
         targetArn=target_arn,
@@ -102,6 +101,7 @@ def test_destinations_no_prefix():
 
     response = conn.describe_destinations()
     assert len(response["destinations"]) == 1
+
 
 @mock_aws
 def test_destinations():

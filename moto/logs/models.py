@@ -1028,7 +1028,7 @@ class LogsBackend(BaseBackend):
                 for destination in result
                 if destination["destinationName"].startswith(destination_name_prefix)
             ]
-            
+
         return result, next_token
 
     def put_destination_policy(self, destination_name: str, access_policy: str) -> None:
