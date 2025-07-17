@@ -564,7 +564,9 @@ def test_subscribe_invalid_filter_policy():
         )
 
     err = err_info.value
-    assert err.response["Error"]["Code"] == "InternalFailure"
+    assert err.response["Error"]["Code"] == "InternalError"
+    assert err.response["Error"]["Type"] == "Receiver"
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 500
 
     with pytest.raises(ClientError) as err_info:
         conn.subscribe(

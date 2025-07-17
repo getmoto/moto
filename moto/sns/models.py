@@ -876,9 +876,7 @@ class SNSBackend(BaseBackend):
         subscription = self.subscriptions.get(arn)
 
         if not subscription:
-            raise SNSNotFoundError(
-                "Subscription does not exist", template="wrapped_single_error"
-            )
+            raise SNSNotFoundError("Subscription does not exist")
         # AWS does not return the FilterPolicy scope if the FilterPolicy is not set
         # if the FilterPolicy is set and not the FilterPolicyScope, it returns the default value
         attributes = {**subscription.attributes}
