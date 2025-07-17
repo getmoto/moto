@@ -19,10 +19,11 @@ jobs:
     - name: Install dependencies
       run: |
         pip install boto3 pytest sagemaker
-        # Test fails with this particular version of sagemaker_core
+        # Multiple versions of sagemaker_core failing with the following:
         # E       pydantic_core._pydantic_core.ValidationError: 1 validation error for TrainingJob.create
         # E       session
         # E         Input should be a valid dictionary or instance of Session [type=model_type, input_value=Session(region_name='us-east-1'), input_type=Session]
+        # Pin to last known working release.
         pip install sagemaker_core==1.0.41
     - name: Run tests
       run: |
