@@ -1,18 +1,13 @@
-import json
 from typing import List, Optional
 
-from moto.core.exceptions import JsonRESTError
+from moto.core.exceptions import ServiceException
 
 
-class RedshiftClientError(JsonRESTError):
+class RedshiftClientError(ServiceException):
     def __init__(self, code: str, message: str):
-        super().__init__(error_type=code, message=message)
-        self.description = json.dumps(
-            {
-                "Error": {"Code": code, "Message": message, "Type": "Sender"},
-                "RequestId": "6876f774-7273-11e4-85dc-39e55ca848d1",
-            }
-        )
+        super().__init__(message)
+        self.code = code
+        self.message = message
 
 
 class ClusterNotFoundError(RedshiftClientError):
@@ -87,8 +82,6 @@ class InvalidParameterValueError(RedshiftClientError):
 
 
 class ResourceNotFoundFaultError(RedshiftClientError):
-    code = 404
-
     def __init__(
         self,
         resource_type: Optional[str] = None,

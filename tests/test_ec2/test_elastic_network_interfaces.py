@@ -24,7 +24,11 @@ def test_elastic_network_interfaces():
         == "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
     )
 
-    eni_id = ec2resource.create_network_interface(SubnetId=subnet.id).id
+    eni = ec2resource.create_network_interface(SubnetId=subnet.id)
+    assert eni.availability_zone == subnet.availability_zone
+    assert eni.subnet_id == subnet.id
+    assert eni.vpc_id == vpc.id
+    eni_id = eni.id
 
     my_enis = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
         "NetworkInterfaces"
@@ -870,11 +874,15 @@ def test_unassign_ipv6_addresses():
         SubnetId=subnet.id, Ipv6Addresses=[{"Ipv6Address": ipv6_orig}]
     )
 
-    ec2client.assign_ipv6_addresses(
+    resp = ec2client.assign_ipv6_addresses(
         NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2, ipv6_3]
     )
+    assert resp["AssignedIpv6Addresses"] == [ipv6_orig, ipv6_2, ipv6_3]
 
-    ec2client.unassign_ipv6_addresses(NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2])
+    resp = ec2client.unassign_ipv6_addresses(
+        NetworkInterfaceId=eni.id, Ipv6Addresses=[ipv6_2]
+    )
+    assert resp["UnassignedIpv6Addresses"] == [ipv6_2]
 
     resp = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])
     my_eni = resp["NetworkInterfaces"][0]
