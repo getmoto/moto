@@ -104,6 +104,12 @@ class AthenaResponse(BaseResponse):
             )
         return json.dumps(result)
 
+    def create_capacity_reservation(self) -> Union[Tuple[str, Dict[str, int]], str]:
+        pass
+
+    def get_capacity_reservation(self) -> str:
+        pass
+
     def get_query_results(self) -> str:
         exec_id = self._get_param("QueryExecutionId")
         result = self.athena_backend.get_query_results(exec_id)

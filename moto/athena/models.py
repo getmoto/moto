@@ -140,6 +140,9 @@ class QueryResults(BaseModel):
         }
 
 
+class CapacityReservation(BaseModel):
+    pass
+
 class NamedQuery(BaseModel):
     def __init__(
         self,
@@ -366,6 +369,12 @@ class AthenaBackend(BaseBackend):
     def stop_query_execution(self, exec_id: str) -> None:
         execution = self.executions[exec_id]
         execution.status = "CANCELLED"
+
+    def create_capacity_reservation(self):
+        pass
+
+    def get_capacity_reservation(self):
+        pass
 
     def create_named_query(
         self,
