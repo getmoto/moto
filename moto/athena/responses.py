@@ -105,10 +105,32 @@ class AthenaResponse(BaseResponse):
         return json.dumps(result)
 
     def create_capacity_reservation(self) -> Union[Tuple[str, Dict[str, int]], str]:
-        pass
+        name = self._get_param("Name")
+        target_dpus = self._get_param("TargetDpus")
+        tags = self._get_param("Tags")
+        self.athena_backend.create_capacity_reservation(
+            name, target_dpus, tags
+        )
+        return json.dumps(dict())
 
+
+    
     def get_capacity_reservation(self) -> str:
-        pass
+        name = self._get_param("Name")
+        capacity_reservation = self.athena_backend.get_capacity_reservation(name)
+        if not capacity_reservation:
+            return self.error("Capacity reservation does not exist", 400)
+        print("DBG responses: ", capacity_reservation.tags)
+        return json.dumps(
+            {
+                "CapacityReservation": {
+                    "Name": capacity_reservation.name,
+                    "TargetDpus": capacity_reservation.target_dpus,
+                    "Tags": capacity_reservation.tags,
+                }
+            }
+        )
+
 
     def get_query_results(self) -> str:
         exec_id = self._get_param("QueryExecutionId")

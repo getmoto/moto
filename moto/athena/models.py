@@ -141,7 +141,15 @@ class QueryResults(BaseModel):
 
 
 class CapacityReservation(BaseModel):
-    pass
+    def __init__(
+        self,
+        name: str,
+        target_dpus: int,
+        tags: Optional[List[Dict[str, str]]] = None
+    ):
+        self.name = name
+        self.target_dpus = target_dpus
+        self.tags = tags
 
 class NamedQuery(BaseModel):
     def __init__(
@@ -190,6 +198,7 @@ class AthenaBackend(BaseBackend):
         self.work_groups: Dict[str, WorkGroup] = {}
         self.executions: Dict[str, Execution] = {}
         self.named_queries: Dict[str, NamedQuery] = {}
+        self.capacity_reservations: Dict[str, CapacityReservation] = {}
         self.data_catalogs: Dict[str, DataCatalog] = {}
         self.query_results: Dict[str, QueryResults] = {}
         self.query_results_queue: List[QueryResults] = []
@@ -370,11 +379,24 @@ class AthenaBackend(BaseBackend):
         execution = self.executions[exec_id]
         execution.status = "CANCELLED"
 
-    def create_capacity_reservation(self):
-        pass
+    def create_capacity_reservation(
+        self,
+        name: str,
+        target_dpus:int,
+        tags: List[Dict[str, str]],
+    ) -> None:
+        cr = CapacityReservation(
+            name=name,
+            target_dpus=target_dpus,
+            tags=tags
+        )
+        #TODO: Need some validations
+        self.capacity_reservations[cr.name] = cr
+        return None
+        
 
-    def get_capacity_reservation(self):
-        pass
+    def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
+        return self.capacity_reservations[name] if name in self.capacity_reservations else None
 
     def create_named_query(
         self,
