@@ -270,7 +270,7 @@ def test_describe_unknown_cluster_security_group(is_json):
         describe_params += "&ContentType=JSON"
     res = test_client.get(describe_params)
 
-    assert res.status_code == 400
+    assert res.status_code == 404
 
     if is_json:
         response = json.loads(res.data.decode("utf-8"))

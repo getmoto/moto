@@ -4,10 +4,7 @@ from moto.core.exceptions import ServiceException
 
 
 class RDSClientError(ServiceException):
-    def __init__(self, code: str, message: str):
-        super().__init__(message)
-        self.code = code
-        self.message = message
+    pass
 
 
 class DBInstanceNotFoundError(RDSClientError):
@@ -37,6 +34,14 @@ class DBSecurityGroupNotFoundError(RDSClientError):
         )
 
 
+class DBShardGroupAlreadyExistsError(RDSClientError):
+    def __init__(self, shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupAlreadyExists",
+            f"DB Shard Group {shard_group_identifier} already exists.",
+        )
+
+
 class DBSubnetGroupNotFoundError(RDSClientError):
     def __init__(self, subnet_group_name: str):
         super().__init__(
@@ -47,7 +52,7 @@ class DBSubnetGroupNotFoundError(RDSClientError):
 class DBParameterGroupNotFoundError(RDSClientError):
     def __init__(self, db_parameter_group_name: str):
         super().__init__(
-            "DBParameterGroupNotFoundFault",
+            "DBParameterGroupNotFound",
             f"DB Parameter Group {db_parameter_group_name} not found.",
         )
 
@@ -55,7 +60,7 @@ class DBParameterGroupNotFoundError(RDSClientError):
 class DBParameterGroupAlreadyExistsError(RDSClientError):
     def __init__(self, db_parameter_group_name: str):
         super().__init__(
-            "DBParameterGroupAlreadyExistsFault",
+            "DBParameterGroupAlreadyExists",
             f"DB Parameter Group {db_parameter_group_name} already exists.",
         )
 
@@ -146,6 +151,14 @@ class DBSnapshotAlreadyExistsError(RDSClientError):
         super().__init__(
             "DBSnapshotAlreadyExists",
             f"Cannot create the snapshot because a snapshot with the identifier {database_snapshot_identifier} already exists.",
+        )
+
+
+class DBShardGroupNotFoundFault(RDSClientError):
+    def __init__(self, db_shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupNotFoundFault",
+            f"DBShardGroup {db_shard_group_identifier} not found.",
         )
 
 
