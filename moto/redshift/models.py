@@ -19,7 +19,6 @@ from .exceptions import (
     ClusterNotFoundError,
     ClusterParameterGroupNotFoundError,
     ClusterSecurityGroupNotFoundError,
-    ClusterSecurityGroupNotFoundFaultError,
     ClusterSnapshotAlreadyExistsError,
     ClusterSnapshotNotFoundError,
     ClusterSubnetGroupNotFoundError,
@@ -792,7 +791,7 @@ class RedshiftBackend(BaseBackend):
     ) -> SecurityGroup:
         security_group = self.security_groups.get(security_group_name)
         if not security_group:
-            raise ClusterSecurityGroupNotFoundFaultError()
+            raise ClusterSecurityGroupNotFoundError()
 
         # just adding the cidr_ip as ingress rule for now as there is no security rule
         security_group.ingress_rules.append(cidr_ip)
