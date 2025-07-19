@@ -659,8 +659,9 @@ class BaseXMLSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        sender_fault = shape.metadata.get("error", {}).get("senderFault", True)
-        serialized["Type"] = "Sender" if sender_fault else "Receiver"
+        at_fault = shape.metadata.get("error", {}).get("fault", False)
+        sender_fault = shape.metadata.get("error", {}).get("senderFault", False)
+        serialized["Type"] = "Receiver" if (at_fault and not sender_fault) else "Sender"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
         if message is not None:
