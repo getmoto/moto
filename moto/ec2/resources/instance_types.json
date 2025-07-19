@@ -19297,7 +19297,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "required"
   },
-  "FreeTierEligible": false,
+  "FreeTierEligible": true,
   "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
@@ -66900,7 +66900,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "required"
   },
-  "FreeTierEligible": false,
+  "FreeTierEligible": true,
   "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
@@ -100438,7 +100438,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "required"
   },
-  "FreeTierEligible": false,
+  "FreeTierEligible": true,
   "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
@@ -100638,7 +100638,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "required"
   },
-  "FreeTierEligible": false,
+  "FreeTierEligible": true,
   "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
@@ -101842,7 +101842,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "required"
   },
-  "FreeTierEligible": false,
+  "FreeTierEligible": true,
   "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,
@@ -102040,7 +102040,7 @@
    "EncryptionSupport": "supported",
    "NvmeSupport": "required"
   },
-  "FreeTierEligible": false,
+  "FreeTierEligible": true,
   "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageSupported": false,

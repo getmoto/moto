@@ -11,7 +11,7 @@ class BaseModel(metaclass=InstanceTrackerMeta):
         **kwargs: Any,
     ) -> "BaseModel":
         instance = super(BaseModel, cls).__new__(cls)
-        cls.instances.append(instance)  # type: ignore[attr-defined]
+        cls.instances_tracked.append(instance)  # type: ignore[attr-defined]
         return instance
 
 

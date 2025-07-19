@@ -64,7 +64,7 @@ class MotoAPIResponse(BaseResponse):
             for name in sorted(models):
                 model = models[name]
                 results[service][name] = []
-                for instance in model.instances:  # type: ignore[attr-defined]
+                for instance in model.instances_tracked:  # type: ignore[attr-defined]
                     inst_result = {}
                     for attr in dir(instance):
                         if not attr.startswith("_"):

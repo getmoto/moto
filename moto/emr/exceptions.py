@@ -2,15 +2,20 @@ from moto.core.exceptions import ServiceException
 
 
 class InvalidRequestException(ServiceException):
-    def __init__(self, message: str):
-        super().__init__("InvalidRequestException", message)
+    code = "InvalidRequestException"
+
+
+class ResourceNotFoundException(InvalidRequestException):
+    error_code = "ResourceNotFound"
+
+
+class InvalidCluster(InvalidRequestException):
+    error_code = "NoSuchCluster"
+
+    def __init__(self, cluster_id: str):
+        message = f"Cluster id '{cluster_id}' is not valid."
+        super().__init__(message)
 
 
 class ValidationException(ServiceException):
-    def __init__(self, message: str):
-        super().__init__("ValidationException", message)
-
-
-class ResourceNotFoundException(ServiceException):
-    def __init__(self, message: str):
-        super().__init__("ResourceNotFoundException", message)
+    code = "ValidationException"

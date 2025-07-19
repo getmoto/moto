@@ -56,6 +56,7 @@ import abc
 import base64
 import calendar
 import json
+import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
@@ -67,6 +68,7 @@ from typing import (
     Optional,
     TypedDict,
     Union,
+    cast,
 )
 
 import xmltodict
@@ -75,7 +77,6 @@ from botocore.compat import formatdate
 from botocore.model import (
     ListShape,
     MapShape,
-    NoShapeFoundError,
     OperationModel,
     ServiceModel,
     Shape,
@@ -86,6 +87,17 @@ from botocore.utils import is_json_value_header, parse_to_aware_datetime
 from moto.core.utils import MISSING, get_value
 
 Serialized = MutableMapping[str, Any]
+
+# These are common error codes that are *not* included in the service definitions.
+# For example:
+# https://docs.aws.amazon.com/emr/latest/APIReference/CommonErrors.html
+# https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonErrors.html
+# TODO: Augment the service definitions with shape models for these errors.
+COMMON_ERROR_CODES = [
+    "InvalidParameterCombination",
+    "InvalidParameterValue",
+    "ValidationException",
+]
 
 
 class ResponseDict(TypedDict):
@@ -259,6 +271,7 @@ class ResponseSerializer(ShapeHelpersMixin):
         value_picker: Any = None,
     ) -> None:
         self.operation_model = operation_model
+        self.service_model = operation_model.service_model
         self.context = context or SerializationContext()
         self.pretty_print = pretty_print
         if value_picker is None:
@@ -355,35 +368,32 @@ class ResponseSerializer(ShapeHelpersMixin):
         )
         return self._value_picker(context)
 
-    @staticmethod
-    def _get_error_shape_name(error: Exception) -> str:
-        shape_name = getattr(error, "code", error.__class__.__name__)
-        return shape_name
-
     def _get_error_shape(self, error: Exception) -> ErrorShape:
-        shape_name = self._get_error_shape_name(error)
-        try:
-            # TODO: there is also an errors array in the operation model,
-            # but I think it only includes the possible errors for that
-            # operation.  Maybe we try that first, then try all shapes?
-            shape = self.operation_model.service_model.shape_for(shape_name)
-            # We convert to ErrorShape to keep mypy happy...
-            shape = ErrorShape(
-                shape_name,
-                shape._shape_model,  # type: ignore[attr-defined]
-                shape._shape_resolver,  # type: ignore[attr-defined]
-            )
-        except NoShapeFoundError:
+        error_code = getattr(error, "code", MISSING)
+        error_name = error.__class__.__name__
+        error_shapes = cast(list[ErrorShape], self.service_model.error_shapes)
+        for error_shape in error_shapes:
+            if error_shape.error_code == error_code:
+                break
+            if error_shape.name in [error_code, error_name]:
+                break
+        else:
+            error_shape = None
+        if error_shape is None:
+            service_id = self.service_model.metadata.get("serviceId")
+            if service_id and error_code not in COMMON_ERROR_CODES:
+                warning = f"{service_id} service model does not contain an error shape that matches code {error_code} from Exception({error_name})"
+                warnings.warn(warning)
             generic_error_model = {
                 "exception": True,
                 "type": "structure",
                 "members": {},
                 "error": {
-                    "code": shape_name,
+                    "code": error_code,
                 },
             }
-            shape = ErrorShape(shape_name, generic_error_model)
-        return shape
+            error_shape = ErrorShape(error_name, generic_error_model)
+        return error_shape
 
     #
     # Default serializers for the various model Shape types.
@@ -649,8 +659,9 @@ class BaseXMLSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        sender_fault = shape.metadata.get("error", {}).get("senderFault", True)
-        serialized["Type"] = "Sender" if sender_fault else "Receiver"
+        at_fault = shape.metadata.get("error", {}).get("fault", False)
+        sender_fault = shape.metadata.get("error", {}).get("senderFault", False)
+        serialized["Type"] = "Receiver" if (at_fault and not sender_fault) else "Sender"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
         if message is not None:

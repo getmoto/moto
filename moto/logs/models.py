@@ -1021,11 +1021,14 @@ class LogsBackend(BaseBackend):
             result.append(self.destinations[destination].to_dict())
         if next_token:
             result = result[: int(next_token)]
-        result = [
-            destination
-            for destination in result
-            if destination["destinationName"].startswith(destination_name_prefix)
-        ]
+
+        if destination_name_prefix:
+            result = [
+                destination
+                for destination in result
+                if destination["destinationName"].startswith(destination_name_prefix)
+            ]
+
         return result, next_token
 
     def put_destination_policy(self, destination_name: str, access_policy: str) -> None:
