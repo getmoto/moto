@@ -96,7 +96,7 @@ Serialized = MutableMapping[str, Any]
 COMMON_ERROR_CODES = [
     "InvalidParameterCombination",
     "InvalidParameterValue",
-    "ValidationError",
+    "ValidationException",
 ]
 
 

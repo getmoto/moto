@@ -259,7 +259,7 @@ class ElasticMapReduceResponse(BaseResponse):
                     "Only one AMI version and release label may be specified. "
                     "Provided AMI: {0}, release label: {1}."
                 ).format(ami_version, release_label)
-                raise ValidationException(message=message)
+                raise ValidationException(message)
         else:
             if ami_version:
                 kwargs["requested_ami_version"] = ami_version
@@ -274,10 +274,10 @@ class ElasticMapReduceResponse(BaseResponse):
                 ReleaseLabel(release_label) < ReleaseLabel("emr-5.7.0")
             ):
                 message = "Custom AMI is not allowed"
-                raise ValidationException(message=message)
+                raise ValidationException(message)
             elif ami_version:
                 message = "Custom AMI is not supported in this version of EMR"
-                raise ValidationException(message=message)
+                raise ValidationException(message)
 
         step_concurrency_level = self._get_param("StepConcurrencyLevel")
         if step_concurrency_level:

@@ -10,6 +10,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
 from moto.ec2.models.instances import Instance as EC2Instance
 from moto.emr.exceptions import (
+    InvalidCluster,
     InvalidRequestException,
     ResourceNotFoundException,
     ValidationException,
@@ -925,7 +926,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def describe_cluster(self, cluster_id: str) -> Cluster:
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
-        raise ResourceNotFoundException("")
+        raise InvalidCluster(cluster_id)
 
     def get_instance_groups(self, instance_group_ids: List[str]) -> List[InstanceGroup]:
         return [
@@ -1146,15 +1147,15 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def get_security_configuration(self, name: str) -> SecurityConfiguration:
         if name not in self.security_configurations:
-            raise InvalidRequestException(
-                message=f"Security configuration with name '{name}' does not exist."
+            raise ResourceNotFoundException(
+                f"Security configuration with name '{name}' does not exist."
             )
         return self.security_configurations[name]
 
     def delete_security_configuration(self, name: str) -> None:
         if name not in self.security_configurations:
-            raise InvalidRequestException(
-                message=f"Security configuration with name '{name}' does not exist."
+            raise ResourceNotFoundException(
+                f"Security configuration with name '{name}' does not exist."
             )
         del self.security_configurations[name]
 
