@@ -67,7 +67,7 @@ class FakeListener(BaseModel):
         return self.protocol
 
     def __repr__(self) -> str:
-        return f"FakeListener(lbp: {self.load_balancer_port}, inp: {self.instance_port}, pro: {self.instance_protocol}, cid: {self.ssl_certificate_id}, policies: {self.policy_names})"
+        return f"FakeListener(lbp: {self.load_balancer_port}, inp: {self.instance_port}, pro: {self.protocol}, cid: {self.ssl_certificate_id}, policies: {self.policy_names})"
 
 
 class FakeBackend(BaseModel):
