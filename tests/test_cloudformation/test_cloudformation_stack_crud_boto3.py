@@ -2724,24 +2724,30 @@ def test_create_change_set_w_previous_template_faillures(error_message, kwargs):
     [
         (
             [
-                {"ParameterKey": "Name", "ParameterValue": "test-bucket-2"},
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
                 {"ParameterKey": "Another", "ParameterValue": "B"},
             ],
-            ["test-bucket-2", "B"],
+            ["SomeOtherValue", "B"],
         ),
         (
             [
-                {"ParameterKey": "Name", "ParameterValue": "test-bucket-2"},
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
                 {"ParameterKey": "Another", "UsePreviousValue": True},
             ],
-            ["test-bucket-2", "A"],
+            ["SomeOtherValue", "A"],
+        ),
+        (
+            [
+                {"ParameterKey": "Name", "UsePreviousValue": True},
+                {"ParameterKey": "Another", "ParameterValue": "B"},
+            ],
+            ["SomeValue", "B"],
         ),
     ],
-    ids=["all_new_values", "some_new_values"],
+    ids=["all_new_values", "some_new_values", "reuse_default_value"],
 )
 def test_create_change_set_w_previous_template_success(params_list, updated_params):
     stack_name = "stack-name"
-    bucket_name = "test-bucket"
     change_set_name = "test-change-set"
 
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
@@ -2749,7 +2755,6 @@ def test_create_change_set_w_previous_template_success(params_list, updated_para
         StackName=stack_name,
         TemplateBody=json.dumps(dummy_template_with_parameters),
         Parameters=[
-            {"ParameterKey": "Name", "ParameterValue": bucket_name},
             {"ParameterKey": "Another", "ParameterValue": "A"},
         ],
     )
@@ -2775,7 +2780,74 @@ def test_create_change_set_w_previous_template_success(params_list, updated_para
     stacks = cf.describe_stacks(StackName=stack_name)["Stacks"]
     assert len(stacks) == 1
     stack = stacks[0]
-    assert [param["ParameterValue"] for param in stack["Parameters"]] == updated_params
+    param_list = [param["ParameterValue"] for param in stack["Parameters"]]
+    assert param_list == updated_params
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "params_list, updated_params",
+    [
+        (
+            [
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
+                {"ParameterKey": "Another", "ParameterValue": "B"},
+            ],
+            ["SomeOtherValue", "B"],
+        ),
+        (
+            [
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
+                {"ParameterKey": "Another", "UsePreviousValue": True},
+            ],
+            ["SomeOtherValue", "A"],
+        ),
+        (
+            [
+                {"ParameterKey": "Name", "UsePreviousValue": True},
+                {"ParameterKey": "Another", "ParameterValue": "B"},
+            ],
+            ["SomeValue", "B"],
+        ),
+    ],
+    ids=["all_new_values", "some_new_values", "reuse_default_value"],
+)
+def test_create_change_set(params_list, updated_params):
+    stack_name = "stack-name"
+    change_set_name = "test-change-set"
+
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(
+        StackName=stack_name,
+        TemplateBody=json.dumps(dummy_template_with_parameters),
+        Parameters=[
+            {"ParameterKey": "Another", "ParameterValue": "A"},
+        ],
+    )
+    cf.create_change_set(
+        StackName=stack_name,
+        TemplateBody=json.dumps(dummy_template_with_parameters),
+        ChangeSetName=change_set_name,
+        ChangeSetType="UPDATE",
+        Parameters=params_list,
+    )
+
+    change_set = cf.describe_change_set(ChangeSetName=change_set_name)
+    assert change_set["ChangeSetName"] == change_set_name
+    assert change_set["StackName"] == stack_name
+
+    cf.execute_change_set(ChangeSetName=change_set_name)
+
+    change_set = cf.describe_change_set(ChangeSetName=change_set_name)
+    assert change_set["ChangeSetName"] == change_set_name
+    assert change_set["StackName"] == stack_name
+    assert change_set["ExecutionStatus"] == "EXECUTE_COMPLETE"
+
+    stacks = cf.describe_stacks(StackName=stack_name)["Stacks"]
+    assert len(stacks) == 1
+    stack = stacks[0]
+    param_list = [param["ParameterValue"] for param in stack["Parameters"]]
+    assert param_list == updated_params
 
 
 def get_role_name():
