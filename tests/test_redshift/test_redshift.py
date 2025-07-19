@@ -617,7 +617,7 @@ def test_describe_non_existent_subnet_group_boto3():
     with pytest.raises(ClientError) as ex:
         client.describe_cluster_subnet_groups(ClusterSubnetGroupName="my_subnet")
     err = ex.value.response["Error"]
-    assert err["Code"] == "ClusterSubnetGroupNotFound"
+    assert err["Code"] == "ClusterSubnetGroupNotFoundFault"
     assert err["Message"] == "Subnet group my_subnet not found."
 
 
