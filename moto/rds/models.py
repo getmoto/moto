@@ -76,7 +76,7 @@ from .exceptions import (
     InvalidSubnet,
     KMSKeyNotAccessibleFault,
     OptionGroupNotFoundFaultError,
-    RDSClientError,
+    RDSClientError,  # TODO: Refactor into specific exceptions
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
     SourceDatabaseNotSupportedFault,
@@ -3155,7 +3155,7 @@ class RDSBackend(BaseBackend):
         db_parameter_group_id = db_parameter_group_kwargs["db_parameter_group_name"]
         if db_parameter_group_id in self.db_parameter_groups:
             raise RDSClientError(
-                "DBParameterGroupAlreadyExistsFault",
+                "DBParameterGroupAlreadyExists",
                 f"A DB parameter group named {db_parameter_group_id} already exists.",
             )
         if not db_parameter_group_kwargs.get("description"):
