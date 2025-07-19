@@ -80,9 +80,6 @@ class FakeBackend(BaseModel):
 
 
 class LoadBalancer(CloudFormationModel):
-    class Meta:
-        serialization_aliases = {"Instances": "ec2_instances"}
-
     def __init__(
         self,
         account_id: str,
@@ -137,7 +134,7 @@ class LoadBalancer(CloudFormationModel):
         return {"OwnerAlias": self.account_id, "GroupName": "default"}
 
     @property
-    def ec2_instances(self) -> list[dict[str, str]]:
+    def instances(self) -> list[dict[str, str]]:
         return [{"InstanceId": id_} for id_ in self.instance_ids]
 
     @property
