@@ -20,7 +20,7 @@ class SNSResponse(BaseResponse):
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "ListTagsForResourceResponse.Tags": transform_tags,  # TODO: transform shape TagList
+        "ListTagsForResourceResponse.Tags": transform_tags,
     }
 
     def __init__(self) -> None:
