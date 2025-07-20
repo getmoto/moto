@@ -494,3 +494,12 @@ class ElasticMapReduceResponse(BaseResponse):
             ),
         )
         return EmptyResult()
+
+    def list_release_labels(self) -> ActionResult:
+        release_labels = self.backend.list_release_labels()
+        return ActionResult({"ReleaseLabels": release_labels})
+
+    def list_supported_instance_types(self) -> ActionResult:
+        release_label = self._get_param("ReleaseLabel")
+        instance_types = self.backend.list_supported_instance_types(release_label)
+        return ActionResult({"SupportedInstanceTypes": instance_types})
