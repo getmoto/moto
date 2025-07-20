@@ -40051,7 +40051,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -40329,7 +40329,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -40577,7 +40577,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -40891,7 +40891,7 @@
    "NvmeSupport": "required"
   },
   "FreeTierEligible": false,
-  "HibernationSupported": false,
+  "HibernationSupported": true,
   "Hypervisor": "nitro",
   "InstanceStorageInfo": {
    "Disks": [
@@ -73278,7 +73278,8 @@
   },
   "RebootMigrationSupport": "unsupported",
   "SupportedBootModes": [
-   "legacy-bios"
+   "legacy-bios",
+   "uefi"
   ],
   "SupportedRootDeviceTypes": [
    "ebs"
@@ -74020,7 +74021,7 @@
      "MemoryInfo": {
       "SizeInMiB": 183359
      },
-     "Name": "NVIDIA"
+     "Name": "B200"
     }
    ],
    "TotalGpuMemoryInMiB": 1466872
