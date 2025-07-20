@@ -389,6 +389,19 @@ class RDSResponse(BaseResponse):
         result = {"DBParameterGroupName": db_parameter_group.name}
         return ActionResult(result)
 
+    def modify_db_cluster_parameter_group(self) -> ActionResult:
+        db_parameter_group_name = self.parameters.get("DBClusterParameterGroupName")
+        param_list = self.parameters.get("Parameters", [])
+        # Raw dict is stored on the backend, so we need the original PascalCase items.
+        db_parameter_group_parameters = [
+            dict(param.original_items()) for param in param_list
+        ]
+        db_parameter_group = self.backend.modify_db_cluster_parameter_group(
+            db_parameter_group_name, db_parameter_group_parameters
+        )
+        result = {"DBClusterParameterGroupName": db_parameter_group.name}
+        return ActionResult(result)
+
     def describe_db_parameters(self) -> ActionResult:
         db_parameter_group_name = self.parameters.get("DBParameterGroupName")
         db_parameter_groups = self.backend.describe_db_parameter_groups(
@@ -406,9 +419,10 @@ class RDSResponse(BaseResponse):
         return ActionResult(db_parameter_group)
 
     def describe_db_cluster_parameters(self) -> ActionResult:
-        # TODO: This never worked at all...
-        db_parameter_group_name = self.parameters.get("DBParameterGroupName")
-        db_parameter_groups = self.backend.describe_db_cluster_parameters()
+        db_parameter_group_name = self.parameters.get("DBClusterParameterGroupName")
+        db_parameter_groups = self.backend.describe_db_cluster_parameters(
+            db_parameter_group_name
+        )
         if db_parameter_groups is None:
             raise DBParameterGroupNotFoundError(db_parameter_group_name)
         result = {"Parameters": db_parameter_groups}
