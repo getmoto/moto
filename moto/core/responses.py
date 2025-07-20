@@ -20,6 +20,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from xml.dom.minidom import parseString as parseXML
@@ -506,9 +507,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
 
-        self.params = XFormedDict()  # type: ignore[no-untyped-call]
         if self.advanced_request_parsing:
-            self.params = self.parse_parameters(request)
+            self.parse_parameters(request)
 
         # Register visit with IAM
         from moto.iam.models import mark_account_as_visited
@@ -637,7 +637,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # get action from method and uri
         return self._get_action_from_method_and_request_uri(self.method, self.raw_path)
 
-    def parse_parameters(self, request: Any) -> XFormedDict:
+    def parse_parameters(self, request: Any) -> None:
         from botocore.awsrequest import AWSPreparedRequest
         from werkzeug import Request
 
@@ -651,7 +651,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         parsed = parser.parse(
             {"query_params": normalized_request.values}, operation_model
         )  # type: ignore[no-untyped-call]
-        return parsed
+        self.params = cast(Any, parsed)
 
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
