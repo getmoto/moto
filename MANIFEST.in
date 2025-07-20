@@ -7,6 +7,7 @@ include moto/ec2/resources/instance_type_offerings/*/*.json
 include moto/ec2/resources/latest_amis/*.json
 include moto/ec2/resources/amis.json
 include moto/ec2/resources/ecs/optimized_amis/*.json
+include moto/emr/resources/*.json
 include moto/cognitoidp/resources/*.json
 include moto/dynamodb/parsing/reserved_keywords.txt
 include moto/moto_api/_internal/*
