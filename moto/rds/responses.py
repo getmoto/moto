@@ -1,36 +1,20 @@
 from typing import Any, List, Optional, Tuple
 
-from botocore.awsrequest import AWSPreparedRequest
-from werkzeug.wrappers import Request
-
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse
-from moto.core.utils import get_service_model
 from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError
 from .models import RDSBackend, rds_backends
-from .parser import QueryParser, XFormedDict
-
-
-def normalize_request(request: AWSPreparedRequest) -> Request:
-    from urllib.parse import urlparse
-
-    parsed_url = urlparse(request.url)
-    normalized_request = Request.from_values(
-        method=request.method,
-        base_url=f"{parsed_url.scheme}://{parsed_url.netloc}",
-        path=parsed_url.path,
-        query_string=parsed_url.query,
-        data=request.body,
-        headers=[(k, v) for k, v in request.headers.items()],
-    )
-    return normalized_request
 
 
 class RDSResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="rds")
+        self.advanced_request_parsing = True
+
+    @property
+    def parameters(self):
+        return self.params
 
     @property
     def backend(self) -> RDSBackend:
@@ -40,24 +24,6 @@ class RDSResponse(BaseResponse):
     def global_backend(self) -> RDSBackend:
         """Return backend instance of the region that stores Global Clusters"""
         return rds_backends[self.current_account]["us-east-1"]
-
-    def _dispatch(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-
-        if isinstance(request, AWSPreparedRequest):
-            request = normalize_request(request)
-
-        self.action = request.values["Action"]
-
-        service_model = get_service_model(self.service_name)
-        self.operation_model = service_model.operation_model(self.action)
-
-        parser = QueryParser(map_type=XFormedDict)  # type: ignore[no-untyped-call]
-        self.parameters = parser.parse(
-            {"query_params": request.values},
-            self.operation_model,  # type: ignore[no-untyped-call]
-        )
-        return self.call_action()
 
     def create_db_instance(self) -> ActionResult:
         db_kwargs = self.parameters
