@@ -112,6 +112,8 @@ class SerializationContext:
 
 
 class ErrorShape(StructureShape):
+    _shape_model: dict[str, Any]
+
     # Overriding super class property to keep mypy happy...
     @property
     def error_code(self) -> str:
@@ -659,7 +661,7 @@ class BaseXMLSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        at_fault = shape.metadata.get("error", {}).get("fault", False)
+        at_fault = shape._shape_model.get("fault", False)
         sender_fault = shape.metadata.get("error", {}).get("senderFault", False)
         serialized["Type"] = "Receiver" if (at_fault and not sender_fault) else "Sender"
         serialized["Code"] = shape.error_code
