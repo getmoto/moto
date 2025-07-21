@@ -10,7 +10,7 @@ from .models import RDSBackend, rds_backends
 class RDSResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="rds")
-        self.advanced_request_parsing = True
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> RDSBackend:

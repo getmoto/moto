@@ -352,7 +352,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         super().__init__()
         self.service_name = service_name
         self.allow_request_decompression = True
-        self.advanced_request_parsing = False
+        self.automated_parameter_parsing = False
 
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
@@ -507,7 +507,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
 
-        if self.advanced_request_parsing:
+        if self.automated_parameter_parsing:
             self.parse_parameters(request)
 
         # Register visit with IAM
