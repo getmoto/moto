@@ -1,5 +1,5 @@
 from moto.core.responses import ActionResult
-from moto.ec2.utils import utc_date_and_time
+from moto.core.utils import utcnow
 
 from ._base_response import EC2BaseResponse
 
@@ -19,9 +19,9 @@ class Windows(EC2BaseResponse):
     def get_password_data(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
         password_data = self.ec2_backend.get_password_data(instance_id)
-        result = dict(
-            InstanceId=instance_id,
-            Timestamp=utc_date_and_time(),
-            PasswordData=password_data,
-        )
+        result = {
+            "InstanceId": instance_id,
+            "Timestamp": utcnow(),
+            "PasswordData": password_data,
+        }
         return ActionResult(result)
