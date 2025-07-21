@@ -20,6 +20,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from xml.dom.minidom import parseString as parseXML
@@ -33,6 +34,8 @@ from werkzeug.exceptions import HTTPException
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
+from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
+from moto.core.request import normalize_request
 from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -349,6 +352,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         super().__init__()
         self.service_name = service_name
         self.allow_request_decompression = True
+        self.automated_parameter_parsing = False
 
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
@@ -503,6 +507,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
 
+        if self.automated_parameter_parsing:
+            self.parse_parameters(request)
+
         # Register visit with IAM
         from moto.iam.models import mark_account_as_visited
 
@@ -629,6 +636,22 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             return match.split(".")[-1]
         # get action from method and uri
         return self._get_action_from_method_and_request_uri(self.method, self.raw_path)
+
+    def parse_parameters(self, request: Any) -> None:
+        from botocore.awsrequest import AWSPreparedRequest
+        from werkzeug import Request
+
+        assert isinstance(request, (AWSPreparedRequest, Request)), str(request)
+        normalized_request = normalize_request(request)
+        service_model = get_service_model(self.service_name)
+        operation_model = service_model.operation_model(self._get_action())
+        protocol = service_model.protocol
+        parser_cls = PROTOCOL_PARSERS[protocol]
+        parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
+        parsed = parser.parse(
+            {"query_params": normalized_request.values}, operation_model
+        )  # type: ignore[no-untyped-call]
+        self.params = cast(Any, parsed)
 
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
