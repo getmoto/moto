@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Tuple
 
-from moto.core.responses import ActionResult
+from moto.core.responses import ActionResult, EmptyResult
 
 from ._base_response import EC2BaseResponse
 
@@ -183,7 +183,7 @@ class SecurityGroups(EC2BaseResponse):
         elif sg_id:
             self.ec2_backend.delete_security_group(group_id=sg_id)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_security_groups(self) -> ActionResult:
         groupnames = self._get_multi_param("GroupName")
@@ -241,11 +241,11 @@ class SecurityGroups(EC2BaseResponse):
             # we don't need this parameter to revoke
             del args["sgrule_tags"]
             self.ec2_backend.update_security_group_rule_descriptions_ingress(**args)
-        return ActionResult({})
+        return EmptyResult()
 
     def update_security_group_rule_descriptions_egress(self) -> ActionResult:
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke
             del args["sgrule_tags"]
             self.ec2_backend.update_security_group_rule_descriptions_egress(**args)
-        return ActionResult({})
+        return EmptyResult()
