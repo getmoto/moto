@@ -398,7 +398,7 @@ def parse_and_create_resource(
     resource = resource_class.create_from_cloudformation_json(
         resource_physical_name, resource_json, account_id, region_name, **kwargs
     )
-    resource.type = resource_type
+    resource.resource_type = resource_type
     resource.logical_resource_id = logical_id
     return resource
 
@@ -427,7 +427,7 @@ def parse_and_update_resource(
             account_id=account_id,
             region_name=region_name,
         )
-        new_resource.type = resource_json["Type"]
+        new_resource.resource_type = resource_json["Type"]
         new_resource.logical_resource_id = logical_id
         return new_resource
     else:
