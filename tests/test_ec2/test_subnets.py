@@ -483,7 +483,7 @@ def test_describe_subnet_response_fields():
     assert "State" in subnet
     assert "SubnetId" in subnet
     assert "VpcId" in subnet
-    assert "Tags" not in subnet
+    assert subnet["Tags"] == []
     assert subnet["DefaultForAz"] is False
     assert subnet["MapPublicIpOnLaunch"] is False
     assert "OwnerId" in subnet
@@ -600,7 +600,7 @@ def test_create_subnets_with_multiple_vpc_cidr_blocks():
         assert "State" in subnet
         assert "SubnetId" in subnet
         assert "VpcId" in subnet
-        assert "Tags" not in subnet
+        assert subnet["Tags"] == []
         assert subnet["DefaultForAz"] is False
         assert subnet["MapPublicIpOnLaunch"] is False
         assert "OwnerId" in subnet
