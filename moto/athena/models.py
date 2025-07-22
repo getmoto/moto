@@ -140,16 +140,27 @@ class QueryResults(BaseModel):
         }
 
 
-class CapacityReservation(BaseModel):
+class CapacityReservation(TaggableResourceMixin, BaseModel):
     def __init__(
         self,
+        athena_backend: "AthenaBackend",
         name: str,
         target_dpus: int,
-        tags: Optional[List[Dict[str, str]]] = None
+        tags: List[Dict[str, str]],
     ):
+        self.region_name = athena_backend.region_name
+        super().__init__(
+            athena_backend.account_id,
+            self.region_name,
+            f"capacityreservation/{name}",
+            tags,
+        )
+        self.athena_backend = athena_backend
         self.name = name
         self.target_dpus = target_dpus
+        self.create_tags(tags)
         self.tags = tags
+
 
 class NamedQuery(BaseModel):
     def __init__(
@@ -382,21 +393,15 @@ class AthenaBackend(BaseBackend):
     def create_capacity_reservation(
         self,
         name: str,
-        target_dpus:int,
+        target_dpus: int,
         tags: List[Dict[str, str]],
     ) -> None:
-        cr = CapacityReservation(
-            name=name,
-            target_dpus=target_dpus,
-            tags=tags
-        )
-        #TODO: Need some validations
+        cr = CapacityReservation(self, name, target_dpus, tags)
         self.capacity_reservations[cr.name] = cr
         return None
-        
 
     def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
-        return self.capacity_reservations[name] if name in self.capacity_reservations else None
+        return self.capacity_reservations.get(name)
 
     def create_named_query(
         self,
