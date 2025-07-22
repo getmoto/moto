@@ -394,7 +394,7 @@ class StackInstances(BaseModel):
 class Stack(CloudFormationModel):
     class Meta:
         serialization_aliases = {
-            "Parameters": "stack_parameters",
+            "Parameters": "parameter_list",
         }
 
     def __init__(
@@ -502,7 +502,7 @@ class Stack(CloudFormationModel):
             return json.loads(template)
 
     @property
-    def stack_parameters(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
+    def parameter_list(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
         parameters = [
             {
                 "ParameterKey": k,
@@ -513,6 +513,10 @@ class Stack(CloudFormationModel):
             for k, v in self.resource_map.resolved_parameters.items()
         ]
         return parameters
+
+    @property
+    def stack_parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return self.resource_map.resolved_parameters
 
     @property
     def stack_resources(self) -> Iterable[Type[CloudFormationModel]]:

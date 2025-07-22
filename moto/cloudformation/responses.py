@@ -22,7 +22,7 @@ class StackResourceDTO:
         # FIXME: None of these attributes are part of CloudFormationModel interface...
         self.logical_resource_id = getattr(resource, "logical_resource_id", None)
         self.physical_resource_id = getattr(resource, "physical_resource_id", None)
-        self.resource_type = getattr(resource, "type", None)
+        self.resource_type = getattr(resource, "resource_type", None)
         self.stack_status = stack.status
         self.creation_time = stack.creation_time
         self.timestamp = "2010-07-27T22:27:28Z"  # Hardcoded in original XML template.
@@ -367,7 +367,7 @@ class CloudFormationResponse(BaseResponse):
                     "LogicalResourceId": getattr(resource, "logical_resource_id", ""),
                     "LastUpdateTimestamp": "2011-06-21T20:15:58Z",
                     "PhysicalResourceId": getattr(resource, "physical_resource_id", ""),
-                    "ResourceType": getattr(resource, "type", ""),
+                    "ResourceType": getattr(resource, "resource_type", ""),
                 }
                 for resource in resources
             ]
