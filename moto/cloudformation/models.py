@@ -546,6 +546,10 @@ class Stack(CloudFormationModel):
     def exports(self) -> List[Export]:
         return self.output_map.exports
 
+    @property
+    def template_description(self) -> Optional[str]:
+        return self.template_dict.get("Description")
+
     def add_custom_resource(self, custom_resource: CustomModel) -> None:
         self.custom_resources[custom_resource.logical_id] = custom_resource
 

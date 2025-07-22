@@ -41,15 +41,6 @@ class StackSetOperationDTO:
         self.status = operation["Status"]
 
 
-class StackSummaryDTO:
-    def __init__(self, stack: Stack) -> None:
-        self.stack_id = stack.stack_id
-        self.stack_status = stack.status
-        self.stack_name = stack.name
-        self.creation_time = stack.creation_time
-        self.template_description = stack.description
-
-
 def get_template_summary_response_from_template(template_body: str) -> Dict[str, Any]:
     def get_resource_types(template_dict: Dict[str, Any]) -> List[Any]:
         resources = {}
@@ -353,7 +344,7 @@ class CloudFormationResponse(BaseResponse):
     def list_stacks(self) -> ActionResult:
         status_filter = self._get_multi_param("StackStatusFilter.member")
         stacks = self.cloudformation_backend.list_stacks(status_filter)
-        result = {"StackSummaries": [StackSummaryDTO(stack) for stack in stacks]}
+        result = {"StackSummaries": stacks}
         return ActionResult(result)
 
     def list_stack_resources(self) -> ActionResult:
