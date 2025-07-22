@@ -11,7 +11,13 @@ from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.s3.exceptions import S3ClientError
 
 from .exceptions import MissingParameterError, ValidationError
-from .models import CloudFormationBackend, Stack, StackSet, cloudformation_backends
+from .models import (
+    Change,
+    CloudFormationBackend,
+    Stack,
+    StackSet,
+    cloudformation_backends,
+)
 from .utils import get_stack_from_s3_url, yaml_tag_constructor
 
 
@@ -39,6 +45,12 @@ class StackSetOperationDTO:
         self.action = operation["Action"]
         self.end_timestamp = operation.get("EndTimestamp", None)
         self.status = operation["Status"]
+
+
+class ChangeDTO:
+    def __init__(self, change: Change) -> None:
+        self.type = "Resource"
+        self.resource_change = change
 
 
 def get_template_summary_response_from_template(template_body: str) -> Dict[str, Any]:
@@ -80,33 +92,28 @@ def get_template_summary_response_from_template(template_body: str) -> Dict[str,
     return template_dict
 
 
+def transform_dict(
+    data: dict[str, str], key_for_key: str = "Key", key_for_value: str = "Value"
+) -> list[dict[str, str]]:
+    transformed = [
+        {key_for_key: key, key_for_value: value} for key, value in data.items()
+    ]
+    return transformed
+
+
+def transform_parameters(data: dict[str, str]) -> list[dict[str, str]]:
+    return transform_dict(
+        data, key_for_key="ParameterKey", key_for_value="ParameterValue"
+    )
+
+
 class CloudFormationResponse(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "DescribeChangeSetOutput.Changes": lambda x: [
-            {"Type": "Resource", "ResourceChange": c} for c in x
-        ]
-        if x
-        else [],
-        "DescribeChangeSetOutput.Parameters": lambda x: [
-            {"ParameterKey": k, "ParameterValue": v} for k, v in x.items()
-        ]
-        if x
-        else [],
-        "DescribeStackSetOutput.StackSet.Parameters": lambda x: [
-            {"ParameterKey": k, "ParameterValue": v} for k, v in x.items()
-        ]
-        if x
-        else [],
-        "DescribeStackSetOutput.StackSet.Tags": lambda x: [
-            {"Key": k, "Value": v} for k, v in x.items()
-        ]
-        if x
-        else [],
-        "DescribeStacksOutput.Stacks.Stack.Tags": lambda x: [
-            {"Key": k, "Value": v} for k, v in x.items()
-        ]
-        if x
-        else [],
+        "DescribeChangeSetOutput.Changes": lambda x: [ChangeDTO(c) for c in x],
+        "DescribeChangeSetOutput.Parameters": transform_parameters,
+        "DescribeStackSetOutput.StackSet.Parameters": transform_parameters,
+        "DescribeStackSetOutput.StackSet.Tags": transform_dict,
+        "DescribeStacksOutput.Stacks.Stack.Tags": transform_dict,
     }
 
     def __init__(self) -> None:
