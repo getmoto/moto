@@ -907,7 +907,7 @@ DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
       <StackName>{{ stack.name }}</StackName>
       <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
       <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-      <ResourceType>{{ resource.type }}</ResourceType>
+      <ResourceType>{{ resource.resource_type }}</ResourceType>
       <Timestamp>2010-07-27T22:27:28Z</Timestamp>
       <ResourceStatus>{{ stack.status }}</ResourceStatus>
     </StackResourceDetail>
@@ -923,7 +923,7 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
           <StackName>{{ stack.name }}</StackName>
           <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
           <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-          <ResourceType>{{ resource.type }}</ResourceType>
+          <ResourceType>{{ resource.resource_type }}</ResourceType>
           <Timestamp>2010-07-27T22:27:28Z</Timestamp>
           <ResourceStatus>{{ stack.status }}</ResourceStatus>
         </member>
@@ -1001,7 +1001,7 @@ LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
         <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
         <LastUpdatedTimestamp>2011-06-21T20:15:58Z</LastUpdatedTimestamp>
         <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-        <ResourceType>{{ resource.type }}</ResourceType>
+        <ResourceType>{{ resource.resource_type }}</ResourceType>
       </member>
       {% endfor %}
     </StackResourceSummaries>
