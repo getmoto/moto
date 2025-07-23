@@ -91,7 +91,8 @@ class LambdaResponse(BaseResponse):
     def invoke_async(self) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
         response_headers: Dict[str, Any] = {}
 
-        function_name = unquote(self.path.rsplit("/", 3)[-3])
+        function_index = -3 if self.path.endswith("/") else -2
+        function_name = unquote(self.path.rsplit("/", 3)[function_index])
 
         fn = self.backend.get_function(function_name, None)
         payload = fn.invoke(self.body, self.headers, response_headers)
