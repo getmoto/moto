@@ -104,6 +104,7 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
             # Terraform 5.51+ makes a request to /rrset - so we have to intercept both variants
             request_uri += "?"
         if service_name == "lambda":
+            # Several operations have inconsistent trailing slashes across Botocore versions.
             affected_operations = [
                 "CreateEventSourceMapping",
                 "CreateFunction",
@@ -112,10 +113,7 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
                 "ListFunctions",
             ]
             if op_name in affected_operations:
-                if request_uri.endswith("/"):
-                    request_uri += "?"
-                else:
-                    request_uri += "/?"
+                request_uri += "?" if request_uri.endswith("/") else "/?"
         if service_name == "opensearch" and request_uri.endswith("/tags/"):
             # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
