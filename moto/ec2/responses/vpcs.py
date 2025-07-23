@@ -1,6 +1,6 @@
 from typing import List
 
-from moto.core.responses import ActionResult
+from moto.core.responses import ActionResult, EmptyResult
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import add_tag_specification
 
@@ -42,7 +42,7 @@ class VPCs(EC2BaseResponse):
     def delete_vpc(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
         self.ec2_backend.delete_vpc(vpc_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_vpcs(self) -> ActionResult:
         self.error_on_dryrun()
@@ -56,7 +56,7 @@ class VPCs(EC2BaseResponse):
         vpc_id = self._get_param("VpcId")
         tenancy = self._get_param("InstanceTenancy")
         self.ec2_backend.modify_vpc_tenancy(vpc_id, tenancy)
-        return ActionResult({})
+        return EmptyResult()
 
     def describe_vpc_attribute(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
@@ -128,7 +128,7 @@ class VPCs(EC2BaseResponse):
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self.querystring[f"{attribute}.Value"][0]
                 self.ec2_backend.modify_vpc_attribute(vpc_id, attr_name, attr_value)
-        return ActionResult({})
+        return EmptyResult()
 
     def associate_vpc_cidr_block(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
