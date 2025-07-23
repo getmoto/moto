@@ -108,6 +108,7 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
                 "CreateEventSourceMapping",
                 "CreateFunction",
                 "InvokeAsync",
+                "ListEventSourceMappings",
                 "ListFunctions",
             ]
             if op_name in affected_operations:
