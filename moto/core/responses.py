@@ -110,6 +110,8 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
             elif request_uri.endswith("/functions/"):
                 # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
                 request_uri += "?"
+            elif request_uri.endswith("/functions"):
+                request_uri += "/?"
         if service_name == "opensearch" and request_uri.endswith("/tags/"):
             # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
