@@ -107,6 +107,8 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
             if request_uri.endswith("/event-source-mappings/"):
                 # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
                 request_uri += "?"
+            elif request_uri.endswith("/event-source-mappings"):
+                request_uri += "/?"
             elif request_uri.endswith("/functions/"):
                 # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
                 request_uri += "?"
