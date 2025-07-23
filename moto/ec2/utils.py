@@ -531,6 +531,11 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
     if filter_value is None:
         return False
 
+    if isinstance(value, bool):
+        if str(value).lower() in filter_value:
+            return True
+        return False
+
     if isinstance(value, str):
         if not isinstance(filter_value, list):
             filter_value = [filter_value]

@@ -13,6 +13,10 @@ class TaggedEC2Resource(BaseModel):
         return tags
 
     @property
+    def tag_list(self) -> list[dict[str, str]]:
+        return self.tag_set
+
+    @property
     def tag_set(self) -> list[dict[str, str]]:
         return self.get_tags()
 

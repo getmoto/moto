@@ -1101,7 +1101,7 @@ def test_describe_vpc_interface_end_points():
     assert our_endpoint["PrivateDnsEnabled"] is True
 
     assert our_endpoint["VpcId"] == vpc["VpcId"]
-    assert "RouteTableIds" not in our_endpoint
+    assert our_endpoint["RouteTableIds"] == []
 
     assert our_endpoint["DnsEntries"] == vpc_end_point["DnsEntries"]
 
@@ -1114,7 +1114,7 @@ def test_describe_vpc_interface_end_points():
     ][0]
     assert endpoint_by_id["VpcEndpointId"] == our_id
     assert endpoint_by_id["VpcId"] == vpc["VpcId"]
-    assert "RouteTableIds" not in endpoint_by_id
+    assert endpoint_by_id["RouteTableIds"] == []
     assert endpoint_by_id["VpcEndpointType"] == "interface"
     assert endpoint_by_id["ServiceName"] == "com.tester.my-test-endpoint"
     assert endpoint_by_id["State"] == "available"
@@ -1171,7 +1171,7 @@ def test_modify_vpc_endpoint():
 
     ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveRouteTableIds=[rt_id])
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
-    assert "RouteTableIds" not in endpoint
+    assert endpoint["RouteTableIds"] == []
 
     ec2.modify_vpc_endpoint(
         VpcEndpointId=vpc_id,

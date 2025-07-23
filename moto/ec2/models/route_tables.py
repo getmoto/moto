@@ -388,7 +388,7 @@ class RouteBackend:
 
         if vpc_endpoint_id:
             vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])  # type: ignore[attr-defined]
-            if not vpce[0].endpoint_type == "GatewayLoadBalancer":
+            if not vpce[0].vpc_endpoint_type == "GatewayLoadBalancer":
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_route.html
                 # VpcEndpointId (string) – The ID of a VPC endpoint. Supported for Gateway Load Balancer endpoints only.
                 raise RouteNotSupportedError(vpc_endpoint_id)
