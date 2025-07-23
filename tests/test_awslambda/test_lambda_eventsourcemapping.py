@@ -666,6 +666,11 @@ def test_delete_event_source_mapping():
 
 @mock_aws
 def test_event_source_mapping_tagging_lifecycle():
+    if LooseVersion(botocore_version) < LooseVersion("1.35.23"):
+        raise SkipTest(
+            "Tagging support for Lambda event source mapping is not available in older Botocore versions"
+        )
+
     iam = boto3.client("iam", region_name="us-east-1")
     iam_role = iam.create_role(RoleName="role", AssumeRolePolicyDocument="{}")
     client = boto3.client("lambda", region_name="us-east-1")
