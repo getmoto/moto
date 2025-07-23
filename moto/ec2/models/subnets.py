@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import ipaddress
 import itertools
 from collections import defaultdict
@@ -73,6 +75,25 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self.ipv6_native = False
 
     @property
+    def arn(self) -> str:
+        return f"arn:aws:ec2:{self.ec2_backend.region_name}:{self.owner_id}:subnet/{self.id}"
+
+    @property
+    def ipv6_cidr_block_association_set(self) -> List[Dict[str, str]]:
+        association_set = [
+            {
+                "ipv6CidrBlock": association["ipv6CidrBlock"],
+                "associationId": association["associationId"],
+                "ipv6CidrBlockState": {
+                    "state": association["ipv6CidrBlockState"],
+                },
+            }
+            for association in self.ipv6_cidr_block_associations.values()
+            if association["ipv6CidrBlockState"]["State"] == "associated"
+        ]
+        return association_set
+
+    @property
     def owner_id(self) -> str:
         return self.ec2_backend.account_id
 
@@ -125,7 +146,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         ec2_backends[account_id][region_name].delete_subnet(resource_name)
 
     @property
-    def available_ip_addresses(self) -> str:
+    def available_ip_address_count(self) -> int:
         enis = [
             eni
             for eni in self.ec2_backend.get_all_network_interfaces()
@@ -135,7 +156,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         for eni in enis:
             if eni.private_ip_addresses:
                 addresses_taken.extend(eni.private_ip_addresses)
-        return str(self._available_ip_addresses - len(addresses_taken))
+        return self._available_ip_addresses - len(addresses_taken)
 
     @property
     def availability_zone(self) -> str:
@@ -237,19 +258,22 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     def attach_ipv6_cidr_block_associations(
         self, ipv6_cidr_block: str
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         association = {
             "associationId": random_subnet_ipv6_cidr_block_association_id(),
             "ipv6CidrBlock": ipv6_cidr_block,
-            "ipv6CidrBlockState": "associated",
+            "ipv6CidrBlockState": {"State": "associated"},
         }
-        self.ipv6_cidr_block_associations[association["associationId"]] = association
+        self.ipv6_cidr_block_associations[str(association["associationId"])] = (
+            association
+        )
         return association
 
     def detach_subnet_cidr_block(self, association_id: str) -> Dict[str, Any]:
         association = self.ipv6_cidr_block_associations.get(association_id)
-        association["ipv6CidrBlockState"] = "disassociated"  # type: ignore[index]
-        return association  # type: ignore[return-value]
+        assert association is not None
+        association["ipv6CidrBlockState"] = {"State": "disassociated"}
+        return association
 
 
 class SubnetRouteTableAssociation(CloudFormationModel):
@@ -471,7 +495,7 @@ class SubnetBackend:
 
     def associate_subnet_cidr_block(
         self, subnet_id: str, ipv6_cidr_block: str
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Any]:
         subnet = self.get_subnet(subnet_id)
         if not subnet:
             raise InvalidSubnetIdError(subnet_id)
