@@ -22,8 +22,7 @@ class ValidationError(CloudFormationError):
     code = "ValidationError"
 
     def __init__(self, name_or_id: Optional[str] = None, message: Optional[str] = None):
-        # FIXME: This is an abomination.
-        #  The "stack does not exist" message should be provided by the caller, not here.
+        # FIXME: The "stack does not exist" message should be provided by the caller, not here.
         if message is None:
             message = f"Stack with id {name_or_id} does not exist"
         super().__init__(message)
