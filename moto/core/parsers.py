@@ -73,6 +73,29 @@ class QueryParser:
             i += 1
         return parsed_list if parsed_list != [] else UNDEFINED
 
+    def _handle_map(self, shape, query_params, prefix=""):
+        if self._is_shape_flattened(shape):
+            full_prefix = prefix
+        else:
+            full_prefix = f"{prefix}.entry"
+        template = full_prefix + ".{i}.{suffix}"
+        key_shape = shape.key
+        value_shape = shape.value
+        key_suffix = self._get_serialized_name(key_shape, default_name="key")
+        value_suffix = self._get_serialized_name(value_shape, "value")
+        parsed_map = self.MAP_TYPE()
+        i = 1
+        while True:
+            key_name = template.format(i=i, suffix=key_suffix)
+            value_name = template.format(i=i, suffix=value_suffix)
+            key = self._parse_shape(key_shape, query_params, key_name)
+            value = self._parse_shape(value_shape, query_params, value_name)
+            if key is UNDEFINED:
+                break
+            parsed_map[key] = value
+            i += 1
+        return parsed_map if parsed_map != {} else UNDEFINED
+
     def _handle_timestamp(self, shape, query_params, prefix=""):
         value = self._default_handle(shape, query_params, prefix)
         return value if value is UNDEFINED else self._timestamp_parser(value)
@@ -106,6 +129,9 @@ class QueryParser:
     def _parsed_key_name(self, member_name):
         key_name = member_name
         return key_name
+
+    def _is_shape_flattened(self, shape):
+        return shape.serialization.get("flattened")
 
 
 PROTOCOL_PARSERS = {
