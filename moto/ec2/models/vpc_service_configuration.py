@@ -28,7 +28,7 @@ class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
         self.gateway_load_balancer_arns = []
         self.network_load_balancer_arns = []
         for lb in load_balancers:
-            if lb.loadbalancer_type == "network":
+            if lb.type == "network":
                 self.service_type = "Interface"
                 self.network_load_balancer_arns.append(lb.arn)
             else:
