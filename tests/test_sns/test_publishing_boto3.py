@@ -220,7 +220,7 @@ def test_publish_to_sqs_bad():
             MessageAttributes={"store": {"DataType": "String"}},
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
     try:
         # Test empty DataType (if the DataType field is missing entirely
         # botocore throws an exception during validation)
@@ -232,7 +232,7 @@ def test_publish_to_sqs_bad():
             },
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
     try:
         # Test empty Value
         conn.publish(
@@ -241,7 +241,7 @@ def test_publish_to_sqs_bad():
             MessageAttributes={"store": {"DataType": "String", "StringValue": ""}},
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
     try:
         # Test Number DataType, with a non numeric value
         conn.publish(
@@ -250,7 +250,7 @@ def test_publish_to_sqs_bad():
             MessageAttributes={"price": {"DataType": "Number", "StringValue": "error"}},
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert err.response["Error"]["Message"] == (
             "An error occurred (ParameterValueInvalid) when calling the "
             "Publish operation: Could not cast message attribute 'price' "
@@ -2603,7 +2603,7 @@ def test_publish_with_message_structure_errors():
             MessageStructure="json",
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert err.response["Error"]["Message"] == "Message is not valid JSON."
 
     try:
@@ -2616,7 +2616,7 @@ def test_publish_with_message_structure_errors():
             MessageStructure="json",
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert (
             err.response["Error"]["Message"]
             == "Message does not contain sqs or default keys."
@@ -2628,7 +2628,7 @@ def test_publish_with_message_structure_errors():
             MessageStructure="no-json",
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert (
             err.response["Error"]["Message"]
             == "MessageStructure must be 'json' if provided"

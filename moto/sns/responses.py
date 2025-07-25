@@ -1,14 +1,17 @@
-import json
 import re
 from collections import defaultdict
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict
 
-from moto.core.responses import TYPE_RESPONSE, BaseResponse
+from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import camelcase_to_underscores
 
-from .exceptions import InvalidParameterValue, SNSNotFoundError
+from .exceptions import InvalidParameterValue, SNSInvalidParameter, SNSNotFoundError
 from .models import SNSBackend, sns_backends
 from .utils import is_e164
+
+
+def transform_tags(tags: dict[str, str]) -> list[dict[str, str]]:
+    return [{"Key": key, "Value": value} for key, value in tags.items()]
 
 
 class SNSResponse(BaseResponse):
@@ -16,6 +19,9 @@ class SNSResponse(BaseResponse):
         r"^attributes\.entry\.(?P<index>\d+)\.(?P<type>key|value)$"
     )
     OPT_OUT_PHONE_NUMBER_REGEX = re.compile(r"^\+?\d+$")
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "ListTagsForResourceResponse.Tags": transform_tags,
+    }
 
     def __init__(self) -> None:
         super().__init__(service_name="sns")
@@ -23,10 +29,6 @@ class SNSResponse(BaseResponse):
     @property
     def backend(self) -> SNSBackend:
         return sns_backends[self.current_account][self.region]
-
-    def _error(self, code: str, message: str, sender: str = "Sender") -> str:
-        template = self.response_template(ERROR_RESPONSE)
-        return template.render(code=code, message=message, sender=sender)
 
     def _get_attributes(self) -> Dict[str, str]:
         attributes = self._get_list_prefix("Attributes.entry")
@@ -100,125 +102,56 @@ class SNSResponse(BaseResponse):
 
         return transformed_message_attributes
 
-    def create_topic(self) -> str:
+    def create_topic(self) -> ActionResult:
         name = self._get_param("Name")
         attributes = self._get_attributes()
         tags = self._get_tags()
         topic = self.backend.create_topic(name, attributes, tags)
+        result = {"TopicArn": topic.arn}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreateTopicResponse": {
-                        "CreateTopicResult": {"TopicArn": topic.arn},
-                        "ResponseMetadata": {
-                            "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(CREATE_TOPIC_TEMPLATE)
-        return template.render(topic=topic)
-
-    def list_topics(self) -> str:
+    def list_topics(self) -> ActionResult:
         next_token = self._get_param("NextToken")
         topics, next_token = self.backend.list_topics(next_token=next_token)
+        result = {"Topics": topics, "NextToken": next_token}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListTopicsResponse": {
-                        "ListTopicsResult": {
-                            "Topics": [{"TopicArn": topic.arn} for topic in topics],
-                            "NextToken": next_token,
-                        }
-                    },
-                    "ResponseMetadata": {
-                        "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
-                    },
-                }
-            )
-
-        template = self.response_template(LIST_TOPICS_TEMPLATE)
-        return template.render(topics=topics, next_token=next_token)
-
-    def delete_topic(self) -> str:
+    def delete_topic(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         self.backend.delete_topic(topic_arn)
+        return EmptyResult()
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "DeleteTopicResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "a8dec8b3-33a4-11df-8963-01868b7c937a"
-                        }
-                    }
-                }
-            )
-
-        template = self.response_template(DELETE_TOPIC_TEMPLATE)
-        return template.render()
-
-    def get_topic_attributes(self) -> str:
+    def get_topic_attributes(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         topic = self.backend.get_topic(topic_arn)
+        attributes = {
+            "Owner": topic.account_id,
+            "Policy": topic.policy,
+            "TopicArn": topic.arn,
+            "DisplayName": topic.display_name,
+            "SubscriptionsPending": topic.subscriptions_pending,
+            "SubscriptionsConfirmed": topic.subscriptions_confimed,
+            "SubscriptionsDeleted": topic.subscriptions_deleted,
+            "DeliveryPolicy": topic.delivery_policy,
+            "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
+        }
+        if topic.kms_master_key_id:
+            attributes["KmsMasterKeyId"] = topic.kms_master_key_id
+        if topic.fifo_topic == "true":
+            attributes["FifoTopic"] = topic.fifo_topic
+            attributes["ContentBasedDeduplication"] = topic.content_based_deduplication
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
-        if self.request_json:
-            attributes = {
-                "Owner": topic.account_id,
-                "Policy": topic.policy,
-                "TopicArn": topic.arn,
-                "DisplayName": topic.display_name,
-                "SubscriptionsPending": topic.subscriptions_pending,
-                "SubscriptionsConfirmed": topic.subscriptions_confimed,
-                "SubscriptionsDeleted": topic.subscriptions_deleted,
-                "DeliveryPolicy": topic.delivery_policy,
-                "EffectiveDeliveryPolicy": topic.effective_delivery_policy,
-            }
-            if topic.kms_master_key_id:
-                attributes["KmsMasterKeyId"] = topic.kms_master_key_id
-            if topic.fifo_topic == "true":
-                attributes["FifoTopic"] = topic.fifo_topic
-                attributes["ContentBasedDeduplication"] = (
-                    topic.content_based_deduplication
-                )
-            response = {
-                "GetTopicAttributesResponse": {
-                    "GetTopicAttributesResult": {"Attributes": attributes},
-                    "ResponseMetadata": {
-                        "RequestId": "057f074c-33a7-11df-9540-99d0768312d3"
-                    },
-                }
-            }
-            return json.dumps(response)
-
-        template = self.response_template(GET_TOPIC_ATTRIBUTES_TEMPLATE)
-        return template.render(topic=topic)
-
-    def set_topic_attributes(self) -> str:
+    def set_topic_attributes(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         attribute_name = self._get_param("AttributeName")
         attribute_name = camelcase_to_underscores(attribute_name)
         attribute_value = self._get_param("AttributeValue")
         self.backend.set_topic_attribute(topic_arn, attribute_name, attribute_value)
+        return EmptyResult()
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SetTopicAttributesResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
-                        }
-                    }
-                }
-            )
-
-        template = self.response_template(SET_TOPIC_ATTRIBUTES_TEMPLATE)
-        return template.render()
-
-    def subscribe(self) -> str:
+    def subscribe(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         endpoint = self._get_param("Endpoint")
         protocol = self._get_param("Protocol")
@@ -239,107 +172,32 @@ class SNSResponse(BaseResponse):
                     subscription.arn, attr_name, attr_value
                 )
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SubscribeResponse": {
-                        "SubscribeResult": {"SubscriptionArn": subscription.arn},
-                        "ResponseMetadata": {
-                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
-                        },
-                    }
-                }
-            )
+        result = {"SubscriptionArn": subscription.arn}
+        return ActionResult(result)
 
-        template = self.response_template(SUBSCRIBE_TEMPLATE)
-        return template.render(subscription=subscription)
-
-    def unsubscribe(self) -> str:
+    def unsubscribe(self) -> ActionResult:
         subscription_arn = self._get_param("SubscriptionArn")
         self.backend.unsubscribe(subscription_arn)
+        return EmptyResult()
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "UnsubscribeResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "a8763b99-33a7-11df-a9b7-05d48da6f042"
-                        }
-                    }
-                }
-            )
-
-        template = self.response_template(UNSUBSCRIBE_TEMPLATE)
-        return template.render()
-
-    def list_subscriptions(self) -> str:
+    def list_subscriptions(self) -> ActionResult:
         next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions(
             next_token=next_token
         )
+        result = {"Subscriptions": subscriptions, "NextToken": next_token}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListSubscriptionsResponse": {
-                        "ListSubscriptionsResult": {
-                            "Subscriptions": [
-                                {
-                                    "TopicArn": subscription.topic.arn,
-                                    "Protocol": subscription.protocol,
-                                    "SubscriptionArn": subscription.arn,
-                                    "Owner": subscription.topic.account_id,
-                                    "Endpoint": subscription.endpoint,
-                                }
-                                for subscription in subscriptions
-                            ],
-                            "NextToken": next_token,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(LIST_SUBSCRIPTIONS_TEMPLATE)
-        return template.render(subscriptions=subscriptions, next_token=next_token)
-
-    def list_subscriptions_by_topic(self) -> str:
+    def list_subscriptions_by_topic(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         next_token = self._get_param("NextToken")
         subscriptions, next_token = self.backend.list_subscriptions_by_topic(
             topic_arn, next_token=next_token
         )
+        result = {"Subscriptions": subscriptions, "NextToken": next_token}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListSubscriptionsByTopicResponse": {
-                        "ListSubscriptionsByTopicResult": {
-                            "Subscriptions": [
-                                {
-                                    "TopicArn": subscription.topic.arn,
-                                    "Protocol": subscription.protocol,
-                                    "SubscriptionArn": subscription.arn,
-                                    "Owner": subscription.topic.account_id,
-                                    "Endpoint": subscription.endpoint,
-                                }
-                                for subscription in subscriptions
-                            ],
-                            "NextToken": next_token,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE)
-        return template.render(subscriptions=subscriptions, next_token=next_token)
-
-    def publish(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def publish(self) -> ActionResult:
         target_arn = self._get_param("TargetArn")
         topic_arn = self._get_param("TopicArn")
         phone_number = self._get_param("PhoneNumber")
@@ -354,12 +212,7 @@ class SNSResponse(BaseResponse):
         if phone_number is not None:
             # Check phone is correct syntax (e164)
             if not is_e164(phone_number):
-                return (
-                    self._error(
-                        "InvalidParameter", "Phone number does not meet the E164 format"
-                    ),
-                    dict(status=400),
-                )
+                raise SNSInvalidParameter("Phone number does not meet the E164 format")
         elif target_arn is not None:
             arn = target_arn
         else:
@@ -379,25 +232,12 @@ class SNSResponse(BaseResponse):
                 message_structure=message_structure,
             )
         except ValueError as err:
-            error_response = self._error("InvalidParameter", str(err))
-            return error_response, dict(status=400)
+            raise SNSInvalidParameter(str(err))
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "PublishResponse": {
-                        "PublishResult": {"MessageId": message_id},
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
+        result = {"MessageId": message_id}
+        return ActionResult(result)
 
-        template = self.response_template(PUBLISH_TEMPLATE)
-        return template.render(message_id=message_id)
-
-    def publish_batch(self) -> str:
+    def publish_batch(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         publish_batch_request_entries = self._get_multi_param(
             "PublishBatchRequestEntries.member"
@@ -416,256 +256,92 @@ class SNSResponse(BaseResponse):
             topic_arn=topic_arn,
             publish_batch_request_entries=publish_batch_request_entries,
         )
-        template = self.response_template(PUBLISH_BATCH_TEMPLATE)
-        return template.render(successful=successful, failed=failed)
+        result = {"Successful": successful, "Failed": failed}
+        return ActionResult(result)
 
-    def create_platform_application(self) -> str:
+    def create_platform_application(self) -> ActionResult:
         name = self._get_param("Name")
         platform = self._get_param("Platform")
         attributes = self._get_attributes()
         platform_application = self.backend.create_platform_application(
             name, platform, attributes
         )
+        result = {"PlatformApplicationArn": platform_application.arn}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreatePlatformApplicationResponse": {
-                        "CreatePlatformApplicationResult": {
-                            "PlatformApplicationArn": platform_application.arn
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937b"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(CREATE_PLATFORM_APPLICATION_TEMPLATE)
-        return template.render(platform_application=platform_application)
-
-    def get_platform_application_attributes(self) -> str:
+    def get_platform_application_attributes(self) -> ActionResult:
         arn = self._get_param("PlatformApplicationArn")
         attributes = self.backend.get_platform_application_attributes(arn)
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "GetPlatformApplicationAttributesResponse": {
-                        "GetPlatformApplicationAttributesResult": {
-                            "Attributes": attributes
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=attributes)
-
-    def set_platform_application_attributes(self) -> str:
+    def set_platform_application_attributes(self) -> ActionResult:
         arn = self._get_param("PlatformApplicationArn")
         attributes = self._get_attributes()
 
         self.backend.set_platform_application_attributes(arn, attributes)
+        return EmptyResult()
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SetPlatformApplicationAttributesResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-12df-8963-01868b7c937f"
-                        }
-                    }
-                }
-            )
-
-        template = self.response_template(SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE)
-        return template.render()
-
-    def list_platform_applications(self) -> str:
+    def list_platform_applications(self) -> ActionResult:
         applications = self.backend.list_platform_applications()
+        result = {"PlatformApplications": applications}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListPlatformApplicationsResponse": {
-                        "ListPlatformApplicationsResult": {
-                            "PlatformApplications": [
-                                {
-                                    "PlatformApplicationArn": application.arn,
-                                    "attributes": application.attributes,
-                                }
-                                for application in applications
-                            ],
-                            "NextToken": None,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937c"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(LIST_PLATFORM_APPLICATIONS_TEMPLATE)
-        return template.render(applications=applications)
-
-    def delete_platform_application(self) -> str:
+    def delete_platform_application(self) -> ActionResult:
         platform_arn = self._get_param("PlatformApplicationArn")
         self.backend.delete_platform_application(platform_arn)
+        return EmptyResult()
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "DeletePlatformApplicationResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937e"
-                        }
-                    }
-                }
-            )
-
-        template = self.response_template(DELETE_PLATFORM_APPLICATION_TEMPLATE)
-        return template.render()
-
-    def create_platform_endpoint(self) -> str:
+    def create_platform_endpoint(self) -> ActionResult:
         application_arn = self._get_param("PlatformApplicationArn")
         application = self.backend.get_application(application_arn)
-
         custom_user_data = self._get_param("CustomUserData")
         token = self._get_param("Token")
         attributes = self._get_attributes()
-
         platform_endpoint = self.backend.create_platform_endpoint(
             application, custom_user_data, token, attributes
         )
+        result = {"EndpointArn": platform_endpoint.arn}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "CreatePlatformEndpointResponse": {
-                        "CreatePlatformEndpointResult": {
-                            "EndpointArn": platform_endpoint.arn
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3779-11df-8963-01868b7c937b"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(CREATE_PLATFORM_ENDPOINT_TEMPLATE)
-        return template.render(platform_endpoint=platform_endpoint)
-
-    def list_endpoints_by_platform_application(self) -> str:
+    def list_endpoints_by_platform_application(self) -> ActionResult:
         application_arn = self._get_param("PlatformApplicationArn")
         self.backend.get_application(application_arn)
         endpoints = self.backend.list_endpoints_by_platform_application(application_arn)
+        result = {"Endpoints": endpoints}
+        return ActionResult(result)
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "ListEndpointsByPlatformApplicationResponse": {
-                        "ListEndpointsByPlatformApplicationResult": {
-                            "Endpoints": [
-                                {
-                                    "Attributes": endpoint.attributes,
-                                    "EndpointArn": endpoint.arn,
-                                }
-                                for endpoint in endpoints
-                            ],
-                            "NextToken": None,
-                        },
-                        "ResponseMetadata": {
-                            "RequestId": "384ac68d-3775-11df-8963-01868b7c937a"
-                        },
-                    }
-                }
-            )
-
-        template = self.response_template(
-            LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE
-        )
-        return template.render(endpoints=endpoints)
-
-    def get_endpoint_attributes(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_endpoint_attributes(self) -> ActionResult:
         arn = self._get_param("EndpointArn")
-        try:
-            attributes = self.backend.get_endpoint_attributes(arn)
+        attributes = self.backend.get_endpoint_attributes(arn)
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
-            if self.request_json:
-                return json.dumps(
-                    {
-                        "GetEndpointAttributesResponse": {
-                            "GetEndpointAttributesResult": {"Attributes": attributes},
-                            "ResponseMetadata": {
-                                "RequestId": "384ac68d-3775-11df-8963-01868b7c937f"
-                            },
-                        }
-                    }
-                )
-
-            template = self.response_template(GET_ENDPOINT_ATTRIBUTES_TEMPLATE)
-            return template.render(attributes=attributes)
-        except SNSNotFoundError:
-            error_response = self._error("NotFound", "Endpoint does not exist")
-            return error_response, dict(status=404)
-
-    def set_endpoint_attributes(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def set_endpoint_attributes(self) -> ActionResult:
         arn = self._get_param("EndpointArn")
         attributes = self._get_attributes()
-
         self.backend.set_endpoint_attributes(arn, attributes)
+        return EmptyResult()
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "SetEndpointAttributesResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384bc68d-3775-12df-8963-01868b7c937f"
-                        }
-                    }
-                }
-            )
-
-        template = self.response_template(SET_ENDPOINT_ATTRIBUTES_TEMPLATE)
-        return template.render()
-
-    def delete_endpoint(self) -> str:
+    def delete_endpoint(self) -> ActionResult:
         arn = self._get_param("EndpointArn")
         self.backend.delete_endpoint(arn)
+        return EmptyResult()
 
-        if self.request_json:
-            return json.dumps(
-                {
-                    "DeleteEndpointResponse": {
-                        "ResponseMetadata": {
-                            "RequestId": "384bc68d-3775-12df-8963-01868b7c937f"
-                        }
-                    }
-                }
-            )
-
-        template = self.response_template(DELETE_ENDPOINT_TEMPLATE)
-        return template.render()
-
-    def get_subscription_attributes(self) -> str:
+    def get_subscription_attributes(self) -> ActionResult:
         arn = self._get_param("SubscriptionArn")
         attributes = self.backend.get_subscription_attributes(arn)
-        template = self.response_template(GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=attributes)
+        result = {"Attributes": attributes}
+        return ActionResult(result)
 
-    def set_subscription_attributes(self) -> str:
+    def set_subscription_attributes(self) -> ActionResult:
         arn = self._get_param("SubscriptionArn")
         attr_name = self._get_param("AttributeName")
         attr_value = self._get_param("AttributeValue")
         self.backend.set_subscription_attributes(arn, attr_name, attr_value)
-        template = self.response_template(SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def set_sms_attributes(self) -> str:
+    def set_sms_attributes(self) -> ActionResult:
         # attributes.entry.1.key
         # attributes.entry.1.value
         # to
@@ -687,54 +363,45 @@ class SNSResponse(BaseResponse):
 
         self.backend.set_sms_attributes(result)
 
-        template = self.response_template(SET_SMS_ATTRIBUTES_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def get_sms_attributes(self) -> str:
+    def get_sms_attributes(self) -> ActionResult:
         filter_list = set()
         for key, value in self.querystring.items():
             if key.startswith("attributes.member.1"):
                 filter_list.add(value[0])
-
-        result = self.backend.get_sms_attributes(filter_list)
-
-        template = self.response_template(GET_SMS_ATTRIBUTES_TEMPLATE)
-        return template.render(attributes=result)
+        attributes = self.backend.get_sms_attributes(filter_list)
+        result = {"attributes": attributes}
+        return ActionResult(result)
 
     def check_if_phone_number_is_opted_out(
         self,
-    ) -> Union[str, Tuple[str, Dict[str, int]]]:
+    ) -> ActionResult:
         number = self._get_param("phoneNumber")
         if self.OPT_OUT_PHONE_NUMBER_REGEX.match(number) is None:
-            error_response = self._error(
-                code="InvalidParameter",
-                message="Invalid parameter: PhoneNumber Reason: input incorrectly formatted",
+            raise SNSInvalidParameter(
+                "Invalid parameter: PhoneNumber Reason: input incorrectly formatted"
             )
-            return error_response, dict(status=400)
 
         x = self.backend.check_if_phone_number_is_opted_out(number)
-        template = self.response_template(CHECK_IF_OPTED_OUT_TEMPLATE)
-        return template.render(opt_out=str(x).lower())
+        result = {"isOptedOut": x}
+        return ActionResult(result)
 
-    def list_phone_numbers_opted_out(self) -> str:
+    def list_phone_numbers_opted_out(self) -> ActionResult:
         numbers = self.backend.list_phone_numbers_opted_out()
-        template = self.response_template(LIST_OPTOUT_TEMPLATE)
-        return template.render(opt_outs=numbers)
+        result = {"phoneNumbers": numbers}
+        return ActionResult(result)
 
-    def opt_in_phone_number(self) -> str:
+    def opt_in_phone_number(self) -> ActionResult:
         number = self._get_param("phoneNumber")
-
         self.backend.opt_in_phone_number(number)
+        return EmptyResult()
 
-        template = self.response_template(OPT_IN_NUMBER_TEMPLATE)
-        return template.render()
-
-    def add_permission(self) -> str:
+    def add_permission(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         label = self._get_param("Label")
         aws_account_ids = self._get_multi_param("AWSAccountId.member.")
         action_names = self._get_multi_param("ActionName.member.")
-
         self.backend.add_permission(
             region_name=self.region,
             topic_arn=topic_arn,
@@ -742,25 +409,19 @@ class SNSResponse(BaseResponse):
             aws_account_ids=aws_account_ids,
             action_names=action_names,
         )
+        return EmptyResult()
 
-        template = self.response_template(ADD_PERMISSION_TEMPLATE)
-        return template.render()
-
-    def remove_permission(self) -> str:
+    def remove_permission(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         label = self._get_param("Label")
-
         self.backend.remove_permission(topic_arn, label)
+        return EmptyResult()
 
-        template = self.response_template(DEL_PERMISSION_TEMPLATE)
-        return template.render()
-
-    def confirm_subscription(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def confirm_subscription(self) -> ActionResult:
         arn = self._get_param("TopicArn")
 
         if arn not in self.backend.topics:
-            error_response = self._error("NotFound", "Topic does not exist")
-            return error_response, dict(status=404)
+            raise SNSNotFoundError("Topic does not exist")
 
         # Once Tokens are stored by the `subscribe` endpoint and distributed
         # to the client somehow, then we can check validity of tokens
@@ -777,493 +438,31 @@ class SNSResponse(BaseResponse):
         #     )
         #     return error_response, dict(status=400)
 
-        template = self.response_template(CONFIRM_SUBSCRIPTION_TEMPLATE)
-        return template.render(sub_arn=f"{arn}:68762e72-e9b1-410a-8b3b-903da69ee1d5")
+        result = {"SubscriptionArn": f"{arn}:68762e72-e9b1-410a-8b3b-903da69ee1d5"}
+        return ActionResult(result)
 
-    def list_tags_for_resource(self) -> str:
+    def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("ResourceArn")
+        tags = self.backend.list_tags_for_resource(arn)
+        result = {"Tags": tags}
+        return ActionResult(result)
 
-        result = self.backend.list_tags_for_resource(arn)
-
-        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
-        return template.render(tags=result)
-
-    def tag_resource(self) -> str:
+    def tag_resource(self) -> ActionResult:
         arn = self._get_param("ResourceArn")
         tags = self._get_tags()
-
         self.backend.tag_resource(arn, tags)
+        return EmptyResult()
 
-        return self.response_template(TAG_RESOURCE_TEMPLATE).render()
-
-    def untag_resource(self) -> str:
+    def untag_resource(self) -> ActionResult:
         arn = self._get_param("ResourceArn")
         tag_keys = self._get_multi_param("TagKeys.member")
-
         self.backend.untag_resource(arn, tag_keys)
-
-        return self.response_template(UNTAG_RESOURCE_TEMPLATE).render()
+        return EmptyResult()
 
     @staticmethod
-    def serve_pem(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def serve_pem(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         sns = SNSResponse()
         sns.setup_class(request, full_url, headers)
         key_name = full_url.split("/")[-1]
         key = sns.backend._message_public_keys[key_name]
         return 200, {}, key
-
-
-CREATE_TOPIC_TEMPLATE = """<CreateTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-     <CreateTopicResult>
-       <TopicArn>{{ topic.arn }}</TopicArn>
-     </CreateTopicResult>
-     <ResponseMetadata>
-       <RequestId>a8dec8b3-33a4-11df-8963-01868b7c937a</RequestId>
-     </ResponseMetadata>
-   </CreateTopicResponse>"""
-
-LIST_TOPICS_TEMPLATE = """<ListTopicsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListTopicsResult>
-    <Topics>
-    {% for topic in topics %}
-      <member>
-        <TopicArn>{{ topic.arn }}</TopicArn>
-      </member>
-    {% endfor %}
-    </Topics>
-    {% if next_token  %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </ListTopicsResult>
-  <ResponseMetadata>
-    <RequestId>3f1478c7-33a9-11df-9540-99d0768312d3</RequestId>
-  </ResponseMetadata>
-</ListTopicsResponse>"""
-
-DELETE_TOPIC_TEMPLATE = """<DeleteTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>f3aa9ac9-3c3d-11df-8235-9dab105e9c32</RequestId>
-  </ResponseMetadata>
-</DeleteTopicResponse>"""
-
-GET_TOPIC_ATTRIBUTES_TEMPLATE = """<GetTopicAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetTopicAttributesResult>
-    <Attributes>
-      <entry>
-        <key>Owner</key>
-        <value>{{ topic.account_id }}</value>
-      </entry>
-      <entry>
-        <key>Policy</key>
-        <value>{{ topic.policy }}</value>
-      </entry>
-      <entry>
-        <key>TopicArn</key>
-        <value>{{ topic.arn }}</value>
-      </entry>
-      <entry>
-        <key>DisplayName</key>
-        <value>{{ topic.display_name }}</value>
-      </entry>
-      <entry>
-        <key>SubscriptionsPending</key>
-        <value>{{ topic.subscriptions_pending }}</value>
-      </entry>
-      <entry>
-        <key>SubscriptionsConfirmed</key>
-        <value>{{ topic.subscriptions_confimed }}</value>
-      </entry>
-      <entry>
-        <key>SubscriptionsDeleted</key>
-        <value>{{ topic.subscriptions_deleted }}</value>
-      </entry>
-      <entry>
-        <key>DeliveryPolicy</key>
-        <value>{{ topic.delivery_policy }}</value>
-      </entry>
-      <entry>
-        <key>EffectiveDeliveryPolicy</key>
-        <value>{{ topic.effective_delivery_policy }}</value>
-      </entry>
-      {% if topic.kms_master_key_id %}
-      <entry>
-        <key>KmsMasterKeyId</key>
-        <value>{{ topic.kms_master_key_id }}</value>
-      </entry>
-      {% endif %}
-      {% if topic.fifo_topic == 'true' %}
-      <entry>
-        <key>FifoTopic</key>
-        <value>{{ topic.fifo_topic }}</value>
-      </entry>
-      <entry>
-        <key>ContentBasedDeduplication</key>
-        <value>{{ topic.content_based_deduplication }}</value>
-      </entry>
-      {% endif %}
-    </Attributes>
-  </GetTopicAttributesResult>
-  <ResponseMetadata>
-    <RequestId>057f074c-33a7-11df-9540-99d0768312d3</RequestId>
-  </ResponseMetadata>
-</GetTopicAttributesResponse>"""
-
-SET_TOPIC_ATTRIBUTES_TEMPLATE = """<SetTopicAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>a8763b99-33a7-11df-a9b7-05d48da6f042</RequestId>
-  </ResponseMetadata>
-</SetTopicAttributesResponse>"""
-
-CREATE_PLATFORM_APPLICATION_TEMPLATE = """<CreatePlatformApplicationResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <CreatePlatformApplicationResult>
-    <PlatformApplicationArn>{{ platform_application.arn }}</PlatformApplicationArn>
-  </CreatePlatformApplicationResult>
-  <ResponseMetadata>
-    <RequestId>b6f0e78b-e9d4-5a0e-b973-adc04e8a4ff9</RequestId>
-  </ResponseMetadata>
-</CreatePlatformApplicationResponse>"""
-
-CREATE_PLATFORM_ENDPOINT_TEMPLATE = """<CreatePlatformEndpointResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <CreatePlatformEndpointResult>
-    <EndpointArn>{{ platform_endpoint.arn }}</EndpointArn>
-  </CreatePlatformEndpointResult>
-  <ResponseMetadata>
-    <RequestId>6613341d-3e15-53f7-bf3c-7e56994ba278</RequestId>
-  </ResponseMetadata>
-</CreatePlatformEndpointResponse>"""
-
-LIST_PLATFORM_APPLICATIONS_TEMPLATE = """<ListPlatformApplicationsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListPlatformApplicationsResult>
-    <PlatformApplications>
-    {% for application in applications %}
-      <member>
-      <PlatformApplicationArn>{{ application.arn }}</PlatformApplicationArn>
-        <Attributes>
-        {% for attribute in application.attributes %}
-          <entry>
-            <key>{{ attribute }}</key>
-            <value>{{ application.attributes[attribute] }}</value>
-          </entry>
-        {% endfor %}
-        </Attributes>
-      </member>
-    {% endfor %}
-    </PlatformApplications>
-  </ListPlatformApplicationsResult>
-  <ResponseMetadata>
-    <RequestId>315a335e-85d8-52df-9349-791283cbb529</RequestId>
-  </ResponseMetadata>
-</ListPlatformApplicationsResponse>"""
-
-DELETE_PLATFORM_APPLICATION_TEMPLATE = """<DeletePlatformApplicationResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>097dac18-7a77-5823-a8dd-e65476dcb037</RequestId>
-  </ResponseMetadata>
-</DeletePlatformApplicationResponse>"""
-
-GET_ENDPOINT_ATTRIBUTES_TEMPLATE = """<GetEndpointAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetEndpointAttributesResult>
-    <Attributes>
-    {% for attribute in attributes %}
-      <entry>
-        <key>{{ attribute }}</key>
-        <value>{{ attributes[attribute] }}</value>
-      </entry>
-    {% endfor %}
-    </Attributes>
-  </GetEndpointAttributesResult>
-  <ResponseMetadata>
-    <RequestId>6c725a19-a142-5b77-94f9-1055a9ea04e7</RequestId>
-  </ResponseMetadata>
-</GetEndpointAttributesResponse>"""
-
-LIST_ENDPOINTS_BY_PLATFORM_APPLICATION_TEMPLATE = """<ListEndpointsByPlatformApplicationResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListEndpointsByPlatformApplicationResult>
-    <Endpoints>
-      {% for endpoint in endpoints %}
-      <member>
-        <EndpointArn>{{ endpoint.arn }}</EndpointArn>
-        <Attributes>
-          {% for attribute in endpoint.attributes %}
-          <entry>
-            <key>{{ attribute }}</key>
-            <value>{{ endpoint.attributes[attribute] }}</value>
-          </entry>
-          {% endfor %}
-        </Attributes>
-      </member>
-      {% endfor %}
-    </Endpoints>
-  </ListEndpointsByPlatformApplicationResult>
-  <ResponseMetadata>
-    <RequestId>9a48768c-dac8-5a60-aec0-3cc27ea08d96</RequestId>
-  </ResponseMetadata>
-</ListEndpointsByPlatformApplicationResponse>"""
-
-GET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE = """<GetPlatformApplicationAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetPlatformApplicationAttributesResult>
-    <Attributes>
-    {% for attribute in attributes %}
-      <entry>
-        <key>{{ attribute }}</key>
-        <value>{{ attributes[attribute] }}</value>
-      </entry>
-    {% endfor %}
-    </Attributes>
-  </GetPlatformApplicationAttributesResult>
-  <ResponseMetadata>
-    <RequestId>74848df2-87f6-55ed-890c-c7be80442462</RequestId>
-  </ResponseMetadata>
-</GetPlatformApplicationAttributesResponse>"""
-
-PUBLISH_TEMPLATE = """<PublishResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <PublishResult>
-    <MessageId>{{ message_id }}</MessageId>
-  </PublishResult>
-  <ResponseMetadata>
-    <RequestId>f187a3c1-376f-11df-8963-01868b7c937a</RequestId>
-  </ResponseMetadata>
-</PublishResponse>"""
-
-SET_ENDPOINT_ATTRIBUTES_TEMPLATE = """<SetEndpointAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>2fe0bfc7-3e85-5ee5-a9e2-f58b35e85f6a</RequestId>
-  </ResponseMetadata>
-</SetEndpointAttributesResponse>"""
-
-DELETE_ENDPOINT_TEMPLATE = """<DeleteEndpointResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
- <ResponseMetadata>
- <RequestId>c1d2b191-353c-5a5f-8969-fbdd3900afa8</RequestId>
- </ResponseMetadata>
-</DeleteEndpointResponse>"""
-
-
-SET_PLATFORM_APPLICATION_ATTRIBUTES_TEMPLATE = """<SetPlatformApplicationAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>cf577bcc-b3dc-5463-88f1-3180b9412395</RequestId>
-  </ResponseMetadata>
-</SetPlatformApplicationAttributesResponse>"""
-
-SUBSCRIBE_TEMPLATE = """<SubscribeResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <SubscribeResult>
-    <SubscriptionArn>{{ subscription.arn }}</SubscriptionArn>
-  </SubscribeResult>
-  <ResponseMetadata>
-    <RequestId>c4407779-24a4-56fa-982c-3d927f93a775</RequestId>
-  </ResponseMetadata>
-</SubscribeResponse>"""
-
-UNSUBSCRIBE_TEMPLATE = """<UnsubscribeResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>18e0ac39-3776-11df-84c0-b93cc1666b84</RequestId>
-  </ResponseMetadata>
-</UnsubscribeResponse>"""
-
-LIST_SUBSCRIPTIONS_TEMPLATE = """<ListSubscriptionsResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListSubscriptionsResult>
-    <Subscriptions>
-    {% for subscription in subscriptions %}
-      <member>
-        <TopicArn>{{ subscription.topic.arn }}</TopicArn>
-        <Protocol>{{ subscription.protocol }}</Protocol>
-        <SubscriptionArn>{{ subscription.arn }}</SubscriptionArn>
-        <Owner>{{ subscription.account_id }}</Owner>
-        <Endpoint>{{ subscription.endpoint }}</Endpoint>
-      </member>
-    {% endfor %}
-    </Subscriptions>
-    {% if next_token  %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </ListSubscriptionsResult>
-  <ResponseMetadata>
-    <RequestId>384ac68d-3775-11df-8963-01868b7c937a</RequestId>
-  </ResponseMetadata>
-</ListSubscriptionsResponse>"""
-
-LIST_SUBSCRIPTIONS_BY_TOPIC_TEMPLATE = """<ListSubscriptionsByTopicResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListSubscriptionsByTopicResult>
-    <Subscriptions>
-    {% for subscription in subscriptions %}
-      <member>
-        <TopicArn>{{ subscription.topic.arn }}</TopicArn>
-        <Protocol>{{ subscription.protocol }}</Protocol>
-        <SubscriptionArn>{{ subscription.arn }}</SubscriptionArn>
-        <Owner>{{ subscription.account_id }}</Owner>
-        <Endpoint>{{ subscription.endpoint }}</Endpoint>
-      </member>
-    {% endfor %}
-    </Subscriptions>
-    {% if next_token  %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </ListSubscriptionsByTopicResult>
-  <ResponseMetadata>
-    <RequestId>384ac68d-3775-11df-8963-01868b7c937a</RequestId>
-  </ResponseMetadata>
-</ListSubscriptionsByTopicResponse>"""
-
-
-# Not responding aws system attribetus like 'Owner' and 'SubscriptionArn'
-GET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE = """<GetSubscriptionAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetSubscriptionAttributesResult>
-    <Attributes>
-      {% for name, value in attributes.items() %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>{{ value }}</value>
-      </entry>
-      {% endfor %}
-    </Attributes>
-  </GetSubscriptionAttributesResult>
-  <ResponseMetadata>
-    <RequestId>057f074c-33a7-11df-9540-99d0768312d3</RequestId>
-  </ResponseMetadata>
-</GetSubscriptionAttributesResponse>"""
-
-
-SET_SUBSCRIPTION_ATTRIBUTES_TEMPLATE = """<SetSubscriptionAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>a8763b99-33a7-11df-a9b7-05d48da6f042</RequestId>
-  </ResponseMetadata>
-</SetSubscriptionAttributesResponse>"""
-
-SET_SMS_ATTRIBUTES_TEMPLATE = """<SetSMSAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <SetSMSAttributesResult/>
-  <ResponseMetadata>
-    <RequestId>26332069-c04a-5428-b829-72524b56a364</RequestId>
-  </ResponseMetadata>
-</SetSMSAttributesResponse>"""
-
-GET_SMS_ATTRIBUTES_TEMPLATE = """<GetSMSAttributesResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <GetSMSAttributesResult>
-    <attributes>
-      {% for name, value in attributes.items() %}
-      {% if value %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>{{ value }}</value>
-      </entry>
-      {% endif %}
-      {% endfor %}
-    </attributes>
-  </GetSMSAttributesResult>
-  <ResponseMetadata>
-    <RequestId>287f9554-8db3-5e66-8abc-c76f0186db7e</RequestId>
-  </ResponseMetadata>
-</GetSMSAttributesResponse>"""
-
-CHECK_IF_OPTED_OUT_TEMPLATE = """<CheckIfPhoneNumberIsOptedOutResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <CheckIfPhoneNumberIsOptedOutResult>
-    <isOptedOut>{{ opt_out }}</isOptedOut>
-  </CheckIfPhoneNumberIsOptedOutResult>
-  <ResponseMetadata>
-    <RequestId>287f9554-8db3-5e66-8abc-c76f0186db7e</RequestId>
-  </ResponseMetadata>
-</CheckIfPhoneNumberIsOptedOutResponse>"""
-
-ERROR_RESPONSE = """<ErrorResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <Error>
-    <Type>{{ sender }}</Type>
-    <Code>{{ code }}</Code>
-    <Message>{{ message }}</Message>
-  </Error>
-  <RequestId>9dd01905-5012-5f99-8663-4b3ecd0dfaef</RequestId>
-</ErrorResponse>"""
-
-LIST_OPTOUT_TEMPLATE = """<ListPhoneNumbersOptedOutResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListPhoneNumbersOptedOutResult>
-    <phoneNumbers>
-      {% for item in opt_outs %}
-      <member>{{ item }}</member>
-      {% endfor %}
-    </phoneNumbers>
-  </ListPhoneNumbersOptedOutResult>
-  <ResponseMetadata>
-    <RequestId>985e196d-a237-51b6-b33a-4b5601276b38</RequestId>
-  </ResponseMetadata>
-</ListPhoneNumbersOptedOutResponse>"""
-
-OPT_IN_NUMBER_TEMPLATE = """<OptInPhoneNumberResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <OptInPhoneNumberResult/>
-  <ResponseMetadata>
-    <RequestId>4c61842c-0796-50ef-95ac-d610c0bc8cf8</RequestId>
-  </ResponseMetadata>
-</OptInPhoneNumberResponse>"""
-
-ADD_PERMISSION_TEMPLATE = """<AddPermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>c046e713-c5ff-5888-a7bc-b52f0e4f1299</RequestId>
-  </ResponseMetadata>
-</AddPermissionResponse>"""
-
-DEL_PERMISSION_TEMPLATE = """<RemovePermissionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>e767cc9f-314b-5e1b-b283-9ea3fd4e38a3</RequestId>
-  </ResponseMetadata>
-</RemovePermissionResponse>"""
-
-CONFIRM_SUBSCRIPTION_TEMPLATE = """<ConfirmSubscriptionResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ConfirmSubscriptionResult>
-    <SubscriptionArn>{{ sub_arn }}</SubscriptionArn>
-  </ConfirmSubscriptionResult>
-  <ResponseMetadata>
-    <RequestId>16eb4dde-7b3c-5b3e-a22a-1fe2a92d3293</RequestId>
-  </ResponseMetadata>
-</ConfirmSubscriptionResponse>"""
-
-LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ListTagsForResourceResult>
-    <Tags>
-      {% for name, value in tags.items() %}
-      <member>
-        <Key>{{ name }}</Key>
-        <Value>{{ value }}</Value>
-      </member>
-      {% endfor %}
-    </Tags>
-  </ListTagsForResourceResult>
-  <ResponseMetadata>
-    <RequestId>97fa763f-861b-5223-a946-20251f2a42e2</RequestId>
-  </ResponseMetadata>
-</ListTagsForResourceResponse>"""
-
-TAG_RESOURCE_TEMPLATE = """<TagResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-    <TagResourceResult/>
-    <ResponseMetadata>
-        <RequestId>fd4ab1da-692f-50a7-95ad-e7c665877d98</RequestId>
-    </ResponseMetadata>
-</TagResourceResponse>"""
-
-UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-    <UntagResourceResult/>
-    <ResponseMetadata>
-        <RequestId>14eb7b1a-4cbd-5a56-80db-2d06412df769</RequestId>
-    </ResponseMetadata>
-</UntagResourceResponse>"""
-
-PUBLISH_BATCH_TEMPLATE = """<PublishBatchResponse xmlns="http://sns.amazonaws.com/doc/2010-03-31/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <PublishBatchResult>
-    <Successful>
-{% for successful in successful %}
-      <member>
-        <Id>{{ successful["Id"] }}</Id>
-        <MessageId>{{ successful["MessageId"] }}</MessageId>
-      </member>
-{% endfor %}
-    </Successful>
-    <Failed>
-{% for failed in failed %}
-      <member>
-        <Id>{{ failed["Id"] }}</Id>
-        <Code>{{ failed["Code"] }}</Code>
-        <Message>{{ failed["Message"] }}</Message>
-        <SenderFault>{{'true' if failed["SenderFault"] else 'false'}}</SenderFault>
-      </member>
-{% endfor %}
-    </Failed>
-  </PublishBatchResult>
-</PublishBatchResponse>"""

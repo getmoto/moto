@@ -4035,6 +4035,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafka": {
+                "Value": "kafka",
+                "endpoint": {
+                  "Value": "kafka.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -4091,6 +4100,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -4255,6 +4273,15 @@
                 "Value": "secretsmanager",
                 "endpoint": {
                   "Value": "secretsmanager.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "securityhub": {
+                "Value": "securityhub",
+                "endpoint": {
+                  "Value": "securityhub.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11815,6 +11842,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -18488,6 +18524,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -24449,6 +24494,15 @@
               "gamelift": {
                 "Value": "gamelift"
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -24622,6 +24676,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "mq": {
                 "Value": "mq",
@@ -24834,6 +24897,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25734,6 +25806,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mgn": {
+                "Value": "mgn",
+                "endpoint": {
+                  "Value": "mgn.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "mq": {
                 "Value": "mq",
                 "endpoint": {
@@ -25765,6 +25846,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-ad": {
+                "Value": "pca-connector-ad",
+                "endpoint": {
+                  "Value": "pca-connector-ad.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29584,6 +29674,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "s3": {
                 "Value": "s3",
                 "endpoint": {
@@ -33100,6 +33199,15 @@
                 "Value": "bedrock",
                 "endpoint": {
                   "Value": "bedrock.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -42853,6 +42961,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -45783,6 +45900,15 @@
                 "Value": "bedrock",
                 "endpoint": {
                   "Value": "bedrock.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55174,6 +55300,24 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "config": {
                 "Value": "config",
                 "endpoint": {
@@ -55442,6 +55586,15 @@
                 "Value": "fsx-windows",
                 "endpoint": {
                   "Value": "fsx.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

@@ -109,6 +109,11 @@ class QueryParser:
         return key_name
 
 
+PROTOCOL_PARSERS = {
+    "query": QueryParser,
+}
+
+
 class XFormedDict(MutableMapping):
     """
     A Pascal/Snake case-insensitive  ``dict``-like object.

@@ -1,3 +1,4 @@
+import copy
 import ipaddress
 import json
 import threading
@@ -356,7 +357,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self.id = endpoint_id
         self.vpc_id = vpc_id
         self.service_name = service_name
-        self.endpoint_type = endpoint_type
+        self.vpc_endpoint_type = endpoint_type
         self.state = "available"
         self.policy_document = policy_document or json.dumps(VPCEndPoint.DEFAULT_POLICY)
         self.route_table_ids = route_table_ids
@@ -395,7 +396,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self, filter_name: str, method_name: Optional[str] = None
     ) -> Any:
         if filter_name in ("vpc-endpoint-type", "vpc_endpoint_type"):
-            return self.endpoint_type
+            return self.vpc_endpoint_type
         else:
             return super().get_filter_value(filter_name, "DescribeVpcs")
 
@@ -465,18 +466,18 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.id = vpc_id
         self.cidr_block = cidr_block
-        self.cidr_block_association_set: Dict[str, Any] = {}
+        self._cidr_block_association_set: Dict[str, Any] = {}
         self.dhcp_options = None
         self.state = "available"
         self.instance_tenancy = instance_tenancy
-        self.is_default = "true" if is_default else "false"
-        self.enable_dns_support = "true"
-        self.classic_link_enabled = "false"
-        self.classic_link_dns_supported = "false"
+        self.is_default = True if is_default else False
+        self.enable_dns_support = True
+        self.classic_link_enabled = False
+        self.classic_link_dns_supported = False
         # This attribute is set to 'true' only for default VPCs
         # or VPCs created using the wizard of the VPC console
-        self.enable_dns_hostnames = "true" if is_default else "false"
-        self.enable_network_address_usage_metrics = "false"
+        self.enable_dns_hostnames = True if is_default else False
+        self.enable_network_address_usage_metrics = False
 
         self.associate_vpc_cidr_block(cidr_block)
         if amazon_provided_ipv6_cidr_block:
@@ -485,6 +486,30 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
                 amazon_provided_ipv6_cidr_block=amazon_provided_ipv6_cidr_block,
                 ipv6_cidr_block_network_border_group=ipv6_cidr_block_network_border_group,
             )
+
+    @property
+    def dhcp_options_id(self) -> str:
+        id_ = "default"
+        if self.dhcp_options:
+            id_ = self.dhcp_options.id
+        return id_
+
+    @property
+    def cidr_block_association_set(self) -> list[Dict[str, Any]]:  # type: ignore[misc]
+        return self.get_cidr_block_association_set(ipv6=False)
+
+    @property
+    def ipv6_cidr_block_association_set(self) -> list[Dict[str, Any]]:  # type: ignore[misc]
+        association_set = self.get_cidr_block_association_set(ipv6=True)
+        ipv6_association_sets = []
+        for association in association_set:
+            association_copy = copy.copy(association)
+            association_copy["ipv6CidrBlock"] = association_copy["cidr_block"]
+            association_copy["ipv6CidrBlockState"] = association_copy[
+                "cidr_block_state"
+            ]
+            ipv6_association_sets.append(association_copy)
+        return ipv6_association_sets
 
     @property
     def owner_id(self) -> str:
@@ -579,7 +604,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             "cidr-block-association.association-id",
             "ipv6-cidr-block-association.association-id",
         ):
-            return self.cidr_block_association_set.keys()
+            return self._cidr_block_association_set.keys()
         elif filter_name in (
             "cidr-block-association.state",
             "ipv6-cidr-block-association.state",
@@ -614,14 +639,14 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
     ) -> Dict[str, Any]:
         max_associations = 5 if not amazon_provided_ipv6_cidr_block else 1
 
-        for cidr in self.cidr_block_association_set.copy():
+        for cidr in self._cidr_block_association_set.copy():
             if (
-                self.cidr_block_association_set.get(cidr)  # type: ignore[union-attr]
+                self._cidr_block_association_set.get(cidr)  # type: ignore[union-attr]
                 .get("cidr_block_state")
                 .get("state")
                 == "disassociated"
             ):
-                self.cidr_block_association_set.pop(cidr)
+                self._cidr_block_association_set.pop(cidr)
         if (
             len(self.get_cidr_block_association_set(amazon_provided_ipv6_cidr_block))
             >= max_associations
@@ -643,10 +668,10 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             association_set["ipv6_cidr_block_network_border_group"] = (
                 ipv6_cidr_block_network_border_group
             )
-        self.cidr_block_association_set[association_id] = association_set
+        self._cidr_block_association_set[association_id] = association_set
         return association_set
 
-    def enable_vpc_classic_link(self) -> str:
+    def enable_vpc_classic_link(self) -> bool:
         # Check if current cidr block doesn't fall within the 10.0.0.0/8 block, excluding 10.0.0.0/16 and 10.1.0.0/16.
         # Doesn't check any route tables, maybe something for in the future?
         # See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/vpc-classiclink.html#classiclink-limitations
@@ -656,29 +681,29 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
             or network_address in ipaddress.ip_network("10.0.0.0/16")
             or network_address in ipaddress.ip_network("10.1.0.0/16")
         ):
-            self.classic_link_enabled = "true"
+            self.classic_link_enabled = True
 
         return self.classic_link_enabled
 
-    def disable_vpc_classic_link(self) -> str:
-        self.classic_link_enabled = "false"
+    def disable_vpc_classic_link(self) -> bool:
+        self.classic_link_enabled = False
         return self.classic_link_enabled
 
-    def enable_vpc_classic_link_dns_support(self) -> str:
-        self.classic_link_dns_supported = "true"
+    def enable_vpc_classic_link_dns_support(self) -> bool:
+        self.classic_link_dns_supported = True
         return self.classic_link_dns_supported
 
-    def disable_vpc_classic_link_dns_support(self) -> str:
-        self.classic_link_dns_supported = "false"
+    def disable_vpc_classic_link_dns_support(self) -> bool:
+        self.classic_link_dns_supported = False
         return self.classic_link_dns_supported
 
     def disassociate_vpc_cidr_block(self, association_id: str) -> Dict[str, Any]:
-        if self.cidr_block == self.cidr_block_association_set.get(
+        if self.cidr_block == self._cidr_block_association_set.get(
             association_id, {}
         ).get("cidr_block"):
             raise VPCCidrBlockAssociationError(association_id)
 
-        entry = response = self.cidr_block_association_set.get(association_id, {})
+        entry = response = self._cidr_block_association_set.get(association_id, {})
         if entry:
             response = json.loads(json.dumps(entry))
             response["vpc_id"] = self.id
@@ -691,7 +716,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
     ) -> List[Dict[str, Any]]:
         return [
             c
-            for c in self.cidr_block_association_set.values()
+            for c in self._cidr_block_association_set.values()
             if ("::/" if ipv6 else ".") in c.get("cidr_block")
         ]
 
@@ -705,7 +730,7 @@ class VPCBackend:
         self.vpc_refs[self.__class__].add(weakref.ref(self))
 
     def create_default_vpc(self) -> VPC:
-        default_vpc = self.describe_vpcs(filters={"is-default": "true"})
+        default_vpc = self.describe_vpcs(filters={"is-default": ["true"]})
         if default_vpc:
             raise DefaultVpcAlreadyExists
         cidr_block = "172.31.0.0/16"
@@ -717,7 +742,7 @@ class VPCBackend:
 
     def get_default_vpc(self) -> Optional[VPC]:
         for vpc in self.vpcs.values():
-            if vpc.is_default == "true":
+            if vpc.is_default:
                 return vpc
         return None
 
@@ -846,19 +871,19 @@ class VPCBackend:
         vpc = self.get_vpc(vpc_id)
         vpc.modify_vpc_tenancy(tenancy)
 
-    def enable_vpc_classic_link(self, vpc_id: str) -> str:
+    def enable_vpc_classic_link(self, vpc_id: str) -> bool:
         vpc = self.get_vpc(vpc_id)
         return vpc.enable_vpc_classic_link()
 
-    def disable_vpc_classic_link(self, vpc_id: str) -> str:
+    def disable_vpc_classic_link(self, vpc_id: str) -> bool:
         vpc = self.get_vpc(vpc_id)
         return vpc.disable_vpc_classic_link()
 
-    def enable_vpc_classic_link_dns_support(self, vpc_id: str) -> str:
+    def enable_vpc_classic_link_dns_support(self, vpc_id: str) -> bool:
         vpc = self.get_vpc(vpc_id)
         return vpc.enable_vpc_classic_link_dns_support()
 
-    def disable_vpc_classic_link_dns_support(self, vpc_id: str) -> str:
+    def disable_vpc_classic_link_dns_support(self, vpc_id: str) -> bool:
         vpc = self.get_vpc(vpc_id)
         return vpc.disable_vpc_classic_link_dns_support()
 
@@ -958,7 +983,7 @@ class VPCBackend:
             route_table_ids,
             subnet_ids,
             network_interface_ids,
-            dns_entries=[dns_entries] if dns_entries else None,
+            dns_entries=[dns_entries] if dns_entries else [],
             client_token=client_token,
             security_group_ids=security_group_ids,
             tags=tags,
@@ -994,7 +1019,7 @@ class VPCBackend:
         for vpce_id in vpce_ids or []:
             vpc_endpoint = self.vpc_end_points.get(vpce_id, None)
             if vpc_endpoint:
-                if vpc_endpoint.endpoint_type.lower() == "interface":  # type: ignore[union-attr]
+                if vpc_endpoint.vpc_endpoint_type.lower() == "interface":  # type: ignore[union-attr]
                     for eni_id in vpc_endpoint.network_interface_ids:
                         self.enis.pop(eni_id, None)  # type: ignore[attr-defined]
                 else:
@@ -1215,7 +1240,7 @@ class VPCBackend:
             max_results = MAX_NUMBER_OF_ENDPOINT_SERVICES_RESULTS
 
         # If necessary, set the value of the next_token.
-        next_token = ""
+        next_token = None
         if len(filtered_services) > (start + max_results):
             service = filtered_services[start + max_results]
             next_token = service["ServiceId"]

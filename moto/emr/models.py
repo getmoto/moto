@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from functools import cache, cached_property
 from typing import Any, Dict, List, Optional, Tuple
 
 from dateutil.parser import parse as dtparse
@@ -10,11 +11,12 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
 from moto.ec2.models.instances import Instance as EC2Instance
 from moto.emr.exceptions import (
+    InvalidCluster,
     InvalidRequestException,
     ResourceNotFoundException,
     ValidationException,
 )
-from moto.utilities.utils import CamelToUnderscoresWalker, get_partition
+from moto.utilities.utils import CamelToUnderscoresWalker, get_partition, load_resource
 
 from .utils import (
     EmrSecurityGroupManager,
@@ -830,6 +832,23 @@ class ElasticMapReduceBackend(BaseBackend):
         self.security_configurations: Dict[str, SecurityConfiguration] = {}
         self.block_public_access_configuration: Dict[str, Any] = {}
 
+    @cached_property
+    def _release_labels(self) -> list[str]:
+        """Returns all available release labels in this region"""
+        return load_resource(
+            __name__, f"resources/release-labels-{self.region_name}.json"
+        )
+
+    @cache
+    def _get_instance_type_names(self, release_label: str) -> list[str]:
+        """Returns all instance type names that can be used with this release label"""
+        return load_resource(__name__, f"resources/instance-types-{release_label}.json")
+
+    @cached_property
+    def _instance_types(self) -> dict[str, Any]:
+        """Returns a dictionary of {instance-type-name: instance-type-details}"""
+        return load_resource(__name__, "resources/instance_types.json")
+
     @property
     def ec2_backend(self) -> Any:
         """
@@ -925,7 +944,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def describe_cluster(self, cluster_id: str) -> Cluster:
         if cluster_id in self.clusters:
             return self.clusters[cluster_id]
-        raise ResourceNotFoundException("")
+        raise InvalidCluster(cluster_id)
 
     def get_instance_groups(self, instance_group_ids: List[str]) -> List[InstanceGroup]:
         return [
@@ -1146,15 +1165,15 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def get_security_configuration(self, name: str) -> SecurityConfiguration:
         if name not in self.security_configurations:
-            raise InvalidRequestException(
-                message=f"Security configuration with name '{name}' does not exist."
+            raise ResourceNotFoundException(
+                f"Security configuration with name '{name}' does not exist."
             )
         return self.security_configurations[name]
 
     def delete_security_configuration(self, name: str) -> None:
         if name not in self.security_configurations:
-            raise InvalidRequestException(
-                message=f"Security configuration with name '{name}' does not exist."
+            raise ResourceNotFoundException(
+                f"Security configuration with name '{name}' does not exist."
             )
         del self.security_configurations[name]
 
@@ -1191,6 +1210,23 @@ class ElasticMapReduceBackend(BaseBackend):
             },
         }
         return
+
+    def list_release_labels(self) -> list[str]:
+        """
+        Pagination and Filtering is not yet implemented
+        """
+        return self._release_labels
+
+    def list_supported_instance_types(self, release_label: str) -> list[dict[str, Any]]:
+        """
+        Pagination is not yet implemented
+        """
+        instance_type_names = self._get_instance_type_names(release_label)
+        return [
+            details
+            for name, details in self._instance_types.items()
+            if name in instance_type_names
+        ]
 
 
 emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

@@ -31,7 +31,7 @@ class Cluster:
         self.source_backup_id = source_backup_id
         self.state = "ACTIVE"
         self.state_message = "The cluster is ready for use."
-        self.subnet_mapping = {subnet_id: region_name for subnet_id in subnet_ids}
+        self.subnet_mapping = {region_name: subnet_id for subnet_id in subnet_ids}
         self.vpc_id = "vpc-" + str(uuid.uuid4())[:8]
         self.network_type = network_type
         self.certificates = {

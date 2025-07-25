@@ -2140,8 +2140,8 @@ def test_create_login_profile__duplicate():
     with pytest.raises(ClientError) as exc:
         conn.create_login_profile(UserName="my-user", Password="my-pass")
     err = exc.value.response["Error"]
-    assert err["Code"] == "User my-user already has password"
-    assert err["Message"] is None
+    assert err["Code"] == "EntityAlreadyExists"
+    assert err["Message"] == "User my-user already has password"
 
 
 @mock_aws()

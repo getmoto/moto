@@ -193,10 +193,11 @@ class CloudFormationResponse(BaseResponse):
             for item in self._get_list_prefix("Tags.member")
         )
         parameters = {
-            param["parameter_key"]: stack.parameters[param["parameter_key"]]
-            if param.get("use_previous_value", "").lower() == "true"
-            and use_previous_template
-            else param["parameter_value"]
+            param["parameter_key"]: (
+                stack.stack_parameters[param["parameter_key"]]
+                if param.get("use_previous_value", "").lower() == "true"
+                else param["parameter_value"]
+            )
             for param in parameters_list
         }
         if update_or_create == "UPDATE":
@@ -373,8 +374,13 @@ class CloudFormationResponse(BaseResponse):
         old_stack: FakeStack,
     ) -> None:
         if incoming_params and stack_body:
-            new_params = self._get_param_values(incoming_params, old_stack.parameters)
-            if old_stack.template == stack_body and old_stack.parameters == new_params:
+            new_params = self._get_param_values(
+                incoming_params, old_stack.stack_parameters
+            )
+            if (
+                old_stack.template == stack_body
+                and old_stack.stack_parameters == new_params
+            ):
                 raise ValidationError(
                     old_stack.name, message="No updates are to be performed."
                 )
@@ -907,7 +913,7 @@ DESCRIBE_STACK_RESOURCE_RESPONSE_TEMPLATE = """<DescribeStackResourceResponse>
       <StackName>{{ stack.name }}</StackName>
       <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
       <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-      <ResourceType>{{ resource.type }}</ResourceType>
+      <ResourceType>{{ resource.resource_type }}</ResourceType>
       <Timestamp>2010-07-27T22:27:28Z</Timestamp>
       <ResourceStatus>{{ stack.status }}</ResourceStatus>
     </StackResourceDetail>
@@ -923,7 +929,7 @@ DESCRIBE_STACK_RESOURCES_RESPONSE = """<DescribeStackResourcesResponse>
           <StackName>{{ stack.name }}</StackName>
           <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
           <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-          <ResourceType>{{ resource.type }}</ResourceType>
+          <ResourceType>{{ resource.resource_type }}</ResourceType>
           <Timestamp>2010-07-27T22:27:28Z</Timestamp>
           <ResourceStatus>{{ stack.status }}</ResourceStatus>
         </member>
@@ -1001,7 +1007,7 @@ LIST_STACKS_RESOURCES_RESPONSE = """<ListStackResourcesResponse>
         <LogicalResourceId>{{ resource.logical_resource_id }}</LogicalResourceId>
         <LastUpdatedTimestamp>2011-06-21T20:15:58Z</LastUpdatedTimestamp>
         <PhysicalResourceId>{{ resource.physical_resource_id }}</PhysicalResourceId>
-        <ResourceType>{{ resource.type }}</ResourceType>
+        <ResourceType>{{ resource.resource_type }}</ResourceType>
       </member>
       {% endfor %}
     </StackResourceSummaries>

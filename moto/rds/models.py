@@ -53,6 +53,8 @@ from .exceptions import (
     DBProxyNotFoundFault,
     DBProxyQuotaExceededFault,
     DBSecurityGroupNotFoundError,
+    DBShardGroupAlreadyExistsError,
+    DBShardGroupNotFoundFault,
     DBSnapshotAlreadyExistsError,
     DBSnapshotNotFoundFault,
     DBSubnetGroupNotFoundError,
@@ -74,7 +76,7 @@ from .exceptions import (
     InvalidSubnet,
     KMSKeyNotAccessibleFault,
     OptionGroupNotFoundFaultError,
-    RDSClientError,
+    RDSClientError,  # TODO: Refactor into specific exceptions
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
     SourceDatabaseNotSupportedFault,
@@ -2208,6 +2210,47 @@ class DBInstanceAutomatedBackup:
         return status
 
 
+class DBShardGroup(RDSBaseModel):
+    resource_type = "shard-group"
+
+    SUPPORTED_FILTERS = {
+        "db-shard-group-id": FilterDef(
+            ["db_shard_group_identifier"],
+            "DB Shard Group Identifier",
+        ),
+        "db-cluster-id": FilterDef(
+            ["db_cluster_identifier"],
+            "DB Cluster Identifier",
+        ),
+    }
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_shard_group_identifier: str,
+        db_cluster_identifier: str,
+        max_acu: float,
+        compute_redundancy: Optional[int] = None,
+        min_acu: Optional[float] = None,
+        publicly_accessible: Optional[bool] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_shard_group_identifier = db_shard_group_identifier
+        self.db_cluster_identifier = db_cluster_identifier
+        self.compute_redundancy = compute_redundancy
+        self.max_acu = max_acu
+        self.min_acu = min_acu
+        self.status = "available"
+        self.db_shard_group_resource_id = (
+            f"shard-group-{self.db_shard_group_identifier}"
+        )
+        self.endpoint = f"{self.db_cluster_identifier}.{self.region}.rds.amazonaws.com"
+        self.db_shard_group_arn = f"arn:aws:rds:{self.region}:{self.account_id}:shard-group:{self.db_shard_group_identifier}"
+        self.publicly_accessible = publicly_accessible
+        self.tags = tags or []
+
+
 class RDSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -2232,6 +2275,7 @@ class RDSBackend(BaseBackend):
         ] = CaseInsensitiveDict()
         self.option_groups: MutableMapping[str, OptionGroup] = CaseInsensitiveDict()
         self.security_groups: Dict[str, DBSecurityGroup] = {}
+        self.shard_groups: Dict[str, DBShardGroup] = {}
         self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
         self._db_cluster_options: Optional[List[Dict[str, Any]]] = None
         self.db_proxies: Dict[str, DBProxy] = OrderedDict()
@@ -2244,6 +2288,7 @@ class RDSBackend(BaseBackend):
             DBParameterGroup: self.db_parameter_groups,
             DBProxy: self.db_proxies,
             DBSecurityGroup: self.security_groups,
+            DBShardGroup: self.shard_groups,
             DBSnapshot: self.database_snapshots,
             DBSubnetGroup: self.subnet_groups,
             EventSubscription: self.event_subscriptions,
@@ -3110,7 +3155,7 @@ class RDSBackend(BaseBackend):
         db_parameter_group_id = db_parameter_group_kwargs["db_parameter_group_name"]
         if db_parameter_group_id in self.db_parameter_groups:
             raise RDSClientError(
-                "DBParameterGroupAlreadyExistsFault",
+                "DBParameterGroupAlreadyExists",
                 f"A DB parameter group named {db_parameter_group_id} already exists.",
             )
         if not db_parameter_group_kwargs.get("description"):
@@ -3197,8 +3242,36 @@ class RDSBackend(BaseBackend):
 
         return db_parameter_group
 
-    def describe_db_cluster_parameters(self) -> List[Dict[str, Any]]:
-        return []
+    def modify_db_cluster_parameter_group(
+        self,
+        db_cluster_parameter_group_name: str,
+        db_cluster_parameter_group_parameters: Iterable[Dict[str, Any]],
+    ) -> DBClusterParameterGroup:
+        if db_cluster_parameter_group_name not in self.db_cluster_parameter_groups:
+            raise DBClusterParameterGroupNotFoundError(db_cluster_parameter_group_name)
+
+        db_cluster_parameter_group = self.db_cluster_parameter_groups[
+            db_cluster_parameter_group_name
+        ]
+        db_cluster_parameter_group.update_cluster_parameters(
+            db_cluster_parameter_group_parameters
+        )
+
+        return db_cluster_parameter_group
+
+    def describe_db_cluster_parameters(
+        self, db_cluster_parameter_group_name: str
+    ) -> List[Dict[str, Any]]:
+        if db_cluster_parameter_group_name not in self.db_cluster_parameter_groups:
+            raise DBClusterParameterGroupNotFoundError(db_cluster_parameter_group_name)
+        db_cluster_parameter_group = self.db_cluster_parameter_groups[
+            db_cluster_parameter_group_name
+        ]
+        parameters = [
+            {"ParameterName": name, **values}
+            for name, values in db_cluster_parameter_group.parameters.items()
+        ]
+        return parameters
 
     def create_db_cluster(self, kwargs: Dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
@@ -4073,6 +4146,50 @@ class RDSBackend(BaseBackend):
         bg_deployment.deletion_time = utcnow()
         return bg_deployment
 
+    def create_db_shard_group(self, kwargs: Dict[str, Any]) -> DBShardGroup:
+        db_shard_group = DBShardGroup(self, **kwargs)
+
+        # Validate
+        db_shard_group_identifier = kwargs["db_shard_group_identifier"]
+        db_cluster_identifier = kwargs["db_cluster_identifier"]
+        compute_redundancy = kwargs.get("compute_redundancy")
+        max_acu = kwargs["max_acu"]
+        min_acu = kwargs.get("min_acu")
+
+        if db_shard_group_identifier in self.shard_groups:
+            raise DBShardGroupAlreadyExistsError(db_shard_group_identifier)
+
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+
+        if compute_redundancy not in (None, 0, 1, 2):
+            raise InvalidParameterValue(
+                f"Invalid ComputeRedundancy value: '{compute_redundancy}'. "
+                "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
+            )
+
+        if "min_acu" in kwargs and min_acu >= max_acu:
+            raise InvalidParameterValue("min_acu cannot be larger than max_acu")
+
+        self.shard_groups[db_shard_group.db_shard_group_identifier] = db_shard_group
+        return db_shard_group
+
+    def describe_db_shard_groups(
+        self,
+        db_shard_group_identifier: Optional[str],
+        filters: Optional[Dict[str, List[str]]],
+    ) -> List[DBShardGroup]:
+        shard_groups = self.shard_groups
+        if db_shard_group_identifier:
+            filters = merge_filters(
+                filters, {"db-shard-group-id": [db_shard_group_identifier]}
+            )
+        if filters:
+            shard_groups = self._filter_resources(shard_groups, filters, DBShardGroup)
+        if db_shard_group_identifier and not shard_groups:
+            raise DBShardGroupNotFoundFault(db_shard_group_identifier)
+        return list(shard_groups.values())
+
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"
 
@@ -4238,6 +4355,13 @@ class DBClusterParameterGroup(CloudFormationModel, RDSBaseModel):
     @property
     def resource_id(self) -> str:
         return self.name
+
+    def update_cluster_parameters(
+        self, new_parameters: Iterable[Dict[str, Any]]
+    ) -> None:
+        for new_parameter in new_parameters:
+            parameter = self.parameters[new_parameter["ParameterName"]]
+            parameter.update(new_parameter)
 
 
 class Event:

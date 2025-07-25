@@ -4,10 +4,7 @@ from moto.core.exceptions import ServiceException
 
 
 class RedshiftClientError(ServiceException):
-    def __init__(self, code: str, message: str):
-        super().__init__(message)
-        self.code = code
-        self.message = message
+    pass
 
 
 class ClusterNotFoundError(RedshiftClientError):
@@ -18,16 +15,18 @@ class ClusterNotFoundError(RedshiftClientError):
 class ClusterSubnetGroupNotFoundError(RedshiftClientError):
     def __init__(self, subnet_identifier: str):
         super().__init__(
-            "ClusterSubnetGroupNotFound", f"Subnet group {subnet_identifier} not found."
+            "ClusterSubnetGroupNotFoundFault",
+            f"Subnet group {subnet_identifier} not found.",
         )
 
 
 class ClusterSecurityGroupNotFoundError(RedshiftClientError):
-    def __init__(self, group_identifier: str):
-        super().__init__(
-            "ClusterSecurityGroupNotFound",
-            f"Security group {group_identifier} not found.",
-        )
+    code = "ClusterSecurityGroupNotFound"
+    message = "The cluster security group name does not refer to an existing cluster security group."
+
+    def __init__(self, group_identifier: Optional[str] = None):
+        if group_identifier:
+            super().__init__(f"Security group {group_identifier} not found.")
 
 
 class ClusterParameterGroupNotFoundError(RedshiftClientError):
@@ -136,17 +135,9 @@ class UnknownSnapshotCopyRegionFaultError(RedshiftClientError):
         super().__init__("UnknownSnapshotCopyRegionFault", message)
 
 
-class ClusterSecurityGroupNotFoundFaultError(RedshiftClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "ClusterSecurityGroupNotFoundFault",
-            "The cluster security group name does not refer to an existing cluster security group.",
-        )
-
-
 class InvalidClusterSnapshotStateFaultError(RedshiftClientError):
     def __init__(self, snapshot_identifier: str):
         super().__init__(
-            "InvalidClusterSnapshotStateFault",
+            "InvalidClusterSnapshotState",
             f"Cannot delete the snapshot {snapshot_identifier} because only manual snapshots may be deleted",
         )

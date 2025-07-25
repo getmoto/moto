@@ -41,6 +41,10 @@ class ManagedPrefixList(TaggedEC2Resource):
     def owner_id(self) -> str:
         return self.resource_owner_id or self.ec2_backend.account_id
 
+    @property
+    def prefix_list_id(self) -> str:
+        return self.id
+
 
 class ManagedPrefixListBackend:
     def __init__(self) -> None:
