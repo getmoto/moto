@@ -20,7 +20,7 @@ from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAM
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instances import Instance
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
-from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
