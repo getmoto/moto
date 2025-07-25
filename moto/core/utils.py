@@ -491,4 +491,4 @@ def _get_value_for_key(obj: Any, key: int | str, default: Any) -> Any:
     try:
         return obj[key]
     except (KeyError, IndexError, TypeError, AttributeError):
-        return getattr(obj, str(key), default)
+        return default

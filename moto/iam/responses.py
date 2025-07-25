@@ -3,7 +3,7 @@ from __future__ import annotations
 from moto.core.responses import ActionResult, BaseResponse
 from moto.core.serialize import never_return, return_if_not_empty, url_encode
 
-from .exceptions import IAMNotFoundException
+from .exceptions import NotFoundException
 from .models import IAMBackend, User, iam_backends
 from .utils import is_role_resource
 
@@ -57,7 +57,7 @@ class IamResponse(BaseResponse):
             role_object = self.backend.get_role(role_name)
 
             return role_object.arn
-        except IAMNotFoundException:
+        except NotFoundException:
             return "*"
 
     def attach_role_policy(self) -> ActionResult:

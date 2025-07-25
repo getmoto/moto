@@ -3,7 +3,6 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Optional
 
 from botocore.exceptions import ParamValidationError
-from jinja2 import Template
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -69,10 +68,25 @@ class FakeHealthStatus(BaseModel):
     ):
         self.instance_id = instance_id
         self.port = port
-        self.health_port = health_port
+        self.health_check_port = health_port
         self.status = status
         self.reason = reason
         self.description = description
+
+    @property
+    def target(self) -> dict[str, str]:
+        return {
+            "Id": self.instance_id,
+            "Port": self.port,
+        }
+
+    @property
+    def target_health(self) -> dict[str, Optional[str]]:
+        return {
+            "State": self.status,
+            "Reason": self.reason,
+            "Description": self.description,
+        }
 
 
 class FakeTargetGroup(CloudFormationModel):
@@ -90,8 +104,8 @@ class FakeTargetGroup(CloudFormationModel):
         healthcheck_protocol: Optional[str] = None,
         healthcheck_port: Optional[str] = None,
         healthcheck_path: Optional[str] = None,
-        healthcheck_interval_seconds: Optional[str] = None,
-        healthcheck_timeout_seconds: Optional[str] = None,
+        healthcheck_interval_seconds: Optional[int] = None,
+        healthcheck_timeout_seconds: Optional[int] = None,
         healthcheck_enabled: Optional[str] = None,
         healthy_threshold_count: Optional[str] = None,
         unhealthy_threshold_count: Optional[str] = None,
@@ -117,11 +131,11 @@ class FakeTargetGroup(CloudFormationModel):
             self.protocol = protocol
             self.protocol_version = protocol_version
         self.port = port
-        self.healthcheck_protocol = healthcheck_protocol or self.protocol
-        self.healthcheck_port = healthcheck_port or "traffic-port"
-        self.healthcheck_path = healthcheck_path
-        self.healthcheck_interval_seconds = healthcheck_interval_seconds or "30"
-        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or "10"
+        self.health_check_protocol = healthcheck_protocol or self.protocol
+        self.health_check_port = healthcheck_port or "traffic-port"
+        self.health_check_path = healthcheck_path
+        self.health_check_interval_seconds = healthcheck_interval_seconds or 30
+        self.health_check_timeout_seconds = healthcheck_timeout_seconds or 10
         self.ip_address_type = (
             ip_address_type or "ipv4" if self.protocol != "GENEVE" else None
         )
@@ -133,10 +147,10 @@ class FakeTargetGroup(CloudFormationModel):
         self.healthy_threshold_count = healthy_threshold_count or "5"
         self.unhealthy_threshold_count = unhealthy_threshold_count or "2"
         self.load_balancer_arns: List[str] = []
-        if self.healthcheck_protocol != "TCP":
+        if self.health_check_protocol != "TCP":
             self.matcher: Dict[str, Any] = matcher or {"HttpCode": "200"}
-            self.healthcheck_path = self.healthcheck_path
-            self.healthcheck_port = self.healthcheck_port or str(self.port)
+            self.health_check_path = self.health_check_path
+            self.health_check_port = self.health_check_port or str(self.port)
         self.target_type = target_type or "instance"
 
         self.attributes = {
@@ -199,7 +213,7 @@ class FakeTargetGroup(CloudFormationModel):
                 return FakeHealthStatus(
                     target["id"],
                     port,
-                    self.healthcheck_port,
+                    self.health_check_port,
                     "unused",
                     "Target.NotRegistered",
                     "Target is not registered to the target group",
@@ -208,7 +222,7 @@ class FakeTargetGroup(CloudFormationModel):
                 return FakeHealthStatus(
                     target["id"],
                     port,
-                    self.healthcheck_port,
+                    self.health_check_port,
                     "draining",
                     "Target.DeregistrationInProgress",
                     "Target deregistration is in progress",
@@ -218,7 +232,7 @@ class FakeTargetGroup(CloudFormationModel):
                 return FakeHealthStatus(
                     target["id"],
                     target.get("Port", 80),
-                    self.healthcheck_port,
+                    self.health_check_port,
                     "unused",
                     "Target.NotRegistered",
                     "Target is not registered to the target group",
@@ -227,7 +241,7 @@ class FakeTargetGroup(CloudFormationModel):
             return FakeHealthStatus(
                 target["id"],
                 port,
-                self.healthcheck_port,
+                self.health_check_port,
                 "unavailable",
                 "Target.NotRegistered",
                 "Target is not registered",
@@ -238,12 +252,12 @@ class FakeTargetGroup(CloudFormationModel):
                 return FakeHealthStatus(
                     t["id"],
                     t["port"],
-                    self.healthcheck_port,
+                    self.health_check_port,
                     "unused",
                     "Target.InvalidState",
                     "Target is in the stopped state",
                 )
-        return FakeHealthStatus(t["id"], t["port"], self.healthcheck_port, "healthy")
+        return FakeHealthStatus(t["id"], t["port"], self.health_check_port, "healthy")
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -434,6 +448,7 @@ class FakeListenerRule(CloudFormationModel):
         self.conditions = conditions
         self.actions = actions
         self.priority = priority
+        self.is_default = False
 
     @property
     def physical_resource_id(self) -> str:
@@ -513,115 +528,10 @@ class FakeAction(BaseModel):
         if "ForwardConfig" in self.data:
             if "TargetGroupStickinessConfig" not in self.data["ForwardConfig"]:
                 self.data["ForwardConfig"]["TargetGroupStickinessConfig"] = {
-                    "Enabled": "false"
+                    "Enabled": False
                 }
-
-    def to_xml(self) -> str:
-        template = Template(
-            """<Type>{{ action.type }}</Type>
-            {% if "Order" in action.data %}
-            <Order>{{ action.data["Order"] }}</Order>
-            {% endif %}
-            {% if action.type == "forward" and "ForwardConfig" in action.data %}
-            <ForwardConfig>
-              <TargetGroups>
-                {% for target_group in action.data["ForwardConfig"]["TargetGroups"] %}
-                <member>
-                  <TargetGroupArn>{{ target_group["TargetGroupArn"] }}</TargetGroupArn>
-                  <Weight>{{ target_group["Weight"] }}</Weight>
-                </member>
-                {% endfor %}
-              </TargetGroups>
-              <TargetGroupStickinessConfig>
-                  <Enabled>{{ action.data["ForwardConfig"]["TargetGroupStickinessConfig"]["Enabled"] }}</Enabled>
-                  {% if "DurationSeconds" in action.data["ForwardConfig"]["TargetGroupStickinessConfig"] %}
-                  <DurationSeconds>{{ action.data["ForwardConfig"]["TargetGroupStickinessConfig"]["DurationSeconds"] }}</DurationSeconds>
-                  {% endif %}
-              </TargetGroupStickinessConfig>
-            </ForwardConfig>
-            {% endif %}
-            {% if action.type == "forward" and "ForwardConfig" not in action.data %}
-            <TargetGroupArn>{{ action.data["TargetGroupArn"] }}</TargetGroupArn>
-            {% elif action.type == "redirect" %}
-            <RedirectConfig>
-                <Protocol>{{ action.data["RedirectConfig"]["Protocol"] }}</Protocol>
-                <Port>{{ action.data["RedirectConfig"]["Port"] }}</Port>
-                <StatusCode>{{ action.data["RedirectConfig"]["StatusCode"] }}</StatusCode>
-                {% if action.data["RedirectConfig"]["Host"] %}<Host>{{ action.data["RedirectConfig"]["Host"] }}</Host>{% endif %}
-                {% if action.data["RedirectConfig"]["Path"] %}<Path>{{ action.data["RedirectConfig"]["Path"] }}</Path>{% endif %}
-                {% if action.data["RedirectConfig"]["Query"] %}<Query>{{ action.data["RedirectConfig"]["Query"] }}</Query>{% endif %}
-            </RedirectConfig>
-            {% elif action.type == "authenticate-cognito" %}
-            <AuthenticateCognitoConfig>
-                <UserPoolArn>{{ action.data["AuthenticateCognitoConfig"]["UserPoolArn"] }}</UserPoolArn>
-                <UserPoolClientId>{{ action.data["AuthenticateCognitoConfig"]["UserPoolClientId"] }}</UserPoolClientId>
-                <UserPoolDomain>{{ action.data["AuthenticateCognitoConfig"]["UserPoolDomain"] }}</UserPoolDomain>
-                {% if "SessionCookieName" in action.data["AuthenticateCognitoConfig"] %}
-                <SessionCookieName>{{ action.data["AuthenticateCognitoConfig"]["SessionCookieName"] }}</SessionCookieName>
-                {% endif %}
-                {% if "Scope" in action.data["AuthenticateCognitoConfig"] %}
-                <Scope>{{ action.data["AuthenticateCognitoConfig"]["Scope"] }}</Scope>
-                {% endif %}
-                {% if "SessionTimeout" in action.data["AuthenticateCognitoConfig"] %}
-                <SessionTimeout>{{ action.data["AuthenticateCognitoConfig"]["SessionTimeout"] }}</SessionTimeout>
-                {% endif %}
-                {% if action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams") %}
-                <AuthenticationRequestExtraParams>
-                    {% for entry in action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams", {}).get("entry", {}).values() %}
-                    <member>
-                        <key>{{ entry["key"] }}</key>
-                        <value>{{ entry["value"] }}</value>
-                    </member>
-                    {% endfor %}
-                </AuthenticationRequestExtraParams>
-                {% endif %}
-                {% if "OnUnauthenticatedRequest" in action.data["AuthenticateCognitoConfig"] %}
-                <OnUnauthenticatedRequest>{{ action.data["AuthenticateCognitoConfig"]["OnUnauthenticatedRequest"] }}</OnUnauthenticatedRequest>
-                {% endif %}
-            </AuthenticateCognitoConfig>
-            {% elif action.type == "authenticate-oidc" %}
-            <AuthenticateOidcConfig>
-              <AuthorizationEndpoint>{{ action.data["AuthenticateOidcConfig"]["AuthorizationEndpoint"] }}</AuthorizationEndpoint>
-              <ClientId>{{ action.data["AuthenticateOidcConfig"]["ClientId"] }}</ClientId>
-              {% if "ClientSecret" in action.data["AuthenticateOidcConfig"] %}
-              <ClientSecret>{{ action.data["AuthenticateOidcConfig"]["ClientSecret"] }}</ClientSecret>
-              {% endif %}
-              <Issuer>{{ action.data["AuthenticateOidcConfig"]["Issuer"] }}</Issuer>
-              <TokenEndpoint>{{ action.data["AuthenticateOidcConfig"]["TokenEndpoint"] }}</TokenEndpoint>
-              <UserInfoEndpoint>{{ action.data["AuthenticateOidcConfig"]["UserInfoEndpoint"] }}</UserInfoEndpoint>
-              {% if "OnUnauthenticatedRequest" in action.data["AuthenticateOidcConfig"] %}
-              <OnUnauthenticatedRequest>{{ action.data["AuthenticateOidcConfig"]["OnUnauthenticatedRequest"] }}</OnUnauthenticatedRequest>
-              {% endif %}
-              {% if "UseExistingClientSecret" in action.data["AuthenticateOidcConfig"] %}
-              <UseExistingClientSecret>{{ action.data["AuthenticateOidcConfig"]["UseExistingClientSecret"] }}</UseExistingClientSecret>
-              {% endif %}
-              {% if "SessionTimeout" in action.data["AuthenticateOidcConfig"] %}
-              <SessionTimeout>{{ action.data["AuthenticateOidcConfig"]["SessionTimeout"] }}</SessionTimeout>
-              {% endif %}
-              {% if "SessionCookieName" in action.data["AuthenticateOidcConfig"] %}
-              <SessionCookieName>{{ action.data["AuthenticateOidcConfig"]["SessionCookieName"] }}</SessionCookieName>
-              {% endif %}
-              {% if "Scope" in action.data["AuthenticateOidcConfig"] %}
-              <Scope>{{ action.data["AuthenticateOidcConfig"]["Scope"] }}</Scope>
-              {% endif %}
-              {% if action.data["AuthenticateOidcConfig"].get("AuthenticationRequestExtraParams") %}
-              <AuthenticationRequestExtraParams>
-                  {% for entry in action.data["AuthenticateOidcConfig"].get("AuthenticationRequestExtraParams", {}).get("entry", {}).values() %}
-                  <member><key>{{ entry["key"] }}</key><value>{{ entry["value"] }}</value></member>
-                  {% endfor %}
-              </AuthenticationRequestExtraParams>
-              {% endif %}
-            </AuthenticateOidcConfig>
-            {% elif action.type == "fixed-response" %}
-             <FixedResponseConfig>
-                <ContentType>{{ action.data["FixedResponseConfig"]["ContentType"] }}</ContentType>
-                <MessageBody>{{ action.data["FixedResponseConfig"]["MessageBody"] }}</MessageBody>
-                <StatusCode>{{ action.data["FixedResponseConfig"]["StatusCode"] }}</StatusCode>
-            </FixedResponseConfig>
-            {% endif %}
-            """
-        )
-        return template.render(action=self)
+        # Dynamically give our Action class all properties of the source data.
+        self.__dict__.update(self.data)
 
 
 class FakeBackend(BaseModel):
@@ -631,6 +541,12 @@ class FakeBackend(BaseModel):
 
     def __repr__(self) -> str:
         return f"FakeBackend(inp: {self.instance_port}, policies: {self.policy_names})"
+
+
+class AvailabilityZone:
+    def __init__(self, subnet: Subnet) -> None:
+        self.subnet_id = subnet.id
+        self.zone_name = subnet.availability_zone
 
 
 class FakeLoadBalancer(CloudFormationModel):
@@ -681,9 +597,9 @@ class FakeLoadBalancer(CloudFormationModel):
         self.arn = arn
         self.dns_name = dns_name
         self.state = state
-        self.loadbalancer_type = loadbalancer_type or "application"
+        self.type = loadbalancer_type or "application"
 
-        self.stack = "ipv4"
+        self.ip_address_type = "ipv4"
         self.attrs = {
             # "access_logs.s3.enabled": "false",  # commented out for TF compatibility
             "access_logs.s3.bucket": None,
@@ -692,6 +608,14 @@ class FakeLoadBalancer(CloudFormationModel):
             # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
             "load_balancing.cross_zone.enabled": "false",
         }
+
+    @property
+    def load_balancer_state(self) -> dict[str, str]:
+        return {"Code": self.state}
+
+    @property
+    def availability_zones(self) -> list[AvailabilityZone]:
+        return [AvailabilityZone(subnet) for subnet in self.subnets]
 
     @property
     def physical_resource_id(self) -> str:
@@ -1302,12 +1226,8 @@ Member must satisfy regular expression pattern: {expression}"
         original_kwargs = dict(kwargs)
         kwargs.update(kwargs_patch)
 
-        healthcheck_timeout_seconds = int(
-            str(kwargs.get("healthcheck_timeout_seconds") or "10")
-        )
-        healthcheck_interval_seconds = int(
-            str(kwargs.get("healthcheck_interval_seconds") or "30")
-        )
+        healthcheck_timeout_seconds = kwargs.get("healthcheck_timeout_seconds", 10)
+        healthcheck_interval_seconds = kwargs.get("healthcheck_interval_seconds", 30)
 
         if (
             healthcheck_timeout_seconds is not None
@@ -1463,7 +1383,7 @@ Member must satisfy regular expression pattern: {expression}"
         if port in balancer.listeners:
             raise DuplicateListenerError()
 
-        self._validate_port_and_protocol(balancer.loadbalancer_type, port, protocol)
+        self._validate_port_and_protocol(balancer.type, port, protocol)
         self._validate_actions(default_actions)
 
         arn = (
@@ -1775,7 +1695,7 @@ Member must satisfy regular expression pattern: {expression}"
                 "Internal load balancers cannot be dualstack",
             )
 
-        balancer.stack = ip_type
+        balancer.ip_address_type = ip_type
 
     def set_security_groups(self, arn: str, sec_groups: List[str]) -> None:
         balancer = self.load_balancers.get(arn)
@@ -1794,7 +1714,7 @@ Member must satisfy regular expression pattern: {expression}"
 
     def set_subnets(
         self, arn: str, subnets: List[str], subnet_mappings: List[Dict[str, Any]]
-    ) -> Dict[str, str]:
+    ) -> list[AvailabilityZone]:
         balancer = self.load_balancers.get(arn)
         if balancer is None:
             raise LoadBalancerNotFoundError()
@@ -1825,7 +1745,7 @@ Member must satisfy regular expression pattern: {expression}"
 
         balancer.subnets = subnet_objects
 
-        return sub_zone_list
+        return [AvailabilityZone(subnet) for subnet in subnet_objects]
 
     def _get_subnet(self, sub_zone_list: Dict[str, str], subnet_id: str) -> Subnet:
         subnet = self.ec2_backend.get_subnet(subnet_id)
@@ -1863,8 +1783,8 @@ Member must satisfy regular expression pattern: {expression}"
         health_check_proto: Optional[str] = None,
         health_check_port: Optional[str] = None,
         health_check_path: Optional[str] = None,
-        health_check_interval: Optional[str] = None,
-        health_check_timeout: Optional[str] = None,
+        health_check_interval: Optional[int] = None,
+        health_check_timeout: Optional[int] = None,
         healthy_threshold_count: Optional[str] = None,
         unhealthy_threshold_count: Optional[str] = None,
         http_codes: Optional[str] = None,
@@ -1886,15 +1806,15 @@ Member must satisfy regular expression pattern: {expression}"
         if http_codes is not None and target_group.protocol in ["HTTP", "HTTPS"]:
             target_group.matcher["HttpCode"] = http_codes
         if health_check_interval is not None:
-            target_group.healthcheck_interval_seconds = health_check_interval
+            target_group.health_check_interval_seconds = health_check_interval
         if health_check_path is not None:
-            target_group.healthcheck_path = health_check_path
+            target_group.health_check_path = health_check_path
         if health_check_port is not None:
-            target_group.healthcheck_port = health_check_port
+            target_group.health_check_port = health_check_port
         if health_check_proto is not None:
-            target_group.healthcheck_protocol = health_check_proto
+            target_group.health_check_protocol = health_check_proto
         if health_check_timeout is not None:
-            target_group.healthcheck_timeout_seconds = health_check_timeout
+            target_group.health_check_timeout_seconds = health_check_timeout
         if health_check_enabled is not None:
             target_group.healthcheck_enabled = health_check_enabled
         if healthy_threshold_count is not None:
@@ -1941,7 +1861,7 @@ Member must satisfy regular expression pattern: {expression}"
                     )
                 listener.certificate = default_cert_arn
                 # TODO: Calling describe_listener_certificates after this operation returns a wrong result
-                listener.certificates = certificates  # type: ignore[assignment]
+                listener.certificates = [c["certificate_arn"] for c in certificates]
             elif len(certificates) == 0 and len(listener.certificates) == 0:  # type: ignore[arg-type]
                 raise RESTError(
                     "CertificateWereNotPassed",

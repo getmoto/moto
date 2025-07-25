@@ -692,7 +692,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             try:
                 response = method()
             except ServiceException as e:
-                response = ActionResult(e)  # type: ignore[assignment]
+                se_status, se_headers, se_body = self.serialized(ActionResult(e))
+                se_headers["status"] = se_status
+                response = se_body, se_headers  # type: ignore[assignment]
             except HTTPException as http_error:
                 response_headers: Dict[str, Union[str, int]] = dict(
                     http_error.get_headers() or []
@@ -945,6 +947,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             ]
         }
         """
+        if self.automated_parameter_parsing:
+            return self.params
         params: Dict[str, Any] = {}
         for k, v in sorted(self.querystring.items(), key=params_sort_function):
             self._parse_param(k, v[0], params)

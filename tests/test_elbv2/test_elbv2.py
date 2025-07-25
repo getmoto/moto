@@ -173,7 +173,7 @@ def test_add_remove_tags():
             ResourceArns=[lb["LoadBalancerArn"]], Tags=[{"Key": "k", "Value": "b"}]
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "TooManyTagsError"
+    assert err["Code"] == "TooManyTags"
 
     conn.add_tags(
         ResourceArns=[lb["LoadBalancerArn"]], Tags=[{"Key": "j", "Value": "c"}]
@@ -2103,3 +2103,12 @@ def test_create_listener_with_alpn_policy():
 
     describe = conn.describe_listeners(ListenerArns=[listener_arn])["Listeners"][0]
     assert describe["AlpnPolicy"] == ["pol1", "pol2"]
+
+
+@mock_aws
+def test_describe_capacity_reservation():
+    lbs, _, _, _, _, conn = create_load_balancer()
+    load_balancer_arn = lbs["LoadBalancers"][0]["LoadBalancerArn"]
+    resp = conn.describe_capacity_reservation(LoadBalancerArn=load_balancer_arn)
+    for crs in resp["CapacityReservationState"]:
+        assert crs["State"]["Code"] == "provisioned"
