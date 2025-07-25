@@ -22,7 +22,7 @@ class EventDestinationAlreadyExists(SesError):
 
 
 class TemplateNameAlreadyExists(SesError):
-    code = "TemplateNameAlreadyExists"
+    code = "AlreadyExists"
 
 
 class ValidationError(SesError):

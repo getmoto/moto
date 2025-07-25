@@ -1240,7 +1240,7 @@ def test_create_ses_template():
             }
         )
 
-    assert ex.value.response["Error"]["Code"] == "TemplateNameAlreadyExists"
+    assert ex.value.response["Error"]["Code"] == "AlreadyExists"
 
     # get a template which is already added
     result = conn.get_template(TemplateName="MyTemplate")
