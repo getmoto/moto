@@ -1,13 +1,10 @@
 from typing import Any, List, Optional
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class ELBClientError(RESTError):
-    code = 400
-
-    def __init__(self, error_type: str, message: str):
-        super().__init__(error_type, message, template="wrapped_single_error")
+class ELBClientError(ServiceException):
+    pass
 
 
 class DuplicateTagKeysError(ELBClientError):
@@ -18,10 +15,8 @@ class DuplicateTagKeysError(ELBClientError):
 
 
 class LoadBalancerNotFoundError(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "LoadBalancerNotFound", "The specified load balancer does not exist."
-        )
+    code = "LoadBalancerNotFound"
+    message = "The specified load balancer does not exist."
 
 
 class ListenerNotFoundError(ELBClientError):
@@ -40,58 +35,38 @@ class TargetGroupNotFoundError(ELBClientError):
 
 
 class TooManyTagsError(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "TooManyTagsError",
-            "The quota for the number of tags that can be assigned to a load balancer has been reached",
-        )
+    code = "TooManyTags"
+    message = "The quota for the number of tags that can be assigned to a load balancer has been reached"
 
 
 class TooManyCertificatesError(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "TooManyCertificates",
-            "You've reached the limit on the number of certificates per load balancer",
-        )
+    code = "TooManyCertificates"
+    message = "You've reached the limit on the number of certificates per load balancer"
 
 
 class BadHealthCheckDefinition(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "ValidationError",
-            "HealthCheck Target must begin with one of HTTP, TCP, HTTPS, SSL",
-        )
+    code = "ValidationError"
+    message = "HealthCheck Target must begin with one of HTTP, TCP, HTTPS, SSL"
 
 
 class DuplicateListenerError(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "DuplicateListener", "A listener with the specified port already exists."
-        )
+    code = "DuplicateListener"
+    message = "A listener with the specified port already exists."
 
 
 class DuplicateLoadBalancerName(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "DuplicateLoadBalancerName",
-            "A load balancer with the specified name already exists.",
-        )
+    code = "DuplicateLoadBalancerName"
+    message = "A load balancer with the specified name already exists."
 
 
 class DuplicateTargetGroupName(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "DuplicateTargetGroupName",
-            "A target group with the specified name already exists.",
-        )
+    code = "DuplicateTargetGroupName"
+    message = "A target group with the specified name already exists."
 
 
 class InvalidTargetError(ELBClientError):
-    def __init__(self) -> None:
-        super().__init__(
-            "InvalidTarget",
-            "The specified target does not exist or is not in the same VPC as the target group.",
-        )
+    code = "InvalidTarget"
+    message = "The specified target does not exist or is not in the same VPC as the target group."
 
 
 class TargetNotRunning(ELBClientError):
@@ -131,8 +106,7 @@ class InvalidConditionFieldError(ELBClientError):
 
 
 class InvalidConditionValueError(ELBClientError):
-    def __init__(self, msg: str):
-        super().__init__("ValidationError", msg)
+    code = "ValidationError"
 
 
 class InvalidActionTypeError(ELBClientError):
@@ -157,8 +131,7 @@ class ListenerOrBalancerMissingError(ELBClientError):
 
 
 class InvalidDescribeRulesRequest(ELBClientError):
-    def __init__(self, msg: str):
-        super().__init__("ValidationError", msg)
+    code = "ValidationError"
 
 
 class ResourceInUseError(ELBClientError):
@@ -180,8 +153,7 @@ class DuplicatePriorityError(ELBClientError):
 
 
 class InvalidTargetGroupNameError(ELBClientError):
-    def __init__(self, msg: str):
-        super().__init__("ValidationError", msg)
+    code = "ValidationError"
 
 
 class InvalidModifyRuleArgumentsError(ELBClientError):
@@ -192,23 +164,19 @@ class InvalidModifyRuleArgumentsError(ELBClientError):
 
 
 class InvalidStatusCodeActionTypeError(ELBClientError):
-    def __init__(self, msg: str):
-        super().__init__("ValidationError", msg)
+    code = "ValidationError"
 
 
 class InvalidLoadBalancerActionException(ELBClientError):
-    def __init__(self, msg: str):
-        super().__init__("InvalidLoadBalancerAction", msg)
+    code = "InvalidLoadBalancerAction"
 
 
 class ValidationError(ELBClientError):
-    def __init__(self, msg: str):
-        super().__init__("ValidationError", msg)
+    code = "ValidationError"
 
 
 class InvalidConfigurationRequest(ELBClientError):
-    def __init__(self, msg: str):
-        super().__init__("InvalidConfigurationRequest", msg)
+    code = "InvalidConfigurationRequest"
 
 
 class InvalidProtocol(ELBClientError):

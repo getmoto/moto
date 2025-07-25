@@ -173,7 +173,7 @@ def test_add_remove_tags():
             ResourceArns=[lb["LoadBalancerArn"]], Tags=[{"Key": "k", "Value": "b"}]
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "TooManyTagsError"
+    assert err["Code"] == "TooManyTags"
 
     conn.add_tags(
         ResourceArns=[lb["LoadBalancerArn"]], Tags=[{"Key": "j", "Value": "c"}]
