@@ -829,5 +829,5 @@ class ELBV2Response(BaseResponse):
         return ActionResult(result)
 
     def describe_capacity_reservation(self) -> ActionResult:
-        result = {"CapacityReservationState": ["provisioned"]}
+        result = {"CapacityReservationState": [{"State": {"Code": "provisioned"}}]}
         return ActionResult(result)
