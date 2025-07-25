@@ -33,7 +33,7 @@ from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.ecr.exceptions import ImageNotFoundException
 from moto.ecr.models import ecr_backends
-from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import iam_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.logs.models import logs_backends
