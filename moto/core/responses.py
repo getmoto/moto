@@ -947,6 +947,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             ]
         }
         """
+        if self.automated_parameter_parsing:
+            return self.params
         params: Dict[str, Any] = {}
         for k, v in sorted(self.querystring.items(), key=params_sort_function):
             self._parse_param(k, v[0], params)
