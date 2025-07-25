@@ -56,8 +56,7 @@ class QueryParser:
 
     def _handle_list(self, shape, node, prefix=""):
         # The query protocol serializes empty lists as an empty string.
-        value = self._parse_shape(shape.member, node, prefix)
-        if value == "":
+        if node.get(prefix, UNDEFINED) == "":
             return []
 
         list_name = shape.member.serialization.get("name", "member")
