@@ -197,10 +197,10 @@ class EmailResponse(BaseResponse):
         self.backend.set_identity_notification_topic(identity, not_type, sns_topic)
         return EmptyResult()
 
-    def get_send_statistics(self) -> str:
+    def get_send_statistics(self) -> ActionResult:
         statistics = self.backend.get_send_statistics()
-        template = self.response_template(GET_SEND_STATISTICS)
-        return template.render(all_statistics=[statistics])
+        result = {"SendDataPoints": [statistics]}
+        return ActionResult(result)
 
     def create_configuration_set(self) -> ActionResult:
         configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]  # type: ignore
@@ -274,16 +274,20 @@ class EmailResponse(BaseResponse):
         self.backend.update_template(template_info=template_info)
         return EmptyResult()
 
-    def get_template(self) -> str:
+    def get_template(self) -> ActionResult:
         template_name = self._get_param("TemplateName")
         template_data = self.backend.get_template(template_name)
-        template = self.response_template(GET_TEMPLATE)
-        return template.render(template_data=template_data)
+        result = {"Template": template_data}
+        return ActionResult(result)
 
-    def list_templates(self) -> str:
+    def list_templates(self) -> ActionResult:
         email_templates = self.backend.list_templates()
-        template = self.response_template(LIST_TEMPLATES)
-        return template.render(templates=email_templates)
+        metadata = [
+            {"Name": t["template_name"], "CreatedTimestamp": t["Timestamp"]}
+            for t in email_templates
+        ]
+        result = {"TemplatesMetadata": metadata}
+        return ActionResult(result)
 
     def test_render_template(self) -> str:
         render_info = self._get_dict_param("Template")
@@ -381,7 +385,7 @@ class EmailResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def list_configuration_sets(self) -> str:
+    def list_configuration_sets(self) -> ActionResult:
         params = self._get_params()
         next_token = params.get("NextToken")
         max_items = params.get("MaxItems")
@@ -390,10 +394,8 @@ class EmailResponse(BaseResponse):
             max_items=max_items,
         )
         config_set_names = [c.configuration_set_name for c in configuration_sets]
-        template = self.response_template(LIST_CONFIGURATION_SETS_TEMPLATE)
-        return template.render(
-            configuration_sets=config_set_names, next_token=next_token
-        )
+        result = {"ConfigurationSets": [{"Name": name} for name in config_set_names]}
+        return ActionResult(result)
 
     def update_configuration_set_reputation_metrics_enabled(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
@@ -437,26 +439,6 @@ GET_IDENTITY_NOTIFICATION_ATTRIBUTES = """<GetIdentityNotificationAttributesResp
 </GetIdentityNotificationAttributesResponse>"""
 
 
-GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetSendStatisticsResult>
-      <SendDataPoints>
-        {% for statistics in all_statistics %}
-            <member>
-                <DeliveryAttempts>{{ statistics["DeliveryAttempts"] }}</DeliveryAttempts>
-                <Rejects>{{ statistics["Rejects"] }}</Rejects>
-                <Bounces>{{ statistics["Bounces"] }}</Bounces>
-                <Complaints>{{ statistics["Complaints"] }}</Complaints>
-                <Timestamp>{{ statistics["Timestamp"].strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
-            </member>
-        {% endfor %}
-      </SendDataPoints>
-  </GetSendStatisticsResult>
-  <ResponseMetadata>
-    <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173z49</RequestId>
-  </ResponseMetadata>
-</GetSendStatisticsResponse>"""
-
-
 DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
   <DescribeConfigurationSetResult>
     <ConfigurationSet>
@@ -486,36 +468,6 @@ DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://
   </ResponseMetadata>
 </DescribeConfigurationSetResponse>"""
 
-
-GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <GetTemplateResult>
-        <Template>
-            <TemplateName>{{ template_data["template_name"] }}</TemplateName>
-            <SubjectPart>{{ template_data["subject_part"] }}</SubjectPart>
-            <HtmlPart><![CDATA[{{ template_data["html_part"] }}]]></HtmlPart>
-            <TextPart>{{ template_data["text_part"] }}</TextPart>
-        </Template>
-    </GetTemplateResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</GetTemplateResponse>"""
-
-LIST_TEMPLATES = """<ListTemplatesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <ListTemplatesResult>
-        <TemplatesMetadata>
-            {% for template in templates %}
-                <Item>
-                    <Name>{{ template["template_name"] }}</Name>
-                    <CreatedTimestamp>{{ template["Timestamp"] }}</CreatedTimestamp>
-                </Item>
-            {% endfor %}
-        </TemplatesMetadata>
-    </ListTemplatesResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</ListTemplatesResponse>"""
 
 RENDER_TEMPLATE = """
 <TestRenderTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
@@ -670,23 +622,6 @@ GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE = """<GetIdentityVerificationAttri
     <RequestId>d435c1b8-a225-4b89-acff-81fcf7ef9236</RequestId>
   </ResponseMetadata>
 </GetIdentityVerificationAttributesResponse>"""
-
-
-LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <ListConfigurationSetsResult>
-    <ConfigurationSets>
-{% for configurationset in configuration_sets %}
-      <member>
-        <Name>{{ configurationset }}</Name>
-      </member>
-{% endfor %}
-    </ConfigurationSets>
-    <NextToken>{{ next_token }}</NextToken>
-  </ListConfigurationSetsResult>
-</ListConfigurationSetsResponse>"""
 
 
 GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE = """<GetIdentityDkimAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
