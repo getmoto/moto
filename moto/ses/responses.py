@@ -363,7 +363,10 @@ class EmailResponse(BaseResponse):
             max_items=max_items,
         )
         config_set_names = [c.configuration_set_name for c in configuration_sets]
-        result = {"ConfigurationSets": [{"Name": name} for name in config_set_names]}
+        result = {
+            "ConfigurationSets": [{"Name": name} for name in config_set_names],
+            "NextToken": next_token,
+        }
         return ActionResult(result)
 
     def update_configuration_set_reputation_metrics_enabled(self) -> ActionResult:
