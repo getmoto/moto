@@ -149,6 +149,7 @@ class CacheCluster(BaseModel):
         self.cache_cluster_status = "available"
         self.arn = f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:cluster:{cache_cluster_id}"
         self.cache_node_id = str(mock_random.uuid4())
+        self.status = "available"
 
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
@@ -417,6 +418,13 @@ class ReplicationGroup(BaseModel):
         self.engine_version = engine_version
         self.snapshot_arns = snapshot_arns
         self.snapshot_name = snapshot_name
+
+    @property
+    def global_replication_group_info(self) -> dict[str, str]:
+        return {
+            "GlobalReplicationGroupId": self.global_replication_group_id,
+            "GlobalReplicationGroupMemberRole": self.global_replication_group_member_role,
+        }
 
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags

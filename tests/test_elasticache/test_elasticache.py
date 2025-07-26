@@ -1313,6 +1313,9 @@ def test_describe_replication_groups_cluster_enabled():
     assert replication_group["ReplicationGroupId"] == replication_group_id
     assert len(replication_group["MemberClusters"]) == 9
     assert replication_group["ClusterEnabled"]
+    group_info = replication_group["GlobalReplicationGroupInfo"]
+    assert group_info["GlobalReplicationGroupId"] == "test-global-replication-group"
+    assert group_info["GlobalReplicationGroupMemberRole"] == "SECONDARY"
 
 
 @mock_aws
