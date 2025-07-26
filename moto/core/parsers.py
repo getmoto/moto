@@ -22,6 +22,8 @@ class QueryParser:
 
     def parse(self, request_dict, operation_model):
         shape = operation_model.input_shape
+        if shape is None:
+            return {}
         parsed = self._do_parse(request_dict, shape)
         return parsed if parsed is not UNDEFINED else {}
 

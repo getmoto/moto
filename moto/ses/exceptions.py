@@ -1,79 +1,60 @@
-from typing import Any
-
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class SesError(RESTError):
-    code = 400
-
-    def __init__(self, error_type: str, message: str, *args: Any, **kwargs: Any):
-        kwargs.setdefault("template", "wrapped_single_error")
-        super().__init__(error_type, message, *args, **kwargs)
+class SesError(ServiceException):
+    pass
 
 
 class MessageRejectedError(SesError):
-    def __init__(self, message: str):
-        super().__init__("MessageRejected", message)
+    code = "MessageRejected"
 
 
 class ConfigurationSetDoesNotExist(SesError):
-    def __init__(self, message: str):
-        super().__init__("ConfigurationSetDoesNotExist", message)
+    code = "ConfigurationSetDoesNotExist"
 
 
 class ConfigurationSetAlreadyExists(SesError):
-    def __init__(self, message: str):
-        super().__init__("ConfigurationSetAlreadyExists", message)
+    code = "ConfigurationSetAlreadyExists"
 
 
 class EventDestinationAlreadyExists(SesError):
-    def __init__(self, message: str):
-        super().__init__("EventDestinationAlreadyExists", message)
+    code = "EventDestinationAlreadyExists"
 
 
 class TemplateNameAlreadyExists(SesError):
-    def __init__(self, message: str):
-        super().__init__("TemplateNameAlreadyExists", message)
+    code = "AlreadyExists"
 
 
 class ValidationError(SesError):
-    def __init__(self, message: str):
-        super().__init__("ValidationError", message)
+    code = "ValidationError"
 
 
 class InvalidParameterValue(SesError):
-    def __init__(self, message: str):
-        super().__init__("InvalidParameterValue", message)
+    code = "InvalidParameterValue"
 
 
 class InvalidRenderingParameterException(SesError):
-    def __init__(self, message: str):
-        super().__init__("InvalidRenderingParameterException", message)
+    code = "InvalidRenderingParameterException"
 
 
 class TemplateDoesNotExist(SesError):
-    def __init__(self, message: str):
-        super().__init__("TemplateDoesNotExist", message)
+    code = "TemplateDoesNotExist"
 
 
 class AlreadyExists(SesError):
-    def __init__(self, message: str):
-        super().__init__("AlreadyExists", message)
+    code = "AlreadyExists"
 
 
 class RuleSetDoesNotExist(SesError):
-    def __init__(self, message: str):
-        super().__init__("RuleSetDoesNotExist", message)
+    code = "RuleSetDoesNotExist"
 
 
 class RuleDoesNotExist(SesError):
-    def __init__(self, message: str):
-        super().__init__("RuleDoesNotExist", message)
+    code = "RuleDoesNotExist"
 
 
 class MissingRenderingAttributeException(SesError):
+    code = "MissingRenderingAttributeException"
+
     def __init__(self, var: str):
-        super().__init__(
-            "MissingRenderingAttributeException",
-            f"Attribute '{var}' is not present in the rendering data.",
-        )
+        super().__init__(f"Attribute '{var}' is not present in the rendering data.")

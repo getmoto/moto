@@ -1240,7 +1240,7 @@ def test_create_ses_template():
             }
         )
 
-    assert ex.value.response["Error"]["Code"] == "TemplateNameAlreadyExists"
+    assert ex.value.response["Error"]["Code"] == "AlreadyExists"
 
     # get a template which is already added
     result = conn.get_template(TemplateName="MyTemplate")
@@ -1315,7 +1315,7 @@ def test_render_template():
 
     with pytest.raises(ClientError) as ex:
         conn.test_render_template(**kwargs)
-    assert ex.value.response["Error"]["Code"] == "MissingRenderingAttributeException"
+    assert ex.value.response["Error"]["Code"] == "MissingRenderingAttribute"
     assert (
         ex.value.response["Error"]["Message"]
         == "Attribute 'favoriteanimal' is not present in the rendering data."

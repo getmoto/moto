@@ -1,7 +1,7 @@
 import base64
 from typing import Any, Dict, List, Optional
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import utcnow
 
 from .exceptions import ValidationError
@@ -11,147 +11,98 @@ from .models import SESBackend, ses_backends
 class EmailResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="ses")
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> SESBackend:
         return ses_backends[self.current_account][self.region]
 
-    def verify_email_identity(self) -> str:
+    def verify_email_identity(self) -> ActionResult:
         address = self.querystring.get("EmailAddress")[0]  # type: ignore
         self.backend.verify_email_identity(address)
-        template = self.response_template(VERIFY_EMAIL_IDENTITY)
-        return template.render()
+        return EmptyResult()
 
-    def verify_email_address(self) -> str:
+    def verify_email_address(self) -> ActionResult:
         address = self.querystring.get("EmailAddress")[0]  # type: ignore
         self.backend.verify_email_address(address)
-        template = self.response_template(VERIFY_EMAIL_ADDRESS)
-        return template.render()
+        return EmptyResult()
 
-    def list_identities(self) -> str:
+    def list_identities(self) -> ActionResult:
         identity_type = self._get_param("IdentityType")
         if identity_type not in [None, "EmailAddress", "Domain"]:
             raise ValidationError(
                 f"Value '{identity_type}' at 'identityType' failed to satisfy constraint: Member must satisfy enum value set: [Domain, EmailAddress]"
             )
         identities = self.backend.list_identities(identity_type)
-        template = self.response_template(LIST_IDENTITIES_RESPONSE)
-        return template.render(identities=identities)
+        result = {"Identities": identities}
+        return ActionResult(result)
 
-    def list_verified_email_addresses(self) -> str:
+    def list_verified_email_addresses(self) -> ActionResult:
         email_addresses = self.backend.list_verified_email_addresses()
-        template = self.response_template(LIST_VERIFIED_EMAIL_RESPONSE)
-        return template.render(email_addresses=email_addresses)
+        result = {"VerifiedEmailAddresses": email_addresses}
+        return ActionResult(result)
 
-    def verify_domain_dkim(self) -> str:
+    def verify_domain_dkim(self) -> ActionResult:
         domain = self.querystring.get("Domain")[0]  # type: ignore
         self.backend.verify_domain(domain)
-        template = self.response_template(VERIFY_DOMAIN_DKIM_RESPONSE)
-        return template.render()
+        result = {
+            "DkimTokens": [
+                "vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf",
+                "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
+                "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2",
+            ]
+        }
+        return ActionResult(result)
 
-    def verify_domain_identity(self) -> str:
+    def verify_domain_identity(self) -> ActionResult:
         domain = self.querystring.get("Domain")[0]  # type: ignore
         self.backend.verify_domain(domain)
-        template = self.response_template(VERIFY_DOMAIN_IDENTITY_RESPONSE)
-        return template.render()
+        result = {"VerificationToken": "QTKknzFg2J4ygwa+XvHAxUl1hyHoY0gVfZdfjIedHZ0="}
+        return ActionResult(result)
 
-    def delete_identity(self) -> str:
+    def delete_identity(self) -> ActionResult:
         domain = self.querystring.get("Identity")[0]  # type: ignore
         self.backend.delete_identity(domain)
-        template = self.response_template(DELETE_IDENTITY_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def send_email(self) -> str:
+    def send_email(self) -> ActionResult:
         bodydatakey = "Message.Body.Text.Data"
         if "Message.Body.Html.Data" in self.querystring:
             bodydatakey = "Message.Body.Html.Data"
         body = self.querystring.get(bodydatakey)[0]  # type: ignore
         source = self.querystring.get("Source")[0]  # type: ignore
         subject = self.querystring.get("Message.Subject.Data")[0]  # type: ignore
-        destinations: Dict[str, List[str]] = {
-            "ToAddresses": [],
-            "CcAddresses": [],
-            "BccAddresses": [],
-        }
-        for dest_type in destinations:
-            # consume up to 51 to allow exception
-            for i in range(1, 52):
-                field = f"Destination.{dest_type}.member.{i}"
-                address = self.querystring.get(field)
-                if address is None:
-                    break
-                destinations[dest_type].append(address[0])
-
+        destinations = self.params.get("Destination", {})
         message = self.backend.send_email(source, subject, body, destinations)
-        template = self.response_template(SEND_EMAIL_RESPONSE)
-        return template.render(message=message)
+        result = {"MessageId": message.id}
+        return ActionResult(result)
 
-    def send_templated_email(self) -> str:
+    def send_templated_email(self) -> ActionResult:
         source = self.querystring.get("Source")[0]  # type: ignore
         template: List[str] = self.querystring.get("Template")  # type: ignore
         template_data: List[str] = self.querystring.get("TemplateData")  # type: ignore
-
-        destinations: Dict[str, List[str]] = {
-            "ToAddresses": [],
-            "CcAddresses": [],
-            "BccAddresses": [],
-        }
-        for dest_type in destinations:
-            # consume up to 51 to allow exception
-            for i in range(1, 52):
-                field = f"Destination.{dest_type}.member.{i}"
-                address = self.querystring.get(field)
-                if address is None:
-                    break
-                destinations[dest_type].append(address[0])
-
+        destinations = self.params.get("Destination", {})
         message = self.backend.send_templated_email(
             source, template, template_data, destinations
         )
-        return self.response_template(SEND_TEMPLATED_EMAIL_RESPONSE).render(
-            message=message
-        )
+        result = {"MessageId": message.id}
+        return ActionResult(result)
 
-    def send_bulk_templated_email(self) -> str:
+    def send_bulk_templated_email(self) -> ActionResult:
         source = self.querystring.get("Source")[0]  # type: ignore
         template = self.querystring.get("Template")
         template_data = self.querystring.get("DefaultTemplateData")
-
-        destinations = []
-        for i in range(1, 52):
-            destination_field = (
-                f"Destinations.member.{i}.Destination.ToAddresses.member.1"
-            )
-            if self.querystring.get(destination_field) is None:
-                break
-            destination: Dict[str, List[str]] = {
-                "ToAddresses": [],
-                "CcAddresses": [],
-                "BccAddresses": [],
-            }
-            for dest_type in destination:
-                # consume up to 51 to allow exception
-                for j in range(1, 52):
-                    field = (
-                        f"Destinations.member.{i}.Destination.{dest_type}.member.{j}"
-                    )
-                    address = self.querystring.get(field)
-                    if address is None:
-                        break
-                    destination[dest_type].append(address[0])
-            destinations.append({"Destination": destination})
-
+        destinations = self.params.get("Destinations", [])
         message = self.backend.send_bulk_templated_email(
             source,
             template,  # type: ignore
             template_data,  # type: ignore
             destinations,
         )
-        template = self.response_template(SEND_BULK_TEMPLATED_EMAIL_RESPONSE)
-        result = template.render(message=message)
-        return result
+        result = {"Status": [{"MessageId": msg_id} for msg_id in message.ids]}
+        return ActionResult(result)
 
-    def send_raw_email(self) -> str:
+    def send_raw_email(self) -> ActionResult:
         source = self.querystring.get("Source")
         if source is not None:
             (source,) = source
@@ -159,62 +110,49 @@ class EmailResponse(BaseResponse):
         raw_data = self.querystring.get("RawMessage.Data")[0]  # type: ignore
         raw_data = base64.b64decode(raw_data)
         raw_data = raw_data.decode("utf-8")
-        destinations = []
-        # consume up to 51 to allow exception
-        for i in range(1, 52):
-            field = f"Destinations.member.{i}"
-            address = self.querystring.get(field)
-            if address is None:
-                break
-            destinations.append(address[0])
-
+        destinations = self.params.get("Destinations", [])
         message = self.backend.send_raw_email(source, destinations, raw_data)  # type: ignore[arg-type]
-        template = self.response_template(SEND_RAW_EMAIL_RESPONSE)
-        return template.render(message=message)
+        result = {"MessageId": message.id}
+        return ActionResult(result)
 
-    def get_send_quota(self) -> str:
+    def get_send_quota(self) -> ActionResult:
         quota = self.backend.get_send_quota()
-        template = self.response_template(GET_SEND_QUOTA_RESPONSE)
-        return template.render(quota=quota)
+        return ActionResult(quota)
 
-    def get_identity_notification_attributes(self) -> str:
+    def get_identity_notification_attributes(self) -> ActionResult:
         identities = self._get_params()["Identities"]
         identities = self.backend.get_identity_notification_attributes(identities)
-        template = self.response_template(GET_IDENTITY_NOTIFICATION_ATTRIBUTES)
-        return template.render(identities=identities)
+        result = {"NotificationAttributes": identities}
+        return ActionResult(result)
 
-    def set_identity_feedback_forwarding_enabled(self) -> str:
+    def set_identity_feedback_forwarding_enabled(self) -> ActionResult:
         identity = self._get_param("Identity")
         enabled = self._get_bool_param("ForwardingEnabled")
         self.backend.set_identity_feedback_forwarding_enabled(identity, enabled)
-        template = self.response_template(SET_IDENTITY_FORWARDING_ENABLED_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def set_identity_notification_topic(self) -> str:
+    def set_identity_notification_topic(self) -> ActionResult:
         identity = self.querystring.get("Identity")[0]  # type: ignore
         not_type = self.querystring.get("NotificationType")[0]  # type: ignore
         sns_topic = self.querystring.get("SnsTopic")
         if sns_topic:
             sns_topic = sns_topic[0]
-
         self.backend.set_identity_notification_topic(identity, not_type, sns_topic)
-        template = self.response_template(SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def get_send_statistics(self) -> str:
+    def get_send_statistics(self) -> ActionResult:
         statistics = self.backend.get_send_statistics()
-        template = self.response_template(GET_SEND_STATISTICS)
-        return template.render(all_statistics=[statistics])
+        result = {"SendDataPoints": [statistics]}
+        return ActionResult(result)
 
-    def create_configuration_set(self) -> str:
+    def create_configuration_set(self) -> ActionResult:
         configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]  # type: ignore
         self.backend.create_configuration_set(
             configuration_set_name=configuration_set_name
         )
-        template = self.response_template(CREATE_CONFIGURATION_SET)
-        return template.render()
+        return EmptyResult()
 
-    def describe_configuration_set(self) -> str:
+    def describe_configuration_set(self) -> ActionResult:
         configuration_set_name = self.querystring.get("ConfigurationSetName")[0]  # type: ignore
         config_set = self.backend.describe_configuration_set(configuration_set_name)
 
@@ -228,40 +166,22 @@ class EmailResponse(BaseResponse):
                 configuration_set_name
             )
 
-        template = self.response_template(DESCRIBE_CONFIGURATION_SET)
-        return template.render(
-            name=config_set.configuration_set_name, event_destination=event_destination
-        )
-
-    def create_configuration_set_event_destination(self) -> str:
-        configuration_set_name = self._get_param("ConfigurationSetName")
-        is_configuration_event_enabled = self.querystring.get(
-            "EventDestination.Enabled"
-        )[0]  # type: ignore
-        configuration_event_name = self.querystring.get("EventDestination.Name")[0]  # type: ignore
-        event_topic_arn = self.querystring.get(  # type: ignore
-            "EventDestination.SNSDestination.TopicARN"
-        )[0]
-        event_matching_types = self._get_multi_param(
-            "EventDestination.MatchingEventTypes.member"
-        )
-
-        event_destination = {
-            "Name": configuration_event_name,
-            "Enabled": is_configuration_event_enabled,
-            "EventMatchingTypes": event_matching_types,
-            "SNSDestination": event_topic_arn,
+        result = {
+            "ConfigurationSet": {"Name": config_set.configuration_set_name},
+            "EventDestinations": [event_destination],
         }
+        return ActionResult(result)
 
+    def create_configuration_set_event_destination(self) -> ActionResult:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        event_destination = self._get_params().get("EventDestination", {})
         self.backend.create_configuration_set_event_destination(
             configuration_set_name=configuration_set_name,
             event_destination=event_destination,
         )
+        return EmptyResult()
 
-        template = self.response_template(CREATE_CONFIGURATION_SET_EVENT_DESTINATION)
-        return template.render()
-
-    def create_template(self) -> str:
+    def create_template(self) -> ActionResult:
         template_data = self._get_dict_param("Template")
         template_info = {}
         template_info["text_part"] = template_data.get("._text_part", "")
@@ -270,10 +190,9 @@ class EmailResponse(BaseResponse):
         template_info["subject_part"] = template_data.get("._subject_part", "")
         template_info["Timestamp"] = utcnow()
         self.backend.add_template(template_info=template_info)
-        template = self.response_template(CREATE_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def update_template(self) -> str:
+    def update_template(self) -> ActionResult:
         template_data = self._get_dict_param("Template")
         template_info = {}
         template_info["text_part"] = template_data.get("._text_part", "")
@@ -282,85 +201,67 @@ class EmailResponse(BaseResponse):
         template_info["subject_part"] = template_data.get("._subject_part", "")
         template_info["Timestamp"] = utcnow()
         self.backend.update_template(template_info=template_info)
-        template = self.response_template(UPDATE_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def get_template(self) -> str:
+    def get_template(self) -> ActionResult:
         template_name = self._get_param("TemplateName")
         template_data = self.backend.get_template(template_name)
-        template = self.response_template(GET_TEMPLATE)
-        return template.render(template_data=template_data)
+        result = {"Template": template_data}
+        return ActionResult(result)
 
-    def list_templates(self) -> str:
+    def list_templates(self) -> ActionResult:
         email_templates = self.backend.list_templates()
-        template = self.response_template(LIST_TEMPLATES)
-        return template.render(templates=email_templates)
+        metadata = [
+            {"Name": t["template_name"], "CreatedTimestamp": t["Timestamp"]}
+            for t in email_templates
+        ]
+        result = {"TemplatesMetadata": metadata}
+        return ActionResult(result)
 
-    def test_render_template(self) -> str:
+    def test_render_template(self) -> ActionResult:
         render_info = self._get_dict_param("Template")
         rendered_template = self.backend.render_template(render_info)
-        template = self.response_template(RENDER_TEMPLATE)
-        return template.render(template=rendered_template)
+        result = {"RenderedTemplate": rendered_template}
+        return ActionResult(result)
 
-    def delete_template(self) -> str:
+    def delete_template(self) -> ActionResult:
         name = self._get_param("TemplateName")
         self.backend.delete_template(name)
-        return self.response_template(DELETE_TEMPLATE).render()
+        return EmptyResult()
 
-    def create_receipt_rule_set(self) -> str:
+    def create_receipt_rule_set(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         self.backend.create_receipt_rule_set(rule_set_name)
-        template = self.response_template(CREATE_RECEIPT_RULE_SET)
-        return template.render()
+        return EmptyResult()
 
-    def create_receipt_rule(self) -> str:
-        rule_set_name = self._get_param("RuleSetName")
-        rule = self._get_dict_param("Rule.")
+    def create_receipt_rule(self) -> ActionResult:
+        params = self._get_params()
+        rule_set_name = params.get("RuleSetName", "")
+        rule = params.get("Rule", {})
         self.backend.create_receipt_rule(rule_set_name, rule)
-        template = self.response_template(CREATE_RECEIPT_RULE)
-        return template.render()
+        return EmptyResult()
 
-    def describe_receipt_rule_set(self) -> str:
+    def describe_receipt_rule_set(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
-
         rule_set = self.backend.describe_receipt_rule_set(rule_set_name)
+        result = {"Metadata": {"Name": rule_set_name}, "Rules": rule_set}
+        return ActionResult(result)
 
-        for i, rule in enumerate(rule_set):
-            formatted_rule: Dict[str, Any] = {}
-
-            for k, v in rule.items():
-                self._parse_param(k, v, formatted_rule)
-
-            rule_set[i] = formatted_rule
-
-        template = self.response_template(DESCRIBE_RECEIPT_RULE_SET)
-
-        return template.render(rule_set=rule_set, rule_set_name=rule_set_name)
-
-    def describe_receipt_rule(self) -> str:
+    def describe_receipt_rule(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         rule_name = self._get_param("RuleName")
-
         receipt_rule = self.backend.describe_receipt_rule(rule_set_name, rule_name)
+        result = {"Rule": receipt_rule}
+        return ActionResult(result)
 
-        rule: Dict[str, Any] = {}
-
-        for k, v in receipt_rule.items():
-            self._parse_param(k, v, rule)
-
-        template = self.response_template(DESCRIBE_RECEIPT_RULE)
-        return template.render(rule=rule)
-
-    def update_receipt_rule(self) -> str:
-        rule_set_name = self._get_param("RuleSetName")
-        rule = self._get_dict_param("Rule.")
-
+    def update_receipt_rule(self) -> ActionResult:
+        params = self._get_params()
+        rule_set_name = params.get("RuleSetName", "")
+        rule = params.get("Rule", {})
         self.backend.update_receipt_rule(rule_set_name, rule)
+        return EmptyResult()
 
-        template = self.response_template(UPDATE_RECEIPT_RULE)
-        return template.render()
-
-    def set_identity_mail_from_domain(self) -> str:
+    def set_identity_mail_from_domain(self) -> ActionResult:
         identity = self._get_param("Identity")
         mail_from_domain = self._get_param("MailFromDomain")
         behavior_on_mx_failure = self._get_param("BehaviorOnMXFailure")
@@ -368,40 +269,34 @@ class EmailResponse(BaseResponse):
         self.backend.set_identity_mail_from_domain(
             identity, mail_from_domain, behavior_on_mx_failure
         )
+        return EmptyResult()
 
-        template = self.response_template(SET_IDENTITY_MAIL_FROM_DOMAIN)
-        return template.render()
-
-    def get_identity_mail_from_domain_attributes(self) -> str:
+    def get_identity_mail_from_domain_attributes(self) -> ActionResult:
         identities = self._get_multi_param("Identities.member.")
         attributes_by_identity = self.backend.get_identity_mail_from_domain_attributes(
             identities
         )
-        template = self.response_template(GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES)
+        result = {"MailFromDomainAttributes": attributes_by_identity}
+        return ActionResult(result)
 
-        return template.render(identities=attributes_by_identity)
-
-    def get_identity_verification_attributes(self) -> str:
+    def get_identity_verification_attributes(self) -> ActionResult:
         params = self._get_params()
         identities = params.get("Identities")
         verification_attributes = self.backend.get_identity_verification_attributes(
             identities=identities,
         )
+        result = {"VerificationAttributes": verification_attributes}
+        return ActionResult(result)
 
-        template = self.response_template(GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE)
-        return template.render(verification_attributes=verification_attributes)
-
-    def delete_configuration_set(self) -> str:
+    def delete_configuration_set(self) -> ActionResult:
         params = self._get_params()
         configuration_set_name = params.get("ConfigurationSetName")
-        if configuration_set_name:
-            self.backend.delete_configuration_set(
-                configuration_set_name=str(configuration_set_name),
-            )
-            template = self.response_template(DELETE_CONFIGURATION_SET_TEMPLATE)
-        return template.render()
+        self.backend.delete_configuration_set(
+            configuration_set_name=str(configuration_set_name)
+        )
+        return EmptyResult()
 
-    def list_configuration_sets(self) -> str:
+    def list_configuration_sets(self) -> ActionResult:
         params = self._get_params()
         next_token = params.get("NextToken")
         max_items = params.get("MaxItems")
@@ -410,536 +305,23 @@ class EmailResponse(BaseResponse):
             max_items=max_items,
         )
         config_set_names = [c.configuration_set_name for c in configuration_sets]
-        template = self.response_template(LIST_CONFIGURATION_SETS_TEMPLATE)
-        return template.render(
-            configuration_sets=config_set_names, next_token=next_token
-        )
+        result = {
+            "ConfigurationSets": [{"Name": name} for name in config_set_names],
+            "NextToken": next_token,
+        }
+        return ActionResult(result)
 
-    def update_configuration_set_reputation_metrics_enabled(self) -> str:
+    def update_configuration_set_reputation_metrics_enabled(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
         enabled = self._get_param("Enabled")
         self.backend.update_configuration_set_reputation_metrics_enabled(
             configuration_set_name=configuration_set_name,
             enabled=enabled,
         )
-        template = self.response_template(
-            UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE
-        )
-        return template.render()
+        return EmptyResult()
 
-    def get_identity_dkim_attributes(self) -> str:
+    def get_identity_dkim_attributes(self) -> ActionResult:
         identities = self._get_multi_param("Identities.member.")
         dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
-        template = self.response_template(GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE)
-        return template.render(dkim_attributes=dkim_attributes)
-
-
-VERIFY_EMAIL_IDENTITY = """<VerifyEmailIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyEmailIdentityResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</VerifyEmailIdentityResponse>"""
-
-VERIFY_EMAIL_ADDRESS = """<VerifyEmailAddressResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyEmailAddressResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</VerifyEmailAddressResponse>"""
-
-LIST_IDENTITIES_RESPONSE = """<ListIdentitiesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ListIdentitiesResult>
-    <Identities>
-        {% for identity in identities %}
-          <member>{{ identity }}</member>
-        {% endfor %}
-    </Identities>
-  </ListIdentitiesResult>
-  <ResponseMetadata>
-    <RequestId>cacecf23-9bf1-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</ListIdentitiesResponse>"""
-
-LIST_VERIFIED_EMAIL_RESPONSE = """<ListVerifiedEmailAddressesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ListVerifiedEmailAddressesResult>
-    <VerifiedEmailAddresses>
-        {% for email in email_addresses %}
-          <member>{{ email }}</member>
-        {% endfor %}
-    </VerifiedEmailAddresses>
-  </ListVerifiedEmailAddressesResult>
-  <ResponseMetadata>
-    <RequestId>cacecf23-9bf1-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</ListVerifiedEmailAddressesResponse>"""
-
-VERIFY_DOMAIN_DKIM_RESPONSE = """<VerifyDomainDkimResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyDomainDkimResult>
-    <DkimTokens>
-      <member>vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf</member>
-      <member>3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy</member>
-      <member>wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2</member>
-    </DkimTokens>
-    </VerifyDomainDkimResult>
-    <ResponseMetadata>
-      <RequestId>9662c15b-c469-11e1-99d1-797d6ecd6414</RequestId>
-    </ResponseMetadata>
-</VerifyDomainDkimResponse>"""
-
-VERIFY_DOMAIN_IDENTITY_RESPONSE = """\
-<VerifyDomainIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <VerifyDomainIdentityResult>
-    <VerificationToken>QTKknzFg2J4ygwa+XvHAxUl1hyHoY0gVfZdfjIedHZ0=</VerificationToken>
-  </VerifyDomainIdentityResult>
-  <ResponseMetadata>
-    <RequestId>94f6368e-9bf2-11e1-8ee7-c98a0037a2b6</RequestId>
-  </ResponseMetadata>
-</VerifyDomainIdentityResponse>"""
-
-DELETE_IDENTITY_RESPONSE = """<DeleteIdentityResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <DeleteIdentityResult/>
-  <ResponseMetadata>
-    <RequestId>d96bd874-9bf2-11e1-8ee7-c98a0037a2b6</RequestId>
-  </ResponseMetadata>
-</DeleteIdentityResponse>"""
-
-SEND_EMAIL_RESPONSE = """<SendEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendEmailResult>
-    <MessageId>{{ message.id }}</MessageId>
-  </SendEmailResult>
-  <ResponseMetadata>
-    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
-  </ResponseMetadata>
-</SendEmailResponse>"""
-
-SEND_TEMPLATED_EMAIL_RESPONSE = """<SendTemplatedEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendTemplatedEmailResult>
-    <MessageId>{{ message.id }}</MessageId>
-  </SendTemplatedEmailResult>
-  <ResponseMetadata>
-    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
-  </ResponseMetadata>
-</SendTemplatedEmailResponse>"""
-
-SEND_BULK_TEMPLATED_EMAIL_RESPONSE = """<SendBulkTemplatedEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendBulkTemplatedEmailResult>
-    {% for id in message.ids %}
-        <BulkEmailDestinationStatus>
-            <MessageId>{{ id }}</MessageId>
-        </BulkEmailDestinationStatus>
-    {% endfor %}
-  </SendBulkTemplatedEmailResult>
-  <ResponseMetadata>
-    <RequestId>d5964849-c866-11e0-9beb-01a62d68c57f</RequestId>
-  </ResponseMetadata>
-</SendBulkTemplatedEmailResponse>"""
-
-SEND_RAW_EMAIL_RESPONSE = """<SendRawEmailResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SendRawEmailResult>
-    <MessageId>{{ message.id }}</MessageId>
-  </SendRawEmailResult>
-  <ResponseMetadata>
-    <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173b49</RequestId>
-  </ResponseMetadata>
-</SendRawEmailResponse>"""
-
-GET_SEND_QUOTA_RESPONSE = """<GetSendQuotaResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetSendQuotaResult>
-    <SentLast24Hours>{{ quota.sent_past_24 }}</SentLast24Hours>
-    <Max24HourSend>200.0</Max24HourSend>
-    <MaxSendRate>1.0</MaxSendRate>
-  </GetSendQuotaResult>
-  <ResponseMetadata>
-    <RequestId>273021c6-c866-11e0-b926-699e21c3af9e</RequestId>
-  </ResponseMetadata>
-</GetSendQuotaResponse>"""
-
-GET_IDENTITY_NOTIFICATION_ATTRIBUTES = """<GetIdentityNotificationAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityNotificationAttributesResult>
-    <NotificationAttributes>
-    {% for identity, config in identities.items() %}
-      <entry>
-        <key>{{ identity }}</key>
-        <value>
-          <HeadersInBounceNotificationsEnabled>false</HeadersInBounceNotificationsEnabled>
-          <HeadersInDeliveryNotificationsEnabled>false</HeadersInDeliveryNotificationsEnabled>
-          <HeadersInComplaintNotificationsEnabled>false</HeadersInComplaintNotificationsEnabled>
-          {% if config.get("feedback_forwarding_enabled", True) == False %}
-          <ForwardingEnabled>false</ForwardingEnabled>
-          {% else %}
-          <ForwardingEnabled>true</ForwardingEnabled>
-          {% endif %}
-        </value>
-      </entry>
-      {% endfor %}
-    </NotificationAttributes>
-  </GetIdentityNotificationAttributesResult>
-  <ResponseMetadata>
-    <RequestId>46c90cfc-9055-4b84-96e3-4d6a309a8b9b</RequestId>
-  </ResponseMetadata>
-</GetIdentityNotificationAttributesResponse>"""
-
-SET_IDENTITY_FORWARDING_ENABLED_RESPONSE = """<SetIdentityFeedbackForwardingEnabledResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SetIdentityFeedbackForwardingEnabledResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</SetIdentityFeedbackForwardingEnabledResponse>"""
-
-SET_IDENTITY_NOTIFICATION_TOPIC_RESPONSE = """<SetIdentityNotificationTopicResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SetIdentityNotificationTopicResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</SetIdentityNotificationTopicResponse>"""
-
-GET_SEND_STATISTICS = """<GetSendStatisticsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetSendStatisticsResult>
-      <SendDataPoints>
-        {% for statistics in all_statistics %}
-            <member>
-                <DeliveryAttempts>{{ statistics["DeliveryAttempts"] }}</DeliveryAttempts>
-                <Rejects>{{ statistics["Rejects"] }}</Rejects>
-                <Bounces>{{ statistics["Bounces"] }}</Bounces>
-                <Complaints>{{ statistics["Complaints"] }}</Complaints>
-                <Timestamp>{{ statistics["Timestamp"].strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}</Timestamp>
-            </member>
-        {% endfor %}
-      </SendDataPoints>
-  </GetSendStatisticsResult>
-  <ResponseMetadata>
-    <RequestId>e0abcdfa-c866-11e0-b6d0-273d09173z49</RequestId>
-  </ResponseMetadata>
-</GetSendStatisticsResponse>"""
-
-CREATE_CONFIGURATION_SET = """<CreateConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateConfigurationSetResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</CreateConfigurationSetResponse>"""
-
-DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <DescribeConfigurationSetResult>
-    <ConfigurationSet>
-      <Name>{{ name }}</Name>
-    </ConfigurationSet>
-    {% if event_destination %}
-    <EventDestinations>
-      <member>
-        <Name>{{ event_destination["Name"] }}</Name>
-        <Enabled>{{ event_destination["Enabled"] }}</Enabled>
-        <MatchingEventTypes>
-        {% for event_matching_type in event_destination["EventMatchingTypes"] | sort %}
-          <member>{{ event_matching_type }}</member>
-        {% endfor %}
-        </MatchingEventTypes>
-        {% if "SNSDestination" in event_destination %}
-        <SNSDestination>
-          <TopicARN>{{ event_destination["SNSDestination"] }}</TopicARN>
-        </SNSDestination>
-        {% endif %}
-      </member>
-    </EventDestinations>
-    {% endif %}
-  </DescribeConfigurationSetResult>
-  <ResponseMetadata>
-    <RequestId>8e410745-c1bd-4450-82e0-f968cf2105f2</RequestId>
-  </ResponseMetadata>
-</DescribeConfigurationSetResponse>"""
-
-CREATE_CONFIGURATION_SET_EVENT_DESTINATION = """<CreateConfigurationSetEventDestinationResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateConfigurationSetEventDestinationResult/>
-  <ResponseMetadata>
-    <RequestId>67e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</CreateConfigurationSetEventDestinationResponse>"""
-
-CREATE_TEMPLATE = """<CreateTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateTemplateResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-  </ResponseMetadata>
-</CreateTemplateResponse>"""
-
-UPDATE_TEMPLATE = """<UpdateTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <UpdateTemplateResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-  </ResponseMetadata>
-</UpdateTemplateResponse>"""
-
-GET_TEMPLATE = """<GetTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <GetTemplateResult>
-        <Template>
-            <TemplateName>{{ template_data["template_name"] }}</TemplateName>
-            <SubjectPart>{{ template_data["subject_part"] }}</SubjectPart>
-            <HtmlPart><![CDATA[{{ template_data["html_part"] }}]]></HtmlPart>
-            <TextPart>{{ template_data["text_part"] }}</TextPart>
-        </Template>
-    </GetTemplateResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</GetTemplateResponse>"""
-
-LIST_TEMPLATES = """<ListTemplatesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <ListTemplatesResult>
-        <TemplatesMetadata>
-            {% for template in templates %}
-                <Item>
-                    <Name>{{ template["template_name"] }}</Name>
-                    <CreatedTimestamp>{{ template["Timestamp"] }}</CreatedTimestamp>
-                </Item>
-            {% endfor %}
-        </TemplatesMetadata>
-    </ListTemplatesResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</ListTemplatesResponse>"""
-
-RENDER_TEMPLATE = """
-<TestRenderTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <TestRenderTemplateResult>
-      <RenderedTemplate>
-      {{template | e}}
-      </RenderedTemplate>
-    </TestRenderTemplateResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</TestRenderTemplateResponse>
-"""
-
-DELETE_TEMPLATE = """<DeleteTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <DeleteTemplateResult>
-    </DeleteTemplateResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</DeleteTemplateResponse>"""
-
-CREATE_RECEIPT_RULE_SET = """<CreateReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateReceiptRuleSetResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</CreateReceiptRuleSetResponse>"""
-
-CREATE_RECEIPT_RULE = """<CreateReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <CreateReceiptRuleResult/>
-  <ResponseMetadata>
-    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</CreateReceiptRuleResponse>"""
-
-DESCRIBE_RECEIPT_RULE_SET = """<DescribeReceiptRuleSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <DescribeReceiptRuleSetResult>
-    <Rules>
-      {% for rule in rule_set %}
-      <member>
-        <Recipients>
-          {% for recipient in rule["recipients"] %}
-          <member>{{recipient}}</member>
-          {% endfor %}
-        </Recipients>
-        <Name>{{rule["name"]}}</Name>
-        <Actions>
-          {% for action in rule["actions"] %}
-          <member>
-            {% if action["_s3_action"] %}
-            <S3Action>
-              <BucketName>{{action["_s3_action"]["_bucket_name"]}}</BucketName>
-              <KmsKeyArn>{{action["_s3_action"]["_kms_key_arn"]}}</KmsKeyArn>
-              <ObjectKeyPrefix>{{action["_s3_action"]["_object_key_prefix"]}}</ObjectKeyPrefix>
-              <TopicArn>{{action["_s3_action"]["_topic_arn"]}}</TopicArn>
-            </S3Action>
-            {% endif %}
-            {% if action["_bounce_action"] %}
-            <BounceAction>
-              <TopicArn>{{action["_bounce_action"]["_topic_arn"]}}</TopicArn>
-              <SmtpReplyCode>{{action["_bounce_action"]["_smtp_reply_code"]}}</SmtpReplyCode>
-              <StatusCode>{{action["_bounce_action"]["_status_code"]}}</StatusCode>
-              <Message>{{action["_bounce_action"]["_message"]}}</Message>
-              <Sender>{{action["_bounce_action"]["_sender"]}}</Sender>
-            </BounceAction>
-            {% endif %}
-          </member>
-          {% endfor %}
-        </Actions>
-        <TlsPolicy>{{rule["tls_policy"]}}</TlsPolicy>
-        <ScanEnabled>{{rule["scan_enabled"]}}</ScanEnabled>
-        <Enabled>{{rule["enabled"]}}</Enabled>
-      </member>
-      {% endfor %}
-    </Rules>
-    <Metadata>
-      <Name>{{rule_set_name}}</Name>
-      <CreatedTimestamp>2021-10-31</CreatedTimestamp>
-    </Metadata>
-  </DescribeReceiptRuleSetResult>
-  <ResponseMetadata>
-    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</DescribeReceiptRuleSetResponse>
-"""
-
-DESCRIBE_RECEIPT_RULE = """<DescribeReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <DescribeReceiptRuleResult>
-    <Rule>
-      <Recipients>
-        {% for recipient in rule["recipients"] %}
-        <member>{{recipient}}</member>
-        {% endfor %}
-      </Recipients>
-      <Name>{{rule["name"]}}</Name>
-      <Actions>
-        {% for action in rule["actions"] %}
-        <member>
-          {% if action["_s3_action"] %}
-          <S3Action>
-            <BucketName>{{action["_s3_action"]["_bucket_name"]}}</BucketName>
-            <KmsKeyArn>{{action["_s3_action"]["_kms_key_arn"]}}</KmsKeyArn>
-            <ObjectKeyPrefix>{{action["_s3_action"]["_object_key_prefix"]}}</ObjectKeyPrefix>
-            <TopicArn>{{action["_s3_action"]["_topic_arn"]}}</TopicArn>
-          </S3Action>
-          {% endif %}
-          {% if action["_bounce_action"] %}
-          <BounceAction>
-            <TopicArn>{{action["_bounce_action"]["_topic_arn"]}}</TopicArn>
-            <SmtpReplyCode>{{action["_bounce_action"]["_smtp_reply_code"]}}</SmtpReplyCode>
-            <StatusCode>{{action["_bounce_action"]["_status_code"]}}</StatusCode>
-            <Message>{{action["_bounce_action"]["_message"]}}</Message>
-            <Sender>{{action["_bounce_action"]["_sender"]}}</Sender>
-          </BounceAction>
-          {% endif %}
-        </member>
-        {% endfor %}
-      </Actions>
-      <TlsPolicy>{{rule["tls_policy"]}}</TlsPolicy>
-      <ScanEnabled>{{rule["scan_enabled"]}}</ScanEnabled>
-      <Enabled>{{rule["enabled"]}}</Enabled>
-    </Rule>
-  </DescribeReceiptRuleResult>
-  <ResponseMetadata>
-    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</DescribeReceiptRuleResponse>
-"""
-
-UPDATE_RECEIPT_RULE = """<UpdateReceiptRuleResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <UpdateReceiptRuleResult/>
-  <ResponseMetadata>
-    <RequestId>15e0ef1a-9bf2-11e1-9279-01ab88cf109a</RequestId>
-  </ResponseMetadata>
-</UpdateReceiptRuleResponse>"""
-
-SET_IDENTITY_MAIL_FROM_DOMAIN = """<SetIdentityMailFromDomainResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <SetIdentityMailFromDomainResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</SetIdentityMailFromDomainResponse>"""
-
-GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES = """<GetIdentityMailFromDomainAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityMailFromDomainAttributesResult>
-    {% if identities.items()|length > 0 %}
-    <MailFromDomainAttributes>
-    {% for name, value in identities.items() %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>
-          {% if 'mail_from_domain' in value %}
-          <MailFromDomain>{{ value.get("mail_from_domain") }}</MailFromDomain>
-          <MailFromDomainStatus>Success</MailFromDomainStatus>
-          {% endif %}
-          <BehaviorOnMXFailure>{{ value.get("behavior_on_mx_failure") }}</BehaviorOnMXFailure>
-        </value>
-      </entry>
-    {% endfor %}
-    </MailFromDomainAttributes>
-    {% else %}
-    <MailFromDomainAttributes/>
-    {% endif %}
-  </GetIdentityMailFromDomainAttributesResult>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</GetIdentityMailFromDomainAttributesResponse>"""
-
-GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE = """<GetIdentityVerificationAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityVerificationAttributesResult>
-    <VerificationAttributes>
-      {% for name, value in verification_attributes.items() %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>
-          <VerificationStatus>{{ value }}</VerificationStatus>
-          <VerificationToken>ILQMESfEW0p6i6gIJcEWvO65TP5hg6B99hGFZ2lxrIs=</VerificationToken>
-        </value>
-      </entry>
-      {% endfor %}
-    </VerificationAttributes>
-  </GetIdentityVerificationAttributesResult>
-  <ResponseMetadata>
-    <RequestId>d435c1b8-a225-4b89-acff-81fcf7ef9236</RequestId>
-  </ResponseMetadata>
-</GetIdentityVerificationAttributesResponse>"""
-
-DELETE_CONFIGURATION_SET_TEMPLATE = """<DeleteConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <DeleteConfigurationSetResult/>
-</DeleteConfigurationSetResponse>"""
-
-LIST_CONFIGURATION_SETS_TEMPLATE = """<ListConfigurationSetsResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <ListConfigurationSetsResult>
-    <ConfigurationSets>
-{% for configurationset in configuration_sets %}
-      <member>
-        <Name>{{ configurationset }}</Name>
-      </member>
-{% endfor %}
-    </ConfigurationSets>
-    <NextToken>{{ next_token }}</NextToken>
-  </ListConfigurationSetsResult>
-</ListConfigurationSetsResponse>"""
-
-UPDATE_CONFIGURATION_SET_REPUTATION_METRICS_ENABLED_RESPONSE = """<UpdateConfigurationSetReputationMetricsEnabledResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <UpdateConfigurationSetReputationMetricsEnabledResult/>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</UpdateConfigurationSetReputationMetricsEnabledResponse>"""
-
-GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE = """<GetIdentityDkimAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityDkimAttributesResult>
-    <DkimAttributes>
-      {% for identity, attributes in dkim_attributes.items() %}
-      <entry>
-        <key>{{ identity }}</key>
-        <value>
-          <DkimEnabled>{{ attributes.DkimEnabled|lower }}</DkimEnabled>
-          <DkimVerificationStatus>{{ attributes.DkimVerificationStatus }}</DkimVerificationStatus>
-          {% if attributes.get('DkimTokens') %}
-          <DkimTokens>
-            {% for token in attributes.DkimTokens %}
-            <member>{{ token }}</member>
-            {% endfor %}
-          </DkimTokens>
-          {% endif %}
-        </value>
-      </entry>
-      {% endfor %}
-    </DkimAttributes>
-  </GetIdentityDkimAttributesResult>
-  <ResponseMetadata>
-    <RequestId>9662c15b-c469-11e1-99d1-797d6ecd6414</RequestId>
-  </ResponseMetadata>
-</GetIdentityDkimAttributesResponse>"""
+        result = {"DkimAttributes": dkim_attributes}
+        return ActionResult(result)
