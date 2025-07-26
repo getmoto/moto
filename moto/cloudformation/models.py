@@ -59,11 +59,13 @@ class StackSet(BaseModel):
         self.description = description
         self.parameters = parameters
         self.tags = tags
-        self.admin_role = (
+        self.administration_role_arn = (
             admin_role
             or f"arn:{get_partition(region)}:iam::{account_id}:role/AWSCloudFormationStackSetAdministrationRole"
         )
-        self.execution_role = execution_role or "AWSCloudFormationStackSetExecutionRole"
+        self.execution_role_name = (
+            execution_role or "AWSCloudFormationStackSetExecutionRole"
+        )
         self.status = "ACTIVE"
         self.instances = StackInstances(
             account_id=account_id,
@@ -78,16 +80,8 @@ class StackSet(BaseModel):
         self.permission_model = permission_model or "SELF_MANAGED"
 
     @property
-    def administration_role_arn(self) -> str:
-        return self.admin_role
-
-    @property
     def template_body(self) -> str:
         return self.template
-
-    @property
-    def execution_role_name(self) -> str:
-        return self.execution_role
 
     @property
     def managed_execution(self) -> Dict[str, Any]:
@@ -147,8 +141,8 @@ class StackSet(BaseModel):
         self.description = description if description is not None else self.description
         self.parameters = parameters or self.parameters
         self.tags = tags or self.tags
-        self.admin_role = admin_role or self.admin_role
-        self.execution_role = execution_role or self.execution_role
+        self.administration_role_arn = admin_role or self.administration_role_arn
+        self.execution_role_name = execution_role or self.execution_role_name
 
         if accounts and regions:
             self.update_instances(accounts, regions, self.parameters)  # type: ignore[arg-type]

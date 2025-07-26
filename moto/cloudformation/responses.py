@@ -37,8 +37,8 @@ class StackResourceDTO:
 
 class StackSetOperationDTO:
     def __init__(self, operation: Dict[str, Any], stack_set: StackSet) -> None:
-        self.execution_role_name = stack_set.execution_role
-        self.administration_role_arn = stack_set.admin_role
+        self.execution_role_name = stack_set.execution_role_name
+        self.administration_role_arn = stack_set.administration_role_arn
         self.stack_set_id = stack_set.id
         self.creation_timestamp = operation["CreationTimestamp"]
         self.operation_id = operation["OperationId"]
@@ -589,10 +589,6 @@ class CloudFormationResponse(BaseResponse):
     def describe_stack_set(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
         stackset = self.cloudformation_backend.describe_stack_set(stackset_name)
-
-        if not stackset.execution_role:
-            stackset.execution_role = "AWSCloudFormationStackSetExecutionRole"
-
         result = {"StackSet": stackset}
         return ActionResult(result)
 
