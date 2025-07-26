@@ -290,11 +290,11 @@ class EmailResponse(BaseResponse):
         result = {"TemplatesMetadata": metadata}
         return ActionResult(result)
 
-    def test_render_template(self) -> str:
+    def test_render_template(self) -> ActionResult:
         render_info = self._get_dict_param("Template")
         rendered_template = self.backend.render_template(render_info)
-        template = self.response_template(RENDER_TEMPLATE)
-        return template.render(template=rendered_template)
+        result = {"RenderedTemplate": rendered_template}
+        return ActionResult(result)
 
     def delete_template(self) -> ActionResult:
         name = self._get_param("TemplateName")
@@ -424,17 +424,3 @@ DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://
     <RequestId>8e410745-c1bd-4450-82e0-f968cf2105f2</RequestId>
   </ResponseMetadata>
 </DescribeConfigurationSetResponse>"""
-
-
-RENDER_TEMPLATE = """
-<TestRenderTemplateResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-    <TestRenderTemplateResult>
-      <RenderedTemplate>
-      {{template | e}}
-      </RenderedTemplate>
-    </TestRenderTemplateResult>
-    <ResponseMetadata>
-        <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf12ba</RequestId>
-    </ResponseMetadata>
-</TestRenderTemplateResponse>
-"""
