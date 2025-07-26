@@ -210,7 +210,7 @@ class EmailResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_configuration_set(self) -> str:
+    def describe_configuration_set(self) -> ActionResult:
         configuration_set_name = self.querystring.get("ConfigurationSetName")[0]  # type: ignore
         config_set = self.backend.describe_configuration_set(configuration_set_name)
 
@@ -224,29 +224,15 @@ class EmailResponse(BaseResponse):
                 configuration_set_name
             )
 
-        template = self.response_template(DESCRIBE_CONFIGURATION_SET)
-        return template.render(
-            name=config_set.configuration_set_name, event_destination=event_destination
-        )
+        result = {
+            "ConfigurationSet": {"Name": config_set.configuration_set_name},
+            "EventDestinations": [event_destination],
+        }
+        return ActionResult(result)
 
     def create_configuration_set_event_destination(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
-        is_configuration_event_enabled = self.querystring.get(
-            "EventDestination.Enabled"
-        )[0]  # type: ignore
-        configuration_event_name = self.querystring.get("EventDestination.Name")[0]  # type: ignore
-        event_topic_arn = self.querystring.get(  # type: ignore
-            "EventDestination.SNSDestination.TopicARN"
-        )[0]
-        event_matching_types = self._get_multi_param(
-            "EventDestination.MatchingEventTypes.member"
-        )
-        event_destination = {
-            "Name": configuration_event_name,
-            "Enabled": is_configuration_event_enabled,
-            "EventMatchingTypes": event_matching_types,
-            "SNSDestination": event_topic_arn,
-        }
+        event_destination = self._get_params().get("EventDestination", {})
         self.backend.create_configuration_set_event_destination(
             configuration_set_name=configuration_set_name,
             event_destination=event_destination,
@@ -394,33 +380,3 @@ class EmailResponse(BaseResponse):
         dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
         result = {"DkimAttributes": dkim_attributes}
         return ActionResult(result)
-
-
-DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <DescribeConfigurationSetResult>
-    <ConfigurationSet>
-      <Name>{{ name }}</Name>
-    </ConfigurationSet>
-    {% if event_destination %}
-    <EventDestinations>
-      <member>
-        <Name>{{ event_destination["Name"] }}</Name>
-        <Enabled>{{ event_destination["Enabled"] }}</Enabled>
-        <MatchingEventTypes>
-        {% for event_matching_type in event_destination["EventMatchingTypes"] | sort %}
-          <member>{{ event_matching_type }}</member>
-        {% endfor %}
-        </MatchingEventTypes>
-        {% if "SNSDestination" in event_destination %}
-        <SNSDestination>
-          <TopicARN>{{ event_destination["SNSDestination"] }}</TopicARN>
-        </SNSDestination>
-        {% endif %}
-      </member>
-    </EventDestinations>
-    {% endif %}
-  </DescribeConfigurationSetResult>
-  <ResponseMetadata>
-    <RequestId>8e410745-c1bd-4450-82e0-f968cf2105f2</RequestId>
-  </ResponseMetadata>
-</DescribeConfigurationSetResponse>"""
