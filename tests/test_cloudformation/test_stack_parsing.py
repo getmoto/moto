@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from moto.cloudformation.exceptions import ValidationError
-from moto.cloudformation.models import FakeStack
+from moto.cloudformation.models import Stack
 from moto.cloudformation.parsing import (
     Output,
     parse_condition,
@@ -248,7 +248,7 @@ to_json_string_template_json = json.dumps(to_json_string_template)
 
 
 def test_parse_stack_resources():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=dummy_template_json,
@@ -275,7 +275,7 @@ def test_missing_resource_logs(logger):
 
 
 def test_parse_stack_with_name_type_resource():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=name_type_template_json,
@@ -291,7 +291,7 @@ def test_parse_stack_with_name_type_resource():
 
 
 def test_parse_stack_with_tabbed_json_template():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=name_type_template_with_tabs_json,
@@ -307,7 +307,7 @@ def test_parse_stack_with_tabbed_json_template():
 
 
 def test_parse_stack_with_yaml_template():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=yaml.dump(name_type_template),
@@ -323,7 +323,7 @@ def test_parse_stack_with_yaml_template():
 
 
 def test_parse_stack_with_outputs():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=output_type_template_json,
@@ -340,7 +340,7 @@ def test_parse_stack_with_outputs():
 
 
 def test_parse_stack_with_get_attribute_outputs():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=get_attribute_outputs_template_json,
@@ -360,7 +360,7 @@ def test_parse_stack_with_get_attribute_kms():
     from .fixtures.kms_key import template
 
     template_json = json.dumps(template)
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=template_json,
@@ -376,7 +376,7 @@ def test_parse_stack_with_get_attribute_kms():
 
 
 def test_parse_stack_with_get_availability_zones():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=get_availability_zones_template_json,
@@ -407,7 +407,7 @@ def test_parse_stack_with_bad_get_attribute_outputs_using_boto3():
 
 def test_parse_stack_with_null_outputs_section():
     with pytest.raises(ValidationError) as exc:
-        FakeStack(
+        Stack(
             "test_id",
             "test_stack",
             null_output_template_json,
@@ -419,7 +419,7 @@ def test_parse_stack_with_null_outputs_section():
 
 
 def test_parse_stack_with_parameters():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=parameters_template_json,
@@ -553,7 +553,7 @@ def test_reference_other_conditions():
 
 
 def test_parse_split_and_select():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=split_select_template_json,
@@ -568,7 +568,7 @@ def test_parse_split_and_select():
 
 
 def test_sub():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=sub_template_json,
@@ -583,7 +583,7 @@ def test_sub():
 
 
 def test_sub_num():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=sub_num_template_json,
@@ -598,7 +598,7 @@ def test_sub_num():
 
 
 def test_sub_mapping():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=sub_mapping_json,
@@ -609,7 +609,7 @@ def test_sub_mapping():
     queue = stack.resource_map["Queue"]
     assert queue.name == "test_stack-queue-apple-yes"
 
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=sub_mapping_json,
@@ -622,7 +622,7 @@ def test_sub_mapping():
 
 
 def test_import():
-    export_stack = FakeStack(
+    export_stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=export_value_template_json,
@@ -630,7 +630,7 @@ def test_import():
         account_id=ACCOUNT_ID,
         region_name="us-west-1",
     )
-    import_stack = FakeStack(
+    import_stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=import_value_template_json,
@@ -645,7 +645,7 @@ def test_import():
 
 
 def test_to_json_string():
-    stack = FakeStack(
+    stack = Stack(
         stack_id="test_id",
         name="test_stack",
         template=to_json_string_template_json,
@@ -710,7 +710,7 @@ def test_ssm_parameter_parsing():
     )
 
     if not settings.TEST_SERVER_MODE:
-        stack = FakeStack(
+        stack = Stack(
             stack_id="test_id",
             name="test_stack",
             template=ssm_parameter_template_json,
@@ -728,7 +728,7 @@ def test_ssm_parameter_parsing():
 
     # Not passing in a value for ListParamCfn to test Default value
     if not settings.TEST_SERVER_MODE:
-        stack = FakeStack(
+        stack = Stack(
             stack_id="test_id",
             name="test_stack",
             template=ssm_parameter_template_json,

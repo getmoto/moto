@@ -715,10 +715,11 @@ class BaseXMLSerializer(ResponseSerializer):
             items_name = self.get_serialized_name(shape.member, "member")
             serialized[key] = {items_name: list_obj}
         for list_item in value:
-            item_key = shape.member.name
             wrapper = {}
+            item_key = shape.member.name
             self._serialize(wrapper, list_item, shape.member, item_key)
-            list_obj.append(wrapper[item_key])
+            if item_key in wrapper and wrapper[item_key]:
+                list_obj.append(wrapper[item_key])
         if not list_obj:
             serialized[key] = ""
 

@@ -859,6 +859,7 @@ def test_delete_stack_set__while_instances_are_running():
     )
     with pytest.raises(ClientError) as exc:
         cf.delete_stack_set(StackSetName="a")
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
     err = exc.value.response["Error"]
     assert err["Code"] == "StackSetNotEmptyException"
     assert err["Message"] == "StackSet is not empty"
@@ -877,11 +878,13 @@ def test_delete_stack_set__while_instances_are_running():
 @mock_aws
 def test_create_stack_set():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
     response = cf.create_stack_set(
         StackSetName="teststackset",
         TemplateBody=dummy_template_json,
         Description="desc",
         AdministrationRoleARN="admin/role/arn:asdfasdfadsf",
+        Tags=tags,
     )
     assert response["StackSetId"] is not None
 
@@ -889,6 +892,9 @@ def test_create_stack_set():
     assert stack_set["TemplateBody"] == dummy_template_json
     assert stack_set["AdministrationRoleARN"] == "admin/role/arn:asdfasdfadsf"
     assert stack_set["Description"] == "desc"
+    assert stack_set["ExecutionRoleName"] == "AWSCloudFormationStackSetExecutionRole"
+    assert stack_set["Tags"] == tags
+    assert stack_set["ManagedExecution"]["Active"] is False
 
 
 @mock_aws
@@ -1618,6 +1624,9 @@ def test_describe_change_set(stack_template, change_template):
     assert change_set["ChangeSetName"] == "NewChangeSet2"
     assert change_set["StackName"] == "NewStack"
     assert len(change_set["Changes"]) == 2
+    assert change_set["Parameters"] == [
+        {"ParameterKey": "KeyName", "ParameterValue": "value"}
+    ]
 
     # Execute change set
     cf.execute_change_set(ChangeSetName="NewChangeSet2")

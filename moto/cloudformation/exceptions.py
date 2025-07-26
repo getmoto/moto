@@ -1,8 +1,10 @@
 from typing import Optional
 
-from jinja2 import Template
+from moto.core.exceptions import ServiceException
 
-from moto.core.exceptions import RESTError
+
+class CloudFormationError(ServiceException):
+    pass
 
 
 class UnformattedGetAttTemplateException(Exception):
@@ -12,70 +14,53 @@ class UnformattedGetAttTemplateException(Exception):
     status_code = 400
 
 
-class ValidationError(RESTError):
+class AlreadyExistsException(CloudFormationError):
+    code = "AlreadyExistsException"
+
+
+class ValidationError(CloudFormationError):
+    code = "ValidationError"
+
     def __init__(self, name_or_id: Optional[str] = None, message: Optional[str] = None):
+        # FIXME: The "stack does not exist" message should be provided by the caller, not here.
         if message is None:
             message = f"Stack with id {name_or_id} does not exist"
-
-        template = Template(ERROR_RESPONSE)
-        super().__init__(error_type="ValidationError", message=message)
-        self.description = template.render(code="ValidationError", message=message)
+        super().__init__(message)
 
 
-class MissingParameterError(RESTError):
+class MissingParameterError(CloudFormationError):
+    code = "Missing Parameter"
+
     def __init__(self, parameter_name: str):
-        template = Template(ERROR_RESPONSE)
         message = f"Missing parameter {parameter_name}"
-        super().__init__(error_type="ValidationError", message=message)
-        self.description = template.render(code="Missing Parameter", message=message)
+        super().__init__(message)
 
 
-class ExportNotFound(RESTError):
-    """Exception to raise if a template tries to import a non-existent export"""
+class ExportNotFound(CloudFormationError):
+    code = "ExportNotFound"
 
     def __init__(self, export_name: str):
-        template = Template(ERROR_RESPONSE)
         message = f"No export named {export_name} found."
-        super().__init__(error_type="ExportNotFound", message=message)
-        self.description = template.render(code="ExportNotFound", message=message)
+        super().__init__(message)
 
 
-class StackSetNotEmpty(RESTError):
-    def __init__(self) -> None:
-        template = Template(ERROR_RESPONSE)
-        message = "StackSet is not empty"
-        super().__init__(error_type="StackSetNotEmptyException", message=message)
-        self.description = template.render(
-            code="StackSetNotEmptyException", message=message
-        )
+class StackSetNotEmpty(CloudFormationError):
+    code = "StackSetNotEmptyException"
+    message = "StackSet is not empty"
 
 
-class StackSetNotFoundException(RESTError):
+class StackSetNotFoundException(CloudFormationError):
+    code = "StackSetNotFoundException"
+
     def __init__(self, name: str):
-        template = Template(ERROR_RESPONSE)
         message = f"StackSet {name} not found"
-        super().__init__(error_type="StackSetNotFoundException", message=message)
-        self.description = template.render(
-            code="StackSetNotFoundException", message=message
-        )
+        super().__init__(message)
 
 
-class UnsupportedAttribute(ValidationError):
+class UnsupportedAttribute(CloudFormationError):
+    code = "ValidationError"
+
     def __init__(self, resource: str, attr: str):
-        template = Template(ERROR_RESPONSE)
-        super().__init__()
-        self.description = template.render(
-            code="ValidationError",
-            message=f"Template error: resource {resource} does not support attribute type {attr} in Fn::GetAtt",
+        super().__init__(
+            f"Template error: resource {resource} does not support attribute type {attr} in Fn::GetAtt"
         )
-
-
-ERROR_RESPONSE = """<ErrorResponse xmlns="http://cloudformation.amazonaws.com/doc/2010-05-15/">
-  <Error>
-    <Type>Sender</Type>
-    <Code>{{ code }}</Code>
-    <Message>{{ message }}</Message>
-  </Error>
-  <RequestId>cf4c737e-5ae2-11e4-a7c9-ad44eEXAMPLE</RequestId>
-</ErrorResponse>
-"""
