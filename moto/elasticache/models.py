@@ -187,9 +187,9 @@ class CacheSubnetGroup(BaseModel):
             if "InvalidSubnet" in str(e):
                 for subnet_id in subnet_ids:
                     subnet_response: Dict[str, Any] = {}
-                    subnet_response["SubnetIdentifier"] = subnet_id
-                    subnet_response["SubnetAvailabilityZone"] = {"Name": "us-east-1a"}
-                    subnet_response["SupportedNetworkTypes"] = ["ipv4"]
+                    subnet_response["subnet_identifier"] = subnet_id
+                    subnet_response["Subnet_availability_zone"] = {"Name": "us-east-1a"}
+                    subnet_response["supported_network_types"] = ["ipv4"]
                     self.subnets.append(subnet_response)
                 vpcs = ["vpc-0123456789abcdef0"]
                 self.supported_network_types = ["ipv4"]
@@ -199,9 +199,9 @@ class CacheSubnetGroup(BaseModel):
             for subnet in subnets:
                 subnet_response = {}
                 vpcs.append(subnet.vpc_id)
-                subnet_response["SubnetIdentifier"] = subnet.id
-                subnet_response["SubnetAvailabilityZone"] = subnet.availability_zone
-                subnet_response["SupportedNetworkTypes"] = []
+                subnet_response["subnet_identifier"] = subnet.id
+                subnet_response["subnet_availability_zone"] = subnet.availability_zone
+                subnet_response["supported_network_types"] = []
                 if subnet.vpc_id != vpcs[0]:
                     raise InvalidSubnet(subnet_id=subnet.id)
 
@@ -209,16 +209,16 @@ class CacheSubnetGroup(BaseModel):
                 # You can't mix ipv6 native subnets with other types of subnets
                 if subnet.ipv6_native:
                     self.supported_network_types.append("ipv6")
-                    subnet_response["SupportedNetworkTypes"].append("ipv6")
+                    subnet_response["supported_network_types"].append("ipv6")
 
                 # ipv4 only and dual_stack subnets both append ipv4
                 elif subnet.cidr_block:
                     self.supported_network_types.append("ipv4")
-                    subnet_response["SupportedNetworkTypes"].append("ipv4")
+                    subnet_response["supported_network_types"].append("ipv4")
 
                 if subnet.ipv6_cidr_block_associations and subnet.cidr_block:
                     self.supported_network_types.append("dual_stack")
-                    subnet_response["SupportedNetworkTypes"].append("dual_stack")
+                    subnet_response["supported_network_types"].append("dual_stack")
 
                 self.subnets.append(subnet_response)
 
@@ -428,8 +428,8 @@ class ReplicationGroup(BaseModel):
         if log_delivery_configurations:
             for log_delivery_configuration in log_delivery_configurations:
                 log_config_resp = copy.copy(log_delivery_configuration)
-                log_config_resp["Status"] = "active"
-                log_config_resp["Message"] = "Log delivery configuration is active."
+                log_config_resp["status"] = "active"
+                log_config_resp["message"] = "Log delivery configuration is active."
 
                 log_delivery_configurations_resp.append(log_config_resp)
         return log_delivery_configurations_resp
