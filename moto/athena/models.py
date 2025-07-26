@@ -140,6 +140,28 @@ class QueryResults(BaseModel):
         }
 
 
+class CapacityReservation(TaggableResourceMixin, BaseModel):
+    def __init__(
+        self,
+        athena_backend: "AthenaBackend",
+        name: str,
+        target_dpus: int,
+        tags: List[Dict[str, str]],
+    ):
+        self.region_name = athena_backend.region_name
+        super().__init__(
+            athena_backend.account_id,
+            self.region_name,
+            f"capacityreservation/{name}",
+            tags,
+        )
+        self.athena_backend = athena_backend
+        self.name = name
+        self.target_dpus = target_dpus
+        self.create_tags(tags)
+        self.tags = tags
+
+
 class NamedQuery(BaseModel):
     def __init__(
         self,
@@ -187,6 +209,7 @@ class AthenaBackend(BaseBackend):
         self.work_groups: Dict[str, WorkGroup] = {}
         self.executions: Dict[str, Execution] = {}
         self.named_queries: Dict[str, NamedQuery] = {}
+        self.capacity_reservations: Dict[str, CapacityReservation] = {}
         self.data_catalogs: Dict[str, DataCatalog] = {}
         self.query_results: Dict[str, QueryResults] = {}
         self.query_results_queue: List[QueryResults] = []
@@ -366,6 +389,19 @@ class AthenaBackend(BaseBackend):
     def stop_query_execution(self, exec_id: str) -> None:
         execution = self.executions[exec_id]
         execution.status = "CANCELLED"
+
+    def create_capacity_reservation(
+        self,
+        name: str,
+        target_dpus: int,
+        tags: List[Dict[str, str]],
+    ) -> None:
+        cr = CapacityReservation(self, name, target_dpus, tags)
+        self.capacity_reservations[cr.name] = cr
+        return None
+
+    def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
+        return self.capacity_reservations.get(name)
 
     def create_named_query(
         self,
