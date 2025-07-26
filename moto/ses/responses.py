@@ -72,20 +72,7 @@ class EmailResponse(BaseResponse):
         body = self.querystring.get(bodydatakey)[0]  # type: ignore
         source = self.querystring.get("Source")[0]  # type: ignore
         subject = self.querystring.get("Message.Subject.Data")[0]  # type: ignore
-        destinations: Dict[str, List[str]] = {
-            "ToAddresses": [],
-            "CcAddresses": [],
-            "BccAddresses": [],
-        }
-        for dest_type in destinations:
-            # consume up to 51 to allow exception
-            for i in range(1, 52):
-                field = f"Destination.{dest_type}.member.{i}"
-                address = self.querystring.get(field)
-                if address is None:
-                    break
-                destinations[dest_type].append(address[0])
-
+        destinations = self.params.get("Destination", {})
         message = self.backend.send_email(source, subject, body, destinations)
         result = {"MessageId": message.id}
         return ActionResult(result)
@@ -94,21 +81,7 @@ class EmailResponse(BaseResponse):
         source = self.querystring.get("Source")[0]  # type: ignore
         template: List[str] = self.querystring.get("Template")  # type: ignore
         template_data: List[str] = self.querystring.get("TemplateData")  # type: ignore
-
-        destinations: Dict[str, List[str]] = {
-            "ToAddresses": [],
-            "CcAddresses": [],
-            "BccAddresses": [],
-        }
-        for dest_type in destinations:
-            # consume up to 51 to allow exception
-            for i in range(1, 52):
-                field = f"Destination.{dest_type}.member.{i}"
-                address = self.querystring.get(field)
-                if address is None:
-                    break
-                destinations[dest_type].append(address[0])
-
+        destinations = self.params.get("Destination", {})
         message = self.backend.send_templated_email(
             source, template, template_data, destinations
         )
@@ -119,31 +92,7 @@ class EmailResponse(BaseResponse):
         source = self.querystring.get("Source")[0]  # type: ignore
         template = self.querystring.get("Template")
         template_data = self.querystring.get("DefaultTemplateData")
-
-        destinations = []
-        for i in range(1, 52):
-            destination_field = (
-                f"Destinations.member.{i}.Destination.ToAddresses.member.1"
-            )
-            if self.querystring.get(destination_field) is None:
-                break
-            destination: Dict[str, List[str]] = {
-                "ToAddresses": [],
-                "CcAddresses": [],
-                "BccAddresses": [],
-            }
-            for dest_type in destination:
-                # consume up to 51 to allow exception
-                for j in range(1, 52):
-                    field = (
-                        f"Destinations.member.{i}.Destination.{dest_type}.member.{j}"
-                    )
-                    address = self.querystring.get(field)
-                    if address is None:
-                        break
-                    destination[dest_type].append(address[0])
-            destinations.append({"Destination": destination})
-
+        destinations = self.params.get("Destinations", [])
         message = self.backend.send_bulk_templated_email(
             source,
             template,  # type: ignore
@@ -161,14 +110,7 @@ class EmailResponse(BaseResponse):
         raw_data = self.querystring.get("RawMessage.Data")[0]  # type: ignore
         raw_data = base64.b64decode(raw_data)
         raw_data = raw_data.decode("utf-8")
-        destinations = []
-        # consume up to 51 to allow exception
-        for i in range(1, 52):
-            field = f"Destinations.member.{i}"
-            address = self.querystring.get(field)
-            if address is None:
-                break
-            destinations.append(address[0])
+        destinations = self.params.get("Destinations", [])
         message = self.backend.send_raw_email(source, destinations, raw_data)  # type: ignore[arg-type]
         result = {"MessageId": message.id}
         return ActionResult(result)
