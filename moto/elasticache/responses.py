@@ -1,4 +1,4 @@
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse
 
 from .exceptions import (
     InvalidParameterCombinationException,
@@ -20,7 +20,7 @@ class ElastiCacheResponse(BaseResponse):
         """Return backend instance specific for this region."""
         return elasticache_backends[self.current_account][self.region]
 
-    def create_user(self) -> str:
+    def create_user(self) -> ActionResult:
         params = self._get_params()
         user_id = params.get("UserId")
         user_name = params.get("UserName")
@@ -76,22 +76,19 @@ class ElastiCacheResponse(BaseResponse):
             no_password_required=no_password_required,
             authentication_type=authentication_type,
         )
-        template = self.response_template(CREATE_USER_TEMPLATE)
-        return template.render(user=user)
+        return ActionResult(user)
 
-    def delete_user(self) -> str:
+    def delete_user(self) -> ActionResult:
         params = self._get_params()
         user_id = params.get("UserId")
         user = self.elasticache_backend.delete_user(user_id=user_id)  # type: ignore[arg-type]
-        template = self.response_template(DELETE_USER_TEMPLATE)
-        return template.render(user=user)
+        return ActionResult(user)
 
-    def describe_users(self) -> str:
+    def describe_users(self) -> ActionResult:
         params = self._get_params()
         user_id = params.get("UserId")
         users = self.elasticache_backend.describe_users(user_id=user_id)
-        template = self.response_template(DESCRIBE_USERS_TEMPLATE)
-        return template.render(users=users)
+        return ActionResult({"Users": users})
 
     def create_cache_cluster(self) -> str:
         cache_cluster_id = self._get_param("CacheClusterId")
@@ -335,75 +332,6 @@ class ElastiCacheResponse(BaseResponse):
         template = self.response_template(DESCRIBE_REPLICATION_GROUPS_TEMPLATE)
         return template.render(marker=marker, replication_groups=replication_groups)
 
-
-USER_TEMPLATE = """<UserId>{{ user.id }}</UserId>
-    <UserName>{{ user.name }}</UserName>
-    <Status>{{ user.status }}</Status>
-    <Engine>{{ user.engine }}</Engine>
-    <MinimumEngineVersion>{{ user.minimum_engine_version }}</MinimumEngineVersion>
-    <AccessString>{{ user.access_string }}</AccessString>
-    <UserGroupIds>
-{% for usergroupid in user.usergroupids %}
-      <member>{{ usergroupid }}</member>
-{% endfor %}
-    </UserGroupIds>
-    <Authentication>
-      {% if user.no_password_required %}
-      <Type>no-password</Type>
-      {% else %}
-      <Type>{{ user.authentication_type }}</Type>
-      {% endif %}
-      {% if user.passwords %}
-      <PasswordCount>{{ user.passwords|length }}</PasswordCount>
-      {% endif %}
-    </Authentication>
-    <ARN>{{ user.arn }}</ARN>"""
-
-CREATE_USER_TEMPLATE = (
-    """<CreateUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-          <ResponseMetadata>
-            <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-          </ResponseMetadata>
-          <CreateUserResult>
-            """
-    + USER_TEMPLATE
-    + """
-  </CreateUserResult>
-</CreateUserResponse>"""
-)
-
-DELETE_USER_TEMPLATE = (
-    """<DeleteUserResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-          <ResponseMetadata>
-            <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-          </ResponseMetadata>
-          <DeleteUserResult>
-            """
-    + USER_TEMPLATE
-    + """
-  </DeleteUserResult>
-</DeleteUserResponse>"""
-)
-
-DESCRIBE_USERS_TEMPLATE = (
-    """<DescribeUsersResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
-          <ResponseMetadata>
-            <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-          </ResponseMetadata>
-          <DescribeUsersResult>
-            <Users>
-        {% for user in users %}
-              <member>
-                """
-    + USER_TEMPLATE
-    + """
-      </member>
-{% endfor %}
-    </Users>
-    <Marker></Marker>
-  </DescribeUsersResult>
-</DescribeUsersResponse>"""
-)
 
 CREATE_CACHE_CLUSTER_TEMPLATE = """<CreateCacheClusterResponse xmlns="http://elasticache.amazonaws.com/doc/2015-02-02/">
   <ResponseMetadata>

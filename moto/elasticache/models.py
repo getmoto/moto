@@ -49,10 +49,19 @@ class User(BaseModel):
         self.no_password_required = no_password_required
         self.status = "active"
         self.minimum_engine_version = "6.0"
-        self.usergroupids: List[str] = []
+        self.user_group_ids: List[str] = []
         self.region = region
         self.arn = f"arn:{get_partition(self.region)}:elasticache:{self.region}:{account_id}:user:{self.id}"
         self.authentication_type = authentication_type
+
+    @property
+    def authentication(self) -> dict[str, Any]:
+        return {
+            "Type": "no-password"
+            if self.no_password_required
+            else self.authentication_type,
+            "PasswordCount": len(self.passwords) if self.passwords else None,
+        }
 
 
 class CacheCluster(BaseModel):
