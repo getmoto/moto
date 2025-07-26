@@ -176,11 +176,11 @@ class EmailResponse(BaseResponse):
         quota = self.backend.get_send_quota()
         return ActionResult(quota)
 
-    def get_identity_notification_attributes(self) -> str:
+    def get_identity_notification_attributes(self) -> ActionResult:
         identities = self._get_params()["Identities"]
         identities = self.backend.get_identity_notification_attributes(identities)
-        template = self.response_template(GET_IDENTITY_NOTIFICATION_ATTRIBUTES)
-        return template.render(identities=identities)
+        result = {"NotificationAttributes": identities}
+        return ActionResult(result)
 
     def set_identity_feedback_forwarding_enabled(self) -> ActionResult:
         identity = self._get_param("Identity")
@@ -358,24 +358,22 @@ class EmailResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def get_identity_mail_from_domain_attributes(self) -> str:
+    def get_identity_mail_from_domain_attributes(self) -> ActionResult:
         identities = self._get_multi_param("Identities.member.")
         attributes_by_identity = self.backend.get_identity_mail_from_domain_attributes(
             identities
         )
-        template = self.response_template(GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES)
+        result = {"MailFromDomainAttributes": attributes_by_identity}
+        return ActionResult(result)
 
-        return template.render(identities=attributes_by_identity)
-
-    def get_identity_verification_attributes(self) -> str:
+    def get_identity_verification_attributes(self) -> ActionResult:
         params = self._get_params()
         identities = params.get("Identities")
         verification_attributes = self.backend.get_identity_verification_attributes(
             identities=identities,
         )
-
-        template = self.response_template(GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE)
-        return template.render(verification_attributes=verification_attributes)
+        result = {"VerificationAttributes": verification_attributes}
+        return ActionResult(result)
 
     def delete_configuration_set(self) -> ActionResult:
         params = self._get_params()
@@ -406,37 +404,11 @@ class EmailResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def get_identity_dkim_attributes(self) -> str:
+    def get_identity_dkim_attributes(self) -> ActionResult:
         identities = self._get_multi_param("Identities.member.")
         dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
-        template = self.response_template(GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE)
-        return template.render(dkim_attributes=dkim_attributes)
-
-
-GET_IDENTITY_NOTIFICATION_ATTRIBUTES = """<GetIdentityNotificationAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityNotificationAttributesResult>
-    <NotificationAttributes>
-    {% for identity, config in identities.items() %}
-      <entry>
-        <key>{{ identity }}</key>
-        <value>
-          <HeadersInBounceNotificationsEnabled>false</HeadersInBounceNotificationsEnabled>
-          <HeadersInDeliveryNotificationsEnabled>false</HeadersInDeliveryNotificationsEnabled>
-          <HeadersInComplaintNotificationsEnabled>false</HeadersInComplaintNotificationsEnabled>
-          {% if config.get("feedback_forwarding_enabled", True) == False %}
-          <ForwardingEnabled>false</ForwardingEnabled>
-          {% else %}
-          <ForwardingEnabled>true</ForwardingEnabled>
-          {% endif %}
-        </value>
-      </entry>
-      {% endfor %}
-    </NotificationAttributes>
-  </GetIdentityNotificationAttributesResult>
-  <ResponseMetadata>
-    <RequestId>46c90cfc-9055-4b84-96e3-4d6a309a8b9b</RequestId>
-  </ResponseMetadata>
-</GetIdentityNotificationAttributesResponse>"""
+        result = {"DkimAttributes": dkim_attributes}
+        return ActionResult(result)
 
 
 DESCRIBE_CONFIGURATION_SET = """<DescribeConfigurationSetResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
@@ -576,76 +548,3 @@ DESCRIBE_RECEIPT_RULE = """<DescribeReceiptRuleResponse xmlns="http://ses.amazon
   </ResponseMetadata>
 </DescribeReceiptRuleResponse>
 """
-
-
-GET_IDENTITY_MAIL_FROM_DOMAIN_ATTRIBUTES = """<GetIdentityMailFromDomainAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityMailFromDomainAttributesResult>
-    {% if identities.items()|length > 0 %}
-    <MailFromDomainAttributes>
-    {% for name, value in identities.items() %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>
-          {% if 'mail_from_domain' in value %}
-          <MailFromDomain>{{ value.get("mail_from_domain") }}</MailFromDomain>
-          <MailFromDomainStatus>Success</MailFromDomainStatus>
-          {% endif %}
-          <BehaviorOnMXFailure>{{ value.get("behavior_on_mx_failure") }}</BehaviorOnMXFailure>
-        </value>
-      </entry>
-    {% endfor %}
-    </MailFromDomainAttributes>
-    {% else %}
-    <MailFromDomainAttributes/>
-    {% endif %}
-  </GetIdentityMailFromDomainAttributesResult>
-  <ResponseMetadata>
-    <RequestId>47e0ef1a-9bf2-11e1-9279-0100e8cf109a</RequestId>
-  </ResponseMetadata>
-</GetIdentityMailFromDomainAttributesResponse>"""
-
-GET_IDENTITY_VERIFICATION_ATTRIBUTES_TEMPLATE = """<GetIdentityVerificationAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityVerificationAttributesResult>
-    <VerificationAttributes>
-      {% for name, value in verification_attributes.items() %}
-      <entry>
-        <key>{{ name }}</key>
-        <value>
-          <VerificationStatus>{{ value }}</VerificationStatus>
-          <VerificationToken>ILQMESfEW0p6i6gIJcEWvO65TP5hg6B99hGFZ2lxrIs=</VerificationToken>
-        </value>
-      </entry>
-      {% endfor %}
-    </VerificationAttributes>
-  </GetIdentityVerificationAttributesResult>
-  <ResponseMetadata>
-    <RequestId>d435c1b8-a225-4b89-acff-81fcf7ef9236</RequestId>
-  </ResponseMetadata>
-</GetIdentityVerificationAttributesResponse>"""
-
-
-GET_IDENTITY_DKIM_ATTRIBUTES_RESPONSE = """<GetIdentityDkimAttributesResponse xmlns="http://ses.amazonaws.com/doc/2010-12-01/">
-  <GetIdentityDkimAttributesResult>
-    <DkimAttributes>
-      {% for identity, attributes in dkim_attributes.items() %}
-      <entry>
-        <key>{{ identity }}</key>
-        <value>
-          <DkimEnabled>{{ attributes.DkimEnabled|lower }}</DkimEnabled>
-          <DkimVerificationStatus>{{ attributes.DkimVerificationStatus }}</DkimVerificationStatus>
-          {% if attributes.get('DkimTokens') %}
-          <DkimTokens>
-            {% for token in attributes.DkimTokens %}
-            <member>{{ token }}</member>
-            {% endfor %}
-          </DkimTokens>
-          {% endif %}
-        </value>
-      </entry>
-      {% endfor %}
-    </DkimAttributes>
-  </GetIdentityDkimAttributesResult>
-  <ResponseMetadata>
-    <RequestId>9662c15b-c469-11e1-99d1-797d6ecd6414</RequestId>
-  </ResponseMetadata>
-</GetIdentityDkimAttributesResponse>"""
