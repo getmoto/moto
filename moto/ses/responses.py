@@ -308,8 +308,8 @@ class EmailResponse(BaseResponse):
 
     def create_receipt_rule(self) -> ActionResult:
         params = self._get_params()
-        rule_set_name = params.get("RuleSetName")
-        rule = params.get("Rule")
+        rule_set_name = params.get("RuleSetName", "")
+        rule = params.get("Rule", {})
         self.backend.create_receipt_rule(rule_set_name, rule)
         return EmptyResult()
 
@@ -328,8 +328,8 @@ class EmailResponse(BaseResponse):
 
     def update_receipt_rule(self) -> ActionResult:
         params = self._get_params()
-        rule_set_name = params.get("RuleSetName")
-        rule = params.get("Rule")
+        rule_set_name = params.get("RuleSetName", "")
+        rule = params.get("Rule", {})
         self.backend.update_receipt_rule(rule_set_name, rule)
         return EmptyResult()
 
