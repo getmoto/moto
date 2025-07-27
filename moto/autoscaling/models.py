@@ -1027,7 +1027,7 @@ class AutoScalingBackend(BaseBackend):
                 result.append(
                     FailedScheduledUpdateGroupActionRequest(
                         scheduled_action_name=action["ScheduledActionName"],
-                        error_code=err.error_type,
+                        error_code=err.code,
                         error_message=err.message,
                     )
                 )
@@ -1076,7 +1076,7 @@ class AutoScalingBackend(BaseBackend):
                 result.append(
                     FailedScheduledUpdateGroupActionRequest(
                         scheduled_action_name=scheduled_action_name,
-                        error_code=err.error_type,
+                        error_code=err.code,
                         error_message=err.message,
                     )
                 )
