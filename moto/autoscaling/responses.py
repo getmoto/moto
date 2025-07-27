@@ -127,10 +127,8 @@ class AutoScalingResponse(BaseResponse):
                 actions=self._get_multi_param("ScheduledUpdateGroupActions.member"),
             )
         )
-        template = self.response_template(
-            BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE
-        )
-        return template.render(failed_actions=failed_actions)
+        result = {"FailedScheduledUpdateGroupActions": failed_actions}
+        return ActionResult(result)
 
     def describe_scheduled_actions(self) -> str:
         scheduled_actions = self.autoscaling_backend.describe_scheduled_actions(
@@ -156,8 +154,8 @@ class AutoScalingResponse(BaseResponse):
             auto_scaling_group_name=auto_scaling_group_name,
             scheduled_action_names=scheduled_action_names,
         )
-        template = self.response_template(BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE)
-        return template.render(failed_actions=failed_actions)
+        result = {"FailedScheduledActions": failed_actions}
+        return ActionResult(result)
 
     def describe_scaling_activities(self) -> str:
         return EmptyResult()
@@ -204,8 +202,13 @@ class AutoScalingResponse(BaseResponse):
         target_group_arns = (
             self.autoscaling_backend.describe_load_balancer_target_groups(group_name)
         )
-        template = self.response_template(DESCRIBE_LOAD_BALANCER_TARGET_GROUPS)
-        return template.render(target_group_arns=target_group_arns)
+        result = {
+            "LoadBalancerTargetGroups": [
+                {"LoadBalancerTargetGroupARN": arn, "State": "Added"}
+                for arn in target_group_arns
+            ]
+        }
+        return ActionResult(result)
 
     def detach_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -326,8 +329,7 @@ class AutoScalingResponse(BaseResponse):
                 "PredictiveScalingConfiguration", {}
             ),
         )
-        template = self.response_template(CREATE_SCALING_POLICY_TEMPLATE)
-        return template.render(policy=policy)
+        return ActionResult({"PolicyArn": policy.arn})
 
     def describe_policies(self) -> str:
         policies = self.autoscaling_backend.describe_policies(
@@ -357,8 +359,12 @@ class AutoScalingResponse(BaseResponse):
     def describe_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
-        template = self.response_template(DESCRIBE_LOAD_BALANCERS_TEMPLATE)
-        return template.render(load_balancers=load_balancers)
+        result = {
+            "LoadBalancers": [
+                {"LoadBalancerName": name, "State": "Added"} for name in load_balancers
+            ]
+        }
+        return ActionResult(result)
 
     def detach_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -607,66 +613,6 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
   </ResponseMetadata>
 </DescribeLaunchConfigurationsResponse>"""
 
-
-BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<BatchPutScheduledUpdateGroupActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <BatchPutScheduledUpdateGroupActionResult>
-    <FailedScheduledUpdateGroupActions>
-      {% for failed_action in failed_actions %}
-      <member>
-        <ScheduledActionName>{{ failed_action.scheduled_action_name }}</ScheduledActionName>
-        {% if failed_action.error_code %}
-        <ErrorCode>{{ failed_action.error_code }}</ErrorCode>
-        {% endif %}
-        {% if failed_action.error_message %}
-        <ErrorMessage>{{ failed_action.error_message }}</ErrorMessage>
-        {% endif %}
-      </member>
-      {% endfor %}
-    </FailedScheduledUpdateGroupActions>
-  </BatchPutScheduledUpdateGroupActionResult>
-  <ResponseMetadata>
-    <RequestId></RequestId>
-  </ResponseMetadata>
-</BatchPutScheduledUpdateGroupActionResponse>"""
-
-
-BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE = """<BatchDeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <BatchDeleteScheduledActionResult>
-    <FailedScheduledActions>
-      {% for failed_action in failed_actions %}
-      <member>
-        <ScheduledActionName>{{ failed_action.scheduled_action_name }}</ScheduledActionName>
-        {% if failed_action.error_code %}
-        <ErrorCode>{{ failed_action.error_code }}</ErrorCode>
-        {% endif %}
-        {% if failed_action.error_message %}
-        <ErrorMessage>{{ failed_action.error_message }}</ErrorMessage>
-        {% endif %}
-      </member>
-      {% endfor %}
-    </FailedScheduledActions>
-  </BatchDeleteScheduledActionResult>
-  <ResponseMetadata>
-    <RequestId></RequestId>
-  </ResponseMetadata>
-</BatchDeleteScheduledActionResponse>"""
-
-
-DESCRIBE_LOAD_BALANCER_TARGET_GROUPS = """<DescribeLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<DescribeLoadBalancerTargetGroupsResult>
-  <LoadBalancerTargetGroups>
-  {% for arn in target_group_arns %}
-    <member>
-      <LoadBalancerTargetGroupARN>{{ arn }}</LoadBalancerTargetGroupARN>
-      <State>Added</State>
-    </member>
-  {% endfor %}
-  </LoadBalancerTargetGroups>
-</DescribeLoadBalancerTargetGroupsResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</DescribeLoadBalancerTargetGroupsResponse>"""
 
 DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DetachInstancesResult>
@@ -937,16 +883,6 @@ DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="ht
   </ResponseMetadata>
 </DescribeLifecycleHooksResponse>"""
 
-CREATE_SCALING_POLICY_TEMPLATE = """<PutScalingPolicyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <PutScalingPolicyResult>
-    <PolicyARN>arn:aws:autoscaling:us-east-1:803981987763:scalingPolicy:b0dcf5e8
--02e6-4e31-9719-0675d0dc31ae:autoScalingGroupName/my-test-asg:policyName/my-scal
-eout-policy</PolicyARN>
-  </PutScalingPolicyResult>
-  <ResponseMetadata>
-    <RequestId>3cfc6fef-c08b-11e2-a697-2922EXAMPLE</RequestId>
-  </ResponseMetadata>
-</PutScalingPolicyResponse>"""
 
 DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribePoliciesResult>
@@ -1187,23 +1123,6 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
     <RequestId>ec3bffad-b739-11e2-b38d-15fbEXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribePoliciesResponse>"""
-
-
-DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<DescribeLoadBalancersResult>
-  <LoadBalancers>
-    {% for load_balancer in load_balancers %}
-      <member>
-        <LoadBalancerName>{{ load_balancer }}</LoadBalancerName>
-        <State>Added</State>
-      </member>
-    {% endfor %}
-  </LoadBalancers>
-</DescribeLoadBalancersResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</DescribeLoadBalancersResponse>"""
 
 
 ENTER_STANDBY_TEMPLATE = """<EnterStandbyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
