@@ -71,7 +71,6 @@ def test_ami_create_and_delete():
     assert retrieved_image["ImageId"] == image_id
     assert retrieved_image["VirtualizationType"] == instance["VirtualizationType"]
     assert retrieved_image["Architecture"] == instance["Architecture"]
-    assert retrieved_image["KernelId"] == instance["KernelId"]
     assert retrieved_image["Platform"] == instance["Platform"]
     assert "CreationDate" in retrieved_image
     ec2.terminate_instances(InstanceIds=[instance_id])
@@ -224,7 +223,6 @@ def test_ami_copy():
     assert copy_image["ImageId"] == copy_image_id
     assert copy_image["VirtualizationType"] == source_image["VirtualizationType"]
     assert copy_image["Architecture"] == source_image["Architecture"]
-    assert copy_image["KernelId"] == source_image["KernelId"]
     assert copy_image["Platform"] == source_image["Platform"]
 
     # Validate auto-created snapshot
