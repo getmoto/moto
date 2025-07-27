@@ -732,10 +732,6 @@
   "Location": "euw2-az1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "euw2-az1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "euw2-az1"
  },
@@ -2956,10 +2952,6 @@
   "Location": "euw2-az2"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "euw2-az2"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "euw2-az2"
  },
@@ -5137,10 +5129,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "euw2-az3"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "euw2-az3"
  },
  {

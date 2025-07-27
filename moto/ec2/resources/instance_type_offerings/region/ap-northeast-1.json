@@ -1076,10 +1076,6 @@
   "Location": "ap-northeast-1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "ap-northeast-1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "ap-northeast-1"
  },

@@ -916,10 +916,6 @@
   "Location": "ap-southeast-2"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "ap-southeast-2"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "ap-southeast-2"
  },

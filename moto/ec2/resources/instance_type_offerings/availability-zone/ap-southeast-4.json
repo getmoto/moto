@@ -2254,5 +2254,21 @@
  {
   "InstanceType": "t4g.xlarge",
   "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "ap-southeast-4c"
  }
 ]

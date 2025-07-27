@@ -1200,10 +1200,6 @@
   "Location": "us-east-1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "us-east-1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "us-east-1"
  },
@@ -2429,6 +2425,10 @@
  },
  {
   "InstanceType": "p5en.48xlarge",
+  "Location": "us-east-1"
+ },
+ {
+  "InstanceType": "p6-b200.48xlarge",
   "Location": "us-east-1"
  },
  {

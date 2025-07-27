@@ -792,10 +792,6 @@
   "Location": "sa-east-1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "sa-east-1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "sa-east-1"
  },

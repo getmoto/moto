@@ -956,10 +956,6 @@
   "Location": "eu-west-1a"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eu-west-1a"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eu-west-1a"
  },
@@ -4129,10 +4125,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eu-west-1b"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eu-west-1b"
  },
  {
@@ -7329,10 +7321,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eu-west-1c"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eu-west-1c"
  },
  {

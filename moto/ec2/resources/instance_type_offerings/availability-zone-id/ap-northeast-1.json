@@ -1040,10 +1040,6 @@
   "Location": "apne1-az1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "apne1-az1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "apne1-az1"
  },
@@ -4005,10 +4001,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "apne1-az2"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "apne1-az2"
  },
  {
@@ -7113,10 +7105,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "apne1-az4"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "apne1-az4"
  },
  {
