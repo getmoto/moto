@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Set, cast
 from moto import settings
 from moto.utilities.utils import load_resource
 
+from ...core.utils import utcnow
 from ..exceptions import (
     InvalidAMIAttributeItemValueError,
     InvalidAMIIdError,
@@ -17,7 +18,6 @@ from ..exceptions import (
 from ..utils import (
     generic_filter,
     random_ami_id,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 from .instances import Instance
@@ -75,7 +75,7 @@ class Ami(TaggedEC2Resource):
         self.root_device_name = root_device_name
         self.root_device_type = root_device_type
         self.sriov = sriov
-        self.creation_date = creation_date or utc_date_and_time()
+        self.creation_date = creation_date or utcnow()
         self.product_codes = product_codes
         self.boot_mode = boot_mode
         self.instance_id: Optional[str] = None
@@ -126,8 +126,18 @@ class Ami(TaggedEC2Resource):
         return {"Group": "all"} in self.launch_permissions
 
     @property
-    def is_public_string(self) -> str:
-        return str(self.is_public).lower()
+    def block_device_mappings(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "DeviceName": self.root_device_name,
+                "Ebs": {
+                    "SnapshotId": self.ebs_snapshot.id,
+                    "VolumeSize": 15,
+                    "DeleteOnTermination": False,
+                    "VolumeType": "standard",
+                },
+            }
+        ]
 
     @property
     def source_instance_id(self) -> Optional[str]:
@@ -145,7 +155,7 @@ class Ami(TaggedEC2Resource):
         elif filter_name == "image-id":
             return self.id
         elif filter_name == "is-public":
-            return self.is_public_string
+            return self.is_public
         elif filter_name == "state":
             return self.state
         elif filter_name == "name":
