@@ -7,7 +7,7 @@ import xmltodict
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
+from moto.core.utils import utcnow
 from moto.iam.models import AccessKey, iam_backends
 from moto.sts.utils import (
     DEFAULT_STS_SESSION_DURATION,
@@ -23,10 +23,6 @@ class Token(BaseModel):
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.name = name
         self.policy = None
-
-    @property
-    def expiration_ISO8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.expiration)
 
 
 class AssumedRole(BaseModel):
@@ -54,10 +50,6 @@ class AssumedRole(BaseModel):
         self.secret_access_key = access_key.secret_access_key
         self.session_token = random_session_token()
         self.partition = get_partition(region_name)
-
-    @property
-    def expiration_ISO8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.expiration)
 
     @property
     def user_id(self) -> str:
