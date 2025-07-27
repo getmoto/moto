@@ -122,6 +122,10 @@ class Ami(TaggedEC2Resource):
         self.ec2_backend.delete_volume(volume.id)
 
     @property
+    def is_public(self) -> bool:
+        return {"Group": "all"} in self.launch_permissions
+
+    @property
     def block_device_mappings(self) -> List[Dict[str, Any]]:
         return [
             {
@@ -134,10 +138,6 @@ class Ami(TaggedEC2Resource):
                 },
             }
         ]
-
-    @property
-    def is_public(self) -> bool:
-        return {"Group": "all"} in self.launch_permissions
 
     @property
     def source_instance_id(self) -> Optional[str]:
