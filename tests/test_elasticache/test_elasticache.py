@@ -799,7 +799,7 @@ def test_describe_cache_subnet_group_not_found():
             CacheSubnetGroupName=cache_subnet_group_unknown,
         )
     err = exc.value.response["Error"]
-    assert err["Code"] == "CacheSubnetGroupNotFound"
+    assert err["Code"] == "CacheSubnetGroupNotFoundFault"
     assert err["Message"] == f"CacheSubnetGroup {cache_subnet_group_unknown} not found."
 
 
@@ -1313,6 +1313,9 @@ def test_describe_replication_groups_cluster_enabled():
     assert replication_group["ReplicationGroupId"] == replication_group_id
     assert len(replication_group["MemberClusters"]) == 9
     assert replication_group["ClusterEnabled"]
+    group_info = replication_group["GlobalReplicationGroupInfo"]
+    assert group_info["GlobalReplicationGroupId"] == "test-global-replication-group"
+    assert group_info["GlobalReplicationGroupMemberRole"] == "SECONDARY"
 
 
 @mock_aws
@@ -1324,7 +1327,7 @@ def test_describe_replication_group_not_found():
         client.describe_replication_groups(ReplicationGroupId=replication_group_id)
 
     err = exc.value.response["Error"]
-    assert err["Code"] == "ReplicationGroupNotFound"
+    assert err["Code"] == "ReplicationGroupNotFoundFault"
     assert err["Message"] == f"Replication group {replication_group_id} not found."
 
 
@@ -1392,3 +1395,12 @@ def test_replication_groups_already_exists():
     err = exc.value.response["Error"]
     assert err["Code"] == "ReplicationGroupAlreadyExists"
     assert err["Message"] == f"Replication group {replication_group_id} already exists."
+
+
+@mock_aws
+def test_list_tags_raises_error_for_invalid_arn():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    with pytest.raises(ClientError) as exc:
+        client.list_tags_for_resource(ResourceName="invalid-arn")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidARN"

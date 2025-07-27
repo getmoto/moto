@@ -1,3 +1,4 @@
+import copy
 import random
 import string
 from re import compile as re_compile
@@ -49,10 +50,19 @@ class User(BaseModel):
         self.no_password_required = no_password_required
         self.status = "active"
         self.minimum_engine_version = "6.0"
-        self.usergroupids: List[str] = []
+        self.user_group_ids: List[str] = []
         self.region = region
         self.arn = f"arn:{get_partition(self.region)}:elasticache:{self.region}:{account_id}:user:{self.id}"
         self.authentication_type = authentication_type
+
+    @property
+    def authentication(self) -> dict[str, Any]:
+        return {
+            "Type": "no-password"
+            if self.no_password_required
+            else self.authentication_type,
+            "PasswordCount": len(self.passwords) if self.passwords else None,
+        }
 
 
 class CacheCluster(BaseModel):
@@ -139,6 +149,7 @@ class CacheCluster(BaseModel):
         self.cache_cluster_status = "available"
         self.arn = f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:cluster:{cache_cluster_id}"
         self.cache_node_id = str(mock_random.uuid4())
+        self.status = "available"
 
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
@@ -166,7 +177,7 @@ class CacheSubnetGroup(BaseModel):
 
         ec2_backend = ec2_backends[account_id][region_name]
         self.supported_network_types = []
-        self.subnets_responses = []
+        self.subnets = []
         vpc_exists = False
         try:
             # Get VPC details from provided subnet IDs
@@ -177,10 +188,10 @@ class CacheSubnetGroup(BaseModel):
             if "InvalidSubnet" in str(e):
                 for subnet_id in subnet_ids:
                     subnet_response: Dict[str, Any] = {}
-                    subnet_response["subnet_id"] = subnet_id
-                    subnet_response["subnet_az"] = {"Name": "us-east-1a"}
-                    subnet_response["subnet_supported_network_types"] = ["ipv4"]
-                    self.subnets_responses.append(subnet_response)
+                    subnet_response["subnet_identifier"] = subnet_id
+                    subnet_response["Subnet_availability_zone"] = {"Name": "us-east-1a"}
+                    subnet_response["supported_network_types"] = ["ipv4"]
+                    self.subnets.append(subnet_response)
                 vpcs = ["vpc-0123456789abcdef0"]
                 self.supported_network_types = ["ipv4"]
 
@@ -189,9 +200,9 @@ class CacheSubnetGroup(BaseModel):
             for subnet in subnets:
                 subnet_response = {}
                 vpcs.append(subnet.vpc_id)
-                subnet_response["subnet_id"] = subnet.id
-                subnet_response["subnet_az"] = subnet.availability_zone
-                subnet_response["subnet_supported_network_types"] = []
+                subnet_response["subnet_identifier"] = subnet.id
+                subnet_response["subnet_availability_zone"] = subnet.availability_zone
+                subnet_response["supported_network_types"] = []
                 if subnet.vpc_id != vpcs[0]:
                     raise InvalidSubnet(subnet_id=subnet.id)
 
@@ -199,20 +210,18 @@ class CacheSubnetGroup(BaseModel):
                 # You can't mix ipv6 native subnets with other types of subnets
                 if subnet.ipv6_native:
                     self.supported_network_types.append("ipv6")
-                    subnet_response["subnet_supported_network_types"].append("ipv6")
+                    subnet_response["supported_network_types"].append("ipv6")
 
                 # ipv4 only and dual_stack subnets both append ipv4
                 elif subnet.cidr_block:
                     self.supported_network_types.append("ipv4")
-                    subnet_response["subnet_supported_network_types"].append("ipv4")
+                    subnet_response["supported_network_types"].append("ipv4")
 
                 if subnet.ipv6_cidr_block_associations and subnet.cidr_block:
                     self.supported_network_types.append("dual_stack")
-                    subnet_response["subnet_supported_network_types"].append(
-                        "dual_stack"
-                    )
+                    subnet_response["supported_network_types"].append("dual_stack")
 
-                self.subnets_responses.append(subnet_response)
+                self.subnets.append(subnet_response)
 
             if self.supported_network_types:
                 self.supported_network_types = list(set(self.supported_network_types))
@@ -272,7 +281,7 @@ class ReplicationGroup(BaseModel):
         tags = tags or []
         self.cluster_mode = cluster_mode or "disabled"
         self.replication_group_id = replication_group_id
-        self.replication_group_description = replication_group_description
+        self.description = replication_group_description
         self.port = port or 6379
         self.status = "available"
 
@@ -345,6 +354,10 @@ class ReplicationGroup(BaseModel):
                     f"replica.{replication_group_domain}"
                 )
                 node_group["port"] = self.port
+                node_group["primary_endpoint"] = {
+                    "address": node_group["primary_endpoint_address"],
+                    "port": self.port,
+                }
 
                 num_cache_clusters = num_cache_clusters or 1
 
@@ -406,6 +419,13 @@ class ReplicationGroup(BaseModel):
         self.snapshot_arns = snapshot_arns
         self.snapshot_name = snapshot_name
 
+    @property
+    def global_replication_group_info(self) -> dict[str, str]:
+        return {
+            "GlobalReplicationGroupId": self.global_replication_group_id,
+            "GlobalReplicationGroupMemberRole": self.global_replication_group_member_role,
+        }
+
     def get_tags(self) -> List[Dict[str, str]]:
         return self.tags
 
@@ -415,22 +435,7 @@ class ReplicationGroup(BaseModel):
         log_delivery_configurations_resp = []
         if log_delivery_configurations:
             for log_delivery_configuration in log_delivery_configurations:
-                log_config_resp = {}
-                log_config_resp["log_type"] = log_delivery_configuration.get(
-                    "LogType", "slow-log"
-                )
-                log_config_resp["destination_type"] = log_delivery_configuration.get(
-                    "DestinationType", "cloudwatch-logs"
-                )
-                dest_name = log_delivery_configuration.get("DestinationDetails")
-                if dest_name:
-                    log_config_resp["dest_name"] = dest_name
-                else:
-                    log_config_resp["dest_name"] = "test"
-
-                log_config_resp["log_format"] = log_delivery_configuration.get(
-                    "LogFormat", "text"
-                )
+                log_config_resp = copy.copy(log_delivery_configuration)
                 log_config_resp["status"] = "active"
                 log_config_resp["message"] = "Log delivery configuration is active."
 
