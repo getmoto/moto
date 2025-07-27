@@ -395,6 +395,7 @@ def test_deleting_weighted_route():
     assert cnames[-1]["Name"] == "cname.testdns.aws.com."
     assert cnames[-1]["SetIdentifier"] == "success-test-bar"
 
+
 @mock_aws
 def test_create_delete_create():
     """
@@ -431,27 +432,26 @@ def test_create_delete_create():
     for i in range(10):
         conn.change_resource_record_sets(
             HostedZoneId=zone_id,
-            ChangeBatch={
-                "Changes":  _build_change_payload("create")
-            },
+            ChangeBatch={"Changes": _build_change_payload("create")},
         )
 
         response = conn.list_resource_record_sets(
-            HostedZoneId=zone_id, StartRecordName="record.testdns.aws.com",
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
         )["ResourceRecordSets"]
         assert len(response) == 1
 
         conn.change_resource_record_sets(
             HostedZoneId=zone_id,
-            ChangeBatch={
-                "Changes": _build_change_payload("delete")
-            },
+            ChangeBatch={"Changes": _build_change_payload("delete")},
         )
 
         response = conn.list_resource_record_sets(
-            HostedZoneId=zone_id, StartRecordName="record.testdns.aws.com",
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
         )["ResourceRecordSets"]
         assert len(response) == 0
+
 
 @mock_aws
 def test_deleting_latency_route():

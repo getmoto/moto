@@ -720,7 +720,9 @@ class Route53Backend(BaseBackend):
                 name = value["ResourceRecordSet"]["Name"] + "."
                 _type = value["ResourceRecordSet"]["Type"]
                 # check if the record exists or just in rr_changes (journal)
-                all_records = list(the_zone.get_record_sets(start_type=_type, start_name=name))
+                all_records = list(
+                    the_zone.get_record_sets(start_type=_type, start_name=name)
+                )
                 if all_records:
                     raise ResourceRecordAlreadyExists(name=name, _type=_type)
 
