@@ -233,14 +233,14 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_INSTANCE_STATUS)
         return template.render(instances=instances)
 
-    def describe_instance_types(self) -> str:
+    def describe_instance_types(self) -> ActionResult:
         instance_type_filters = self._get_multi_param("InstanceType")
         filter_dict = self._filters_from_querystring()
         instance_types = self.ec2_backend.describe_instance_types(
             instance_type_filters, filter_dict
         )
-        template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
-        return template.render(instance_types=instance_types)
+        result = {"InstanceTypes": instance_types}
+        return ActionResult(result)
 
     def describe_instance_type_offerings(self) -> ActionResult:
         location_type_filters = self._get_param("LocationType")
@@ -789,130 +789,3 @@ EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
     </instanceStatusSet>
 </DescribeInstanceStatusResponse>"""
 
-EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
-<DescribeInstanceTypesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>f8b86168-d034-4e65-b48d-3b84c78e64af</requestId>
-    <instanceTypeSet>
-    {% for instance_type in instance_types %}
-        <item>
-            <autoRecoverySupported>{{ instance_type.AutoRecoverySupported }}</autoRecoverySupported>
-            <bareMetal>{{ instance_type.BareMetal }}</bareMetal>
-            <burstablePerformanceSupported>{{ instance_type.BurstablePerformanceSupported }}</burstablePerformanceSupported>
-            <currentGeneration>{{ instance_type.CurrentGeneration }}</currentGeneration>
-            <dedicatedHostsSupported>{{ instance_type.DedicatedHostsSupported }}</dedicatedHostsSupported>
-            <ebsInfo>
-                <ebsOptimizedInfo>
-                    <baselineBandwidthInMbps>{{ instance_type.get('EbsInfo', {}).get('EbsOptimizedInfo', {}).get('BaselineBandwidthInMbps', 0) | int }}</baselineBandwidthInMbps>
-                    <baselineIops>{{  instance_type.get('EbsInfo', {}).get('EbsOptimizedInfo', {}).get('BaselineIops', 0) | int }}</baselineIops>
-                    <baselineThroughputInMBps>{{  instance_type.get('EbsInfo', {}).get('EbsOptimizedInfo', {}).get('BaselineThroughputInMBps', 0.0) | float }}</baselineThroughputInMBps>
-                    <maximumBandwidthInMbps>{{  instance_type.get('EbsInfo', {}).get('EbsOptimizedInfo', {}).get('MaximumBandwidthInMbps', 0) | int }}</maximumBandwidthInMbps>
-                    <maximumIops>{{  instance_type.get('EbsInfo', {}).get('EbsOptimizedInfo', {}).get('MaximumIops', 0) | int }}</maximumIops>
-                    <maximumThroughputInMBps>{{ instance_type.get('EbsInfo', {}).get('EbsOptimizedInfo', {}).get('MaximumThroughputInMBps', 0.0) | float }}</maximumThroughputInMBps>
-                </ebsOptimizedInfo>
-                <ebsOptimizedSupport>{{ instance_type.get('EbsInfo', {}).get('EbsOptimizedSupport', 'default') }}</ebsOptimizedSupport>
-                <encryptionSupport>{{ instance_type.get('EbsInfo', {}).get('EncryptionSupport', 'supported') }}</encryptionSupport>
-                <nvmeSupport>{{ instance_type.get('EbsInfo', {}).get('NvmeSupport', 'required') }}</nvmeSupport>
-            </ebsInfo>
-            <networkInfo>
-                <defaultNetworkCardIndex>{{ instance_type.get('NetworkInfo', {}).get('DefaultNetworkCardIndex', 0) | int }}</defaultNetworkCardIndex>
-                <efaSupported>{{ instance_type.get('NetworkInfo', {}).get('EfaSupported', False) }}</efaSupported>
-                <enaSrdSupported>{{ instance_type.get('NetworkInfo', {}).get('EnaSrdSupported', False) }}</enaSrdSupported>
-                <enaSupport>{{ instance_type.get('NetworkInfo', {}).get('EnaSupport', 'unsupported') }}</enaSupport>
-                <encryptionInTransitSupported>{{ instance_type.get('NetworkInfo', {}).get('EncryptionInTransitSupported', False) }}</encryptionInTransitSupported>
-                <ipv4AddressesPerInterface>{{ instance_type.get('NetworkInfo', {}).get('Ipv4AddressesPerInterface', 0) | int }}</ipv4AddressesPerInterface>
-                <ipv6AddressesPerInterface>{{ instance_type.get('NetworkInfo', {}).get('Ipv6AddressesPerInterface', 0) | int }}</ipv6AddressesPerInterface>
-                <ipv6Supported>{{ instance_type.get('NetworkInfo', {}).get('Ipv6Supported', False) }}</ipv6Supported>
-                <maximumNetworkCards>{{ instance_type.get('NetworkInfo', {}).get('MaximumNetworkCards', 0) | int }}</maximumNetworkCards>
-                <maximumNetworkInterfaces>{{ instance_type.get('NetworkInfo', {}).get('MaximumNetworkInterfaces', 0) | int }}</maximumNetworkInterfaces>
-                <networkCards>
-                  {% for network_card in instance_type.get('NetworkInfo', {}).get('NetworkCards', []) %}
-                    <item>
-                        <baselineBandwidthInGbps>{{ network_card.get('BaselineBandwidthInGbps', 0.0) | float }}</baselineBandwidthInGbps>
-                        <maximumNetworkInterfaces>{{ network_card.get('MaximumNetworkInterfaces', 0) | int }}</maximumNetworkInterfaces>
-                        <networkCardIndex>{{ network_card.get('NetworkCardIndex', 0) | int }}</networkCardIndex>
-                        <networkPerformance>{{ network_card.get('NetworkPerformance', 'Up to 25 Schmeckles') }}</networkPerformance>
-                        <peakBandwidthInGbps>{{ network_card.get('PeakBandwidthInGbps', 0.0) | float }}</peakBandwidthInGbps>
-                    </item>
-                  {% endfor %}
-                </networkCards>
-                <networkPerformance>{{ instance_type.get('NetworkInfo', {}).get('NetworkPerformance', 'Up to 25 Schmeckles') }}</networkPerformance>
-            </networkInfo>
-            <freeTierEligible>{{ instance_type.FreeTierEligible }}</freeTierEligible>
-            <hibernationSupported>{{ instance_type.HibernationSupported }}</hibernationSupported>
-            <hypervisor>{{ instance_type.get('Hypervisor', 'motovisor') }}</hypervisor>
-            <instanceStorageSupported>{{ instance_type.InstanceStorageSupported }}</instanceStorageSupported>
-            <placementGroupInfo>
-                <supportedStrategies>
-                  {% for strategy in instance_type.get('PlacementGroupInfo', {}).get('SupportedStrategies', []) %}
-                    <item>{{ strategy }}</item>
-                  {% endfor %}
-                </supportedStrategies>
-            </placementGroupInfo>
-            <supportedRootDeviceTypes>
-              {% for dev_type in instance_type.get('SupportedRootDeviceTypes', []) %}
-                <item>{{ dev_type }}</item>
-              {% endfor %}
-            </supportedRootDeviceTypes>
-            <supportedUsageClasses>
-              {% for usage_class in instance_type.get('SupportedUsageClasses', []) %}
-                <item>{{ usage_class }}</item>
-              {% endfor %}
-            </supportedUsageClasses>
-            <supportedVirtualizationTypes>
-              {% for supported_vtype in instance_type.get('SupportedVirtualizationTypes', []) %}
-                <item>{{ supported_vtype }}</item>
-              {% endfor %}
-            </supportedVirtualizationTypes>
-            <instanceType>{{ instance_type.InstanceType }}</instanceType>
-            <vCpuInfo>
-                <defaultVCpus>{{ instance_type.get('VCpuInfo', {}).get('DefaultVCpus', 0)|int }}</defaultVCpus>
-                <defaultCores>{{ instance_type.get('VCpuInfo', {}).get('DefaultCores', 0)|int }}</defaultCores>
-                <defaultThreadsPerCore>{{ instance_type.get('VCpuInfo').get('DefaultThreadsPerCore', 0)|int }}</defaultThreadsPerCore>
-                <validCores>
-                  {% for valid_core in instance_type.get("VCpuInfo", {}).get('ValidCores', []) %}
-                    <item>{{ valid_core }}</item>
-                  {% endfor %}
-                </validCores>
-                <validThreadsPerCore>
-                  {% for threads_per_core in instance_type.get("VCpuInfo", {}).get('ValidThreadsPerCore', []) %}
-                    <item>{{ threads_per_core }}</item>
-                  {% endfor %}
-                </validThreadsPerCore>
-            </vCpuInfo>
-            <memoryInfo>
-                <sizeInMiB>{{ instance_type.get('MemoryInfo', {}).get('SizeInMiB', 0)|int }}</sizeInMiB>
-            </memoryInfo>
-            <instanceStorageInfo>
-                <totalSizeInGB>{{ instance_type.get('InstanceStorageInfo', {}).get('TotalSizeInGB', 0)|int }}</totalSizeInGB>
-            </instanceStorageInfo>
-            <processorInfo>
-                <supportedArchitectures>
-                    {% for arch in instance_type.get('ProcessorInfo', {}).get('SupportedArchitectures', []) %}
-                    <item>
-                        {{ arch }}
-                    </item>
-                    {% endfor %}
-                </supportedArchitectures>
-                <sustainedClockSpeedInGhz>{{ instance_type.get('ProcessorInfo', {}).get('SustainedClockSpeedInGhz', 0.0) | float }}</sustainedClockSpeedInGhz>
-            </processorInfo>
-            {% if instance_type.get('GpuInfo', {})|length > 0 %}
-            <gpuInfo>
-                <gpus>
-                    {% for gpu in instance_type.get('GpuInfo').get('Gpus') %}
-                    <item>
-                        <count>{{ gpu['Count']|int }}</count>
-                        <manufacturer>{{ gpu['Manufacturer'] }}</manufacturer>
-                        <memoryInfo>
-                            <sizeInMiB>{{ gpu['MemoryInfo']['SizeInMiB']|int }}</sizeInMiB>
-                        </memoryInfo>
-                        <name>{{ gpu['Name'] }}</name>
-                    </item>
-                    {% endfor %}
-                </gpus>
-                <totalGpuMemoryInMiB>{{ instance_type['GpuInfo']['TotalGpuMemoryInMiB']|int }}</totalGpuMemoryInMiB>
-            </gpuInfo>
-            {% endif %}
-        </item>
-    {% endfor %}
-    </instanceTypeSet>
-</DescribeInstanceTypesResponse>"""
