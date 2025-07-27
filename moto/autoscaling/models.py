@@ -78,6 +78,19 @@ class FakeLifeCycleHook(BaseModel):
             self.result = "ABANDON"
 
 
+class TargetTrackingConfiguration:
+    def __init__(self, data: Optional[dict[str, Any]]) -> None:
+        data = data or {}
+        customized_metric_spec = data.get("CustomizedMetricSpecification", {})
+        if customized_metric_spec:
+            if "Dimensions" not in customized_metric_spec:
+                customized_metric_spec["Dimensions"] = []
+            for metric in customized_metric_spec.get("Metrics", []):
+                if "ReturnData" not in metric:
+                    metric["ReturnData"] = True
+        self.__dict__.update(data)
+
+
 class FakeScalingPolicy(BaseModel):
     def __init__(
         self,
@@ -89,24 +102,28 @@ class FakeScalingPolicy(BaseModel):
         min_adjustment_magnitude: str,
         scaling_adjustment: Optional[int],
         cooldown: Optional[int],
-        target_tracking_config: str,
+        target_tracking_config: dict[str, Any],
         step_adjustments: str,
         estimated_instance_warmup: str,
         predictive_scaling_configuration: str,
         autoscaling_backend: "AutoScalingBackend",
     ):
         self.name = name
+        self.policy_name = name  # property alias
         self.policy_type = policy_type
         self.metric_aggregation_type = metric_aggregation_type
         self.adjustment_type = adjustment_type
-        self.as_name = as_name
+        self.auto_scaling_group_name = as_name
         self.min_adjustment_magnitude = min_adjustment_magnitude
         self.scaling_adjustment = scaling_adjustment
-        if cooldown is not None:
-            self.cooldown = cooldown
-        else:
-            self.cooldown = DEFAULT_COOLDOWN
-        self.target_tracking_config = target_tracking_config
+        self.cooldown = None
+        if self.policy_type == "SimpleScaling":
+            self.cooldown = cooldown if cooldown is not None else DEFAULT_COOLDOWN
+        self.target_tracking_configuration: Optional[TargetTrackingConfiguration] = None
+        if self.policy_type == "TargetTrackingScaling":
+            self.target_tracking_configuration = TargetTrackingConfiguration(
+                target_tracking_config
+            )
         self.step_adjustments = step_adjustments
         self.estimated_instance_warmup = estimated_instance_warmup
         self.predictive_scaling_configuration = predictive_scaling_configuration
@@ -114,20 +131,22 @@ class FakeScalingPolicy(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:{get_partition(self.autoscaling_backend.region_name)}:autoscaling:{self.autoscaling_backend.region_name}:{self.autoscaling_backend.account_id}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.as_name}:policyName/{self.name}"
+        return f"arn:{get_partition(self.autoscaling_backend.region_name)}:autoscaling:{self.autoscaling_backend.region_name}:{self.autoscaling_backend.account_id}:scalingPolicy:c322761b-3172-4d56-9a21-0ed9d6161d67:autoScalingGroupName/{self.auto_scaling_group_name}:policyName/{self.name}"
+
+    policy_arn = arn  # property alias
 
     def execute(self) -> None:
         if self.adjustment_type == "ExactCapacity":
             self.autoscaling_backend.set_desired_capacity(
-                self.as_name, self.scaling_adjustment
+                self.auto_scaling_group_name, self.scaling_adjustment
             )
         elif self.adjustment_type == "ChangeInCapacity":
             self.autoscaling_backend.change_capacity(
-                self.as_name, self.scaling_adjustment
+                self.auto_scaling_group_name, self.scaling_adjustment
             )
         elif self.adjustment_type == "PercentChangeInCapacity":
             self.autoscaling_backend.change_capacity_percent(
-                self.as_name, self.scaling_adjustment
+                self.auto_scaling_group_name, self.scaling_adjustment
             )
 
 
@@ -1377,7 +1396,7 @@ class AutoScalingBackend(BaseBackend):
         min_adjustment_magnitude: str,
         scaling_adjustment: Optional[int],
         cooldown: Optional[int],
-        target_tracking_config: str,
+        target_tracking_config: dict[str, Any],
         step_adjustments: str,
         estimated_instance_warmup: str,
         predictive_scaling_configuration: str,
@@ -1410,7 +1429,10 @@ class AutoScalingBackend(BaseBackend):
         return [
             policy
             for policy in self.policies.values()
-            if (not autoscaling_group_name or policy.as_name == autoscaling_group_name)
+            if (
+                not autoscaling_group_name
+                or policy.auto_scaling_group_name == autoscaling_group_name
+            )
             and (not policy_names or policy.name in policy_names)
             and (not policy_types or policy.policy_type in policy_types)
         ]

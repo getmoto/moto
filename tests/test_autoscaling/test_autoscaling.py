@@ -862,10 +862,10 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
             "PredefinedMetricType": "ASGAverageNetworkIn",
         },
         "CustomizedMetricSpecification": {
-            "MetricName": "None",
-            "Namespace": "None",
+            # "MetricName": "None",
+            # "Namespace": "None",
             "Dimensions": [],
-            "Statistic": "None",
+            # "Statistic": "None",
             "Metrics": [
                 {
                     "Label": "Get ASGAverageCPUUtilization",
@@ -879,7 +879,7 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                             ],
                         },
                         "Stat": "Average",
-                        "Unit": "None",
+                        # "Unit": "None",
                     },
                     "ReturnData": False,
                 },
