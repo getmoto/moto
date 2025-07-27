@@ -1,5 +1,5 @@
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse
+from moto.core.responses import BaseResponse, EmptyResult
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.aws_headers import amz_crc32
 
@@ -45,8 +45,7 @@ class AutoScalingResponse(BaseResponse):
             classic_link_vpc_id=params.get("ClassicLinkVPCId"),
             classic_link_vpc_security_groups=params.get("ClassicLinkVPCSecurityGroups"),
         )
-        template = self.response_template(CREATE_LAUNCH_CONFIGURATION_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_launch_configurations(self) -> str:
         names = self._get_multi_param("LaunchConfigurationNames.member")
@@ -76,8 +75,7 @@ class AutoScalingResponse(BaseResponse):
     def delete_launch_configuration(self) -> str:
         launch_configurations_name = self.querystring.get("LaunchConfigurationName")[0]  # type: ignore[index]
         self.autoscaling_backend.delete_launch_configuration(launch_configurations_name)
-        template = self.response_template(DELETE_LAUNCH_CONFIGURATION_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def create_auto_scaling_group(self) -> str:
         params = self._get_params()
@@ -105,8 +103,7 @@ class AutoScalingResponse(BaseResponse):
                 "NewInstancesProtectedFromScaleIn", False
             ),
         )
-        template = self.response_template(CREATE_AUTOSCALING_GROUP_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def put_scheduled_update_group_action(self) -> str:
         self.autoscaling_backend.put_scheduled_update_group_action(
@@ -120,8 +117,7 @@ class AutoScalingResponse(BaseResponse):
             recurrence=self._get_param("Recurrence"),
             timezone=self._get_param("TimeZone"),
         )
-        template = self.response_template(PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def batch_put_scheduled_update_group_action(self) -> str:
         failed_actions = (
@@ -150,8 +146,7 @@ class AutoScalingResponse(BaseResponse):
             auto_scaling_group_name=auto_scaling_group_name,
             scheduled_action_name=scheduled_action_name,
         )
-        template = self.response_template(DELETE_SCHEDULED_ACTION_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def batch_delete_scheduled_action(self) -> str:
         auto_scaling_group_name = self._get_param("AutoScalingGroupName")
@@ -164,15 +159,13 @@ class AutoScalingResponse(BaseResponse):
         return template.render(failed_actions=failed_actions)
 
     def describe_scaling_activities(self) -> str:
-        template = self.response_template(DESCRIBE_SCALING_ACTIVITIES_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def attach_instances(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
         self.autoscaling_backend.attach_instances(group_name, instance_ids)
-        template = self.response_template(ATTACH_INSTANCES_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def set_instance_health(self) -> str:
         instance_id = self._get_param("InstanceId")
@@ -180,8 +173,7 @@ class AutoScalingResponse(BaseResponse):
         if health_status not in ["Healthy", "Unhealthy"]:
             raise ValueError("Valid instance health states are: [Healthy, Unhealthy]")
         self.autoscaling_backend.set_instance_health(instance_id, health_status)
-        template = self.response_template(SET_INSTANCE_HEALTH_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def detach_instances(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -204,8 +196,7 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.attach_load_balancer_target_groups(
             group_name, target_group_arns
         )
-        template = self.response_template(ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_load_balancer_target_groups(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -222,8 +213,7 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.detach_load_balancer_target_groups(
             group_name, target_group_arns
         )
-        template = self.response_template(DETACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_auto_scaling_groups(self) -> str:
         names = self._get_multi_param("AutoScalingGroupNames.member")
@@ -263,33 +253,28 @@ class AutoScalingResponse(BaseResponse):
                 "NewInstancesProtectedFromScaleIn", None
             ),
         )
-        template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def delete_auto_scaling_group(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         self.autoscaling_backend.delete_auto_scaling_group(group_name)
-        template = self.response_template(DELETE_AUTOSCALING_GROUP_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def set_desired_capacity(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         desired_capacity = self._get_int_param("DesiredCapacity")
         self.autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
-        template = self.response_template(SET_DESIRED_CAPACITY_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def create_or_update_tags(self) -> str:
         self.autoscaling_backend.create_or_update_tags(
             self._get_params().get("Tags", [])
         )
-        template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def delete_tags(self) -> str:
         self.autoscaling_backend.delete_tags(self._get_params().get("Tags", []))
-        template = self.response_template(UPDATE_AUTOSCALING_GROUP_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_auto_scaling_instances(self) -> str:
         instance_states = self.autoscaling_backend.describe_auto_scaling_instances(
@@ -299,15 +284,14 @@ class AutoScalingResponse(BaseResponse):
         return template.render(instance_states=instance_states)
 
     def put_lifecycle_hook(self) -> str:
-        lifecycle_hook = self.autoscaling_backend.create_lifecycle_hook(
+        self.autoscaling_backend.create_lifecycle_hook(
             name=self._get_param("LifecycleHookName"),
             as_name=self._get_param("AutoScalingGroupName"),
             transition=self._get_param("LifecycleTransition"),
             timeout=self._get_int_param("HeartbeatTimeout"),
             result=self._get_param("DefaultResult"),
         )
-        template = self.response_template(CREATE_LIFECYLE_HOOK_TEMPLATE)
-        return template.render(lifecycle_hook=lifecycle_hook)
+        return EmptyResult()
 
     def describe_lifecycle_hooks(self) -> str:
         lifecycle_hooks = self.autoscaling_backend.describe_lifecycle_hooks(
@@ -321,8 +305,7 @@ class AutoScalingResponse(BaseResponse):
         as_name = self._get_param("AutoScalingGroupName")
         name = self._get_param("LifecycleHookName")
         self.autoscaling_backend.delete_lifecycle_hook(as_name, name)
-        template = self.response_template(DELETE_LIFECYCLE_HOOK_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def put_scaling_policy(self) -> str:
         params = self._get_params()
@@ -357,21 +340,18 @@ class AutoScalingResponse(BaseResponse):
     def delete_policy(self) -> str:
         group_name = self._get_param("PolicyName")
         self.autoscaling_backend.delete_policy(group_name)
-        template = self.response_template(DELETE_POLICY_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def execute_policy(self) -> str:
         group_name = self._get_param("PolicyName")
         self.autoscaling_backend.execute_policy(group_name)
-        template = self.response_template(EXECUTE_POLICY_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def attach_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
         self.autoscaling_backend.attach_load_balancers(group_name, load_balancer_names)
-        template = self.response_template(ATTACH_LOAD_BALANCERS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_load_balancers(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -383,8 +363,7 @@ class AutoScalingResponse(BaseResponse):
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
         self.autoscaling_backend.detach_load_balancers(group_name, load_balancer_names)
-        template = self.response_template(DETACH_LOAD_BALANCERS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def enter_standby(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -432,8 +411,7 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.suspend_processes(
             autoscaling_group_name, scaling_processes
         )
-        template = self.response_template(SUSPEND_PROCESSES_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def resume_processes(self) -> str:
         autoscaling_group_name = self._get_param("AutoScalingGroupName")
@@ -441,8 +419,7 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.resume_processes(
             autoscaling_group_name, scaling_processes
         )
-        template = self.response_template(RESUME_PROCESSES_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def set_instance_protection(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -451,8 +428,7 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.set_instance_protection(
             group_name, instance_ids, protected_from_scale_in
         )
-        template = self.response_template(SET_INSTANCE_PROTECTION_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def terminate_instance_in_auto_scaling_group(self) -> str:
         instance_id = self._get_param("InstanceId")
@@ -485,8 +461,7 @@ class AutoScalingResponse(BaseResponse):
         group_name = self._get_param("AutoScalingGroupName")
         metrics = self._get_params().get("Metrics")
         self.autoscaling_backend.enable_metrics_collection(group_name, metrics)  # type: ignore[arg-type]
-        template = self.response_template(ENABLE_METRICS_COLLECTION_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def put_warm_pool(self) -> str:
         params = self._get_params()
@@ -502,8 +477,7 @@ class AutoScalingResponse(BaseResponse):
             pool_state=pool_state,
             instance_reuse_policy=instance_reuse_policy,
         )
-        template = self.response_template(PUT_WARM_POOL_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def describe_warm_pool(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -514,15 +488,8 @@ class AutoScalingResponse(BaseResponse):
     def delete_warm_pool(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         self.autoscaling_backend.delete_warm_pool(group_name=group_name)
-        template = self.response_template(DELETE_WARM_POOL_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-
-CREATE_LAUNCH_CONFIGURATION_TEMPLATE = """<CreateLaunchConfigurationResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-   <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
-</ResponseMetadata>
-</CreateLaunchConfigurationResponse>"""
 
 DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeLaunchConfigurationsResult>
@@ -639,24 +606,6 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
   </ResponseMetadata>
 </DescribeLaunchConfigurationsResponse>"""
 
-DELETE_LAUNCH_CONFIGURATION_TEMPLATE = """<DeleteLaunchConfigurationResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ResponseMetadata>
-    <RequestId>7347261f-97df-11e2-8756-35eEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DeleteLaunchConfigurationResponse>"""
-
-CREATE_AUTOSCALING_GROUP_TEMPLATE = """<CreateAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-<RequestId>8d798a29-f083-11e1-bdfb-cb223EXAMPLE</RequestId>
-</ResponseMetadata>
-</CreateAutoScalingGroupResponse>"""
-
-PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<PutScheduledUpdateGroupActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</PutScheduledUpdateGroupActionResponse>"""
-
 
 BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<BatchPutScheduledUpdateGroupActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <BatchPutScheduledUpdateGroupActionResult>
@@ -714,11 +663,6 @@ DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://
 </DescribeScheduledActionsResponse>
 """
 
-DELETE_SCHEDULED_ACTION_TEMPLATE = """<DeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DeleteScheduledActionResponse>"""
 
 BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE = """<BatchDeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <BatchDeleteScheduledActionResult>
@@ -741,21 +685,6 @@ BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE = """<BatchDeleteScheduledActionResponse 
   </ResponseMetadata>
 </BatchDeleteScheduledActionResponse>"""
 
-ATTACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<AttachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<AttachLoadBalancerTargetGroupsResult>
-</AttachLoadBalancerTargetGroupsResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</AttachLoadBalancerTargetGroupsResponse>"""
-
-ATTACH_INSTANCES_TEMPLATE = """<AttachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<AttachInstancesResult>
-</AttachInstancesResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</AttachInstancesResponse>"""
 
 DESCRIBE_LOAD_BALANCER_TARGET_GROUPS = """<DescribeLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DescribeLoadBalancerTargetGroupsResult>
@@ -799,13 +728,6 @@ DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscalin
 </ResponseMetadata>
 </DetachInstancesResponse>"""
 
-DETACH_LOAD_BALANCER_TARGET_GROUPS_TEMPLATE = """<DetachLoadBalancerTargetGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<DetachLoadBalancerTargetGroupsResult>
-</DetachLoadBalancerTargetGroupsResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</DetachLoadBalancerTargetGroupsResponse>"""
 
 DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DescribeAutoScalingGroupsResult>
@@ -995,25 +917,6 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
   </ResponseMetadata>
 </DescribeAutoScalingGroupsResponse>"""
 
-UPDATE_AUTOSCALING_GROUP_TEMPLATE = """<UpdateAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ResponseMetadata>
-    <RequestId>adafead0-ab8a-11e2-ba13-ab0ccEXAMPLE</RequestId>
-  </ResponseMetadata>
-</UpdateAutoScalingGroupResponse>"""
-
-DELETE_AUTOSCALING_GROUP_TEMPLATE = """<DeleteAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ResponseMetadata>
-    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DeleteAutoScalingGroupResponse>"""
-
-DESCRIBE_SCALING_ACTIVITIES_TEMPLATE = """<DescribeScalingActivitiesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<DescribeScalingActivitiesResult>
-</DescribeScalingActivitiesResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</DescribeScalingActivitiesResponse>"""
 
 DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeAutoScalingInstancesResult>
@@ -1045,12 +948,6 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
   </ResponseMetadata>
 </DescribeAutoScalingInstancesResponse>"""
 
-CREATE_LIFECYLE_HOOK_TEMPLATE = """<PutLifecycleHookResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <PutLifecycleHookResult/>
-  <ResponseMetadata>
-    <RequestId>3cfc6fef-c08b-11e2-a697-2922EXAMPLE</RequestId>
-  </ResponseMetadata>
-</PutLifecycleHookResponse>"""
 
 DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <DescribeLifecycleHooksResult>
@@ -1073,14 +970,6 @@ DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="ht
     <RequestId>ec3bffad-b739-11e2-b38d-15fbEXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeLifecycleHooksResponse>"""
-
-DELETE_LIFECYCLE_HOOK_TEMPLATE = """<DeleteLifecycleHookResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <DeleteLifecycleHookResult>
-  </DeleteLifecycleHookResult>
-  <ResponseMetadata>
-    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DeleteLifecycleHookResponse>"""
 
 CREATE_SCALING_POLICY_TEMPLATE = """<PutScalingPolicyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <PutScalingPolicyResult>
@@ -1333,30 +1222,6 @@ DESCRIBE_SCALING_POLICIES_TEMPLATE = """<DescribePoliciesResponse xmlns="http://
   </ResponseMetadata>
 </DescribePoliciesResponse>"""
 
-SET_DESIRED_CAPACITY_TEMPLATE = """<SetDesiredCapacityResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ResponseMetadata>
-    <RequestId>9fb7e2db-6998-11e2-a985-57c82EXAMPLE</RequestId>
-  </ResponseMetadata>
-</SetDesiredCapacityResponse>"""
-
-EXECUTE_POLICY_TEMPLATE = """<ExecuteScalingPolicyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ResponseMetadata>
-    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
-  </ResponseMetadata>
-</ExecuteScalingPolicyResponse>"""
-
-DELETE_POLICY_TEMPLATE = """<DeleteScalingPolicyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ResponseMetadata>
-    <RequestId>70a76d42-9665-11e2-9fdf-211deEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DeleteScalingPolicyResponse>"""
-
-ATTACH_LOAD_BALANCERS_TEMPLATE = """<AttachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<AttachLoadBalancersResult></AttachLoadBalancersResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</AttachLoadBalancersResponse>"""
 
 DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <DescribeLoadBalancersResult>
@@ -1374,38 +1239,6 @@ DESCRIBE_LOAD_BALANCERS_TEMPLATE = """<DescribeLoadBalancersResponse xmlns="http
 </ResponseMetadata>
 </DescribeLoadBalancersResponse>"""
 
-DETACH_LOAD_BALANCERS_TEMPLATE = """<DetachLoadBalancersResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<DetachLoadBalancersResult></DetachLoadBalancersResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</DetachLoadBalancersResponse>"""
-
-SUSPEND_PROCESSES_TEMPLATE = """<SuspendProcessesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-   <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
-</ResponseMetadata>
-</SuspendProcessesResponse>"""
-
-RESUME_PROCESSES_TEMPLATE = """<ResumeProcessesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-   <RequestId></RequestId>
-</ResponseMetadata>
-</ResumeProcessesResponse>"""
-
-SET_INSTANCE_HEALTH_TEMPLATE = """<SetInstanceHealthResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<SetInstanceHealthResponse></SetInstanceHealthResponse>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</SetInstanceHealthResponse>"""
-
-SET_INSTANCE_PROTECTION_TEMPLATE = """<SetInstanceProtectionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<SetInstanceProtectionResult></SetInstanceProtectionResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</SetInstanceProtectionResponse>"""
 
 ENTER_STANDBY_TEMPLATE = """<EnterStandbyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
   <EnterStandbyResult>
@@ -1500,21 +1333,6 @@ DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://autoscaling.amaz
 </DescribeTagsResponse>"""
 
 
-ENABLE_METRICS_COLLECTION_TEMPLATE = """<EnableMetricsCollectionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-   <RequestId></RequestId>
-</ResponseMetadata>
-</EnableMetricsCollectionResponse>"""
-
-
-PUT_WARM_POOL_TEMPLATE = """<PutWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-   <RequestId></RequestId>
-</ResponseMetadata>
-<PutWarmPoolResult></PutWarmPoolResult>
-</PutWarmPoolResponse>"""
-
-
 DESCRIBE_WARM_POOL_TEMPLATE = """<DescribeWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
 <ResponseMetadata>
    <RequestId></RequestId>
@@ -1540,11 +1358,3 @@ DESCRIBE_WARM_POOL_TEMPLATE = """<DescribeWarmPoolResponse xmlns="http://autosca
   </Instances>
 </DescribeWarmPoolResult>
 </DescribeWarmPoolResponse>"""
-
-
-DELETE_WARM_POOL_TEMPLATE = """<DeleteWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-   <RequestId></RequestId>
-</ResponseMetadata>
-<DeleteWarmPoolResult></DeleteWarmPoolResult>
-</DeleteWarmPoolResponse>"""
