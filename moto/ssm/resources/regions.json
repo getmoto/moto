@@ -3771,6 +3771,24 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "datasync": {
                 "Value": "datasync",
                 "endpoint": {
@@ -4084,6 +4102,15 @@
                 "Value": "lambda",
                 "endpoint": {
                   "Value": "lambda.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager-linux-subscriptions": {
+                "Value": "license-manager-linux-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-linux-subscriptions.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14918,6 +14945,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications",
                 "endpoint": {
@@ -23476,6 +23512,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications",
                 "endpoint": {
@@ -25372,6 +25417,24 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "cognito-identity": {
+                "Value": "cognito-identity",
+                "endpoint": {
+                  "Value": "cognito-identity.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "cognito-idp": {
+                "Value": "cognito-idp",
+                "endpoint": {
+                  "Value": "cognito-idp.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "config": {
@@ -29483,6 +29546,15 @@
                 "Value": "network-firewall",
                 "endpoint": {
                   "Value": "network-firewall.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36631,6 +36703,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "notifications": {
                 "Value": "notifications",
                 "endpoint": {
@@ -42013,6 +42094,15 @@
                 "Value": "network-firewall",
                 "endpoint": {
                   "Value": "network-firewall.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52837,6 +52927,15 @@
                 "Value": "network-firewall",
                 "endpoint": {
                   "Value": "network-firewall.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -68061,6 +68160,15 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.us-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.us-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
