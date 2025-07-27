@@ -319,7 +319,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
 class FakeScheduledAction(CloudFormationModel):
     def __init__(
         self,
-        name: str,
+        autos_caling_group_name: str,
         desired_capacity: Optional[int],
         max_size: Optional[int],
         min_size: Optional[int],
@@ -327,9 +327,9 @@ class FakeScheduledAction(CloudFormationModel):
         start_time: Optional[str],
         end_time: Optional[str],
         recurrence: Optional[str],
-        timezone: Optional[str],
+        time_zone: Optional[str],
     ):
-        self.name = name
+        self.auto_scaling_group_name = autos_caling_group_name
         self.desired_capacity = desired_capacity
         self.max_size = max_size
         self.min_size = min_size
@@ -337,7 +337,7 @@ class FakeScheduledAction(CloudFormationModel):
         self.end_time = end_time
         self.recurrence = recurrence
         self.scheduled_action_name = scheduled_action_name
-        self.timezone = timezone
+        self.time_zone = time_zone
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -978,7 +978,7 @@ class AutoScalingBackend(BaseBackend):
         desired_capacity = make_int(desired_capacity)
 
         scheduled_action = FakeScheduledAction(
-            name=name,
+            autos_caling_group_name=name,
             desired_capacity=desired_capacity,
             max_size=max_size,
             min_size=min_size,
@@ -986,7 +986,7 @@ class AutoScalingBackend(BaseBackend):
             start_time=start_time,
             end_time=end_time,
             recurrence=recurrence,
-            timezone=timezone,
+            time_zone=timezone,
         )
 
         self.scheduled_actions[scheduled_action_name] = scheduled_action
@@ -1028,7 +1028,7 @@ class AutoScalingBackend(BaseBackend):
         for scheduled_action in self.scheduled_actions.values():
             if (
                 not autoscaling_group_name
-                or scheduled_action.name == autoscaling_group_name
+                or scheduled_action.auto_scaling_group_name == autoscaling_group_name
             ):
                 if (
                     not scheduled_action_names

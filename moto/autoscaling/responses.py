@@ -137,8 +137,8 @@ class AutoScalingResponse(BaseResponse):
             autoscaling_group_name=self._get_param("AutoScalingGroupName"),
             scheduled_action_names=self._get_multi_param("ScheduledActionNames.member"),
         )
-        template = self.response_template(DESCRIBE_SCHEDULED_ACTIONS)
-        return template.render(scheduled_actions=scheduled_actions)
+        result = {"ScheduledUpdateGroupActions": scheduled_actions}
+        return ActionResult(result)
 
     def delete_scheduled_action(self) -> str:
         auto_scaling_group_name = self._get_param("AutoScalingGroupName")
@@ -628,41 +628,6 @@ BATCH_PUT_SCHEDULED_UPDATE_GROUP_ACTION_TEMPLATE = """<BatchPutScheduledUpdateGr
     <RequestId></RequestId>
   </ResponseMetadata>
 </BatchPutScheduledUpdateGroupActionResponse>"""
-
-DESCRIBE_SCHEDULED_ACTIONS = """<DescribeScheduledActionsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <DescribeScheduledActionsResult>
-    <ScheduledUpdateGroupActions>
-      {% for scheduled_action in scheduled_actions %}
-      <member>
-        <AutoScalingGroupName>{{ scheduled_action.name }}</AutoScalingGroupName>
-        <ScheduledActionName>{{ scheduled_action.scheduled_action_name }}</ScheduledActionName>
-        {% if scheduled_action.start_time %}
-        <StartTime>{{ scheduled_action.start_time }}</StartTime>
-        {% endif %}
-        {% if scheduled_action.end_time %}
-        <EndTime>{{ scheduled_action.end_time }}</EndTime>
-        {% endif %}
-        {% if scheduled_action.recurrence %}
-        <Recurrence>{{ scheduled_action.recurrence }}</Recurrence>
-        {% endif %}
-        {% if scheduled_action.min_size is not none %}
-        <MinSize>{{ scheduled_action.min_size }}</MinSize>
-        {% endif %}
-        {% if scheduled_action.max_size is not none %}
-        <MaxSize>{{ scheduled_action.max_size }}</MaxSize>
-        {% endif %}
-        {% if scheduled_action.desired_capacity is not none %}
-        <DesiredCapacity>{{ scheduled_action.desired_capacity }}</DesiredCapacity>
-        {% endif %}
-        {% if scheduled_action.timezone %}
-        <TimeZone>{{ scheduled_action.timezone }}</TimeZone>
-        {% endif %}
-      </member>
-      {% endfor %}
-    </ScheduledUpdateGroupActions>
-  </DescribeScheduledActionsResult>
-</DescribeScheduledActionsResponse>
-"""
 
 
 BATCH_DELETE_SCHEDULED_ACTION_TEMPLATE = """<BatchDeleteScheduledActionResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
