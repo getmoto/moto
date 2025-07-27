@@ -394,16 +394,6 @@ class FailedScheduledUpdateGroupActionRequest:
         self.error_message = error_message
 
 
-def set_string_propagate_at_launch_booleans_on_tags(
-    tags: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
-    bool_to_string = {True: "true", False: "false"}
-    for tag in tags:
-        if "PropagateAtLaunch" in tag:
-            tag["PropagateAtLaunch"] = bool_to_string[tag["PropagateAtLaunch"]]
-    return tags
-
-
 class FakeWarmPool(CloudFormationModel):
     def __init__(
         self,
@@ -496,12 +486,14 @@ class FakeAutoScalingGroup(CloudFormationModel):
         return self._tags
 
     @tags.setter
-    def tags(self, tags: List[Dict[str, str]]) -> None:
+    def tags(self, tags: List[Dict[str, Any]]) -> None:
         for tag in tags:
             if "ResourceId" not in tag or not tag["ResourceId"]:
                 tag["ResourceId"] = self.name
             if "ResourceType" not in tag or not tag["ResourceType"]:
                 tag["ResourceType"] = "auto-scaling-group"
+            if "PropagateAtLaunch" not in tag:
+                tag["PropagateAtLaunch"] = False
         self._tags = tags
 
     @property
@@ -642,9 +634,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             target_group_arns=target_group_arns,
             placement_group=None,
             termination_policies=properties.get("TerminationPolicies", []),
-            tags=set_string_propagate_at_launch_booleans_on_tags(
-                properties.get("Tags", [])
-            ),
+            tags=properties.get("Tags", []),
             new_instances_protected_from_scale_in=properties.get(
                 "NewInstancesProtectedFromScaleIn", False
             ),
@@ -812,11 +802,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
     def get_propagated_tags(self) -> Dict[str, str]:
         propagated_tags = {}
         for tag in self.tags:
-            # boto uses 'propagate_at_launch
-            # boto3 and cloudformation use PropagateAtLaunch
-            if "propagate_at_launch" in tag and tag["propagate_at_launch"] == "true":
-                propagated_tags[tag["key"]] = tag["value"]
-            if "PropagateAtLaunch" in tag and tag["PropagateAtLaunch"] == "true":
+            if tag.get("PropagateAtLaunch"):
                 propagated_tags[tag["Key"]] = tag["Value"]
         return propagated_tags
 
@@ -1673,9 +1659,7 @@ class AutoScalingBackend(BaseBackend):
                 tags = [t for t in tags if t["ResourceId"] in f["Values"]]
             if f["Name"] == "propagate-at-launch":
                 values = [v.lower() for v in f["Values"]]
-                tags = [
-                    t for t in tags if t.get("PropagateAtLaunch", "").lower() in values
-                ]
+                tags = [t for t in tags if t.get("PropagateAtLaunch", False) in values]
             if f["Name"] == "key":
                 tags = [t for t in tags if t["Key"] in f["Values"]]
             if f["Name"] == "value":

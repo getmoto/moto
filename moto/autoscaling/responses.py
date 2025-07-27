@@ -1,5 +1,5 @@
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.responses import BaseResponse, EmptyResult
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.aws_headers import amz_crc32
 
@@ -9,6 +9,7 @@ from .models import AutoScalingBackend, autoscaling_backends
 class AutoScalingResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="autoscaling")
+        # self.automated_parameter_parsing = True
 
     @property
     def autoscaling_backend(self) -> AutoScalingBackend:
@@ -454,8 +455,8 @@ class AutoScalingResponse(BaseResponse):
     def describe_tags(self) -> str:
         filters = self._get_params().get("Filters", [])
         tags = self.autoscaling_backend.describe_tags(filters=filters)
-        template = self.response_template(DESCRIBE_TAGS_TEMPLATE)
-        return template.render(tags=tags, next_token=None)
+        result = {"Tags": tags, "NextToken": None}
+        return ActionResult(result)
 
     def enable_metrics_collection(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -739,7 +740,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           <member>
             <ResourceType>{{ tag.resource_type or tag.ResourceType }}</ResourceType>
             <ResourceId>{{ tag.resource_id or tag.ResourceId }}</ResourceId>
-            <PropagateAtLaunch>{{ tag.propagate_at_launch or tag.PropagateAtLaunch }}</PropagateAtLaunch>
+            <PropagateAtLaunch>{{ 'true' if tag.get("PropagateAtLaunch") else 'false' }}</PropagateAtLaunch>
             <Key>{{ tag.key or tag.Key }}</Key>
             <Value>{{ tag.value or tag.Value }}</Value>
           </member>
@@ -1309,28 +1310,6 @@ TERMINATE_INSTANCES_TEMPLATE = """<TerminateInstanceInAutoScalingGroupResponse x
     <RequestId>a1ba8fb9-31d6-4d9a-ace1-a7f76749df11EXAMPLE</RequestId>
   </ResponseMetadata>
 </TerminateInstanceInAutoScalingGroupResponse>"""
-
-DESCRIBE_TAGS_TEMPLATE = """<DescribeTagsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ResponseMetadata>
-    <RequestId>1549581b-12b7-11e3-895e-1334aEXAMPLE</RequestId>
-  </ResponseMetadata>
-  <DescribeTagsResult>
-    <Tags>
-{% for tag in tags %}
-      <member>
-        <ResourceId>{{ tag.resource_id or tag.ResourceId }}</ResourceId>
-        <ResourceType>{{ tag.resource_type or tag.ResourceType }}</ResourceType>
-        <Key>{{ tag.key or tag.Key }}</Key>
-        <Value>{{ tag.value or tag.Value }}</Value>
-        <PropagateAtLaunch>{{ tag.propagate_at_launch or tag.PropagateAtLaunch }}</PropagateAtLaunch>
-      </member>
-{% endfor %}
-    </Tags>
-    {% if next_token %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </DescribeTagsResult>
-</DescribeTagsResponse>"""
 
 
 DESCRIBE_WARM_POOL_TEMPLATE = """<DescribeWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
