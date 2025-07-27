@@ -19,7 +19,7 @@ class AutoScalingResponse(BaseResponse):
     def call_action(self) -> TYPE_RESPONSE:
         return super().call_action()
 
-    def create_launch_configuration(self) -> str:
+    def create_launch_configuration(self) -> ActionResult:
         instance_monitoring_string = self._get_param("InstanceMonitoring.Enabled")
         if instance_monitoring_string == "true":
             instance_monitoring = True
@@ -73,12 +73,12 @@ class AutoScalingResponse(BaseResponse):
             launch_configurations=launch_configurations_resp, next_token=next_token
         )
 
-    def delete_launch_configuration(self) -> str:
+    def delete_launch_configuration(self) -> ActionResult:
         launch_configurations_name = self.querystring.get("LaunchConfigurationName")[0]  # type: ignore[index]
         self.autoscaling_backend.delete_launch_configuration(launch_configurations_name)
         return EmptyResult()
 
-    def create_auto_scaling_group(self) -> str:
+    def create_auto_scaling_group(self) -> ActionResult:
         params = self._get_params()
         self.autoscaling_backend.create_auto_scaling_group(
             name=self._get_param("AutoScalingGroupName"),
@@ -106,7 +106,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def put_scheduled_update_group_action(self) -> str:
+    def put_scheduled_update_group_action(self) -> ActionResult:
         self.autoscaling_backend.put_scheduled_update_group_action(
             name=self._get_param("AutoScalingGroupName"),
             desired_capacity=self._get_int_param("DesiredCapacity"),
@@ -120,7 +120,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def batch_put_scheduled_update_group_action(self) -> str:
+    def batch_put_scheduled_update_group_action(self) -> ActionResult:
         failed_actions = (
             self.autoscaling_backend.batch_put_scheduled_update_group_action(
                 name=self._get_param("AutoScalingGroupName"),
@@ -130,7 +130,7 @@ class AutoScalingResponse(BaseResponse):
         result = {"FailedScheduledUpdateGroupActions": failed_actions}
         return ActionResult(result)
 
-    def describe_scheduled_actions(self) -> str:
+    def describe_scheduled_actions(self) -> ActionResult:
         scheduled_actions = self.autoscaling_backend.describe_scheduled_actions(
             autoscaling_group_name=self._get_param("AutoScalingGroupName"),
             scheduled_action_names=self._get_multi_param("ScheduledActionNames.member"),
@@ -138,7 +138,7 @@ class AutoScalingResponse(BaseResponse):
         result = {"ScheduledUpdateGroupActions": scheduled_actions}
         return ActionResult(result)
 
-    def delete_scheduled_action(self) -> str:
+    def delete_scheduled_action(self) -> ActionResult:
         auto_scaling_group_name = self._get_param("AutoScalingGroupName")
         scheduled_action_name = self._get_param("ScheduledActionName")
         self.autoscaling_backend.delete_scheduled_action(
@@ -147,7 +147,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def batch_delete_scheduled_action(self) -> str:
+    def batch_delete_scheduled_action(self) -> ActionResult:
         auto_scaling_group_name = self._get_param("AutoScalingGroupName")
         scheduled_action_names = self._get_multi_param("ScheduledActionNames.member")
         failed_actions = self.autoscaling_backend.batch_delete_scheduled_action(
@@ -157,16 +157,16 @@ class AutoScalingResponse(BaseResponse):
         result = {"FailedScheduledActions": failed_actions}
         return ActionResult(result)
 
-    def describe_scaling_activities(self) -> str:
+    def describe_scaling_activities(self) -> ActionResult:
         return EmptyResult()
 
-    def attach_instances(self) -> str:
+    def attach_instances(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
         self.autoscaling_backend.attach_instances(group_name, instance_ids)
         return EmptyResult()
 
-    def set_instance_health(self) -> str:
+    def set_instance_health(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
         health_status = self._get_param("HealthStatus")
         if health_status not in ["Healthy", "Unhealthy"]:
@@ -188,7 +188,7 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DETACH_INSTANCES_TEMPLATE)
         return template.render(detached_instances=detached_instances)
 
-    def attach_load_balancer_target_groups(self) -> str:
+    def attach_load_balancer_target_groups(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = self._get_multi_param("TargetGroupARNs.member")
 
@@ -197,7 +197,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_load_balancer_target_groups(self) -> str:
+    def describe_load_balancer_target_groups(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = (
             self.autoscaling_backend.describe_load_balancer_target_groups(group_name)
@@ -210,7 +210,7 @@ class AutoScalingResponse(BaseResponse):
         }
         return ActionResult(result)
 
-    def detach_load_balancer_target_groups(self) -> str:
+    def detach_load_balancer_target_groups(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         target_group_arns = self._get_multi_param("TargetGroupARNs.member")
 
@@ -241,7 +241,7 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
         return template.render(groups=groups, next_token=next_token)
 
-    def update_auto_scaling_group(self) -> str:
+    def update_auto_scaling_group(self) -> ActionResult:
         self.autoscaling_backend.update_auto_scaling_group(
             name=self._get_param("AutoScalingGroupName"),
             availability_zones=self._get_multi_param("AvailabilityZones.member"),
@@ -259,24 +259,24 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def delete_auto_scaling_group(self) -> str:
+    def delete_auto_scaling_group(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         self.autoscaling_backend.delete_auto_scaling_group(group_name)
         return EmptyResult()
 
-    def set_desired_capacity(self) -> str:
+    def set_desired_capacity(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         desired_capacity = self._get_int_param("DesiredCapacity")
         self.autoscaling_backend.set_desired_capacity(group_name, desired_capacity)
         return EmptyResult()
 
-    def create_or_update_tags(self) -> str:
+    def create_or_update_tags(self) -> ActionResult:
         self.autoscaling_backend.create_or_update_tags(
             self._get_params().get("Tags", [])
         )
         return EmptyResult()
 
-    def delete_tags(self) -> str:
+    def delete_tags(self) -> ActionResult:
         self.autoscaling_backend.delete_tags(self._get_params().get("Tags", []))
         return EmptyResult()
 
@@ -287,7 +287,7 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
         return template.render(instance_states=instance_states)
 
-    def put_lifecycle_hook(self) -> str:
+    def put_lifecycle_hook(self) -> ActionResult:
         self.autoscaling_backend.create_lifecycle_hook(
             name=self._get_param("LifecycleHookName"),
             as_name=self._get_param("AutoScalingGroupName"),
@@ -305,13 +305,13 @@ class AutoScalingResponse(BaseResponse):
         template = self.response_template(DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE)
         return template.render(lifecycle_hooks=lifecycle_hooks)
 
-    def delete_lifecycle_hook(self) -> str:
+    def delete_lifecycle_hook(self) -> ActionResult:
         as_name = self._get_param("AutoScalingGroupName")
         name = self._get_param("LifecycleHookName")
         self.autoscaling_backend.delete_lifecycle_hook(as_name, name)
         return EmptyResult()
 
-    def put_scaling_policy(self) -> str:
+    def put_scaling_policy(self) -> ActionResult:
         params = self._get_params()
         policy = self.autoscaling_backend.put_scaling_policy(
             name=params.get("PolicyName"),  # type: ignore[arg-type]
@@ -331,7 +331,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return ActionResult({"PolicyArn": policy.arn})
 
-    def describe_policies(self) -> str:
+    def describe_policies(self) -> ActionResult:
         policies = self.autoscaling_backend.describe_policies(
             autoscaling_group_name=self._get_param("AutoScalingGroupName"),
             policy_names=self._get_multi_param("PolicyNames.member"),
@@ -340,23 +340,23 @@ class AutoScalingResponse(BaseResponse):
         result = {"ScalingPolicies": policies}
         return ActionResult(result)
 
-    def delete_policy(self) -> str:
+    def delete_policy(self) -> ActionResult:
         group_name = self._get_param("PolicyName")
         self.autoscaling_backend.delete_policy(group_name)
         return EmptyResult()
 
-    def execute_policy(self) -> str:
+    def execute_policy(self) -> ActionResult:
         group_name = self._get_param("PolicyName")
         self.autoscaling_backend.execute_policy(group_name)
         return EmptyResult()
 
-    def attach_load_balancers(self) -> str:
+    def attach_load_balancers(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
         self.autoscaling_backend.attach_load_balancers(group_name, load_balancer_names)
         return EmptyResult()
 
-    def describe_load_balancers(self) -> str:
+    def describe_load_balancers(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancers = self.autoscaling_backend.describe_load_balancers(group_name)
         result = {
@@ -366,7 +366,7 @@ class AutoScalingResponse(BaseResponse):
         }
         return ActionResult(result)
 
-    def detach_load_balancers(self) -> str:
+    def detach_load_balancers(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         load_balancer_names = self._get_multi_param("LoadBalancerNames.member")
         self.autoscaling_backend.detach_load_balancers(group_name, load_balancer_names)
@@ -412,7 +412,7 @@ class AutoScalingResponse(BaseResponse):
             timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
-    def suspend_processes(self) -> str:
+    def suspend_processes(self) -> ActionResult:
         autoscaling_group_name = self._get_param("AutoScalingGroupName")
         scaling_processes = self._get_multi_param("ScalingProcesses.member")
         self.autoscaling_backend.suspend_processes(
@@ -420,7 +420,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def resume_processes(self) -> str:
+    def resume_processes(self) -> ActionResult:
         autoscaling_group_name = self._get_param("AutoScalingGroupName")
         scaling_processes = self._get_multi_param("ScalingProcesses.member")
         self.autoscaling_backend.resume_processes(
@@ -428,7 +428,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def set_instance_protection(self) -> str:
+    def set_instance_protection(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
         protected_from_scale_in = self._get_bool_param("ProtectedFromScaleIn")
@@ -458,19 +458,19 @@ class AutoScalingResponse(BaseResponse):
             timestamp=iso_8601_datetime_with_milliseconds(),
         )
 
-    def describe_tags(self) -> str:
+    def describe_tags(self) -> ActionResult:
         filters = self._get_params().get("Filters", [])
         tags = self.autoscaling_backend.describe_tags(filters=filters)
         result = {"Tags": tags, "NextToken": None}
         return ActionResult(result)
 
-    def enable_metrics_collection(self) -> str:
+    def enable_metrics_collection(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         metrics = self._get_params().get("Metrics")
         self.autoscaling_backend.enable_metrics_collection(group_name, metrics)  # type: ignore[arg-type]
         return EmptyResult()
 
-    def put_warm_pool(self) -> str:
+    def put_warm_pool(self) -> ActionResult:
         params = self._get_params()
         group_name = params.get("AutoScalingGroupName")
         max_group_prepared_capacity = params.get("MaxGroupPreparedCapacity")
@@ -486,13 +486,13 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_warm_pool(self) -> str:
+    def describe_warm_pool(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         warm_pool = self.autoscaling_backend.describe_warm_pool(group_name=group_name)
-        result = {"WarmPoolConfiguration": warm_pool, "Instances": []}
+        result = {"WarmPoolConfiguration": warm_pool, "Instances": []}  # type: ignore[var-annotated]
         return ActionResult(result)
 
-    def delete_warm_pool(self) -> str:
+    def delete_warm_pool(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         self.autoscaling_backend.delete_warm_pool(group_name=group_name)
         return EmptyResult()
