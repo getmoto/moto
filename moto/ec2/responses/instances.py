@@ -139,7 +139,7 @@ class InstanceResponse(EC2BaseResponse):
             run_instances=True,
         )
 
-    def terminate_instances(self) -> str:
+    def terminate_instances(self) -> ActionResult:
         instance_ids = self._get_multi_param("InstanceId")
 
         self.error_on_dryrun()
@@ -154,8 +154,17 @@ class InstanceResponse(EC2BaseResponse):
         elbv2_backends[self.current_account][self.region].notify_terminate_instances(
             instance_ids
         )
-        template = self.response_template(EC2_TERMINATE_INSTANCES)
-        return template.render(instances=instances)
+        result = {
+            "TerminatingInstances": [
+                {
+                    "InstanceId": instance.id,
+                    "CurrentState": {"Code": 32, "Name": "shutting-down"},
+                    "PreviousState": previous_state,
+                }
+                for instance, previous_state in instances
+            ]
+        }
+        return ActionResult(result)
 
     def reboot_instances(self) -> ActionResult:
         instance_ids = self._get_multi_param("InstanceId")
@@ -163,22 +172,37 @@ class InstanceResponse(EC2BaseResponse):
         self.ec2_backend.reboot_instances(instance_ids)
         return EmptyResult()
 
-    def stop_instances(self) -> str:
+    def stop_instances(self) -> ActionResult:
         instance_ids = self._get_multi_param("InstanceId")
-
         self.error_on_dryrun()
-
         instances = self.ec2_backend.stop_instances(instance_ids)
-        template = self.response_template(EC2_STOP_INSTANCES)
-        return template.render(instances=instances)
+        result = {
+            "StoppingInstances": [
+                {
+                    "InstanceId": instance.id,
+                    "CurrentState": {"Code": 64, "Name": "stopping"},
+                    "PreviousState": previous_state,
+                }
+                for instance, previous_state in instances
+            ]
+        }
+        return ActionResult(result)
 
-    def start_instances(self) -> str:
+    def start_instances(self) -> ActionResult:
         instance_ids = self._get_multi_param("InstanceId")
         self.error_on_dryrun()
-
         instances = self.ec2_backend.start_instances(instance_ids)
-        template = self.response_template(EC2_START_INSTANCES)
-        return template.render(instances=instances)
+        result = {
+            "StartingInstances": [
+                {
+                    "InstanceId": instance.id,
+                    "CurrentState": {"Code": 0, "Name": "pending"},
+                    "PreviousState": previous_state,
+                }
+                for instance, previous_state in instances
+            ]
+        }
+        return ActionResult(result)
 
     def _get_list_of_dict_params(
         self, param_prefix: str, _dct: Dict[str, Any]
@@ -716,65 +740,6 @@ EC2_DESCRIBE_INSTANCES = (
 </DescribeInstancesResponse>"""
 )
 
-EC2_TERMINATE_INSTANCES = """
-<TerminateInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instancesSet>
-    {% for instance, previous_state in instances %}
-      <item>
-        <instanceId>{{ instance.id }}</instanceId>
-        <previousState>
-          <code>{{ previous_state.code }}</code>
-          <name>{{ previous_state.name }}</name>
-        </previousState>
-        <currentState>
-          <code>32</code>
-          <name>shutting-down</name>
-        </currentState>
-      </item>
-    {% endfor %}
-  </instancesSet>
-</TerminateInstancesResponse>"""
-
-EC2_STOP_INSTANCES = """
-<StopInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instancesSet>
-    {% for instance, previous_state in instances %}
-      <item>
-        <instanceId>{{ instance.id }}</instanceId>
-        <previousState>
-          <code>{{ previous_state.code }}</code>
-          <name>{{ previous_state.name }}</name>
-        </previousState>
-        <currentState>
-          <code>64</code>
-          <name>stopping</name>
-        </currentState>
-      </item>
-    {% endfor %}
-  </instancesSet>
-</StopInstancesResponse>"""
-
-EC2_START_INSTANCES = """
-<StartInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instancesSet>
-    {% for instance, previous_state in instances %}
-      <item>
-        <instanceId>{{ instance.id }}</instanceId>
-        <previousState>
-          <code>{{ previous_state.code }}</code>
-          <name>{{ previous_state.name }}</name>
-        </previousState>
-        <currentState>
-          <code>0</code>
-          <name>pending</name>
-        </currentState>
-      </item>
-    {% endfor %}
-  </instancesSet>
-</StartInstancesResponse>"""
 
 EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
