@@ -9689,7 +9689,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -9835,7 +9835,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -10000,7 +10000,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -10106,7 +10106,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -10220,7 +10220,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -10350,7 +10350,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -10450,7 +10450,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -10549,7 +10549,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "EbsOptimizedInfo": {
@@ -36438,105 +36438,6 @@
     1,
     2
    ]
-  }
- },
- "i3.metal": {
-  "AutoRecoverySupported": false,
-  "BareMetal": true,
-  "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
-  "DedicatedHostsSupported": true,
-  "EbsInfo": {
-   "EbsOptimizedInfo": {
-    "BaselineBandwidthInMbps": 19000,
-    "BaselineIops": 80000,
-    "BaselineThroughputInMBps": 2375.0,
-    "MaximumBandwidthInMbps": 19000,
-    "MaximumIops": 80000,
-    "MaximumThroughputInMBps": 2375.0
-   },
-   "EbsOptimizedSupport": "default",
-   "EncryptionSupport": "supported",
-   "NvmeSupport": "required"
-  },
-  "FreeTierEligible": false,
-  "HibernationSupported": false,
-  "InstanceStorageInfo": {
-   "Disks": [
-    {
-     "Count": 8,
-     "SizeInGB": 1900,
-     "Type": "ssd"
-    }
-   ],
-   "EncryptionSupport": "required",
-   "NvmeSupport": "required",
-   "TotalSizeInGB": 15200
-  },
-  "InstanceStorageSupported": true,
-  "InstanceType": "i3.metal",
-  "MemoryInfo": {
-   "SizeInMiB": 524288
-  },
-  "NetworkInfo": {
-   "DefaultNetworkCardIndex": 0,
-   "EfaSupported": false,
-   "EnaSrdSupported": false,
-   "EnaSupport": "required",
-   "EncryptionInTransitSupported": false,
-   "FlexibleEnaQueuesSupport": "unsupported",
-   "Ipv4AddressesPerInterface": 50,
-   "Ipv6AddressesPerInterface": 50,
-   "Ipv6Supported": true,
-   "MaximumNetworkCards": 1,
-   "MaximumNetworkInterfaces": 15,
-   "NetworkCards": [
-    {
-     "BaselineBandwidthInGbps": 25.0,
-     "DefaultEnaQueueCountPerInterface": 8,
-     "MaximumNetworkInterfaces": 15,
-     "NetworkCardIndex": 0,
-     "NetworkPerformance": "25 Gigabit",
-     "PeakBandwidthInGbps": 25.0
-    }
-   ],
-   "NetworkPerformance": "25 Gigabit"
-  },
-  "NitroEnclavesSupport": "unsupported",
-  "NitroTpmSupport": "unsupported",
-  "PhcSupport": "unsupported",
-  "PlacementGroupInfo": {
-   "SupportedStrategies": [
-    "cluster",
-    "partition",
-    "spread"
-   ]
-  },
-  "ProcessorInfo": {
-   "Manufacturer": "Intel",
-   "SupportedArchitectures": [
-    "x86_64"
-   ],
-   "SustainedClockSpeedInGhz": 2.3
-  },
-  "RebootMigrationSupport": "unsupported",
-  "SupportedBootModes": [
-   "legacy-bios"
-  ],
-  "SupportedRootDeviceTypes": [
-   "ebs"
-  ],
-  "SupportedUsageClasses": [
-   "on-demand",
-   "spot"
-  ],
-  "SupportedVirtualizationTypes": [
-   "hvm"
-  ],
-  "VCpuInfo": {
-   "DefaultCores": 36,
-   "DefaultThreadsPerCore": 2,
-   "DefaultVCpus": 72
   }
  },
  "i3.xlarge": {
