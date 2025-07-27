@@ -62,20 +62,12 @@ class MetadataOptions:
         options = options or {}
         self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
-        self.hop_limit = int(options.get("HttpPutResponseHopLimit", 1))
+        self.http_put_response_hop_limit = int(
+            options.get("HttpPutResponseHopLimit", 1)
+        )
         self.http_endpoint = options.get("HttpEndpoint", "enabled")
-        self.http_protocol = options.get("HttpProtocolIpv6", "disabled")
+        self.http_protocol_ipv6 = options.get("HttpProtocolIpv6", "disabled")
         self.instance_metadata_tags = options.get("InstanceMetadataTags", "disabled")
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "State": str(self.state),
-            "HttpTokens": str(self.http_tokens),
-            "HttpPutResponseHopLimit": int(self.hop_limit),
-            "HttpEndpoint": str(self.http_endpoint),
-            "HttpProtocolIpv6": str(self.http_protocol),
-            "InstanceMetadataTags": str(self.instance_metadata_tags),
-        }
 
 
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
@@ -171,9 +163,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
 
-        self.metadata_options = MetadataOptions(
-            kwargs.get("metadata_options", {})
-        ).to_dict()
+        self.metadata_options = MetadataOptions(kwargs.get("metadata_options", {}))
 
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
@@ -858,7 +848,6 @@ class InstanceBackend:
         metadata_tags: Optional[str] = None,
     ) -> MetadataOptions:
         instance = self.get_instance(instance_id)
-
         metadata_dict = {
             "State": "applied",
             "HttpTokens": http_tokens,
@@ -867,11 +856,8 @@ class InstanceBackend:
             "HttpProtocolIpv6": http_protocol,
             "InstanceMetadataTags": metadata_tags,
         }
-
         metadata_options = MetadataOptions(metadata_dict)
-
-        instance.metadata_options = metadata_options.to_dict()
-
+        instance.metadata_options = metadata_options
         return metadata_options
 
     def modify_instance_security_groups(

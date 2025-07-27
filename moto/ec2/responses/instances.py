@@ -242,16 +242,16 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPES)
         return template.render(instance_types=instance_types)
 
-    def describe_instance_type_offerings(self) -> str:
+    def describe_instance_type_offerings(self) -> ActionResult:
         location_type_filters = self._get_param("LocationType")
         filter_dict = self._filters_from_querystring()
         offerings = self.ec2_backend.describe_instance_type_offerings(
             location_type_filters, filter_dict
         )
-        template = self.response_template(EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS)
-        return template.render(instance_type_offerings=offerings)
+        result = {"InstanceTypeOfferings": offerings}
+        return ActionResult(result)
 
-    def describe_instance_attribute(self) -> str:
+    def describe_instance_attribute(self) -> ActionResult:
         # TODO this and modify below should raise IncorrectInstanceState if
         # instance not in stopped state
         attribute = self._get_param("Attribute")
@@ -259,21 +259,27 @@ class InstanceResponse(EC2BaseResponse):
         instance, value = self.ec2_backend.describe_instance_attribute(
             instance_id, attribute
         )
-
+        attribute_name = attribute
+        attribute_value: Any = {"Value": value}
         if attribute == "groupSet":
-            template = self.response_template(EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
-        else:
-            template = self.response_template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
+            attribute_name = "Groups"
+            attribute_value = [{"GroupId": group.id} for group in value]
+        result = {"InstanceId": instance.id, attribute_name: attribute_value}
+        return ActionResult(result)
 
-        return template.render(instance=instance, attribute=attribute, value=value)
-
-    def describe_instance_credit_specifications(self) -> str:
+    def describe_instance_credit_specifications(self) -> ActionResult:
         instance_ids = self._get_multi_param("InstanceId")
-        instance = self.ec2_backend.describe_instance_credit_specifications(
+        instances = self.ec2_backend.describe_instance_credit_specifications(
             instance_ids
         )
-        template = self.response_template(EC2_DESCRIBE_INSTANCE_CREDIT_SPECIFICATIONS)
-        return template.render(instances=instance)
+        result = {
+            "InstanceCreditSpecifications": [
+                {"InstanceId": instance.id, "CpuCredits": "standard"}
+                for instance in instances
+            ],
+            "NextToken": "string",
+        }
+        return ActionResult(result)
 
     def modify_instance_attribute(self) -> ActionResult:
         handlers = [
@@ -295,7 +301,7 @@ class InstanceResponse(EC2BaseResponse):
         )
         raise NotImplementedError(msg)
 
-    def modify_instance_metadata_options(self) -> str:
+    def modify_instance_metadata_options(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
         tokens = self._get_param("HttpTokens")
         hop_limit = self._get_int_param("HttpPutResponseHopLimit")
@@ -303,7 +309,6 @@ class InstanceResponse(EC2BaseResponse):
         dry_run = False
         http_protocol = self._get_param("HttpProtocolIpv6")
         metadata_tags = self._get_param("InstanceMetadataTags")
-
         options = self.ec2_backend.modify_instance_metadata_options(
             instance_id=instance_id,
             http_tokens=tokens,
@@ -313,9 +318,8 @@ class InstanceResponse(EC2BaseResponse):
             http_protocol=http_protocol,
             metadata_tags=metadata_tags,
         )
-
-        template = self.response_template(EC2_MODIFY_INSTANCE_METADATA_OPTIONS)
-        return template.render(instance_id=instance_id, options=options)
+        result = {"InstanceId": instance_id, "InstanceMetadataOptions": options}
+        return ActionResult(result)
 
     def _block_device_mapping_handler(self) -> bool:
         """
@@ -598,11 +602,11 @@ INSTANCE_TEMPLATE = """<item>
           {% endif %}
           {% if instance.metadata_options %}
           <metadataOptions>
-            <httpTokens>{{ instance.metadata_options.get("HttpTokens") }}</httpTokens>
-            <httpPutResponseHopLimit>{{ instance.metadata_options.get("HttpPutResponseHopLimit") }}</httpPutResponseHopLimit>
-            <httpEndpoint>{{ instance.metadata_options.get("HttpEndpoint") }}</httpEndpoint>
-            <httpProtocolIpv6>{{ instance.metadata_options.get("HttpProtocolIpv6") }}</httpProtocolIpv6>
-            <instanceMetadataTags>{{ instance.metadata_options.get("InstanceMetadataTags") }}</instanceMetadataTags>
+            <httpTokens>{{ instance.metadata_options.http_tokens }}</httpTokens>
+            <httpPutResponseHopLimit>{{ instance.metadata_options.http_put_response_hop_limit }}</httpPutResponseHopLimit>
+            <httpEndpoint>{{ instance.metadata_options.http_endpoint }}</httpEndpoint>
+            <httpProtocolIpv6>{{ instance.metadata_options.http_protocol_ipv6 }}</httpProtocolIpv6>
+            <instanceMetadataTags>{{ instance.metadata_options.instance_metadata_tags }}</instanceMetadataTags>
           </metadataOptions>
           {% endif %}
           {% if instance.get_tags() %}
@@ -739,41 +743,6 @@ EC2_DESCRIBE_INSTANCES = (
       {% endif %}
 </DescribeInstancesResponse>"""
 )
-
-
-EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instanceId>{{ instance.id }}</instanceId>
-  <{{ attribute }}>
-    {% if value is not none %}
-    <value>{{ value }}</value>
-    {% endif %}
-  </{{ attribute }}>
-</DescribeInstanceAttributeResponse>"""
-
-EC2_DESCRIBE_INSTANCE_CREDIT_SPECIFICATIONS = """<DescribeInstanceCreditSpecificationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>1b234b5c-d6ef-7gh8-90i1-j2345678901</requestId>
-    <instanceCreditSpecificationSet>
-       {% for instance in instances %}
-      <item>
-        <instanceId>{{ instance.id }}</instanceId>
-        <cpuCredits>standard</cpuCredits>
-      </item>
-    {% endfor %}
-    </instanceCreditSpecificationSet>
-</DescribeInstanceCreditSpecificationsResponse>"""
-
-EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instanceId>{{ instance.id }}</instanceId>
-  <{{ attribute }}>
-    {% for sg in value %}
-      <item>
-        <groupId>{{ sg.id }}</groupId>
-      </item>
-    {% endfor %}
-  </{{ attribute }}>
-</DescribeInstanceAttributeResponse>"""
 
 
 EC2_INSTANCE_STATUS = """<?xml version="1.0" encoding="UTF-8"?>
@@ -947,30 +916,3 @@ EC2_DESCRIBE_INSTANCE_TYPES = """<?xml version="1.0" encoding="UTF-8"?>
     {% endfor %}
     </instanceTypeSet>
 </DescribeInstanceTypesResponse>"""
-
-EC2_DESCRIBE_INSTANCE_TYPE_OFFERINGS = """<?xml version="1.0" encoding="UTF-8"?>
-<DescribeInstanceTypeOfferingsResponse xmlns="http://api.outscale.com/wsdl/fcuext/2014-04-15/">
-    <requestId>f8b86168-d034-4e65-b48d-3b84c78e64af</requestId>
-    <instanceTypeOfferingSet>
-    {% for offering in instance_type_offerings %}
-        <item>
-            <instanceType>{{ offering.InstanceType }}</instanceType>
-            <location>{{ offering.Location }}</location>
-            <locationType>{{ offering.LocationType }}</locationType>
-        </item>
-    {% endfor %}
-    </instanceTypeOfferingSet>
-</DescribeInstanceTypeOfferingsResponse>"""
-
-EC2_MODIFY_INSTANCE_METADATA_OPTIONS = """<ModifyInstanceMetadataOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instanceId>{{ instance_id }}</instanceId>
-  <instanceMetadataOptions>
-    <state>{{ options.state }}</state>
-    <httpTokens>{{ options.http_tokens }}</httpTokens>
-    <httpPutResponseHopLimit>{{ options.hop_limit }}</httpPutResponseHopLimit>
-    <httpEndpoint>{{ options.http_endpoint }}</httpEndpoint>
-    <httpProtocolIpv6>{{ options.http_protocol }}</httpProtocolIpv6>
-    <instanceMetadataTags>{{ options.instance_metadata_tags }}</instanceMetadataTags>
-  </instanceMetadataOptions>
-</ModifyInstanceMetadataOptionsResponse>"""
