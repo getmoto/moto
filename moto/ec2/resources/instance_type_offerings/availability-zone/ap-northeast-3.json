@@ -400,10 +400,6 @@
   "Location": "ap-northeast-3a"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "ap-northeast-3a"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "ap-northeast-3a"
  },
@@ -1457,10 +1453,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "ap-northeast-3b"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "ap-northeast-3b"
  },
  {
@@ -2537,10 +2529,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "ap-northeast-3c"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "ap-northeast-3c"
  },
  {

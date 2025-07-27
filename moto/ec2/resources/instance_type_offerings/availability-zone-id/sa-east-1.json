@@ -792,10 +792,6 @@
   "Location": "sae1-az1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "sae1-az1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "sae1-az1"
  },
@@ -4621,10 +4617,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "sae1-az3"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "sae1-az3"
  },
  {

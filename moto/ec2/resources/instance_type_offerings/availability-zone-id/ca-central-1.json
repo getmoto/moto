@@ -2956,10 +2956,6 @@
   "Location": "cac1-az2"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "cac1-az2"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "cac1-az2"
  },
@@ -4985,10 +4981,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "cac1-az4"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "cac1-az4"
  },
  {

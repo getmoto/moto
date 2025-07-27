@@ -748,10 +748,6 @@
   "Location": "eu-north-1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eu-north-1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eu-north-1"
  },

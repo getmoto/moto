@@ -784,10 +784,6 @@
   "Location": "ca-central-1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "ca-central-1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "ca-central-1"
  },

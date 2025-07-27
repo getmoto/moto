@@ -692,10 +692,6 @@
   "Location": "eu-north-1a"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eu-north-1a"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eu-north-1a"
  },
@@ -2696,10 +2692,6 @@
   "Location": "eu-north-1b"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eu-north-1b"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eu-north-1b"
  },
@@ -4601,10 +4593,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eu-north-1c"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eu-north-1c"
  },
  {

@@ -2254,5 +2254,21 @@
  {
   "InstanceType": "t4g.xlarge",
   "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "apse4-az3"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "apse4-az3"
  }
 ]

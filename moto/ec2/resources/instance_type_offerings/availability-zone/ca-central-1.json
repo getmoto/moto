@@ -2956,10 +2956,6 @@
   "Location": "ca-central-1b"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "ca-central-1b"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "ca-central-1b"
  },
@@ -4985,10 +4981,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "ca-central-1d"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "ca-central-1d"
  },
  {

@@ -916,10 +916,6 @@
   "Location": "apse2-az1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "apse2-az1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "apse2-az1"
  },
@@ -3816,10 +3812,6 @@
   "Location": "apse2-az2"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "apse2-az2"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "apse2-az2"
  },
@@ -6549,10 +6541,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "apse2-az3"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "apse2-az3"
  },
  {

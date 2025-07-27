@@ -852,10 +852,6 @@
   "Location": "eu-west-2"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eu-west-2"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eu-west-2"
  },
