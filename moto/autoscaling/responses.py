@@ -473,13 +473,13 @@ class AutoScalingResponse(BaseResponse):
     def put_warm_pool(self) -> str:
         params = self._get_params()
         group_name = params.get("AutoScalingGroupName")
-        max_capacity = params.get("MaxGroupPreparedCapacity")
+        max_group_prepared_capacity = params.get("MaxGroupPreparedCapacity")
         min_size = params.get("MinSize")
         pool_state = params.get("PoolState")
         instance_reuse_policy = params.get("InstanceReusePolicy")
         self.autoscaling_backend.put_warm_pool(
             group_name=group_name,  # type: ignore[arg-type]
-            max_capacity=max_capacity,
+            max_group_prepared_capacity=max_group_prepared_capacity,
             min_size=min_size,
             pool_state=pool_state,
             instance_reuse_policy=instance_reuse_policy,
@@ -489,8 +489,8 @@ class AutoScalingResponse(BaseResponse):
     def describe_warm_pool(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
         warm_pool = self.autoscaling_backend.describe_warm_pool(group_name=group_name)
-        template = self.response_template(DESCRIBE_WARM_POOL_TEMPLATE)
-        return template.render(pool=warm_pool)
+        result = {"WarmPoolConfiguration": warm_pool, "Instances": []}
+        return ActionResult(result)
 
     def delete_warm_pool(self) -> str:
         group_name = self._get_param("AutoScalingGroupName")
@@ -807,7 +807,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
         <ServiceLinkedRoleARN>{{ group.service_linked_role }}</ServiceLinkedRoleARN>
         {% if group.warm_pool %}
         <WarmPoolConfiguration>
-          <MaxGroupPreparedCapacity>{{ group.warm_pool.max_capacity }}</MaxGroupPreparedCapacity>
+          <MaxGroupPreparedCapacity>{{ group.warm_pool.max_group_prepared_capacity }}</MaxGroupPreparedCapacity>
           <MinSize>{{ group.warm_pool.min_size or 0 }}</MinSize>
           {% if group.warm_pool.pool_state %}
           <PoolState>{{ group.warm_pool.pool_state }}</PoolState>
@@ -1194,30 +1194,3 @@ TERMINATE_INSTANCES_TEMPLATE = """<TerminateInstanceInAutoScalingGroupResponse x
     <RequestId>a1ba8fb9-31d6-4d9a-ace1-a7f76749df11EXAMPLE</RequestId>
   </ResponseMetadata>
 </TerminateInstanceInAutoScalingGroupResponse>"""
-
-
-DESCRIBE_WARM_POOL_TEMPLATE = """<DescribeWarmPoolResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<ResponseMetadata>
-   <RequestId></RequestId>
-</ResponseMetadata>
-<DescribeWarmPoolResult>
-  {% if pool %}
-  <WarmPoolConfiguration>
-    {% if pool.max_capacity %}
-    <MaxGroupPreparedCapacity>{{ pool.max_capacity }}</MaxGroupPreparedCapacity>
-    {% endif %}
-    <MinSize>{{ pool.min_size }}</MinSize>
-    {% if pool.pool_state %}
-    <PoolState>{{ pool.pool_state }}</PoolState>
-    {% endif %}
-    {% if pool.instance_reuse_policy %}
-    <InstanceReusePolicy>
-      <ReuseOnScaleIn>{{ 'true' if pool.instance_reuse_policy["ReuseOnScaleIn"] else 'false' }}</ReuseOnScaleIn>
-    </InstanceReusePolicy>
-    {% endif %}
-  </WarmPoolConfiguration>
-  {% endif %}
-  <Instances>
-  </Instances>
-</DescribeWarmPoolResult>
-</DescribeWarmPoolResponse>"""

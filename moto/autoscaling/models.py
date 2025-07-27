@@ -397,12 +397,12 @@ class FailedScheduledUpdateGroupActionRequest:
 class FakeWarmPool(CloudFormationModel):
     def __init__(
         self,
-        max_capacity: Optional[int],
+        max_group_prepared_capacity: Optional[int],
         min_size: Optional[int],
         pool_state: Optional[str],
         instance_reuse_policy: Optional[Dict[str, bool]],
     ):
-        self.max_capacity = max_capacity
+        self.max_group_prepared_capacity = max_group_prepared_capacity
         self.min_size = min_size or 0
         self.pool_state = pool_state or "Stopped"
         self.instance_reuse_policy = instance_reuse_policy
@@ -861,13 +861,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     def put_warm_pool(
         self,
-        max_capacity: Optional[int],
+        max_group_prepared_capacity: Optional[int],
         min_size: Optional[int],
         pool_state: Optional[str],
         instance_reuse_policy: Optional[Dict[str, bool]],
     ) -> None:
         self.warm_pool = FakeWarmPool(
-            max_capacity=max_capacity,
+            max_group_prepared_capacity=max_group_prepared_capacity,
             min_size=min_size,
             pool_state=pool_state,
             instance_reuse_policy=instance_reuse_policy,
@@ -1673,14 +1673,14 @@ class AutoScalingBackend(BaseBackend):
     def put_warm_pool(
         self,
         group_name: str,
-        max_capacity: Optional[int],
+        max_group_prepared_capacity: Optional[int],
         min_size: Optional[int],
         pool_state: Optional[str],
         instance_reuse_policy: Optional[Dict[str, bool]],
     ) -> None:
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.put_warm_pool(
-            max_capacity=max_capacity,
+            max_group_prepared_capacity=max_group_prepared_capacity,
             min_size=min_size,
             pool_state=pool_state,
             instance_reuse_policy=instance_reuse_policy,
