@@ -18,6 +18,7 @@ bedrock
 
 - [ ] batch_delete_evaluation_job
 - [ ] create_custom_model
+- [ ] create_custom_model_deployment
 - [ ] create_evaluation_job
 - [ ] create_foundation_model_agreement
 - [ ] create_guardrail
@@ -31,6 +32,7 @@ bedrock
 - [ ] create_prompt_router
 - [ ] create_provisioned_model_throughput
 - [X] delete_custom_model
+- [ ] delete_custom_model_deployment
 - [ ] delete_foundation_model_agreement
 - [ ] delete_guardrail
 - [ ] delete_imported_model
@@ -41,6 +43,7 @@ bedrock
 - [ ] delete_provisioned_model_throughput
 - [ ] deregister_marketplace_model_endpoint
 - [X] get_custom_model
+- [ ] get_custom_model_deployment
 - [ ] get_evaluation_job
 - [ ] get_foundation_model
 - [ ] get_foundation_model_availability
@@ -56,6 +59,7 @@ bedrock
 - [ ] get_prompt_router
 - [ ] get_provisioned_model_throughput
 - [ ] get_use_case_for_model_access
+- [ ] list_custom_model_deployments
 - [X] list_custom_models
   
         The foundation_model_arn_equals-argument is not yet supported

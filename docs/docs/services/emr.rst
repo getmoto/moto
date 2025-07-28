@@ -47,12 +47,20 @@ emr
 - [X] list_instance_groups
 - [X] list_instances
 - [ ] list_notebook_executions
-- [ ] list_release_labels
+- [X] list_release_labels
+  
+        Pagination and Filtering is not yet implemented
+        
+
 - [ ] list_security_configurations
 - [X] list_steps
 - [ ] list_studio_session_mappings
 - [ ] list_studios
-- [ ] list_supported_instance_types
+- [X] list_supported_instance_types
+  
+        Pagination is not yet implemented
+        
+
 - [X] modify_cluster
 - [ ] modify_instance_fleet
 - [X] modify_instance_groups

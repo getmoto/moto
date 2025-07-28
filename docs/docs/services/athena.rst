@@ -18,7 +18,7 @@ athena
 - [ ] batch_get_prepared_statement
 - [ ] batch_get_query_execution
 - [ ] cancel_capacity_reservation
-- [ ] create_capacity_reservation
+- [X] create_capacity_reservation
 - [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_notebook
@@ -36,7 +36,7 @@ athena
 - [ ] get_calculation_execution_code
 - [ ] get_calculation_execution_status
 - [ ] get_capacity_assignment_configuration
-- [ ] get_capacity_reservation
+- [X] get_capacity_reservation
 - [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
