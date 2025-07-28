@@ -397,6 +397,63 @@ def test_deleting_weighted_route():
 
 
 @mock_aws
+def test_create_delete_create():
+    """
+    Validation that we can create and delete a record set multiple times
+    """
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone = conn.create_hosted_zone(
+        Name="testdns.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    def _build_change_payload(action):
+        return [
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "record.testdns.aws.com",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "192.168.1.1"}],
+                },
+            },
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "cname.testdns.aws.com",
+                    "Type": "CNAME",
+                    "ResourceRecords": [{"Value": "example.com"}],
+                },
+            },
+        ]
+
+    for i in range(10):
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("create")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 1
+
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("delete")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 0
+
+
+@mock_aws
 def test_deleting_latency_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
