@@ -497,6 +497,8 @@ class DBCluster(RDSBaseModel):
         db_cluster_parameter_group_name: Optional[str] = None,
         db_subnet_group_name: Optional[str] = None,
         license_model: str = "general-public-license",
+        domain: Optional[str] = None,
+        domain_iam_role_name: Optional[str] = None,
         port: Optional[int] = None,
         preferred_backup_window: str = "01:37-02:07",
         preferred_maintenance_window: str = "wed:02:40-wed:03:10",
@@ -586,6 +588,17 @@ class DBCluster(RDSBaseModel):
         )
         self.parameter_group = db_cluster_parameter_group_name or default_pg
         self.db_subnet_group_name = db_subnet_group_name or "default"
+        self.domain_membership: dict[str, str | list[str] | None] = {
+            "Domain": domain.split(".")[0] if domain else None,
+            "Status": "active",
+            "FQDN": domain if domain else None,
+            "IAMRoleName": domain_iam_role_name or "rds-directory-service-access-role",
+            "OU": f"OU={domain.split('.')[0]}OU,DC={domain.split('.')[0]},DC=com"
+            if domain
+            else None,
+            "AuthSecretArn": None,  # Not implemented yet
+            "DnsIps": [],
+        }
         self.port = port or DBCluster.default_port(self.engine)
         self.preferred_backup_window = preferred_backup_window
         self.preferred_maintenance_window = preferred_maintenance_window
@@ -833,8 +846,8 @@ class DBCluster(RDSBaseModel):
         return groups
 
     @property
-    def domain_memberships(self) -> List[str]:
-        return []
+    def domain_memberships(self) -> Optional[List[Dict[str, str | list[str] | None]]]:
+        return [self.domain_membership] if self.domain_membership else []
 
     @property
     def cross_account_clone(self) -> bool:
@@ -1070,6 +1083,11 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         db_subnet_group_name: Optional[str] = None,
         db_cluster_identifier: Optional[str] = None,
         db_parameter_group_name: Optional[str] = None,
+        domain: Optional[str] = None,
+        domain_fqdn: Optional[str] = None,
+        domain_ou: Optional[str] = None,
+        domain_auth_secret_arn: Optional[str] = None,
+        domain_dns_ips: Optional[List[str]] = None,
         copy_tags_to_snapshot: bool = False,
         iops: Optional[str] = None,
         master_username: Optional[str] = None,
@@ -1121,6 +1139,15 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.db_subnet_group_name = db_subnet_group_name
         self.db_security_groups = db_security_groups or []
         self.vpc_security_group_ids = vpc_security_group_ids or []
+        self.domain_membership: Optional[Dict[str, Any]] = {
+            "Domain": domain,
+            "Status": "active",
+            "FQDN": domain_fqdn,
+            "IAMRoleName": "rds-directory-service-access-role",
+            "OU": domain_ou,
+            "AuthSecretArn": domain_auth_secret_arn,
+            "DnsIps": domain_dns_ips,
+        }
         if not self.vpc_security_group_ids:
             ec2_backend = ec2_backends[self.account_id][self.region]
             default_vpc = ec2_backend.default_vpc
@@ -1196,6 +1223,10 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
             self.storage_throughput = storage_throughput
+
+    @property
+    def domain_memberships(self) -> Optional[List[Dict[str, str | list[str] | None]]]:
+        return [self.domain_membership] if self.domain_membership else []
 
     @property
     def db_instance_identifier(self) -> str:
