@@ -1,11 +1,47 @@
 Moto Changelog
 ==============
 
-
-
-5.1.7
+5.1.9
 -----
-Docker Digest for 5.1.7: <autopopulateddigest>
+Docker Digest for 5.1.9: <autopopulateddigest>
+
+    General:
+        * Docker Image is now based on Python 3.13.
+          Various improvements have been made to reduce the total image size from 792MB to 523MB.
+        * A large number of services have been refactored to streamline the generation of API responses, and to ensure that the format is equivalent to AWS'.
+          This should not have any impact - but please let us know if you run into problems.
+
+    Miscellaneous:
+        * CloudFormation: ChangeSets now no longer throw an error if the change set is created without the UsePreviousTemplate argument
+        * CloudFormation: ChangeSets now also look at default parameters, instead of always expecting a parameter to be provided
+        * EC2: describe_images() now supports the 'source-instance-id'-filter
+        * Logs: describe_destinations() no longer treats the DestinationNamePrefix-parameter as mandatory
+        * ResourceGroupsTaggingAPI: get_resources() now supports ECS: TaskDefinition resources
+        * S3: Object notifications (to Lambda/SNS/SQS/etc) now send an URL-encoded key name
+
+    New Methods:
+        * Athena:
+            * create_capacity_reservation()
+            * get_capacity_reservation()
+
+        * ElastiCache:
+            * create_replication_group()
+            * describe_replication_groups()
+
+        * EMR:
+            * list_release_labels()
+            * list_supported_instance_types()
+
+        * RDS:
+            * create_db_shard_group
+            * describe_db_cluster_parameters()
+            * describe_db_shard_groups()
+            * modify_db_cluster_parameter_group()
+
+
+5.1.8
+-----
+Docker Digest for 5.1.8: sha256:b5d4a53fc2eefd264b3bfabfc40aa3a883c68c7751d738d490f4e6f2d0191f53
 
     New Methods:
 
