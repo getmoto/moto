@@ -331,6 +331,10 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["CopyTagsToSnapshot"] is False
     assert cluster["CrossAccountClone"] is False
     assert cluster["DeletionProtection"] is False
+<<<<<<< HEAD
+=======
+    assert len(cluster["DomainMemberships"]) == 1
+>>>>>>> c88af09b4 (added domain memberships to rds cluster and instance)
     assert cluster["TagList"] == []
     assert "ClusterCreateTime" in cluster
     assert cluster["EarliestRestorableTime"] >= cluster["ClusterCreateTime"]
