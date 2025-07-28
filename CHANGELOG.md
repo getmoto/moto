@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.9
 -----
-Docker Digest for 5.1.9: <autopopulateddigest>
+Docker Digest for 5.1.9: _sha256:1fae2f297efbd05522835fec12c20ae88cb4734e1c4c2b9297ddc3063858dcc4_
 
     General:
         * Docker Image is now based on Python 3.13.
