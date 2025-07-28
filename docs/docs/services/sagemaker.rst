@@ -286,6 +286,7 @@ sagemaker
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
+- [ ] list_pipeline_versions
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
@@ -375,6 +376,7 @@ sagemaker
 - [ ] update_partner_app
 - [X] update_pipeline
 - [ ] update_pipeline_execution
+- [ ] update_pipeline_version
 - [ ] update_project
 - [ ] update_space
 - [ ] update_training_job

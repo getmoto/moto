@@ -42,8 +42,6 @@ def test_get_capacity_reservation(client):
     )
 
     capacity_reservation = client.get_capacity_reservation(Name="athena_workgroup")
-    # print("DBG TESTS: ", capacity_reservation)
     result = capacity_reservation["CapacityReservation"]
     assert result["Name"] == "athena_workgroup"
     assert result["TargetDpus"] == 123
-    # assert result["Tags"] == [{"Key": "Environment", "Value": "Test"}]

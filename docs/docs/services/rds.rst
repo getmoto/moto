@@ -39,7 +39,7 @@ rds
 - [X] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
-- [ ] create_db_shard_group
+- [X] create_db_shard_group
 - [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
@@ -97,7 +97,7 @@ rds
 - [X] describe_db_proxy_targets
 - [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
-- [ ] describe_db_shard_groups
+- [X] describe_db_shard_groups
 - [X] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
@@ -135,7 +135,7 @@ rds
 - [ ] modify_custom_db_engine_version
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
-- [ ] modify_db_cluster_parameter_group
+- [X] modify_db_cluster_parameter_group
 - [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
