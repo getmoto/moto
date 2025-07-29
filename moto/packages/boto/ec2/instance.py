@@ -177,5 +177,33 @@ class Instance(TaggedEC2Object):
         return self._state.code  # type: ignore
 
     @property
+    def instance_status(self) -> dict[str, Any]:
+        if self.state_code != 16:
+            return {"Status": "not-applicable"}
+        return {
+            "Details": [
+                {
+                    "Name": "reachability",
+                    "Status": "passed",
+                }
+            ],
+            "Status": "ok",
+        }
+
+    @property
+    def system_status(self) -> dict[str, Any]:
+        if self.state_code != 16:
+            return {"Status": "not-applicable"}
+        return {
+            "Details": [
+                {
+                    "Name": "reachability",
+                    "Status": "passed",
+                }
+            ],
+            "Status": "ok",
+        }
+
+    @property
     def placement(self) -> str:
         return self._placement.zone

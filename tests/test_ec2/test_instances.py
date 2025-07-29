@@ -3041,6 +3041,7 @@ def test_modify_instance_metadata_options():
         "HttpEndpoint": "enabled",
         "HttpProtocolIpv6": "disabled",
         "InstanceMetadataTags": "disabled",
+        "State": "applied",
     }
 
     # Change the defaults
@@ -3066,4 +3067,5 @@ def test_modify_instance_metadata_options():
         "HttpEndpoint": "disabled",
         "HttpProtocolIpv6": "enabled",
         "InstanceMetadataTags": "enabled",
+        "State": "applied",
     }
