@@ -281,7 +281,8 @@ class ResponseSerializer(ShapeHelpersMixin):
             value_picker = DefaultAttributePicker()
         self._value_picker = value_picker
         self._timestamp_serializer = TimestampSerializer(self.DEFAULT_TIMESTAMP_FORMAT)
-        self.path = []
+        self.operation_name = str(operation_model.name)
+        self.path = [self.operation_name]
 
     def _create_default_response(self) -> ResponseDict:
         response_dict: ResponseDict = {
@@ -415,11 +416,11 @@ class ResponseSerializer(ShapeHelpersMixin):
         method(serialized, value, shape, key)
         self.path.pop()
 
-    @staticmethod
     def _default_serialize(
-        serialized: Serialized, value: Any, _: Shape, key: str
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
-        serialized[key] = value
+        serialization_key = self.get_serialized_name(shape, key)
+        serialized[serialization_key] = value
 
     def _serialize_type_structure(
         self, serialized: Serialized, value: Any, shape: StructureShape, key: str
@@ -427,46 +428,40 @@ class ResponseSerializer(ShapeHelpersMixin):
         if value is None:
             return
         if key:
-            new_serialized = self.MAP_TYPE()
-            serialized[key] = new_serialized
-            serialized = new_serialized
+            wrapper = self.MAP_TYPE()
+        else:
+            wrapper = serialized
         for member_key, member_shape in shape.members.items():
             setattr(member_shape, "parent", shape)
-            self._serialize_structure_member(
-                serialized, value, member_shape, member_key
-            )
+            self._serialize_structure_member(wrapper, value, member_shape, member_key)
+        if key:
+            self._default_serialize(serialized, wrapper, shape, key)
 
     def _serialize_structure_member(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
         member_value = self.get_value(value, key, shape)
         if member_value is not None:
-            key_name = self.get_serialized_name(shape, key)
+            key_name = key  # self.get_serialized_name(shape, key)
             self._serialize(serialized, member_value, shape, key_name)
 
     def _serialize_type_map(
         self, serialized: Serialized, value: Any, shape: MapShape, key: str
     ) -> None:
-        map_list = []
-        if self.is_flattened(shape):
-            items_name = key
-            serialized[items_name] = map_list
-        else:
-            items_name = "entry"
-            serialized[key] = {items_name: map_list}
         key_shape = shape.key
         assert isinstance(key_shape, Shape)
         value_shape = shape.value
         assert isinstance(value_shape, Shape)
-        for key in value:
+        map_list = []
+        for k, v in value.items():
             wrapper = {"__current__": {}}
-            key_prefix = self.get_serialized_name(key_shape, "key")
-            value_prefix = self.get_serialized_name(value_shape, "value")
-            self._serialize(wrapper["__current__"], key, key_shape, key_prefix)
-            self._serialize(
-                wrapper["__current__"], value[key], value_shape, value_prefix
-            )
+            self._serialize(wrapper["__current__"], k, key_shape, "key")
+            self._serialize(wrapper["__current__"], v, value_shape, "value")
             map_list.append(wrapper["__current__"])
+        if self.is_flattened(shape):
+            self._default_serialize(serialized, map_list, shape, key)
+        else:
+            self._default_serialize(serialized, {"entry": map_list}, shape, key)
 
     def _serialize_type_timestamp(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
@@ -708,20 +703,22 @@ class BaseXMLSerializer(ResponseSerializer):
     ) -> None:
         assert isinstance(shape.member, Shape)  # mypy hinting
         list_obj = []
-        if self.is_flattened(shape):
-            items_name = self.get_serialized_name(shape.member, key)
-            serialized[items_name] = list_obj
-        else:
-            items_name = self.get_serialized_name(shape.member, "member")
-            serialized[key] = {items_name: list_obj}
         for list_item in value:
             wrapper = {}
             item_key = shape.member.name
             self._serialize(wrapper, list_item, shape.member, item_key)
-            if item_key in wrapper and wrapper[item_key]:
-                list_obj.append(wrapper[item_key])
-        if not list_obj:
-            serialized[key] = ""
+            if wrapper:
+                list_obj.append(list(wrapper.values())[0])
+        if not list_obj:  # empty list serialized as "" in XML
+            self._default_serialize(serialized, "", shape, key)
+            return
+        if self.is_flattened(shape):
+            # items_name = self.get_serialized_name(shape.member, key)
+            self._default_serialize(serialized, list_obj, shape.member, key)
+            # serialized[items_name] = list_obj
+        else:
+            items_name = self.get_serialized_name(shape.member, "member")
+            self._default_serialize(serialized, {items_name: list_obj}, shape, key)
 
     _serialize_type_long = _serialize_type_integer
 
@@ -1036,9 +1033,10 @@ class AttributePicker(DefaultAttributePicker):
         else:
             value = None
         key_path = f"{context.key_path}.{context.key}"
-        if key_path in self.response_transformers:
-            transform = self.response_transformers[key_path]
-            value = transform(value)
+        for transform_path, transform in self.response_transformers.items():
+            if key_path.endswith(transform_path):
+                value = transform(value)
+                break
         return value
 
     def get_possible_keys(self, context: AttributePickerContext) -> Generator[str]:
