@@ -569,7 +569,7 @@ class BaseJSONSerializer(ResponseSerializer):
         self, serialized: Serialized, value: Any, shape: MapShape, key: str
     ) -> None:
         map_obj = self.MAP_TYPE()
-        serialized[key] = map_obj
+        self._default_serialize(serialized, map_obj, shape, key)
         for sub_key, sub_value in value.items():
             assert isinstance(shape.value, Shape)  # mypy hint
             self._serialize(map_obj, sub_value, shape.value, sub_key)
@@ -578,7 +578,6 @@ class BaseJSONSerializer(ResponseSerializer):
         self, serialized: Serialized, value: Any, shape: ListShape, key: str
     ) -> None:
         list_obj = []
-        serialized[key] = list_obj
         for list_item in value:
             wrapper = {}
             # The JSON list serialization is the only case where we aren't
@@ -592,6 +591,7 @@ class BaseJSONSerializer(ResponseSerializer):
                 list_obj.append(wrapper[item_key])
             else:
                 list_obj.append(list_item)
+        self._default_serialize(serialized, list_obj, shape, key)
 
     def _serialize_type_structure(
         self, serialized: Serialized, value: Any, shape: StructureShape, key: str
