@@ -424,7 +424,7 @@ def tag_filter_matches(obj: Any, filter_name: str, filter_values: List[str]) -> 
 filter_dict_attribute_mapping = {
     "instance-state-name": "state",
     "instance-id": "id",
-    "state-reason-code": "_state_reason.code",
+    "state-reason-code": "state_reason.code",
     "source-dest-check": "source_dest_check",
     "vpc-id": "vpc_id",
     "group-id": "security_groups.id",
@@ -436,11 +436,11 @@ filter_dict_attribute_mapping = {
     "availability-zone": "placement",
     "architecture": "architecture",
     "image-id": "image_id",
-    "network-interface.private-dns-name": "private_dns",
-    "private-dns-name": "private_dns",
+    "network-interface.private-dns-name": "private_dns_name",
+    "private-dns-name": "private_dns_name",
     "owner-id": "owner_id",
     "subnet-id": "subnet_id",
-    "dns-name": "public_dns",
+    "dns-name": "public_dns_name",
     "key-name": "key_name",
     "product-code": "product_codes",
 }

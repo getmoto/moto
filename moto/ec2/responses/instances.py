@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Any, Dict, List
 
 from moto.core.responses import ActionResult, EmptyResult
+from moto.core.serialize import return_if_not_empty
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
     InvalidParameterCombination,
@@ -14,7 +15,16 @@ from ._base_response import EC2BaseResponse
 
 
 class InstanceResponse(EC2BaseResponse):
-    def describe_instances(self) -> str:
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        # Initial instance state is always 'pending'.
+        "RunInstances.Reservation.Instances.Instance.State": lambda _: {
+            "Code": 0,
+            "Name": "pending",
+        },
+        "Instances.Instance.Tags": return_if_not_empty,
+    }
+
+    def describe_instances(self) -> ActionResult:
         self.error_on_dryrun()
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_instances.html
         # You cannot specify this(MaxResults) parameter and the instance IDs parameter in the same request.
@@ -42,19 +52,10 @@ class InstanceResponse(EC2BaseResponse):
         next_token = None
         if max_results and len(reservations) > (start + max_results):
             next_token = reservations_resp[-1].id
-        template = self.response_template(EC2_DESCRIBE_INSTANCES)
-        return (
-            template.render(
-                account_id=self.current_account,
-                reservations=reservations_resp,
-                next_token=next_token,
-                run_instances=False,
-            )
-            .replace("True", "true")
-            .replace("False", "false")
-        )
+        result = {"Reservations": reservations_resp, "NextToken": next_token}
+        return ActionResult(result)
 
-    def run_instances(self) -> str:
+    def run_instances(self) -> ActionResult:
         min_count = int(self._get_param("MinCount", if_none="1"))
         image_id = self._get_param("ImageId")
         owner_id = self._get_param("OwnerId")
@@ -114,9 +115,7 @@ class InstanceResponse(EC2BaseResponse):
                 iam_instance_profile_arn=iam_instance_profile_arn,
                 iam_instance_profile_name=iam_instance_profile_name,
             )
-
         self.error_on_dryrun()
-
         new_reservation = self.ec2_backend.run_instances(
             image_id, min_count, user_data, security_group_names, **kwargs
         )
@@ -125,19 +124,12 @@ class InstanceResponse(EC2BaseResponse):
                 instance_id=new_reservation.instances[0].id,
                 iam_instance_profile_name=iam_instance_profile_name,
             )
-
         if iam_instance_profile_arn:
             self.ec2_backend.associate_iam_instance_profile(
                 instance_id=new_reservation.instances[0].id,
                 iam_instance_profile_arn=iam_instance_profile_arn,
             )
-
-        template = self.response_template(EC2_RUN_INSTANCES)
-        return template.render(
-            account_id=self.current_account,
-            reservation=new_reservation,
-            run_instances=True,
-        )
+        return ActionResult(new_reservation)
 
     def terminate_instances(self) -> ActionResult:
         instance_ids = self._get_multi_param("InstanceId")
@@ -217,7 +209,7 @@ class InstanceResponse(EC2BaseResponse):
                 params.append(value)
         return params
 
-    def describe_instance_status(self) -> str:
+    def describe_instance_status(self) -> ActionResult:
         instance_ids = self._get_multi_param("InstanceId")
         include_all_instances = self._get_param("IncludeAllInstances") == "true"
         filters = self._get_list_prefix("Filter")
@@ -225,13 +217,11 @@ class InstanceResponse(EC2BaseResponse):
             {"name": f["name"], "values": self._get_list_of_dict_params("value.", f)}
             for f in filters
         ]
-
         instances = self.ec2_backend.describe_instance_status(
             instance_ids, include_all_instances, filters
         )
-
-        template = self.response_template(EC2_INSTANCE_STATUS)
-        return template.render(instances=instances)
+        result = {"InstanceStatuses": instances}
+        return ActionResult(result)
 
     def describe_instance_types(self) -> ActionResult:
         instance_type_filters = self._get_multi_param("InstanceType")
@@ -498,26 +488,13 @@ BLOCK_DEVICE_MAPPING_TEMPLATE = {
 }
 
 INSTANCE_TEMPLATE = """<item>
-          <instanceId>{{ instance.id }}</instanceId>
-          <imageId>{{ instance.image_id }}</imageId>
-          {% if run_instances %}
-          <instanceState>
-            <code>0</code>
-            <name>pending</name>
-         </instanceState>
-          {% else %}
-          <instanceState>
-            <code>{{ instance._state.code }}</code>
-            <name>{{ instance._state.name }}</name>
-         </instanceState>
-         {% endif %}
+          
+         
           <privateDnsName>{{ instance.private_dns }}</privateDnsName>
           <publicDnsName>{{ instance.public_dns }}</publicDnsName>
           <dnsName>{{ instance.public_dns }}</dnsName>
           <reason>{{ instance._reason }}</reason>
-          {% if instance.key_name is not none %}
-             <keyName>{{ instance.key_name }}</keyName>
-          {% endif %}
+         
           <ebsOptimized>{{ instance.ebs_optimized | lower }}</ebsOptimized>
           <amiLaunchIndex>{{ instance.ami_launch_index }}</amiLaunchIndex>
           <instanceType>{{ instance.instance_type }}</instanceType>
@@ -554,7 +531,7 @@ INSTANCE_TEMPLATE = """<item>
           {% if instance.nics[0].public_ip %}
               <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
           {% endif %}
-          <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
+          
           <groupSet>
              {% for group in instance.dynamic_group_list %}
              <item>
@@ -600,27 +577,8 @@ INSTANCE_TEMPLATE = """<item>
             <configured>{{ instance.hibernation_options.get("Configured") }}</configured>
           </hibernationOptions>
           {% endif %}
-          {% if instance.metadata_options %}
-          <metadataOptions>
-            <httpTokens>{{ instance.metadata_options.http_tokens }}</httpTokens>
-            <httpPutResponseHopLimit>{{ instance.metadata_options.http_put_response_hop_limit }}</httpPutResponseHopLimit>
-            <httpEndpoint>{{ instance.metadata_options.http_endpoint }}</httpEndpoint>
-            <httpProtocolIpv6>{{ instance.metadata_options.http_protocol_ipv6 }}</httpProtocolIpv6>
-            <instanceMetadataTags>{{ instance.metadata_options.instance_metadata_tags }}</instanceMetadataTags>
-          </metadataOptions>
-          {% endif %}
-          {% if instance.get_tags() %}
-          <tagSet>
-            {% for tag in instance.get_tags() %}
-              <item>
-                <resourceId>{{ tag.resource_id }}</resourceId>
-                <resourceType>{{ tag.resource_type }}</resourceType>
-                <key>{{ tag.key }}</key>
-                <value>{{ tag.value }}</value>
-              </item>
-            {% endfor %}
-          </tagSet>
-          {% endif %}
+         
+         
           <networkInterfaceSet>
             {% for nic in instance.nics.values() %}
               <item>

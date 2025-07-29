@@ -171,7 +171,7 @@ class OpsworkInstance(BaseModel):
                         "SshHostRsaKeyFingerprint": "3c:bd:37:52:d7:ca:67:e1:6e:4b:ac:31:86:79:f5:6c (fixed)"
                     }
                 )
-            d.update({"PrivateDns": self.instance.private_dns})
+            d.update({"PrivateDns": self.instance.private_dns_name})
             d.update({"PrivateIp": self.instance.private_ip})
             d.update({"PublicDns": getattr(self.instance, "public_dns", None)})
             d.update({"PublicIp": getattr(self.instance, "public_ip", None)})

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import copy
 from collections import OrderedDict
@@ -121,19 +123,19 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         self._state = InstanceState("running", 16)
         self._reason = ""
-        self._state_reason = StateReason()
+        self.state_reason = StateReason()
         self.user_data = user_data
         self.security_groups = security_groups
         self.instance_type: str = kwargs.get("instance_type", "m1.small")
         self.region_name = kwargs.get("region_name", "us-east-1")
         placement = kwargs.get("placement", None)
-        self.placement_hostid = kwargs.get("placement_hostid")
-        self.subnet_id = kwargs.get("subnet_id")
-        if not self.subnet_id:
-            self.subnet_id = next(
+        self.placement.host_id = kwargs.get("placement_hostid")
+        self._subnet_id = kwargs.get("subnet_id")
+        if not self._subnet_id:
+            self._subnet_id = next(
                 (n["SubnetId"] for n in nics if "SubnetId" in n), None
             )
-        in_ec2_classic = not bool(self.subnet_id)
+        in_ec2_classic = not bool(self._subnet_id)
         self.key_name = kwargs.get("key_name")
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
         self.monitoring_state = kwargs.get("monitoring_state", "disabled")
@@ -172,7 +174,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 # string will have a "b" prefix -- need to get rid of it
                 self.user_data[0] = self.user_data[0].decode("utf-8")
 
-        if self.subnet_id:
+        if self._subnet_id:
             subnet: Subnet = ec2_backend.get_subnet(self.subnet_id)
             self._placement.zone = subnet.availability_zone
 
@@ -196,6 +198,18 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         )
 
     @property
+    def instance_state(self) -> InstanceState:
+        return self._state
+
+    @property
+    def state_transition_reason(self) -> Optional[str]:
+        return self._reason
+
+    @property
+    def monitoring(self) -> dict[str, str | None]:
+        return {"State": self.monitoring_state}
+
+    @property
     def vpc_id(self) -> Optional[str]:
         if self.subnet_id:
             with contextlib.suppress(InvalidSubnetIdError):
@@ -203,6 +217,14 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                 return subnet.vpc_id
         if self.nics and 0 in self.nics:
             return self.nics[0].subnet.vpc_id
+        return None
+
+    @property
+    def subnet_id(self) -> Optional[str]:
+        if self._subnet_id:
+            return self._subnet_id
+        if self.nics and 0 in self.nics:
+            return self.nics[0].subnet.id
         return None
 
     def __del__(self) -> None:
@@ -256,11 +278,26 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self.block_device_mapping.items()
 
     @property
+    def block_device_mappings(self) -> list[dict[str, Any]]:
+        return [
+            {"DeviceName": device_name, "Ebs": block}
+            for device_name, block in self.get_block_device_mapping
+        ]
+
+    @property
+    def network_interfaces(self) -> list[NetworkInterface]:
+        return list(self.nics.values())
+
+    @property
     def private_ip(self) -> Optional[str]:
         return self.nics[0].private_ip_address
 
     @property
-    def private_dns(self) -> str:
+    def private_ip_address(self) -> Optional[str]:
+        return self.nics[0].private_ip_address
+
+    @property
+    def private_dns_name(self) -> str:
         formatted_ip = self.private_ip.replace(".", "-")  # type: ignore[union-attr]
         if self.region_name == "us-east-1":
             return f"ip-{formatted_ip}.ec2.internal"
@@ -272,7 +309,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self.nics[0].public_ip
 
     @property
-    def public_dns(self) -> Optional[str]:
+    def public_ip_address(self) -> Optional[str]:
+        return self.nics[0].public_ip
+
+    @property
+    def public_dns_name(self) -> Optional[str]:
         if self.public_ip:
             formatted_ip = self.public_ip.replace(".", "-")
             if self.region_name == "us-east-1":
@@ -378,7 +419,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 16
 
         self._reason = ""
-        self._state_reason = StateReason()
+        self.state_reason = StateReason()
 
         return previous_state
 
@@ -392,7 +433,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 80
 
         self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        self._state_reason = StateReason(
+        self.state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
         )
@@ -446,7 +487,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 48
 
         self._reason = f"User initiated ({utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')})"
-        self._state_reason = StateReason(
+        self.state_reason = StateReason(
             "Client.UserInitiatedShutdown: User initiated shutdown",
             "Client.UserInitiatedShutdown",
         )
@@ -467,7 +508,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self._state.code = 16
 
         self._reason = ""
-        self._state_reason = StateReason()
+        self.state_reason = StateReason()
 
     @property
     def dynamic_group_list(self) -> List[SecurityGroup]:
@@ -619,11 +660,11 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
 
         if attribute_name == "AvailabilityZone":
-            return self.placement
+            return self.availability_zone
         elif attribute_name == "PrivateDnsName":
-            return self.private_dns
+            return self.private_dns_name
         elif attribute_name == "PublicDnsName":
-            return self.public_dns
+            return self.public_dns_name
         elif attribute_name == "PrivateIp":
             return self.private_ip
         elif attribute_name == "PublicIp":
