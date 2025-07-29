@@ -428,7 +428,7 @@ class ResponseSerializer(ShapeHelpersMixin):
         if value is None:
             return
         if key:
-            wrapper = self.MAP_TYPE()
+            wrapper: Any = self.MAP_TYPE()
         else:
             wrapper = serialized
         for member_key, member_shape in shape.members.items():

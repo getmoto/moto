@@ -179,7 +179,7 @@ class Instance(TaggedEC2Object):
         return self._state.name  # type: ignore
 
     @property
-    def state_code(self) -> str:
+    def state_code(self) -> int:
         return self._state.code  # type: ignore
 
     @property
