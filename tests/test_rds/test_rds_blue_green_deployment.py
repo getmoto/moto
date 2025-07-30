@@ -248,6 +248,36 @@ def test_create_blue_green_deployment_db_instance_with_managed_master_password(c
 
 
 @mock_aws
+def test_create_blue_green_deployment_rds_cluster_after_removing_managed_master_password(
+    client,
+):
+    instance = create_db_instance(
+        DBInstanceIdentifier="FooBar",
+        MasterUsername="Bob",
+        ManageMasterUserPassword=True,
+    )
+
+    source_arn = instance["DBInstanceArn"]
+
+    client.modify_db_instance(
+        DBInstanceIdentifier="FooBar",
+        MasterUserPassword="myverysecretPassword",
+        ManageMasterUserPassword=False,
+    )
+
+    blue_green_response = client.create_blue_green_deployment(
+        BlueGreenDeploymentName="FooBarBlueGreen", Source=source_arn
+    )
+
+    assert (
+        blue_green_response["BlueGreenDeployment"]["BlueGreenDeploymentIdentifier"]
+        is not None
+    )
+    assert blue_green_response["BlueGreenDeployment"]["Target"] is not None
+    assert blue_green_response["BlueGreenDeployment"]["Source"] == source_arn
+
+
+@mock_aws
 def test_create_blue_green_deployment_rds_cluster_with_managed_master_password(client):
     create_db_cluster(
         DBClusterIdentifier="cluster-1",
@@ -278,10 +308,10 @@ def test_create_blue_green_deployment_rds_cluster_with_managed_master_password(c
         )
 
     err = exc.value.response["Error"]
-    assert err["Code"] == "SourceDatabaseNotSupportedFault"
+    assert err["Code"] == "SourceClusterNotSupportedFault"
     assert (
         err["Message"]
-        == f"The source DB instance {source_arn} isn't supported for a blue/green deployment."
+        == f"The source DB cluster {source_arn} isn't supported for a blue/green deployment."
     )
 
 

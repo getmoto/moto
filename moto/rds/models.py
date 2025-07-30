@@ -79,6 +79,7 @@ from .exceptions import (
     RDSClientError,  # TODO: Refactor into specific exceptions
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
+    SourceClusterNotSupportedFault,
     SourceDatabaseNotSupportedFault,
     SubscriptionAlreadyExistError,
     SubscriptionNotFoundError,
@@ -1489,11 +1490,13 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.master_user_secret = MasterUserSecret(
                 self, master_user_secret_kms_key_id
             )
+            self.manage_master_user_password = True
         elif manage_master_user_password is False and hasattr(
             self, "master_user_secret"
         ):
             self.master_user_secret.delete_secret()
             del self.master_user_secret
+            self.manage_master_user_password = False
 
         if rotate_master_user_password is True:
             self.master_user_secret.rotate_secret()
@@ -3325,11 +3328,13 @@ class RDSBackend(BaseBackend):
             if manage_master_user_password:
                 kms_key_id = kwargs.pop("master_user_secret_kms_key_id", None)
                 cluster.master_user_secret = MasterUserSecret(cluster, kms_key_id)
+                cluster.manage_master_user_password = True
             elif not manage_master_user_password and hasattr(
                 cluster, "master_user_secret"
             ):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
+                cluster.manage_master_user_password = False
 
         kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
@@ -4508,8 +4513,11 @@ class BlueGreenDeployment(RDSBaseModel):
     ) -> str:
         source_instance: DBInstance | DBCluster = self._get_instance(self.source)
         green_instance: DBInstance | DBCluster
-        if source_instance.manage_master_user_password:
-            raise SourceDatabaseNotSupportedFault(source_instance.arn)
+        if hasattr(source_instance, "master_user_secret"):
+            if isinstance(source_instance, DBInstance):
+                raise SourceDatabaseNotSupportedFault(source_instance.arn)
+            else:
+                raise SourceClusterNotSupportedFault(source_instance.arn)
 
         db_kwargs = {
             "engine": source_instance.engine,
