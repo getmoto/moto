@@ -451,7 +451,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         continue
                     yield {"ResourceARN": f"{campaign.arn}", "Tags": tags}
 
-
         # Direct Connect
         if self.directconnect_backend:
             if not resource_type_filters or "directconnect" in resource_type_filters:
@@ -464,6 +463,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     tags = directconnect_backend.tagger.list_tags_for_resource(
                         connection.connection_id
                     )["Tags"]
+                    tags = format_tag_keys(tags, ["key", "value"])
                     if not tags or not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{connection.connection_id}", "Tags": tags}
@@ -473,8 +473,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     tags = directconnect_backend.tagger.list_tags_for_resource(
                         lag.lag_id
                     )["Tags"]
-                    if tags and tag_filter(tags):
-                        yield {"ResourceARN": f"{lag.lag_id}", "Tags": tags}
+                    tags = format_tag_keys(tags, ["key", "value"])
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{lag.lag_id}", "Tags": tags}
 
         # DMS
         if not resource_type_filters or "dms:endpoint" in resource_type_filters:
