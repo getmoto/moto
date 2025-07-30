@@ -697,6 +697,23 @@ class EKSBackend(BaseBackend):
     ) -> Tuple[List[Nodegroup], Optional[Nodegroup]]:
         cluster = self.clusters[cluster_name]
         return paginated_list(list(cluster.nodegroups.keys()), max_results, next_token)
+    
+
+    def update_cluster_config(
+        self,
+        name: str,
+        resources_vpc_config: Dict[str, Any],
+        logging: Optional[Dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        # access_config: Optional[Dict[str, Any]] = None,
+        # updgrade_policy: Optional[Dict[str, Any]] = None,
+        # zonal_shift_config: Optional[Dict[str, Any]] = None,
+        # compute_config: Optional[Dict[str, Any]] = None,
+        kubernetes_network_config: Optional[Dict[str, str]] = None,
+        # storage_config: Optional[Dict[str, Any]] = None,
+        remote_network_config: Optional[Dict[str, List[Dict[str, List[str]]]]] = None,
+    ):
+        pass
 
 
 def paginated_list(
