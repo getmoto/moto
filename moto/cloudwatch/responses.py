@@ -31,7 +31,7 @@ class CloudWatchResponse(BaseResponse):
     def cloudwatch_backend(self) -> CloudWatchBackend:
         return cloudwatch_backends[self.current_account][self.region]
 
-    def put_metric_alarm(self) -> str:
+    def put_metric_alarm(self) -> ActionResult:
         name = self._get_param("AlarmName")
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
@@ -102,7 +102,7 @@ class CloudWatchResponse(BaseResponse):
         # fetch AlarmRule to re-use this method for composite alarms as well
         rule = self._get_param("AlarmRule")
         tags = self._get_multi_param("Tags.member")
-        alarm = self.cloudwatch_backend.put_metric_alarm(
+        self.cloudwatch_backend.put_metric_alarm(
             name=name,
             namespace=namespace,
             metric_name=metric_name,
@@ -127,8 +127,7 @@ class CloudWatchResponse(BaseResponse):
             rule=rule,
             tags=tags,
         )
-        template = self.response_template(PUT_METRIC_ALARM_TEMPLATE)
-        return template.render(alarm=alarm)
+        return EmptyResult()
 
     def describe_alarms(self) -> str:
         action_prefix = self._get_param("ActionPrefix")
@@ -356,14 +355,6 @@ class CloudWatchResponse(BaseResponse):
         result = {"Failures": failures}
         return ActionResult(result)
 
-
-PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
-</PutMetricAlarmResponse>"""
 
 DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <DescribeAlarmsResult>
