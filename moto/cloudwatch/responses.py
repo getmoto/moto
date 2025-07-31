@@ -266,37 +266,29 @@ class CloudWatchResponse(BaseResponse):
     def enable_alarm_actions(self) -> str:
         raise NotImplementedError()
 
-    def get_dashboard(self) -> str:
+    def get_dashboard(self) -> ActionResult:
         dashboard_name = self._get_param("DashboardName")
-
         dashboard = self.cloudwatch_backend.get_dashboard(dashboard_name)
         if dashboard is None:
             raise ResourceNotFound("Dashboard does not exist")
+        return ActionResult(dashboard)
 
-        template = self.response_template(GET_DASHBOARD_TEMPLATE)
-        return template.render(dashboard=dashboard)
-
-    def list_dashboards(self) -> str:
+    def list_dashboards(self) -> ActionResult:
         prefix = self._get_param("DashboardNamePrefix", "")
-
         dashboards = self.cloudwatch_backend.list_dashboards(prefix)
+        result = {"DashboardEntries": dashboards}
+        return ActionResult(result)
 
-        template = self.response_template(LIST_DASHBOARD_RESPONSE)
-        return template.render(dashboards=dashboards)
-
-    def put_dashboard(self) -> str:
+    def put_dashboard(self) -> ActionResult:
         name = self._get_param("DashboardName")
         body = self._get_param("DashboardBody")
-
         try:
             json.loads(body)
         except ValueError:
             raise DashboardInvalidInputError("Body is invalid JSON")
-
         self.cloudwatch_backend.put_dashboard(name, body)
-
-        template = self.response_template(PUT_DASHBOARD_RESPONSE)
-        return template.render()
+        result = {"DashboardValidationMessages": []}  # type: ignore[var-annotated]
+        return ActionResult(result)
 
     def set_alarm_state(self) -> ActionResult:
         alarm_name = self._get_param("AlarmName")
@@ -341,37 +333,28 @@ class CloudWatchResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_insight_rules(self) -> str:
+    def describe_insight_rules(self) -> ActionResult:
         rules = self.cloudwatch_backend.describe_insight_rules()
-        next_token = self._get_param("NextToken")
+        result = {"InsightRules": rules}
+        return ActionResult(result)
 
-        template = self.response_template(DESCRIBE_INSIGHT_RULES_TEMPLATE)
-
-        return template.render(next_token=next_token, rules=rules)
-
-    def delete_insight_rules(self) -> str:
+    def delete_insight_rules(self) -> ActionResult:
         names = self._get_multi_param("RuleNames.member")
         failures = self.cloudwatch_backend.delete_insight_rules(rule_names=names)
+        result = {"Failures": failures}
+        return ActionResult(result)
 
-        template = self.response_template(DELETE_INSIGHT_RULES_TEMPLATE)
-
-        return template.render(failures=failures)
-
-    def disable_insight_rules(self) -> str:
+    def disable_insight_rules(self) -> ActionResult:
         names = self._get_multi_param("RuleNames.member")
-        rule_names = self.cloudwatch_backend.disable_insight_rules(rule_names=names)
+        failures = self.cloudwatch_backend.disable_insight_rules(rule_names=names)
+        result = {"Failures": failures}
+        return ActionResult(result)
 
-        template = self.response_template(DISABLE_INSIGHT_RULES_TEMPLATE)
-
-        return template.render(rule_names=rule_names)
-
-    def enable_insight_rules(self) -> str:
+    def enable_insight_rules(self) -> ActionResult:
         names = self._get_multi_param("RuleNames.member")
-        rule_names = self.cloudwatch_backend.enable_insight_rules(rule_names=names)
-
-        template = self.response_template(ENABLE_INSIGHT_RULES_TEMPLATE)
-
-        return template.render(rule_names=rule_names)
+        failures = self.cloudwatch_backend.enable_insight_rules(rule_names=names)
+        result = {"Failures": failures}
+        return ActionResult(result)
 
 
 PUT_METRIC_ALARM_TEMPLATE = """<PutMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
@@ -663,46 +646,6 @@ LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazona
     </ListMetricsResult>
 </ListMetricsResponse>"""
 
-PUT_DASHBOARD_RESPONSE = """<PutDashboardResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <PutDashboardResult>
-    <DashboardValidationMessages/>
-  </PutDashboardResult>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</PutDashboardResponse>"""
-
-LIST_DASHBOARD_RESPONSE = """<ListDashboardsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <ListDashboardsResult>
-    <DashboardEntries>
-      {% for dashboard in dashboards %}
-      <member>
-        <DashboardArn>{{ dashboard.arn }}</DashboardArn>
-        <LastModified>{{ dashboard.last_modified_iso }}</LastModified>
-        <Size>{{ dashboard.size }}</Size>
-        <DashboardName>{{ dashboard.name }}</DashboardName>
-      </member>
-      {% endfor %}
-    </DashboardEntries>
-  </ListDashboardsResult>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</ListDashboardsResponse>"""
-
-
-GET_DASHBOARD_TEMPLATE = """<GetDashboardResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <GetDashboardResult>
-    <DashboardArn>{{ dashboard.arn }}</DashboardArn>
-    <DashboardBody>{{ dashboard.body }}</DashboardBody>
-    <DashboardName>{{ dashboard.name }}</DashboardName>
-  </GetDashboardResult>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</GetDashboardResponse>
-"""
-
 
 LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
   <ListTagsForResourceResult>
@@ -720,65 +663,3 @@ LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://
   </ResponseMetadata>
 </ListTagsForResourceResponse>
 """
-
-DESCRIBE_INSIGHT_RULES_TEMPLATE = """<DescribeInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <DescribeInsightRulesResult>
-        <NextToken> {{next_token}} </NextToken>
-        <InsightRules>
-            {% for rule in rules %}
-            <member>
-                <Name>{{ rule.name }}</Name>
-                <State>{{ rule.state }}</State>
-                <Schema>{{ rule.schema }}</Schema>
-                <Definition>{{ rule.definition }}</Definition>
-                <ManagedRule>{{ rule.managed_rule }}</ManagedRule>
-            </member>
-            {% endfor %}
-        </InsightRules>
-    </DescribeInsightRulesResult>
-</DescribeInsightRulesResponse>"""
-
-DELETE_INSIGHT_RULES_TEMPLATE = """<DeleteInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <DeleteInsightRulesResult>
-        <Failures>
-            {% for failure in failures %}
-            <member>
-                <FailureResource>{{ failure.FailureResource }}</FailureResource>
-                <ExceptionType>{{ failure.ExceptionType }}</ExceptionType>
-                <FailureCode>{{ failure.FailureCode }}</FailureCode>
-                <FailureDescription>{{ failure.FailureDescription }}</FailureDescription>
-            </member>
-            {% endfor %}
-        </Failures>
-    </DeleteInsightRulesResult>
-</DeleteInsightRulesResponse>"""
-
-DISABLE_INSIGHT_RULES_TEMPLATE = """<DisableInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <DisableInsightRulesResult>
-        <Failures>
-            {% for failure in failures %}
-            <member>
-                <FailureResource>{{ failure.FailureResource }}</FailureResource>
-                <ExceptionType>{{ failure.ExceptionType }}</ExceptionType>
-                <FailureCode>{{ failure.FailureCode }}</FailureCode>
-                <FailureDescription>{{ failure.FailureDescription }}</FailureDescription>
-            </member>
-            {% endfor %}
-        </Failures>
-    </DisableInsightRulesResult>
-</DisableInsightRulesResponse>"""
-
-ENABLE_INSIGHT_RULES_TEMPLATE = """<EnableInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <EnableInsightRulesResult>
-        <Failures>
-            {% for failure in failures %}
-            <member>
-                <FailureResource>{{ failure.FailureResource }}</FailureResource>
-                <ExceptionType>{{ failure.ExceptionType }}</ExceptionType>
-                <FailureCode>{{ failure.FailureCode }}</FailureCode>
-                <FailureDescription>{{ failure.FailureDescription }}</FailureDescription>
-            </member>
-            {% endfor %}
-        </Failures>
-    </EnableInsightRulesResult>
-</EnableInsightRulesResponse>"""

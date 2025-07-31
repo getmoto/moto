@@ -316,10 +316,6 @@ class Dashboard(BaseModel):
         self.last_modified = datetime.now()
 
     @property
-    def last_modified_iso(self) -> str:
-        return self.last_modified.isoformat()
-
-    @property
     def size(self) -> int:
         return len(self)
 
