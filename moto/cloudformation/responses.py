@@ -106,6 +106,8 @@ def transform_parameters(data: dict[str, str]) -> list[dict[str, str]]:
         data, key_for_key="ParameterKey", key_for_value="ParameterValue"
     )
 
+def transform_param_list(data: list[dict[str, str]]) -> list[dict[str, str]]:
+    return data
 
 class CloudFormationResponse(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
@@ -114,6 +116,7 @@ class CloudFormationResponse(BaseResponse):
         "DescribeStackSetOutput.StackSet.Parameters": transform_parameters,
         "DescribeStackSetOutput.StackSet.Tags": transform_dict,
         "DescribeStacksOutput.Stacks.Stack.Tags": transform_dict,
+        "StackInstance.ParameterOverrides": transform_param_list,
     }
 
     def __init__(self) -> None:
