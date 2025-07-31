@@ -218,7 +218,7 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
         return template.render(label=metric_name, datapoints=datapoints)
 
-    def list_metrics(self) -> str:
+    def list_metrics(self) -> ActionResult:
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
         dimensions = self._get_params().get("Dimensions", [])
@@ -226,8 +226,8 @@ class CloudWatchResponse(BaseResponse):
         next_token, metrics = self.cloudwatch_backend.list_metrics(
             next_token, namespace, metric_name, dimensions
         )
-        template = self.response_template(LIST_METRICS_TEMPLATE)
-        return template.render(metrics=metrics, next_token=next_token)
+        result = {"Metrics": metrics, "NextToken": next_token}
+        return ActionResult(result)
 
     def delete_dashboards(self) -> ActionResult:
         dashboards = self._get_multi_param("DashboardNames.member")
@@ -608,29 +608,3 @@ GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://m
       </RequestId>
     </ResponseMetadata>
 </GetMetricStatisticsResponse>"""
-
-LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <ListMetricsResult>
-        <Metrics>
-            {% for metric in metrics %}
-            <member>
-                <Dimensions>
-                    {% for dimension in metric.dimensions %}
-                    <member>
-                        <Name>{{ dimension.name }}</Name>
-                        <Value>{{ dimension.value }}</Value>
-                    </member>
-                    {% endfor %}
-                </Dimensions>
-                <MetricName>{{ metric.name }}</MetricName>
-                <Namespace>{{ metric.namespace }}</Namespace>
-            </member>
-            {% endfor %}
-        </Metrics>
-        {% if next_token is not none %}
-        <NextToken>
-            {{ next_token }}
-        </NextToken>
-        {% endif %}
-    </ListMetricsResult>
-</ListMetricsResponse>"""
