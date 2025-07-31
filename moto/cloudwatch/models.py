@@ -746,8 +746,9 @@ class CloudWatchBackend(BaseBackend):
                 {
                     "id": query["Id"],
                     "label": label,
-                    "vals": result_vals,
+                    "values": result_vals,
                     "timestamps": timestamps,
+                    "status_code": "Complete",
                 }
             )
             if query.get("ReturnData", "true") == "true":
@@ -755,8 +756,9 @@ class CloudWatchBackend(BaseBackend):
                     {
                         "id": query["Id"],
                         "label": label,
-                        "vals": result_vals,
+                        "values": result_vals,
                         "timestamps": timestamps,
+                        "status_code": "Complete",
                     }
                 )
         # Metric Math expression Queries run on top of the results of other queries
@@ -767,8 +769,9 @@ class CloudWatchBackend(BaseBackend):
                 {
                     "id": query["Id"],
                     "label": label,
-                    "vals": result_vals,
+                    "values": result_vals,
                     "timestamps": timestamps,
+                    "status_code": "Complete",
                 }
             )
         # Metric Insights Expression Queries act on all results, and are essentially SQL queries
@@ -804,8 +807,9 @@ class CloudWatchBackend(BaseBackend):
                 {
                     "id": query["Id"],
                     "label": (query.get("Label") or query["Id"]),
-                    "vals": result_vals,
+                    "values": result_vals,
                     "timestamps": timestamps,
+                    "status_code": "Complete",
                 }
             )
 

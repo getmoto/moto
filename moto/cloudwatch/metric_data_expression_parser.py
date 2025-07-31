@@ -8,6 +8,6 @@ def parse_expression(
     timestamps: List[str] = []
     for result in results:
         if result.get("id") == expression:
-            values.extend(result["vals"])
+            values.extend(result["values"])
             timestamps.extend(result["timestamps"])
     return values, timestamps

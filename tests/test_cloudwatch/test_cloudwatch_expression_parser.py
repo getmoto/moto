@@ -6,7 +6,7 @@ def test_simple_expression():
         {
             "id": "totalBytes",
             "label": "metric Sum",
-            "vals": [25.0],
+            "values": [25.0],
             "timestamps": ["timestamp1"],
         }
     ]
@@ -19,7 +19,7 @@ def test_missing_expression():
         {
             "id": "totalBytes",
             "label": "metric Sum",
-            "vals": [25.0],
+            "values": [25.0],
             "timestamps": ["timestamp1"],
         }
     ]
@@ -32,7 +32,7 @@ def test_complex_expression():
         {
             "id": "totalBytes",
             "label": "metric Sum",
-            "vals": [25.0],
+            "values": [25.0],
             "timestamps": ["timestamp1"],
         }
     ]

@@ -167,7 +167,7 @@ class CloudWatchResponse(BaseResponse):
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
         return EmptyResult()
 
-    def get_metric_data(self) -> str:
+    def get_metric_data(self) -> ActionResult:
         params = self._get_params()
         start = dtparse(params["StartTime"])
         end = dtparse(params["EndTime"])
@@ -184,8 +184,8 @@ class CloudWatchResponse(BaseResponse):
             start_time=start, end_time=end, queries=queries, scan_by=scan_by
         )
 
-        template = self.response_template(GET_METRIC_DATA_TEMPLATE)
-        return template.render(results=results)
+        result = {"MetricDataResults": results}
+        return ActionResult(result)
 
     def get_metric_statistics(self) -> ActionResult:
         namespace = self._get_param("Namespace")
@@ -533,33 +533,3 @@ DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="htt
         </MetricAlarms>
     </DescribeAlarmsForMetricResult>
 </DescribeAlarmsForMetricResponse>"""
-
-
-GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <GetMetricDataResult>
-       <MetricDataResults>
-           {% for result in results %}
-            <member>
-                <Id>{{ result.id }}</Id>
-                <Label>{{ result.label }}</Label>
-                <StatusCode>Complete</StatusCode>
-                <Timestamps>
-                    {% for val in result.timestamps %}
-                    <member>{{ val }}</member>
-                    {% endfor %}
-                </Timestamps>
-                <Values>
-                    {% for val in result.vals %}
-                    <member>{{ val }}</member>
-                    {% endfor %}
-                </Values>
-            </member>
-            {% endfor %}
-       </MetricDataResults>
-   </GetMetricDataResult>
-   <ResponseMetadata>
-       <RequestId>
-            {{ request_id }}
-       </RequestId>
-   </ResponseMetadata>
-</GetMetricDataResponse>"""
