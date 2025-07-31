@@ -299,13 +299,11 @@ class CloudWatchResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def list_tags_for_resource(self) -> str:
+    def list_tags_for_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
-
         tags = self.cloudwatch_backend.list_tags_for_resource(resource_arn)
-
-        template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
-        return template.render(tags=tags)
+        result = {"Tags": [{"Key": k, "Value": v} for k, v in tags.items()]}
+        return ActionResult(result)
 
     def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
@@ -636,21 +634,3 @@ LIST_METRICS_TEMPLATE = """<ListMetricsResponse xmlns="http://monitoring.amazona
         {% endif %}
     </ListMetricsResult>
 </ListMetricsResponse>"""
-
-
-LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <ListTagsForResourceResult>
-    <Tags>
-      {% for key, value in tags.items() %}
-      <member>
-        <Key>{{ key }}</Key>
-        <Value>{{ value }}</Value>
-      </member>
-      {% endfor %}
-    </Tags>
-  </ListTagsForResourceResult>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</ListTagsForResourceResponse>
-"""
