@@ -28,3 +28,7 @@ class ResourceNotFoundException(CloudWatchException):
 
 class ValidationError(CloudWatchException):
     code = "ValidationError"
+
+
+class DashboardInvalidInputError(CloudWatchException):
+    code = "InvalidParameterInput"

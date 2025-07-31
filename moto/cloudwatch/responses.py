@@ -5,7 +5,13 @@ from dateutil.parser import parse as dtparse
 
 from moto.core.responses import BaseResponse
 
-from .exceptions import InvalidParameterCombination, ValidationError
+from .exceptions import (
+    DashboardInvalidInputError,
+    InvalidParameterCombination,
+    InvalidParameterValue,
+    ResourceNotFound,
+    ValidationError,
+)
 from .models import (
     CloudWatchBackend,
     Dimension,
@@ -16,8 +22,6 @@ from .models import (
     cloudwatch_backends,
 )
 
-ERROR_RESPONSE = Tuple[str, Dict[str, int]]
-
 
 class CloudWatchResponse(BaseResponse):
     def __init__(self) -> None:
@@ -26,10 +30,6 @@ class CloudWatchResponse(BaseResponse):
     @property
     def cloudwatch_backend(self) -> CloudWatchBackend:
         return cloudwatch_backends[self.current_account][self.region]
-
-    def _error(self, code: str, message: str, status: int = 400) -> ERROR_RESPONSE:
-        template = self.response_template(ERROR_RESPONSE_TEMPLATE)
-        return template.render(code=code, message=message), dict(status=status)
 
     def put_metric_alarm(self) -> str:
         name = self._get_param("AlarmName")
@@ -235,11 +235,11 @@ class CloudWatchResponse(BaseResponse):
     def delete_dashboards(self) -> Union[str, ERROR_RESPONSE]:
         dashboards = self._get_multi_param("DashboardNames.member")
         if not dashboards:
-            return self._error("InvalidParameterValue", "Need at least 1 dashboard")
+            raise InvalidParameterValue("Need at least 1 dashboard")
 
         error = self.cloudwatch_backend.delete_dashboards(dashboards)
         if error is not None:
-            return self._error("ResourceNotFound", error)
+            raise ResourceNotFound(error)
 
         template = self.response_template(DELETE_DASHBOARD_TEMPLATE)
         return template.render()
@@ -269,12 +269,12 @@ class CloudWatchResponse(BaseResponse):
     def enable_alarm_actions(self) -> str:
         raise NotImplementedError()
 
-    def get_dashboard(self) -> Union[str, ERROR_RESPONSE]:
+    def get_dashboard(self) -> str:
         dashboard_name = self._get_param("DashboardName")
 
         dashboard = self.cloudwatch_backend.get_dashboard(dashboard_name)
         if dashboard is None:
-            return self._error("ResourceNotFound", "Dashboard does not exist")
+            raise ResourceNotFound("Dashboard does not exist")
 
         template = self.response_template(GET_DASHBOARD_TEMPLATE)
         return template.render(dashboard=dashboard)
@@ -287,14 +287,14 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_DASHBOARD_RESPONSE)
         return template.render(dashboards=dashboards)
 
-    def put_dashboard(self) -> Union[str, ERROR_RESPONSE]:
+    def put_dashboard(self) -> str:
         name = self._get_param("DashboardName")
         body = self._get_param("DashboardBody")
 
         try:
             json.loads(body)
         except ValueError:
-            return self._error("InvalidParameterInput", "Body is invalid JSON")
+            raise DashboardInvalidInputError("Body is invalid JSON")
 
         self.cloudwatch_backend.put_dashboard(name, body)
 
