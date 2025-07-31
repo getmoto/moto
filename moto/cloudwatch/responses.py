@@ -1,9 +1,9 @@
 import json
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Iterable, List
 
 from dateutil.parser import parse as dtparse
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import (
     DashboardInvalidInputError,
@@ -157,18 +157,16 @@ class CloudWatchResponse(BaseResponse):
             metric_alarms=metric_alarms, composite_alarms=composite_alarms
         )
 
-    def delete_alarms(self) -> str:
+    def delete_alarms(self) -> ActionResult:
         alarm_names = self._get_multi_param("AlarmNames.member")
         self.cloudwatch_backend.delete_alarms(alarm_names)
-        template = self.response_template(DELETE_METRIC_ALARMS_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
-    def put_metric_data(self) -> str:
+    def put_metric_data(self) -> ActionResult:
         namespace = self._get_param("Namespace")
         metric_data = self._get_multi_param("MetricData.member")
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
-        template = self.response_template(PUT_METRIC_DATA_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def get_metric_data(self) -> str:
         params = self._get_params()
@@ -232,7 +230,7 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_METRICS_TEMPLATE)
         return template.render(metrics=metrics, next_token=next_token)
 
-    def delete_dashboards(self) -> Union[str, ERROR_RESPONSE]:
+    def delete_dashboards(self) -> ActionResult:
         dashboards = self._get_multi_param("DashboardNames.member")
         if not dashboards:
             raise InvalidParameterValue("Need at least 1 dashboard")
@@ -241,8 +239,7 @@ class CloudWatchResponse(BaseResponse):
         if error is not None:
             raise ResourceNotFound(error)
 
-        template = self.response_template(DELETE_DASHBOARD_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     @staticmethod
     def filter_alarms(
@@ -301,18 +298,15 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(PUT_DASHBOARD_RESPONSE)
         return template.render()
 
-    def set_alarm_state(self) -> str:
+    def set_alarm_state(self) -> ActionResult:
         alarm_name = self._get_param("AlarmName")
         reason = self._get_param("StateReason")
         reason_data = self._get_param("StateReasonData")
         state_value = self._get_param("StateValue")
-
         self.cloudwatch_backend.set_alarm_state(
             alarm_name, reason, reason_data, state_value
         )
-
-        template = self.response_template(SET_ALARM_STATE_TEMPLATE)
-        return template.render()
+        return EmptyResult()
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceARN")
@@ -322,39 +316,30 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(LIST_TAGS_FOR_RESOURCE_TEMPLATE)
         return template.render(tags=tags)
 
-    def tag_resource(self) -> str:
+    def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         tags = self._get_multi_param("Tags.member")
-
         self.cloudwatch_backend.tag_resource(resource_arn, tags)
+        return EmptyResult()
 
-        template = self.response_template(TAG_RESOURCE_TEMPLATE)
-        return template.render()
-
-    def untag_resource(self) -> str:
+    def untag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         tag_keys = self._get_multi_param("TagKeys.member")
-
         self.cloudwatch_backend.untag_resource(resource_arn, tag_keys)
+        return EmptyResult()
 
-        template = self.response_template(UNTAG_RESOURCE_TEMPLATE)
-        return template.render()
-
-    def put_insight_rule(self) -> str:
+    def put_insight_rule(self) -> ActionResult:
         name = self._get_param("RuleName")
         state = self._get_param("RuleState")
         definition = self._get_param("RuleDefinition")
         tags = self._get_multi_param("Tags.member")
-
-        rule = self.cloudwatch_backend.put_insight_rule(
+        self.cloudwatch_backend.put_insight_rule(
             name=name,
             state=state,
             definition=definition,
             tags=tags,
         )
-
-        template = self.response_template(PUT_INSIGHT_RULE_TEMPLATE)
-        return template.render(rule=rule)
+        return EmptyResult()
 
     def describe_insight_rules(self) -> str:
         rules = self.cloudwatch_backend.describe_insight_rules()
@@ -577,21 +562,6 @@ DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="htt
     </DescribeAlarmsForMetricResult>
 </DescribeAlarmsForMetricResponse>"""
 
-DELETE_METRIC_ALARMS_TEMPLATE = """<DeleteMetricAlarmResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
-</DeleteMetricAlarmResponse>"""
-
-PUT_METRIC_DATA_TEMPLATE = """<PutMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <ResponseMetadata>
-      <RequestId>
-         {{ request_id }}
-      </RequestId>
-   </ResponseMetadata>
-</PutMetricDataResponse>"""
 
 GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
    <GetMetricDataResult>
@@ -720,12 +690,6 @@ LIST_DASHBOARD_RESPONSE = """<ListDashboardsResponse xmlns="http://monitoring.am
   </ResponseMetadata>
 </ListDashboardsResponse>"""
 
-DELETE_DASHBOARD_TEMPLATE = """<DeleteDashboardsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <DeleteDashboardsResult/>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</DeleteDashboardsResponse>"""
 
 GET_DASHBOARD_TEMPLATE = """<GetDashboardResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
   <GetDashboardResult>
@@ -739,20 +703,6 @@ GET_DASHBOARD_TEMPLATE = """<GetDashboardResponse xmlns="http://monitoring.amazo
 </GetDashboardResponse>
 """
 
-SET_ALARM_STATE_TEMPLATE = """<SetAlarmStateResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</SetAlarmStateResponse>"""
-
-ERROR_RESPONSE_TEMPLATE = """<ErrorResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <Error>
-    <Type>Sender</Type>
-    <Code>{{ code }}</Code>
-    <Message>{{ message }}</Message>
-  </Error>
-  <RequestId>{{ request_id }}</RequestId>
-</ErrorResponse>"""
 
 LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
   <ListTagsForResourceResult>
@@ -770,27 +720,6 @@ LIST_TAGS_FOR_RESOURCE_TEMPLATE = """<ListTagsForResourceResponse xmlns="http://
   </ResponseMetadata>
 </ListTagsForResourceResponse>
 """
-
-TAG_RESOURCE_TEMPLATE = """<TagResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <TagResourceResult/>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</TagResourceResponse>"""
-
-UNTAG_RESOURCE_TEMPLATE = """<UntagResourceResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <UntagResourceResult/>
-  <ResponseMetadata>
-    <RequestId>{{ request_id }}</RequestId>
-  </ResponseMetadata>
-</UntagResourceResponse>"""
-
-PUT_INSIGHT_RULE_TEMPLATE = """<PutInsightRuleResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-   <PutInsightRuleResult></PutInsightRuleResult>
-   <ResponseMetadata>
-      <RequestId>{{ request_id }}</RequestId>
-   </ResponseMetadata>
-</PutInsightRuleResponse>"""
 
 DESCRIBE_INSIGHT_RULES_TEMPLATE = """<DescribeInsightRulesResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
     <DescribeInsightRulesResult>
