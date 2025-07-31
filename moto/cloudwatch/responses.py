@@ -187,7 +187,7 @@ class CloudWatchResponse(BaseResponse):
         template = self.response_template(GET_METRIC_DATA_TEMPLATE)
         return template.render(results=results)
 
-    def get_metric_statistics(self) -> str:
+    def get_metric_statistics(self) -> ActionResult:
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
         start_time = dtparse(self._get_param("StartTime"))
@@ -215,8 +215,8 @@ class CloudWatchResponse(BaseResponse):
             unit=unit,
             dimensions=dimensions,
         )
-        template = self.response_template(GET_METRIC_STATISTICS_TEMPLATE)
-        return template.render(label=metric_name, datapoints=datapoints)
+        result = {"Label": metric_name, "Datapoints": datapoints}
+        return ActionResult(result)
 
     def list_metrics(self) -> ActionResult:
         namespace = self._get_param("Namespace")
@@ -563,48 +563,3 @@ GET_METRIC_DATA_TEMPLATE = """<GetMetricDataResponse xmlns="http://monitoring.am
        </RequestId>
    </ResponseMetadata>
 </GetMetricDataResponse>"""
-
-GET_METRIC_STATISTICS_TEMPLATE = """<GetMetricStatisticsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-  <GetMetricStatisticsResult>
-      <Label>{{ label }}</Label>
-      <Datapoints>
-        {% for datapoint in datapoints %}
-            <member>
-              {% if datapoint.sum is not none %}
-              <Sum>{{ datapoint.sum }}</Sum>
-              {% endif %}
-
-              {% if datapoint.average is not none %}
-              <Average>{{ datapoint.average }}</Average>
-              {% endif %}
-
-              {% if datapoint.maximum is not none %}
-              <Maximum>{{ datapoint.maximum }}</Maximum>
-              {% endif %}
-
-              {% if datapoint.minimum is not none %}
-              <Minimum>{{ datapoint.minimum }}</Minimum>
-              {% endif %}
-
-              {% if datapoint.sample_count is not none %}
-              <SampleCount>{{ datapoint.sample_count }}</SampleCount>
-              {% endif %}
-
-              {% if datapoint.extended_statistics is not none %}
-              <ExtendedStatistics>{{ datapoint.extended_statistics }}</ExtendedStatistics>
-              {% endif %}
-
-              <Timestamp>{{ datapoint.timestamp }}</Timestamp>
-              {% if datapoint.unit is not none %}
-              <Unit>{{ datapoint.unit }}</Unit>
-              {% endif %}
-            </member>
-        {% endfor %}
-      </Datapoints>
-    </GetMetricStatisticsResult>
-    <ResponseMetadata>
-      <RequestId>
-        {{ request_id }}
-      </RequestId>
-    </ResponseMetadata>
-</GetMetricStatisticsResponse>"""
