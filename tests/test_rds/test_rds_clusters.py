@@ -2020,3 +2020,72 @@ def test_db_cluster_attributes(client):
     assert cluster["DBClusterIdentifier"] == "test-cluster"
     assert cluster["Engine"] == "aurora-postgresql"
     assert cluster["PubliclyAccessible"] is True
+
+
+@mock_aws
+def test_db_cluster_with_security_group():
+    rds_client = boto3.client("rds", region_name="us-west-2")
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    # Create security groups
+    vpc = ec2_client.describe_vpcs()
+    vpc_id = vpc["Vpcs"][0]["VpcId"]
+    sg1 = ec2_client.create_security_group(
+        GroupName="test-sg-1",
+        Description="Test security group for RDS cluster",
+        VpcId=vpc_id,
+    )
+    sg1_id = sg1["GroupId"]
+    sg2 = ec2_client.create_security_group(
+        GroupName="test-sg-2",
+        Description="Test security group for RDS cluster",
+        VpcId=vpc_id,
+    )
+    sg2_id = sg2["GroupId"]
+    # Create a cluster
+    resp = rds_client.create_db_cluster(
+        DBClusterIdentifier="test-cluster",
+        DatabaseName="test-db",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="password",
+        Port=5432,
+        ScalingConfiguration={"MinCapacity": 2, "MaxCapacity": 3},
+        VpcSecurityGroupIds=[sg1_id],
+    )
+    cluster = resp["DBCluster"]
+    vpc_security_groups = cluster["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg1_id
+    # Add instance to the cluster
+    resp = rds_client.create_db_instance(
+        DBInstanceIdentifier="test-instance",
+        DBClusterIdentifier="test-cluster",
+        AllocatedStorage=10,
+        DBInstanceClass="db.t3.medium",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="password",
+        Port=5432,
+    )
+    instance = resp["DBInstance"]
+    vpc_security_groups = instance["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg1_id
+    # Overwrite the cluster security group
+    rds_client.modify_db_cluster(
+        DBClusterIdentifier="test-cluster",
+        VpcSecurityGroupIds=[sg2_id],
+        ApplyImmediately=True,
+    )
+    # Check propagation to the cluster
+    resp = rds_client.describe_db_clusters(DBClusterIdentifier="test-cluster")
+    cluster = resp["DBClusters"][0]
+    vpc_security_groups = cluster["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg2_id
+    # Check propagation to the instance
+    resp = rds_client.describe_db_instances(DBInstanceIdentifier="test-instance")
+    instance = resp["DBInstances"][0]
+    vpc_security_groups = instance["VpcSecurityGroups"]
+    assert len(vpc_security_groups) == 1
+    assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg2_id
