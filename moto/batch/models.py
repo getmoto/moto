@@ -1865,24 +1865,41 @@ class BatchBackend(BaseBackend):
             if array_job := self.get_job_by_id(array_job_id):
                 jobs_to_check.extend(array_job._child_jobs or [])
 
-        if job_status is not None and job_status not in JobStatus.job_statuses():
+        if not jobs_to_check:
+            return jobs
+
+        if (
+            job_status is not None
+            and filters is None
+            and job_status not in JobStatus.job_statuses()
+        ):
             raise ClientException(
                 "Job status is not one of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED"
             )
 
+        def matches_filter(job: Job, filter: Dict[str, Any]) -> bool:
+            if filter["name"] == "JOB_NAME":
+                for value in filter["values"]:
+                    if value.endswith("*"):
+                        pattern = value[:-1].lower()
+                        if job.job_name.lower().startswith(pattern):
+                            return True
+                    else:
+                        if job.job_name.lower() == value.lower():
+                            return True
+            return False
+
         for job in jobs_to_check:
-            if job_status is not None and job.status != job_status:
+            # Boto3 ignores jobStatus when filters are provided
+            if job_status is not None and filters is None and job.status != job_status:
                 continue
 
             if filters is not None:
-                matches = True
+                matches = False
                 for filt in filters:
-                    name = filt["name"]
-                    values = filt["values"]
-                    if name == "JOB_NAME":
-                        if job.job_name not in values:
-                            matches = False
-                            break
+                    if matches_filter(job, filt):
+                        matches = True
+                        break
                 if not matches:
                     continue
 
