@@ -115,7 +115,7 @@ def daterange(
         yield start
 
 
-class FakeAlarm(BaseModel):
+class Alarm(BaseModel):
     def __init__(
         self,
         account_id: str,
@@ -455,7 +455,7 @@ class InsightRule(BaseModel):
 class CloudWatchBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.alarms: Dict[str, FakeAlarm] = {}
+        self.alarms: Dict[str, Alarm] = {}
         self.dashboards: Dict[str, Dashboard] = {}
         self.metric_data: List[MetricDatumBase] = []
         self.paged_metric_data: Dict[str, List[MetricDatumBase]] = {}
@@ -501,7 +501,7 @@ class CloudWatchBackend(BaseBackend):
         threshold_metric_id: Optional[str] = None,
         rule: Optional[str] = None,
         tags: Optional[List[Dict[str, str]]] = None,
-    ) -> FakeAlarm:
+    ) -> Alarm:
         if extended_statistic and not extended_statistic.startswith("p"):
             raise InvalidParameterValue(
                 f"The value {extended_statistic} for parameter ExtendedStatistic is not supported."
@@ -515,7 +515,7 @@ class CloudWatchBackend(BaseBackend):
                 "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
             )
 
-        alarm = FakeAlarm(
+        alarm = Alarm(
             account_id=self.account_id,
             region_name=self.region_name,
             name=name,
@@ -548,7 +548,7 @@ class CloudWatchBackend(BaseBackend):
 
         return alarm
 
-    def describe_alarms(self) -> Iterable[FakeAlarm]:
+    def describe_alarms(self) -> Iterable[Alarm]:
         return self.alarms.values()
 
     @staticmethod
@@ -559,7 +559,7 @@ class CloudWatchBackend(BaseBackend):
                 return True
         return False
 
-    def get_alarms_by_action_prefix(self, action_prefix: str) -> Iterable[FakeAlarm]:
+    def get_alarms_by_action_prefix(self, action_prefix: str) -> Iterable[Alarm]:
         return [
             alarm
             for alarm in self.alarms.values()
@@ -568,17 +568,17 @@ class CloudWatchBackend(BaseBackend):
             )
         ]
 
-    def get_alarms_by_alarm_name_prefix(self, name_prefix: str) -> Iterable[FakeAlarm]:
+    def get_alarms_by_alarm_name_prefix(self, name_prefix: str) -> Iterable[Alarm]:
         return [
             alarm
             for alarm in self.alarms.values()
             if alarm.name.startswith(name_prefix)
         ]
 
-    def get_alarms_by_alarm_names(self, alarm_names: List[str]) -> Iterable[FakeAlarm]:
+    def get_alarms_by_alarm_names(self, alarm_names: List[str]) -> Iterable[Alarm]:
         return [alarm for alarm in self.alarms.values() if alarm.name in alarm_names]
 
-    def get_alarms_by_state_value(self, target_state: str) -> Iterable[FakeAlarm]:
+    def get_alarms_by_state_value(self, target_state: str) -> Iterable[Alarm]:
         return filter(
             lambda alarm: alarm.state_value == target_state, self.alarms.values()
         )
