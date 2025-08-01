@@ -374,7 +374,11 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def groups(self) -> List[Dict[str, str]]:
-        return [{"GroupId": group_id} for group_id in self.security_group_ids]
+        # TODO: Populate GroupName
+        return [
+            {"GroupId": group_id, "GroupName": "TODO"}
+            for group_id in self.security_group_ids
+        ]
 
     def modify(
         self,
