@@ -697,7 +697,6 @@ class EKSBackend(BaseBackend):
     ) -> Tuple[List[Nodegroup], Optional[Nodegroup]]:
         cluster = self.clusters[cluster_name]
         return paginated_list(list(cluster.nodegroups.keys()), max_results, next_token)
-    
 
     def update_cluster_config(
         self,
@@ -705,15 +704,31 @@ class EKSBackend(BaseBackend):
         resources_vpc_config: Dict[str, Any],
         logging: Optional[Dict[str, Any]] = None,
         client_request_token: Optional[str] = None,
-        # access_config: Optional[Dict[str, Any]] = None,
-        # updgrade_policy: Optional[Dict[str, Any]] = None,
-        # zonal_shift_config: Optional[Dict[str, Any]] = None,
-        # compute_config: Optional[Dict[str, Any]] = None,
         kubernetes_network_config: Optional[Dict[str, str]] = None,
-        # storage_config: Optional[Dict[str, Any]] = None,
         remote_network_config: Optional[Dict[str, List[Dict[str, List[str]]]]] = None,
-    ):
-        pass
+    ) -> Cluster:
+        cluster = self.clusters.get(name)
+        if cluster:
+            if resources_vpc_config:
+                self.clusters[name].resources_vpc_config = resources_vpc_config
+            if logging:
+                self.clusters[name].logging = logging
+            if client_request_token:
+                self.clusters[name].client_request_token = client_request_token
+            if kubernetes_network_config:
+                self.clusters[
+                    name
+                ].kubernetes_network_config = kubernetes_network_config
+            if remote_network_config:
+                self.clusters[name].remote_network_config = remote_network_config
+            return cluster
+        raise ResourceNotFoundException(
+            clusterName=name,
+            nodegroupName=None,
+            fargateProfileName=None,
+            addonName=None,
+            message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
+        )
 
 
 def paginated_list(

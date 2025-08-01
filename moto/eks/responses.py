@@ -41,6 +41,7 @@ class EKSResponse(BaseResponse):
             remote_network_config=remote_network_config,
         )
 
+        # TODO: check for return type
         return ActionResult({"cluster": cluster})
 
     def create_fargate_profile(self) -> ActionResult:
@@ -109,6 +110,25 @@ class EKSResponse(BaseResponse):
         name = self._get_param("name")
 
         cluster = self.eks_backend.describe_cluster(name=name)
+
+        return ActionResult({"cluster": cluster})
+
+    def update_cluster_config(self) -> ActionResult:
+        name = self._get_param("name")
+        resources_vpc_config = self._get_param("resourcesVpcConfig")
+        logging = self._get_param("logging")
+        client_request_token = self._get_param("clientRequestToken")
+        kubernetes_network_config = self._get_param("kubernetesNetworkConfig")
+        remote_network_config = self._get_param("remoteNetworkConfig")
+
+        cluster = self.eks_backend.update_cluster_config(
+            name=name,
+            resources_vpc_config=resources_vpc_config,
+            logging=logging,
+            client_request_token=client_request_token,
+            kubernetes_network_config=kubernetes_network_config,
+            remote_network_config=remote_network_config,
+        )
 
         return ActionResult({"cluster": cluster})
 
