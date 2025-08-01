@@ -1270,7 +1270,7 @@ class CloudFormationBackend(BaseBackend):
 
         if logical_resource_id is not None:
             for res in stack.stack_resources:
-                if res.logical_resource_id == logical_resource_id:
+                if res.logical_resource_id == logical_resource_id:  # type: ignore[attr-defined]
                     return stack, [res]
             return stack, []
 
