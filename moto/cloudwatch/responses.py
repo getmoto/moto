@@ -13,9 +13,9 @@ from .exceptions import (
     ValidationError,
 )
 from .models import (
+    Alarm,
     CloudWatchBackend,
     Dimension,
-    FakeAlarm,
     Metric,
     MetricDataQuery,
     MetricStat,
@@ -129,7 +129,7 @@ class CloudWatchResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_alarms(self) -> str:
+    def describe_alarms(self) -> ActionResult:
         action_prefix = self._get_param("ActionPrefix")
         alarm_name_prefix = self._get_param("AlarmNamePrefix")
         alarm_names = self._get_multi_param("AlarmNames.member")
@@ -151,10 +151,8 @@ class CloudWatchResponse(BaseResponse):
         metric_alarms = [a for a in alarms if a.rule is None]
         composite_alarms = [a for a in alarms if a.rule is not None]
 
-        template = self.response_template(DESCRIBE_ALARMS_TEMPLATE)
-        return template.render(
-            metric_alarms=metric_alarms, composite_alarms=composite_alarms
-        )
+        result = {"MetricAlarms": metric_alarms, "CompositeAlarms": composite_alarms}
+        return ActionResult(result)
 
     def delete_alarms(self) -> ActionResult:
         alarm_names = self._get_multi_param("AlarmNames.member")
@@ -242,8 +240,8 @@ class CloudWatchResponse(BaseResponse):
 
     @staticmethod
     def filter_alarms(
-        alarms: Iterable[FakeAlarm], metric_name: str, namespace: str
-    ) -> List[FakeAlarm]:
+        alarms: Iterable[Alarm], metric_name: str, namespace: str
+    ) -> List[Alarm]:
         metric_filtered_alarms = []
 
         for alarm in alarms:
@@ -251,13 +249,13 @@ class CloudWatchResponse(BaseResponse):
                 metric_filtered_alarms.append(alarm)
         return metric_filtered_alarms
 
-    def describe_alarms_for_metric(self) -> str:
+    def describe_alarms_for_metric(self) -> ActionResult:
         alarms = self.cloudwatch_backend.describe_alarms()
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
         filtered_alarms = self.filter_alarms(alarms, metric_name, namespace)
-        template = self.response_template(DESCRIBE_METRIC_ALARMS_TEMPLATE)
-        return template.render(alarms=filtered_alarms)
+        result = {"MetricAlarms": filtered_alarms}
+        return ActionResult(result)
 
     def disable_alarm_actions(self) -> str:
         raise NotImplementedError()
@@ -352,184 +350,3 @@ class CloudWatchResponse(BaseResponse):
         failures = self.cloudwatch_backend.enable_insight_rules(rule_names=names)
         result = {"Failures": failures}
         return ActionResult(result)
-
-
-DESCRIBE_ALARMS_TEMPLATE = """<DescribeAlarmsResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <DescribeAlarmsResult>
-        {% for tag_name, alarms in (('MetricAlarms', metric_alarms), ('CompositeAlarms', composite_alarms)) %}
-        <{{tag_name}}>
-            {% for alarm in alarms %}
-            <member>
-                <ActionsEnabled>{{ "true" if alarm.actions_enabled else "false" }}</ActionsEnabled>
-                <AlarmActions>
-                    {% for action in alarm.alarm_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </AlarmActions>
-                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
-                <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
-                <AlarmDescription>{{ alarm.description or '' }}</AlarmDescription>
-                <AlarmName>{{ alarm.name }}</AlarmName>
-                <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
-                {% if alarm.dimensions is not none %}
-                    <Dimensions>
-                        {% for dimension in alarm.dimensions %}
-                        <member>
-                            <Name>{{ dimension.name }}</Name>
-                            <Value>{{ dimension.value }}</Value>
-                        </member>
-                        {% endfor %}
-                    </Dimensions>
-                {% endif %}
-                <EvaluationPeriods>{{ alarm.evaluation_periods }}</EvaluationPeriods>
-                {% if alarm.datapoints_to_alarm is not none %}
-                <DatapointsToAlarm>{{ alarm.datapoints_to_alarm }}</DatapointsToAlarm>
-                {% endif %}
-                <InsufficientDataActions>
-                    {% for action in alarm.insufficient_data_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </InsufficientDataActions>
-                {% if alarm.metric_name is not none %}
-                <MetricName>{{ alarm.metric_name }}</MetricName>
-                {% endif %}
-                {% if alarm.metric_data_queries is not none %}
-                <Metrics>
-                    {% for metric in alarm.metric_data_queries %}
-                     <member>
-                        <Id>{{ metric.id }}</Id>
-                        {% if metric.label is not none %}
-                        <Label>{{ metric.label }}</Label>
-                        {% endif %}
-                        {% if metric.expression is not none %}
-                        <Expression>{{ metric.expression }}</Expression>
-                        {% endif %}
-                        {% if metric.metric_stat is not none %}
-                        <MetricStat>
-                            <Metric>
-                                <Namespace>{{ metric.metric_stat.metric.namespace }}</Namespace>
-                                <MetricName>{{ metric.metric_stat.metric.metric_name }}</MetricName>
-                                <Dimensions>
-                                {% for dim in metric.metric_stat.metric.dimensions %}
-                                    <member>
-                                        <Name>{{ dim.name }}</Name>
-                                        <Value>{{ dim.value }}</Value>
-                                    </member>
-                                {% endfor %}
-                                </Dimensions>
-                            </Metric>
-                            {% if metric.metric_stat.period is not none %}
-                            <Period>{{ metric.metric_stat.period }}</Period>
-                            {% endif %}
-                            <Stat>{{ metric.metric_stat.stat }}</Stat>
-                            {% if metric.metric_stat.unit is not none %}
-                            <Unit>{{ metric.metric_stat.unit }}</Unit>
-                            {% endif %}
-                        </MetricStat>
-                        {% endif %}
-                        {% if metric.period is not none %}
-                        <Period>{{ metric.period }}</Period>
-                        {% endif %}
-                        <ReturnData>{{ metric.return_data }}</ReturnData>
-                    </member>
-                    {% endfor %}
-                </Metrics>
-                {% endif %}
-                {% if alarm.namespace is not none %}
-                <Namespace>{{ alarm.namespace }}</Namespace>
-                {% endif %}
-                <OKActions>
-                    {% for action in alarm.ok_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </OKActions>
-                {% if alarm.period is not none %}
-                <Period>{{ alarm.period }}</Period>
-                {% endif %}
-                <StateReason>{{ alarm.state_reason }}</StateReason>
-                <StateReasonData>{{ alarm.state_reason_data }}</StateReasonData>
-                <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
-                <StateValue>{{ alarm.state_value }}</StateValue>
-                {% if alarm.statistic is not none %}
-                <Statistic>{{ alarm.statistic }}</Statistic>
-                {% endif %}
-                {% if alarm.extended_statistic is not none %}
-                <ExtendedStatistic>{{ alarm.extended_statistic }}</ExtendedStatistic>
-                {% endif %}
-                {% if alarm.threshold is not none %}
-                <Threshold>{{ alarm.threshold }}</Threshold>
-                {% endif %}
-                {% if alarm.unit is not none %}
-                <Unit>{{ alarm.unit }}</Unit>
-                {% endif %}
-                {% if alarm.treat_missing_data is not none %}
-                <TreatMissingData>{{ alarm.treat_missing_data }}</TreatMissingData>
-                {% endif %}
-                {% if alarm.evaluate_low_sample_count_percentile is not none %}
-                <EvaluateLowSampleCountPercentile>{{ alarm.evaluate_low_sample_count_percentile }}</EvaluateLowSampleCountPercentile>
-                {% endif %}
-                {% if alarm.threshold_metric_id is not none %}
-                <ThresholdMetricId>{{ alarm.threshold_metric_id }}</ThresholdMetricId>
-                {% endif %}
-                {% if alarm.rule is not none %}
-                <AlarmRule>{{ alarm.rule }}</AlarmRule>
-                {% endif %}
-            </member>
-            {% endfor %}
-        </{{tag_name}}>
-        {% endfor %}
-    </DescribeAlarmsResult>
-</DescribeAlarmsResponse>"""
-
-DESCRIBE_METRIC_ALARMS_TEMPLATE = """<DescribeAlarmsForMetricResponse xmlns="http://monitoring.amazonaws.com/doc/2010-08-01/">
-    <DescribeAlarmsForMetricResult>
-        <MetricAlarms>
-            {% for alarm in alarms %}
-            <member>
-                <ActionsEnabled>{{ "true" if alarm.actions_enabled else "false" }}</ActionsEnabled>
-                <AlarmActions>
-                    {% for action in alarm.alarm_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </AlarmActions>
-                <AlarmArn>{{ alarm.alarm_arn }}</AlarmArn>
-                <AlarmConfigurationUpdatedTimestamp>{{ alarm.configuration_updated_timestamp }}</AlarmConfigurationUpdatedTimestamp>
-                <AlarmDescription>{{ alarm.description }}</AlarmDescription>
-                <AlarmName>{{ alarm.name }}</AlarmName>
-                <ComparisonOperator>{{ alarm.comparison_operator }}</ComparisonOperator>
-                <Dimensions>
-                    {% for dimension in alarm.dimensions %}
-                    <member>
-                        <Name>{{ dimension.name }}</Name>
-                        <Value>{{ dimension.value }}</Value>
-                    </member>
-                    {% endfor %}
-                </Dimensions>
-                <EvaluationPeriods>{{ alarm.evaluation_periods }}</EvaluationPeriods>
-                <InsufficientDataActions>
-                    {% for action in alarm.insufficient_data_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </InsufficientDataActions>
-                <MetricName>{{ alarm.metric_name }}</MetricName>
-                <Namespace>{{ alarm.namespace }}</Namespace>
-                <OKActions>
-                    {% for action in alarm.ok_actions %}
-                    <member>{{ action }}</member>
-                    {% endfor %}
-                </OKActions>
-                <Period>{{ alarm.period }}</Period>
-                <StateReason>{{ alarm.state_reason }}</StateReason>
-                <StateReasonData>{{ alarm.state_reason_data }}</StateReasonData>
-                <StateUpdatedTimestamp>{{ alarm.state_updated_timestamp }}</StateUpdatedTimestamp>
-                <StateValue>{{ alarm.state_value }}</StateValue>
-                <Statistic>{{ alarm.statistic }}</Statistic>
-                {% if alarm.threshold is not none %}
-                <Threshold>{{ alarm.threshold }}</Threshold>
-                {% endif %}
-                <Unit>{{ alarm.unit }}</Unit>
-            </member>
-            {% endfor %}
-        </MetricAlarms>
-    </DescribeAlarmsForMetricResult>
-</DescribeAlarmsForMetricResponse>"""
