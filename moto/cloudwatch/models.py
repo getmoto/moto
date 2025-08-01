@@ -7,11 +7,7 @@ from dateutil.tz import tzutc
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import BackendDict, BaseModel, CloudWatchMetricProvider
-from moto.core.utils import (
-    iso_8601_datetime_with_nanoseconds,
-    iso_8601_datetime_without_milliseconds,
-    utcnow,
-)
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 
 from ..utilities.tagging_service import TaggingService
@@ -165,7 +161,7 @@ class Alarm(BaseModel):
         self.ok_actions = ok_actions or []
         self.insufficient_data_actions = insufficient_data_actions or []
         self.unit = unit
-        self.configuration_updated_timestamp = iso_8601_datetime_with_nanoseconds()
+        self.configuration_updated_timestamp = utcnow()
         self.treat_missing_data = treat_missing_data
         self.evaluate_low_sample_count_percentile = evaluate_low_sample_count_percentile
         self.threshold_metric_id = threshold_metric_id
@@ -175,7 +171,7 @@ class Alarm(BaseModel):
         self.state_reason = "Unchecked: Initial alarm creation"
         self.state_reason_data = "{}"
         self.state_value = "OK"
-        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds()
+        self.state_updated_timestamp = utcnow()
 
         # only used for composite alarms
         self.rule = rule
@@ -195,7 +191,7 @@ class Alarm(BaseModel):
         self.state_reason = reason
         self.state_reason_data = reason_data
         self.state_value = state_value
-        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds()
+        self.state_updated_timestamp = utcnow()
 
 
 def are_dimensions_same(
@@ -332,7 +328,7 @@ class Statistics:
     """
 
     def __init__(self, stats: List[str], dt: datetime, unit: Optional[str] = None):
-        self.timestamp: str = iso_8601_datetime_without_milliseconds(dt or utcnow())
+        self.timestamp: datetime = dt or utcnow()
         self.metric_data: List[MetricDatumBase] = []
         self.stats = stats
         self.unit = unit
@@ -701,7 +697,7 @@ class CloudWatchBackend(BaseBackend):
             ]
             unit = metric_stat.get("Unit")
             result_vals: List[SupportsFloat] = []
-            timestamps: List[str] = []
+            timestamps: List[datetime] = []
             stat = metric_stat["Stat"]
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
@@ -779,7 +775,7 @@ class CloudWatchBackend(BaseBackend):
             period_start_time = start_time
             delta = timedelta(seconds=int(query["Period"]))
             result_vals: List[SupportsFloat] = []  # type: ignore[no-redef]
-            timestamps: List[str] = []  # type: ignore[no-redef]
+            timestamps: List[datetime] = []  # type: ignore[no-redef]
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
                 period_md = [
