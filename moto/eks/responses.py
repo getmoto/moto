@@ -41,7 +41,6 @@ class EKSResponse(BaseResponse):
             remote_network_config=remote_network_config,
         )
 
-        # TODO: check for return type
         return ActionResult({"cluster": cluster})
 
     def create_fargate_profile(self) -> ActionResult:

@@ -1434,11 +1434,7 @@ def test_update_cluster_config(ClusterBuilder):
     new_kubernetes_network_config = {"serviceIpv4Cidr": "0.0.0.0"}
     new_remote_network_config = {
         "remoteNodeNetworks": [
-            {
-                "cidrs": [
-                    "test-new-cidrs",
-                ]
-            },
+            {"cidrs": ["test-new-cidrs"]},
         ],
     }
 
