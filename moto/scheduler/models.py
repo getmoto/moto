@@ -1,7 +1,7 @@
 """EventBridgeSchedulerBackend class with methods for supported APIs."""
 
 import datetime
-from typing import Any, Dict, Iterable, List, Optional, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -48,7 +48,8 @@ class Schedule(BaseModel):
         self.start_date = self._validate_start_date(start_date)
         self.end_date = end_date
         self.action_after_completion = action_after_completion
-        self.creation_date = self.last_modified_date = unix_time()
+        self.creation_date = datetime.datetime.now(datetime.timezone.utc).timestamp()
+        self.last_modified_date = self.creation_date
 
     @staticmethod
     def validate_target(target: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
@@ -126,8 +127,12 @@ class ScheduleGroup(BaseModel):
         self.name = name
         self.arn = f"arn:{get_partition(region)}:scheduler:{region}:{account_id}:schedule-group/{name}"
         self.schedules: Dict[str, Schedule] = dict()
-        self.created_on = None if self.name == "default" else unix_time()
-        self.last_modified = None if self.name == "default" else unix_time()
+        self.creation_date = (
+            None
+            if name == "default"
+            else datetime.datetime.now(datetime.timezone.utc).timestamp()
+        )
+        self.last_modified = self.creation_date
 
     def add_schedule(self, schedule: Schedule) -> None:
         self.schedules[schedule.name] = schedule
@@ -145,10 +150,10 @@ class ScheduleGroup(BaseModel):
     def to_dict(self) -> Dict[str, Any]:
         return {
             "Arn": self.arn,
-            "CreationDate": self.created_on,
+            "CreationDate": self.creation_date,
             "LastModificationDate": self.last_modified,
             "Name": self.name,
-            "State": "ACTIVE",
+            "State": "ACTIVE",  # Schedule groups are always ACTIVE
         }
 
 
@@ -245,18 +250,32 @@ class EventBridgeSchedulerBackend(BaseBackend):
         return schedule
 
     def list_schedules(
-        self, group_names: Optional[str], state: Optional[str]
-    ) -> Iterable[Schedule]:
+        self,
+        group_names: Optional[str],
+        state: Optional[str],
+        name_prefix: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> Tuple[List[Schedule], Optional[str]]:
         """
-        The following parameters are not yet implemented: MaxResults, NamePrefix, NextToken
+        Returns a tuple of (schedules, next_token)
         """
         results = []
         for group in self.schedule_groups.values():
             if not group_names or group.name in group_names:
                 for schedule in group.schedules.values():
                     if not state or schedule.state == state:
-                        results.append(schedule)
-        return results
+                        if not name_prefix or schedule.name.startswith(name_prefix):
+                            results.append(schedule)
+
+        # Sort by creation date, newest first
+        results.sort(key=lambda x: x.creation_date, reverse=True)
+
+        if max_results and len(results) > max_results:
+            next_token = f"next-token-{len(results)-max_results}"
+            results = results[:max_results]
+            return results, next_token
+
+        return results, None
 
     def create_schedule_group(
         self, name: str, tags: List[Dict[str, str]]
@@ -276,11 +295,36 @@ class EventBridgeSchedulerBackend(BaseBackend):
             raise ScheduleGroupNotFound(group_name or "default")
         return self.schedule_groups[group_name or "default"]
 
-    def list_schedule_groups(self) -> Iterable[ScheduleGroup]:
+    def list_schedule_groups(
+        self,
+        name_prefix: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> Tuple[List[ScheduleGroup], Optional[str]]:
         """
-        The MaxResults-parameter and pagination options are not yet implemented
+        Returns a tuple of (schedule_groups, next_token)
         """
-        return self.schedule_groups.values()
+        results = []
+        for group in self.schedule_groups.values():
+            if not name_prefix or group.name.startswith(name_prefix):
+                results.append(group)
+
+        # Sort by:
+        # 1. Default group first
+        # 2. Then by creation date, newest first
+        results.sort(
+            key=lambda x: (
+                x.name != "default",  # False (default) comes before True (non-default)
+                -1
+                * (x.creation_date or 0),  # Sort by creation date desc, handling None
+            )
+        )
+
+        if max_results and len(results) > max_results:
+            next_token = f"next-token-{len(results)-max_results}"
+            results = results[:max_results]
+            return results, next_token
+
+        return results, None
 
     def delete_schedule_group(self, name: Optional[str]) -> None:
         self.schedule_groups.pop(name or "default")
