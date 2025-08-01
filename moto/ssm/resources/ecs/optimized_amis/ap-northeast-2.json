@@ -5618,6 +5618,42 @@
                 "Value": "amzn2-ami-minimal-hvm-2.0.20240719.0-x86_64-ebs"
               }
             },
+            "ami-03b9cd0b195ee6142": {
+              "Value": {
+                "ecs_agent_version": "1.95.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-03b9cd0b195ee6142",
+                "image_name": "amzn2-ami-ecs-hvm-2.0.20250714-x86_64-ebs",
+                "image_version": "2.0.20250714",
+                "os": "Amazon Linux 2",
+                "schema_version": 1,
+                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+              },
+              "ecs_agent_version": {
+                "Value": "1.95.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-03b9cd0b195ee6142"
+              },
+              "image_name": {
+                "Value": "amzn2-ami-ecs-hvm-2.0.20250714-x86_64-ebs"
+              },
+              "image_version": {
+                "Value": "2.0.20250714"
+              },
+              "os": {
+                "Value": "Amazon Linux 2"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+              }
+            },
             "ami-03bd90cb269e7a1df": {
               "Value": {
                 "ecs_agent_version": "1.85.1",
@@ -8210,6 +8246,42 @@
                 "Value": "amzn2-ami-minimal-hvm-2.0.20220805.0-x86_64-ebs"
               }
             },
+            "ami-0d5a43ded8d8629d0": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-0d5a43ded8d8629d0",
+                "image_name": "amzn2-ami-ecs-hvm-2.0.20250716-x86_64-ebs",
+                "image_version": "2.0.20250716",
+                "os": "Amazon Linux 2",
+                "schema_version": 1,
+                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-0d5a43ded8d8629d0"
+              },
+              "image_name": {
+                "Value": "amzn2-ami-ecs-hvm-2.0.20250716-x86_64-ebs"
+              },
+              "image_version": {
+                "Value": "2.0.20250716"
+              },
+              "os": {
+                "Value": "Amazon Linux 2"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+              }
+            },
             "ami-0d77b2fba3628df46": {
               "Value": {
                 "ecs_agent_version": "1.76.0",
@@ -8820,6 +8892,42 @@
               },
               "source_image_name": {
                 "Value": "amzn2-ami-minimal-hvm-2.0.20220406.1-x86_64-ebs"
+              }
+            },
+            "ami-0f1dae65742bbf0d3": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-0f1dae65742bbf0d3",
+                "image_name": "amzn2-ami-ecs-hvm-2.0.20250725-x86_64-ebs",
+                "image_version": "2.0.20250725",
+                "os": "Amazon Linux 2",
+                "schema_version": 1,
+                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-0f1dae65742bbf0d3"
+              },
+              "image_name": {
+                "Value": "amzn2-ami-ecs-hvm-2.0.20250725-x86_64-ebs"
+              },
+              "image_version": {
+                "Value": "2.0.20250725"
+              },
+              "os": {
+                "Value": "Amazon Linux 2"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
               }
             },
             "ami-0f33f44b1f8e92c92": {
@@ -15798,6 +15906,114 @@
                 "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
               }
             },
+            "amzn2-ami-ecs-hvm-2.0.20250714-x86_64-ebs": {
+              "Value": {
+                "ecs_agent_version": "1.95.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-03b9cd0b195ee6142",
+                "image_name": "amzn2-ami-ecs-hvm-2.0.20250714-x86_64-ebs",
+                "image_version": "2.0.20250714",
+                "os": "Amazon Linux 2",
+                "schema_version": 1,
+                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+              },
+              "ecs_agent_version": {
+                "Value": "1.95.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-03b9cd0b195ee6142"
+              },
+              "image_name": {
+                "Value": "amzn2-ami-ecs-hvm-2.0.20250714-x86_64-ebs"
+              },
+              "image_version": {
+                "Value": "2.0.20250714"
+              },
+              "os": {
+                "Value": "Amazon Linux 2"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+              }
+            },
+            "amzn2-ami-ecs-hvm-2.0.20250716-x86_64-ebs": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-0d5a43ded8d8629d0",
+                "image_name": "amzn2-ami-ecs-hvm-2.0.20250716-x86_64-ebs",
+                "image_version": "2.0.20250716",
+                "os": "Amazon Linux 2",
+                "schema_version": 1,
+                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-0d5a43ded8d8629d0"
+              },
+              "image_name": {
+                "Value": "amzn2-ami-ecs-hvm-2.0.20250716-x86_64-ebs"
+              },
+              "image_version": {
+                "Value": "2.0.20250716"
+              },
+              "os": {
+                "Value": "Amazon Linux 2"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+              }
+            },
+            "amzn2-ami-ecs-hvm-2.0.20250725-x86_64-ebs": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-0f1dae65742bbf0d3",
+                "image_name": "amzn2-ami-ecs-hvm-2.0.20250725-x86_64-ebs",
+                "image_version": "2.0.20250725",
+                "os": "Amazon Linux 2",
+                "schema_version": 1,
+                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-0f1dae65742bbf0d3"
+              },
+              "image_name": {
+                "Value": "amzn2-ami-ecs-hvm-2.0.20250725-x86_64-ebs"
+              },
+              "image_version": {
+                "Value": "2.0.20250725"
+              },
+              "os": {
+                "Value": "Amazon Linux 2"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+              }
+            },
             "arm64": {
               "ami-000bf73c4703e6d58": {
                 "Value": {
@@ -16157,6 +16373,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250220.0-arm64-ebs"
+                }
+              },
+              "ami-01b9d581ef8f47773": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-01b9d581ef8f47773",
+                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250716-arm64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-01b9d581ef8f47773"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-hvm-2.0.20250716-arm64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
                 }
               },
               "ami-01de5c44e960e394b": {
@@ -17453,6 +17705,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20220218.1-arm64-ebs"
+                }
+              },
+              "ami-0705e0e61a9091158": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0705e0e61a9091158",
+                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250714-arm64-ebs",
+                  "image_version": "2.0.20250714",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0705e0e61a9091158"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-hvm-2.0.20250714-arm64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
                 }
               },
               "ami-072aa43147d9e74fc": {
@@ -19145,6 +19433,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20230926.0-arm64-ebs"
+                }
+              },
+              "ami-0c98d155853eb663e": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0c98d155853eb663e",
+                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250725-arm64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0c98d155853eb663e"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-hvm-2.0.20250725-arm64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
                 }
               },
               "ami-0cd4d0e7d34c39812": {
@@ -25459,13 +25783,13 @@
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
                 }
               },
-              "recommended": {
+              "amzn2-ami-ecs-hvm-2.0.20250714-arm64-ebs": {
                 "Value": {
                   "ecs_agent_version": "1.95.0",
                   "ecs_runtime_version": "Docker version 25.0.8",
-                  "image_id": "ami-0eb37b4d5ab82615c",
-                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250626-arm64-ebs",
-                  "image_version": "2.0.20250626",
+                  "image_id": "ami-0705e0e61a9091158",
+                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250714-arm64-ebs",
+                  "image_version": "2.0.20250714",
                   "os": "Amazon Linux 2",
                   "schema_version": 1,
                   "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
@@ -25477,13 +25801,13 @@
                   "Value": "Docker version 25.0.8"
                 },
                 "image_id": {
-                  "Value": "ami-0eb37b4d5ab82615c"
+                  "Value": "ami-0705e0e61a9091158"
                 },
                 "image_name": {
-                  "Value": "amzn2-ami-ecs-hvm-2.0.20250626-arm64-ebs"
+                  "Value": "amzn2-ami-ecs-hvm-2.0.20250714-arm64-ebs"
                 },
                 "image_version": {
-                  "Value": "2.0.20250626"
+                  "Value": "2.0.20250714"
                 },
                 "os": {
                   "Value": "Amazon Linux 2"
@@ -25493,6 +25817,114 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-hvm-2.0.20250716-arm64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-01b9d581ef8f47773",
+                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250716-arm64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-01b9d581ef8f47773"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-hvm-2.0.20250716-arm64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-hvm-2.0.20250725-arm64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0c98d155853eb663e",
+                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250725-arm64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0c98d155853eb663e"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-hvm-2.0.20250725-arm64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                }
+              },
+              "recommended": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0c98d155853eb663e",
+                  "image_name": "amzn2-ami-ecs-hvm-2.0.20250725-arm64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0c98d155853eb663e"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-hvm-2.0.20250725-arm64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
                 }
               }
             },
@@ -25567,6 +25999,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20240620.0-x86_64-ebs"
+                }
+              },
+              "ami-002826a9f986998fc": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-002826a9f986998fc",
+                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-002826a9f986998fc"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                 }
               },
               "ami-002db8a00f6dc424a": {
@@ -27441,6 +27909,42 @@
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250116.0-x86_64-ebs"
                 }
               },
+              "ami-0605f32c49f59c692": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0605f32c49f59c692",
+                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250716-x86_64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0605f32c49f59c692"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250716-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                }
+              },
               "ami-060e967974059c62a": {
                 "Value": {
                   "ecs_agent_version": "1.93.1",
@@ -27547,6 +28051,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250321.0-x86_64-ebs"
+                }
+              },
+              "ami-061ee6b533d51b466": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-061ee6b533d51b466",
+                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250714-x86_64-ebs",
+                  "image_version": "2.0.20250714",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-061ee6b533d51b466"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250714-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                 }
               },
               "ami-065a1345d47eefde5": {
@@ -36557,13 +37097,13 @@
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                 }
               },
-              "recommended": {
+              "amzn2-ami-ecs-gpu-hvm-2.0.20250714-x86_64-ebs": {
                 "Value": {
                   "ecs_agent_version": "1.95.0",
                   "ecs_runtime_version": "Docker version 25.0.8",
-                  "image_id": "ami-029ba4777a3738d7c",
-                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250626-x86_64-ebs",
-                  "image_version": "2.0.20250626",
+                  "image_id": "ami-061ee6b533d51b466",
+                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250714-x86_64-ebs",
+                  "image_version": "2.0.20250714",
                   "os": "Amazon Linux 2",
                   "schema_version": 1,
                   "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
@@ -36575,13 +37115,13 @@
                   "Value": "Docker version 25.0.8"
                 },
                 "image_id": {
-                  "Value": "ami-029ba4777a3738d7c"
+                  "Value": "ami-061ee6b533d51b466"
                 },
                 "image_name": {
-                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250626-x86_64-ebs"
+                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250714-x86_64-ebs"
                 },
                 "image_version": {
-                  "Value": "2.0.20250626"
+                  "Value": "2.0.20250714"
                 },
                 "os": {
                   "Value": "Amazon Linux 2"
@@ -36591,6 +37131,114 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-gpu-hvm-2.0.20250716-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0605f32c49f59c692",
+                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250716-x86_64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0605f32c49f59c692"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250716-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-gpu-hvm-2.0.20250725-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-002826a9f986998fc",
+                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-002826a9f986998fc"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                }
+              },
+              "recommended": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-002826a9f986998fc",
+                  "image_name": "amzn2-ami-ecs-gpu-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-002826a9f986998fc"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-gpu-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                 }
               }
             },
@@ -39511,6 +40159,42 @@
                   "Value": "amzn2-ami-minimal-hvm-2.0.20240816.0-x86_64-ebs"
                 }
               },
+              "ami-0b10ac7cd0309f623": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0b10ac7cd0309f623",
+                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0b10ac7cd0309f623"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                }
+              },
               "ami-0b1ce49d081c1316d": {
                 "Value": {
                   "ecs_agent_version": "1.84.0",
@@ -39869,6 +40553,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20221210.1-x86_64-ebs"
+                }
+              },
+              "ami-0c532f85065010512": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0c532f85065010512",
+                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250714-x86_64-ebs",
+                  "image_version": "2.0.20250714",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0c532f85065010512"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250714-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                 }
               },
               "ami-0c543352388ae05e2": {
@@ -40445,6 +41165,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20230404.1-x86_64-ebs"
+                }
+              },
+              "ami-0e1f9c7a37cda52e0": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0e1f9c7a37cda52e0",
+                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250716-x86_64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0e1f9c7a37cda52e0"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250716-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
                 }
               },
               "ami-0e3269abd0974fb62": {
@@ -46099,13 +46855,13 @@
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                 }
               },
-              "recommended": {
+              "amzn2-ami-ecs-inf-hvm-2.0.20250714-x86_64-ebs": {
                 "Value": {
                   "ecs_agent_version": "1.95.0",
                   "ecs_runtime_version": "Docker version 25.0.8",
-                  "image_id": "ami-081a119afc4bf6343",
-                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250626-x86_64-ebs",
-                  "image_version": "2.0.20250626",
+                  "image_id": "ami-0c532f85065010512",
+                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250714-x86_64-ebs",
+                  "image_version": "2.0.20250714",
                   "os": "Amazon Linux 2",
                   "schema_version": 1,
                   "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
@@ -46117,13 +46873,13 @@
                   "Value": "Docker version 25.0.8"
                 },
                 "image_id": {
-                  "Value": "ami-081a119afc4bf6343"
+                  "Value": "ami-0c532f85065010512"
                 },
                 "image_name": {
-                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250626-x86_64-ebs"
+                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250714-x86_64-ebs"
                 },
                 "image_version": {
-                  "Value": "2.0.20250626"
+                  "Value": "2.0.20250714"
                 },
                 "os": {
                   "Value": "Amazon Linux 2"
@@ -46133,6 +46889,114 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-inf-hvm-2.0.20250716-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0e1f9c7a37cda52e0",
+                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250716-x86_64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0e1f9c7a37cda52e0"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250716-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-inf-hvm-2.0.20250725-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0b10ac7cd0309f623",
+                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0b10ac7cd0309f623"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                }
+              },
+              "recommended": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0b10ac7cd0309f623",
+                  "image_name": "amzn2-ami-ecs-inf-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0b10ac7cd0309f623"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-inf-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                 }
               }
             },
@@ -46495,6 +47359,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20230418.0-x86_64-ebs"
+                }
+              },
+              "ami-024bef860eee7024b": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-024bef860eee7024b",
+                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-x86_64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-024bef860eee7024b"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
                 }
               },
               "ami-02596a1e0c9c599ec": {
@@ -47179,6 +48079,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250305.0-x86_64-ebs"
+                }
+              },
+              "ami-0447f71c98e4866ae": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0447f71c98e4866ae",
+                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-x86_64-ebs",
+                  "image_version": "2.0.20250714",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0447f71c98e4866ae"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                 }
               },
               "ami-04981be781d396650": {
@@ -48151,6 +49087,42 @@
                 },
                 "source_image_name": {
                   "Value": "amzn2-ami-minimal-hvm-2.0.20230628.0-x86_64-ebs"
+                }
+              },
+              "ami-09795027991c53f19": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-09795027991c53f19",
+                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-09795027991c53f19"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                 }
               },
               "ami-098f7c4f13cd398c9": {
@@ -53337,6 +54309,114 @@
                   "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                 }
               },
+              "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0447f71c98e4866ae",
+                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-x86_64-ebs",
+                  "image_version": "2.0.20250714",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0447f71c98e4866ae"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-024bef860eee7024b",
+                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-x86_64-ebs",
+                  "image_version": "2.0.20250716",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-024bef860eee7024b"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                }
+              },
+              "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-09795027991c53f19",
+                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
+                  "os": "Amazon Linux 2",
+                  "schema_version": 1,
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-09795027991c53f19"
+                },
+                "image_name": {
+                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                }
+              },
               "arm64": {
                 "ami-004a6c62ad4fb47df": {
                   "Value": {
@@ -54310,6 +55390,42 @@
                     "Value": "amzn2-ami-minimal-hvm-2.0.20240903.0-arm64-ebs"
                   }
                 },
+                "ami-039068e710359b84b": {
+                  "Value": {
+                    "ecs_agent_version": "1.95.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-039068e710359b84b",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-arm64-ebs",
+                    "image_version": "2.0.20250714",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.95.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-039068e710359b84b"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-arm64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250714"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
+                  }
+                },
                 "ami-039c6bbeb11ee54d0": {
                   "Value": {
                     "ecs_agent_version": "1.79.0",
@@ -55174,6 +56290,42 @@
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250305.0-arm64-ebs"
                   }
                 },
+                "ami-06a994340ae9ed090": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-06a994340ae9ed090",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-arm64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-06a994340ae9ed090"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-arm64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                  }
+                },
                 "ami-06b2362465f4f13ef": {
                   "Value": {
                     "ecs_agent_version": "1.68.0",
@@ -55676,6 +56828,42 @@
                   },
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20240809.0-arm64-ebs"
+                  }
+                },
+                "ami-09a2d752b05bf42c3": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-09a2d752b05bf42c3",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-arm64-ebs",
+                    "image_version": "2.0.20250716",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-09a2d752b05bf42c3"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-arm64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250716"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
                   }
                 },
                 "ami-09f89114f78cc8261": {
@@ -60538,13 +61726,13 @@
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
                   }
                 },
-                "recommended": {
+                "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-arm64-ebs": {
                   "Value": {
                     "ecs_agent_version": "1.95.0",
                     "ecs_runtime_version": "Docker version 25.0.8",
-                    "image_id": "ami-0221a8011239931b3",
-                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250626-arm64-ebs",
-                    "image_version": "2.0.20250626",
+                    "image_id": "ami-039068e710359b84b",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-arm64-ebs",
+                    "image_version": "2.0.20250714",
                     "os": "Amazon Linux 2",
                     "schema_version": 1,
                     "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
@@ -60556,13 +61744,13 @@
                     "Value": "Docker version 25.0.8"
                   },
                   "image_id": {
-                    "Value": "ami-0221a8011239931b3"
+                    "Value": "ami-039068e710359b84b"
                   },
                   "image_name": {
-                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250626-arm64-ebs"
+                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250714-arm64-ebs"
                   },
                   "image_version": {
-                    "Value": "2.0.20250626"
+                    "Value": "2.0.20250714"
                   },
                   "os": {
                     "Value": "Amazon Linux 2"
@@ -60572,6 +61760,114 @@
                   },
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-arm64-ebs"
+                  }
+                },
+                "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-arm64-ebs": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-09a2d752b05bf42c3",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-arm64-ebs",
+                    "image_version": "2.0.20250716",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-09a2d752b05bf42c3"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250716-arm64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250716"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-arm64-ebs"
+                  }
+                },
+                "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-arm64-ebs": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-06a994340ae9ed090",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-arm64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-06a994340ae9ed090"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-arm64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                  }
+                },
+                "recommended": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-06a994340ae9ed090",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-arm64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-06a994340ae9ed090"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-arm64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-arm64-ebs"
                   }
                 }
               },
@@ -60970,6 +62266,42 @@
                   },
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250201.0-x86_64-ebs"
+                  }
+                },
+                "ami-02be4c87f1ad319a1": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-02be4c87f1ad319a1",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250716-x86_64-ebs",
+                    "image_version": "2.0.20250716",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-02be4c87f1ad319a1"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250716-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250716"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
                   }
                 },
                 "ami-02d454663323381eb": {
@@ -62844,6 +64176,42 @@
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250610.0-x86_64-ebs"
                   }
                 },
+                "ami-0f7f71e32c501492d": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-0f7f71e32c501492d",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250725-x86_64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-0f7f71e32c501492d"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250725-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  }
+                },
                 "ami-0f964e20e7c9cde23": {
                   "Value": {
                     "ecs_agent_version": "1.86.3",
@@ -62914,6 +64282,42 @@
                   },
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20240916.0-x86_64-ebs"
+                  }
+                },
+                "ami-0fb35d01b6e8345b4": {
+                  "Value": {
+                    "ecs_agent_version": "1.95.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-0fb35d01b6e8345b4",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250714-x86_64-ebs",
+                    "image_version": "2.0.20250714",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.95.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-0fb35d01b6e8345b4"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250714-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250714"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                   }
                 },
                 "ami-0fbbad33647f350df": {
@@ -65328,13 +66732,13 @@
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                   }
                 },
-                "recommended": {
+                "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250714-x86_64-ebs": {
                   "Value": {
                     "ecs_agent_version": "1.95.0",
                     "ecs_runtime_version": "Docker version 25.0.8",
-                    "image_id": "ami-0d38ac74ca0fa9fa3",
-                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250626-x86_64-ebs",
-                    "image_version": "2.0.20250626",
+                    "image_id": "ami-0fb35d01b6e8345b4",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250714-x86_64-ebs",
+                    "image_version": "2.0.20250714",
                     "os": "Amazon Linux 2",
                     "schema_version": 1,
                     "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
@@ -65346,13 +66750,13 @@
                     "Value": "Docker version 25.0.8"
                   },
                   "image_id": {
-                    "Value": "ami-0d38ac74ca0fa9fa3"
+                    "Value": "ami-0fb35d01b6e8345b4"
                   },
                   "image_name": {
-                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250626-x86_64-ebs"
+                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250714-x86_64-ebs"
                   },
                   "image_version": {
-                    "Value": "2.0.20250626"
+                    "Value": "2.0.20250714"
                   },
                   "os": {
                     "Value": "Amazon Linux 2"
@@ -65362,6 +66766,114 @@
                   },
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                  }
+                },
+                "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250716-x86_64-ebs": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-02be4c87f1ad319a1",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250716-x86_64-ebs",
+                    "image_version": "2.0.20250716",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-02be4c87f1ad319a1"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250716-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250716"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                  }
+                },
+                "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250725-x86_64-ebs": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-0f7f71e32c501492d",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250725-x86_64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-0f7f71e32c501492d"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250725-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  }
+                },
+                "recommended": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-0f7f71e32c501492d",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250725-x86_64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-0f7f71e32c501492d"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-gpu-hvm-2.0.20250725-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                   }
                 }
               },
@@ -65508,6 +67020,42 @@
                   },
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250305.0-x86_64-ebs"
+                  }
+                },
+                "ami-010b0772137b30173": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-010b0772137b30173",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250725-x86_64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-010b0772137b30173"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250725-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                   }
                 },
                 "ami-0112ab5bb3a206c39": {
@@ -66374,6 +67922,42 @@
                     "Value": "amzn2-ami-minimal-hvm-2.0.20240903.0-x86_64-ebs"
                   }
                 },
+                "ami-071c3a538d91b9841": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-071c3a538d91b9841",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250716-x86_64-ebs",
+                    "image_version": "2.0.20250716",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-071c3a538d91b9841"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250716-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250716"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                  }
+                },
                 "ami-0723ea30e056135ab": {
                   "Value": {
                     "ecs_agent_version": "1.83.0",
@@ -67200,6 +68784,42 @@
                   },
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20240329.0-x86_64-ebs"
+                  }
+                },
+                "ami-0b93004af10724a5e": {
+                  "Value": {
+                    "ecs_agent_version": "1.95.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-0b93004af10724a5e",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250714-x86_64-ebs",
+                    "image_version": "2.0.20250714",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.95.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-0b93004af10724a5e"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250714-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250714"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                   }
                 },
                 "ami-0bd4046567c7ff5d5": {
@@ -70118,13 +71738,13 @@
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                   }
                 },
-                "recommended": {
+                "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250714-x86_64-ebs": {
                   "Value": {
                     "ecs_agent_version": "1.95.0",
                     "ecs_runtime_version": "Docker version 25.0.8",
-                    "image_id": "ami-0136fedcd5fcbd435",
-                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250626-x86_64-ebs",
-                    "image_version": "2.0.20250626",
+                    "image_id": "ami-0b93004af10724a5e",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250714-x86_64-ebs",
+                    "image_version": "2.0.20250714",
                     "os": "Amazon Linux 2",
                     "schema_version": 1,
                     "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
@@ -70136,13 +71756,13 @@
                     "Value": "Docker version 25.0.8"
                   },
                   "image_id": {
-                    "Value": "ami-0136fedcd5fcbd435"
+                    "Value": "ami-0b93004af10724a5e"
                   },
                   "image_name": {
-                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250626-x86_64-ebs"
+                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250714-x86_64-ebs"
                   },
                   "image_version": {
-                    "Value": "2.0.20250626"
+                    "Value": "2.0.20250714"
                   },
                   "os": {
                     "Value": "Amazon Linux 2"
@@ -70153,33 +71773,141 @@
                   "source_image_name": {
                     "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
                   }
+                },
+                "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250716-x86_64-ebs": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-071c3a538d91b9841",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250716-x86_64-ebs",
+                    "image_version": "2.0.20250716",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-071c3a538d91b9841"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250716-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250716"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250707.0-x86_64-ebs"
+                  }
+                },
+                "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250725-x86_64-ebs": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-010b0772137b30173",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250725-x86_64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-010b0772137b30173"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250725-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  }
+                },
+                "recommended": {
+                  "Value": {
+                    "ecs_agent_version": "1.96.0",
+                    "ecs_runtime_version": "Docker version 25.0.8",
+                    "image_id": "ami-010b0772137b30173",
+                    "image_name": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250725-x86_64-ebs",
+                    "image_version": "2.0.20250725",
+                    "os": "Amazon Linux 2",
+                    "schema_version": 1,
+                    "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  },
+                  "ecs_agent_version": {
+                    "Value": "1.96.0"
+                  },
+                  "ecs_runtime_version": {
+                    "Value": "Docker version 25.0.8"
+                  },
+                  "image_id": {
+                    "Value": "ami-010b0772137b30173"
+                  },
+                  "image_name": {
+                    "Value": "amzn2-ami-ecs-kernel-5.10-inf-hvm-2.0.20250725-x86_64-ebs"
+                  },
+                  "image_version": {
+                    "Value": "2.0.20250725"
+                  },
+                  "os": {
+                    "Value": "Amazon Linux 2"
+                  },
+                  "schema_version": {
+                    "Value": "1"
+                  },
+                  "source_image_name": {
+                    "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
+                  }
                 }
               },
               "recommended": {
                 "Value": {
-                  "ecs_agent_version": "1.95.0",
+                  "ecs_agent_version": "1.96.0",
                   "ecs_runtime_version": "Docker version 25.0.8",
-                  "image_id": "ami-03b7515d95d8ce345",
-                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250626-x86_64-ebs",
-                  "image_version": "2.0.20250626",
+                  "image_id": "ami-09795027991c53f19",
+                  "image_name": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-x86_64-ebs",
+                  "image_version": "2.0.20250725",
                   "os": "Amazon Linux 2",
                   "schema_version": 1,
-                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                  "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                 },
                 "ecs_agent_version": {
-                  "Value": "1.95.0"
+                  "Value": "1.96.0"
                 },
                 "ecs_runtime_version": {
                   "Value": "Docker version 25.0.8"
                 },
                 "image_id": {
-                  "Value": "ami-03b7515d95d8ce345"
+                  "Value": "ami-09795027991c53f19"
                 },
                 "image_name": {
-                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250626-x86_64-ebs"
+                  "Value": "amzn2-ami-ecs-kernel-5.10-hvm-2.0.20250725-x86_64-ebs"
                 },
                 "image_version": {
-                  "Value": "2.0.20250626"
+                  "Value": "2.0.20250725"
                 },
                 "os": {
                   "Value": "Amazon Linux 2"
@@ -70188,35 +71916,35 @@
                   "Value": "1"
                 },
                 "source_image_name": {
-                  "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                  "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
                 }
               }
             },
             "recommended": {
               "Value": {
-                "ecs_agent_version": "1.95.0",
+                "ecs_agent_version": "1.96.0",
                 "ecs_runtime_version": "Docker version 25.0.8",
-                "image_id": "ami-0dfe80c71e294b99a",
-                "image_name": "amzn2-ami-ecs-hvm-2.0.20250626-x86_64-ebs",
-                "image_version": "2.0.20250626",
+                "image_id": "ami-0f1dae65742bbf0d3",
+                "image_name": "amzn2-ami-ecs-hvm-2.0.20250725-x86_64-ebs",
+                "image_version": "2.0.20250725",
                 "os": "Amazon Linux 2",
                 "schema_version": 1,
-                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                "source_image_name": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
               },
               "ecs_agent_version": {
-                "Value": "1.95.0"
+                "Value": "1.96.0"
               },
               "ecs_runtime_version": {
                 "Value": "Docker version 25.0.8"
               },
               "image_id": {
-                "Value": "ami-0dfe80c71e294b99a"
+                "Value": "ami-0f1dae65742bbf0d3"
               },
               "image_name": {
-                "Value": "amzn2-ami-ecs-hvm-2.0.20250626-x86_64-ebs"
+                "Value": "amzn2-ami-ecs-hvm-2.0.20250725-x86_64-ebs"
               },
               "image_version": {
-                "Value": "2.0.20250626"
+                "Value": "2.0.20250725"
               },
               "os": {
                 "Value": "Amazon Linux 2"
@@ -70225,7 +71953,7 @@
                 "Value": "1"
               },
               "source_image_name": {
-                "Value": "amzn2-ami-minimal-hvm-2.0.20250623.0-x86_64-ebs"
+                "Value": "amzn2-ami-minimal-hvm-2.0.20250721.2-x86_64-ebs"
               }
             }
           },
@@ -75276,6 +77004,150 @@
                 "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
               }
             },
+            "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-x86_64": {
+              "Value": {
+                "ecs_agent_version": "1.95.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-0a4552b38d766c9a6",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250714",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.95.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-0a4552b38d766c9a6"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250714"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+              }
+            },
+            "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-x86_64": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-030680c54347ce7ad",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250716",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-030680c54347ce7ad"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250716"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+              }
+            },
+            "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-x86_64": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-08135a8d6a292632d",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250721",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-08135a8d6a292632d"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250721"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+              }
+            },
+            "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-x86_64": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-02f98c577b220a5c9",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250725",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-02f98c577b220a5c9"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250725"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+              }
+            },
             "ami-000ac8f82a24f167c": {
               "Value": {
                 "ecs_agent_version": "1.81.0",
@@ -76102,6 +77974,78 @@
               },
               "source_image_name": {
                 "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
+              }
+            },
+            "ami-02f98c577b220a5c9": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-02f98c577b220a5c9",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250725",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-02f98c577b220a5c9"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250725"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+              }
+            },
+            "ami-030680c54347ce7ad": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-030680c54347ce7ad",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250716",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-030680c54347ce7ad"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250716"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
               }
             },
             "ami-0308297ba71025b4d": {
@@ -77004,6 +78948,42 @@
                 "Value": "al2023-ami-minimal-2023.1.20230825.0-kernel-6.1-x86_64"
               }
             },
+            "ami-08135a8d6a292632d": {
+              "Value": {
+                "ecs_agent_version": "1.96.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-08135a8d6a292632d",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250721",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.96.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-08135a8d6a292632d"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250721"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+              }
+            },
             "ami-0829fb1c814627ed4": {
               "Value": {
                 "ecs_agent_version": "1.83.0",
@@ -77578,6 +79558,42 @@
               },
               "source_image_name": {
                 "Value": "al2023-ami-minimal-2023.6.20241212.0-kernel-6.1-x86_64"
+              }
+            },
+            "ami-0a4552b38d766c9a6": {
+              "Value": {
+                "ecs_agent_version": "1.95.0",
+                "ecs_runtime_version": "Docker version 25.0.8",
+                "image_id": "ami-0a4552b38d766c9a6",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250714",
+                "os": "Amazon Linux 2023",
+                "schema_version": 1,
+                "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+              },
+              "ecs_agent_version": {
+                "Value": "1.95.0"
+              },
+              "ecs_runtime_version": {
+                "Value": "Docker version 25.0.8"
+              },
+              "image_id": {
+                "Value": "ami-0a4552b38d766c9a6"
+              },
+              "image_name": {
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-x86_64"
+              },
+              "image_version": {
+                "Value": "2023.0.20250714"
+              },
+              "os": {
+                "Value": "Amazon Linux 2023"
+              },
+              "schema_version": {
+                "Value": "1"
+              },
+              "source_image_name": {
+                "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
               }
             },
             "ami-0a47e14c66693cbcd": {
@@ -81541,6 +83557,186 @@
                   "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-arm64"
                 }
               },
+              "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-arm64": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-002c0e732207c72dc",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250714",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-002c0e732207c72dc"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                }
+              },
+              "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-arm64": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-037b104e4f2fcf9b8",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250716",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-037b104e4f2fcf9b8"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                }
+              },
+              "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-arm64": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-05581c762eda39f6f",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250721",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-05581c762eda39f6f"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250721"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-arm64"
+                }
+              },
+              "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-arm64": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0aa335e518bf41e99",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250725",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0aa335e518bf41e99"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-arm64"
+                }
+              },
+              "ami-002c0e732207c72dc": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-002c0e732207c72dc",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250714",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-002c0e732207c72dc"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250714-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                }
+              },
               "ami-00fd59451ffa03da2": {
                 "Value": {
                   "ecs_agent_version": "1.84.0",
@@ -82153,6 +84349,42 @@
                   "Value": "al2023-ami-minimal-2023.0.20230607.0-kernel-6.1-arm64"
                 }
               },
+              "ami-037b104e4f2fcf9b8": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-037b104e4f2fcf9b8",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250716",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-037b104e4f2fcf9b8"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250716-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-arm64"
+                }
+              },
               "ami-03a63a260abe0285b": {
                 "Value": {
                   "ecs_agent_version": "1.88.0",
@@ -82691,6 +84923,42 @@
                 },
                 "source_image_name": {
                   "Value": "al2023-ami-minimal-2023.5.20240722.0-kernel-6.1-arm64"
+                }
+              },
+              "ami-05581c762eda39f6f": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-05581c762eda39f6f",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250721",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-05581c762eda39f6f"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250721-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250721"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-arm64"
                 }
               },
               "ami-0558ce24b8ffad09b": {
@@ -83519,6 +85787,42 @@
                 },
                 "source_image_name": {
                   "Value": "al2023-ami-minimal-2023.5.20240624.0-kernel-6.1-arm64"
+                }
+              },
+              "ami-0aa335e518bf41e99": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0aa335e518bf41e99",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250725",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-arm64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0aa335e518bf41e99"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-arm64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-arm64"
                 }
               },
               "ami-0acaa13190e408932": {
@@ -84675,29 +86979,29 @@
               },
               "recommended": {
                 "Value": {
-                  "ecs_agent_version": "1.95.0",
+                  "ecs_agent_version": "1.96.0",
                   "ecs_runtime_version": "Docker version 25.0.8",
-                  "image_id": "ami-0a0149907962a6dc4",
-                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250626-kernel-6.1-arm64",
-                  "image_version": "2023.0.20250626",
+                  "image_id": "ami-0aa335e518bf41e99",
+                  "image_name": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-arm64",
+                  "image_version": "2023.0.20250725",
                   "os": "Amazon Linux 2023",
                   "schema_version": 1,
-                  "source_image_name": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-arm64"
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-arm64"
                 },
                 "ecs_agent_version": {
-                  "Value": "1.95.0"
+                  "Value": "1.96.0"
                 },
                 "ecs_runtime_version": {
                   "Value": "Docker version 25.0.8"
                 },
                 "image_id": {
-                  "Value": "ami-0a0149907962a6dc4"
+                  "Value": "ami-0aa335e518bf41e99"
                 },
                 "image_name": {
-                  "Value": "al2023-ami-ecs-hvm-2023.0.20250626-kernel-6.1-arm64"
+                  "Value": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-arm64"
                 },
                 "image_version": {
-                  "Value": "2023.0.20250626"
+                  "Value": "2023.0.20250725"
                 },
                 "os": {
                   "Value": "Amazon Linux 2023"
@@ -84706,7 +87010,7 @@
                   "Value": "1"
                 },
                 "source_image_name": {
-                  "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-arm64"
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-arm64"
                 }
               }
             },
@@ -85395,6 +87699,150 @@
                   "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
                 }
               },
+              "al2023-ami-ecs-gpu-hvm-2023.0.20250714-kernel-6.1-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0fca6155156614dcb",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250714-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250714",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0fca6155156614dcb"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250714-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
+              "al2023-ami-ecs-gpu-hvm-2023.0.20250716-kernel-6.1-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0d53750377dfc9514",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250716-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250716",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0d53750377dfc9514"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250716-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
+              "al2023-ami-ecs-gpu-hvm-2023.0.20250721-kernel-6.1-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-057104b0e2d19cd15",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250721-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250721",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-057104b0e2d19cd15"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250721-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250721"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+                }
+              },
+              "al2023-ami-ecs-gpu-hvm-2023.0.20250725-kernel-6.1-x86_64-ebs": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-03da0b19f1db09bc0",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250725-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250725",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-03da0b19f1db09bc0"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250725-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                }
+              },
               "ami-003c94316bc6b6a96": {
                 "Value": {
                   "ecs_agent_version": "1.93.0",
@@ -85539,6 +87987,42 @@
                   "Value": "al2023-ami-minimal-2023.6.20250303.0-kernel-6.1-x86_64"
                 }
               },
+              "ami-03da0b19f1db09bc0": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-03da0b19f1db09bc0",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250725-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250725",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-03da0b19f1db09bc0"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250725-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                }
+              },
               "ami-047f20c750350d6f9": {
                 "Value": {
                   "ecs_agent_version": "1.93.1",
@@ -85609,6 +88093,42 @@
                 },
                 "source_image_name": {
                   "Value": "al2023-ami-minimal-2023.7.20250414.0-kernel-6.1-x86_64"
+                }
+              },
+              "ami-057104b0e2d19cd15": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-057104b0e2d19cd15",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250721-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250721",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-057104b0e2d19cd15"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250721-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250721"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
                 }
               },
               "ami-057a97ff89830afd4": {
@@ -85935,6 +88455,42 @@
                   "Value": "al2023-ami-minimal-2023.6.20250218.2-kernel-6.1-x86_64"
                 }
               },
+              "ami-0d53750377dfc9514": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0d53750377dfc9514",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250716-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250716",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0d53750377dfc9514"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250716-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
               "ami-0d95c14a905c5e7a9": {
                 "Value": {
                   "ecs_agent_version": "1.94.0",
@@ -86079,16 +88635,16 @@
                   "Value": "al2023-ami-minimal-2023.6.20250317.2-kernel-6.1-x86_64"
                 }
               },
-              "recommended": {
+              "ami-0fca6155156614dcb": {
                 "Value": {
                   "ecs_agent_version": "1.95.0",
                   "ecs_runtime_version": "Docker version 25.0.8",
-                  "image_id": "ami-05afa81b38ad222f2",
-                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250626-kernel-6.1-x86_64-ebs",
-                  "image_version": "2023.0.20250626",
+                  "image_id": "ami-0fca6155156614dcb",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250714-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250714",
                   "os": "Amazon Linux 2023",
                   "schema_version": 1,
-                  "source_image_name": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
                 },
                 "ecs_agent_version": {
                   "Value": "1.95.0"
@@ -86097,13 +88653,13 @@
                   "Value": "Docker version 25.0.8"
                 },
                 "image_id": {
-                  "Value": "ami-05afa81b38ad222f2"
+                  "Value": "ami-0fca6155156614dcb"
                 },
                 "image_name": {
-                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250626-kernel-6.1-x86_64-ebs"
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250714-kernel-6.1-x86_64-ebs"
                 },
                 "image_version": {
-                  "Value": "2023.0.20250626"
+                  "Value": "2023.0.20250714"
                 },
                 "os": {
                   "Value": "Amazon Linux 2023"
@@ -86112,7 +88668,43 @@
                   "Value": "1"
                 },
                 "source_image_name": {
-                  "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
+              "recommended": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-03da0b19f1db09bc0",
+                  "image_name": "al2023-ami-ecs-gpu-hvm-2023.0.20250725-kernel-6.1-x86_64-ebs",
+                  "image_version": "2023.0.20250725",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-03da0b19f1db09bc0"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-gpu-hvm-2023.0.20250725-kernel-6.1-x86_64-ebs"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
                 }
               }
             },
@@ -89249,6 +91841,150 @@
                   "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
                 }
               },
+              "al2023-ami-ecs-neuron-hvm-2023.0.20250714-kernel-6.1-x86_64": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0d1b5d34b33373279",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250714-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250714",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0d1b5d34b33373279"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250714-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
+              "al2023-ami-ecs-neuron-hvm-2023.0.20250716-kernel-6.1-x86_64": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-050eeb4f3acbec2d6",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250716-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250716",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-050eeb4f3acbec2d6"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250716-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
+              "al2023-ami-ecs-neuron-hvm-2023.0.20250721-kernel-6.1-x86_64": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0d8aebb94ebe277f2",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250721-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250721",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0d8aebb94ebe277f2"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250721-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250721"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+                }
+              },
+              "al2023-ami-ecs-neuron-hvm-2023.0.20250725-kernel-6.1-x86_64": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-07e718bc5b884ade0",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250725-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250725",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-07e718bc5b884ade0"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250725-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                }
+              },
               "ami-008e6f847e223ccc7": {
                 "Value": {
                   "ecs_agent_version": "1.82.0",
@@ -90329,6 +93065,42 @@
                   "Value": "al2023-ami-minimal-2023.2.20231113.0-kernel-6.1-x86_64"
                 }
               },
+              "ami-050eeb4f3acbec2d6": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-050eeb4f3acbec2d6",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250716-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250716",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-050eeb4f3acbec2d6"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250716-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250716"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
               "ami-0590c10a436b968e3": {
                 "Value": {
                   "ecs_agent_version": "1.82.0",
@@ -90867,6 +93639,42 @@
                 },
                 "source_image_name": {
                   "Value": "al2023-ami-minimal-2023.6.20250218.2-kernel-6.1-x86_64"
+                }
+              },
+              "ami-07e718bc5b884ade0": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-07e718bc5b884ade0",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250725-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250725",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-07e718bc5b884ade0"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250725-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250725"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
                 }
               },
               "ami-08145667a73ac546f": {
@@ -91805,6 +94613,42 @@
                   "Value": "al2023-ami-minimal-2023.7.20250609.0-kernel-6.1-x86_64"
                 }
               },
+              "ami-0d1b5d34b33373279": {
+                "Value": {
+                  "ecs_agent_version": "1.95.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0d1b5d34b33373279",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250714-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250714",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.95.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0d1b5d34b33373279"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250714-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250714"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250707.0-kernel-6.1-x86_64"
+                }
+              },
               "ami-0d40044a6698a1ffe": {
                 "Value": {
                   "ecs_agent_version": "1.85.3",
@@ -91911,6 +94755,42 @@
                 },
                 "source_image_name": {
                   "Value": "al2023-ami-minimal-2023.4.20240528.0-kernel-6.1-x86_64"
+                }
+              },
+              "ami-0d8aebb94ebe277f2": {
+                "Value": {
+                  "ecs_agent_version": "1.96.0",
+                  "ecs_runtime_version": "Docker version 25.0.8",
+                  "image_id": "ami-0d8aebb94ebe277f2",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250721-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250721",
+                  "os": "Amazon Linux 2023",
+                  "schema_version": 1,
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
+                },
+                "ecs_agent_version": {
+                  "Value": "1.96.0"
+                },
+                "ecs_runtime_version": {
+                  "Value": "Docker version 25.0.8"
+                },
+                "image_id": {
+                  "Value": "ami-0d8aebb94ebe277f2"
+                },
+                "image_name": {
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250721-kernel-6.1-x86_64"
+                },
+                "image_version": {
+                  "Value": "2023.0.20250721"
+                },
+                "os": {
+                  "Value": "Amazon Linux 2023"
+                },
+                "schema_version": {
+                  "Value": "1"
+                },
+                "source_image_name": {
+                  "Value": "al2023-ami-minimal-2023.8.20250715.0-kernel-6.1-x86_64"
                 }
               },
               "ami-0d97a049b2a44b7f6": {
@@ -92383,29 +95263,29 @@
               },
               "recommended": {
                 "Value": {
-                  "ecs_agent_version": "1.95.0",
+                  "ecs_agent_version": "1.96.0",
                   "ecs_runtime_version": "Docker version 25.0.8",
-                  "image_id": "ami-0fd049b862b9f38cf",
-                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250626-kernel-6.1-x86_64",
-                  "image_version": "2023.0.20250626",
+                  "image_id": "ami-07e718bc5b884ade0",
+                  "image_name": "al2023-ami-ecs-neuron-hvm-2023.0.20250725-kernel-6.1-x86_64",
+                  "image_version": "2023.0.20250725",
                   "os": "Amazon Linux 2023",
                   "schema_version": 1,
-                  "source_image_name": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
+                  "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
                 },
                 "ecs_agent_version": {
-                  "Value": "1.95.0"
+                  "Value": "1.96.0"
                 },
                 "ecs_runtime_version": {
                   "Value": "Docker version 25.0.8"
                 },
                 "image_id": {
-                  "Value": "ami-0fd049b862b9f38cf"
+                  "Value": "ami-07e718bc5b884ade0"
                 },
                 "image_name": {
-                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250626-kernel-6.1-x86_64"
+                  "Value": "al2023-ami-ecs-neuron-hvm-2023.0.20250725-kernel-6.1-x86_64"
                 },
                 "image_version": {
-                  "Value": "2023.0.20250626"
+                  "Value": "2023.0.20250725"
                 },
                 "os": {
                   "Value": "Amazon Linux 2023"
@@ -92414,35 +95294,35 @@
                   "Value": "1"
                 },
                 "source_image_name": {
-                  "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
+                  "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
                 }
               }
             },
             "recommended": {
               "Value": {
-                "ecs_agent_version": "1.95.0",
+                "ecs_agent_version": "1.96.0",
                 "ecs_runtime_version": "Docker version 25.0.8",
-                "image_id": "ami-02d55daa302089a71",
-                "image_name": "al2023-ami-ecs-hvm-2023.0.20250626-kernel-6.1-x86_64",
-                "image_version": "2023.0.20250626",
+                "image_id": "ami-02f98c577b220a5c9",
+                "image_name": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-x86_64",
+                "image_version": "2023.0.20250725",
                 "os": "Amazon Linux 2023",
                 "schema_version": 1,
-                "source_image_name": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
+                "source_image_name": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
               },
               "ecs_agent_version": {
-                "Value": "1.95.0"
+                "Value": "1.96.0"
               },
               "ecs_runtime_version": {
                 "Value": "Docker version 25.0.8"
               },
               "image_id": {
-                "Value": "ami-02d55daa302089a71"
+                "Value": "ami-02f98c577b220a5c9"
               },
               "image_name": {
-                "Value": "al2023-ami-ecs-hvm-2023.0.20250626-kernel-6.1-x86_64"
+                "Value": "al2023-ami-ecs-hvm-2023.0.20250725-kernel-6.1-x86_64"
               },
               "image_version": {
-                "Value": "2023.0.20250626"
+                "Value": "2023.0.20250725"
               },
               "os": {
                 "Value": "Amazon Linux 2023"
@@ -92451,7 +95331,7 @@
                 "Value": "1"
               },
               "source_image_name": {
-                "Value": "al2023-ami-minimal-2023.7.20250623.1-kernel-6.1-x86_64"
+                "Value": "al2023-ami-minimal-2023.8.20250721.2-kernel-6.1-x86_64"
               }
             }
           },
