@@ -1415,3 +1415,59 @@ def assert_valid_selectors(ClusterBuilder, expected_msg, expected_result, select
         with pytest.raises(ClientError) as raised_exception:
             client.create_fargate_profile(**test_inputs)
         assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_aws
+def test_update_cluster_config(ClusterBuilder):
+    client, generated_cluster = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_name = generated_cluster.existing_cluster_name
+
+    new_vpc_config = {
+        "subnetIds": ["test-new-subnet"],
+        "endpointPublicAccess": False,
+    }
+
+    new_logging = {"clusterLogging": [{"types": ["api", "audit"], "enabled": True}]}
+
+    client_request_token = "test-new-client-request-token"
+
+    new_kubernetes_network_config = {"serviceIpv4Cidr": "0.0.0.0"}
+    new_remote_network_config = {
+        "remoteNodeNetworks": [
+            {"cidrs": ["test-new-cidrs"]},
+        ],
+    }
+
+    client.update_cluster_config(
+        name=cluster_name,
+        resourcesVpcConfig=new_vpc_config,
+        logging=new_logging,
+        clientRequestToken=client_request_token,
+        kubernetesNetworkConfig=new_kubernetes_network_config,
+        remoteNetworkConfig=new_remote_network_config,
+    )
+
+    updated = client.describe_cluster(name=cluster_name)[ResponseAttributes.CLUSTER]
+    assert updated[ClusterAttributes.RESOURCES_VPC_CONFIG] == new_vpc_config
+    assert updated[ClusterAttributes.LOGGING] == new_logging
+    assert (
+        updated[ClusterAttributes.KUBERNETES_NETWORK_CONFIG]
+        == new_kubernetes_network_config
+    )
+    assert updated[ClusterAttributes.REMOTE_NETWORK_CONFIG] == new_remote_network_config
+    assert updated[ClusterAttributes.CLIENT_REQUEST_TOKEN] == client_request_token
+
+
+@mock_aws
+def test_update_cluster_config_not_found(ClusterBuilder):
+    client, generated_cluster = ClusterBuilder(BatchCountSize.SINGLE)
+    generated_cluster.existing_cluster_name
+
+    expected_exception = ResourceNotFoundException
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(
+        clusterName=generated_cluster.nonexistent_cluster_name
+    )
+    with pytest.raises(ClientError) as raised_exception:
+        client.update_cluster_config(name=generated_cluster.nonexistent_cluster_name)
+
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)

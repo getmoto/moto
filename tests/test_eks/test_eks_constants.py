@@ -186,6 +186,10 @@ class ClusterAttributes:
     OIDC = "oidc"
     ENCRYPTION_CONFIG = "encryptionConfig"
     REMOTE_NETWORK_CONFIG = "remoteNetworkConfig"
+    KUBERNETES_NETWORK_CONFIG = "kubernetesNetworkConfig"
+    LOGGING = "logging"
+    CLIENT_REQUEST_TOKEN = "clientRequestToken"
+    RESOURCES_VPC_CONFIG = "resourcesVpcConfig"
 
 
 class FargateProfileAttributes:

@@ -698,6 +698,38 @@ class EKSBackend(BaseBackend):
         cluster = self.clusters[cluster_name]
         return paginated_list(list(cluster.nodegroups.keys()), max_results, next_token)
 
+    def update_cluster_config(
+        self,
+        name: str,
+        resources_vpc_config: Dict[str, Any],
+        logging: Optional[Dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        kubernetes_network_config: Optional[Dict[str, str]] = None,
+        remote_network_config: Optional[Dict[str, List[Dict[str, List[str]]]]] = None,
+    ) -> Cluster:
+        cluster = self.clusters.get(name)
+        if cluster:
+            if resources_vpc_config:
+                self.clusters[name].resources_vpc_config = resources_vpc_config
+            if logging:
+                self.clusters[name].logging = logging
+            if client_request_token:
+                self.clusters[name].client_request_token = client_request_token
+            if kubernetes_network_config:
+                self.clusters[
+                    name
+                ].kubernetes_network_config = kubernetes_network_config
+            if remote_network_config:
+                self.clusters[name].remote_network_config = remote_network_config
+            return cluster
+        raise ResourceNotFoundException(
+            clusterName=name,
+            nodegroupName=None,
+            fargateProfileName=None,
+            addonName=None,
+            message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
+        )
+
 
 def paginated_list(
     full_list: List[Any], max_results: int, next_token: Optional[str]
