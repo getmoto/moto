@@ -14,6 +14,7 @@ from moto.connectcampaigns.models import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
+from moto.directconnect.models import DirectConnectBackend, directconnect_backends
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ec2 import ec2_backends
@@ -72,6 +73,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def s3_backend(self) -> S3Backend:
         return s3_backends[self.account_id][self.partition]
+
+    @property
+    def directconnect_backend(self) -> DirectConnectBackend:
+        return directconnect_backends[self.account_id][self.region_name]
 
     @property
     def dms_backend(self) -> DatabaseMigrationServiceBackend:
@@ -445,6 +450,33 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tags or not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{campaign.arn}", "Tags": tags}
+
+        # Direct Connect
+        if self.directconnect_backend:
+            if not resource_type_filters or "directconnect" in resource_type_filters:
+                directconnect_backend = directconnect_backends[self.account_id][
+                    self.region_name
+                ]
+
+                # Connections
+                for connection in directconnect_backend.connections.values():
+                    tags = directconnect_backend.tagger.list_tags_for_resource(
+                        connection.connection_id
+                    )["Tags"]
+                    tags = format_tag_keys(tags, ["key", "value"])
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{connection.connection_id}", "Tags": tags}
+
+                # LAGs
+                for lag in directconnect_backend.lags.values():
+                    tags = directconnect_backend.tagger.list_tags_for_resource(
+                        lag.lag_id
+                    )["Tags"]
+                    tags = format_tag_keys(tags, ["key", "value"])
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{lag.lag_id}", "Tags": tags}
 
         # DMS
         if not resource_type_filters or "dms:endpoint" in resource_type_filters:
