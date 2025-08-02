@@ -324,6 +324,19 @@ def test_list_jobs():
     resp = batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")
     assert len(resp["jobSummaryList"]) == 0
 
+    # Test that when filter is provided, jobStatus is ignored
+    filtered_jobs = batch_client.list_jobs(
+        jobQueue=queue_arn,
+        jobStatus="SUCCEEDED",
+        filters=[
+            {
+                "name": "JOB_NAME",
+                "values": ["test*"],
+            }
+        ],
+    )["jobSummaryList"]
+    assert len(filtered_jobs) == 2
+
     # Wait only as long as it takes to run the jobs
     for job_id in [job_id1, job_id2]:
         _wait_for_job_status(batch_client, job_id, "SUCCEEDED")
