@@ -1853,8 +1853,8 @@ class BatchBackend(BaseBackend):
         """
         Pagination is not yet implemented
         """
-        jobs_to_check = []
-        jobs = []
+        jobs_to_check: List[Job] = []
+        jobs: List[Job] = []
 
         if job_queue_name:
             if job_queue := self.get_job_queue(job_queue_name):
