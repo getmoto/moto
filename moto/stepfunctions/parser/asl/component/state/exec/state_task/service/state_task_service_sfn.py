@@ -1,5 +1,5 @@
 import json
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any, Callable, Final, Optional
 
 from botocore.exceptions import ClientError
 
@@ -23,7 +23,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
     StatesErrorNameType,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -38,12 +38,12 @@ from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 from moto.utilities.collections import select_from_typed_dict
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.WaitForTaskToken,
     ResourceCondition.Sync,
     ResourceCondition.Sync2,
 }
-_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
     "startexecution": {"Input", "Name", "StateMachineArn"}
 }
 
@@ -52,7 +52,7 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
@@ -116,13 +116,12 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         sfn_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service="stepfunctions",
-            credentials=task_credentials,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
         submission_output: dict = env.stack.pop()
         execution_arn: str = submission_output["ExecutionArn"]
@@ -182,13 +181,12 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         sfn_client = boto_client_for(
             region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service="stepfunctions",
-            credentials=task_credentials,
+            state_credentials=state_credentials,
         )
         submission_output: dict = env.stack.pop()
         execution_arn: str = submission_output["ExecutionArn"]
@@ -240,15 +238,14 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
         sfn_client = boto_client_for(
             region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
-            credentials=task_credentials,
+            state_credentials=state_credentials,
         )
         response = getattr(sfn_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)

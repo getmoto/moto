@@ -1,5 +1,5 @@
 import copy
-from typing import Any, Optional, Set, TypedDict
+from typing import Any, Final, Optional, TypedDict
 
 from moto.stepfunctions.parser.asl.jsonata.jsonata import (
     VariableDeclarations,
@@ -9,11 +9,11 @@ from moto.stepfunctions.parser.asl.jsonata.jsonata import (
 from moto.stepfunctions.parser.asl.utils.json_path import extract_json
 from moto.stepfunctions.parser.utils import long_uid
 
-_STATES_PREFIX: str = "$states"
-_STATES_INPUT_PREFIX: str = "$states.input"
-_STATES_CONTEXT_PREFIX: str = "$states.context"
-_STATES_RESULT_PREFIX: str = "$states.result"
-_STATES_ERROR_OUTPUT_PREFIX: str = "$states.errorOutput"
+_STATES_PREFIX: Final[str] = "$states"
+_STATES_INPUT_PREFIX: Final[str] = "$states.input"
+_STATES_CONTEXT_PREFIX: Final[str] = "$states.context"
+_STATES_RESULT_PREFIX: Final[str] = "$states.result"
+_STATES_ERROR_OUTPUT_PREFIX: Final[str] = "$states.errorOutput"
 
 
 class ExecutionData(TypedDict):
@@ -59,7 +59,7 @@ class ContextObjectData(TypedDict):
 
 
 class ContextObject:
-    context_object_data: ContextObjectData
+    context_object_data: Final[ContextObjectData]
 
     def __init__(self, context_object: ContextObjectData):
         self.context_object_data = context_object
@@ -78,8 +78,8 @@ class StatesData(TypedDict):
 
 
 class States:
-    _states_data: StatesData
-    context_object: ContextObject
+    _states_data: Final[StatesData]
+    context_object: Final[ContextObject]
 
     def __init__(self, context: ContextObjectData):
         input_value = context["Execution"]["Input"]
@@ -131,7 +131,7 @@ class States:
         self._states_data["errorOutput"] = clone_error_output
 
     def to_variable_declarations(
-        self, variable_references: Optional[Set[VariableReference]] = None
+        self, variable_references: Optional[set[VariableReference]] = None
     ) -> VariableDeclarations:
         if not variable_references or _STATES_PREFIX in variable_references:
             return encode_jsonata_variable_declarations(

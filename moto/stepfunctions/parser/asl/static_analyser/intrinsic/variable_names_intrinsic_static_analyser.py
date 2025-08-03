@@ -1,5 +1,3 @@
-from typing import Set
-
 from moto.stepfunctions.parser.api import VariableName, VariableNameList
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLIntrinsicParser import (
     ASLIntrinsicParser,
@@ -35,7 +33,7 @@ class VariableNamesIntrinsicStaticAnalyser(IntrinsicStaticAnalyser):
             self.visit(child)
 
     def visitFunc_arg_var(self, ctx: ASLIntrinsicParser.Func_arg_varContext) -> None:
-        variable_references: Set[VariableReference] = (
+        variable_references: set[VariableReference] = (
             extract_jsonata_variable_references(ctx.STRING_VARIABLE().getText())
         )
         for variable_reference in variable_references:

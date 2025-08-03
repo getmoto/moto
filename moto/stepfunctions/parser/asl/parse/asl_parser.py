@@ -1,5 +1,5 @@
 import abc
-from typing import Final, List, Tuple
+from typing import Final, List
 
 from antlr4 import CommonTokenStream, InputStream, ParserRuleContext
 from antlr4.error.ErrorListener import ErrorListener
@@ -50,7 +50,7 @@ class ASLParserException(Exception):
 
 class AmazonStateLanguageParser(abc.ABC):
     @staticmethod
-    def parse(definition: str) -> Tuple[EvalComponent, ParserRuleContext]:
+    def parse(definition: str) -> tuple[EvalComponent, ParserRuleContext]:
         # Attempt to build the AST and look out for syntax errors.
         syntax_error_listener = SyntaxErrorListener()
 

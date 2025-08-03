@@ -1,3 +1,4 @@
+import base64
 import re
 from typing import Dict, List, Set, Type, Union
 from uuid import uuid4
@@ -91,3 +92,9 @@ def get_all_subclasses(clazz: Type) -> Set[Type]:
 
 def long_uid() -> str:
     return str(uuid4())
+
+
+def token_generator(item: str) -> str:
+    base64_bytes = base64.b64encode(item.encode("utf-8"))
+    token = base64_bytes.decode("utf-8")
+    return token

@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, Final, List
 
 from moto.stepfunctions.parser.asl.component.common.parargs import Parargs
 from moto.stepfunctions.parser.asl.component.common.path.input_path import InputPath
@@ -9,7 +9,7 @@ from moto.stepfunctions.parser.asl.component.common.result_selector import (
 from moto.stepfunctions.parser.asl.component.state.state_pass.result import Result
 from moto.stepfunctions.parser.asl.component.state.state_props import StateProps
 
-EQUAL_SUBTYPES: List[type] = [
+EQUAL_SUBTYPES: Final[List[type]] = [
     InputPath,
     Parargs,
     ResultSelector,
