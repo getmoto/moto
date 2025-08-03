@@ -4035,6 +4035,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "guardduty": {
+                "Value": "guardduty",
+                "endpoint": {
+                  "Value": "guardduty.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iam": {
                 "Value": "iam",
                 "endpoint": {
@@ -4132,6 +4141,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -14759,6 +14777,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.ap-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -21966,6 +21993,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "lightsail": {
+                "Value": "lightsail",
+                "endpoint": {
+                  "Value": "lightsail.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "logs": {
                 "Value": "logs",
                 "endpoint": {
@@ -22811,6 +22847,15 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-4.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24557,6 +24602,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "greengrass": {
+                "Value": "greengrass",
+                "endpoint": {
+                  "Value": "greengrass.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "guardduty": {
                 "Value": "guardduty",
                 "endpoint": {
@@ -24620,6 +24674,36 @@
                   "Value": "HTTPS"
                 }
               },
+              "iot": {
+                "Value": "iot",
+                "endpoint": {
+                  "Value": "iot.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iot-data": {
+                "Value": "iot-data",
+                "endpoint": {
+                  "Value": "data-ats.iot.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotdevicedefender": {
+                "Value": "iotdevicedefender"
+              },
+              "iotdevicemanagement": {
+                "Value": "iotdevicemanagement",
+                "endpoint": {
+                  "Value": "iot.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -24642,6 +24726,15 @@
                 "Value": "kinesisanalytics",
                 "endpoint": {
                   "Value": "kinesisanalytics.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kinesisvideo": {
+                "Value": "kinesisvideo",
+                "endpoint": {
+                  "Value": "kinesisvideo.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26064,6 +26157,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "s3": {
                 "Value": "s3",
                 "endpoint": {
@@ -26230,6 +26332,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "transfer": {
+                "Value": "transfer",
+                "endpoint": {
+                  "Value": "transfer.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41850,6 +41961,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "greengrass": {
+                "Value": "greengrass",
+                "endpoint": {
+                  "Value": "greengrass.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "https"
+                }
+              },
               "guardduty": {
                 "Value": "guardduty",
                 "endpoint": {
@@ -41922,6 +42042,36 @@
                   "Value": "HTTPS"
                 }
               },
+              "iot": {
+                "Value": "iot",
+                "endpoint": {
+                  "Value": "iot.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iot-data": {
+                "Value": "iot-data",
+                "endpoint": {
+                  "Value": "data-ats.iot.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotdevicedefender": {
+                "Value": "iotdevicedefender"
+              },
+              "iotdevicemanagement": {
+                "Value": "iotdevicemanagement",
+                "endpoint": {
+                  "Value": "iot.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kafka": {
                 "Value": "kafka",
                 "endpoint": {
@@ -41944,6 +42094,15 @@
                 "Value": "kinesisanalytics",
                 "endpoint": {
                   "Value": "kinesisanalytics.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kinesisvideo": {
+                "Value": "kinesisvideo",
+                "endpoint": {
+                  "Value": "kinesisvideo.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -54423,6 +54582,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kinesisvideo": {
+                "Value": "kinesisvideo",
+                "endpoint": {
+                  "Value": "kinesisvideo.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kms": {
                 "Value": "kms",
                 "endpoint": {
@@ -56045,6 +56213,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60702,6 +60879,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.us-east-1.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.us-east-1.amazonaws.com"
                 }
               },
               "omics": {
@@ -72057,6 +72240,12 @@
                 "Value": "observabilityadmin",
                 "endpoint": {
                   "Value": "observabilityadmin.us-west-2.amazonaws.com"
+                }
+              },
+              "odb": {
+                "Value": "odb",
+                "endpoint": {
+                  "Value": "odb.us-west-2.amazonaws.com"
                 }
               },
               "omics": {
