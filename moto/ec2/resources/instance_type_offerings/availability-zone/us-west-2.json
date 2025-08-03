@@ -1104,11 +1104,31 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "us-west-2a"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "us-west-2a"
  },
  {
@@ -4668,11 +4688,31 @@
   "Location": "us-west-2b"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "us-west-2b"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "us-west-2b"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "us-west-2b"
  },
  {
@@ -8288,11 +8328,31 @@
   "Location": "us-west-2c"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "us-west-2c"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "us-west-2c"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "us-west-2c"
  },
  {
@@ -11652,11 +11712,31 @@
   "Location": "us-west-2d"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "us-west-2d"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "us-west-2d"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "us-west-2d"
  },
  {
