@@ -846,6 +846,18 @@ class DBCluster(RDSBaseModel):
         return groups
 
     @property
+    def vpc_security_group_ids(self) -> List[str]:
+        return self._vpc_security_group_ids
+
+    @vpc_security_group_ids.setter
+    def vpc_security_group_ids(
+        self, vpc_security_group_ids: Optional[List[str]]
+    ) -> None:
+        if vpc_security_group_ids is None:
+            vpc_security_group_ids = []
+        self._vpc_security_group_ids = vpc_security_group_ids
+
+    @property
     def domain_memberships(self) -> Optional[List[Dict[str, str | list[str] | None]]]:
         return [self.domain_membership] if self.domain_membership else []
 
