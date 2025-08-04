@@ -325,8 +325,9 @@ class CloudFormationResponse(BaseResponse):
 
     def describe_stack_resources(self) -> ActionResult:
         stack_name = self._get_param("StackName")
+        logical_resource_id = self._get_param("LogicalResourceId")
         stack, resources = self.cloudformation_backend.describe_stack_resources(
-            stack_name
+            stack_name, logical_resource_id
         )
 
         result = {

@@ -756,11 +756,31 @@
   "Location": "ca-central-1"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "ca-central-1"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "ca-central-1"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "ca-central-1"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "ca-central-1"
  },
  {

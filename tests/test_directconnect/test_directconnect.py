@@ -300,3 +300,57 @@ def test_tag_resource(client):
 def get_tags(arn, client):
     tags = client.describe_tags(resourceArns=[arn])
     return tags["resourceTags"][0]["tags"]
+
+
+@mock_aws
+def test_tags_from_resourcegroupsapi_connection(client):
+    connection_id = client.create_connection(
+        location="EqDC2",
+        bandwidth="10Gbps",
+        connectionName="TestConnection1",
+        requestMACSec=False,
+        tags=[
+            {"key": "k1", "value": "v1"},
+            {"key": "k2", "value": "v2"},
+        ],
+    )["connectionId"]
+
+    resource_groups_client = boto3.client(
+        "resourcegroupstaggingapi", region_name="us-east-1"
+    )
+    tags = resource_groups_client.get_resources(
+        ResourceARNList=[connection_id],
+    )["ResourceTagMappingList"]
+    assert len(tags) == 1
+    assert tags[0]["ResourceARN"] == connection_id
+    assert tags[0]["Tags"] == [
+        {"Key": "k1", "Value": "v1"},
+        {"Key": "k2", "Value": "v2"},
+    ]
+
+
+@mock_aws
+def test_tags_from_resourcegroupsapi_lag(client):
+    lag_id = client.create_lag(
+        numberOfConnections=1,
+        location="eqDC2",
+        connectionsBandwidth="10Gbps",
+        lagName="TestLag0",
+        tags=[
+            {"key": "k1", "value": "v1"},
+            {"key": "k2", "value": "v2"},
+        ],
+    )["lagId"]
+
+    resource_groups_client = boto3.client(
+        "resourcegroupstaggingapi", region_name="us-east-1"
+    )
+    tags = resource_groups_client.get_resources(
+        ResourceARNList=[lag_id],
+    )["ResourceTagMappingList"]
+    assert len(tags) == 1
+    assert tags[0]["ResourceARN"] == lag_id
+    assert tags[0]["Tags"] == [
+        {"Key": "k1", "Value": "v1"},
+        {"Key": "k2", "Value": "v2"},
+    ]

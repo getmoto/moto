@@ -609,7 +609,7 @@ class DBCluster(RDSBaseModel):
         self.preferred_maintenance_window = preferred_maintenance_window
         self.publicly_accessible = publicly_accessible
         # This should default to the default security group
-        self._vpc_security_group_ids = vpc_security_group_ids or []
+        self.vpc_security_group_ids = vpc_security_group_ids
         self.hosted_zone_id = "".join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(14)
         )
@@ -846,9 +846,20 @@ class DBCluster(RDSBaseModel):
     def vpc_security_groups(self) -> List[Dict[str, Any]]:  # type: ignore[misc]
         groups = [
             {"VpcSecurityGroupId": sg_id, "Status": "active"}
-            for sg_id in self._vpc_security_group_ids
+            for sg_id in self.vpc_security_group_ids
         ]
         return groups
+
+    def vpc_security_group_ids(self) -> List[str]:
+        return self._vpc_security_group_ids
+
+    @vpc_security_group_ids.setter
+    def vpc_security_group_ids(
+        self, vpc_security_group_ids: Optional[List[str]]
+    ) -> None:
+        if vpc_security_group_ids is None:
+            vpc_security_group_ids = []
+        self._vpc_security_group_ids = vpc_security_group_ids
 
     @property
     def domain_memberships(self) -> Optional[List[Dict[str, str | list[str] | None]]]:
@@ -1181,6 +1192,12 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.enabled_cloudwatch_logs_exports = enable_cloudwatch_logs_exports or []
         self.db_cluster_identifier = db_cluster_identifier
         if self.db_cluster_identifier is None:
+            self.vpc_security_group_ids = vpc_security_group_ids or []
+            if not self.vpc_security_group_ids:
+                ec2_backend = ec2_backends[self.account_id][self.region]
+                default_vpc = ec2_backend.default_vpc
+                default_sg = ec2_backend.get_default_security_group(default_vpc.id)
+                self.vpc_security_group_ids.append(default_sg.id)  # type: ignore
             self.storage_type = storage_type or DBInstance.default_storage_type(
                 iops=self.iops
             )
@@ -1820,6 +1837,14 @@ class DBInstanceClustered(DBInstance):
 
     @storage_type.setter
     def storage_type(self, value: str) -> None:
+        raise NotImplementedError("Not valid for clustered db instances.")
+
+    @property
+    def vpc_security_group_ids(self) -> List[str]:
+        return self.cluster.vpc_security_group_ids
+
+    @vpc_security_group_ids.setter
+    def vpc_security_group_ids(self, value: List[str]) -> None:
         raise NotImplementedError("Not valid for clustered db instances.")
 
 
