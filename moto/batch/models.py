@@ -1851,7 +1851,9 @@ class BatchBackend(BaseBackend):
         filters: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Job]:
         """
-        Pagination is not yet implemented
+        TODO: Pagination is not yet implemented
+        TODO: Acording to Boto3 documentation, filters are not supported when filtering by batch array job id.
+            Current implementation does not differentiate between array job listing and normal job listing.
         """
         jobs_to_check: List[Job] = []
         jobs: List[Job] = []
@@ -1887,7 +1889,9 @@ class BatchBackend(BaseBackend):
                     else:
                         if job.job_name.lower() == value.lower():
                             return True
-            return False
+                return False
+            # Return True for unsupported filters.
+            return True
 
         for job in jobs_to_check:
             # Boto3 ignores jobStatus when filters are provided
