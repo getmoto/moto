@@ -397,6 +397,63 @@ def test_deleting_weighted_route():
 
 
 @mock_aws
+def test_create_delete_create():
+    """
+    Validation that we can create and delete a record set multiple times
+    """
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone = conn.create_hosted_zone(
+        Name="testdns.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    def _build_change_payload(action):
+        return [
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "record.testdns.aws.com",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "192.168.1.1"}],
+                },
+            },
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "cname.testdns.aws.com",
+                    "Type": "CNAME",
+                    "ResourceRecords": [{"Value": "example.com"}],
+                },
+            },
+        ]
+
+    for i in range(10):
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("create")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 1
+
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("delete")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 0
+
+
+@mock_aws
 def test_deleting_latency_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -478,7 +535,7 @@ def test_list_or_change_tags_for_resource_request():
             "HealthThreshold": 123,
         },
     )
-    healthcheck_id = health_check["HealthCheck"]["Id"]
+    healthcheck_id = health_check["HealthCheck"]["Id"].replace("/hostedzone/", "")
 
     # confirm this works for resources with zero tags
     response = conn.list_tags_for_resource(
@@ -558,11 +615,11 @@ def test_list_tags_for_resources():
     zone1 = conn.create_hosted_zone(
         Name="testdns1.aws.com", CallerReference=str(hash("foo"))
     )
-    zone1_id = zone1["HostedZone"]["Id"]
+    zone1_id = zone1["HostedZone"]["Id"].replace("/hostedzone/", "")
     zone2 = conn.create_hosted_zone(
         Name="testdns2.aws.com", CallerReference=str(hash("bar"))
     )
-    zone2_id = zone2["HostedZone"]["Id"]
+    zone2_id = zone2["HostedZone"]["Id"].replace("/hostedzone/", "")
 
     # Create two healthchecks
     health_check1 = conn.create_health_check(

@@ -828,6 +828,22 @@ class InvalidParameter(EC2ClientError):
         )
 
 
+class InvalidParameterValue(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidParameterValue",
+            message,
+        )
+
+
+class MissingParameter(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "MissingParameter",
+            message,
+        )
+
+
 class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
     def __init__(self, association_id: str):
         super().__init__(

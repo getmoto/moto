@@ -116,13 +116,13 @@ def test_s3tables_get_table(bucket_name: str):
     arn = resp.get_json()["arn"]
 
     quoted_arn = quote(arn, safe="")
-    resp = test_client.put(f"/namespaces/{quoted_arn}", json={"namespace": ["bar"]})
+    test_client.put(f"/namespaces/{quoted_arn}", json={"namespace": ["bar"]})
 
-    resp = test_client.put(
+    test_client.put(
         f"/tables/{quoted_arn}/bar", json={"name": "baz", "format": "ICEBERG"}
     )
 
-    resp = test_client.get(f"/tables/{quoted_arn}/bar/baz")
+    resp = test_client.get(f"/get-table?tableBucketARN={arn}&namespace=bar&name=baz")
     assert resp.status_code == 200
 
 

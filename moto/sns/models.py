@@ -24,7 +24,8 @@ from moto.core.utils import (
 )
 from moto.moto_api._internal import mock_random
 from moto.sqs import sqs_backends
-from moto.sqs.exceptions import MissingParameter
+from moto.sqs.exceptions import MissingParameter, QueueDoesNotExist
+from moto.sqs.models import SQSBackend
 from moto.utilities.arns import parse_arn
 from moto.utilities.utils import get_partition
 
@@ -203,7 +204,6 @@ class Topic(CloudFormationModel):
                         "SNS:Subscribe",
                         "SNS:ListSubscriptionsByTopic",
                         "SNS:Publish",
-                        "SNS:Receive",
                     ],
                     "Resource": make_arn_for_topic(self.account_id, name, region_name),
                     "Condition": {"StringEquals": {"AWS:SourceOwner": str(account_id)}},
@@ -215,14 +215,19 @@ class Topic(CloudFormationModel):
 class Subscription(BaseModel):
     def __init__(self, account_id: str, topic: Topic, endpoint: str, protocol: str):
         self.account_id = account_id
+        self.owner = account_id
         self.topic = topic
         self.endpoint = endpoint
         self.protocol = protocol
         self.arn = make_arn_for_subscription(self.topic.arn)
         self.attributes: Dict[str, Any] = {}
         self._filter_policy = None  # filter policy as a dict, not json.
-        self._filter_policy_matcher = None
+        self._filter_policy_matcher: Optional[FilterPolicyMatcher] = None
         self.confirmed = False
+
+    @property
+    def topic_arn(self) -> str:
+        return self.topic.arn
 
     def publish(
         self,
@@ -245,8 +250,10 @@ class Subscription(BaseModel):
             queue_name = self.endpoint.split(":")[-1]
             region = self.endpoint.split(":")[3]
 
+            backend: SQSBackend = sqs_backends[self.account_id][region]
+
             if self.attributes.get("RawMessageDelivery") != "true":
-                sqs_backends[self.account_id][region].send_message(
+                backend.send_message(
                     queue_name,
                     json.dumps(
                         self.get_post_data(
@@ -261,6 +268,7 @@ class Subscription(BaseModel):
                     ),
                     deduplication_id=deduplication_id,
                     group_id=group_id,
+                    validate_group_id=False,
                 )
             else:
                 raw_message_attributes = {}
@@ -277,12 +285,13 @@ class Subscription(BaseModel):
                         attr_type: type_value,
                     }
 
-                sqs_backends[self.account_id][region].send_message(
+                backend.send_message(
                     queue_name,
                     message,
                     message_attributes=raw_message_attributes,
                     deduplication_id=deduplication_id,
                     group_id=group_id,
+                    validate_group_id=False,
                 )
         elif self.protocol in ["http", "https"]:
             post_data = self.get_post_data(message, message_id, subject)
@@ -608,6 +617,7 @@ class SNSBackend(BaseBackend):
         setattr(topic, attribute_name, attribute_value)
 
     def subscribe(self, topic_arn: str, endpoint: str, protocol: str) -> Subscription:
+        topic = self.get_topic(topic_arn)
         if protocol == "sms":
             if re.search(r"[./-]{2,}", endpoint) or re.search(
                 r"(^[./-]|[./-]$)", endpoint
@@ -618,6 +628,24 @@ class SNSBackend(BaseBackend):
 
             if not is_e164(reduced_endpoint):
                 raise SNSInvalidParameter(f"Invalid SMS endpoint: {endpoint}")
+
+        if protocol == "sqs":
+            try:
+                arn = parse_arn(endpoint)
+            except ValueError:
+                raise SNSInvalidParameter("Invalid parameter: SQS endpoint ARN")
+
+            backend: SQSBackend = sqs_backends[arn.account][arn.region]
+            topic = self.get_topic(topic_arn)
+            try:
+                queue = backend.get_queue(arn.resource_id)
+                if topic.fifo_topic == "false" and queue.fifo_queue:
+                    raise SNSInvalidParameter(
+                        "Invalid parameter: Invalid parameter: Endpoint Reason: FIFO SQS Queues can not be subscribed to standard SNS topics"
+                    )
+            except QueueDoesNotExist:
+                # Subscribing to an unknown queue is apparently not a problem
+                pass
 
         # AWS doesn't create duplicates
         old_subscription = self._find_subscription(topic_arn, endpoint, protocol)
@@ -635,7 +663,6 @@ class SNSBackend(BaseBackend):
                     f"Invalid parameter: Endpoint Reason: Endpoint does not exist for endpoint arn{endpoint}"
                 )
 
-        topic = self.get_topic(topic_arn)
         subscription = Subscription(self.account_id, topic, endpoint, protocol)
         attributes = {
             "PendingConfirmation": "false",
@@ -849,9 +876,7 @@ class SNSBackend(BaseBackend):
         subscription = self.subscriptions.get(arn)
 
         if not subscription:
-            raise SNSNotFoundError(
-                "Subscription does not exist", template="wrapped_single_error"
-            )
+            raise SNSNotFoundError("Subscription does not exist")
         # AWS does not return the FilterPolicy scope if the FilterPolicy is not set
         # if the FilterPolicy is set and not the FilterPolicyScope, it returns the default value
         attributes = {**subscription.attributes}
@@ -898,7 +923,7 @@ class SNSBackend(BaseBackend):
 
         subscription.attributes[name] = value
 
-    def _validate_filter_policy(self, value: Any, scope: str) -> None:
+    def _validate_filter_policy(self, value: Any, scope: Optional[str]) -> None:
         combinations = 1
 
         def aggregate_rules(

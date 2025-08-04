@@ -17,6 +17,7 @@ def make_arn(resource_type: str, region: str, account: str, name: str) -> str:
     )
 
 
+make_event_source_mapping_arn = partial(make_arn, "event-source-mapping")
 make_function_arn = partial(make_arn, "function")
 make_layer_arn = partial(make_arn, "layer")
 

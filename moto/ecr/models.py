@@ -816,6 +816,8 @@ class ECRBackend(BaseBackend):
             iam_policy_document_validator._validate_resource_exist = lambda: None  # type: ignore
             # the repository policy can have the old version 2008-10-17
             iam_policy_document_validator._validate_version = lambda: None  # type: ignore
+            # ECR does not have uniqueness requirements on Sids
+            iam_policy_document_validator._validate_sid_uniqueness = lambda: None  # type: ignore
             iam_policy_document_validator.validate()
         except MalformedPolicyDocument:
             raise InvalidParameterException(

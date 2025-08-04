@@ -12,4 +12,4 @@ def test_elasticbeanstalk_describe():
     resp = test_client.post("/", data=data, headers=headers)
 
     assert resp.status_code == 200
-    assert "<Applications></Applications>" in str(resp.data)
+    assert "<DescribeApplicationsResult><Applications" in str(resp.data)

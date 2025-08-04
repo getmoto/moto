@@ -194,8 +194,9 @@ def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
         conn.describe_cluster(ClusterId="DummyId")
-
-    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    resp = e.value.response
+    assert resp["Error"]["Code"] == "InvalidRequestException"
+    assert resp["ErrorCode"] == "NoSuchCluster"
 
 
 @mock_aws
@@ -272,7 +273,7 @@ def test_describe_job_flow():
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
 
     assert jf["AmiVersion"] == args["AmiVersion"]
-    assert "BootstrapActions" not in jf
+    assert jf["BootstrapActions"] == []
     esd = jf["ExecutionStatusDetail"]
     assert isinstance(esd["CreationDateTime"], datetime)
     # assert isinstance(esd['EndDateTime'], 'datetime.datetime')
@@ -737,7 +738,7 @@ def test_set_visible_to_all_users():
     assert resp["Cluster"]["VisibleToAllUsers"] is False
 
     for expected in (True, False):
-        resp = client.set_visible_to_all_users(
+        client.set_visible_to_all_users(
             JobFlowIds=[cluster_id], VisibleToAllUsers=expected
         )
         resp = client.describe_cluster(ClusterId=cluster_id)
@@ -1125,19 +1126,21 @@ def test_security_configurations():
 
     with pytest.raises(ClientError) as ex:
         client.describe_security_configuration(Name=security_configuration_name)
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidRequestException"
+    resp = ex.value.response
+    assert resp["Error"]["Code"] == "InvalidRequestException"
+    assert resp["ErrorCode"] == "ResourceNotFound"
     assert (
-        err["Message"]
+        resp["Error"]["Message"]
         == "Security configuration with name 'MySecurityConfiguration' does not exist."
     )
 
     with pytest.raises(ClientError) as ex:
         client.delete_security_configuration(Name=security_configuration_name)
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidRequestException"
+    resp = ex.value.response
+    assert resp["Error"]["Code"] == "InvalidRequestException"
+    assert resp["ErrorCode"] == "ResourceNotFound"
     assert (
-        err["Message"]
+        resp["Error"]["Message"]
         == "Security configuration with name 'MySecurityConfiguration' does not exist."
     )
 

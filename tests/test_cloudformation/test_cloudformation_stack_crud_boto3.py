@@ -859,6 +859,7 @@ def test_delete_stack_set__while_instances_are_running():
     )
     with pytest.raises(ClientError) as exc:
         cf.delete_stack_set(StackSetName="a")
+    assert exc.value.response["ResponseMetadata"]["HTTPStatusCode"] == 409
     err = exc.value.response["Error"]
     assert err["Code"] == "StackSetNotEmptyException"
     assert err["Message"] == "StackSet is not empty"
@@ -877,11 +878,13 @@ def test_delete_stack_set__while_instances_are_running():
 @mock_aws
 def test_create_stack_set():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
     response = cf.create_stack_set(
         StackSetName="teststackset",
         TemplateBody=dummy_template_json,
         Description="desc",
         AdministrationRoleARN="admin/role/arn:asdfasdfadsf",
+        Tags=tags,
     )
     assert response["StackSetId"] is not None
 
@@ -889,6 +892,9 @@ def test_create_stack_set():
     assert stack_set["TemplateBody"] == dummy_template_json
     assert stack_set["AdministrationRoleARN"] == "admin/role/arn:asdfasdfadsf"
     assert stack_set["Description"] == "desc"
+    assert stack_set["ExecutionRoleName"] == "AWSCloudFormationStackSetExecutionRole"
+    assert stack_set["Tags"] == tags
+    assert stack_set["ManagedExecution"]["Active"] is False
 
 
 @mock_aws
@@ -1618,6 +1624,9 @@ def test_describe_change_set(stack_template, change_template):
     assert change_set["ChangeSetName"] == "NewChangeSet2"
     assert change_set["StackName"] == "NewStack"
     assert len(change_set["Changes"]) == 2
+    assert change_set["Parameters"] == [
+        {"ParameterKey": "KeyName", "ParameterValue": "value"}
+    ]
 
     # Execute change set
     cf.execute_change_set(ChangeSetName="NewChangeSet2")
@@ -1714,14 +1723,43 @@ def test_describe_stack_resources():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
 
-    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+    response = cf.describe_stack_resources(StackName=TEST_STACK_NAME)
 
-    response = cf.describe_stack_resources(StackName=stack["StackName"])
     resource = response["StackResources"][0]
     assert resource["LogicalResourceId"] == "EC2Instance1"
     assert resource["ResourceStatus"] == "CREATE_COMPLETE"
     assert resource["ResourceType"] == "AWS::EC2::Instance"
-    assert resource["StackId"] == stack["StackId"]
+    assert resource["StackName"] == TEST_STACK_NAME
+
+
+@mock_aws
+def test_describe_stack_resources_when_logical_resource_exists():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    response = cf.describe_stack_resources(
+        StackName=TEST_STACK_NAME,
+        LogicalResourceId="EC2Instance1",
+    )
+
+    resource = response["StackResources"][0]
+    assert resource["LogicalResourceId"] == "EC2Instance1"
+    assert resource["ResourceStatus"] == "CREATE_COMPLETE"
+    assert resource["ResourceType"] == "AWS::EC2::Instance"
+    assert resource["StackName"] == TEST_STACK_NAME
+
+
+@mock_aws
+def test_describe_stack_resources_when_logical_resource_does_not_exist():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    response = cf.describe_stack_resources(
+        StackName=TEST_STACK_NAME,
+        LogicalResourceId="NotHere",
+    )
+
+    assert response["StackResources"] == []
 
 
 @mock_aws
@@ -2724,24 +2762,30 @@ def test_create_change_set_w_previous_template_faillures(error_message, kwargs):
     [
         (
             [
-                {"ParameterKey": "Name", "ParameterValue": "test-bucket-2"},
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
                 {"ParameterKey": "Another", "ParameterValue": "B"},
             ],
-            ["test-bucket-2", "B"],
+            ["SomeOtherValue", "B"],
         ),
         (
             [
-                {"ParameterKey": "Name", "ParameterValue": "test-bucket-2"},
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
                 {"ParameterKey": "Another", "UsePreviousValue": True},
             ],
-            ["test-bucket-2", "A"],
+            ["SomeOtherValue", "A"],
+        ),
+        (
+            [
+                {"ParameterKey": "Name", "UsePreviousValue": True},
+                {"ParameterKey": "Another", "ParameterValue": "B"},
+            ],
+            ["SomeValue", "B"],
         ),
     ],
-    ids=["all_new_values", "some_new_values"],
+    ids=["all_new_values", "some_new_values", "reuse_default_value"],
 )
 def test_create_change_set_w_previous_template_success(params_list, updated_params):
     stack_name = "stack-name"
-    bucket_name = "test-bucket"
     change_set_name = "test-change-set"
 
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
@@ -2749,7 +2793,6 @@ def test_create_change_set_w_previous_template_success(params_list, updated_para
         StackName=stack_name,
         TemplateBody=json.dumps(dummy_template_with_parameters),
         Parameters=[
-            {"ParameterKey": "Name", "ParameterValue": bucket_name},
             {"ParameterKey": "Another", "ParameterValue": "A"},
         ],
     )
@@ -2775,7 +2818,74 @@ def test_create_change_set_w_previous_template_success(params_list, updated_para
     stacks = cf.describe_stacks(StackName=stack_name)["Stacks"]
     assert len(stacks) == 1
     stack = stacks[0]
-    assert [param["ParameterValue"] for param in stack["Parameters"]] == updated_params
+    param_list = [param["ParameterValue"] for param in stack["Parameters"]]
+    assert param_list == updated_params
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "params_list, updated_params",
+    [
+        (
+            [
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
+                {"ParameterKey": "Another", "ParameterValue": "B"},
+            ],
+            ["SomeOtherValue", "B"],
+        ),
+        (
+            [
+                {"ParameterKey": "Name", "ParameterValue": "SomeOtherValue"},
+                {"ParameterKey": "Another", "UsePreviousValue": True},
+            ],
+            ["SomeOtherValue", "A"],
+        ),
+        (
+            [
+                {"ParameterKey": "Name", "UsePreviousValue": True},
+                {"ParameterKey": "Another", "ParameterValue": "B"},
+            ],
+            ["SomeValue", "B"],
+        ),
+    ],
+    ids=["all_new_values", "some_new_values", "reuse_default_value"],
+)
+def test_create_change_set(params_list, updated_params):
+    stack_name = "stack-name"
+    change_set_name = "test-change-set"
+
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(
+        StackName=stack_name,
+        TemplateBody=json.dumps(dummy_template_with_parameters),
+        Parameters=[
+            {"ParameterKey": "Another", "ParameterValue": "A"},
+        ],
+    )
+    cf.create_change_set(
+        StackName=stack_name,
+        TemplateBody=json.dumps(dummy_template_with_parameters),
+        ChangeSetName=change_set_name,
+        ChangeSetType="UPDATE",
+        Parameters=params_list,
+    )
+
+    change_set = cf.describe_change_set(ChangeSetName=change_set_name)
+    assert change_set["ChangeSetName"] == change_set_name
+    assert change_set["StackName"] == stack_name
+
+    cf.execute_change_set(ChangeSetName=change_set_name)
+
+    change_set = cf.describe_change_set(ChangeSetName=change_set_name)
+    assert change_set["ChangeSetName"] == change_set_name
+    assert change_set["StackName"] == stack_name
+    assert change_set["ExecutionStatus"] == "EXECUTE_COMPLETE"
+
+    stacks = cf.describe_stacks(StackName=stack_name)["Stacks"]
+    assert len(stacks) == 1
+    stack = stacks[0]
+    param_list = [param["ParameterValue"] for param in stack["Parameters"]]
+    assert param_list == updated_params
 
 
 def get_role_name():

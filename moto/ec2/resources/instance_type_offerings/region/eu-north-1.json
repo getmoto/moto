@@ -696,11 +696,31 @@
   "Location": "eu-north-1"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "eu-north-1"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "eu-north-1"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "eu-north-1"
  },
  {
@@ -745,10 +765,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eu-north-1"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eu-north-1"
  },
  {
@@ -1373,6 +1389,10 @@
  },
  {
   "InstanceType": "p5e.48xlarge",
+  "Location": "eu-north-1"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "eu-north-1"
  },
  {
@@ -2021,10 +2041,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "eu-north-1"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "eu-north-1"
  },
  {

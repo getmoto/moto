@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 import functools
 import json
@@ -5,6 +7,7 @@ import logging
 import os
 import re
 from collections import OrderedDict, defaultdict
+from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -17,20 +20,23 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 from urllib.parse import parse_qs, parse_qsl, urlparse
 from xml.dom.minidom import parseString as parseXML
 
 import boto3
 import requests
-import xmltodict
+from botocore.model import OperationModel, ServiceModel
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
-from moto.core.serialize import SERIALIZERS, XFormedAttributePicker
+from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
+from moto.core.request import normalize_request
+from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
     get_service_model,
@@ -97,8 +103,19 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
             # Terraform 5.50 made a request to /rrset/
             # Terraform 5.51+ makes a request to /rrset - so we have to intercept both variants
             request_uri += "?"
-        if service_name == "lambda" and request_uri.endswith("/functions/"):
-            # AWS JS SDK behaves differently from other SDK's, does not send a trailing slash
+        if service_name == "lambda":
+            # Several operations have inconsistent trailing slashes across Botocore versions.
+            affected_operations = [
+                "CreateEventSourceMapping",
+                "CreateFunction",
+                "InvokeAsync",
+                "ListEventSourceMappings",
+                "ListFunctions",
+            ]
+            if op_name in affected_operations:
+                request_uri += "?" if request_uri.endswith("/") else "/?"
+        if service_name == "opensearch" and request_uri.endswith("/tags/"):
+            # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
         uri_regexp = BaseResponse.uri_to_regexp(request_uri)
         method_urls[_method][uri_regexp] = op_model.name
@@ -272,6 +289,14 @@ class ActionAuthenticatorMixin(object):
         return decorator
 
 
+@dataclass
+class ActionContext:
+    service_model: ServiceModel
+    operation_model: OperationModel
+    serializer_class: type[ResponseSerializer]
+    response_class: type[BaseResponse]
+
+
 class ActionResult:
     """Wrapper class for serializable results returned from `responses.py` methods."""
 
@@ -281,6 +306,34 @@ class ActionResult:
     @property
     def result(self) -> object:
         return self._result
+
+    def execute_result(self, context: ActionContext) -> TYPE_RESPONSE:
+        """
+        Execute the result in the context of the given service and operation model.
+        This is a placeholder for any logic that might be needed to process the result
+        based on the service and operation context.
+        """
+        serializer_cls = context.serializer_class
+        response_transformers = getattr(
+            context.response_class, "RESPONSE_KEY_PATH_TO_TRANSFORMER", None
+        )
+        value_picker = XFormedAttributePicker(
+            response_transformers=response_transformers
+        )
+        serializer = serializer_cls(
+            operation_model=context.operation_model,
+            pretty_print=settings.PRETTIFY_RESPONSES,
+            value_picker=value_picker,
+        )
+        serialized = serializer.serialize(self.result)
+        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+
+
+class EmptyResult(ActionResult):
+    """A special ActionResult that represents an empty result."""
+
+    def __init__(self) -> None:
+        super().__init__(None)
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
@@ -303,6 +356,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         super().__init__()
         self.service_name = service_name
         self.allow_request_decompression = True
+        self.automated_parameter_parsing = False
 
     @classmethod
     def dispatch(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
@@ -457,6 +511,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             "date": datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT"),
         }
 
+        if self.automated_parameter_parsing:
+            self.parse_parameters(request)
+
         # Register visit with IAM
         from moto.iam.models import mark_account_as_visited
 
@@ -584,17 +641,32 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         # get action from method and uri
         return self._get_action_from_method_and_request_uri(self.method, self.raw_path)
 
+    def parse_parameters(self, request: Any) -> None:
+        from botocore.awsrequest import AWSPreparedRequest
+        from werkzeug import Request
+
+        assert isinstance(request, (AWSPreparedRequest, Request)), str(request)
+        normalized_request = normalize_request(request)
+        service_model = get_service_model(self.service_name)
+        operation_model = service_model.operation_model(self._get_action())
+        protocol = service_model.protocol
+        parser_cls = PROTOCOL_PARSERS[protocol]
+        parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
+        parsed = parser.parse(
+            {"query_params": normalized_request.values}, operation_model
+        )  # type: ignore[no-untyped-call]
+        self.params = cast(Any, parsed)
+
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
-        serializer_cls = SERIALIZERS[service_model.protocol]
-        serializer = serializer_cls(
-            operation_model=operation_model,
-            pretty_print=settings.PRETTIFY_RESPONSES,
-            value_picker=XFormedAttributePicker(),
+        protocol = service_model.protocol
+        protocol += "-json" if protocol == "query" and self.request_json else ""
+        serializer_cls = SERIALIZERS[protocol]
+        context = ActionContext(
+            service_model, operation_model, serializer_cls, self.__class__
         )
-        serialized = serializer.serialize(action_result.result)
-        return serialized["status_code"], serialized["headers"], serialized["body"]  # type: ignore[return-value]
+        return action_result.execute_result(context)
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
@@ -620,7 +692,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             try:
                 response = method()
             except ServiceException as e:
-                response = ActionResult(e)  # type: ignore[assignment]
+                se_status, se_headers, se_body = self.serialized(ActionResult(e))
+                se_headers["status"] = se_status
+                response = se_body, se_headers  # type: ignore[assignment]
             except HTTPException as http_error:
                 response_headers: Dict[str, Union[str, int]] = dict(
                     http_error.get_headers() or []
@@ -727,7 +801,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         skip_result_conversion: bool = False,
         tracked_prefixes: Optional[Set[str]] = None,
     ) -> Any:
-        value_dict = dict()
+        value_dict: Any = dict()
         tracked_prefixes = (
             tracked_prefixes or set()
         )  # prefixes which have already been processed
@@ -873,6 +947,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             ]
         }
         """
+        if self.automated_parameter_parsing:
+            return self.params
         params: Dict[str, Any] = {}
         for k, v in sorted(self.querystring.items(), key=params_sort_function):
             self._parse_param(k, v[0], params)
@@ -1231,80 +1307,3 @@ def flatten_json_request_body(
     if prefix:
         prefix = prefix + "."
     return dict((prefix + k, v) for k, v in flat.items())
-
-
-def xml_to_json_response(
-    service_spec: Any, operation: str, xml: str, result_node: Any = None
-) -> Dict[str, Any]:
-    """Convert rendered XML response to JSON for use with boto3."""
-
-    def transform(value: Any, spec: Dict[str, Any]) -> Any:
-        """Apply transformations to make the output JSON comply with the
-        expected form. This function applies:
-
-          (1) Type cast to nodes with "type" property (e.g., 'true' to
-              True). XML field values are all in text so this step is
-              necessary to convert it to valid JSON objects.
-
-          (2) Squashes "member" nodes to lists.
-
-        """
-        if len(spec) == 1:
-            return from_str(value, spec)
-
-        od: Dict[str, Any] = OrderedDict()
-        for k, v in value.items():
-            if k.startswith("@"):
-                continue
-
-            if k not in spec:
-                # this can happen when with an older version of
-                # botocore for which the node in XML template is not
-                # defined in service spec.
-                log.warning("Field %s is not defined by the botocore version in use", k)
-                continue
-
-            if spec[k]["type"] == "list":
-                if v is None:
-                    od[k] = []
-                elif len(spec[k]["member"]) == 1:
-                    if isinstance(v["member"], list):
-                        od[k] = transform(v["member"], spec[k]["member"])
-                    else:
-                        od[k] = [transform(v["member"], spec[k]["member"])]
-                elif isinstance(v["member"], list):
-                    od[k] = [transform(o, spec[k]["member"]) for o in v["member"]]
-                elif isinstance(v["member"], (OrderedDict, dict)):
-                    od[k] = [transform(v["member"], spec[k]["member"])]
-                else:
-                    raise ValueError("Malformatted input")
-            elif spec[k]["type"] == "map":
-                if v is None:
-                    od[k] = {}
-                else:
-                    items = (
-                        [v["entry"]] if not isinstance(v["entry"], list) else v["entry"]
-                    )
-                    for item in items:
-                        key = from_str(item["key"], spec[k]["key"])
-                        val = from_str(item["value"], spec[k]["value"])
-                        if k not in od:
-                            od[k] = {}
-                        od[k][key] = val
-            else:
-                if v is None:
-                    od[k] = None
-                else:
-                    od[k] = transform(v, spec[k])
-        return od
-
-    dic = xmltodict.parse(xml)
-    output_spec = service_spec.output_spec(operation)
-    try:
-        for k in result_node or (operation + "Response", operation + "Result"):
-            dic = dic[k]
-    except KeyError:
-        return None  # type: ignore[return-value]
-    else:
-        return transform(dic, output_spec)
-    return None

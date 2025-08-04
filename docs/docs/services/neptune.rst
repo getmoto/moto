@@ -68,7 +68,7 @@ neptune
 - [X] list_tags_for_resource
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
-- [ ] modify_db_cluster_parameter_group
+- [X] modify_db_cluster_parameter_group
 - [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
@@ -87,4 +87,5 @@ neptune
 - [X] restore_db_cluster_to_point_in_time
 - [X] start_db_cluster
 - [X] stop_db_cluster
+- [ ] switchover_global_cluster
 

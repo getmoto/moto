@@ -25,7 +25,7 @@ def test_describe_clusters():
     res = test_client.get("/?Action=DescribeClusters")
 
     result = res.data.decode("utf-8")
-    assert "<Clusters></Clusters>" in result
+    assert "<Clusters></Clusters>" in result or "<Clusters/>" in result
 
 
 @mock_aws
@@ -73,14 +73,12 @@ def test_create_cluster(is_json):
     result = result["CreateClusterResponse"]["CreateClusterResult"]["Cluster"]
 
     assert result["MasterUsername"] == "masteruser"
-    assert result["MasterUserPassword"] == "****"
     assert result["ClusterVersion"] == "1.0"
-    assert result["ClusterSubnetGroupName"] is None
     assert result["AvailabilityZone"] == "us-east-1a"
     assert result["ClusterStatus"] == "creating"
     assert result["NumberOfNodes"] == (1 if is_json else "1")
-    assert result["PubliclyAccessible"] is None
-    assert result["Encrypted"] is None
+    assert result["PubliclyAccessible"] == (False if is_json else "false")
+    assert result["Encrypted"] == (False if is_json else "false")
     assert result["DBName"] == "dev"
     assert result["NodeType"] == "ds2.xlarge"
     assert result["ClusterIdentifier"] == "examplecluster"
@@ -133,14 +131,12 @@ def test_create_cluster_multiple_params(is_json):
     result = result["CreateClusterResponse"]["CreateClusterResult"]["Cluster"]
 
     assert result["MasterUsername"] == "masteruser"
-    assert result["MasterUserPassword"] == "****"
     assert result["ClusterVersion"] == "2.0"
-    assert result["ClusterSubnetGroupName"] is None
     assert result["AvailabilityZone"] == "us-east-1a"
     assert result["ClusterStatus"] == "creating"
     assert result["NumberOfNodes"] == (3 if is_json else "3")
-    assert result["PubliclyAccessible"] is None
-    assert result["Encrypted"] == "True"
+    assert result["PubliclyAccessible"] == (False if is_json else "false")
+    assert result["Encrypted"] == (True if is_json else "true")
     assert result["DBName"] == "testdb"
     assert result["NodeType"] == "ds2.xlarge"
     assert result["ClusterIdentifier"] == "examplecluster"
@@ -153,7 +149,7 @@ def test_create_cluster_multiple_params(is_json):
     assert "Tags" in result
     tags = result["Tags"]
     if not is_json:
-        tags = tags["item"]
+        tags = tags["Tag"]
     assert tags == [{"Key": "key1", "Value": "val1"}, {"Key": "key2", "Value": "val2"}]
 
 
@@ -192,7 +188,7 @@ def test_create_and_describe_clusters(is_json):
     assert "Clusters" in result["DescribeClustersResponse"]["DescribeClustersResult"]
     result = result["DescribeClustersResponse"]["DescribeClustersResult"]["Clusters"]
     if not is_json:
-        result = result["item"]
+        result = result["Cluster"]
 
     assert len(result) == 2
     for cluster in result:
@@ -230,7 +226,7 @@ def test_create_and_describe_cluster_security_group(is_json):
         "DescribeClusterSecurityGroupsResult"
     ]["ClusterSecurityGroups"]
     if not is_json:
-        groups = groups["item"]
+        groups = groups["ClusterSecurityGroup"]
 
     descriptions = [g["Description"] for g in groups]
     assert "desc for csg1" in descriptions
@@ -258,7 +254,7 @@ def test_create_and_describe_cluster_security_group(is_json):
         assert len(groups) == 1
         assert groups[0]["ClusterSecurityGroupName"] == "csg1"
     else:
-        assert groups["item"]["ClusterSecurityGroupName"] == "csg1"
+        assert groups["ClusterSecurityGroup"]["ClusterSecurityGroupName"] == "csg1"
 
 
 @pytest.mark.parametrize("is_json", [True, False], ids=["JSON", "XML"])
@@ -274,13 +270,13 @@ def test_describe_unknown_cluster_security_group(is_json):
         describe_params += "&ContentType=JSON"
     res = test_client.get(describe_params)
 
-    assert res.status_code == 400
+    assert res.status_code == 404
 
     if is_json:
         response = json.loads(res.data.decode("utf-8"))
     else:
         response = xmltodict.parse(res.data.decode("utf-8"), dict_constructor=dict)[
-            "RedshiftClientError"
+            "ErrorResponse"
         ]
     error = response["Error"]
 
@@ -351,7 +347,7 @@ def test_create_cluster_with_security_group(is_json):
 
     security_groups = result["ClusterSecurityGroups"]
     if not is_json:
-        security_groups = security_groups["item"]
+        security_groups = security_groups["ClusterSecurityGroup"]
 
     assert len(security_groups) == 2
     for csg in security_group_names:

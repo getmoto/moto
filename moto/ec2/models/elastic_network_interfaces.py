@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from moto.core.common_models import CloudFormationModel
@@ -20,6 +22,19 @@ from ..utils import (
     random_private_ip,
     random_public_ip,
 )
+
+
+class Attachment:
+    def __init__(self, eni: NetworkInterface):
+        self.attach_time = eni.attach_time
+        self.attachment_id = eni.attachment_id
+        self.delete_on_termination = eni.delete_on_termination
+        self.device_index = eni.device_index
+        self.network_card_index = 0
+        assert eni.instance is not None, "ENI must be attached to an instance"
+        self.instance_id = eni.instance.id
+        self.instance_owner_id = eni.instance.owner_id
+        self.status = "attached"
 
 
 class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
@@ -53,7 +68,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.attachment_id: Optional[str] = None
         self.attach_time: Optional[str] = None
         self.delete_on_termination = delete_on_termination
-        self.description = description
+        self.description = description or ""
         self.source_dest_check = True
 
         self.public_ip: Optional[str] = None
@@ -148,6 +163,17 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         return self.ec2_backend.account_id
 
     @property
+    def attachment(self) -> Optional[Attachment]:
+        if self.attachment_id:
+            return Attachment(self)
+        return None
+
+    @property
+    def network_interface_ipv6_addresses_list(self) -> list[dict[str, str]]:
+        addresses = [{"Ipv6Address": ip} for ip in self.ipv6_addresses if ip]
+        return addresses
+
+    @property
     def association(self) -> Dict[str, Any]:  # type: ignore[misc]
         association: Dict[str, Any] = {}
         if self.public_ip:
@@ -158,7 +184,20 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             if eip:
                 association["allocationId"] = eip.allocation_id or None
                 association["associationId"] = eip.association_id or None
+            association["natEnabled"] = True
         return association
+
+    @property
+    def availability_zone(self) -> str:
+        return self.subnet.availability_zone
+
+    @property
+    def vpc_id(self) -> str:
+        return self.subnet.vpc_id
+
+    @property
+    def subnet_id(self) -> str:
+        return self.subnet.id
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -335,10 +374,12 @@ class NetworkInterfaceBackend:
 
     def attach_network_interface(
         self, eni_id: str, instance_id: str, device_index: int
-    ) -> str:
+    ) -> Attachment:
         eni = self.get_network_interface(eni_id)
         instance = self.get_instance(instance_id)  # type: ignore[attr-defined]
-        return instance.attach_eni(eni, device_index)
+        instance.attach_eni(eni, device_index)
+        assert isinstance(eni.attachment, Attachment)
+        return eni.attachment
 
     def detach_network_interface(self, attachment_id: str) -> None:
         for eni in self.enis.values():
@@ -440,10 +481,12 @@ class NetworkInterfaceBackend:
 
     def unassign_ipv6_addresses(
         self, eni_id: str, ips: Optional[List[str]] = None
-    ) -> NetworkInterface:
+    ) -> list[str]:
+        unassigned_addresses = []
         eni = self.get_network_interface(eni_id)
         if ips:
             for ip in eni.ipv6_addresses.copy():
                 if ip in ips:
+                    unassigned_addresses.append(ip)
                     eni.ipv6_addresses.remove(ip)
-        return eni
+        return unassigned_addresses

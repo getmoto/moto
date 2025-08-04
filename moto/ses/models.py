@@ -132,11 +132,9 @@ class RawMessage(BaseModel):
 
 class SESQuota(BaseModel):
     def __init__(self, sent: int):
-        self.sent = sent
-
-    @property
-    def sent_past_24(self) -> int:
-        return self.sent
+        self.sent_last24_hours = sent
+        self.max24_hour_send = 200
+        self.max_send_rate = 1
 
 
 class ConfigurationSet(BaseModel):
@@ -435,7 +433,13 @@ class SESBackend(BaseBackend):
     ) -> Dict[str, Dict[str, Any]]:
         response: Dict[str, Dict[str, Any]] = {}
         for identity in identities:
-            response[identity] = self.sns_topics.get(identity, {})
+            config = self.sns_topics.get(identity, {})
+            response[identity] = {
+                "ForwardingEnabled": config.get("feedback_forwarding_enabled", True),
+                "HeadersInBounceNotificationsEnabled": False,
+                "HeadersInComplaintNotificationsEnabled": False,
+                "HeadersInDeliveryNotificationsEnabled": False,
+            }
         return response
 
     def set_identity_feedback_forwarding_enabled(
@@ -703,27 +707,32 @@ class SESBackend(BaseBackend):
     ) -> Dict[str, Dict[str, str]]:
         if identities is None:
             identities = []
-
         attributes_by_identity = {}
         for identity in identities:
             if identity in (self.domains + self.addresses):
-                attributes_by_identity[identity] = self.identity_mail_from_domains.get(
-                    identity
-                ) or {"behavior_on_mx_failure": "UseDefaultValue"}
-
+                value = self.identity_mail_from_domains.get(identity, {})
+                mail_from_domain = value.get("mail_from_domain")
+                attributes_by_identity[identity] = {
+                    "MailFromDomain": mail_from_domain,
+                    "MailFromDomainStatus": "Success" if mail_from_domain else None,
+                    "BehaviorOnMXFailure": value.get(
+                        "behavior_on_mx_failure", "UseDefaultValue"
+                    ),
+                }
         return attributes_by_identity
 
     def get_identity_verification_attributes(
         self, identities: Optional[List[str]] = None
-    ) -> Dict[str, str]:
+    ) -> Dict[str, Dict[str, str]]:
         if identities is None:
             identities = []
-
-        attributes_by_identity: Dict[str, str] = {}
+        attributes_by_identity = {}
         for identity in identities:
             if identity in (self.domains + self.addresses):
-                attributes_by_identity[identity] = "Success"
-
+                attributes_by_identity[identity] = {
+                    "VerificationStatus": "Success",
+                    "VerificationToken": "ILQMESfEW0p6i6gIJcEWvO65TP5hg6B99hGFZ2lxrIs=",
+                }
         return attributes_by_identity
 
     def update_configuration_set_reputation_metrics_enabled(

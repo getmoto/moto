@@ -68,7 +68,7 @@ def create_route53_zone_id(  # type: ignore
     tags: Tags = None,
 ) -> str:
     # New ID's look like this Z1RWWTK7Y8UDDQ
-    return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 15)])
+    return "".join([random.choice(ROUTE53_ID_CHOICE) for _ in range(0, 22)])
 
 
 def create_route53_caller_reference() -> str:
@@ -656,7 +656,12 @@ class Route53Backend(BaseBackend):
         zone.delete_vpc(vpcid)
         return zone
 
-    def change_tags_for_resource(self, resource_id: str, tags: Any) -> None:
+    def change_tags_for_resource(
+        self, resource_type: str, resource_id: str, tags: Any
+    ) -> None:
+        if resource_type == "hostedzone" and resource_id not in self.zones:
+            raise NoSuchHostedZone(host_zone_id=resource_id)
+
         if "Tag" in tags:
             if isinstance(tags["Tag"], list):
                 for tag in tags["Tag"]:
@@ -714,7 +719,12 @@ class Route53Backend(BaseBackend):
             if value["Action"] == "CREATE" and value in the_zone.rr_changes:
                 name = value["ResourceRecordSet"]["Name"] + "."
                 _type = value["ResourceRecordSet"]["Type"]
-                raise ResourceRecordAlreadyExists(name=name, _type=_type)
+                # check if the record exists or just in rr_changes (journal)
+                all_records = list(
+                    the_zone.get_record_sets(start_type=_type, start_name=name)
+                )
+                if all_records:
+                    raise ResourceRecordAlreadyExists(name=name, _type=_type)
 
         for value in change_list:
             if value["Action"] == "DELETE":

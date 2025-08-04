@@ -91,6 +91,7 @@ logs
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
 - [ ] get_log_group_fields
+- [ ] get_log_object
 - [ ] get_log_record
 - [X] get_query_results
   
@@ -101,6 +102,7 @@ logs
 - [ ] list_anomalies
 - [ ] list_integrations
 - [ ] list_log_anomaly_detectors
+- [ ] list_log_groups
 - [ ] list_log_groups_for_query
 - [X] list_tags_for_resource
 - [X] list_tags_log_group

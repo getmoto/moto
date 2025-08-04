@@ -26,9 +26,9 @@ elasticache
 - [X] create_cache_cluster
 - [ ] create_cache_parameter_group
 - [ ] create_cache_security_group
-- [ ] create_cache_subnet_group
+- [X] create_cache_subnet_group
 - [ ] create_global_replication_group
-- [ ] create_replication_group
+- [X] create_replication_group
 - [ ] create_serverless_cache
 - [ ] create_serverless_cache_snapshot
 - [ ] create_snapshot
@@ -52,11 +52,11 @@ elasticache
 - [ ] describe_cache_parameter_groups
 - [ ] describe_cache_parameters
 - [ ] describe_cache_security_groups
-- [ ] describe_cache_subnet_groups
+- [X] describe_cache_subnet_groups
 - [ ] describe_engine_default_parameters
 - [ ] describe_events
 - [ ] describe_global_replication_groups
-- [ ] describe_replication_groups
+- [X] describe_replication_groups
 - [ ] describe_reserved_cache_nodes
 - [ ] describe_reserved_cache_nodes_offerings
 - [ ] describe_serverless_cache_snapshots

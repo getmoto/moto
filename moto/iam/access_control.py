@@ -42,7 +42,7 @@ from moto.s3.exceptions import (
 from moto.sts.models import sts_backends
 from moto.utilities.utils import get_partition
 
-from .exceptions import IAMNotFoundException
+from .exceptions import NotFoundException
 from .models import IAMBackend, Policy, iam_backends
 from .policy_conditions import TrustRelationShipConditions
 from .utils import (
@@ -280,7 +280,7 @@ class IAMRequestBase(object, metaclass=ABCMeta):
         try:
             self.backend.get_role_by_arn(resource_arn)
             return self._action in REQUIRE_RESOURCE_ACCESS_POLICIES_CHECK
-        except IAMNotFoundException:
+        except NotFoundException:
             return False
 
     def _check_role_trust_relationship(

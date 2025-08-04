@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Set, cast
 from moto import settings
 from moto.utilities.utils import load_resource
 
+from ...core.utils import utcnow
 from ..exceptions import (
     InvalidAMIAttributeItemValueError,
     InvalidAMIIdError,
@@ -17,7 +18,6 @@ from ..exceptions import (
 from ..utils import (
     generic_filter,
     random_ami_id,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 from .instances import Instance
@@ -75,9 +75,10 @@ class Ami(TaggedEC2Resource):
         self.root_device_name = root_device_name
         self.root_device_type = root_device_type
         self.sriov = sriov
-        self.creation_date = creation_date or utc_date_and_time()
+        self.creation_date = creation_date or utcnow()
         self.product_codes = product_codes
         self.boot_mode = boot_mode
+        self.instance_id: Optional[str] = None
 
         if tags is not None:
             self.add_tags(tags)
@@ -125,8 +126,22 @@ class Ami(TaggedEC2Resource):
         return {"Group": "all"} in self.launch_permissions
 
     @property
-    def is_public_string(self) -> str:
-        return str(self.is_public).lower()
+    def block_device_mappings(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "DeviceName": self.root_device_name,
+                "Ebs": {
+                    "SnapshotId": self.ebs_snapshot.id,
+                    "VolumeSize": 15,
+                    "DeleteOnTermination": False,
+                    "VolumeType": "standard",
+                },
+            }
+        ]
+
+    @property
+    def source_instance_id(self) -> Optional[str]:
+        return self.instance_id
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -140,7 +155,7 @@ class Ami(TaggedEC2Resource):
         elif filter_name == "image-id":
             return self.id
         elif filter_name == "is-public":
-            return self.is_public_string
+            return self.is_public
         elif filter_name == "state":
             return self.state
         elif filter_name == "name":
@@ -153,6 +168,8 @@ class Ami(TaggedEC2Resource):
             return self.product_codes
         elif filter_name == "product-code.type":
             return "marketplace"  # devpay is not (yet?) supported
+        elif filter_name == "source-instance-id":
+            return self.source_instance_id
         else:
             return super().get_filter_value(filter_name, "DescribeImages")
 

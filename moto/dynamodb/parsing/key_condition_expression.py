@@ -242,4 +242,9 @@ def validate_schema(
         if {"S": ""} in range_values:
             raise KeyIsEmptyStringException(index_range_key)
 
+    provided_keys = [key for key, _, _ in results]
+    schema_keys = [x["AttributeName"] for x in schema]
+    if any([x not in schema_keys for x in provided_keys]):
+        raise MockValidationException("Query key condition not supported")
+
     return hash_value, range_comparison, range_values

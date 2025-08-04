@@ -107,7 +107,9 @@ class XRayResponse(BaseResponse):
 
         try:
             result = self.xray_backend.get_trace_summary(
-                start_time, end_time, filter_expression
+                start_time,  # type: ignore[arg-type]
+                end_time,  # type: ignore[arg-type]
+                filter_expression,
             )
         except AWSError as err:
             raise err

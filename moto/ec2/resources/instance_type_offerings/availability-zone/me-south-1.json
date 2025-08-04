@@ -336,10 +336,6 @@
   "Location": "me-south-1a"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "me-south-1a"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "me-south-1a"
  },
@@ -1253,10 +1249,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "me-south-1b"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "me-south-1b"
  },
  {
@@ -2189,10 +2181,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "me-south-1c"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "me-south-1c"
  },
  {

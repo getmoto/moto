@@ -38,7 +38,7 @@ class InstanceTrackerMeta(type):
         service = cls.__module__.split(".")[1]
         if name not in model_data[service]:
             model_data[service][name] = cls
-        cls.instances: ClassVar[List["BaseModel"]] = []  # type: ignore
+        cls.instances_tracked: ClassVar[List["BaseModel"]] = []  # type: ignore
         return cls
 
 

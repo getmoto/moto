@@ -340,7 +340,7 @@ def test_update_login_profile():
     conn.create_user(UserName="my-user")
     conn.create_login_profile(UserName="my-user", Password="my-pass")
     response = conn.get_login_profile(UserName="my-user")
-    assert response["LoginProfile"].get("PasswordResetRequired") is None
+    assert response["LoginProfile"].get("PasswordResetRequired") is False
 
     conn.update_login_profile(
         UserName="my-user", Password="new-pass", PasswordResetRequired=True
@@ -851,7 +851,7 @@ def test_get_aws_managed_policy_version():
 
 
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
-def test_get_aws_managed_policy_v7_version():
+def test_get_aws_managed_policy_v8_version():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
@@ -860,7 +860,7 @@ def test_get_aws_managed_policy_v7_version():
         conn.get_policy_version(
             PolicyArn=managed_policy_arn, VersionId="v2-does-not-exist"
         )
-    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v7")
+    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v8")
     assert isinstance(
         retrieved["PolicyVersion"]["CreateDate"].replace(tzinfo=None), datetime
     )
@@ -1821,10 +1821,8 @@ def test_list_virtual_mfa_devices():
 
     response = client.list_virtual_mfa_devices()
 
-    assert response["VirtualMFADevices"] == [
-        {"SerialNumber": serial_number_1},
-        {"SerialNumber": serial_number_2},
-    ]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
+    assert response["VirtualMFADevices"][1]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Assigned")
@@ -1834,15 +1832,13 @@ def test_list_virtual_mfa_devices():
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
-    assert response["VirtualMFADevices"] == [
-        {"SerialNumber": serial_number_1},
-        {"SerialNumber": serial_number_2},
-    ]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
+    assert response["VirtualMFADevices"][1]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Any", MaxItems=1)
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number_1}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_1
     assert response["IsTruncated"] is True
     assert response["Marker"] == "1"
 
@@ -1850,7 +1846,7 @@ def test_list_virtual_mfa_devices():
         AssignmentStatus="Any", Marker=response["Marker"]
     )
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number_2}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number_2
     assert response["IsTruncated"] is False
 
 
@@ -1906,7 +1902,7 @@ def test_enable_virtual_mfa_device():
 
     response = client.list_virtual_mfa_devices(AssignmentStatus="Unassigned")
 
-    assert response["VirtualMFADevices"] == [{"SerialNumber": serial_number}]
+    assert response["VirtualMFADevices"][0]["SerialNumber"] == serial_number
     assert response["IsTruncated"] is False
 
 
@@ -2144,8 +2140,8 @@ def test_create_login_profile__duplicate():
     with pytest.raises(ClientError) as exc:
         conn.create_login_profile(UserName="my-user", Password="my-pass")
     err = exc.value.response["Error"]
-    assert err["Code"] == "User my-user already has password"
-    assert err["Message"] is None
+    assert err["Code"] == "EntityAlreadyExists"
+    assert err["Message"] == "User my-user already has password"
 
 
 @mock_aws()
@@ -3244,6 +3240,8 @@ def test_role_policy_encoding():
         RoleName=role_name, AssumeRolePolicyDocument=json.dumps(assume_policy_document)
     )
     assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
+    resp = conn.get_role(RoleName=role_name)
+    assert resp["Role"]["AssumeRolePolicyDocument"] == assume_policy_document
     conn.put_role_policy(
         RoleName=role_name,
         PolicyName=policy_name,
@@ -3350,9 +3348,6 @@ def test_create_role_with_permissions_boundary(region, partition):
             PermissionsBoundary=invalid_boundary_arn,
         )
 
-    # Ensure the PermissionsBoundary is included in role listing as well
-    assert conn.list_roles()["Roles"][0].get("PermissionsBoundary") == expected
-
 
 @mock_aws
 def test_create_role_with_same_name_should_fail():
@@ -3401,6 +3396,7 @@ def test_update_account_password_policy():
         "AllowUsersToChangePassword": False,
         "ExpirePasswords": False,
         "MinimumPasswordLength": 6,
+        "MaxPasswordAge": 0,
         "RequireLowercaseCharacters": False,
         "RequireNumbers": False,
         "RequireSymbols": False,
@@ -3940,7 +3936,7 @@ def test_role_config_dict():
     assert plain_role_config["awsRegion"] == "global"
     assert plain_role_config["availabilityZone"] == "Not Applicable"
     assert plain_role_config["resourceCreationTime"] is not None
-    assert plain_role_config["tags"] == {"foo": {"Key": "foo", "Value": "bar"}}
+    assert plain_role_config["tags"] == [{"Key": "foo", "Value": "bar"}]
     assert plain_role_config["configuration"]["path"] == "/"
     assert plain_role_config["configuration"]["roleName"] == "plain_role"
     assert plain_role_config["configuration"]["roleId"] == plain_role["id"]

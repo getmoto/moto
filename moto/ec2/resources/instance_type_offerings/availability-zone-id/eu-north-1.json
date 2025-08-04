@@ -664,11 +664,31 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "eun1-az1"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "eun1-az1"
  },
  {
@@ -689,10 +709,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eun1-az1"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eun1-az1"
  },
  {
@@ -1320,6 +1336,10 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eun1-az1"
  },
@@ -1893,10 +1913,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "eun1-az1"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "eun1-az1"
  },
  {
@@ -2644,11 +2660,31 @@
   "Location": "eun1-az2"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "eun1-az2"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "eun1-az2"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "eun1-az2"
  },
  {
@@ -2693,10 +2729,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eun1-az2"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eun1-az2"
  },
  {
@@ -4604,10 +4636,6 @@
   "Location": "eun1-az3"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eun1-az3"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eun1-az3"
  },
@@ -5205,6 +5233,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "eun1-az3"
  },
  {

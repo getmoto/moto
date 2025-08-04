@@ -364,10 +364,6 @@
   "Location": "me-south-1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "me-south-1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "me-south-1"
  },
