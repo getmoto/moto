@@ -1980,3 +1980,21 @@ def test_get_metric_data_queries():
 
     # we expect twenty results
     assert len(response["MetricDataResults"]) == 20
+
+
+@mock_aws
+def test_put_dashboard_invalid_json_raises_error():
+    client = boto3.client("cloudwatch", "eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.put_dashboard(DashboardName="test", DashboardBody='{"InvalidJson": true')
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterInput"
+
+
+@mock_aws
+def test_delete_dashboard_with_empty_list_raises_error():
+    client = boto3.client("cloudwatch", "eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.delete_dashboards(DashboardNames=[])
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterValue"
