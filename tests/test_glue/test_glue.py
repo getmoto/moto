@@ -938,6 +938,28 @@ def test_get_dev_endpoint():
 
 
 @mock_aws
+def test_delete_dev_endpoint():
+    client = create_glue_client()
+
+    client.create_dev_endpoint(
+        EndpointName="test-endpoint",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    client.delete_dev_endpoint(EndpointName="test-endpoint")
+
+    assert client.get_dev_endpoints()["DevEndpoints"] == []
+
+
+@mock_aws
+def test_delete_dev_endpoint_not_found():
+    client = create_glue_client()
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.delete_dev_endpoint(EndpointName="test-endpoint")
+
+
+@mock_aws
 def test_create_connection():
     client = boto3.client("glue", region_name="us-east-2")
     subnet_id = "subnet-1234567890abcdef0"
