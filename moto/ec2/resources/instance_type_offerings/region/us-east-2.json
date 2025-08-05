@@ -976,11 +976,31 @@
   "Location": "us-east-2"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "us-east-2"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "us-east-2"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "us-east-2"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "us-east-2"
  },
  {

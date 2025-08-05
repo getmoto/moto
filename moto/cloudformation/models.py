@@ -1264,9 +1264,16 @@ class CloudFormationBackend(BaseBackend):
         raise ValidationError(stack_name, message)
 
     def describe_stack_resources(
-        self, stack_name: str
+        self, stack_name: str, logical_resource_id: str
     ) -> Tuple[Stack, Iterable[Type[CloudFormationModel]]]:
         stack = self.get_stack(stack_name)
+
+        if logical_resource_id is not None:
+            for res in stack.stack_resources:
+                if res.logical_resource_id == logical_resource_id:  # type: ignore[attr-defined]
+                    return stack, [res]
+            return stack, []
+
         return stack, stack.stack_resources
 
     def list_stack_resources(

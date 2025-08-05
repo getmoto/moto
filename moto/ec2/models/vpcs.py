@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.core.utils import utcnow
 from moto.utilities.utils import get_partition
 
 from ..exceptions import (
@@ -35,7 +36,6 @@ from ..utils import (
     random_vpc_cidr_association_id,
     random_vpc_ep_id,
     random_vpc_id,
-    utc_date_and_time,
 )
 from .availability_zones_and_regions import RegionsAndZonesBackend
 from .core import TaggedEC2Resource
@@ -364,13 +364,21 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self.network_interface_ids = network_interface_ids or []
         self.subnet_ids = subnet_ids
         self.client_token = client_token
-        self.security_group_ids = security_group_ids
+        self.security_group_ids = security_group_ids or []
         self.private_dns_enabled = private_dns_enabled
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
         self.destination_prefix_list_id = destination_prefix_list_id
 
-        self.created_at = utc_date_and_time()
+        self.creation_timestamp = utcnow()
+
+    @property
+    def groups(self) -> List[Dict[str, str]]:
+        # TODO: Populate GroupName
+        return [
+            {"GroupId": group_id, "GroupName": "TODO"}
+            for group_id in self.security_group_ids
+        ]
 
     def modify(
         self,

@@ -1020,11 +1020,31 @@
   "Location": "ap-northeast-1"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "ap-northeast-1"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "ap-northeast-1"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "ap-northeast-1"
  },
  {

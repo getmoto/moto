@@ -851,7 +851,7 @@ def test_get_aws_managed_policy_version():
 
 
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
-def test_get_aws_managed_policy_v7_version():
+def test_get_aws_managed_policy_v8_version():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
@@ -860,7 +860,7 @@ def test_get_aws_managed_policy_v7_version():
         conn.get_policy_version(
             PolicyArn=managed_policy_arn, VersionId="v2-does-not-exist"
         )
-    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v7")
+    retrieved = conn.get_policy_version(PolicyArn=managed_policy_arn, VersionId="v8")
     assert isinstance(
         retrieved["PolicyVersion"]["CreateDate"].replace(tzinfo=None), datetime
     )
