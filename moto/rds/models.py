@@ -1151,15 +1151,6 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.db_subnet_group_name = db_subnet_group_name
         self.db_security_groups = db_security_groups or []
         self.vpc_security_group_ids = vpc_security_group_ids or []
-        self.domain_membership: Optional[Dict[str, Any]] = {
-            "Domain": domain,
-            "Status": "active",
-            "FQDN": domain_fqdn,
-            "IAMRoleName": "rds-directory-service-access-role",
-            "OU": domain_ou,
-            "AuthSecretArn": domain_auth_secret_arn,
-            "DnsIps": domain_dns_ips,
-        }
         if not self.vpc_security_group_ids:
             ec2_backend = ec2_backends[self.account_id][self.region]
             default_vpc = ec2_backend.default_vpc
