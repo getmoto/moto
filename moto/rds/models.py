@@ -4511,13 +4511,10 @@ class BlueGreenDeployment(RDSBaseModel):
         target_allocated_storage: int | None,
         target_storage_throughput: int | None,
     ) -> str:
-        source_instance: DBInstance | DBCluster = self._get_instance(self.source)
+        source_instance: DBInstance | DBCluster = self._get_valid_instance_or_raise(
+            self.source
+        )
         green_instance: DBInstance | DBCluster
-        if hasattr(source_instance, "master_user_secret"):
-            if isinstance(source_instance, DBInstance):
-                raise SourceDatabaseNotSupportedFault(source_instance.arn)
-            else:
-                raise SourceClusterNotSupportedFault(source_instance.arn)
 
         db_kwargs = {
             "engine": source_instance.engine,
@@ -4622,18 +4619,24 @@ class BlueGreenDeployment(RDSBaseModel):
                 )
             return green_instance.db_cluster_arn
 
-    def _get_instance(self, arn: str) -> DBInstance | DBCluster:
+    def _get_valid_instance_or_raise(self, arn: str) -> DBInstance | DBCluster:
         result = re.findall(r"^arn:[A-Za-z][0-9A-Za-z-:._]*", arn)
         if len(result) == 0:
             raise InvalidParameterValue("Provided string is not a valid arn")
         if self.backend._is_cluster(arn):
-            return find_cluster(arn)
+            cluster = find_cluster(arn)
+            if hasattr(cluster, "master_user_secret"):
+                raise SourceClusterNotSupportedFault(cluster.arn)
+            return cluster
         else:
-            return self.backend.find_db_from_id(arn)
+            instance = self.backend.find_db_from_id(arn)
+            if hasattr(instance, "master_user_secret"):
+                raise SourceDatabaseNotSupportedFault(instance.arn)
+            return instance
 
     def switchover(self) -> None:
-        source = self._get_instance(self.source)
-        target = self._get_instance(self.target)
+        source = self._get_valid_instance_or_raise(self.source)
+        target = self._get_valid_instance_or_raise(self.target)
         source_result: DBCluster | DBInstance
         target_result: DBCluster | DBInstance
 
