@@ -475,57 +475,55 @@ class GlueBackend(BaseBackend):
     ) -> List["FakeCrawl"]:
         filter_functions = []
         for filter in filters:
-            match filter.FieldName:
-                case FilterField.CRAWL_ID:
+            if filter.FieldName == FilterField.CRAWL_ID:
 
-                    def get_field(crawl: FakeCrawl) -> Optional[str]:
-                        return crawl.crawl_id
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.crawl_id
 
-                case FilterField.STATE:
+            elif filter.FieldName == FilterField.STATE:
 
-                    def get_field(crawl: FakeCrawl) -> Optional[str]:
-                        return crawl.status
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.status
 
-                case FilterField.START_TIME:
+            elif filter.FieldName == FilterField.START_TIME:
 
-                    def get_field(crawl: FakeCrawl) -> Optional[str]:
-                        return crawl.start_time.isoformat()
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.start_time.isoformat()
 
-                case FilterField.END_TIME:
+            elif filter.FieldName == FilterField.END_TIME:
 
-                    def get_field(crawl: FakeCrawl) -> Optional[str]:
-                        return crawl.end_time.isoformat() if crawl.end_time else None
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.end_time.isoformat() if crawl.end_time else None
 
-            match filter.FilterOperator:
-                case FilterOperator.GT:
+            if filter.FilterOperator == FilterOperator.GT:
 
-                    def compare(crawl_value: Optional[str], field_value: str) -> bool:
-                        return crawl_value > field_value if crawl_value else False
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value > field_value if crawl_value else False
 
-                case FilterOperator.GE:
+            elif filter.FilterOperator == FilterOperator.GE:
 
-                    def compare(crawl_value: Optional[str], field_value: str) -> bool:
-                        return crawl_value >= field_value if crawl_value else False
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value >= field_value if crawl_value else False
 
-                case FilterOperator.LT:
+            elif filter.FilterOperator == FilterOperator.LT:
 
-                    def compare(crawl_value: Optional[str], field_value: str) -> bool:
-                        return crawl_value < field_value if crawl_value else False
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value < field_value if crawl_value else False
 
-                case FilterOperator.LE:
+            elif filter.FilterOperator == FilterOperator.LE:
 
-                    def compare(crawl_value: Optional[str], field_value: str) -> bool:
-                        return crawl_value <= field_value if crawl_value else False
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value <= field_value if crawl_value else False
 
-                case FilterOperator.EQ:
+            elif filter.FilterOperator == FilterOperator.EQ:
 
-                    def compare(crawl_value: Optional[str], field_value: str) -> bool:
-                        return crawl_value == field_value
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value == field_value
 
-                case FilterOperator.NE:
+            elif filter.FilterOperator == FilterOperator.NE:
 
-                    def compare(crawl_value: Optional[str], field_value: str) -> bool:
-                        return crawl_value != field_value
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value != field_value
 
             def filter_function(crawl: FakeCrawl) -> bool:
                 return compare(get_field(crawl), filter.FieldValue)
@@ -1728,17 +1726,16 @@ class FakeCrawler(BaseModel):
         if not self.crawls:
             return "READY"
         else:
-            match self.crawls[-1].status:
-                case "RUNNING":
-                    return "RUNNING"
-                case "COMPLETED", "STOPPED", "FAILED":
-                    return "READY"
-                case "STOPPING":
-                    return "STOPPING"
-                case _:
-                    raise RuntimeError(
-                        f"Unexpeected state found for crawler, found state {self.crawls[-1].status}"
-                    )
+            if self.crawls[-1].status == "RUNNING":
+                return "RUNNING"
+            elif self.crawls[-1].status in ["COMPLETED", "STOPPED", "FAILED"]:
+                return "READY"
+            elif self.crawls[-1].status == "STOPPING":
+                return "STOPPING"
+            else:
+                raise RuntimeError(
+                    f"Unexpeected state found for crawler, found state {self.crawls[-1].status}"
+                )
 
 
 class FakeCrawl(ManagedState):

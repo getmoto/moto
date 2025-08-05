@@ -2,7 +2,7 @@ import abc
 import operator
 import re
 from datetime import date, datetime
-from enum import StrEnum
+from enum import Enum
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
@@ -39,7 +39,7 @@ from .exceptions import (
 )
 
 
-class FilterField(StrEnum):
+class FilterField(str, Enum):
     CRAWL_ID = "CRAWL_ID"
     STATE = "STATE"
     START_TIME = "START_TIME"
@@ -47,7 +47,7 @@ class FilterField(StrEnum):
     DPU_HOUR = "DPU_HOUR"
 
 
-class FilterOperator(StrEnum):
+class FilterOperator(str, Enum):
     GT = "GT"
     GE = "GE"
     LT = "LT"
@@ -67,7 +67,7 @@ class CrawlFilter(BaseModel):
             if self.FilterOperator not in [FilterOperator.EQ, FilterOperator.NE]:
                 raise InvalidInputException(
                     "ListCrawls",
-                    f"Only EQ or NE operator is allowed for field : {self.FieldName}",
+                    f"Only EQ or NE operator is allowed for field : {self.FieldName.value}",
                 )
         return self
 
@@ -80,15 +80,10 @@ def validate_crawl_filters(filters: List[Dict[str, str]]) -> List[CrawlFilter]:
         except ValidationError as e:
             for error in e.errors():
                 if error["type"] == "enum":
-                    match error["loc"][0]:
-                        case "FieldName":
-                            raise InvalidFilterFieldNameException(
-                                error["input"], index + 1
-                            )
-                        case "FilterOperator":
-                            raise InvalidFilterOperatorException(
-                                error["input"], index + 1
-                            )
+                    if error["loc"][0] == "FieldName":
+                        raise InvalidFilterFieldNameException(error["input"], index + 1)
+                    elif error["loc"][0] == "FilterOperator":
+                        raise InvalidFilterOperatorException(error["input"], index + 1)
             raise
         filter_objects.append(filter_object)
     return filter_objects
