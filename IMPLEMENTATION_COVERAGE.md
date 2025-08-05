@@ -508,13 +508,13 @@
 
 ## athena
 <details>
-<summary>26% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
 - [ ] batch_get_query_execution
 - [ ] cancel_capacity_reservation
-- [ ] create_capacity_reservation
+- [X] create_capacity_reservation
 - [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_notebook
@@ -532,7 +532,7 @@
 - [ ] get_calculation_execution_code
 - [ ] get_calculation_execution_status
 - [ ] get_capacity_assignment_configuration
-- [ ] get_capacity_reservation
+- [X] get_capacity_reservation
 - [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
@@ -795,10 +795,11 @@
 
 ## bedrock
 <details>
-<summary>19% implemented</summary>
+<summary>18% implemented</summary>
 
 - [ ] batch_delete_evaluation_job
 - [ ] create_custom_model
+- [ ] create_custom_model_deployment
 - [ ] create_evaluation_job
 - [ ] create_foundation_model_agreement
 - [ ] create_guardrail
@@ -812,6 +813,7 @@
 - [ ] create_prompt_router
 - [ ] create_provisioned_model_throughput
 - [X] delete_custom_model
+- [ ] delete_custom_model_deployment
 - [ ] delete_foundation_model_agreement
 - [ ] delete_guardrail
 - [ ] delete_imported_model
@@ -822,6 +824,7 @@
 - [ ] delete_provisioned_model_throughput
 - [ ] deregister_marketplace_model_endpoint
 - [X] get_custom_model
+- [ ] get_custom_model_deployment
 - [ ] get_evaluation_job
 - [ ] get_foundation_model
 - [ ] get_foundation_model_availability
@@ -837,6 +840,7 @@
 - [ ] get_prompt_router
 - [ ] get_provisioned_model_throughput
 - [ ] get_use_case_for_model_access
+- [ ] list_custom_model_deployments
 - [X] list_custom_models
 - [ ] list_evaluation_jobs
 - [ ] list_foundation_model_agreement_offers
@@ -2629,7 +2633,7 @@
 
 ## ec2
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_capacity_reservation_billing_ownership
@@ -2884,6 +2888,8 @@
 - [ ] describe_capacity_block_extension_history
 - [ ] describe_capacity_block_extension_offerings
 - [ ] describe_capacity_block_offerings
+- [ ] describe_capacity_block_status
+- [ ] describe_capacity_blocks
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
@@ -3550,7 +3556,7 @@
 
 ## elasticache
 <details>
-<summary>12% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] authorize_cache_security_group_ingress
@@ -3564,7 +3570,7 @@
 - [ ] create_cache_security_group
 - [X] create_cache_subnet_group
 - [ ] create_global_replication_group
-- [ ] create_replication_group
+- [X] create_replication_group
 - [ ] create_serverless_cache
 - [ ] create_serverless_cache_snapshot
 - [ ] create_snapshot
@@ -3592,7 +3598,7 @@
 - [ ] describe_engine_default_parameters
 - [ ] describe_events
 - [ ] describe_global_replication_groups
-- [ ] describe_replication_groups
+- [X] describe_replication_groups
 - [ ] describe_reserved_cache_nodes
 - [ ] describe_reserved_cache_nodes_offerings
 - [ ] describe_serverless_cache_snapshots
@@ -3799,7 +3805,7 @@
 
 ## emr
 <details>
-<summary>40% implemented</summary>
+<summary>43% implemented</summary>
 
 - [ ] add_instance_fleet
 - [X] add_instance_groups
@@ -3834,12 +3840,12 @@
 - [X] list_instance_groups
 - [X] list_instances
 - [ ] list_notebook_executions
-- [ ] list_release_labels
+- [X] list_release_labels
 - [ ] list_security_configurations
 - [X] list_steps
 - [ ] list_studio_session_mappings
 - [ ] list_studios
-- [ ] list_supported_instance_types
+- [X] list_supported_instance_types
 - [X] modify_cluster
 - [ ] modify_instance_fleet
 - [X] modify_instance_groups
@@ -4280,7 +4286,7 @@
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
-- [ ] delete_dev_endpoint
+- [X] delete_dev_endpoint
 - [ ] delete_integration
 - [ ] delete_integration_table_properties
 - [X] delete_job
@@ -5806,6 +5812,7 @@
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
 - [ ] get_log_group_fields
+- [ ] get_log_object
 - [ ] get_log_record
 - [X] get_query_results
 - [ ] get_transformer
@@ -6217,7 +6224,7 @@
 
 ## neptune
 <details>
-<summary>62% implemented</summary>
+<summary>64% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
@@ -7277,7 +7284,7 @@
 
 ## rds
 <details>
-<summary>48% implemented</summary>
+<summary>50% implemented</summary>
 
 - [ ] add_role_to_db_cluster
 - [ ] add_role_to_db_instance
@@ -7304,7 +7311,7 @@
 - [X] create_db_proxy
 - [ ] create_db_proxy_endpoint
 - [X] create_db_security_group
-- [ ] create_db_shard_group
+- [X] create_db_shard_group
 - [X] create_db_snapshot
 - [ ] create_db_subnet_group
 - [X] create_event_subscription
@@ -7358,7 +7365,7 @@
 - [X] describe_db_proxy_targets
 - [ ] describe_db_recommendations
 - [ ] describe_db_security_groups
-- [ ] describe_db_shard_groups
+- [X] describe_db_shard_groups
 - [X] describe_db_snapshot_attributes
 - [ ] describe_db_snapshot_tenant_databases
 - [X] describe_db_snapshots
@@ -7392,7 +7399,7 @@
 - [ ] modify_custom_db_engine_version
 - [X] modify_db_cluster
 - [ ] modify_db_cluster_endpoint
-- [ ] modify_db_cluster_parameter_group
+- [X] modify_db_cluster_parameter_group
 - [X] modify_db_cluster_snapshot_attribute
 - [X] modify_db_instance
 - [X] modify_db_parameter_group
@@ -8066,12 +8073,13 @@
 
 ## s3
 <details>
-<summary>71% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
 - [X] copy_object
 - [X] create_bucket
+- [ ] create_bucket_metadata_configuration
 - [ ] create_bucket_metadata_table_configuration
 - [X] create_multipart_upload
 - [ ] create_session
@@ -8082,6 +8090,7 @@
 - [ ] delete_bucket_intelligent_tiering_configuration
 - [ ] delete_bucket_inventory_configuration
 - [X] delete_bucket_lifecycle
+- [ ] delete_bucket_metadata_configuration
 - [ ] delete_bucket_metadata_table_configuration
 - [ ] delete_bucket_metrics_configuration
 - [X] delete_bucket_ownership_controls
@@ -8104,6 +8113,7 @@
 - [ ] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
 - [X] get_bucket_logging
+- [ ] get_bucket_metadata_configuration
 - [ ] get_bucket_metadata_table_configuration
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
@@ -8168,6 +8178,8 @@
 - [ ] rename_object
 - [X] restore_object
 - [X] select_object_content
+- [ ] update_bucket_metadata_inventory_table_configuration
+- [ ] update_bucket_metadata_journal_table_configuration
 - [X] upload_file
 - [X] upload_fileobj
 - [X] upload_part
@@ -8316,7 +8328,7 @@
 
 ## sagemaker
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -8585,6 +8597,7 @@
 - [ ] list_pipeline_execution_steps
 - [X] list_pipeline_executions
 - [X] list_pipeline_parameters_for_execution
+- [ ] list_pipeline_versions
 - [X] list_pipelines
 - [X] list_processing_jobs
 - [ ] list_projects
@@ -8670,6 +8683,7 @@
 - [ ] update_partner_app
 - [X] update_pipeline
 - [ ] update_pipeline_execution
+- [ ] update_pipeline_version
 - [ ] update_project
 - [ ] update_space
 - [ ] update_training_job
@@ -10223,6 +10237,8 @@
 - bcm-data-exports
 - bcm-pricing-calculator
 - bedrock-agent-runtime
+- bedrock-agentcore
+- bedrock-agentcore-control
 - bedrock-data-automation
 - bedrock-data-automation-runtime
 - bedrock-runtime
@@ -10410,6 +10426,7 @@
 - route53profiles
 - rum
 - s3outposts
+- s3vectors
 - sagemaker-a2i-runtime
 - sagemaker-edge
 - sagemaker-featurestore-runtime

@@ -116,7 +116,6 @@ class AthenaResponse(BaseResponse):
         capacity_reservation = self.athena_backend.get_capacity_reservation(name)
         if not capacity_reservation:
             return self.error("Capacity reservation does not exist", 400)
-        # print("DBG responses: ", capacity_reservation.tags)
         return json.dumps(
             {
                 "CapacityReservation": {

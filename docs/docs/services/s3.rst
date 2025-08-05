@@ -20,6 +20,7 @@ s3
 - [X] complete_multipart_upload
 - [X] copy_object
 - [X] create_bucket
+- [ ] create_bucket_metadata_configuration
 - [ ] create_bucket_metadata_table_configuration
 - [X] create_multipart_upload
 - [ ] create_session
@@ -30,6 +31,7 @@ s3
 - [ ] delete_bucket_intelligent_tiering_configuration
 - [ ] delete_bucket_inventory_configuration
 - [X] delete_bucket_lifecycle
+- [ ] delete_bucket_metadata_configuration
 - [ ] delete_bucket_metadata_table_configuration
 - [ ] delete_bucket_metrics_configuration
 - [X] delete_bucket_ownership_controls
@@ -52,6 +54,7 @@ s3
 - [ ] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
 - [X] get_bucket_logging
+- [ ] get_bucket_metadata_configuration
 - [ ] get_bucket_metadata_table_configuration
 - [ ] get_bucket_metrics_configuration
 - [ ] get_bucket_notification
@@ -183,6 +186,8 @@ s3
          - FieldDelimiters are ignored
         
 
+- [ ] update_bucket_metadata_inventory_table_configuration
+- [ ] update_bucket_metadata_journal_table_configuration
 - [X] upload_file
 - [X] upload_fileobj
 - [X] upload_part

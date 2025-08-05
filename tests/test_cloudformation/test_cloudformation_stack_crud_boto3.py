@@ -1723,14 +1723,43 @@ def test_describe_stack_resources():
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
 
-    stack = cf.describe_stacks(StackName=TEST_STACK_NAME)["Stacks"][0]
+    response = cf.describe_stack_resources(StackName=TEST_STACK_NAME)
 
-    response = cf.describe_stack_resources(StackName=stack["StackName"])
     resource = response["StackResources"][0]
     assert resource["LogicalResourceId"] == "EC2Instance1"
     assert resource["ResourceStatus"] == "CREATE_COMPLETE"
     assert resource["ResourceType"] == "AWS::EC2::Instance"
-    assert resource["StackId"] == stack["StackId"]
+    assert resource["StackName"] == TEST_STACK_NAME
+
+
+@mock_aws
+def test_describe_stack_resources_when_logical_resource_exists():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    response = cf.describe_stack_resources(
+        StackName=TEST_STACK_NAME,
+        LogicalResourceId="EC2Instance1",
+    )
+
+    resource = response["StackResources"][0]
+    assert resource["LogicalResourceId"] == "EC2Instance1"
+    assert resource["ResourceStatus"] == "CREATE_COMPLETE"
+    assert resource["ResourceType"] == "AWS::EC2::Instance"
+    assert resource["StackName"] == TEST_STACK_NAME
+
+
+@mock_aws
+def test_describe_stack_resources_when_logical_resource_does_not_exist():
+    cf = boto3.client("cloudformation", region_name=REGION_NAME)
+    cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
+
+    response = cf.describe_stack_resources(
+        StackName=TEST_STACK_NAME,
+        LogicalResourceId="NotHere",
+    )
+
+    assert response["StackResources"] == []
 
 
 @mock_aws

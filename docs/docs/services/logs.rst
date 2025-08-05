@@ -91,6 +91,7 @@ logs
 - [ ] get_log_anomaly_detector
 - [X] get_log_events
 - [ ] get_log_group_fields
+- [ ] get_log_object
 - [ ] get_log_record
 - [X] get_query_results
   

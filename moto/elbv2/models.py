@@ -608,6 +608,8 @@ class FakeLoadBalancer(CloudFormationModel):
             # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
             "load_balancing.cross_zone.enabled": "false",
         }
+        # TODO: This was hardcoded in the original XML template and still needs to be implemented.
+        self.canonical_hosted_zone_id = "Z2P70J7EXAMPLE"
 
     @property
     def load_balancer_state(self) -> dict[str, str]:

@@ -278,6 +278,8 @@ ec2
 - [ ] describe_capacity_block_extension_history
 - [ ] describe_capacity_block_extension_offerings
 - [ ] describe_capacity_block_offerings
+- [ ] describe_capacity_block_status
+- [ ] describe_capacity_blocks
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
