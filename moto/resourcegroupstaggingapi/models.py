@@ -1364,7 +1364,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arn_list: List[str], tag_keys: List[str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only Lambda resources are currently supported
+        Only EFS and Lambda resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
