@@ -79,21 +79,16 @@ def validate_crawl_filters(filters: List[Dict[str, str]]) -> List[CrawlFilter]:
             filter_object = CrawlFilter.model_validate(filter)
         except ValidationError as e:
             for error in e.errors():
-                match error["type"]:
-                    case "enum":
-                        match error["loc"][0]:
-                            case "FieldName":
-                                raise InvalidFilterFieldNameException(
-                                    error["input"], index + 1
-                                )
-                            case "FilterOperator":
-                                raise InvalidFilterOperatorException(
-                                    error["input"], index + 1
-                                )
-                            case _:
-                                raise
-                    case _:
-                        raise
+                if error["type"] == "enum":
+                    match error["loc"][0]:
+                        case "FieldName":
+                            raise InvalidFilterFieldNameException(
+                                error["input"], index + 1
+                            )
+                        case "FilterOperator":
+                            raise InvalidFilterOperatorException(
+                                error["input"], index + 1
+                            )
             raise
         filter_objects.append(filter_object)
     return filter_objects
