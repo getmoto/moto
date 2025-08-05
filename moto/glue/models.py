@@ -1660,7 +1660,6 @@ class FakeCrawler(BaseModel):
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
         self.crawls: List[FakeCrawl] = []
-        self.is_stopping = False
 
     def get_name(self) -> str:
         return self.name
