@@ -13,7 +13,7 @@ from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 from .exceptions import AWSValidationException
 
 if TYPE_CHECKING:
-    from moto.cloudwatch.models import FakeAlarm
+    from moto.cloudwatch.models import Alarm
 
 
 @unique
@@ -469,7 +469,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self._guid = mock_random.uuid4()
         self.policy_arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
         self.creation_time = time.time()
-        self.alarms: List["FakeAlarm"] = []
+        self.alarms: List["Alarm"] = []
 
         self.account_id = account_id
         self.region_name = region_name
@@ -483,7 +483,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             if self.service_namespace == "ecs":
                 self.alarms.extend(self._generate_ecs_alarms())
 
-    def _generate_dynamodb_alarms(self) -> List["FakeAlarm"]:
+    def _generate_dynamodb_alarms(self) -> List["Alarm"]:
         from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
 
         cloudwatch: CloudWatchBackend = cloudwatch_backends[self.account_id][
@@ -554,13 +554,13 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         alarms.append(alarm4)
         return alarms
 
-    def _generate_ecs_alarms(self) -> List["FakeAlarm"]:
+    def _generate_ecs_alarms(self) -> List["Alarm"]:
         from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
 
         cloudwatch: CloudWatchBackend = cloudwatch_backends[self.account_id][
             self.region_name
         ]
-        alarms: List["FakeAlarm"] = []
+        alarms: List["Alarm"] = []
         alarm_action = f"{self.policy_arn}:createdBy/{mock_random.uuid4()}"
         config = self.target_tracking_scaling_policy_configuration or {}
         metric_spec = config.get("PredefinedMetricSpecification", {})

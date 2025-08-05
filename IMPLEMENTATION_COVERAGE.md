@@ -4286,7 +4286,7 @@
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
-- [ ] delete_dev_endpoint
+- [X] delete_dev_endpoint
 - [ ] delete_integration
 - [ ] delete_integration_table_properties
 - [X] delete_job
