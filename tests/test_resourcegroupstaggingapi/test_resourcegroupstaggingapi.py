@@ -971,6 +971,52 @@ def test_get_resources_lambda():
 
 
 @mock_aws
+def test_tag_resources_lambda():
+    client = boto3.client("lambda", region_name="us-west-2")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-west-2")
+
+    def get_role_name():
+        iam = boto3.client("iam", region_name="us-west-2")
+        try:
+            return iam.get_role(RoleName="my-role")["Role"]["Arn"]
+        except ClientError:
+            return iam.create_role(
+                RoleName="my-role",
+                AssumeRolePolicyDocument="some policy",
+                Path="/my-path/",
+            )["Role"]["Arn"]
+
+    zipfile = """
+              def lambda_handler(event, context):
+                  print("custom log event")
+                  return event
+              """
+
+    func = client.create_function(
+        FunctionName="lambda-tag-resource-test",
+        Runtime="python3.13",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": zipfile},
+        Description="test lambda function",
+        Timeout=3,
+        MemorySize=128,
+        Publish=True,
+        Tags={"tag": "a"},
+    )
+
+    rtapi.tag_resources(
+        ResourceARNList=[func["FunctionArn"]], Tags={"secondtag": "b", "thirdtag": "c"}
+    )
+
+    resp = client.list_tags(Resource=func["FunctionArn"])
+
+    assert resp["Tags"]["tag"] == "a"
+    assert resp["Tags"]["secondtag"] == "b"
+    assert resp["Tags"]["thirdtag"] == "c"
+
+
+@mock_aws
 def test_get_resources_sqs():
     sqs = boto3.resource("sqs", region_name="eu-central-1")
 
@@ -1405,6 +1451,26 @@ def test_get_resources_efs():
     assert fs_two["FileSystemArn"] in returned_arns
     assert ap_one["AccessPointArn"] not in returned_arns
     assert ap_two["AccessPointArn"] in returned_arns
+
+
+@mock_aws
+def test_tag_resources_efs():
+    efs = boto3.client("efs", region_name="us-east-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    fs = efs.create_file_system(
+        CreationToken="test-token-1", Tags=[{"Key": "tag", "Value": "a"}]
+    )
+
+    rtapi.tag_resources(
+        ResourceARNList=[fs["FileSystemArn"]], Tags={"secondtag": "b", "thirdtag": "c"}
+    )
+
+    resp = efs.list_tags_for_resource(ResourceId=fs["FileSystemId"])
+
+    assert {"Key": "tag", "Value": "a"} in resp["Tags"]
+    assert {"Key": "secondtag", "Value": "b"} in resp["Tags"]
+    assert {"Key": "thirdtag", "Value": "c"} in resp["Tags"]
 
 
 @mock_aws
