@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.moto_api import state_manager
 
 from . import helpers
 
@@ -1324,6 +1325,12 @@ def test_get_crawlers_several_items():
 def test_start_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
+
+    state_manager.set_transition(
+        model_name="glue::crawl",
+        transition={"progression": "manual", "times": 1},
+    )
+
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
@@ -1338,6 +1345,12 @@ def test_start_crawler():
 def test_start_crawler_should_raise_exception_if_already_running():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
+
+    state_manager.set_transition(
+        model_name="glue::crawl",
+        transition={"progression": "manual", "times": 1},
+    )
+
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
@@ -1351,7 +1364,14 @@ def test_start_crawler_should_raise_exception_if_already_running():
 def test_stop_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
+
+    state_manager.set_transition(
+        model_name="glue::crawl",
+        transition={"progression": "manual", "times": 1},
+    )
+
     helpers.create_crawler(client, name)
+
     client.start_crawler(Name=name)
 
     client.stop_crawler(Name=name)
@@ -1405,3 +1425,289 @@ def test_delete_crawler_not_exists():
     assert (
         exc.value.response["Error"]["Message"] == "Crawler my_crawler_name not found."
     )
+
+
+@mock_aws
+def test_list_crawls():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+
+    response = client.list_crawls(CrawlerName=name)
+    assert len(response["Crawls"]) == 1
+
+
+@mock_aws
+def test_list_crawls_no_crawler_with_name():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "non_existent_crawler"
+
+    with pytest.raises(ClientError) as exc:
+        client.list_crawls(CrawlerName=name)
+
+    assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"Crawler entry with name {name} does not exist"
+    )
+
+
+@mock_aws
+def test_bad_filter_operator():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    bad_filter_value = "bad_value"
+
+    with pytest.raises(ClientError) as exc:
+        client.list_crawls(
+            CrawlerName=name,
+            Filters=[
+                {
+                    "FieldName": "CRAWL_ID",
+                    "FilterOperator": bad_filter_value,
+                    "FieldValue": "ee3401e1-b7b9-4d76-adfc-202e5484b8e1",
+                }
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"Value '{bad_filter_value}' at 'filters.1.member.filterOperator' failed to satisfy constraint: Member must satisfy enum value set: [LT, EQ, GT, NE, LE, GE]"
+    )
+
+
+@mock_aws
+def test_bad_filter_field_name():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    bad_field_name = "bad_value"
+
+    with pytest.raises(ClientError) as exc:
+        client.list_crawls(
+            CrawlerName=name,
+            Filters=[
+                {
+                    "FieldName": bad_field_name,
+                    "FilterOperator": "LE",
+                    "FieldValue": "ee3401e1-b7b9-4d76-adfc-202e5484b8e1",
+                }
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"Value '{bad_field_name}' at 'filters.1.member.fieldName' failed to satisfy constraint: Member must satisfy enum value set: [START_TIME, END_TIME, STATE, CRAWL_ID, DPU_HOUR]"
+    )
+
+
+@mock_aws
+def test_use_ordered_compare_operator_on_state_field():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    with pytest.raises(ClientError) as exc:
+        client.list_crawls(
+            CrawlerName=name,
+            Filters=[
+                {
+                    "FieldName": "STATE",
+                    "FilterOperator": "LE",
+                    "FieldValue": "RUNNING",
+                }
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Only EQ or NE operator is allowed for field : STATE"
+    )
+
+
+@mock_aws
+def test_use_ordered_compare_operator_on_uid_field():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    with pytest.raises(ClientError) as exc:
+        client.list_crawls(
+            CrawlerName=name,
+            Filters=[
+                {
+                    "FieldName": "CRAWL_ID",
+                    "FilterOperator": "LE",
+                    "FieldValue": "some_uid",
+                }
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Only EQ or NE operator is allowed for field : CRAWL_ID"
+    )
+
+
+@mock_aws
+def test_filter_crawls_for_state():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+    state_manager.set_transition(
+        model_name="glue::crawl",
+        transition={"progression": "manual", "times": 1},
+    )
+
+    client.start_crawler(Name=name)
+    # turn crawler to completed
+    client.list_crawls(CrawlerName=name)
+    client.start_crawler(Name=name)
+
+    crawls = client.list_crawls(
+        CrawlerName=name,
+        Filters=[
+            {
+                "FieldName": "STATE",
+                "FilterOperator": "EQ",
+                "FieldValue": "RUNNING",
+            }
+        ],
+    )
+
+    assert len(crawls["Crawls"]) == 1
+
+
+@mock_aws
+def test_filter_crawls_for_start_time():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    state_manager.set_transition(
+        model_name="glue::crawl",
+        transition={"progression": "manual", "times": 1},
+    )
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+    # turn crawler to completed
+    client.list_crawls(CrawlerName=name)
+
+    between_the_two_run_starts = datetime.now()
+    client.start_crawler(Name=name)
+
+    crawls = client.list_crawls(
+        CrawlerName=name,
+        Filters=[
+            {
+                "FieldName": "START_TIME",
+                "FilterOperator": "GE",
+                "FieldValue": between_the_two_run_starts.isoformat(),
+            }
+        ],
+    )
+
+    assert len(crawls["Crawls"]) == 1
+
+
+@mock_aws
+def test_filter_crawls_for_end_time():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    state_manager.set_transition(
+        model_name="glue::crawl",
+        transition={"progression": "manual", "times": 1},
+    )
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+    # turn crawler to completed
+    client.list_crawls(CrawlerName=name)
+
+    between_the_two_run_ends = datetime.now()
+    client.start_crawler(Name=name)
+    client.list_crawls(CrawlerName=name)
+
+    crawls = client.list_crawls(
+        CrawlerName=name,
+        Filters=[
+            {
+                "FieldName": "END_TIME",
+                "FilterOperator": "GE",
+                "FieldValue": between_the_two_run_ends.isoformat(),
+            }
+        ],
+    )
+
+    assert len(crawls["Crawls"]) == 1
+
+
+@mock_aws
+def test_multiple_filters():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    state_manager.set_transition(
+        model_name="glue::crawl",
+        transition={"progression": "manual", "times": 1},
+    )
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+    # turn crawler to completed
+    client.list_crawls(CrawlerName=name)
+
+    between_the_two_runs = datetime.now()
+    client.start_crawler(Name=name)
+    client.list_crawls(CrawlerName=name)
+
+    crawls = client.list_crawls(
+        CrawlerName=name,
+        Filters=[
+            {
+                "FieldName": "END_TIME",
+                "FilterOperator": "GE",
+                "FieldValue": between_the_two_runs.isoformat(),
+            },
+            {
+                "FieldName": "START_TIME",
+                "FilterOperator": "GE",
+                "FieldValue": between_the_two_runs.isoformat(),
+            },
+        ],
+    )
+
+    assert len(crawls["Crawls"]) == 1
+
+
+@mock_aws
+def test_filter_crawls_for_crawl_id():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+
+    first_crawl_crawl_id = client.list_crawls(CrawlerName=name)["Crawls"][0]["CrawlId"]
+    client.start_crawler(Name=name)
+
+    crawls = client.list_crawls(
+        CrawlerName=name,
+        Filters=[
+            {
+                "FieldName": "CRAWL_ID",
+                "FilterOperator": "EQ",
+                "FieldValue": first_crawl_crawl_id,
+            }
+        ],
+    )
+
+    assert len(crawls["Crawls"]) == 1
+    assert crawls["Crawls"][0]["CrawlId"] == first_crawl_crawl_id

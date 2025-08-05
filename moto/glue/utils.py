@@ -2,9 +2,11 @@ import abc
 import operator
 import re
 from datetime import date, datetime
+from enum import StrEnum
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
+from pydantic import BaseModel, ValidationError, model_validator
 from pyparsing import (
     CaselessKeyword,
     Forward,
@@ -20,6 +22,7 @@ from pyparsing import (
     one_of,
     pyparsing_common,
 )
+from typing_extensions import Self
 
 try:
     # TODO import directly when depending on pyparsing>=3.1.0
@@ -29,9 +32,71 @@ except ImportError:
     from pyparsing import delimited_list as DelimitedList  # type: ignore[assignment]
 
 from .exceptions import (
+    InvalidFilterFieldNameException,
+    InvalidFilterOperatorException,
     InvalidInputException,
     InvalidStateException,
 )
+
+
+class FilterField(StrEnum):
+    CRAWL_ID = "CRAWL_ID"
+    STATE = "STATE"
+    START_TIME = "START_TIME"
+    END_TIME = "END_TIME"
+    DPU_HOUR = "DPU_HOUR"
+
+
+class FilterOperator(StrEnum):
+    GT = "GT"
+    GE = "GE"
+    LT = "LT"
+    LE = "LE"
+    EQ = "EQ"
+    NE = "NE"
+
+
+class CrawlFilter(BaseModel):
+    FieldName: FilterField
+    FieldValue: str
+    FilterOperator: FilterOperator
+
+    @model_validator(mode="after")
+    def check_operator_valid_for_state(self) -> Self:
+        if self.FieldName in [FilterField.STATE, FilterField.CRAWL_ID]:
+            if self.FilterOperator not in [FilterOperator.EQ, FilterOperator.NE]:
+                raise InvalidInputException(
+                    "ListCrawls",
+                    f"Only EQ or NE operator is allowed for field : {self.FieldName}",
+                )
+        return self
+
+
+def validate_crawl_filters(filters: List[Dict[str, str]]) -> List[CrawlFilter]:
+    filter_objects: List[CrawlFilter] = []
+    for index, filter in enumerate(filters):
+        try:
+            filter_object = CrawlFilter.model_validate(filter)
+        except ValidationError as e:
+            for error in e.errors():
+                match error["type"]:
+                    case "enum":
+                        match error["loc"][0]:
+                            case "FieldName":
+                                raise InvalidFilterFieldNameException(
+                                    error["input"], index + 1
+                                )
+                            case "FilterOperator":
+                                raise InvalidFilterOperatorException(
+                                    error["input"], index + 1
+                                )
+                            case _:
+                                raise
+                    case _:
+                        raise
+            raise
+        filter_objects.append(filter_object)
+    return filter_objects
 
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
