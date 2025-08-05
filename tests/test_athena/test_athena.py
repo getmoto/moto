@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -172,7 +174,7 @@ def test_get_query_execution(location):
     # Start Query
     exex_id = client.start_query_execution(
         QueryString=query,
-        QueryExecutionContext={"Database": database},
+        QueryExecutionContext={"Database": database, "Catalog": "awsdatacatalog"},
         ResultConfiguration={"OutputLocation": location},
     )["QueryExecutionId"]
     #
@@ -186,15 +188,24 @@ def test_get_query_execution(location):
         assert result_config["OutputLocation"] == f"{location}{exex_id}.csv"
     else:
         assert result_config["OutputLocation"] == f"{location}/{exex_id}.csv"
+    assert (
+        details["ResultReuseConfiguration"]["ResultReuseByAgeConfiguration"]["Enabled"]
+        is False
+    )
     assert details["QueryExecutionContext"]["Database"] == database
+    assert details["QueryExecutionContext"]["Catalog"] == "awsdatacatalog"
     assert details["Status"]["State"] == "SUCCEEDED"
+    assert isinstance(details["Status"]["SubmissionDateTime"], datetime)
+    assert isinstance(details["Status"]["CompletionDateTime"], datetime)
     assert details["Statistics"] == {
         "EngineExecutionTimeInMillis": 0,
         "DataScannedInBytes": 0,
         "TotalExecutionTimeInMillis": 0,
         "QueryQueueTimeInMillis": 0,
+        "ServicePreProcessingTimeInMillis": 0,
         "QueryPlanningTimeInMillis": 0,
         "ServiceProcessingTimeInMillis": 0,
+        "ResultReuseInformation": {"ReusedPreviousResult": False},
     }
     assert "WorkGroup" not in details
 
@@ -548,3 +559,35 @@ def test_get_prepared_statement():
         StatementName="stmt-name", WorkGroup="athena_workgroup"
     )
     assert "PreparedStatement" in resp
+
+
+@mock_aws
+def test_get_query_runtime_statistics_no_execution_id():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+
+    with pytest.raises(ClientError) as exc:
+        client.get_query_runtime_statistics(QueryExecutionId="1")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert err["Message"] == "QueryExecution 1 was not found"
+
+
+@mock_aws
+def test_get_query_runtime_statistics_with_execution_id():
+    client = boto3.client("athena", region_name="us-east-1")
+    create_basic_workgroup(client=client, name="athena_workgroup")
+    response = client.start_query_execution(
+        QueryString="query1",
+        QueryExecutionContext={"Database": "string"},
+        ResultConfiguration={"OutputLocation": "string"},
+        WorkGroup="athena_workgroup",
+    )
+    assert "QueryExecutionId" in response
+
+    statistics = client.get_query_runtime_statistics(
+        QueryExecutionId=response["QueryExecutionId"]
+    )
+
+    assert "QueryRuntimeStatistics" in statistics

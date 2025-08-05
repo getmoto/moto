@@ -1080,13 +1080,16 @@ def test_describe_vpc_interface_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
     subnet = ec2.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
-
+    sgroup = ec2.create_security_group(
+        GroupName="test_sg", Description="test security group", VpcId=vpc["VpcId"]
+    )
     route_table = ec2.create_route_table(VpcId=vpc["VpcId"])["RouteTable"]
     vpc_end_point = ec2.create_vpc_endpoint(
         VpcId=vpc["VpcId"],
         ServiceName="com.tester.my-test-endpoint",
         VpcEndpointType="interface",
         SubnetIds=[subnet["SubnetId"]],
+        SecurityGroupIds=[sgroup["GroupId"]],
     )["VpcEndpoint"]
     our_id = vpc_end_point["VpcEndpointId"]
 
@@ -1099,12 +1102,12 @@ def test_describe_vpc_interface_end_points():
     our_endpoint = [e for e in all_endpoints if e["VpcEndpointId"] == our_id][0]
     assert vpc_end_point["PrivateDnsEnabled"] is True
     assert our_endpoint["PrivateDnsEnabled"] is True
-
+    assert our_endpoint["SubnetIds"] == [subnet["SubnetId"]]
     assert our_endpoint["VpcId"] == vpc["VpcId"]
-    assert "RouteTableIds" not in our_endpoint
-
+    assert our_endpoint["RouteTableIds"] == []
+    assert [g["GroupId"] for g in our_endpoint["Groups"]] == [sgroup["GroupId"]]
     assert our_endpoint["DnsEntries"] == vpc_end_point["DnsEntries"]
-
+    assert "CreationTimestamp" in our_endpoint
     assert our_endpoint["VpcEndpointType"] == "interface"
     assert our_endpoint["ServiceName"] == "com.tester.my-test-endpoint"
     assert our_endpoint["State"] == "available"
@@ -1114,7 +1117,7 @@ def test_describe_vpc_interface_end_points():
     ][0]
     assert endpoint_by_id["VpcEndpointId"] == our_id
     assert endpoint_by_id["VpcId"] == vpc["VpcId"]
-    assert "RouteTableIds" not in endpoint_by_id
+    assert endpoint_by_id["RouteTableIds"] == []
     assert endpoint_by_id["VpcEndpointType"] == "interface"
     assert endpoint_by_id["ServiceName"] == "com.tester.my-test-endpoint"
     assert endpoint_by_id["State"] == "available"
@@ -1171,7 +1174,7 @@ def test_modify_vpc_endpoint():
 
     ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveRouteTableIds=[rt_id])
     endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
-    assert "RouteTableIds" not in endpoint
+    assert endpoint["RouteTableIds"] == []
 
     ec2.modify_vpc_endpoint(
         VpcEndpointId=vpc_id,

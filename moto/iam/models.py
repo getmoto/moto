@@ -1,4 +1,5 @@
-import base64
+from __future__ import annotations
+
 import json
 import os
 import re
@@ -9,18 +10,12 @@ from urllib import parse
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from jinja2 import Template
 
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
-from moto.core.utils import (
-    iso_8601_datetime_with_milliseconds,
-    iso_8601_datetime_without_milliseconds,
-    unix_time,
-    utcnow,
-)
+from moto.core.utils import unix_time, utcnow
 from moto.iam.policy_validation import (
     IAMPolicyDocumentValidator,
     IAMTrustPolicyDocumentValidator,
@@ -37,16 +32,16 @@ from moto.utilities.utils import (
 from ..utilities.tagging_service import TaggingService
 from .aws_managed_policies import aws_managed_policies_data
 from .exceptions import (
+    DeleteConflictException,
     DuplicateTags,
     EntityAlreadyExists,
-    IAMConflictException,
-    IAMLimitExceededException,
-    IAMNotFoundException,
-    IAMReportNotPresentException,
     InvalidInput,
     InvalidTagCharacters,
+    LimitExceededException,
     MalformedCertificate,
     NoSuchEntity,
+    NotFoundException,
+    ReportNotPresentException,
     TagKeyTooBig,
     TagValueTooBig,
     TooManyTags,
@@ -93,7 +88,7 @@ def mark_account_as_visited(
             try:
                 role = account[partition].get_role_by_arn(key.role_arn)
                 role.last_used = utcnow()
-            except IAMNotFoundException:
+            except NotFoundException:
                 # User assumes a non-existing role
                 pass
     else:
@@ -121,10 +116,6 @@ class MFADevice:
         self.authentication_code_1 = authentication_code_1
         self.authentication_code_2 = authentication_code_2
 
-    @property
-    def enabled_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.enable_date)
-
 
 class VirtualMfaDevice:
     def __init__(self, account_id: str, region_name: str, device_name: str):
@@ -135,22 +126,12 @@ class VirtualMfaDevice:
         random_base32_string = "".join(
             random.choice(string.ascii_uppercase + "234567") for _ in range(64)
         )
-        self.base32_string_seed = base64.b64encode(
-            random_base32_string.encode("ascii")
-        ).decode("ascii")
-        self.qr_code_png = base64.b64encode(os.urandom(64)).decode(
-            "ascii"
-        )  # this would be a generated PNG
+        self.base32_string_seed = random_base32_string
+        self.qr_code_png = os.urandom(64)  # this would be a generated PNG
 
         self.enable_date: Optional[datetime] = None
         self.user_attribute: Optional[Dict[str, Any]] = None
         self.user: Optional[User] = None
-
-    @property
-    def enabled_iso_8601(self) -> str:
-        if self.enable_date:
-            return iso_8601_datetime_without_milliseconds(self.enable_date)
-        return ""
 
 
 class Policy(CloudFormationModel):
@@ -209,15 +190,23 @@ class Policy(CloudFormationModel):
         self.default_version_id = new_default_version_id
 
     @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.create_date)
-
-    @property
-    def updated_iso_8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.update_date)
+    def policy_version_list(self) -> List[Dict[str, bool | str | datetime | None]]:
+        return [
+            {
+                "Document": parse.quote(version.document),
+                "VersionId": version.version_id,
+                "IsDefaultVersion": version.is_default_version,
+                "CreateDate": version.create_date,
+            }
+            for version in self.versions
+        ]
 
     def get_tags(self) -> List[Dict[str, str]]:
         return [self.tags[tag] for tag in self.tags]
+
+    @property
+    def tag_list_type(self) -> list[dict[str, str]]:
+        return self.get_tags()
 
 
 class SAMLProvider(BaseModel):
@@ -233,14 +222,11 @@ class SAMLProvider(BaseModel):
         self.region_name = region_name
         self.name = name
         self.saml_metadata_document = saml_metadata_document
+        self.valid_until = datetime(2032, 5, 9, 16, 27, 11)
 
     @property
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:saml-provider/{self.name}"
-
-    @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.create_date)
 
 
 class OpenIDConnectProvider(BaseModel):
@@ -266,12 +252,15 @@ class OpenIDConnectProvider(BaseModel):
         self.tags = tags or {}
 
     @property
-    def arn(self) -> str:
-        return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:oidc-provider/{self.url}"
+    def tag_list_type(self) -> list[dict[str, str]]:
+        tags = []
+        for key in self.tags:
+            tags.append(self.tags[key])
+        return tags
 
     @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.create_date)
+    def arn(self) -> str:
+        return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:oidc-provider/{self.url}"
 
     def _validate(
         self, url: str, thumbprint_list: List[str], client_id_list: List[str]
@@ -317,7 +306,7 @@ class OpenIDConnectProvider(BaseModel):
             raise InvalidInput("Thumbprint list must contain fewer than 5 entries.")
 
         if len(client_id_list) > 100:
-            raise IAMLimitExceededException(
+            raise LimitExceededException(
                 "Cannot exceed quota for ClientIdsPerOpenIdConnectProvider: 100"
             )
 
@@ -356,8 +345,8 @@ class PolicyVersion:
         self.create_date = create_date or utcnow()
 
     @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.create_date)
+    def is_default_version(self) -> bool:
+        return self.is_default
 
 
 class ManagedPolicy(Policy, CloudFormationModel):
@@ -697,7 +686,7 @@ class Role(CloudFormationModel):
         path: str,
         permissions_boundary: Optional[str],
         description: str,
-        tags: Dict[str, Dict[str, str]],
+        tags: list[Dict[str, str]],
         max_session_duration: Optional[str],
         linked_service: Optional[str] = None,
     ):
@@ -716,19 +705,55 @@ class Role(CloudFormationModel):
         self.last_used: Optional[datetime] = None
         self.last_used_region = None
         self.description = description
-        self.permissions_boundary: Optional[str] = permissions_boundary
+        self.permissions_boundary_arn: Optional[str] = permissions_boundary
         self.max_session_duration = max_session_duration
         self._linked_service = linked_service
 
     @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.create_date)
+    def attached_managed_policies(self) -> list[dict[str, str]]:
+        managed_policies = []
+        for policy in self.managed_policies.values():
+            managed_policies.append(
+                {
+                    "PolicyName": policy.name,
+                    "PolicyArn": policy.arn,
+                }
+            )
+        return managed_policies
 
     @property
-    def last_used_iso_8601(self) -> Optional[str]:
-        if self.last_used:
-            return iso_8601_datetime_with_milliseconds(self.last_used)
+    def instance_profile_list(self) -> list[InstanceProfile]:
+        backend = iam_backends[self.account_id][self.partition]
+        instance_profiles = []
+        for instance_profile in backend.instance_profiles.values():
+            if self in instance_profile.roles:
+                instance_profiles.append(instance_profile)
+        return instance_profiles
+
+    @property
+    def role_policy_list(self) -> List[Dict[str, str]]:
+        policy_list = [
+            {"PolicyName": name, "PolicyDocument": parse.quote(policy)}
+            for name, policy in self.policies.items()
+        ]
+        return policy_list
+
+    @property
+    def permissions_boundary(self) -> Optional[dict[str, str]]:
+        if self.permissions_boundary_arn:
+            return {
+                "PermissionsBoundaryType": "PermissionsBoundaryPolicy",
+                "PermissionsBoundaryArn": self.permissions_boundary_arn,
+            }
         return None
+
+    @property
+    def role_last_used(self) -> dict[str, Optional[str | datetime]]:
+        """Returns a dict with the last used information of the role."""
+        return {
+            "LastUsedDate": self.last_used,
+            "Region": self.last_used_region,
+        }
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -879,13 +904,10 @@ class Role(CloudFormationModel):
                 "rolePolicyList": _role_policy_list,
                 "createDate": self.create_date.isoformat(),
                 "attachedManagedPolicies": _managed_policies,
-                "permissionsBoundary": self.permissions_boundary,
-                "tags": list(
-                    map(
-                        lambda key: {"key": key, "value": self.tags[key]["Value"]},
-                        self.tags,
-                    )
-                ),
+                "permissionsBoundary": self.permissions_boundary_arn,
+                "tags": [
+                    {"key": tag["Key"], "value": tag["Value"]} for tag in self.tags
+                ],
                 "roleLastUsed": None,
             },
             "supplementaryConfiguration": {},
@@ -899,7 +921,7 @@ class Role(CloudFormationModel):
         try:
             del self.policies[policy_name]
         except KeyError:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"The role policy with name {policy_name} cannot be found."
             )
 
@@ -920,57 +942,11 @@ class Role(CloudFormationModel):
             return self.id
         raise UnformattedGetAttTemplateException()
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return [self.tags[tag] for tag in self.tags]
-
     @property
     def description_escaped(self) -> str:
         import html
 
         return html.escape(self.description or "")
-
-    def to_xml(self) -> str:
-        template = Template(
-            """<Role>
-      <Path>{{ role.path }}</Path>
-      <Arn>{{ role.arn }}</Arn>
-      <RoleName>{{ role.name }}</RoleName>
-      <AssumeRolePolicyDocument>{{ role.assume_role_policy_document | urlencode }}</AssumeRolePolicyDocument>
-      {% if role.description is not none %}
-      <Description>{{ role.description_escaped }}</Description>
-      {% endif %}
-      <CreateDate>{{ role.created_iso_8601 }}</CreateDate>
-      <RoleId>{{ role.id }}</RoleId>
-      {% if role.max_session_duration %}
-      <MaxSessionDuration>{{ role.max_session_duration }}</MaxSessionDuration>
-      {% endif %}
-      {% if role.permissions_boundary %}
-      <PermissionsBoundary>
-          <PermissionsBoundaryType>PermissionsBoundaryPolicy</PermissionsBoundaryType>
-          <PermissionsBoundaryArn>{{ role.permissions_boundary }}</PermissionsBoundaryArn>
-      </PermissionsBoundary>
-      {% endif %}
-      {% if role.tags %}
-      <Tags>
-        {% for tag in role.get_tags() %}
-        <member>
-            <Key>{{ tag['Key'] }}</Key>
-            <Value>{{ tag['Value'] }}</Value>
-        </member>
-        {% endfor %}
-      </Tags>
-      {% endif %}
-      <RoleLastUsed>
-        {% if role.last_used %}
-        <LastUsedDate>{{ role.last_used_iso_8601 }}</LastUsedDate>
-        {% endif %}
-        {% if role.last_used_region %}
-        <Region>{{ role.last_used_region }}</Region>
-        {% endif %}
-      </RoleLastUsed>
-    </Role>"""
-        )
-        return template.render(role=self)
 
 
 class InstanceProfile(CloudFormationModel):
@@ -991,11 +967,7 @@ class InstanceProfile(CloudFormationModel):
         self.path = path or "/"
         self.roles = roles if roles else []
         self.create_date = utcnow()
-        self.tags = {tag["Key"]: tag["Value"] for tag in tags or []}
-
-    @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.create_date)
+        self.tags = tags or []
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -1077,13 +1049,8 @@ class InstanceProfile(CloudFormationModel):
                     ),
                     "description": role.description,
                     "maxSessionDuration": None,
-                    "permissionsBoundary": role.permissions_boundary,
-                    "tags": list(
-                        map(
-                            lambda key: {"key": key, "value": role.tags[key]["Value"]},
-                            role.tags,
-                        )
-                    ),
+                    "permissionsBoundary": role.permissions_boundary_arn,
+                    "tags": role.tags,
                     "roleLastUsed": None,
                 }
             )
@@ -1137,8 +1104,12 @@ class SigningCertificate(BaseModel):
         self.status = "Active"
 
     @property
-    def uploaded_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.upload_date)
+    def certificate_id(self) -> str:
+        return self.id
+
+    @property
+    def certificate_body(self) -> str:
+        return self.body
 
 
 class AccessKeyLastUsed:
@@ -1148,8 +1119,8 @@ class AccessKeyLastUsed:
         self.region = region
 
     @property
-    def timestamp(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self._timestamp)
+    def timestamp(self) -> datetime:
+        return self._timestamp
 
     def strftime(self, date_format: str) -> str:
         return self._timestamp.strftime(date_format)
@@ -1180,10 +1151,6 @@ class AccessKey(CloudFormationModel):
         # (And rework to_csv accordingly)
         self.last_used: Optional[AccessKeyLastUsed] = None
         self.role_arn: Optional[str] = None
-
-    @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.create_date)
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -1291,10 +1258,6 @@ class SshPublicKey(BaseModel):
         self.status = "Active"
         self.upload_date = utcnow()
 
-    @property
-    def uploaded_iso_8601(self) -> str:
-        return iso_8601_datetime_without_milliseconds(self.upload_date)
-
 
 class Group(BaseModel):
     def __init__(self, account_id: str, region_name: str, name: str, path: str = "/"):
@@ -1310,8 +1273,24 @@ class Group(BaseModel):
         self.policies: Dict[str, str] = {}
 
     @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.create_date)
+    def group_policy_list(self) -> List[Dict[str, str]]:
+        policy_list = [
+            {"PolicyName": name, "PolicyDocument": parse.quote(policy)}
+            for name, policy in self.policies.items()
+        ]
+        return policy_list
+
+    @property
+    def attached_managed_policies(self) -> List[Dict[str, str]]:
+        attached_policies = []
+        for policy in self.managed_policies.values():
+            attached_policies.append(
+                {
+                    "PolicyName": policy.name,
+                    "PolicyArn": policy.arn,
+                }
+            )
+        return attached_policies
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -1336,7 +1315,7 @@ class Group(BaseModel):
         try:
             policy_json = self.policies[policy_name]
         except KeyError:
-            raise IAMNotFoundException(f"Policy {policy_name} not found")
+            raise NotFoundException(f"Policy {policy_name} not found")
 
         return {
             "policy_name": policy_name,
@@ -1352,7 +1331,7 @@ class Group(BaseModel):
 
     def delete_policy(self, policy_name: str) -> None:
         if policy_name not in self.policies:
-            raise IAMNotFoundException(f"Policy {policy_name} not found")
+            raise NotFoundException(f"Policy {policy_name} not found")
 
         del self.policies[policy_name]
 
@@ -1380,26 +1359,47 @@ class User(CloudFormationModel):
         self.signing_certificates: Dict[str, SigningCertificate] = {}
 
     @property
+    def attached_managed_policies(self) -> list[dict[str, str]]:
+        managed_policies = []
+        for policy in self.managed_policies.values():
+            managed_policies.append(
+                {
+                    "PolicyName": policy.name,
+                    "PolicyArn": policy.arn,
+                }
+            )
+        return managed_policies
+
+    @property
+    def user_policy_list(self) -> List[Dict[str, str]]:
+        policy_list = [
+            {"PolicyName": name, "PolicyDocument": parse.quote(policy)}
+            for name, policy in self.policies.items()
+        ]
+        return policy_list
+
+    @property
+    def group_list(self) -> list[str]:
+        backend = iam_backends[self.account_id][get_partition(self.region_name)]
+        groups = backend.get_groups_for_user(self.name)
+        return [group.name for group in groups]
+
+    @property
+    def tags(self) -> Optional[list[dict[str, str]]]:
+        backend = iam_backends[self.account_id][get_partition(self.region_name)]
+        tags = backend.tagger.list_tags_for_resource(self.arn)["Tags"]
+        return tags if tags else None
+
+    @property
     def arn(self) -> str:
         partition = get_partition(self.region_name)
         return f"arn:{partition}:iam::{self.account_id}:user{self.path}{self.name}"
-
-    @property
-    def created_iso_8601(self) -> str:
-        return iso_8601_datetime_with_milliseconds(self.create_date)
-
-    @property
-    def password_last_used_iso_8601(self) -> Optional[str]:
-        if self.password_last_used is not None:
-            return iso_8601_datetime_with_milliseconds(self.password_last_used)
-        else:
-            return None
 
     def get_policy(self, policy_name: str) -> Dict[str, str]:
         try:
             policy_json = self.policies[policy_name]
         except KeyError:
-            raise IAMNotFoundException(f"Policy {policy_name} not found")
+            raise NotFoundException(f"Policy {policy_name} not found")
 
         return {
             "policy_name": policy_name,
@@ -1415,7 +1415,7 @@ class User(CloudFormationModel):
 
     def delete_policy(self, policy_name: str) -> None:
         if policy_name not in self.policies:
-            raise IAMNotFoundException(f"Policy {policy_name} not found")
+            raise NotFoundException(f"Policy {policy_name} not found")
 
         del self.policies[policy_name]
 
@@ -1453,7 +1453,7 @@ class User(CloudFormationModel):
             if key.access_key_id == access_key_id:
                 return key
 
-        raise IAMNotFoundException(
+        raise NotFoundException(
             f"The Access Key with id {access_key_id} cannot be found"
         )
 
@@ -1476,7 +1476,7 @@ class User(CloudFormationModel):
             if key.ssh_public_key_id == ssh_public_key_id:
                 return key
 
-        raise IAMNotFoundException(
+        raise NotFoundException(
             f"The SSH Public Key with id {ssh_public_key_id} cannot be found"
         )
 
@@ -1946,7 +1946,7 @@ class IAMBackend(BaseBackend):
         try:
             policy = arns[policy_arn]
         except KeyError:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"Policy {policy_arn} does not exist or is not attachable."
             )
 
@@ -1976,11 +1976,11 @@ class IAMBackend(BaseBackend):
                 f"Value ({permissions_boundary}) for parameter PermissionsBoundary is invalid.",
             )
         role = self.get_role(role_name)
-        role.permissions_boundary = permissions_boundary
+        role.permissions_boundary_arn = permissions_boundary
 
     def delete_role_permissions_boundary(self, role_name: str) -> None:
         role = self.get_role(role_name)
-        role.permissions_boundary = None
+        role.permissions_boundary_arn = None
 
     def detach_role_policy(self, policy_arn: str, role_name: str) -> None:
         arns = dict((p.arn, p) for p in self.managed_policies.values())
@@ -1989,7 +1989,7 @@ class IAMBackend(BaseBackend):
             if policy.arn not in self.get_role(role_name).managed_policies.keys():
                 raise KeyError
         except KeyError:
-            raise IAMNotFoundException(f"Policy {policy_arn} was not found.")
+            raise NotFoundException(f"Policy {policy_arn} was not found.")
         policy.detach_from(self.get_role(role_name))
 
     def attach_group_policy(self, policy_arn: str, group_name: str) -> None:
@@ -1997,7 +1997,7 @@ class IAMBackend(BaseBackend):
         try:
             policy = arns[policy_arn]
         except KeyError:
-            raise IAMNotFoundException(f"Policy {policy_arn} was not found.")
+            raise NotFoundException(f"Policy {policy_arn} was not found.")
         if policy.arn in self.get_group(group_name).managed_policies.keys():
             return
         policy.attach_to(self.get_group(group_name))
@@ -2009,7 +2009,7 @@ class IAMBackend(BaseBackend):
             if policy.arn not in self.get_group(group_name).managed_policies.keys():
                 raise KeyError
         except KeyError:
-            raise IAMNotFoundException(f"Policy {policy_arn} was not found.")
+            raise NotFoundException(f"Policy {policy_arn} was not found.")
         policy.detach_from(self.get_group(group_name))
 
     def attach_user_policy(self, policy_arn: str, user_name: str) -> None:
@@ -2017,7 +2017,7 @@ class IAMBackend(BaseBackend):
         try:
             policy = arns[policy_arn]
         except KeyError:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"Policy {policy_arn} does not exist or is not attachable."
             )
         policy.attach_to(self.get_user(user_name))
@@ -2029,7 +2029,7 @@ class IAMBackend(BaseBackend):
             if policy.arn not in self.get_user(user_name).managed_policies.keys():
                 raise KeyError
         except KeyError:
-            raise IAMNotFoundException(f"Policy {policy_arn} was not found.")
+            raise NotFoundException(f"Policy {policy_arn} was not found.")
         policy.detach_from(self.get_user(user_name))
 
     def create_policy(
@@ -2062,7 +2062,7 @@ class IAMBackend(BaseBackend):
 
     def get_policy(self, policy_arn: str) -> ManagedPolicy:
         if policy_arn not in self.managed_policies:
-            raise IAMNotFoundException(f"Policy {policy_arn} not found")
+            raise NotFoundException(f"Policy {policy_arn} not found")
         return self.managed_policies[policy_arn]
 
     def list_attached_role_policies(
@@ -2081,7 +2081,7 @@ class IAMBackend(BaseBackend):
         marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> Tuple[Iterable[Dict[str, str]], Optional[str]]:
+    ) -> Tuple[Iterable[Any], Optional[str]]:
         policies = self.get_group(group_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
@@ -2091,7 +2091,7 @@ class IAMBackend(BaseBackend):
         marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> Tuple[Iterable[Dict[str, str]], Optional[str]]:
+    ) -> Tuple[Iterable[Any], Optional[str]]:
         policies = self.get_user(user_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
@@ -2186,7 +2186,7 @@ class IAMBackend(BaseBackend):
             path=path,
             permissions_boundary=permissions_boundary,
             description=description,
-            tags=clean_tags,
+            tags=[clean_tags[tag] for tag in clean_tags],
             max_session_duration=max_session_duration,
             linked_service=linked_service,
         )
@@ -2200,32 +2200,29 @@ class IAMBackend(BaseBackend):
         for role in self.get_roles():
             if role.name == role_name:
                 return role
-        raise IAMNotFoundException(f"Role {role_name} not found")
+        raise NotFoundException(f"Role {role_name} not found")
 
     def get_role_by_arn(self, arn: str) -> Role:
         for role in self.get_roles():
             if role.arn == arn:
                 return role
-        raise IAMNotFoundException(f"Role {arn} not found")
+        raise NotFoundException(f"Role {arn} not found")
 
     def delete_role(self, role_name: str) -> None:
         role = self.get_role(role_name)
         for instance_profile in self.get_instance_profiles():
             for profile_role in instance_profile.roles:
                 if profile_role.name == role_name:
-                    raise IAMConflictException(
-                        code="DeleteConflict",
-                        message="Cannot delete entity, must remove roles from instance profile first.",
+                    raise DeleteConflictException(
+                        "Cannot delete entity, must remove roles from instance profile first."
                     )
         if role.managed_policies:
-            raise IAMConflictException(
-                code="DeleteConflict",
-                message="Cannot delete entity, must detach all policies first.",
+            raise DeleteConflictException(
+                "Cannot delete entity, must detach all policies first."
             )
         if role.policies:
-            raise IAMConflictException(
-                code="DeleteConflict",
-                message="Cannot delete entity, must delete policies first.",
+            raise DeleteConflictException(
+                "Cannot delete entity, must delete policies first."
             )
         del self.roles[role.id]
 
@@ -2256,7 +2253,7 @@ class IAMBackend(BaseBackend):
         for p, d in role.policies.items():
             if p == policy_name:
                 return p, d
-        raise IAMNotFoundException(
+        raise NotFoundException(
             f"Policy Document {policy_name} not attached to role {role_name}"
         )
 
@@ -2322,7 +2319,7 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
 
         max_items = int(max_items)
-        tag_index = sorted(role.tags)
+        tag_index = sorted(role.tags, key=lambda t: t["Key"])
         start_idx = int(marker) if marker else 0
 
         tag_index = tag_index[start_idx : start_idx + max_items]
@@ -2332,15 +2329,15 @@ class IAMBackend(BaseBackend):
         else:
             marker = str(start_idx + max_items)
 
-        # Make the tag list of dict's:
-        tags = [role.tags[tag] for tag in tag_index]
-
-        return tags, marker
+        return tag_index, marker
 
     def tag_role(self, role_name: str, tags: List[Dict[str, str]]) -> None:
-        clean_tags = self._tag_verification(tags)
+        self._tag_verification(tags)
         role = self.get_role(role_name)
-        role.tags.update(clean_tags)
+        new_keys = [tag["Key"] for tag in tags]
+        updated_tags = [tag for tag in role.tags if tag["Key"] not in new_keys]
+        updated_tags.extend(tags)
+        role.tags = updated_tags
 
     def untag_role(self, role_name: str, tag_keys: List[str]) -> None:
         if len(tag_keys) > 50:
@@ -2349,10 +2346,9 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
 
         for key in tag_keys:
-            ref_key = key.lower()
             self._validate_tag_key(key, exception_param="tagKeys")
 
-            role.tags.pop(ref_key, None)
+        role.tags = [tag for tag in role.tags if tag["Key"] not in tag_keys]
 
     def list_policy_tags(
         self, policy_arn: str, marker: Optional[str], max_items: int = 100
@@ -2400,9 +2396,9 @@ class IAMBackend(BaseBackend):
 
         policy = self.get_policy(policy_arn)
         if not policy:
-            raise IAMNotFoundException("Policy not found")
+            raise NotFoundException("Policy not found")
         if len(policy.versions) >= 5:
-            raise IAMLimitExceededException(
+            raise LimitExceededException(
                 "A managed policy can have up to 5 versions. Before you create a new version, you must delete an existing version."
             )
         _as_default = set_as_default == "true"  # convert it to python bool
@@ -2417,32 +2413,31 @@ class IAMBackend(BaseBackend):
     def get_policy_version(self, policy_arn: str, version_id: str) -> PolicyVersion:
         policy = self.get_policy(policy_arn)
         if not policy:
-            raise IAMNotFoundException("Policy not found")
+            raise NotFoundException("Policy not found")
         for version in policy.versions:
             if version.version_id == version_id:
                 return version
-        raise IAMNotFoundException("Policy version not found")
+        raise NotFoundException("Policy version not found")
 
     def list_policy_versions(self, policy_arn: str) -> List[PolicyVersion]:
         policy = self.get_policy(policy_arn)
         if not policy:
-            raise IAMNotFoundException("Policy not found")
+            raise NotFoundException("Policy not found")
         return policy.versions
 
     def delete_policy_version(self, policy_arn: str, version_id: str) -> None:
         policy = self.get_policy(policy_arn)
         if not policy:
-            raise IAMNotFoundException("Policy not found")
+            raise NotFoundException("Policy not found")
         if version_id == policy.default_version_id:
-            raise IAMConflictException(
-                code="DeleteConflict",
-                message="Cannot delete the default version of a policy.",
+            raise DeleteConflictException(
+                "Cannot delete the default version of a policy."
             )
         for i, v in enumerate(policy.versions):
             if v.version_id == version_id:
                 del policy.versions[i]
                 return
-        raise IAMNotFoundException("Policy not found")
+        raise NotFoundException("Policy not found")
 
     def create_instance_profile(
         self,
@@ -2452,9 +2447,8 @@ class IAMBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> InstanceProfile:
         if self.instance_profiles.get(name):
-            raise IAMConflictException(
-                code="EntityAlreadyExists",
-                message=f"Instance Profile {name} already exists.",
+            raise EntityAlreadyExists(
+                f"Instance Profile {name} already exists.",
             )
 
         instance_profile_id = random_resource_id()
@@ -2477,9 +2471,8 @@ class IAMBackend(BaseBackend):
     ) -> None:
         instance_profile = self.get_instance_profile(name)
         if len(instance_profile.roles) > 0 and not ignore_attached_roles:
-            raise IAMConflictException(
-                code="DeleteConflict",
-                message="Cannot delete entity, must remove roles from instance profile first.",
+            raise DeleteConflictException(
+                "Cannot delete entity, must remove roles from instance profile first.",
             )
         del self.instance_profiles[name]
 
@@ -2488,14 +2481,14 @@ class IAMBackend(BaseBackend):
             if profile.name == profile_name:
                 return profile
 
-        raise IAMNotFoundException(f"Instance profile {profile_name} not found")
+        raise NotFoundException(f"Instance profile {profile_name} not found")
 
     def get_instance_profile_by_arn(self, profile_arn: str) -> InstanceProfile:
         for profile in self.get_instance_profiles():
             if profile.arn == profile_arn:
                 return profile
 
-        raise IAMNotFoundException(f"Instance profile {profile_arn} not found")
+        raise NotFoundException(f"Instance profile {profile_arn} not found")
 
     def get_instance_profiles(self) -> Iterable[InstanceProfile]:
         return self.instance_profiles.values()
@@ -2516,7 +2509,7 @@ class IAMBackend(BaseBackend):
         if not profile.roles:
             profile.roles.append(role)
         else:
-            raise IAMLimitExceededException(
+            raise LimitExceededException(
                 "Cannot exceed quota for InstanceSessionsPerInstanceProfile: 1"
             )
 
@@ -2559,7 +2552,7 @@ class IAMBackend(BaseBackend):
             if name == cert.cert_name:
                 return cert
 
-        raise IAMNotFoundException(
+        raise NotFoundException(
             f"The Server Certificate with name {name} cannot be found."
         )
 
@@ -2577,7 +2570,7 @@ class IAMBackend(BaseBackend):
                 break
 
         if cert_id is None:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"The Server Certificate with name {name} cannot be found."
             )
 
@@ -2585,7 +2578,7 @@ class IAMBackend(BaseBackend):
 
     def create_group(self, group_name: str, path: str = "/") -> Group:
         if group_name in self.groups:
-            raise IAMConflictException(f"Group {group_name} already exists")
+            raise EntityAlreadyExists(f"Group {group_name} already exists")
 
         group = Group(self.account_id, self.region_name, group_name, path)
         self.groups[group_name] = group
@@ -2598,7 +2591,7 @@ class IAMBackend(BaseBackend):
         try:
             return self.groups[group_name]
         except KeyError:
-            raise IAMNotFoundException(f"Group {group_name} not found")
+            raise NotFoundException(f"Group {group_name} not found")
 
     def list_groups(self) -> Iterable[Group]:
         return self.groups.values()
@@ -2640,7 +2633,7 @@ class IAMBackend(BaseBackend):
         try:
             del self.groups[group_name]
         except KeyError:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"The group with name {group_name} cannot be found."
             )
 
@@ -2649,13 +2642,11 @@ class IAMBackend(BaseBackend):
     ) -> None:
         if new_group_name:
             if new_group_name in self.groups:
-                raise IAMConflictException(
-                    message=f"Group {new_group_name} already exists"
-                )
+                raise EntityAlreadyExists(f"Group {new_group_name} already exists")
             try:
                 group = self.groups[group_name]
             except KeyError:
-                raise IAMNotFoundException(
+                raise NotFoundException(
                     f"The group with name {group_name} cannot be found."
                 )
 
@@ -2677,9 +2668,7 @@ class IAMBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> User:
         if user_name in self.users:
-            raise IAMConflictException(
-                "EntityAlreadyExists", f"User {user_name} already exists"
-            )
+            raise EntityAlreadyExists(f"User {user_name} already exists")
 
         user = User(self.account_id, region_name, user_name, path)
         self.tagger.tag_resource(user.arn, tags or [])
@@ -2706,7 +2695,7 @@ class IAMBackend(BaseBackend):
                 users = filter_items_with_path_prefix(path_prefix, users)
 
         except KeyError:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"Users {path_prefix}, {marker}, {max_items} not found"
             )
 
@@ -2721,7 +2710,7 @@ class IAMBackend(BaseBackend):
         try:
             user = self.users[user_name]
         except KeyError:
-            raise IAMNotFoundException(f"User {user_name} not found")
+            raise NotFoundException(f"User {user_name} not found")
 
         if new_path:
             user.path = new_path
@@ -2771,7 +2760,7 @@ class IAMBackend(BaseBackend):
             len(user.signing_certificates)
             >= self.account_summary._signing_certificates_per_user_quota
         ):
-            raise IAMLimitExceededException(
+            raise LimitExceededException(
                 "Cannot exceed quota for CertificatesPerUser: 2"
             )
         user.signing_certificates[cert_id] = SigningCertificate(
@@ -2786,7 +2775,7 @@ class IAMBackend(BaseBackend):
         try:
             del user.signing_certificates[cert_id]
         except KeyError:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"The Certificate with id {cert_id} cannot be found."
             )
 
@@ -2804,7 +2793,7 @@ class IAMBackend(BaseBackend):
             user.signing_certificates[cert_id].status = status
 
         except KeyError:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"The Certificate with id {cert_id} cannot be found."
             )
 
@@ -2812,14 +2801,14 @@ class IAMBackend(BaseBackend):
         # This does not currently deal with PasswordPolicyViolation.
         user = self.get_user(user_name)
         if user.password:
-            raise IAMConflictException(f"User {user_name} already has password")
+            raise EntityAlreadyExists(f"User {user_name} already has password")
         user.password = password
         return user
 
     def get_login_profile(self, user_name: str) -> User:
         user = self.get_user(user_name)
         if not user.password:
-            raise IAMNotFoundException(f"Login profile for {user_name} not found")
+            raise NotFoundException(f"Login profile for {user_name} not found")
         return user
 
     def update_login_profile(
@@ -2828,7 +2817,7 @@ class IAMBackend(BaseBackend):
         # This does not currently deal with PasswordPolicyViolation.
         user = self.get_user(user_name)
         if not user.password:
-            raise IAMNotFoundException(f"Login profile for {user_name} not found")
+            raise NotFoundException(f"Login profile for {user_name} not found")
         user.password = password
         user.password_reset_required = password_reset_required
         return user
@@ -2836,7 +2825,7 @@ class IAMBackend(BaseBackend):
     def delete_login_profile(self, user_name: str) -> None:
         user = self.get_user(user_name)
         if not user.password:
-            raise IAMNotFoundException(f"Login profile for {user_name} not found")
+            raise NotFoundException(f"Login profile for {user_name} not found")
         user.password = None
 
     def add_user_to_group(self, group_name: str, user_name: str) -> None:
@@ -2851,7 +2840,7 @@ class IAMBackend(BaseBackend):
         try:
             group.users.remove(user)
         except ValueError:
-            raise IAMNotFoundException(f"User {user_name} not in group {group_name}")
+            raise NotFoundException(f"User {user_name} not in group {group_name}")
 
     def get_user_policy(self, user_name: str, policy_name: str) -> Dict[str, str]:
         user = self.get_user(user_name)
@@ -2861,9 +2850,9 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         return user.policies.keys()
 
-    def list_user_tags(self, user_name: str) -> Dict[str, List[Dict[str, str]]]:
+    def list_user_tags(self, user_name: str) -> List[Dict[str, str]]:
         user = self.get_user(user_name)
-        return self.tagger.list_tags_for_resource(user.arn)
+        return self.tagger.list_tags_for_resource(user.arn)["Tags"]
 
     def put_user_policy(
         self, user_name: str, policy_name: str, policy_json: str
@@ -2887,7 +2876,7 @@ class IAMBackend(BaseBackend):
     ) -> AccessKey:
         keys = self.list_access_keys(user_name)
         if len(keys) >= LIMIT_KEYS_PER_USER:
-            raise IAMLimitExceededException(
+            raise LimitExceededException(
                 f"Cannot exceed quota for AccessKeysPerUser: {LIMIT_KEYS_PER_USER}"
             )
         user = self.get_user(user_name)
@@ -2914,7 +2903,7 @@ class IAMBackend(BaseBackend):
             if key.access_key_id == access_key_id:
                 return {"user_name": key.user_name, "last_used": key.last_used}
 
-        raise IAMNotFoundException(
+        raise NotFoundException(
             f"The Access Key with id {access_key_id} cannot be found"
         )
 
@@ -2983,9 +2972,7 @@ class IAMBackend(BaseBackend):
         """Enable MFA Device for user."""
         user = self.get_user(user_name)
         if serial_number in user.mfa_devices:
-            raise IAMConflictException(
-                "EntityAlreadyExists", f"Device {serial_number} already exists"
-            )
+            raise EntityAlreadyExists(f"Device {serial_number} already exists")
 
         device = self.virtual_mfa_devices.get(serial_number, None)
         if device:
@@ -2996,7 +2983,7 @@ class IAMBackend(BaseBackend):
                 "UserName": user.name,
                 "UserId": user.id,
                 "Arn": user.arn,
-                "CreateDate": user.created_iso_8601,
+                "CreateDate": user.create_date,
                 "PasswordLastUsed": None,  # not supported
                 "PermissionsBoundary": {},  # ToDo: add put_user_permissions_boundary() functionality
                 "Tags": self.tagger.list_tags_for_resource(user.arn)["Tags"],
@@ -3010,7 +2997,7 @@ class IAMBackend(BaseBackend):
         """Deactivate and detach MFA Device from user if device exists."""
         user = self.get_user(user_name)
         if serial_number not in user.mfa_devices:
-            raise IAMNotFoundException(f"Device {serial_number} not found")
+            raise NotFoundException(f"Device {serial_number} not found")
 
         device = self.virtual_mfa_devices.get(serial_number, None)
         if device:
@@ -3067,7 +3054,7 @@ class IAMBackend(BaseBackend):
         device = self.virtual_mfa_devices.pop(serial_number, None)
 
         if not device:
-            raise IAMNotFoundException(
+            raise NotFoundException(
                 f"VirtualMFADevice with serial number {serial_number} doesn't exist."
             )
 
@@ -3101,14 +3088,12 @@ class IAMBackend(BaseBackend):
     def delete_user(self, user_name: str) -> None:
         user = self.get_user(user_name)
         if user.managed_policies:
-            raise IAMConflictException(
-                code="DeleteConflict",
-                message="Cannot delete entity, must detach all policies first.",
+            raise DeleteConflictException(
+                "Cannot delete entity, must detach all policies first."
             )
         if user.policies:
-            raise IAMConflictException(
-                code="DeleteConflict",
-                message="Cannot delete entity, must delete policies first.",
+            raise DeleteConflictException(
+                "Cannot delete entity, must delete policies first."
             )
         self.tagger.delete_all_tags_for_resource(user.arn)
         del self.users[user_name]
@@ -3121,11 +3106,11 @@ class IAMBackend(BaseBackend):
 
     def get_credential_report(self) -> str:
         if not self.credential_report:
-            raise IAMReportNotPresentException("Credential report not present")
+            raise ReportNotPresentException("Credential report not present")
         report = "user,arn,user_creation_time,password_enabled,password_last_used,password_last_changed,password_next_rotation,mfa_active,access_key_1_active,access_key_1_last_rotated,access_key_1_last_used_date,access_key_1_last_used_region,access_key_1_last_used_service,access_key_2_active,access_key_2_last_rotated,access_key_2_last_used_date,access_key_2_last_used_region,access_key_2_last_used_service,cert_1_active,cert_1_last_rotated,cert_2_active,cert_2_last_rotated\n"
         for user in self.users:
             report += self.users[user].to_csv()
-        return base64.b64encode(report.encode("ascii")).decode("ascii")
+        return report
 
     def list_account_aliases(self) -> List[str]:
         return self.account_aliases
@@ -3191,7 +3176,7 @@ class IAMBackend(BaseBackend):
                 if saml_provider.arn == saml_provider_arn:
                     del self.saml_providers[saml_provider.name]
         except KeyError:
-            raise IAMNotFoundException(f"SAMLProvider {saml_provider_arn} not found")
+            raise NotFoundException(f"SAMLProvider {saml_provider_arn} not found")
 
     def list_saml_providers(self) -> Iterable[SAMLProvider]:
         return self.saml_providers.values()
@@ -3200,7 +3185,7 @@ class IAMBackend(BaseBackend):
         for saml_provider in self.list_saml_providers():
             if saml_provider.arn == saml_provider_arn:
                 return saml_provider
-        raise IAMNotFoundException(f"SamlProvider {saml_provider_arn} not found")
+        raise NotFoundException(f"SamlProvider {saml_provider_arn} not found")
 
     def get_user_from_access_key_id(self, access_key_id: str) -> Optional[User]:
         for user_name, user in self.users.items():
@@ -3280,9 +3265,7 @@ class IAMBackend(BaseBackend):
         open_id_provider = self.open_id_providers.get(arn)
 
         if not open_id_provider:
-            raise IAMNotFoundException(
-                f"OpenIDConnect Provider not found for arn {arn}"
-            )
+            raise NotFoundException(f"OpenIDConnect Provider not found for arn {arn}")
 
         return open_id_provider
 
@@ -3342,9 +3325,7 @@ class IAMBackend(BaseBackend):
         user_names: List[str],
     ) -> InlinePolicy:
         if resource_name in self.inline_policies:
-            raise IAMConflictException(
-                "EntityAlreadyExists", f"Inline Policy {resource_name} already exists"
-            )
+            raise EntityAlreadyExists(f"Inline Policy {resource_name} already exists")
 
         inline_policy = InlinePolicy(
             resource_name,
@@ -3362,7 +3343,7 @@ class IAMBackend(BaseBackend):
         try:
             return self.inline_policies[policy_id]
         except KeyError:
-            raise IAMNotFoundException(f"Inline policy {policy_id} not found")
+            raise NotFoundException(f"Inline policy {policy_id} not found")
 
     def update_inline_policy(
         self,
@@ -3448,17 +3429,16 @@ class IAMBackend(BaseBackend):
         self, instance_profile_name: str, tags: List[Dict[str, str]] = []
     ) -> None:
         profile = self.get_instance_profile(profile_name=instance_profile_name)
-
-        for value in tags:
-            profile.tags[value["Key"]] = value["Value"]
+        new_keys = [tag["Key"] for tag in tags]
+        updated_tags = [tag for tag in profile.tags if tag["Key"] not in new_keys]
+        updated_tags.extend(tags)
+        profile.tags = updated_tags
 
     def untag_instance_profile(
         self, instance_profile_name: str, tagKeys: List[str] = []
     ) -> None:
         profile = self.get_instance_profile(profile_name=instance_profile_name)
-
-        for value in tagKeys:
-            del profile.tags[value]
+        profile.tags = [tag for tag in profile.tags if tag["Key"] not in tagKeys]
 
 
 iam_backends = BackendDict(

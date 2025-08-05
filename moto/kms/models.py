@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import unix_time
+from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
@@ -501,7 +501,7 @@ class KmsBackend(BaseBackend):
         if 7 <= pending_window_in_days <= 30:
             self.keys[key_id].enabled = False
             self.keys[key_id].key_state = "PendingDeletion"
-            self.keys[key_id].deletion_date = datetime.now() + timedelta(
+            self.keys[key_id].deletion_date = utcnow() + timedelta(
                 days=pending_window_in_days
             )
             return unix_time(self.keys[key_id].deletion_date)
@@ -749,7 +749,7 @@ class KmsBackend(BaseBackend):
 
         rotation = {
             "KeyId": key_id,
-            "RotationDate": datetime.now().timestamp(),
+            "RotationDate": unix_time(),
             "RotationType": "ON_DEMAND",
         }
 

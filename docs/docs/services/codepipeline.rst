@@ -32,6 +32,7 @@ codepipeline
 - [ ] get_third_party_job_details
 - [ ] list_action_executions
 - [ ] list_action_types
+- [ ] list_deploy_action_execution_targets
 - [ ] list_pipeline_executions
 - [X] list_pipelines
 - [ ] list_rule_executions

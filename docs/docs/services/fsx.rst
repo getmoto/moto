@@ -20,6 +20,7 @@ fsx
 - [ ] cancel_data_repository_task
 - [ ] copy_backup
 - [ ] copy_snapshot_and_update_volume
+- [ ] create_and_attach_s3_access_point
 - [ ] create_backup
 - [ ] create_data_repository_association
 - [ ] create_data_repository_task
@@ -43,10 +44,12 @@ fsx
 - [ ] describe_file_caches
 - [ ] describe_file_system_aliases
 - [X] describe_file_systems
+- [ ] describe_s3_access_point_attachments
 - [ ] describe_shared_vpc_configuration
 - [ ] describe_snapshots
 - [ ] describe_storage_virtual_machines
 - [ ] describe_volumes
+- [ ] detach_and_delete_s3_access_point
 - [ ] disassociate_file_system_aliases
 - [ ] list_tags_for_resource
 - [ ] release_file_system_nfs_v3_locks

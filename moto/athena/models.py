@@ -117,6 +117,7 @@ class Execution(BaseModel):
         self.workgroup = workgroup
         self.execution_parameters = execution_parameters
         self.start_time = time.time()
+        self.end_time = time.time()
         self.status = "SUCCEEDED"
 
         if self.config is not None and "OutputLocation" in self.config:
@@ -137,6 +138,28 @@ class QueryResults(BaseModel):
                 "ResultSetMetadata": {"ColumnInfo": self.column_info},
             },
         }
+
+
+class CapacityReservation(TaggableResourceMixin, BaseModel):
+    def __init__(
+        self,
+        athena_backend: "AthenaBackend",
+        name: str,
+        target_dpus: int,
+        tags: List[Dict[str, str]],
+    ):
+        self.region_name = athena_backend.region_name
+        super().__init__(
+            athena_backend.account_id,
+            self.region_name,
+            f"capacityreservation/{name}",
+            tags,
+        )
+        self.athena_backend = athena_backend
+        self.name = name
+        self.target_dpus = target_dpus
+        self.create_tags(tags)
+        self.tags = tags
 
 
 class NamedQuery(BaseModel):
@@ -186,6 +209,7 @@ class AthenaBackend(BaseBackend):
         self.work_groups: Dict[str, WorkGroup] = {}
         self.executions: Dict[str, Execution] = {}
         self.named_queries: Dict[str, NamedQuery] = {}
+        self.capacity_reservations: Dict[str, CapacityReservation] = {}
         self.data_catalogs: Dict[str, DataCatalog] = {}
         self.query_results: Dict[str, QueryResults] = {}
         self.query_results_queue: List[QueryResults] = []
@@ -366,6 +390,19 @@ class AthenaBackend(BaseBackend):
         execution = self.executions[exec_id]
         execution.status = "CANCELLED"
 
+    def create_capacity_reservation(
+        self,
+        name: str,
+        target_dpus: int,
+        tags: List[Dict[str, str]],
+    ) -> None:
+        cr = CapacityReservation(self, name, target_dpus, tags)
+        self.capacity_reservations[cr.name] = cr
+        return None
+
+    def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
+        return self.capacity_reservations.get(name)
+
     def create_named_query(
         self,
         name: str,
@@ -450,6 +487,13 @@ class AthenaBackend(BaseBackend):
             ps = self.prepared_statements[statement_name]
             if ps.workgroup == work_group:
                 return ps
+        return None
+
+    def get_query_runtime_statistics(
+        self, query_execution_id: str
+    ) -> Optional[Execution]:
+        if query_execution_id in self.executions:
+            return self.executions[query_execution_id]
         return None
 
 

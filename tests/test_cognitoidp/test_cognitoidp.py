@@ -980,7 +980,7 @@ def test_update_user_pool_domain():
 
 
 @mock_aws
-def test_create_user_pool_client():
+def test_create_user_pool_client_default_id_strategy():
     conn = boto3.client("cognito-idp", "us-west-2")
 
     client_name = str(uuid.uuid4())
@@ -996,6 +996,50 @@ def test_create_user_pool_client():
     assert "ClientSecret" not in result["UserPoolClient"]
     assert len(result["UserPoolClient"]["CallbackURLs"]) == 1
     assert result["UserPoolClient"]["CallbackURLs"][0] == value
+
+
+@mock_aws
+@mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY": "HASH"})
+def test_create_user_pool_client_hash_id_strategy_with_equal_args():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environemnt variables in ServerMode")
+
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    client_name = str(uuid.uuid4())
+    value = str(uuid.uuid4())
+    user_pool_id = conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"]
+
+    first = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=client_name, CallbackURLs=[value]
+    )
+    second = conn.create_user_pool_client(
+        UserPoolId=user_pool_id, ClientName=client_name, CallbackURLs=[value]
+    )
+
+    assert first["UserPoolClient"]["ClientId"] == second["UserPoolClient"]["ClientId"]
+
+
+@mock_aws
+@mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY": "HASH"})
+def test_create_user_pool_client_hash_id_strategy_with_different_args():
+    if settings.TEST_SERVER_MODE:
+        raise SkipTest("Cannot set environemnt variables in ServerMode")
+
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    first = conn.create_user_pool_client(
+        UserPoolId=conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"],
+        ClientName=str(uuid.uuid4()),
+        CallbackURLs=[str(uuid.uuid4())],
+    )
+    second = conn.create_user_pool_client(
+        UserPoolId=conn.create_user_pool(PoolName=str(uuid.uuid4()))["UserPool"]["Id"],
+        ClientName=str(uuid.uuid4()),
+        CallbackURLs=[str(uuid.uuid4())],
+    )
+
+    assert first["UserPoolClient"]["ClientId"] != second["UserPoolClient"]["ClientId"]
 
 
 @mock_aws

@@ -1,3 +1,5 @@
+from unittest import SkipTest
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -689,3 +691,716 @@ def test_list_tags_cache_cluster():
         {"Value": "bar", "Key": "foo"},
         {"Value": "bar1", "Key": "foo1"},
     ]
+
+
+@mock_aws
+def test_create_cache_subnet_group():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    assert (
+        resp["CacheSubnetGroup"]["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert resp["CacheSubnetGroup"]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert (
+        resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    )
+    assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
+
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv4"]
+
+
+@mock_aws
+def test_create_cache_subnet_group_and_mock_vpc():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    # Create a subnet group with two subnets
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16").get("Vpc")
+    vpc_id = vpc.get("VpcId")
+    subnet_1 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet_2 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24").get(
+        "Subnet"
+    )
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_1.get("SubnetId"), subnet_2.get("SubnetId")],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    assert (
+        resp["CacheSubnetGroup"]["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert resp["CacheSubnetGroup"]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert (
+        resp["CacheSubnetGroup"]["CacheSubnetGroupDescription"] == "Test subnet group"
+    )
+    assert len(resp["CacheSubnetGroup"]["Subnets"]) == 2
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv4"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv4"]
+
+
+@mock_aws
+def test_describe_cache_subnet_groups():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+    resp = client.describe_cache_subnet_groups()
+    assert len(resp["CacheSubnetGroups"]) == 1
+    assert resp["CacheSubnetGroups"][0]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert len(resp["CacheSubnetGroups"][0]["Subnets"]) == 2
+
+
+@mock_aws
+def test_describe_cache_subnet_group_specific():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+    resp = client.describe_cache_subnet_groups(CacheSubnetGroupName="test-subnet-group")
+    assert len(resp["CacheSubnetGroups"]) == 1
+    assert resp["CacheSubnetGroups"][0]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert len(resp["CacheSubnetGroups"][0]["Subnets"]) == 2
+    assert resp["CacheSubnetGroups"][0]["SupportedNetworkTypes"] == ["ipv4"]
+
+
+@mock_aws
+def test_describe_cache_subnet_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    cache_subnet_group_unknown = "subnet_cluster_id_unknown"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_cache_subnet_groups(
+            CacheSubnetGroupName=cache_subnet_group_unknown,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheSubnetGroupNotFoundFault"
+    assert err["Message"] == f"CacheSubnetGroup {cache_subnet_group_unknown} not found."
+
+
+@mock_aws
+def test_subnet_groups_list_tags():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    resp = client.list_tags_for_resource(
+        ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group"
+    )
+    assert len(resp["TagList"]) == 2
+    assert resp["TagList"][0]["Key"] == "foo"
+    assert resp["TagList"][0]["Value"] == "bar"
+    assert resp["TagList"][1]["Key"] == "foo1"
+    assert resp["TagList"][1]["Value"] == "bar1"
+
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group-no-tags",
+        CacheSubnetGroupDescription="Test subnet group no tags",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+
+    resp = client.list_tags_for_resource(
+        ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:subnetgroup:test-subnet-group-no-tags"
+    )
+    assert len(resp["TagList"]) == 0
+
+
+@mock_aws
+def test_cache_subnet_group_already_exists():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_cache_subnet_group(
+            CacheSubnetGroupName="test-subnet-group",
+            CacheSubnetGroupDescription="Test subnet group",
+            SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheSubnetGroupAlreadyExists"
+    assert err["Message"] == "CacheSubnetGroup test-subnet-group already exists."
+
+
+@mock_aws
+def test_cache_subnet_group_with_invalid_subnet_ids():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16").get("Vpc")
+    vpc2 = ec2_client.create_vpc(CidrBlock="10.1.0.0/16").get("Vpc")
+    subnet1 = ec2_client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet2 = ec2_client.create_subnet(
+        VpcId=vpc2["VpcId"], CidrBlock="10.1.0.0/24"
+    ).get("Subnet")
+
+    with pytest.raises(ClientError) as exc:
+        client.create_cache_subnet_group(
+            CacheSubnetGroupName="test-subnet-group",
+            CacheSubnetGroupDescription="Test subnet group",
+            SubnetIds=[subnet1["SubnetId"], subnet2["SubnetId"]],
+            Tags=[
+                {"Key": "foo", "Value": "bar"},
+                {"Key": "foo1", "Value": "bar1"},
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidSubnet"
+
+
+@mock_aws
+def test_cache_subnet_group_with_ipv4_and_ipv6_subnets():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
+    ).get("Vpc")
+
+    vpc_id = vpc.get("VpcId")
+
+    subnet_dual = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet_dual_id = subnet_dual.get("SubnetId")
+
+    ec2_client.associate_subnet_cidr_block(
+        SubnetId=subnet_dual_id, Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60"
+    )
+
+    subnet_ipv4 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24").get(
+        "Subnet"
+    )
+    subnet_ipv4_id = subnet_ipv4.get("SubnetId")
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_dual_id, subnet_ipv4_id],
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    if resp["CacheSubnetGroup"]["Subnets"][0]["SubnetIdentifier"] == subnet_dual_id:
+        assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == [
+            "ipv4",
+            "dual_stack",
+        ]
+        assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == [
+            "ipv4"
+        ]
+    else:
+        assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == [
+            "ipv4"
+        ]
+        assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == [
+            "ipv4",
+            "dual_stack",
+        ]
+    assert len(resp["CacheSubnetGroup"]["SupportedNetworkTypes"]) == 2
+    assert "ipv4" in resp["CacheSubnetGroup"]["SupportedNetworkTypes"]
+    assert "dual_stack" in resp["CacheSubnetGroup"]["SupportedNetworkTypes"]
+
+
+# The following test will be skipped until the create_subnet moto feature
+# adds support for the Ipv6Native parameter.
+@mock_aws
+def test_cache_subnet_group_with_ipv6_native_subnets():
+    raise SkipTest("create_subnet() does not support Ipv6Native-parameter yet")
+    client = boto3.client("elasticache", region_name="us-east-2")
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16", Ipv6CidrBlock="2600:1f16:1cb1:6b00::/56"
+    ).get("Vpc")
+
+    vpc_id = vpc.get("VpcId")
+
+    subnet_ipv6_0 = ec2_client.create_subnet(
+        VpcId=vpc_id,
+        Ipv6CidrBlock="2600:1f16:1cb1:6b00::/60",
+        Ipv6Native=True,
+    )
+    subnet_ipv6_0_id = subnet_ipv6_0.get("SubnetId")
+
+    subnet_ipv6_1 = ec2_client.create_subnet(
+        VpcId=vpc_id, Ipv6CidrBlock="2600:1f16:1cb1:6b10::/60", Ipv6Native=True
+    )
+    subnet_ipv6_1_id = subnet_ipv6_1.get("SubnetId")
+
+    resp = client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_ipv6_0_id, subnet_ipv6_1_id],
+    )
+
+    assert resp["CacheSubnetGroup"]["Subnets"][0]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["Subnets"][1]["SupportedNetworkTypes"] == ["ipv6"]
+    assert resp["CacheSubnetGroup"]["SupportedNetworkTypes"] == ["ipv6"]
+
+
+@mock_aws
+def test_create_replication_group_cluster_disabled():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+        LogDeliveryConfigurations=[
+            {
+                "LogType": "slow-log",
+                "DestinationType": "cloudwatch-logs",
+                "DestinationDetails": {
+                    "CloudWatchLogsDetails": {"LogGroup": "test-log-group"}
+                },
+                "LogFormat": "json",
+                "Enabled": True,
+            }
+        ],
+    )
+
+    replication_group = resp["ReplicationGroup"]
+    cache_node_id = "0001"
+    assert replication_group["ReplicationGroupId"] == replication_group_id
+    assert replication_group["Description"] == "test replication group"
+    assert replication_group["Status"] == "available"
+    assert len(replication_group["MemberClusters"]) == 3
+    assert replication_group["MemberClusters"] == [
+        f"{replication_group_id}-001",
+        f"{replication_group_id}-002",
+        f"{replication_group_id}-003",
+    ]
+    assert len(replication_group["NodeGroups"]) == 1
+    assert replication_group["NodeGroups"][0]["NodeGroupId"] == cache_node_id
+    assert replication_group["NodeGroups"][0]["PrimaryEndpoint"]["Port"] == 6379
+
+    node_group_members = replication_group["NodeGroups"][0]["NodeGroupMembers"]
+    assert len(node_group_members) == 3
+    assert node_group_members[0]["CacheClusterId"] == f"{replication_group_id}-001"
+    assert node_group_members[0]["CacheNodeId"] == cache_node_id
+    assert node_group_members[0]["CurrentRole"] == "primary"
+    assert node_group_members[1]["CurrentRole"] == "replica"
+    assert node_group_members[2]["CurrentRole"] == "replica"
+
+    assert replication_group["AutomaticFailover"] == "enabled"
+    assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-002"
+    assert replication_group["MultiAZ"] == "enabled"
+    assert replication_group["SnapshotRetentionLimit"] == 1
+    assert not replication_group["ClusterEnabled"]
+    assert replication_group["CacheNodeType"] == "cache.t4g.micro"
+    assert (
+        replication_group["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:replicationgroup:{replication_group_id}"
+    )
+    assert replication_group["NetworkType"] == "ipv4"
+    assert replication_group["ClusterMode"] == "disabled"
+    assert replication_group["Engine"] == "redis"
+
+    log_config = replication_group["LogDeliveryConfigurations"][0]
+    assert log_config["LogType"] == "slow-log"
+    assert log_config["DestinationType"] == "cloudwatch-logs"
+    assert log_config["DestinationDetails"] == {
+        "CloudWatchLogsDetails": {"LogGroup": "test-log-group"}
+    }
+    assert log_config["LogFormat"] == "json"
+
+
+@mock_aws
+def test_create_replication_group_cluster_enabled():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-enabled"
+
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        ReplicasPerNodeGroup=2,
+        NumNodeGroups=3,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+        ClusterMode="enabled",
+        NodeGroupConfiguration=[
+            {
+                "NodeGroupId": "0001",
+                "PrimaryAvailabilityZone": "us-east-2a",
+                "ReplicaAvailabilityZones": ["us-east-2b", "us-east-2c"],
+                "PrimaryOutpostArn": f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef0",
+                "ReplicaOutpostArns": [
+                    f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef1",
+                    f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef2",
+                ],
+            },
+            {
+                "NodeGroupId": "0003",
+                "PrimaryAvailabilityZone": "us-east-2b",
+                "ReplicaCount": 1,
+                "ReplicaAvailabilityZones": ["us-east-2a"],
+            },
+            {
+                "NodeGroupId": "0002",
+                "PrimaryAvailabilityZone": "us-east-2c",
+                "ReplicaAvailabilityZones": ["us-east-2b", "us-east-2a"],
+            },
+        ],
+    )
+
+    replication_group = resp["ReplicationGroup"]
+    assert replication_group["ReplicationGroupId"] == replication_group_id
+    assert len(replication_group["MemberClusters"]) == 8
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][0]["CacheClusterId"]
+        == f"{replication_group_id}-0001-001"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][0][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2a"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][0]["PreferredOutpostArn"]
+        == "arn:aws:outposts:us-east-2:123456789012:outpost/op-1234567890abcdef0"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][1][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2b"
+    )
+    assert (
+        replication_group["NodeGroups"][0]["NodeGroupMembers"][2][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2c"
+    )
+
+    assert len(replication_group["MemberClustersOutpostArns"]) == 3
+
+    if replication_group["ClusterEnabled"]:
+        assert True
+    else:
+        assert False
+
+
+@mock_aws
+def test_create_replication_groups_single_disabled():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test-single"
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        ClusterMode="disabled",
+    )
+
+    replication_group = resp["ReplicationGroup"]
+    assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-001"
+
+
+@mock_aws
+def test_create_replication_groups_single_enabled():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test-single"
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        NodeGroupConfiguration=[{"NodeGroupId": "0001", "Slots": "0-5461"}],
+        ClusterMode="enabled",
+    )
+
+    replication_group = resp["ReplicationGroup"]
+    assert (
+        replication_group["SnapshottingClusterId"] == f"{replication_group_id}-0001-001"
+    )
+    assert replication_group["NodeGroups"][0]["Slots"] == "0-5461"
+
+
+@mock_aws
+def test_describe_replication_groups():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id_disabled = "test-cluster-disabled"
+    replication_group_id_enabled = "test-cluster-enabled"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id_disabled,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+    )
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id_enabled,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        ReplicasPerNodeGroup=2,
+        NumNodeGroups=3,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+        ClusterMode="enabled",
+    )
+
+    describe_resp = client.describe_replication_groups()
+    assert len(describe_resp["ReplicationGroups"]) == 2
+
+
+@mock_aws
+def test_describe_replication_groups_cluster_disabled():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+        PreferredCacheClusterAZs=["us-east-2a", "us-east-2b"],
+        ClusterMode="disabled",
+    )
+
+    describe_resp = client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id
+    )
+    replication_group = describe_resp["ReplicationGroups"][0]
+    cache_node_id = "0001"
+    assert replication_group["ReplicationGroupId"] == replication_group_id
+    assert replication_group["Description"] == "test replication group"
+    assert replication_group["Status"] == "available"
+    assert len(replication_group["MemberClusters"]) == 3
+    assert replication_group["MemberClusters"] == [
+        f"{replication_group_id}-001",
+        f"{replication_group_id}-002",
+        f"{replication_group_id}-003",
+    ]
+    assert len(replication_group["NodeGroups"]) == 1
+    assert replication_group["NodeGroups"][0]["NodeGroupId"] == cache_node_id
+    assert replication_group["NodeGroups"][0]["PrimaryEndpoint"]["Port"] == 6379
+
+    node_group_members = replication_group["NodeGroups"][0]["NodeGroupMembers"]
+    assert len(node_group_members) == 3
+    assert node_group_members[0]["CacheClusterId"] == f"{replication_group_id}-001"
+    assert node_group_members[0]["CacheNodeId"] == cache_node_id
+    assert node_group_members[0]["PreferredAvailabilityZone"] == "us-east-2a"
+    assert node_group_members[0]["CurrentRole"] == "primary"
+    assert node_group_members[1]["CurrentRole"] == "replica"
+    assert node_group_members[2]["CurrentRole"] == "replica"
+
+    assert replication_group["AutomaticFailover"] == "enabled"
+    assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-002"
+    assert replication_group["MultiAZ"] == "enabled"
+    assert replication_group["SnapshotRetentionLimit"] == 1
+    if not replication_group["ClusterEnabled"]:
+        assert True
+    else:
+        assert False
+    assert replication_group["CacheNodeType"] == "cache.t4g.micro"
+    assert (
+        replication_group["ARN"]
+        == f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:replicationgroup:{replication_group_id}"
+    )
+    assert replication_group["NetworkType"] == "ipv4"
+    assert replication_group["ClusterMode"] == "disabled"
+    assert replication_group["Engine"] == "redis"
+
+
+@mock_aws
+def test_describe_replication_groups_cluster_enabled():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-enabled"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        ReplicasPerNodeGroup=2,
+        NumNodeGroups=3,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+        ClusterMode="enabled",
+        GlobalReplicationGroupId="test-global-replication-group",
+        PrimaryClusterId="test-global-replication-group-001",
+    )
+
+    describe_resp = client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id
+    )
+
+    replication_group = describe_resp["ReplicationGroups"][0]
+    assert replication_group["ReplicationGroupId"] == replication_group_id
+    assert len(replication_group["MemberClusters"]) == 9
+    assert replication_group["ClusterEnabled"]
+    group_info = replication_group["GlobalReplicationGroupInfo"]
+    assert group_info["GlobalReplicationGroupId"] == "test-global-replication-group"
+    assert group_info["GlobalReplicationGroupMemberRole"] == "SECONDARY"
+
+
+@mock_aws
+def test_describe_replication_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_replication_groups(ReplicationGroupId=replication_group_id)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ReplicationGroupNotFoundFault"
+    assert err["Message"] == f"Replication group {replication_group_id} not found."
+
+
+@mock_aws
+def test_replication_groups_list_tags():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test-cluster-disabled"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+        Tags=[
+            {"Key": "foo", "Value": "bar"},
+            {"Key": "foo1", "Value": "bar1"},
+        ],
+    )
+
+    resp = client.list_tags_for_resource(
+        ResourceName=f"arn:aws:elasticache:us-east-2:{ACCOUNT_ID}:replicationgroup:{replication_group_id}"
+    )
+    assert len(resp["TagList"]) == 2
+    assert resp["TagList"][0]["Key"] == "foo"
+    assert resp["TagList"][0]["Value"] == "bar"
+    assert resp["TagList"][1]["Key"] == "foo1"
+    assert resp["TagList"][1]["Value"] == "bar1"
+
+
+@mock_aws
+def test_replication_groups_already_exists():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    replication_group_id = "test"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+    )
+    with pytest.raises(ClientError) as exc:
+        client.create_replication_group(
+            ReplicationGroupId=replication_group_id,
+            ReplicationGroupDescription="test replication group",
+            Engine="redis",
+            CacheNodeType="cache.t4g.micro",
+            NumNodeGroups=1,
+            ReplicasPerNodeGroup=2,
+            AutomaticFailoverEnabled=True,
+            MultiAZEnabled=True,
+            CacheSubnetGroupName="test-elasticache-subnet-group",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ReplicationGroupAlreadyExists"
+    assert err["Message"] == f"Replication group {replication_group_id} already exists."
+
+
+@mock_aws
+def test_list_tags_raises_error_for_invalid_arn():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    with pytest.raises(ClientError) as exc:
+        client.list_tags_for_resource(ResourceName="invalid-arn")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidARN"

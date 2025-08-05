@@ -102,6 +102,7 @@ class NetworkFirewallResponse(BaseResponse):
         )
         return json.dumps(
             dict(
+                UpdateToken=firewall.update_token,
                 Firewall=firewall.to_dict(),
                 FirewallStatus=firewall.firewall_status,
             )

@@ -853,25 +853,35 @@ def test_describe_event_bus():
     client = boto3.client("events", "us-east-1")
 
     response = client.describe_event_bus()
-
     assert response["Name"] == "default"
     assert response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/default"
     assert "Policy" not in response
+    assert "CreationTime" in response
+    assert "LastModifiedTime" in response
 
-    client.create_event_bus(Name="test-bus")
+    bus_name = "test-bus"
+    client.create_event_bus(
+        Name=bus_name,
+        Description="Test description",
+        KmsKeyIdentifier="arn:aws:kms:us-east-1:123456789012:key/test",
+        DeadLetterConfig={"Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"},
+    )
+
     client.put_permission(
-        EventBusName="test-bus",
+        EventBusName=bus_name,
         Action="events:PutEvents",
         Principal="111111111111",
         StatementId="test",
     )
 
-    response = client.describe_event_bus(Name="test-bus")
+    response = client.describe_event_bus(Name=bus_name)
 
-    assert response["Name"] == "test-bus"
+    assert response["Name"] == bus_name
     assert (
-        response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/test-bus"
+        response["Arn"] == f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/{bus_name}"
     )
+    assert "CreationTime" in response
+    assert "LastModifiedTime" in response
     assert json.loads(response["Policy"]) == {
         "Version": "2012-10-17",
         "Statement": [
@@ -880,9 +890,15 @@ def test_describe_event_bus():
                 "Effect": "Allow",
                 "Principal": {"AWS": "arn:aws:iam::111111111111:root"},
                 "Action": "events:PutEvents",
-                "Resource": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/test-bus",
+                "Resource": f"arn:aws:events:us-east-1:{ACCOUNT_ID}:event-bus/{bus_name}",
             }
         ],
+    }
+
+    assert response["Description"] == "Test description"
+    assert response["KmsKeyIdentifier"] == "arn:aws:kms:us-east-1:123456789012:key/test"
+    assert response["DeadLetterConfig"] == {
+        "Arn": "arn:aws:sqs:us-east-1:123456789012:dlq"
     }
 
 
@@ -2287,6 +2303,49 @@ def test_start_replay_send_to_log_group():
     assert event_replay["resources"] == []
     assert event_replay["detail"] == {"key": "value"}
     assert event_replay["replay-name"] == "test-replay"
+
+
+@mock_aws
+def test_send_transformed_events_to_log_group():
+    # given
+    client = boto3.client("events", "eu-central-1")
+    logs_client = boto3.client("logs", "eu-central-1")
+    log_group_name = "/test-group"
+    rule_name = "test-rule"
+    logs_client.create_log_group(logGroupName=log_group_name)
+
+    client.put_rule(Name=rule_name, EventPattern=json.dumps({"account": [ACCOUNT_ID]}))
+    client.put_targets(
+        Rule=rule_name,
+        Targets=[
+            {
+                "Id": "test",
+                "Arn": f"arn:aws:logs:eu-central-1:{ACCOUNT_ID}:log-group:{log_group_name}",
+                "InputTransformer": {
+                    # TODO: validate whether is this a valid template for AWS, or if certain fields are required
+                    "InputTemplate": '{"id": "test"}'
+                },
+            }
+        ],
+    )
+
+    # when
+    client.put_events(
+        Entries=[
+            {
+                "Time": datetime.now(),
+                "Source": "source",
+                "DetailType": "type",
+                "Detail": json.dumps({"key": "value"}),
+            }
+        ]
+    )
+
+    # then
+    log_events = logs_client.filter_log_events(logGroupName=log_group_name)["events"]
+    assert len(log_events) == 1
+    event_original = json.loads(log_events[0]["message"])
+    assert event_original == {"id": "test"}
 
 
 @mock_aws

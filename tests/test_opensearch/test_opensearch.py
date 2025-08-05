@@ -1,6 +1,9 @@
+from datetime import datetime
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -48,7 +51,7 @@ def test_create_domain_with_some_options():
         EngineVersion="OpenSearch_1.1",
     )["DomainStatus"]
     assert status["Created"]
-    assert status["EngineVersion"]["Options"] == "OpenSearch_1.1"
+    assert status["EngineVersion"] == "OpenSearch_1.1"
     assert status["DomainEndpointOptions"] == {
         "EnforceHTTPS": True,
         "TLSSecurityPolicy": "Policy-Min-TLS-1-0-2019-07",
@@ -63,6 +66,8 @@ def test_get_compatible_versions():
     client = boto3.client("opensearch", region_name="us-east-2")
     client.create_domain(DomainName="testdn")
 
+    versions = client.get_compatible_versions()["CompatibleVersions"]
+    assert len(versions) == 22
     versions = client.get_compatible_versions(DomainName="testdn")["CompatibleVersions"]
     assert len(versions) == 22
 
@@ -90,7 +95,6 @@ def test_describe_unknown_domain():
 
 
 @mock_aws
-@freeze_time("2015-01-01 12:00:00")
 def test_describe_domain():
     # Setup
     client = boto3.client("opensearch", region_name="eu-west-1")
@@ -98,19 +102,33 @@ def test_describe_domain():
 
     # Execute
     status = client.describe_domain(DomainName="testdn")["DomainStatus"]
-    ev_status = status["EngineVersion"]["Status"]
 
     # Verify
     assert "DomainId" in status
     assert "DomainName" in status
     assert status["DomainName"] == "testdn"
-    assert status["EngineVersion"]["Options"] == "OpenSearch_2.5"
+    assert status["EngineVersion"] == "OpenSearch_2.5"
+
+
+@mock_aws
+@freeze_time("2015-01-01 12:00:00")
+def test_describe_domain_config():
+    # Setup
+    client = boto3.client("opensearch", region_name="eu-west-1")
+    client.create_domain(DomainName="testdn")
+
+    # Execute
+    config = client.describe_domain_config(DomainName="testdn")["DomainConfig"]
+    ev_status = config["EngineVersion"]["Status"]
+
+    # Verify
+    assert config["EngineVersion"]["Options"] == "OpenSearch_2.5"
     assert ev_status["State"] == "Active"
     assert ev_status["PendingDeletion"] is False
 
     if not settings.TEST_SERVER_MODE:
-        assert ev_status["CreationDate"] == 1420113600.0
-        assert ev_status["UpdateDate"] == 1420113600.0
+        assert ev_status["CreationDate"] == datetime(2015, 1, 1, 12, tzinfo=tzlocal())
+        assert ev_status["UpdateDate"] == datetime(2015, 1, 1, 12, tzinfo=tzlocal())
 
 
 @mock_aws

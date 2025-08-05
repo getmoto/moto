@@ -191,7 +191,6 @@ def test_topic_attributes():
                     "SNS:Subscribe",
                     "SNS:ListSubscriptionsByTopic",
                     "SNS:Publish",
-                    "SNS:Receive",
                 ],
                 "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:some-topic",
                 "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
@@ -281,7 +280,6 @@ def test_add_remove_permissions():
                     "SNS:Subscribe",
                     "SNS:ListSubscriptionsByTopic",
                     "SNS:Publish",
-                    "SNS:Receive",
                 ],
                 "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:test-permissions",
                 "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
@@ -316,7 +314,6 @@ def test_add_remove_permissions():
                     "SNS:Subscribe",
                     "SNS:ListSubscriptionsByTopic",
                     "SNS:Publish",
-                    "SNS:Receive",
                 ],
                 "Resource": f"arn:aws:sns:us-east-1:{ACCOUNT_ID}:test-permissions",
                 "Condition": {"StringEquals": {"AWS:SourceOwner": ACCOUNT_ID}},
@@ -533,7 +530,7 @@ def test_create_fifo_topic():
     try:
         conn.create_topic(Name="test_topic", Attributes={"FifoTopic": "true"})
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert err.response["Error"]["Message"] == (
             "Fifo Topic names must end with .fifo and must be made up of only "
             "uppercase and lowercase ASCII letters, numbers, underscores, "
@@ -544,7 +541,7 @@ def test_create_fifo_topic():
     try:
         conn.create_topic(Name="test_topic.fifo")
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert err.response["Error"]["Message"] == (
             "Topic names must be made up of only uppercase and lowercase "
             "ASCII letters, numbers, underscores, "
@@ -554,7 +551,7 @@ def test_create_fifo_topic():
     try:
         conn.create_topic(Name="topic.name.fifo", Attributes={"FifoTopic": "true"})
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert err.response["Error"]["Message"] == (
             "Fifo Topic names must end with .fifo and must be made up of only "
             "uppercase and lowercase ASCII letters, numbers, underscores, "

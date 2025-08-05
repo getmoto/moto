@@ -664,11 +664,31 @@
   "Location": "eu-north-1a"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "eu-north-1a"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "eu-north-1a"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "eu-north-1a"
  },
  {
@@ -689,10 +709,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eu-north-1a"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eu-north-1a"
  },
  {
@@ -1320,6 +1336,10 @@
   "Location": "eu-north-1a"
  },
  {
+  "InstanceType": "p5en.48xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "eu-north-1a"
  },
@@ -1893,10 +1913,6 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
-  "Location": "eu-north-1a"
- },
- {
-  "InstanceType": "u-9tb1.112xlarge",
   "Location": "eu-north-1a"
  },
  {
@@ -2644,11 +2660,31 @@
   "Location": "eu-north-1b"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "eu-north-1b"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "eu-north-1b"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "eu-north-1b"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "eu-north-1b"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "eu-north-1b"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "eu-north-1b"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "eu-north-1b"
  },
  {
@@ -2693,10 +2729,6 @@
  },
  {
   "InstanceType": "i3.large",
-  "Location": "eu-north-1b"
- },
- {
-  "InstanceType": "i3.metal",
   "Location": "eu-north-1b"
  },
  {
@@ -4604,10 +4636,6 @@
   "Location": "eu-north-1c"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eu-north-1c"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eu-north-1c"
  },
@@ -5205,6 +5233,10 @@
  },
  {
   "InstanceType": "p5.48xlarge",
+  "Location": "eu-north-1c"
+ },
+ {
+  "InstanceType": "p5en.48xlarge",
   "Location": "eu-north-1c"
  },
  {

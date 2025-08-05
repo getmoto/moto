@@ -57,11 +57,12 @@ class NetworkFirewallModel(BaseModel):
 
         self.arn = f"arn:aws:network-firewall:{region_name}:{account_id}:firewall/{self.firewall_name}"
 
+        self.update_token = "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d"
         self.firewall_status = {
             "Status": "READY",
             "ConfigurationSyncStateSummary": "IN_SYNC",
         }
-        self.logging_configs: List[Dict[str, str]] = []
+        self.logging_configs: Dict[str, List[Dict[str, Any]]] = {}
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -145,7 +146,7 @@ class NetworkFirewallBackend(BaseBackend):
         self,
         firewall_arn: str,
         firewall_name: str,
-        logging_configuration: List[Dict[str, str]],
+        logging_configuration: Dict[str, List[Dict[str, Any]]],
     ) -> NetworkFirewallModel:
         firewall: NetworkFirewallModel = self._get_firewall(firewall_arn, firewall_name)
         firewall.logging_configs = logging_configuration

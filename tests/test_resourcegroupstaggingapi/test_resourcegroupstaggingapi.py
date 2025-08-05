@@ -320,6 +320,29 @@ def test_get_resources_ecs():
     assert task_one in resp["ResourceTagMappingList"][0]["ResourceARN"]
     assert task_two not in resp["ResourceTagMappingList"][0]["ResourceARN"]
 
+    # ecs:task-definition
+    task_def_one = client.register_task_definition(
+        family="test_ecs_task_def_1",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+            }
+        ],
+        tags=[{"key": "tag", "value": "a tag"}],
+    )
+    task_def_one_arn = task_def_one["taskDefinition"]["taskDefinitionArn"]
+
+    resp = rgta_client.get_resources(
+        ResourceTypeFilters=["ecs:task-definition"],
+        TagFilters=[{"Key": "tag", "Values": ["a tag"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert task_def_one_arn == resp["ResourceTagMappingList"][0]["ResourceARN"]
+
 
 @mock_aws
 def test_get_resources_ec2():

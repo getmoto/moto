@@ -33,6 +33,10 @@ class EgressOnlyInternetGateway(TaggedEC2Resource):
     def physical_resource_id(self) -> str:
         return self.id
 
+    @property
+    def attachments(self) -> List[Dict[str, str]]:
+        return [{"State": self.state, "VpcId": self.vpc_id}]
+
 
 class EgressOnlyInternetGatewayBackend:
     def __init__(self) -> None:

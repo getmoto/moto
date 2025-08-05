@@ -825,6 +825,11 @@ class GlueResponse(BaseResponse):
         dev_endpoint = self.glue_backend.get_dev_endpoint(endpoint_name)
         return json.dumps({"DevEndpoint": dev_endpoint.as_dict()})
 
+    def delete_dev_endpoint(self) -> str:
+        endpoint_name = self._get_param("EndpointName")
+        self.glue_backend.delete_dev_endpoint(endpoint_name)
+        return json.dumps({})
+
     def create_connection(self) -> str:
         catalog_id = self._get_param("CatalogId")
         connection_input = self._get_param("ConnectionInput")
@@ -917,3 +922,14 @@ class GlueResponse(BaseResponse):
         )
 
         return json.dumps(response, cls=DateTimeEncoder)
+
+    def delete_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        policy_hash_condition = params.get("PolicyHashCondition")
+        resource_arn = params.get("ResourceArn")
+        self.glue_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+            policy_hash_condition=policy_hash_condition,
+        )
+
+        return "{}"

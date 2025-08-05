@@ -33,8 +33,8 @@ def test_create_group():
     with pytest.raises(ClientError) as ex:
         conn.create_group(GroupName="my-group")
     err = ex.value.response["Error"]
-    assert err["Code"] == "Group my-group already exists"
-    assert err["Message"] is None
+    assert err["Code"] == "EntityAlreadyExists"
+    assert err["Message"] == "Group my-group already exists"
 
 
 @mock_aws
@@ -362,5 +362,5 @@ def test_update_group_with_existing_name():
     with pytest.raises(ClientError) as exc:
         conn.update_group(GroupName="existing1", NewGroupName="existing2")
     err = exc.value.response["Error"]
-    assert err["Code"] == "Conflict"
+    assert err["Code"] == "EntityAlreadyExists"
     assert err["Message"] == "Group existing2 already exists"

@@ -151,7 +151,10 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         if f"{host}{path}" in moto_api_backend.proxy_urls_to_passthrough:
             parsed = urlparse(host)
-            self.passthrough_http((parsed.netloc, 80))
+            target_host, target_port = parsed.netloc, "80"
+            if ":" in target_host:
+                target_host, target_port = target_host.split(":")
+            self.passthrough_http((target_host, int(target_port)))
             return
 
         req_body = b""

@@ -27,4 +27,4 @@ class OtherPolicy(Policy):
         policy_attrs: List[Dict[str, Any]],
     ):
         super().__init__(policy_name, policy_type_name=policy_type_name)
-        self.attributes = policy_attrs or []
+        self.policy_attribute_descriptions = policy_attrs or []

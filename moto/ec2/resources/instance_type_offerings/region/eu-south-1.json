@@ -412,10 +412,6 @@
   "Location": "eu-south-1"
  },
  {
-  "InstanceType": "i3.metal",
-  "Location": "eu-south-1"
- },
- {
   "InstanceType": "i3.xlarge",
   "Location": "eu-south-1"
  },
@@ -1217,10 +1213,6 @@
  },
  {
   "InstanceType": "t4g.xlarge",
-  "Location": "eu-south-1"
- },
- {
-  "InstanceType": "u-12tb1.112xlarge",
   "Location": "eu-south-1"
  },
  {

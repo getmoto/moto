@@ -98,6 +98,42 @@ def test_replicate_secret():
 
 
 @mock_aws
+def test_list_replica_secret_with_filters():
+    us1 = boto3.client("secretsmanager", region_name="us-east-1")
+    us2 = boto3.client("secretsmanager", region_name="us-east-2")
+
+    resp = us1.create_secret(
+        Name="dup",
+        SecretString="s",
+        Tags=[
+            {"Key": "k", "Value": "v"},
+            {
+                # coercing 'owning-service' filter to trigger
+                "Key": "aws:secretsmanager:owningService",
+                "Value": "testing-only",
+            },
+        ],
+        Description="description",
+    )
+    primary_arn = resp["ARN"]
+
+    us1.replicate_secret_to_regions(
+        SecretId=primary_arn, AddReplicaRegions=[{"Region": "us-east-2"}]
+    )
+
+    filters = [
+        {"Key": "tag-key", "Values": ["k"]},
+        {"Key": "tag-value", "Values": ["v"]},
+        {"Key": "all", "Values": ["k"]},
+        {"Key": "description", "Values": ["description"]},
+        {"Key": "owning-service", "Values": ["testing-only"]},
+    ]
+
+    for f in filters:
+        assert len(us2.list_secrets(Filters=[f])["SecretList"]) == 1
+
+
+@mock_aws
 def test_replicate_secret__in_same_region():
     conn = boto3.client("secretsmanager", region_name="us-east-1")
 

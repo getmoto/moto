@@ -20,7 +20,7 @@ from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAM
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instances import Instance
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
-from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
@@ -1219,6 +1219,7 @@ class BatchBackend(BaseBackend):
                 "type": environment.env_type,
                 "status": "VALID",
                 "statusReason": "Compute environment is available",
+                "tags": self.list_tags_for_resource(arn),
             }
             if environment.env_type == "MANAGED":
                 json_part["computeResources"] = environment.compute_resources
@@ -1234,6 +1235,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_resources: Dict[str, Any],
         service_role: str,
+        tags: Optional[Dict[str, str]] = None,
     ) -> ComputeEnvironment:
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
@@ -1288,6 +1290,9 @@ class BatchBackend(BaseBackend):
             region_name=self.region_name,
         )
         self._compute_environments[new_comp_env.arn] = new_comp_env
+
+        if tags:
+            self.tag_resource(new_comp_env.arn, tags)
 
         # Ok by this point, everything is legit, so if its Managed then start some instances
         if _type == "MANAGED" and "FARGATE" not in compute_resources["type"]:

@@ -71,7 +71,6 @@ def test_ami_create_and_delete():
     assert retrieved_image["ImageId"] == image_id
     assert retrieved_image["VirtualizationType"] == instance["VirtualizationType"]
     assert retrieved_image["Architecture"] == instance["Architecture"]
-    assert retrieved_image["KernelId"] == instance["KernelId"]
     assert retrieved_image["Platform"] == instance["Platform"]
     assert "CreationDate" in retrieved_image
     ec2.terminate_instances(InstanceIds=[instance_id])
@@ -224,7 +223,6 @@ def test_ami_copy():
     assert copy_image["ImageId"] == copy_image_id
     assert copy_image["VirtualizationType"] == source_image["VirtualizationType"]
     assert copy_image["Architecture"] == source_image["Architecture"]
-    assert copy_image["KernelId"] == source_image["KernelId"]
     assert copy_image["Platform"] == source_image["Platform"]
 
     # Validate auto-created snapshot
@@ -1309,6 +1307,36 @@ def test_ami_filter_by_empty_tag():
         {"Name": "tag:RELEASE", "Values": [release_version]},
     ]
     assert len(client.describe_images(Filters=images_filter)["Images"]) == 3
+
+
+@mock_aws
+def test_ami_filter_by_source_instance_id():
+    ec2 = boto3.resource("ec2", region_name="us-west-1")
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    instance_ids = []
+    for i in range(2):
+        instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[
+            0
+        ]
+        instance_ids.append(instance.instance_id)
+    for i in range(2):
+        client.create_image(
+            InstanceId=instance_ids[i],
+            Name=f"MyAMI{i}",
+            Description="Image from instance {i}",
+        )
+    for i in range(2):
+        images_filter = [
+            {
+                "Name": "source-instance-id",
+                "Values": [instance_ids[i]],
+            },
+        ]
+        resp = client.describe_images(Filters=images_filter)
+        images = resp["Images"]
+        assert len(images) == 1
+        assert images[0]["SourceInstanceId"] == instance_ids[i]
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})

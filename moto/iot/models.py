@@ -1399,14 +1399,13 @@ class IoTBackend(BaseBackend):
             ]
         return self.thing_types.values()
 
-    def list_things(
+    @paginate(PAGINATION_MODEL)
+    def list_things(  # type: ignore[misc]
         self,
         attribute_name: str,
         attribute_value: str,
         thing_type_name: str,
-        max_results: int,
-        token: Optional[str],
-    ) -> Tuple[Iterable[FakeThing], Optional[str]]:
+    ) -> list[dict[str, Any]]:
         all_things = [_.to_dict() for _ in self.things.values()]
         if attribute_name is not None and thing_type_name is not None:
             filtered_things = list(
@@ -1437,21 +1436,7 @@ class IoTBackend(BaseBackend):
         else:
             filtered_things = all_things
 
-        if token is None:
-            things = filtered_things[0:max_results]
-            next_token = (
-                str(max_results) if len(filtered_things) > max_results else None
-            )
-        else:
-            int_token = int(token)
-            things = filtered_things[int_token : int_token + max_results]
-            next_token = (
-                str(int_token + max_results)
-                if len(filtered_things) > int_token + max_results
-                else None
-            )
-
-        return things, next_token
+        return filtered_things
 
     def describe_thing(self, thing_name: str) -> FakeThing:
         things = [_ for _ in self.things.values() if _.thing_name == thing_name]
