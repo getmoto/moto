@@ -63,7 +63,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
         return json.dumps({"FailedResourcesMap": failed_resources})
 
-    def untag_resources(self):
+    def untag_resources(self) -> str:
         resource_arn_list = self._get_param("ResourceARNList")
         tag_keys = self._get_param("TagKeys")
 
