@@ -1360,8 +1360,31 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 missing_resources.append(arn)
         return {arn: missing_error for arn in missing_resources}
 
-    # def untag_resources(self, resource_arn_list, tag_keys):
-    #     return failed_resources_map
+    def untag_resources(
+        self, resource_arn_list: List[str], tag_keys: List[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Only Lambda resources are currently supported
+        """
+        missing_resources = []
+        missing_error: Dict[str, Any] = {
+            "StatusCode": 404,
+            "ErrorCode": "InternalServiceException",
+            "ErrorMessage": "Service not yet supported",
+        }
+
+        for arn in resource_arn_list:
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
+                self.lambda_backend.untag_resource(arn, tag_keys)
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.efs_backend.untag_resource(resource_id, tag_keys)
+            else:
+                missing_resources.append(arn)
+
+        return {arn: missing_error for arn in missing_resources}
 
 
 resourcegroupstaggingapi_backends = BackendDict(
