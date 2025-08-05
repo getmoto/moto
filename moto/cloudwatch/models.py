@@ -7,11 +7,7 @@ from dateutil.tz import tzutc
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import BackendDict, BaseModel, CloudWatchMetricProvider
-from moto.core.utils import (
-    iso_8601_datetime_with_nanoseconds,
-    iso_8601_datetime_without_milliseconds,
-    utcnow,
-)
+from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 
 from ..utilities.tagging_service import TaggingService
@@ -115,7 +111,7 @@ def daterange(
         yield start
 
 
-class FakeAlarm(BaseModel):
+class Alarm(BaseModel):
     def __init__(
         self,
         account_id: str,
@@ -165,7 +161,7 @@ class FakeAlarm(BaseModel):
         self.ok_actions = ok_actions or []
         self.insufficient_data_actions = insufficient_data_actions or []
         self.unit = unit
-        self.configuration_updated_timestamp = iso_8601_datetime_with_nanoseconds()
+        self.configuration_updated_timestamp = utcnow()
         self.treat_missing_data = treat_missing_data
         self.evaluate_low_sample_count_percentile = evaluate_low_sample_count_percentile
         self.threshold_metric_id = threshold_metric_id
@@ -175,7 +171,7 @@ class FakeAlarm(BaseModel):
         self.state_reason = "Unchecked: Initial alarm creation"
         self.state_reason_data = "{}"
         self.state_value = "OK"
-        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds()
+        self.state_updated_timestamp = utcnow()
 
         # only used for composite alarms
         self.rule = rule
@@ -195,7 +191,7 @@ class FakeAlarm(BaseModel):
         self.state_reason = reason
         self.state_reason_data = reason_data
         self.state_value = state_value
-        self.state_updated_timestamp = iso_8601_datetime_with_nanoseconds()
+        self.state_updated_timestamp = utcnow()
 
 
 def are_dimensions_same(
@@ -316,10 +312,6 @@ class Dashboard(BaseModel):
         self.last_modified = datetime.now()
 
     @property
-    def last_modified_iso(self) -> str:
-        return self.last_modified.isoformat()
-
-    @property
     def size(self) -> int:
         return len(self)
 
@@ -336,7 +328,7 @@ class Statistics:
     """
 
     def __init__(self, stats: List[str], dt: datetime, unit: Optional[str] = None):
-        self.timestamp: str = iso_8601_datetime_without_milliseconds(dt or utcnow())
+        self.timestamp: datetime = dt or utcnow()
         self.metric_data: List[MetricDatumBase] = []
         self.stats = stats
         self.unit = unit
@@ -459,7 +451,7 @@ class InsightRule(BaseModel):
 class CloudWatchBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.alarms: Dict[str, FakeAlarm] = {}
+        self.alarms: Dict[str, Alarm] = {}
         self.dashboards: Dict[str, Dashboard] = {}
         self.metric_data: List[MetricDatumBase] = []
         self.paged_metric_data: Dict[str, List[MetricDatumBase]] = {}
@@ -505,7 +497,7 @@ class CloudWatchBackend(BaseBackend):
         threshold_metric_id: Optional[str] = None,
         rule: Optional[str] = None,
         tags: Optional[List[Dict[str, str]]] = None,
-    ) -> FakeAlarm:
+    ) -> Alarm:
         if extended_statistic and not extended_statistic.startswith("p"):
             raise InvalidParameterValue(
                 f"The value {extended_statistic} for parameter ExtendedStatistic is not supported."
@@ -519,7 +511,7 @@ class CloudWatchBackend(BaseBackend):
                 "Supported options for parameter EvaluateLowSampleCountPercentile are evaluate and ignore."
             )
 
-        alarm = FakeAlarm(
+        alarm = Alarm(
             account_id=self.account_id,
             region_name=self.region_name,
             name=name,
@@ -552,7 +544,7 @@ class CloudWatchBackend(BaseBackend):
 
         return alarm
 
-    def describe_alarms(self) -> Iterable[FakeAlarm]:
+    def describe_alarms(self) -> Iterable[Alarm]:
         return self.alarms.values()
 
     @staticmethod
@@ -563,7 +555,7 @@ class CloudWatchBackend(BaseBackend):
                 return True
         return False
 
-    def get_alarms_by_action_prefix(self, action_prefix: str) -> Iterable[FakeAlarm]:
+    def get_alarms_by_action_prefix(self, action_prefix: str) -> Iterable[Alarm]:
         return [
             alarm
             for alarm in self.alarms.values()
@@ -572,17 +564,17 @@ class CloudWatchBackend(BaseBackend):
             )
         ]
 
-    def get_alarms_by_alarm_name_prefix(self, name_prefix: str) -> Iterable[FakeAlarm]:
+    def get_alarms_by_alarm_name_prefix(self, name_prefix: str) -> Iterable[Alarm]:
         return [
             alarm
             for alarm in self.alarms.values()
             if alarm.name.startswith(name_prefix)
         ]
 
-    def get_alarms_by_alarm_names(self, alarm_names: List[str]) -> Iterable[FakeAlarm]:
+    def get_alarms_by_alarm_names(self, alarm_names: List[str]) -> Iterable[Alarm]:
         return [alarm for alarm in self.alarms.values() if alarm.name in alarm_names]
 
-    def get_alarms_by_state_value(self, target_state: str) -> Iterable[FakeAlarm]:
+    def get_alarms_by_state_value(self, target_state: str) -> Iterable[Alarm]:
         return filter(
             lambda alarm: alarm.state_value == target_state, self.alarms.values()
         )
@@ -705,7 +697,7 @@ class CloudWatchBackend(BaseBackend):
             ]
             unit = metric_stat.get("Unit")
             result_vals: List[SupportsFloat] = []
-            timestamps: List[str] = []
+            timestamps: List[datetime] = []
             stat = metric_stat["Stat"]
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
@@ -750,8 +742,9 @@ class CloudWatchBackend(BaseBackend):
                 {
                     "id": query["Id"],
                     "label": label,
-                    "vals": result_vals,
+                    "values": result_vals,
                     "timestamps": timestamps,
+                    "status_code": "Complete",
                 }
             )
             if query.get("ReturnData", "true") == "true":
@@ -759,8 +752,9 @@ class CloudWatchBackend(BaseBackend):
                     {
                         "id": query["Id"],
                         "label": label,
-                        "vals": result_vals,
+                        "values": result_vals,
                         "timestamps": timestamps,
+                        "status_code": "Complete",
                     }
                 )
         # Metric Math expression Queries run on top of the results of other queries
@@ -771,8 +765,9 @@ class CloudWatchBackend(BaseBackend):
                 {
                     "id": query["Id"],
                     "label": label,
-                    "vals": result_vals,
+                    "values": result_vals,
                     "timestamps": timestamps,
+                    "status_code": "Complete",
                 }
             )
         # Metric Insights Expression Queries act on all results, and are essentially SQL queries
@@ -780,7 +775,7 @@ class CloudWatchBackend(BaseBackend):
             period_start_time = start_time
             delta = timedelta(seconds=int(query["Period"]))
             result_vals: List[SupportsFloat] = []  # type: ignore[no-redef]
-            timestamps: List[str] = []  # type: ignore[no-redef]
+            timestamps: List[datetime] = []  # type: ignore[no-redef]
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
                 period_md = [
@@ -808,8 +803,9 @@ class CloudWatchBackend(BaseBackend):
                 {
                     "id": query["Id"],
                     "label": (query.get("Label") or query["Id"]),
-                    "vals": result_vals,
+                    "values": result_vals,
                     "timestamps": timestamps,
+                    "status_code": "Complete",
                 }
             )
 
