@@ -161,7 +161,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.platform = ami.platform if ami else None
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
         self.architecture = ami.architecture if ami else "x86_64"
-        self.root_device_name = ami.root_device_name if ami else None
+        self.root_device_name = ami.root_device_name if ami else self.root_device_name
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
 
