@@ -546,7 +546,7 @@ class Cluster(CloudFormationModel):
             "KeepJobFlowAliveWhenNoSteps": self.keep_job_flow_alive_when_no_steps,
             "MasterInstanceId": getattr(self, "master_instance_id", None),
             "MasterInstanceType": self.master_instance_type,
-            "MasterPublicDnsName": f"ec2-184-0-0-1.{self.emr_backend.region_name}.compute.amazonaws.com",
+            "MasterPublicDnsName": self.master_public_dns_name,
             "NormalizedInstanceHours": self.normalized_instance_hours,
             "Placement": {"AvailabilityZone": self.availability_zone},
             "SlaveInstanceType": self.slave_instance_type,
@@ -576,7 +576,18 @@ class Cluster(CloudFormationModel):
 
     @property
     def master_public_dns_name(self) -> str:
-        # FIXME: This was hardcoded in the original XML template.
+        master_instance_group = self.emr_backend.instance_groups[
+            self.master_instance_group_id  # type: ignore
+        ]
+
+        for ec2_instance in self.ec2_instances:
+            if ec2_instance.instance_group.id == master_instance_group.id:
+                dashed_ip, domain = ec2_instance.public_dns_name.split(".", 1)
+                return ".".join([dashed_ip, self.emr_backend.region_name, domain])
+
+        # TODO: Moto does not create instances when InstanceGroups is not provided to RunJobFlow operation.
+        #  In fact it should also do so when InstanceCount/InstanceType are provided.
+        #  For now, just return a hardcoded value for such cases.
         return "ec2-184-0-0-1.us-west-1.compute.amazonaws.com"
 
     @property

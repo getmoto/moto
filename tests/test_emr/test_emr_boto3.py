@@ -190,6 +190,21 @@ def test_describe_cluster():
 
 
 @mock_aws
+def test_describe_cluster_master_public_dns():
+    region_name = "us-east-2"
+
+    client = boto3.client("emr", region_name=region_name)
+
+    args = deepcopy(run_job_flow_args)
+    args["Instances"] = {"InstanceGroups": input_instance_groups}
+
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+
+    response = client.describe_cluster(ClusterId=cluster_id)
+    assert region_name in response["Cluster"]["MasterPublicDnsName"]
+
+
+@mock_aws
 def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
