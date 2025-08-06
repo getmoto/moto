@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any, Callable, Final, Optional
 
 from botocore.exceptions import ClientError
 
@@ -18,7 +18,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
     StatesErrorNameType,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -32,20 +32,20 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.WaitForTaskToken,
     ResourceCondition.Sync,
 }
 
-_BATCH_JOB_TERMINATION_STATUS_SET: Set[JobStatus] = {
+_BATCH_JOB_TERMINATION_STATUS_SET: Final[set[JobStatus]] = {
     JobStatus.SUCCEEDED,
     JobStatus.FAILED,
 }
 
-_ENVIRONMENT_VARIABLE_MANAGED_BY_AWS: str = "MANAGED_BY_AWS"
-_ENVIRONMENT_VARIABLE_MANAGED_BY_AWS_VALUE: str = "STARTED_BY_STEP_FUNCTIONS"
+_ENVIRONMENT_VARIABLE_MANAGED_BY_AWS: Final[str] = "MANAGED_BY_AWS"
+_ENVIRONMENT_VARIABLE_MANAGED_BY_AWS_VALUE: Final[str] = "STARTED_BY_STEP_FUNCTIONS"
 
-_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
     "submitjob": {
         "ArrayProperties",
         "ContainerOverrides",
@@ -65,7 +65,7 @@ class StateTaskServiceBatch(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     @staticmethod
@@ -93,7 +93,7 @@ class StateTaskServiceBatch(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         raw_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> None:
         if self.resource.condition == ResourceCondition.Sync:
             self._attach_aws_environment_variables(parameters=raw_parameters)
@@ -101,7 +101,7 @@ class StateTaskServiceBatch(StateTaskServiceCallback):
             env=env,
             resource_runtime_part=resource_runtime_part,
             raw_parameters=raw_parameters,
-            task_credentials=task_credentials,
+            state_credentials=state_credentials,
         )
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
@@ -141,12 +141,12 @@ class StateTaskServiceBatch(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         batch_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service="batch",
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
         submission_output: dict = env.stack.pop()
         job_id = submission_output["JobId"]
@@ -192,15 +192,14 @@ class StateTaskServiceBatch(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
         batch_client = boto_client_for(
             region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
-            credentials=task_credentials,
+            state_credentials=state_credentials,
         )
         response = getattr(batch_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)

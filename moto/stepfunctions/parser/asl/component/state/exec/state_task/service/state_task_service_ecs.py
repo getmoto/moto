@@ -1,7 +1,7 @@
-from typing import Any, Callable, Dict, Optional, Set
+from typing import Any, Callable, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -13,12 +13,12 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.state
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.WaitForTaskToken,
     ResourceCondition.Sync,
 }
 
-_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
     "runtask": {
         "Cluster",
         "Group",
@@ -34,15 +34,15 @@ _SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
     }
 }
 
-_STARTED_BY_PARAMETER_RAW_KEY: str = "StartedBy"
-_STARTED_BY_PARAMETER_VALUE: str = "AWS Step Functions"
+_STARTED_BY_PARAMETER_RAW_KEY: Final[str] = "StartedBy"
+_STARTED_BY_PARAMETER_VALUE: Final[str] = "AWS Step Functions"
 
 
 class StateTaskServiceEcs(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _before_eval_execution(
@@ -50,7 +50,7 @@ class StateTaskServiceEcs(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         raw_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> None:
         if self.resource.condition == ResourceCondition.Sync:
             raw_parameters[_STARTED_BY_PARAMETER_RAW_KEY] = _STARTED_BY_PARAMETER_VALUE
@@ -58,7 +58,7 @@ class StateTaskServiceEcs(StateTaskServiceCallback):
             env=env,
             resource_runtime_part=resource_runtime_part,
             raw_parameters=raw_parameters,
-            task_credentials=task_credentials,
+            state_credentials=state_credentials,
         )
 
     def _eval_service_task(
@@ -66,15 +66,14 @@ class StateTaskServiceEcs(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
         service_name = self._get_boto_service_name()
         api_action = self._get_boto_service_action()
         ecs_client = boto_client_for(
             region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
-            credentials=task_credentials,
+            state_credentials=state_credentials,
         )
         response = getattr(ecs_client, api_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)
@@ -101,13 +100,12 @@ class StateTaskServiceEcs(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         ecs_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service="ecs",
-            credentials=task_credentials,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
         submission_output: dict = env.stack.pop()
         task_arn: str = submission_output["Tasks"][0]["TaskArn"]

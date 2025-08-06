@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
-from typing import Callable
+from typing import Callable, Final
 
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.result_writer.resource_eval.resource_eval import (
     ResourceEval,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceRuntimePart,
@@ -15,26 +18,33 @@ from moto.stepfunctions.parser.utils import camel_to_snake_case
 
 
 class ResourceEvalS3(ResourceEval):
-    _HANDLER_REFLECTION_PREFIX: str = "_handle_"
-    _API_ACTION_HANDLER_TYPE = Callable[[Environment, ResourceRuntimePart], None]
+    _HANDLER_REFLECTION_PREFIX: Final[str] = "_handle_"
+    _API_ACTION_HANDLER_TYPE = Callable[
+        [Environment, ResourceRuntimePart, StateCredentials], None
+    ]
 
     @staticmethod
-    def _get_s3_client(resource_runtime_part: ResourceRuntimePart):
+    def _get_s3_client(
+        resource_runtime_part: ResourceRuntimePart, state_credentials: StateCredentials
+    ):
         return boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service="s3",
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
 
     @staticmethod
     def _handle_put_object(
-        env: Environment, resource_runtime_part: ResourceRuntimePart
+        env: Environment,
+        resource_runtime_part: ResourceRuntimePart,
+        state_credentials: StateCredentials,
     ) -> None:
         parameters = env.stack.pop()
         env.stack.pop()  # TODO: results
 
         s3_client = ResourceEvalS3._get_s3_client(
-            resource_runtime_part=resource_runtime_part
+            resource_runtime_part=resource_runtime_part,
+            state_credentials=state_credentials,
         )
         map_run_record = env.map_run_record_pool_manager.get_all().pop()
         map_run_uuid = map_run_record.map_run_arn.split(":")[-1]
@@ -72,4 +82,7 @@ class ResourceEvalS3(ResourceEval):
         self.resource.eval(env=env)
         resource_runtime_part: ResourceRuntimePart = env.stack.pop()
         resolver_handler = self._get_api_action_handler()
-        resolver_handler(env, resource_runtime_part)
+        state_credentials = StateCredentials(
+            role_arn=env.aws_execution_details.role_arn
+        )
+        resolver_handler(env, resource_runtime_part, state_credentials)

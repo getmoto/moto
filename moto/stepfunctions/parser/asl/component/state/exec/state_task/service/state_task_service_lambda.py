@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Dict, Optional, Set, Tuple
+from typing import Final, Optional
 
 from botocore.exceptions import ClientError
 
@@ -15,7 +15,7 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_task import (
     lambda_eval_utils,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -30,10 +30,10 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 LOG = logging.getLogger(__name__)
 
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.WaitForTaskToken,
 }
-_SUPPORTED_API_PARAM_BINDINGS: Dict[str, Set[str]] = {
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
     "invoke": {
         "ClientContext",
         "FunctionName",
@@ -49,11 +49,11 @@ class StateTaskServiceLambda(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     @staticmethod
-    def _error_cause_from_client_error(client_error: ClientError) -> Tuple[str, str]:
+    def _error_cause_from_client_error(client_error: ClientError) -> tuple[str, str]:
         error_code: str = client_error.response["Error"]["Code"]
         error_msg: str = client_error.response["Error"]["Message"]
         response_details = "; ".join(
@@ -123,12 +123,11 @@ class StateTaskServiceLambda(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
-        lambda_eval_utils.exec_lambda_function(
+        lambda_eval_utils.execute_lambda_function_integration(
             env=env,
             parameters=normalised_parameters,
             region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
-            credentials=task_credentials,
+            state_credentials=state_credentials,
         )

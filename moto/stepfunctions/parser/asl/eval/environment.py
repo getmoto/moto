@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import threading
-from typing import Any, Dict, Final, List, Optional
+from typing import Any, Final, List, Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -34,6 +34,7 @@ from moto.stepfunctions.parser.asl.eval.program_state import (
 from moto.stepfunctions.parser.asl.eval.states import ContextObjectData, States
 from moto.stepfunctions.parser.asl.eval.variable_store import VariableStore
 from moto.stepfunctions.parser.backend.activity import Activity
+from moto.stepfunctions.parser.mocking.mock_config import MockedResponse, MockTestCase
 
 LOG = logging.getLogger(__name__)
 
@@ -45,20 +46,21 @@ class Environment:
 
     event_manager: EventManager
     event_history_context: Final[EventHistoryContext]
-    cloud_watch_logging_session: Optional[CloudWatchLoggingSession]
+    cloud_watch_logging_session: Final[Optional[CloudWatchLoggingSession]]
     aws_execution_details: Final[AWSExecutionDetails]
-    execution_type: StateMachineType
+    execution_type: Final[StateMachineType]
     callback_pool_manager: CallbackPoolManager
     map_run_record_pool_manager: MapRunRecordPoolManager
-    activity_store: Dict[Arn, Activity]
+    activity_store: Final[dict[Arn, Activity]]
+    mock_test_case: Optional[MockTestCase] = None
 
     _frames: Final[List[Environment]]
     _is_frame: bool = False
 
-    heap: Dict[str, Any] = dict()
+    heap: dict[str, Any] = dict()
     stack: List[Any] = list()
-    states: States
-    variable_store: VariableStore
+    states: Final[States]
+    variable_store: Final[VariableStore]
 
     def __init__(
         self,
@@ -67,8 +69,9 @@ class Environment:
         context: ContextObjectData,
         event_history_context: EventHistoryContext,
         cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
-        activity_store: Dict[Arn, Activity],
+        activity_store: dict[Arn, Activity],
         variable_store: Optional[VariableStore] = None,
+        mock_test_case: Optional[MockTestCase] = None,
     ):
         super(Environment, self).__init__()
         self._state_mutex = threading.RLock()
@@ -87,6 +90,8 @@ class Environment:
         self.map_run_record_pool_manager = MapRunRecordPoolManager()
 
         self.activity_store = activity_store
+
+        self.mock_test_case = mock_test_case
 
         self._frames = list()
         self._is_frame = False
@@ -137,6 +142,7 @@ class Environment:
             cloud_watch_logging_session=env.cloud_watch_logging_session,
             activity_store=env.activity_store,
             variable_store=variable_store,
+            mock_test_case=env.mock_test_case,
         )
         frame._is_frame = True
         frame.event_manager = env.event_manager
@@ -146,15 +152,16 @@ class Environment:
             )
         frame.callback_pool_manager = env.callback_pool_manager
         frame.map_run_record_pool_manager = env.map_run_record_pool_manager
-        frame.heap = env.heap
+        frame.heap = dict()
         frame._program_state = copy.deepcopy(env._program_state)
         return frame
 
     @property
     def next_state_name(self) -> Optional[str]:
         next_state_name: Optional[str] = None
-        if isinstance(self._program_state, ProgramRunning):
-            next_state_name = self._program_state.next_state_name
+        program_state = self._program_state
+        if isinstance(program_state, ProgramRunning):
+            next_state_name = program_state.next_state_name
         return next_state_name
 
     @next_state_name.setter
@@ -167,6 +174,23 @@ class Environment:
         else:
             raise RuntimeError(
                 f"Could not set NextState value when in state '{type(self._program_state)}'."
+            )
+
+    @property
+    def next_field_name(self) -> Optional[str]:
+        next_field_name: Optional[str] = None
+        program_state = self._program_state
+        if isinstance(program_state, ProgramRunning):
+            next_field_name = program_state.next_field_name
+        return next_field_name
+
+    @next_field_name.setter
+    def next_field_name(self, next_field_name: str) -> None:
+        if isinstance(self._program_state, ProgramRunning):
+            self._program_state.next_field_name = next_field_name
+        else:
+            raise RuntimeError(
+                f"Could not set NextField value when in state '{type(self._program_state)}'."
             )
 
     def program_state(self) -> ProgramState:
@@ -254,3 +278,37 @@ class Environment:
 
     def is_standard_workflow(self) -> bool:
         return self.execution_type == StateMachineType.STANDARD
+
+    def is_mocked_mode(self) -> bool:
+        """
+        Returns True if the state machine is running in mock mode and the current
+        state has a defined mock configuration in the target environment or frame;
+        otherwise, returns False.
+        """
+        return (
+            self.mock_test_case is not None
+            and self.next_state_name in self.mock_test_case.state_mocked_responses
+        )
+
+    def get_current_mocked_response(self) -> MockedResponse:
+        if not self.is_mocked_mode():
+            raise RuntimeError(
+                "Cannot retrieve mocked response: execution is not operating in mocked mode"
+            )
+        state_name = self.next_state_name
+        state_mocked_responses: Optional = (
+            self.mock_test_case.state_mocked_responses.get(state_name)
+        )
+        if state_mocked_responses is None:
+            raise RuntimeError(
+                f"No mocked response definition for state '{state_name}'"
+            )
+        retry_count = self.states.context_object.context_object_data["State"][
+            "RetryCount"
+        ]
+        if len(state_mocked_responses.mocked_responses) <= retry_count:
+            raise RuntimeError(
+                f"No mocked response definition for state '{state_name}' "
+                f"and retry number '{retry_count}'"
+            )
+        return state_mocked_responses.mocked_responses[retry_count]

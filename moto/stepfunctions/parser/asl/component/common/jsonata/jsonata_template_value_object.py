@@ -1,4 +1,4 @@
-from typing import List
+from typing import Final, List
 
 from moto.stepfunctions.parser.asl.component.common.jsonata.jsonata_template_binding import (
     JSONataTemplateBinding,
@@ -10,7 +10,7 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class JSONataTemplateValueObject(JSONataTemplateValue):
-    bindings: List[JSONataTemplateBinding]
+    bindings: Final[List[JSONataTemplateBinding]]
 
     def __init__(self, bindings: List[JSONataTemplateBinding]):
         self.bindings = bindings
