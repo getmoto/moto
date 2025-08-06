@@ -1558,7 +1558,8 @@ def test_use_ordered_compare_operator_on_uid_field():
 
 
 @mock_aws
-def test_filter_crawls_for_state():
+@pytest.mark.parametrize("operator", ["NE", "EQ"])
+def test_filter_crawls_for_state(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
     helpers.create_crawler(client, name)
@@ -1577,7 +1578,7 @@ def test_filter_crawls_for_state():
         Filters=[
             {
                 "FieldName": "STATE",
-                "FilterOperator": "EQ",
+                "FilterOperator": operator,
                 "FieldValue": "RUNNING",
             }
         ],
@@ -1587,7 +1588,8 @@ def test_filter_crawls_for_state():
 
 
 @mock_aws
-def test_filter_crawls_for_start_time():
+@pytest.mark.parametrize("operator", ["LE", "LT", "GE", "GT"])
+def test_filter_crawls_for_start_time(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
     helpers.set_transition(
@@ -1597,10 +1599,10 @@ def test_filter_crawls_for_start_time():
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
+    between_the_two_run_starts = datetime.now()
     # turn crawler to completed
     client.list_crawls(CrawlerName=name)
 
-    between_the_two_run_starts = datetime.now()
     client.start_crawler(Name=name)
 
     crawls = client.list_crawls(
@@ -1608,7 +1610,7 @@ def test_filter_crawls_for_start_time():
         Filters=[
             {
                 "FieldName": "START_TIME",
-                "FilterOperator": "GE",
+                "FilterOperator": operator,
                 "FieldValue": between_the_two_run_starts.isoformat(),
             }
         ],
@@ -1618,7 +1620,8 @@ def test_filter_crawls_for_start_time():
 
 
 @mock_aws
-def test_filter_crawls_for_end_time():
+@pytest.mark.parametrize("operator", ["LE", "LT", "GE", "GT"])
+def test_filter_crawls_for_end_time(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
     helpers.set_transition(
@@ -1631,8 +1634,8 @@ def test_filter_crawls_for_end_time():
     # turn crawler to completed
     client.list_crawls(CrawlerName=name)
 
-    between_the_two_run_ends = datetime.now()
     client.start_crawler(Name=name)
+    between_the_two_run_ends = datetime.now()
     client.list_crawls(CrawlerName=name)
 
     crawls = client.list_crawls(
@@ -1640,7 +1643,7 @@ def test_filter_crawls_for_end_time():
         Filters=[
             {
                 "FieldName": "END_TIME",
-                "FilterOperator": "GE",
+                "FilterOperator": operator,
                 "FieldValue": between_the_two_run_ends.isoformat(),
             }
         ],
@@ -1650,7 +1653,8 @@ def test_filter_crawls_for_end_time():
 
 
 @mock_aws
-def test_multiple_filters():
+@pytest.mark.parametrize("operator", ["LE", "LT", "GE", "GT"])
+def test_multiple_filters(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
     helpers.set_transition(
@@ -1672,12 +1676,12 @@ def test_multiple_filters():
         Filters=[
             {
                 "FieldName": "END_TIME",
-                "FilterOperator": "GE",
+                "FilterOperator": operator,
                 "FieldValue": between_the_two_runs.isoformat(),
             },
             {
                 "FieldName": "START_TIME",
-                "FilterOperator": "GE",
+                "FilterOperator": operator,
                 "FieldValue": between_the_two_runs.isoformat(),
             },
         ],
@@ -1710,3 +1714,29 @@ def test_filter_crawls_for_crawl_id():
 
     assert len(crawls["Crawls"]) == 1
     assert crawls["Crawls"][0]["CrawlId"] == first_crawl_crawl_id
+
+
+@mock_aws
+def test_filter_crawls_for_not_crawl_id():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    client.start_crawler(Name=name)
+
+    first_crawl_crawl_id = client.list_crawls(CrawlerName=name)["Crawls"][0]["CrawlId"]
+    client.start_crawler(Name=name)
+
+    crawls = client.list_crawls(
+        CrawlerName=name,
+        Filters=[
+            {
+                "FieldName": "CRAWL_ID",
+                "FilterOperator": "NE",
+                "FieldValue": first_crawl_crawl_id,
+            }
+        ],
+    )
+
+    assert len(crawls["Crawls"]) == 1
+    assert crawls["Crawls"][0]["CrawlId"] != first_crawl_crawl_id
