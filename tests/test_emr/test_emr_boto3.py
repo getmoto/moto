@@ -190,6 +190,34 @@ def test_describe_cluster():
 
 
 @mock_aws
+def test_describe_cluster_ebs_volume_fields():
+    client = boto3.client("emr", region_name="ap-south-1")
+
+    args = deepcopy(run_job_flow_args)
+
+    # Must return empty if not set in request
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    response = client.describe_cluster(ClusterId=cluster_id)
+    assert "EbsRootVolumeSize" not in response["Cluster"]
+    assert "EbsRootVolumeIops" not in response["Cluster"]
+    assert "EbsRootVolumeThroughput" not in response["Cluster"]
+
+    # Must return proper values when set
+    args.update(
+        {
+            "EbsRootVolumeSize": 20,
+            "EbsRootVolumeIops": 5000,
+            "EbsRootVolumeThroughput": 250,
+        }
+    )
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    response = client.describe_cluster(ClusterId=cluster_id)
+    assert response["Cluster"]["EbsRootVolumeSize"] == 20
+    assert response["Cluster"]["EbsRootVolumeIops"] == 5000
+    assert response["Cluster"]["EbsRootVolumeThroughput"] == 250
+
+
+@mock_aws
 def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
