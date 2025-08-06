@@ -1404,3 +1404,35 @@ def test_list_tags_raises_error_for_invalid_arn():
         client.list_tags_for_resource(ResourceName="invalid-arn")
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidARN"
+
+
+@mock_aws
+def test_delete_replication_group():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        PrimaryClusterId=f"{replication_group_id}-001",
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        SnapshotRetentionLimit=1,
+        SnapshotWindow="06:00-07:00",
+    )
+
+    delete_resp = client.delete_replication_group(
+        ReplicationGroupId=replication_group_id,
+        RetainPrimaryCluster=False,
+    )
+    replication_group = delete_resp["ReplicationGroup"]
+    assert replication_group["Status"] == "deleting"
+    assert replication_group["ReplicationGroupId"] == replication_group_id
+    # Now there are only 2 clusters left, because the primary one is deleted immediately
+    assert len(replication_group["MemberClusters"]) == 2
