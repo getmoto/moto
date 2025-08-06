@@ -8,7 +8,6 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.moto_api import state_manager
 
 from . import helpers
 
@@ -1326,7 +1325,7 @@ def test_start_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
 
-    state_manager.set_transition(
+    helpers.set_transition(
         model_name="glue::crawl",
         transition={"progression": "manual", "times": 1},
     )
@@ -1346,7 +1345,7 @@ def test_start_crawler_should_raise_exception_if_already_running():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
 
-    state_manager.set_transition(
+    helpers.set_transition(
         model_name="glue::crawl",
         transition={"progression": "manual", "times": 1},
     )
@@ -1365,7 +1364,7 @@ def test_stop_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
 
-    state_manager.set_transition(
+    helpers.set_transition(
         model_name="glue::crawl",
         transition={"progression": "manual", "times": 1},
     )
@@ -1563,7 +1562,7 @@ def test_filter_crawls_for_state():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
     helpers.create_crawler(client, name)
-    state_manager.set_transition(
+    helpers.set_transition(
         model_name="glue::crawl",
         transition={"progression": "manual", "times": 1},
     )
@@ -1591,7 +1590,7 @@ def test_filter_crawls_for_state():
 def test_filter_crawls_for_start_time():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
-    state_manager.set_transition(
+    helpers.set_transition(
         model_name="glue::crawl",
         transition={"progression": "manual", "times": 1},
     )
@@ -1622,7 +1621,7 @@ def test_filter_crawls_for_start_time():
 def test_filter_crawls_for_end_time():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
-    state_manager.set_transition(
+    helpers.set_transition(
         model_name="glue::crawl",
         transition={"progression": "manual", "times": 1},
     )
@@ -1654,7 +1653,7 @@ def test_filter_crawls_for_end_time():
 def test_multiple_filters():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
-    state_manager.set_transition(
+    helpers.set_transition(
         model_name="glue::crawl",
         transition={"progression": "manual", "times": 1},
     )
