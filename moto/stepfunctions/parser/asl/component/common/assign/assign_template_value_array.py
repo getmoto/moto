@@ -1,4 +1,4 @@
-from typing import List
+from typing import Final, List
 
 from moto.stepfunctions.parser.asl.component.common.assign.assign_template_value import (
     AssignTemplateValue,
@@ -7,7 +7,7 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class AssignTemplateValueArray(AssignTemplateValue):
-    values: List[AssignTemplateValue]
+    values: Final[List[AssignTemplateValue]]
 
     def __init__(self, values: List[AssignTemplateValue]):
         self.values = values

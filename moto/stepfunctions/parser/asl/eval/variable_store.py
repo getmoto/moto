@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Set
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.jsonata.jsonata import (
     VariableDeclarations,
@@ -13,7 +13,7 @@ VariableValue = Any
 
 
 class VariableStoreError(RuntimeError):
-    message: str
+    message: Final[str]
 
     def __init__(self, message: str):
         self.message = message
@@ -26,7 +26,7 @@ class VariableStoreError(RuntimeError):
 
 
 class NoSuchVariable(VariableStoreError):
-    variable_identifier: VariableIdentifier
+    variable_identifier: Final[VariableIdentifier]
 
     def __init__(self, variable_identifier: VariableIdentifier):
         super().__init__(message=f"No such variable '{variable_identifier}' in scope")
@@ -34,8 +34,8 @@ class NoSuchVariable(VariableStoreError):
 
 
 class IllegalOuterScopeWrite(VariableStoreError):
-    variable_identifier: VariableIdentifier
-    variable_value: VariableValue
+    variable_identifier: Final[VariableIdentifier]
+    variable_value: Final[VariableValue]
 
     def __init__(
         self, variable_identifier: VariableIdentifier, variable_value: VariableValue
@@ -48,10 +48,10 @@ class IllegalOuterScopeWrite(VariableStoreError):
 
 
 class VariableStore:
-    _outer_scope: dict
-    _inner_scope: dict
+    _outer_scope: Final[dict]
+    _inner_scope: Final[dict]
 
-    _declaration_tracing: Set[str]
+    _declaration_tracing: Final[set[str]]
 
     _outer_variable_declaration_cache: Optional[VariableDeclarations]
     _variable_declarations_cache: Optional[VariableDeclarations]
@@ -74,8 +74,8 @@ class VariableStore:
         self._declaration_tracing.clear()
 
     # TODO: add typing when this available in service init.
-    def get_assigned_variables(self) -> Dict[str, str]:
-        assigned_variables: Dict[str, str] = dict()
+    def get_assigned_variables(self) -> dict[str, str]:
+        assigned_variables: dict[str, str] = dict()
         for traced_declaration_identifier in self._declaration_tracing:
             traced_declaration_value = self.get(traced_declaration_identifier)
             if isinstance(traced_declaration_value, str):
@@ -108,7 +108,7 @@ class VariableStore:
         self._variable_declarations_cache = None
 
     @staticmethod
-    def _to_variable_declarations(bindings: Dict[str, Any]) -> VariableDeclarations:
+    def _to_variable_declarations(bindings: dict[str, Any]) -> VariableDeclarations:
         variables = {f"${key}": value for key, value in bindings.items()}
         encoded = encode_jsonata_variable_declarations(variables)
         return encoded

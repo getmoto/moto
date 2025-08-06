@@ -4,7 +4,7 @@ import copy
 import datetime
 import logging
 import threading
-from typing import Optional
+from typing import Final, Optional
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.stepfunctions.parser.api import (
@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 
 class EventHistoryContext:
     # The '0' event is the source event id of the program execution.
-    _PROGRAM_START_EVENT_ID: int = 0
+    _PROGRAM_START_EVENT_ID: Final[int] = 0
 
     source_event_id: int
     last_published_event_id: int
@@ -59,10 +59,10 @@ class EventIdGenerator:
 
 
 class EventManager:
-    _mutex: threading.Lock
+    _mutex: Final[threading.Lock]
     _event_id_gen: EventIdGenerator
-    _history_event_list: HistoryEventList
-    _cloud_watch_logging_session: Optional[CloudWatchLoggingSession]
+    _history_event_list: Final[HistoryEventList]
+    _cloud_watch_logging_session: Final[Optional[CloudWatchLoggingSession]]
 
     def __init__(
         self, cloud_watch_logging_session: Optional[CloudWatchLoggingSession] = None

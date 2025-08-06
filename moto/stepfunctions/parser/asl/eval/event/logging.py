@@ -2,17 +2,19 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, List, Optional, Set, Tuple, TypedDict
+from typing import Any, Final, List, Optional, TypedDict
 
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
 
+from moto.logs.models import LogEvent, LogsBackend, logs_backends
 from moto.stepfunctions.parser.api import (
     HistoryEventType,
     LoggingConfiguration,
     LogLevel,
     LongArn,
 )
+from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 from moto.utilities.arns import (
     parse_arn,
 )
@@ -23,7 +25,7 @@ ExecutionEventLogDetails = dict
 
 # The following event type sets are compiled according to AWS's
 # log level definitions: https://docs.aws.amazon.com/step-functions/latest/dg/cloudwatch-log-level.html
-_ERROR_LOG_EVENT_TYPES: Set[HistoryEventType] = {
+_ERROR_LOG_EVENT_TYPES: Final[set[HistoryEventType]] = {
     HistoryEventType.ExecutionAborted,
     HistoryEventType.ExecutionFailed,
     HistoryEventType.ExecutionTimedOut,
@@ -47,7 +49,7 @@ _ERROR_LOG_EVENT_TYPES: Set[HistoryEventType] = {
     HistoryEventType.TaskTimedOut,
     HistoryEventType.WaitStateAborted,
 }
-_FATAL_LOG_EVENT_TYPES: Set[HistoryEventType] = {
+_FATAL_LOG_EVENT_TYPES: Final[set[HistoryEventType]] = {
     HistoryEventType.ExecutionAborted,
     HistoryEventType.ExecutionFailed,
     HistoryEventType.ExecutionTimedOut,
@@ -55,7 +57,7 @@ _FATAL_LOG_EVENT_TYPES: Set[HistoryEventType] = {
 
 
 # The LogStreamName used when creating the empty Log Stream when validating the logging configuration.
-VALIDATION_LOG_STREAM_NAME: str = (
+VALIDATION_LOG_STREAM_NAME: Final[str] = (
     "log_stream_created_by_aws_to_validate_log_delivery_subscriptions"
 )
 
@@ -77,13 +79,13 @@ def is_logging_enabled_for(
 
 
 class CloudWatchLoggingConfiguration:
-    state_machine_arn: LongArn
-    log_level: LogLevel
-    log_account_id: str
-    log_region: str
-    log_group_name: str
-    log_stream_name: str
-    include_execution_data: bool
+    state_machine_arn: Final[LongArn]
+    log_level: Final[LogLevel]
+    log_account_id: Final[str]
+    log_region: Final[str]
+    log_group_name: Final[str]
+    log_stream_name: Final[str]
+    include_execution_data: Final[bool]
 
     def __init__(
         self,
@@ -107,7 +109,7 @@ class CloudWatchLoggingConfiguration:
     @staticmethod
     def extract_log_arn_parts_from(
         logging_configuration: LoggingConfiguration,
-    ) -> Optional[Tuple[str, str, str]]:
+    ) -> Optional[tuple[str, str, str]]:
         # Returns a tuple with: account_id, region, and log group name if the logging configuration
         # specifies a valid cloud watch log group arn, none otherwise.
 
@@ -190,9 +192,9 @@ class HistoryLog(TypedDict):
 
 
 class CloudWatchLoggingSession:
-    execution_arn: LongArn
-    configuration: CloudWatchLoggingConfiguration
-    _logs_client: BaseClient
+    execution_arn: Final[LongArn]
+    configuration: Final[CloudWatchLoggingConfiguration]
+    _logs_client: Final[BaseClient]
     _is_log_stream_available: bool
 
     def __init__(
@@ -200,7 +202,9 @@ class CloudWatchLoggingSession:
     ):
         self.execution_arn = execution_arn
         self.configuration = configuration
-        self._logs_client = None
+        self._logs_client: LogsBackend = logs_backends[
+            self.configuration.log_account_id
+        ][self.configuration.log_region]
 
     def log_level_filter(self, history_event_type: HistoryEventType) -> bool:
         # Checks whether the history event type should be logged in this session.
@@ -210,7 +214,15 @@ class CloudWatchLoggingSession:
         )
 
     def publish_history_log(self, history_log: HistoryLog) -> None:
-        pass
+        timestamp_value = int(history_log["event_timestamp"].timestamp() * 1000)
+        message = to_json_str(history_log)
+        log_events = [LogEvent(ingestion_time=timestamp_value, log_event=history_log)]
+        LOG.debug(
+            "New CloudWatch Log for execution '%s' with message: '%s'",
+            self.execution_arn,
+            message,
+        )
+        self._publish_history_log_or_setup(log_events=log_events)
 
     def _publish_history_log_or_setup(self, log_events: List[Any]):
         # Attempts to put the events into the given log group and stream, and attempts to create the stream if
@@ -235,9 +247,9 @@ class CloudWatchLoggingSession:
         # not be found, true otherwise.
         try:
             self._logs_client.put_log_events(
-                logGroupName=self.configuration.log_group_name,
-                logStreamName=self.configuration.log_stream_name,
-                logEvents=log_events,
+                log_group_name=self.configuration.log_group_name,
+                log_stream_name=self.configuration.log_stream_name,
+                log_events=log_events,
             )
         except ClientError as error:
             error_code = error.response["Error"]["Code"]
@@ -256,8 +268,8 @@ class CloudWatchLoggingSession:
         #  https://docs.aws.amazon.com/step-functions/latest/dg/cw-logs.html#cloudwatch-iam-policy
         try:
             self._logs_client.create_log_stream(
-                logGroupName=self.configuration.log_group_name,
-                logStreamName=self.configuration.log_stream_name,
+                log_group_name=self.configuration.log_group_name,
+                log_stream_name=self.configuration.log_stream_name,
             )
         except ClientError as error:
             error_code = error.response["Error"]["Code"]
