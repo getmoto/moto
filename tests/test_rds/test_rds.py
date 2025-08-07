@@ -64,6 +64,11 @@ def test_create_database(client):
         DomainDnsIps=[],
         Port=1234,
         DBSecurityGroups=["my_sg"],
+        Domain="mydomain",
+        DomainFqdn="mydomain.com",
+        DomainOu="OU=MyOU,DC=mydomain,DC=com",
+        DomainAuthSecretArn="arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret",
+        DomainDnsIps=[],
         VpcSecurityGroupIds=["sg-123456"],
         EnableCloudwatchLogsExports=["audit", "error"],
         AutoMinorVersionUpgrade=False,
@@ -102,6 +107,18 @@ def test_create_database(client):
     assert db_instance["Endpoint"]["Port"] == 1234
     assert db_instance["DbInstancePort"] == 1234
     assert db_instance["AutoMinorVersionUpgrade"] is False
+    assert db_instance["DomainMemberships"][0]["Domain"] == "mydomain"
+    assert db_instance["DomainMemberships"][0]["Status"] == "active"
+    assert db_instance["DomainMemberships"][0]["FQDN"] == "mydomain.com"
+    assert (
+        db_instance["DomainMemberships"][0]["IAMRoleName"]
+        == "rds-directory-service-access-role"
+    )
+    assert db_instance["DomainMemberships"][0]["AuthSecretArn"] == (
+        "arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret"
+    )
+    assert len(db_instance["DomainMemberships"][0]["DnsIps"]) == 0
+    assert db_instance["DomainMemberships"][0]["OU"] == "OU=MyOU,DC=mydomain,DC=com"
 
 
 @mock_aws
