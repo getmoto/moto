@@ -13,5 +13,6 @@ url_paths = {
     r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/policy$": S3ControlResponse.dispatch,
     r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/policyStatus$": S3ControlResponse.dispatch,
     "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)$": S3ControlResponse.dispatch,
+    "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)/tagging$": S3ControlResponse.dispatch,
     "{0}/v20180820/storagelens$": S3ControlResponse.dispatch,
 }
