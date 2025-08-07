@@ -467,67 +467,38 @@ class MasterUserSecret:
         ]
         return tags
 
+
 class DomainMembership:
-    def __init__(self, domain: str, iam_role_name: str = "rds-directory-service-access-role",
-                 domain_ou: str = None, domain_fqdn: str = None, auth_secret_arn: str = None, dns_ips: List[str] = None):
-        self._domain = domain.split(".")[0] if domain else None
-        self._status = "active"
-        self._fqdn = domain_fqdn or domain
-        self._iam_role_name = iam_role_name
-        self._ou = domain_ou or (f"OU={self._domain}OU,DC={self._domain},DC=com" if self._domain else None)
-        self._auth_secret_arn = auth_secret_arn
-        self._dns_ips = dns_ips or []
-
-    @property
-    def domain(self):
-        return self._domain
-
-    @property
-    def status(self):
-        return self._status
-
-    @property
-    def fqdn(self):
-        return self._fqdn
-
-    @fqdn.setter
-    def fqdn(self, value):
-        if not isinstance(value, str):
-            raise ValueError("FQDN must be a string")
-        self._fqdn = value
-
-    @property
-    def iam_role_name(self):
-        return self._iam_role_name
-
-    @property
-    def ou(self):
-        return self._ou
-
-    @ou.setter
-    def ou(self, value):
-        if not isinstance(value, str) or not value.startswith("OU="):
-            raise ValueError("OU must be a valid organizational unit string")
-        self._ou = value
-
-    @property
-    def auth_secret_arn(self):
-        return self._auth_secret_arn
-
-    @property
-    def dns_ips(self):
-        return self._dns_ips
+    def __init__(
+        self,
+        domain: str,
+        iam_role_name: str = "rds-directory-service-access-role",
+        domain_ou: Optional[str] = None,
+        domain_fqdn: Optional[str] = None,
+        auth_secret_arn: Optional[str] = None,
+        dns_ips: Optional[List[str]] = None,
+    ) -> None:
+        self._domain: Optional[str] = domain.split(".")[0] if domain else None
+        self._status: str = "active"
+        self._fqdn: Optional[str] = domain_fqdn or domain
+        self._iam_role_name: str = iam_role_name
+        self._ou: Optional[str] = domain_ou or (
+            f"OU={self._domain}OU,DC={self._domain},DC=com" if self._domain else None
+        )
+        self._auth_secret_arn: Optional[str] = auth_secret_arn
+        self._dns_ips: List[str] = dns_ips or []
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "Domain": self.domain,
-            "Status": self.status,
-            "FQDN": self.fqdn,
-            "IAMRoleName": self.iam_role_name,
-            "OU": self.ou,
-            "AuthSecretArn": self.auth_secret_arn,
-            "DnsIps": self.dns_ips,
+            "Domain": self._domain,
+            "Status": self._status,
+            "FQDN": self._fqdn,
+            "IAMRoleName": self._iam_role_name,
+            "OU": self._ou,
+            "AuthSecretArn": self._auth_secret_arn,
+            "DnsIps": self._dns_ips,
         }
+
 
 class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
@@ -552,9 +523,9 @@ class DBCluster(RDSBaseModel):
         master_username: Optional[str] = None,
         master_user_password: Optional[str] = None,
         backup_retention_period: int = 1,
-        domain: Optional[str] = None, 
+        domain: Optional[str] = None,
         domain_iam_role_name: Optional[str] = None,
-        domain_ou: Optional[str] = None, 
+        domain_ou: Optional[str] = None,
         domain_fqdn: Optional[str] = None,
         character_set_name: Optional[str] = None,
         copy_tags_to_snapshot: Optional[bool] = False,
@@ -624,12 +595,15 @@ class DBCluster(RDSBaseModel):
         self.domain_membership: Optional[DomainMembership] = (
             DomainMembership(
                 domain=domain,
-                iam_role_name=domain_iam_role_name or "rds-directory-service-access-role",
+                iam_role_name=domain_iam_role_name
+                or "rds-directory-service-access-role",
                 domain_ou=domain_ou,
-                domain_fqdn=domain_fqdn
+                domain_fqdn=domain_fqdn,
+                auth_secret_arn=kwargs.get("domain_auth_secret_arn", ""),
+                dns_ips=kwargs.get("domain_dns_ips", []),
             )
             if domain
-            else []
+            else None
         )
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
         if (
@@ -661,17 +635,6 @@ class DBCluster(RDSBaseModel):
         )
         self.parameter_group = db_cluster_parameter_group_name or default_pg
         self.db_subnet_group_name = db_subnet_group_name or "default"
-        self.domain_membership: dict[str, str | list[str] | None] = {
-            "Domain": domain.split(".")[0] if domain else None,
-            "Status": "active",
-            "FQDN": domain if domain else None,
-            "IAMRoleName": domain_iam_role_name or "rds-directory-service-access-role",
-            "OU": f"OU={domain.split('.')[0]}OU,DC={domain.split('.')[0]},DC=com"
-            if domain
-            else None,
-            "AuthSecretArn": None,  # Not implemented yet
-            "DnsIps": [],
-        }
         self.port = port or DBCluster.default_port(self.engine)
         self.preferred_backup_window = preferred_backup_window
         self.preferred_maintenance_window = preferred_maintenance_window
@@ -833,7 +796,7 @@ class DBCluster(RDSBaseModel):
 
     @property
     def domain_memberships(self) -> Optional[DomainMembership]:
-        return [self.domain_membership] if self.domain_membership else []
+        return self.domain_membership if self.domain_membership else None
 
     @property
     def http_endpoint_enabled(self) -> bool:
@@ -1168,9 +1131,9 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         db_subnet_group_name: Optional[str] = None,
         db_cluster_identifier: Optional[str] = None,
         db_parameter_group_name: Optional[str] = None,
-        domain: Optional[str] = None, 
+        domain: Optional[str] = None,
         domain_iam_role_name: Optional[str] = None,
-        domain_ou: Optional[str] = None, 
+        domain_ou: Optional[str] = None,
         domain_fqdn: Optional[str] = None,
         copy_tags_to_snapshot: bool = False,
         iops: Optional[str] = None,
@@ -1225,14 +1188,15 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.domain_membership: Optional[DomainMembership] = (
             DomainMembership(
                 domain=domain,
-                iam_role_name=domain_iam_role_name or "rds-directory-service-access-role",
-                domain_ou=domain_ou,
-                domain_fqdn=domain_fqdn,
-                auth_secret_arn=kwargs.get("domain_auth_secret_arn"),
-                dns_ips=kwargs.get("domain_dns_ips")
+                iam_role_name=domain_iam_role_name
+                or "rds-directory-service-access-role",
+                domain_ou=domain_ou or "",
+                domain_fqdn=domain_fqdn or domain,
+                auth_secret_arn=kwargs.get("domain_auth_secret_arn") or "",
+                dns_ips=kwargs.get("domain_dns_ips") or [],
             )
             if domain
-            else []
+            else None
         )
         self.preferred_maintenance_window = preferred_maintenance_window.lower()
         self.db_parameter_group_name = db_parameter_group_name
@@ -1310,13 +1274,10 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
             self.storage_throughput = storage_throughput
-    @property
-    def domain_memberships(self) -> Optional[DomainMembership]:
-        return [self.domain_membership] if self.domain_membership else None
 
     @property
-    def domain_memberships(self) -> Optional[List[Dict[str, str | list[str] | None]]]:
-        return [self.domain_membership] if self.domain_membership else []
+    def domain_memberships(self) -> Optional[DomainMembership]:
+        return self.domain_membership if self.domain_membership else None
 
     @property
     def db_instance_identifier(self) -> str:
