@@ -158,8 +158,10 @@ class S3ControlResponse(BaseResponse):
 
     def put_storage_lens_configuration_tagging(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
-        config_id = self.path.split("/")[-1]
-        request = xmltodict.parse(self.body)["PutStorageLensConfigurationTaggingRequest"]
+        config_id = self.path.split("/")[-2]
+        request = xmltodict.parse(self.body)[
+            "PutStorageLensConfigurationTaggingRequest"
+        ]
         tags = request.get("Tags")
         self.backend.put_storage_lens_configuration_tagging(
             config_id=config_id,
@@ -167,20 +169,19 @@ class S3ControlResponse(BaseResponse):
             tags=tags,
         )
         return ""
-    
+
     def get_storage_lens_configuration_tagging(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
-        print("RESPONSES PATH: ", self.path)
         config_id = self.path.split("/")[-2]
         storage_lens_tags = self.backend.get_storage_lens_configuration_tagging(
             config_id=config_id,
             account_id=account_id,
-
         )
-        template = self.response_template(GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE)
-        print("RESPONSE TAGS: ",storage_lens_tags)
+        template = self.response_template(
+            GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE
+        )
         return template.render(tags=storage_lens_tags)
-        
+
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
