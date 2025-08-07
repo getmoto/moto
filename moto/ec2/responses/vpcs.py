@@ -219,6 +219,8 @@ class VPCs(EC2BaseResponse):
         add_route_tables = self._get_multi_param("AddRouteTableId")
         remove_route_tables = self._get_multi_param("RemoveRouteTableId")
         policy_doc = self._get_param("PolicyDocument")
+        add_security_groups = self._get_multi_param("AddSecurityGroupId")
+        remove_security_groups = self._get_multi_param("RemoveSecurityGroupId")
         self.ec2_backend.modify_vpc_endpoint(
             vpc_id=vpc_id,
             policy_doc=policy_doc,
@@ -226,6 +228,8 @@ class VPCs(EC2BaseResponse):
             remove_subnets=remove_subnets,
             add_route_tables=add_route_tables,
             remove_route_tables=remove_route_tables,
+            add_security_groups=add_security_groups,
+            remove_security_groups=remove_security_groups,
         )
         return ActionResult({"Return": True})
 
