@@ -467,6 +467,67 @@ class MasterUserSecret:
         ]
         return tags
 
+class DomainMembership:
+    def __init__(self, domain: str, iam_role_name: str = "rds-directory-service-access-role",
+                 domain_ou: str = None, domain_fqdn: str = None, auth_secret_arn: str = None, dns_ips: List[str] = None):
+        self._domain = domain.split(".")[0] if domain else None
+        self._status = "active"
+        self._fqdn = domain_fqdn or domain
+        self._iam_role_name = iam_role_name
+        self._ou = domain_ou or (f"OU={self._domain}OU,DC={self._domain},DC=com" if self._domain else None)
+        self._auth_secret_arn = auth_secret_arn
+        self._dns_ips = dns_ips or []
+
+    @property
+    def domain(self):
+        return self._domain
+
+    @property
+    def status(self):
+        return self._status
+
+    @property
+    def fqdn(self):
+        return self._fqdn
+
+    @fqdn.setter
+    def fqdn(self, value):
+        if not isinstance(value, str):
+            raise ValueError("FQDN must be a string")
+        self._fqdn = value
+
+    @property
+    def iam_role_name(self):
+        return self._iam_role_name
+
+    @property
+    def ou(self):
+        return self._ou
+
+    @ou.setter
+    def ou(self, value):
+        if not isinstance(value, str) or not value.startswith("OU="):
+            raise ValueError("OU must be a valid organizational unit string")
+        self._ou = value
+
+    @property
+    def auth_secret_arn(self):
+        return self._auth_secret_arn
+
+    @property
+    def dns_ips(self):
+        return self._dns_ips
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Domain": self.domain,
+            "Status": self.status,
+            "FQDN": self.fqdn,
+            "IAMRoleName": self.iam_role_name,
+            "OU": self.ou,
+            "AuthSecretArn": self.auth_secret_arn,
+            "DnsIps": self.dns_ips,
+        }
 
 class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
@@ -491,6 +552,10 @@ class DBCluster(RDSBaseModel):
         master_username: Optional[str] = None,
         master_user_password: Optional[str] = None,
         backup_retention_period: int = 1,
+        domain: Optional[str] = None, 
+        domain_iam_role_name: Optional[str] = None,
+        domain_ou: Optional[str] = None, 
+        domain_fqdn: Optional[str] = None,
         character_set_name: Optional[str] = None,
         copy_tags_to_snapshot: Optional[bool] = False,
         database_name: Optional[str] = None,
@@ -556,6 +621,16 @@ class DBCluster(RDSBaseModel):
         )
         self.master_username = master_username
         self.character_set_name = character_set_name
+        self.domain_membership: Optional[DomainMembership] = (
+            DomainMembership(
+                domain=domain,
+                iam_role_name=domain_iam_role_name or "rds-directory-service-access-role",
+                domain_ou=domain_ou,
+                domain_fqdn=domain_fqdn
+            )
+            if domain
+            else []
+        )
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
         if (
             not self.master_username
@@ -746,6 +821,10 @@ class DBCluster(RDSBaseModel):
                     self._enable_http_endpoint = val
 
     @property
+    def domain_memberships(self) -> Optional[DomainMembership]:
+        return [self.domain_membership] if self.domain_membership else []
+
+    @property
     def http_endpoint_enabled(self) -> bool:
         return True if self.enable_http_endpoint else False
 
@@ -843,10 +922,6 @@ class DBCluster(RDSBaseModel):
         if vpc_security_group_ids is None:
             vpc_security_group_ids = []
         self._vpc_security_group_ids = vpc_security_group_ids
-
-    @property
-    def domain_memberships(self) -> List[str]:
-        return []
 
     @property
     def cross_account_clone(self) -> bool:
@@ -1082,6 +1157,10 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         db_subnet_group_name: Optional[str] = None,
         db_cluster_identifier: Optional[str] = None,
         db_parameter_group_name: Optional[str] = None,
+        domain: Optional[str] = None, 
+        domain_iam_role_name: Optional[str] = None,
+        domain_ou: Optional[str] = None, 
+        domain_fqdn: Optional[str] = None,
         copy_tags_to_snapshot: bool = False,
         iops: Optional[str] = None,
         master_username: Optional[str] = None,
@@ -1132,6 +1211,18 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.multi_az = multi_az
         self.db_subnet_group_name = db_subnet_group_name
         self.db_security_groups = db_security_groups or []
+        self.domain_membership: Optional[DomainMembership] = (
+            DomainMembership(
+                domain=domain,
+                iam_role_name=domain_iam_role_name or "rds-directory-service-access-role",
+                domain_ou=domain_ou,
+                domain_fqdn=domain_fqdn,
+                auth_secret_arn=kwargs.get("domain_auth_secret_arn"),
+                dns_ips=kwargs.get("domain_dns_ips")
+            )
+            if domain
+            else []
+        )
         self.preferred_maintenance_window = preferred_maintenance_window.lower()
         self.db_parameter_group_name = db_parameter_group_name
         if (
@@ -1208,6 +1299,9 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
             self.storage_throughput = storage_throughput
+    @property
+    def domain_memberships(self) -> Optional[DomainMembership]:
+        return [self.domain_membership] if self.domain_membership else None
 
     @property
     def db_instance_identifier(self) -> str:
