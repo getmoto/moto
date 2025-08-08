@@ -1,8 +1,8 @@
 import logging
-from typing import Set
+from typing import Final
 
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -16,7 +16,7 @@ from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 
 LOG = logging.getLogger(__name__)
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.WaitForTaskToken,
 }
 
@@ -24,6 +24,10 @@ _SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
 class StateTaskServiceUnsupported(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
+
+    def _validate_service_integration_is_supported(self):
+        # Attempts to execute any derivation; logging this incident on creation.
+        self._log_unsupported_warning()
 
     def _log_unsupported_warning(self):
         # Logs that the optimised service integration is not supported,
@@ -42,7 +46,7 @@ class StateTaskServiceUnsupported(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
         # Logs that the evaluation of this optimised service integration is not supported
         # and relays the call to the target service with the computed parameters.
@@ -50,10 +54,9 @@ class StateTaskServiceUnsupported(StateTaskServiceCallback):
         service_name = self._get_boto_service_name()
         boto_action = self._get_boto_service_action()
         boto_client = boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service=service_name,
-            credentials=task_credentials,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
         response = getattr(boto_client, boto_action)(**normalised_parameters)
         response.pop("ResponseMetadata", None)

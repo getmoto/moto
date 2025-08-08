@@ -1,10 +1,10 @@
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 
 class TypedProps:
     def __init__(self):
-        self._instance_by_type: Dict[type, Any] = OrderedDict()
+        self._instance_by_type: dict[type, Any] = OrderedDict()
 
     def add(self, instance: Any) -> None:
         self._add(type(instance), instance)

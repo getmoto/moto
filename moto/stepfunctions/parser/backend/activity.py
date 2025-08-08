@@ -1,6 +1,6 @@
 import datetime
 from collections import deque
-from typing import Deque, Optional
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import (
     ActivityListItem,
@@ -12,8 +12,8 @@ from moto.stepfunctions.parser.api import (
 
 
 class ActivityTask:
-    task_input: str
-    task_token: str
+    task_input: Final[str]
+    task_token: Final[str]
 
     def __init__(self, task_token: str, task_input: str):
         self.task_token = task_token
@@ -21,10 +21,10 @@ class ActivityTask:
 
 
 class Activity:
-    arn: Arn
-    name: Name
-    creation_date: Timestamp
-    _tasks: Deque[ActivityTask]
+    arn: Final[Arn]
+    name: Final[Name]
+    creation_date: Final[Timestamp]
+    _tasks: Final[deque[ActivityTask]]
 
     def __init__(self, arn: Arn, name: Name, creation_date: Optional[Timestamp] = None):
         self.arn = arn

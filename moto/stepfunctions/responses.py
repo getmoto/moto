@@ -10,20 +10,23 @@ from .models import StepFunctionBackend, stepfunctions_backends
 from .parser.api import ExecutionStatus
 
 
+def get_backend(account: str, region: str) -> StepFunctionBackend:
+    sfn_config = default_user_config.get("stepfunctions", {})
+    if sfn_config.get("execute_state_machine", False):
+        from .parser.models import stepfunctions_parser_backends
+
+        return stepfunctions_parser_backends[account][region]
+    else:
+        return stepfunctions_backends[account][region]
+
+
 class StepFunctionResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="stepfunctions")
 
     @property
     def stepfunction_backend(self) -> StepFunctionBackend:
-        if default_user_config.get("stepfunctions", {}).get(
-            "execute_state_machine", False
-        ):
-            from .parser.models import stepfunctions_parser_backends
-
-            return stepfunctions_parser_backends[self.current_account][self.region]
-        else:
-            return stepfunctions_backends[self.current_account][self.region]
+        return get_backend(self.current_account, self.region)
 
     def create_state_machine(self) -> TYPE_RESPONSE:
         name = self._get_param("name")

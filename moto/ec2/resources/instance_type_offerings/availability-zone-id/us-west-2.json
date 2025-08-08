@@ -1096,11 +1096,31 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "usw2-az1"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "usw2-az1"
  },
  {
@@ -4736,11 +4756,31 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "usw2-az2"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "usw2-az2"
  },
  {
@@ -8288,11 +8328,31 @@
   "Location": "usw2-az3"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "usw2-az3"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "usw2-az3"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "usw2-az3"
  },
  {
@@ -11652,11 +11712,31 @@
   "Location": "usw2-az4"
  },
  {
+  "InstanceType": "g6f.2xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "g6f.4xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "g6f.large",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "g6f.xlarge",
+  "Location": "usw2-az4"
+ },
+ {
   "InstanceType": "gr6.4xlarge",
   "Location": "usw2-az4"
  },
  {
   "InstanceType": "gr6.8xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "gr6f.4xlarge",
   "Location": "usw2-az4"
  },
  {

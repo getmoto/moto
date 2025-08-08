@@ -66,6 +66,7 @@ find moto/stepfunctions/parser/asl -type f -name "*.py" | xargs sed -i 's/except
 find moto/stepfunctions/parser/asl -type f -name "*.py" | xargs sed -i 's/List\[InputLogEvent\]/List\[Any\]/'
 find moto/stepfunctions/parser/asl -type f -name "*.py" | xargs sed -i 's/from localstack.aws.api.logs import InputLogEvent//'
 find moto/stepfunctions/parser/asl -type f -name "*.py" | xargs sed -i 's/from localstack.aws.connect import connect_to//'
+rm moto/stepfunctions/parser/analytics.py
 
 find moto/stepfunctions/parser/asl/component/state/exec/state_task -type f -name "*.py" | xargs sed -i 's/InvocationType.RequestResponse/"RequestResponse"/'
 find moto/stepfunctions/parser/asl/component/state/exec/state_task -type f -name "*.py" | xargs sed -i '/InvocationType/d'
@@ -104,6 +105,12 @@ mv tmp/execution.py moto/stepfunctions/parser/backend/
 cp api.py moto/stepfunctions/parser/
 
 rmdir tmp
+
+echo "TODO:"
+echo " - Convert match-statements to if/else (because that's only supported in Python >= 3.10)"
+echo " - Convert timestamps back to isostrings (because we don't serialize SFN yet):"
+echo "    1. asl/eval/event/event_manager"
+echo "    2. asl/component/state/exec/state_map/iteration/itemprocessor/map_run_record.py"
 
 # Format files as appropriate
 ruff check --fix moto/stepfunctions/parser

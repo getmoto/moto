@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import CloudFormationModel
+from moto.core.utils import utcnow
 from moto.utilities.utils import get_partition
 
 from ..exceptions import (
@@ -35,7 +36,6 @@ from ..utils import (
     random_vpc_cidr_association_id,
     random_vpc_ep_id,
     random_vpc_id,
-    utc_date_and_time,
 )
 from .availability_zones_and_regions import RegionsAndZonesBackend
 from .core import TaggedEC2Resource
@@ -364,27 +364,57 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self.network_interface_ids = network_interface_ids or []
         self.subnet_ids = subnet_ids
         self.client_token = client_token
-        self.security_group_ids = security_group_ids
+        self.security_group_ids = security_group_ids or []
         self.private_dns_enabled = private_dns_enabled
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
         self.destination_prefix_list_id = destination_prefix_list_id
 
-        self.created_at = utc_date_and_time()
+        self.creation_timestamp = utcnow()
+
+    @property
+    def groups(self) -> List[Dict[str, str]]:
+        return [
+            {"GroupId": sg.id, "GroupName": sg.name}
+            for id in self.security_group_ids
+            for sg in [self.ec2_backend.get_security_group_from_id(id)]
+        ]
 
     def modify(
         self,
         policy_doc: Optional[str],
         add_subnets: Optional[List[str]],
+        remove_subnets: Optional[List[str]],
         add_route_tables: Optional[List[str]],
         remove_route_tables: Optional[List[str]],
+        add_security_groups: Optional[List[str]],
+        remove_security_groups: Optional[List[str]],
     ) -> None:
         if policy_doc:
             self.policy_document = policy_doc
         if add_subnets:
-            self.subnet_ids.extend(add_subnets)  # type: ignore[union-attr]
+            self.subnet_ids.extend([s for s in add_subnets if s not in self.subnet_ids])  # type: ignore[union-attr,operator]
+        if remove_subnets:
+            self.subnet_ids = [
+                subnet_id
+                for subnet_id in self.subnet_ids  # type: ignore[union-attr]
+                if subnet_id not in remove_subnets
+            ]
+        if add_security_groups:
+            self.security_group_ids.extend(
+                [s for s in add_security_groups if s not in self.security_group_ids]
+            )
+
+        if remove_security_groups:
+            self.security_group_ids = [
+                sg_id
+                for sg_id in self.security_group_ids
+                if sg_id not in remove_security_groups
+            ]
         if add_route_tables:
-            self.route_table_ids.extend(add_route_tables)
+            self.route_table_ids.extend(
+                [s for s in add_route_tables if s not in self.route_table_ids]
+            )
         if remove_route_tables:
             self.route_table_ids = [
                 rt_id
@@ -1009,11 +1039,22 @@ class VPCBackend:
         vpc_id: str,
         policy_doc: str,
         add_subnets: Optional[List[str]],
+        remove_subnets: Optional[List[str]],
         remove_route_tables: Optional[List[str]],
         add_route_tables: Optional[List[str]],
+        add_security_groups: Optional[List[str]],
+        remove_security_groups: Optional[List[str]],
     ) -> None:
         endpoint = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_id])[0]
-        endpoint.modify(policy_doc, add_subnets, add_route_tables, remove_route_tables)
+        endpoint.modify(
+            policy_doc,
+            add_subnets,
+            remove_subnets,
+            add_route_tables,
+            remove_route_tables,
+            add_security_groups,
+            remove_security_groups,
+        )
 
     def delete_vpc_endpoints(self, vpce_ids: Optional[List[str]] = None) -> None:
         for vpce_id in vpce_ids or []:

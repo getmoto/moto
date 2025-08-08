@@ -43,6 +43,8 @@ def _send_safe_notification(
     if event is None:
         return
 
+    partition = get_partition(region)
+
     for account_id, account in events_backends.items():
         for backend in account.values():
             applicable_targets = []
@@ -56,10 +58,13 @@ def _send_safe_notification(
                             applicable_targets.extend(rule.targets)
 
             for target in applicable_targets:
-                if target.get("Arn", "").startswith(
-                    f"arn:{get_partition(region)}:lambda"
-                ):
-                    _invoke_lambda(account_id, target.get("Arn"), event=event)  # type: ignore[arg-type]
+                target_arn = target.get("Arn", "")
+                if target_arn.startswith(f"arn:{partition}:lambda"):
+                    _invoke_lambda(account_id, fn_arn=target_arn, event=event)  # type: ignore[arg-type]
+                if target_arn.startswith(f"arn:{partition}:states"):
+                    _start_sfn_execution(
+                        account_id, region=region, sfn_arn=target_arn, event=event
+                    )
 
 
 def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
@@ -74,4 +79,19 @@ def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
         body=body,
         headers=dict(),
         response_headers=dict(),
+    )
+
+
+def _start_sfn_execution(
+    account_id: str, region: str, sfn_arn: str, event: Any
+) -> None:
+    from moto.stepfunctions.models import StepFunctionBackend
+    from moto.stepfunctions.responses import get_backend
+
+    backend: StepFunctionBackend = get_backend(account_id, region)
+
+    backend.start_execution(
+        state_machine_arn=sfn_arn,
+        name="",
+        execution_input=json.dumps(event),
     )

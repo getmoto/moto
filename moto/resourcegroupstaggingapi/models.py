@@ -14,6 +14,7 @@ from moto.connectcampaigns.models import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.exceptions import RESTError
+from moto.directconnect.models import DirectConnectBackend, directconnect_backends
 from moto.dms.models import DatabaseMigrationServiceBackend, dms_backends
 from moto.dynamodb.models import DynamoDBBackend, dynamodb_backends
 from moto.ec2 import ec2_backends
@@ -72,6 +73,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def s3_backend(self) -> S3Backend:
         return s3_backends[self.account_id][self.partition]
+
+    @property
+    def directconnect_backend(self) -> DirectConnectBackend:
+        return directconnect_backends[self.account_id][self.region_name]
 
     @property
     def dms_backend(self) -> DatabaseMigrationServiceBackend:
@@ -445,6 +450,33 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tags or not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{campaign.arn}", "Tags": tags}
+
+        # Direct Connect
+        if self.directconnect_backend:
+            if not resource_type_filters or "directconnect" in resource_type_filters:
+                directconnect_backend = directconnect_backends[self.account_id][
+                    self.region_name
+                ]
+
+                # Connections
+                for connection in directconnect_backend.connections.values():
+                    tags = directconnect_backend.tagger.list_tags_for_resource(
+                        connection.connection_id
+                    )["Tags"]
+                    tags = format_tag_keys(tags, ["key", "value"])
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{connection.connection_id}", "Tags": tags}
+
+                # LAGs
+                for lag in directconnect_backend.lags.values():
+                    tags = directconnect_backend.tagger.list_tags_for_resource(
+                        lag.lag_id
+                    )["Tags"]
+                    tags = format_tag_keys(tags, ["key", "value"])
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{lag.lag_id}", "Tags": tags}
 
         # DMS
         if not resource_type_filters or "dms:endpoint" in resource_type_filters:
@@ -1278,7 +1310,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only DynamoDB, Logs, RDS, and SageMaker resources are currently supported
+        Only DynamoDB, EFS, Lambda Logs, RDS, and SageMaker resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -1315,12 +1347,44 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
+                self.lambda_backend.tag_resource(arn, tags)
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.efs_backend.tag_resource(
+                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return {arn: missing_error for arn in missing_resources}
 
-    # def untag_resources(self, resource_arn_list, tag_keys):
-    #     return failed_resources_map
+    def untag_resources(
+        self, resource_arn_list: List[str], tag_keys: List[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Only EFS and Lambda resources are currently supported
+        """
+        missing_resources = []
+        missing_error: Dict[str, Any] = {
+            "StatusCode": 404,
+            "ErrorCode": "InternalServiceException",
+            "ErrorMessage": "Service not yet supported",
+        }
+
+        for arn in resource_arn_list:
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
+                self.lambda_backend.untag_resource(arn, tag_keys)
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.efs_backend.untag_resource(resource_id, tag_keys)
+            else:
+                missing_resources.append(arn)
+
+        return {arn: missing_error for arn in missing_resources}
 
 
 resourcegroupstaggingapi_backends = BackendDict(

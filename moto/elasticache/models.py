@@ -947,5 +947,21 @@ class ElastiCacheBackend(BaseBackend):
         replication_groups = list(self.replication_groups.values())
         return replication_groups
 
+    def delete_replication_group(
+        self, replication_group_id: str, retain_primary_cluster: Optional[bool]
+    ) -> ReplicationGroup:
+        if replication_group_id:
+            if replication_group_id in self.replication_groups:
+                replication_group = self.replication_groups[replication_group_id]
+                replication_group.status = "deleting"
+            if not retain_primary_cluster:
+                replication_group = self.replication_groups[replication_group_id]
+                primary_id = replication_group.primary_cluster_id
+                if primary_id and primary_id in replication_group.member_clusters:
+                    replication_group.member_clusters.remove(primary_id)
+                replication_group.primary_cluster_id = ""
+            return replication_group
+        raise ReplicationGroupNotFound(replication_group_id)
+
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

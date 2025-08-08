@@ -16,6 +16,7 @@ def test_create_load_balancer():
     response, _, security_group, subnet1, subnet2, conn = create_load_balancer()
 
     lb = response["LoadBalancers"][0]
+    assert lb["CanonicalHostedZoneId"].startswith("Z")
     assert lb["DNSName"] == "my-lb-1.us-east-1.elb.amazonaws.com"
     assert (
         lb["LoadBalancerArn"]
@@ -102,6 +103,7 @@ def test_describe_load_balancers():
 
     assert len(response["LoadBalancers"]) == 1
     lb = response["LoadBalancers"][0]
+    assert lb["CanonicalHostedZoneId"].startswith("Z")
     assert lb["LoadBalancerName"] == "my-lb"
     assert lb["State"]["Code"] == "active"
 

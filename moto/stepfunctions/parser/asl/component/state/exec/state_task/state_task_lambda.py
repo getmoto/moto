@@ -29,9 +29,6 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
 from moto.stepfunctions.parser.asl.component.state.exec.state_task import (
     lambda_eval_utils,
 )
-from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    Credentials,
-)
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     LambdaResource,
     ResourceRuntimePart,
@@ -132,7 +129,7 @@ class StateTaskLambda(StateTask):
 
     def _eval_execution(self, env: Environment) -> None:
         parameters = self._eval_parameters(env=env)
-        task_credentials = self._eval_credentials(env=env)
+        state_credentials = self._eval_state_credentials(env=env)
         payload = parameters["Payload"]
 
         scheduled_event_details = LambdaFunctionScheduledEventDetails(
@@ -148,9 +145,7 @@ class StateTaskLambda(StateTask):
             scheduled_event_details["timeoutInSeconds"] = timeout_seconds
         if self.credentials:
             scheduled_event_details["taskCredentials"] = TaskCredentials(
-                roleArn=Credentials.get_role_arn_from(
-                    computed_credentials=task_credentials
-                )
+                roleArn=state_credentials.role_arn
             )
         env.event_manager.add_event(
             context=env.event_history_context,
@@ -169,12 +164,11 @@ class StateTaskLambda(StateTask):
         resource_runtime_part: ResourceRuntimePart = env.stack.pop()
 
         parameters["Payload"] = lambda_eval_utils.to_payload_type(parameters["Payload"])
-        lambda_eval_utils.exec_lambda_function(
+        lambda_eval_utils.execute_lambda_function_integration(
             env=env,
             parameters=parameters,
             region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
-            credentials=task_credentials,
+            state_credentials=state_credentials,
         )
 
         # In lambda invocations, only payload is passed on as output.

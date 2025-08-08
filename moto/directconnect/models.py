@@ -119,6 +119,7 @@ class LAG(BaseModel):
     region: str
     tags: Optional[List[Dict[str, str]]]
     lag_id: str = field(default="", init=False)
+    backend: "DirectConnectBackend"
 
     def __post_init__(self) -> None:
         if self.lag_id == "":
@@ -148,7 +149,7 @@ class LAG(BaseModel):
             "macSecKeys": [key.to_dict() for key in self.mac_sec_keys],
             "providerName": self.provider_name,
             "region": self.region,
-            "tags": self.tags,
+            "tags": self.backend.list_tags_for_resource(self.lag_id),
         }
 
 
@@ -369,6 +370,7 @@ class DirectConnectBackend(BaseBackend):
             provider_name=provider_name,
             region=self.region_name,
             tags=tags,
+            backend=self,
         )
         for i in range(number_of_connections):
             connection = self.create_connection(
@@ -386,6 +388,8 @@ class DirectConnectBackend(BaseBackend):
                 connection.encryption_mode = encryption_mode
             lag.connections.append(connection)
 
+        if tags:
+            self.tag_resource(lag.lag_id, tags)
         self.lags[lag.lag_id] = lag
         return lag
 

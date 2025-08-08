@@ -38,8 +38,8 @@ class InlineIterationComponentEvalInput:
     state_name: Final[str]
     max_concurrency: Final[int]
     input_items: Final[List[json]]
-    parameters: Optional[Parameters]
-    item_selector: Optional[ItemSelector]
+    parameters: Final[Optional[Parameters]]
+    item_selector: Final[Optional[ItemSelector]]
 
     def __init__(
         self,
@@ -57,9 +57,7 @@ class InlineIterationComponentEvalInput:
 
 
 class InlineIterationComponent(IterationComponent, abc.ABC):
-    _processor_config: ProcessorConfig
-    _eval_input: Optional[InlineIterationComponentEvalInput]
-    _job_pool: Optional[JobPool]
+    _processor_config: Final[ProcessorConfig]
 
     def __init__(
         self,
@@ -76,28 +74,36 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
             comment=comment,
         )
         self._processor_config = processor_config
-        self._eval_input = None
-        self._job_pool = None
 
     @abc.abstractmethod
-    def _create_worker(self, env: Environment) -> IterationWorker: ...
+    def _create_worker(
+        self,
+        env: Environment,
+        eval_input: InlineIterationComponentEvalInput,
+        job_pool: JobPool,
+    ) -> IterationWorker: ...
 
-    def _launch_worker(self, env: Environment) -> IterationWorker:
-        worker = self._create_worker(env=env)
+    def _launch_worker(
+        self,
+        env: Environment,
+        eval_input: InlineIterationComponentEvalInput,
+        job_pool: JobPool,
+    ) -> IterationWorker:
+        worker = self._create_worker(env=env, eval_input=eval_input, job_pool=job_pool)
         worker_thread = threading.Thread(target=worker.eval, daemon=True)
         TMP_THREADS.append(worker_thread)
         worker_thread.start()
         return worker
 
     def _eval_body(self, env: Environment) -> None:
-        self._eval_input = env.stack.pop()
+        eval_input = env.stack.pop()
 
-        max_concurrency: int = self._eval_input.max_concurrency
-        input_items: List[json] = self._eval_input.input_items
+        max_concurrency: int = eval_input.max_concurrency
+        input_items: List[json] = eval_input.input_items
 
-        input_item_program: Program = self._get_iteration_program()
-        self._job_pool = JobPool(
-            job_program=input_item_program, job_inputs=self._eval_input.input_items
+        input_item_program: Final[Program] = self._get_iteration_program()
+        job_pool = JobPool(
+            job_program=input_item_program, job_inputs=eval_input.input_items
         )
 
         number_of_workers = (
@@ -106,15 +112,15 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
             else max_concurrency
         )
         for _ in range(number_of_workers):
-            self._launch_worker(env=env)
+            self._launch_worker(env=env, eval_input=eval_input, job_pool=job_pool)
 
-        self._job_pool.await_jobs()
+        job_pool.await_jobs()
 
-        worker_exception: Optional[Exception] = self._job_pool.get_worker_exception()
+        worker_exception: Optional[Exception] = job_pool.get_worker_exception()
         if worker_exception is not None:
             raise worker_exception
 
-        closed_jobs: List[JobClosed] = self._job_pool.get_closed_jobs()
+        closed_jobs: List[JobClosed] = job_pool.get_closed_jobs()
         outputs: List[Any] = [closed_job.job_output for closed_job in closed_jobs]
 
         env.stack.append(outputs)

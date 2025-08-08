@@ -63,13 +63,13 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
 
         return json.dumps({"FailedResourcesMap": failed_resources})
 
-    # def untag_resources(self):
-    #     resource_arn_list = self._get_list_prefix("ResourceARNList.member")
-    #     tag_keys = self._get_list_prefix("TagKeys.member")
-    #     failed_resources_map = self.backend.untag_resources(
-    #         resource_arn_list=resource_arn_list,
-    #         tag_keys=tag_keys,
-    #     )
-    #
-    #     # failed_resources_map should be {'resource': {'ErrorCode': str, 'ErrorMessage': str, 'StatusCode': int}}
-    #     return json.dumps({'FailedResourcesMap': failed_resources_map})
+    def untag_resources(self) -> str:
+        resource_arn_list = self._get_param("ResourceARNList")
+        tag_keys = self._get_param("TagKeys")
+
+        failed_resources = self.backend.untag_resources(
+            resource_arn_list=resource_arn_list,
+            tag_keys=tag_keys,
+        )
+
+        return json.dumps({"FailedResourcesMap": failed_resources})

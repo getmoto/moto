@@ -1213,6 +1213,12 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
 
+    def delete_dev_endpoint(self, endpoint_name: str) -> None:
+        try:
+            del self.dev_endpoints[endpoint_name]
+        except KeyError:
+            raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+
     def create_connection(
         self, catalog_id: str, connection_input: Dict[str, Any], tags: Dict[str, str]
     ) -> str:
