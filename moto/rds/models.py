@@ -471,32 +471,68 @@ class MasterUserSecret:
 class DomainMembership:
     def __init__(
         self,
-        domain: str,
+        domain: Optional[str] = None,
         iam_role_name: str = "rds-directory-service-access-role",
         domain_ou: Optional[str] = None,
         domain_fqdn: Optional[str] = None,
         auth_secret_arn: Optional[str] = None,
         dns_ips: Optional[List[str]] = None,
-    ) -> None:
-        self._domain: Optional[str] = domain.split(".")[0] if domain else None
-        self._status: str = "active"
-        self._fqdn: Optional[str] = domain_fqdn or domain
-        self._iam_role_name: str = iam_role_name
-        self._ou: Optional[str] = domain_ou or (
+    ):
+        self._domain = domain.split(".")[0] if domain else None
+        self._status = "active"
+        self._fqdn = domain_fqdn or domain
+        self._iam_role_name = iam_role_name
+        self._ou = domain_ou or (
             f"OU={self._domain}OU,DC={self._domain},DC=com" if self._domain else None
         )
-        self._auth_secret_arn: Optional[str] = auth_secret_arn
-        self._dns_ips: List[str] = dns_ips or []
+        self._auth_secret_arn = auth_secret_arn
+        self._dns_ips = dns_ips or []
+
+    @property
+    def domain(self) -> Optional[str]:
+        return self._domain
+
+    @property
+    def status(self) -> Optional[str]:
+        return self._status
+
+    @property
+    def fqdn(self) -> Optional[str]:
+        return self._fqdn
+
+    @fqdn.setter
+    def fqdn(self, value: str) -> None:
+        self._fqdn = value
+
+    @property
+    def iam_role_name(self) -> str:
+        return self._iam_role_name
+
+    @property
+    def ou(self) -> Optional[str]:
+        return self._ou
+
+    @ou.setter
+    def ou(self, value: str) -> None:
+        self._ou = value
+
+    @property
+    def auth_secret_arn(self) -> Optional[str]:
+        return self._auth_secret_arn
+
+    @property
+    def dns_ips(self) -> List[str]:
+        return self._dns_ips
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "Domain": self._domain,
-            "Status": self._status,
-            "FQDN": self._fqdn,
-            "IAMRoleName": self._iam_role_name,
-            "OU": self._ou,
-            "AuthSecretArn": self._auth_secret_arn,
-            "DnsIps": self._dns_ips,
+            "Domain": self.domain,
+            "Status": self.status,
+            "FQDN": self.fqdn,
+            "IAMRoleName": self.iam_role_name,
+            "OU": self.ou,
+            "AuthSecretArn": self.auth_secret_arn,
+            "DnsIps": self.dns_ips,
         }
 
 
@@ -592,18 +628,13 @@ class DBCluster(RDSBaseModel):
         )
         self.master_username = master_username
         self.character_set_name = character_set_name
-        self.domain_membership: Optional[DomainMembership] = (
-            DomainMembership(
-                domain=domain,
-                iam_role_name=domain_iam_role_name
-                or "rds-directory-service-access-role",
-                domain_ou=domain_ou,
-                domain_fqdn=domain_fqdn,
-                auth_secret_arn=kwargs.get("domain_auth_secret_arn", ""),
-                dns_ips=kwargs.get("domain_dns_ips", []),
-            )
-            if domain
-            else None
+        self.domain_membership: DomainMembership = DomainMembership(
+            domain=domain,
+            iam_role_name=domain_iam_role_name or "rds-directory-service-access-role",
+            domain_ou=domain_ou,
+            domain_fqdn=domain_fqdn,
+            auth_secret_arn=kwargs.get("domain_auth_secret_arn", ""),
+            dns_ips=kwargs.get("domain_dns_ips", []),
         )
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
         if (
@@ -795,8 +826,8 @@ class DBCluster(RDSBaseModel):
                     self._enable_http_endpoint = val
 
     @property
-    def domain_memberships(self) -> Optional[DomainMembership]:
-        return self.domain_membership if self.domain_membership else None
+    def domain_memberships(self) -> Optional[List[DomainMembership]]:
+        return [self.domain_membership] if self.domain_membership else None
 
     @property
     def http_endpoint_enabled(self) -> bool:
@@ -1276,8 +1307,8 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.storage_throughput = storage_throughput
 
     @property
-    def domain_memberships(self) -> Optional[DomainMembership]:
-        return self.domain_membership if self.domain_membership else None
+    def domain_memberships(self) -> Optional[List[DomainMembership]]:
+        return [self.domain_membership] if self.domain_membership else None
 
     @property
     def db_instance_identifier(self) -> str:
