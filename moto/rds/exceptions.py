@@ -342,3 +342,11 @@ class SourceDatabaseNotSupportedFault(RDSClientError):
             "SourceDatabaseNotSupportedFault",
             f"The source DB instance {source_arn} isn't supported for a blue/green deployment.",
         )
+
+
+class SourceClusterNotSupportedFault(RDSClientError):
+    def __init__(self, source_arn: str):
+        super().__init__(
+            "SourceClusterNotSupportedFault",
+            f"The source DB cluster {source_arn} isn't supported for a blue/green deployment.",
+        )

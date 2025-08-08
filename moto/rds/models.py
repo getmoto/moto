@@ -79,6 +79,7 @@ from .exceptions import (
     RDSClientError,  # TODO: Refactor into specific exceptions
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
+    SourceClusterNotSupportedFault,
     SourceDatabaseNotSupportedFault,
     SubscriptionAlreadyExistError,
     SubscriptionNotFoundError,
@@ -1548,11 +1549,13 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.master_user_secret = MasterUserSecret(
                 self, master_user_secret_kms_key_id
             )
+            self.manage_master_user_password = True
         elif manage_master_user_password is False and hasattr(
             self, "master_user_secret"
         ):
             self.master_user_secret.delete_secret()
             del self.master_user_secret
+            self.manage_master_user_password = False
 
         if rotate_master_user_password is True:
             self.master_user_secret.rotate_secret()
@@ -3392,11 +3395,13 @@ class RDSBackend(BaseBackend):
             if manage_master_user_password:
                 kms_key_id = kwargs.pop("master_user_secret_kms_key_id", None)
                 cluster.master_user_secret = MasterUserSecret(cluster, kms_key_id)
+                cluster.manage_master_user_password = True
             elif not manage_master_user_password and hasattr(
                 cluster, "master_user_secret"
             ):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
+                cluster.manage_master_user_password = False
 
         kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
@@ -4573,10 +4578,10 @@ class BlueGreenDeployment(RDSBaseModel):
         target_allocated_storage: int | None,
         target_storage_throughput: int | None,
     ) -> str:
-        source_instance: DBInstance | DBCluster = self._get_instance(self.source)
+        source_instance: DBInstance | DBCluster = self._get_valid_instance_or_raise(
+            self.source
+        )
         green_instance: DBInstance | DBCluster
-        if source_instance.manage_master_user_password:
-            raise SourceDatabaseNotSupportedFault(source_instance.arn)
 
         db_kwargs = {
             "engine": source_instance.engine,
@@ -4681,18 +4686,24 @@ class BlueGreenDeployment(RDSBaseModel):
                 )
             return green_instance.db_cluster_arn
 
-    def _get_instance(self, arn: str) -> DBInstance | DBCluster:
+    def _get_valid_instance_or_raise(self, arn: str) -> DBInstance | DBCluster:
         result = re.findall(r"^arn:[A-Za-z][0-9A-Za-z-:._]*", arn)
         if len(result) == 0:
             raise InvalidParameterValue("Provided string is not a valid arn")
         if self.backend._is_cluster(arn):
-            return find_cluster(arn)
+            cluster = find_cluster(arn)
+            if hasattr(cluster, "master_user_secret"):
+                raise SourceClusterNotSupportedFault(cluster.arn)
+            return cluster
         else:
-            return self.backend.find_db_from_id(arn)
+            instance = self.backend.find_db_from_id(arn)
+            if hasattr(instance, "master_user_secret"):
+                raise SourceDatabaseNotSupportedFault(instance.arn)
+            return instance
 
     def switchover(self) -> None:
-        source = self._get_instance(self.source)
-        target = self._get_instance(self.target)
+        source = self._get_valid_instance_or_raise(self.source)
+        target = self._get_valid_instance_or_raise(self.target)
         source_result: DBCluster | DBInstance
         target_result: DBCluster | DBInstance
 
