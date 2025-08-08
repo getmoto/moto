@@ -297,6 +297,7 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["DBClusterIdentifier"] == "cluster-id"
     assert cluster["DBClusterParameterGroup"] == "default.aurora8.0"
     assert cluster["DBSubnetGroup"] == "default"
+    assert cluster["DomainMemberships"] == []
     assert cluster["Status"] == "creating"
     assert re.match(
         "cluster-id.cluster-[a-z0-9]{12}.us-west-2.rds.amazonaws.com",
