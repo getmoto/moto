@@ -57,6 +57,11 @@ def test_create_database(client):
         LicenseModel="license-included",
         MasterUsername="root",
         MasterUserPassword="hunter2",
+        Domain="mydomain",
+        DomainFqdn="mydomain.com",
+        DomainOu="OU=MyOU,DC=mydomain,DC=com",
+        DomainAuthSecretArn="arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret",
+        DomainDnsIps=[],
         Port=1234,
         DBSecurityGroups=["my_sg"],
         VpcSecurityGroupIds=["sg-123456"],
@@ -72,6 +77,18 @@ def test_create_database(client):
     assert db_instance["DBInstanceArn"] == (
         f"arn:aws:rds:us-west-2:{ACCOUNT_ID}:db:db-master-1"
     )
+    assert db_instance["DomainMemberships"][0]["Domain"] == "mydomain"
+    assert db_instance["DomainMemberships"][0]["Status"] == "active"
+    assert db_instance["DomainMemberships"][0]["FQDN"] == "mydomain.com"
+    assert (
+        db_instance["DomainMemberships"][0]["IAMRoleName"]
+        == "rds-directory-service-access-role"
+    )
+    assert db_instance["DomainMemberships"][0]["AuthSecretArn"] == (
+        "arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret"
+    )
+    assert len(db_instance["DomainMemberships"][0]["DnsIps"]) == 0
+    assert db_instance["DomainMemberships"][0]["OU"] == "OU=MyOU,DC=mydomain,DC=com"
     assert db_instance["DBInstanceStatus"] == "available"
     assert db_instance["DBName"] == "staging-postgres"
     assert db_instance["DBInstanceIdentifier"] == "db-master-1"
@@ -85,6 +102,18 @@ def test_create_database(client):
     assert db_instance["Endpoint"]["Port"] == 1234
     assert db_instance["DbInstancePort"] == 1234
     assert db_instance["AutoMinorVersionUpgrade"] is False
+    assert db_instance["DomainMemberships"][0]["Domain"] == "mydomain"
+    assert db_instance["DomainMemberships"][0]["Status"] == "active"
+    assert db_instance["DomainMemberships"][0]["FQDN"] == "mydomain.com"
+    assert (
+        db_instance["DomainMemberships"][0]["IAMRoleName"]
+        == "rds-directory-service-access-role"
+    )
+    assert db_instance["DomainMemberships"][0]["AuthSecretArn"] == (
+        "arn:aws:secretsmanager:us-west-2:123456789012:secret:mydomain-secret"
+    )
+    assert len(db_instance["DomainMemberships"][0]["DnsIps"]) == 0
+    assert db_instance["DomainMemberships"][0]["OU"] == "OU=MyOU,DC=mydomain,DC=com"
 
 
 @mock_aws
