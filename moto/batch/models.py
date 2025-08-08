@@ -470,6 +470,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         name: str,
         job_def: JobDefinition,
         job_queue: JobQueue,
+        backend: "BatchBackend",
         log_backend: LogsBackend,
         container_overrides: Optional[Dict[str, Any]],
         depends_on: Optional[List[Dict[str, str]]],
@@ -478,6 +479,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         timeout: Optional[Dict[str, int]],
         array_properties: Dict[str, Any],
         provided_job_id: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
     ):
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
@@ -492,6 +494,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_definition = job_def
         self.container_overrides: Dict[str, Any] = container_overrides or {}
         self.job_queue = job_queue
+        self.backend = backend
         self.job_queue.jobs.append(self)
         self.job_created_at = datetime.datetime.now()
         self.job_started_at = datetime.datetime(1970, 1, 1)
@@ -524,6 +527,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.latest_attempt: Optional[Dict[str, Any]] = None
         self._child_jobs: Optional[List[Job]] = None
 
+        tag_list = self.backend.tagger.convert_dict_to_tags_input(tags or {})
+        # Validate the tag list. Maximum entires in the map is 50
+        errmsg = self.backend.tagger.validate_tags(tag_list, 50)
+        if errmsg:
+            raise ValidationError(errmsg)
+
+        self.backend.tagger.tag_resource(self.arn, tag_list)
+
     def describe_short(self) -> Dict[str, Any]:
         result = {
             "jobId": self.job_id,
@@ -549,6 +560,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         result["jobQueue"] = self.job_queue.arn
         result["dependsOn"] = self.depends_on or []
         result["parameters"] = {**self.job_definition.parameters, **self.parameters}
+        result["tags"] = self.backend.list_tags_for_resource(self.arn)
         if self.job_definition.type == "container":
             result["container"] = self._container_details()
         elif self.job_definition.type == "multinode":
@@ -1766,6 +1778,7 @@ class BatchBackend(BaseBackend):
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
         parameters: Optional[Dict[str, str]] = None,
+        tags: Optional[Dict[str, str]] = None,
     ) -> Tuple[str, str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
@@ -1786,6 +1799,7 @@ class BatchBackend(BaseBackend):
             job_name,
             job_def,
             queue,
+            self,
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
             depends_on=depends_on,
@@ -1793,7 +1807,9 @@ class BatchBackend(BaseBackend):
             timeout=timeout,
             array_properties=array_properties or {},
             parameters=parameters,
+            tags=tags,
         )
+
         self._jobs[job.job_id] = job
 
         if "size" in array_properties:
@@ -1804,6 +1820,7 @@ class BatchBackend(BaseBackend):
                     job_name,
                     job_def,
                     queue,
+                    self,
                     log_backend=self.logs_backend,
                     container_overrides=container_overrides,
                     depends_on=depends_on,

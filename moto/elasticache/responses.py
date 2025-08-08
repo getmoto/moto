@@ -322,3 +322,12 @@ class ElastiCacheResponse(BaseResponse):
         )
         result = {"ReplicationGroups": replication_groups, "Marker": marker}
         return ActionResult(result)
+
+    def delete_replication_group(self) -> ActionResult:
+        replication_group_id = self._get_param("ReplicationGroupId")
+        retain_primary_cluster = self._get_bool_param("RetainPrimaryCluster")
+        replication_group = self.elasticache_backend.delete_replication_group(
+            replication_group_id=replication_group_id,
+            retain_primary_cluster=retain_primary_cluster,
+        )
+        return ActionResult({"ReplicationGroup": replication_group})
