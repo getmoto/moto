@@ -185,3 +185,151 @@ def test_storage_lens_configuration():
     assert resp["StorageLensConfigurationList"][0]["Id"] == "id-test"
     assert "StorageLensArn" in resp["StorageLensConfigurationList"][0]
     assert resp["StorageLensConfigurationList"][0]["IsEnabled"] is True
+
+
+@mock_aws
+def test_storage_lens_configuration_tagging():
+    client = boto3.client("s3control", region_name="us-east-2")
+    config_id = "my-test-config-id"
+    config = {
+        "Id": "id-test",
+        "AccountLevel": {
+            "BucketLevel": {},
+        },
+        "IsEnabled": True,
+    }
+    tags = [
+        {
+            "Key": "tag_key_1",
+            "Value": "tag_value_1",
+        },
+        {
+            "Key": "tag_key_2",
+            "Value": "tag_value_2",
+        },
+    ]
+
+    resp = client.put_storage_lens_configuration(
+        AccountId=ACCOUNT_ID,
+        ConfigId=config_id,
+        StorageLensConfiguration=config,
+        Tags=tags,
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Assert get tags
+    resp = client.get_storage_lens_configuration_tagging(
+        AccountId=ACCOUNT_ID, ConfigId=config_id
+    )
+
+    assert resp["Tags"] == tags
+
+    new_tags = [
+        {
+            "Key": "new_tag_key_1",
+            "Value": "new_tag_value_1",
+        },
+        {
+            "Key": "new_tag_key_2",
+            "Value": "new_tag_value_2",
+        },
+    ]
+
+    # Assert put tags
+    client.put_storage_lens_configuration_tagging(
+        AccountId=ACCOUNT_ID, ConfigId=config_id, Tags=new_tags
+    )
+
+    new_tags_resp = client.get_storage_lens_configuration_tagging(
+        AccountId=ACCOUNT_ID, ConfigId=config_id
+    )
+
+    assert new_tags_resp["Tags"] == new_tags
+
+
+@mock_aws
+def test_put_storage_lens_configuration_tagging():
+    client = boto3.client("s3control", region_name="us-east-2")
+    config_id = "my-test-config-id"
+    config = {
+        "Id": "id-test",
+        "AccountLevel": {
+            "BucketLevel": {},
+        },
+        "IsEnabled": True,
+    }
+    tags = [
+        {
+            "Key": "tag_key_1",
+            "Value": "tag_value_1",
+        },
+        {
+            "Key": "tag_key_2",
+            "Value": "tag_value_2",
+        },
+    ]
+    resp = client.put_storage_lens_configuration(
+        AccountId=ACCOUNT_ID,
+        ConfigId=config_id,
+        StorageLensConfiguration=config,
+        Tags=tags,
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # With an invalid account ID:
+    with pytest.raises(ClientError) as ce_err:
+        client.put_storage_lens_configuration_tagging(
+            AccountId="111111111111", ConfigId=config_id, Tags=[]
+        )
+    assert ce_err.value.response["Error"]["Code"] == "AccessDenied"
+
+    # With an invalid config ID:
+    with pytest.raises(ClientError) as ce_err:
+        client.put_storage_lens_configuration_tagging(
+            AccountId=ACCOUNT_ID, ConfigId="111111111111", Tags=[]
+        )
+    assert ce_err.value.response["Error"]["Code"] == "NoSuchAccessPoint"
+
+
+@mock_aws
+def test_get_storage_lens_configuration_tagging():
+    client = boto3.client("s3control", region_name="us-east-2")
+    config_id = "my-test-config-id"
+    config = {
+        "Id": "id-test",
+        "AccountLevel": {
+            "BucketLevel": {},
+        },
+        "IsEnabled": True,
+    }
+    tags = [
+        {
+            "Key": "tag_key_1",
+            "Value": "tag_value_1",
+        },
+        {
+            "Key": "tag_key_2",
+            "Value": "tag_value_2",
+        },
+    ]
+    resp = client.put_storage_lens_configuration(
+        AccountId=ACCOUNT_ID,
+        ConfigId=config_id,
+        StorageLensConfiguration=config,
+        Tags=tags,
+    )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # With an invalid account ID:
+    with pytest.raises(ClientError) as ce_err:
+        client.get_storage_lens_configuration_tagging(
+            AccountId="111111111111", ConfigId=config_id
+        )
+    assert ce_err.value.response["Error"]["Code"] == "AccessDenied"
+
+    # With an invalid config ID:
+    with pytest.raises(ClientError) as ce_err:
+        client.get_storage_lens_configuration_tagging(
+            AccountId=ACCOUNT_ID, ConfigId="111111111111"
+        )
+    assert ce_err.value.response["Error"]["Code"] == "NoSuchAccessPoint"
