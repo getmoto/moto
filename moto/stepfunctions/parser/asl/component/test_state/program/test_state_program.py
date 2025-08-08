@@ -1,5 +1,6 @@
 import logging
 import threading
+from typing import Final
 
 from moto.stepfunctions.parser.api import (
     ExecutionFailedEventDetails,
@@ -23,11 +24,11 @@ from moto.stepfunctions.parser.utils import TMP_THREADS
 
 LOG = logging.getLogger(__name__)
 
-TEST_CASE_EXECUTION_TIMEOUT_SECONDS: int = 300  # 5 minutes.
+TEST_CASE_EXECUTION_TIMEOUT_SECONDS: Final[int] = 300  # 5 minutes.
 
 
 class TestStateProgram(EvalComponent):
-    test_state: CommonStateField
+    test_state: Final[CommonStateField]
 
     def __init__(
         self,

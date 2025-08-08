@@ -30,6 +30,10 @@ from moto.stepfunctions.parser.asl.component.common.retry.retry_decl import Retr
 from moto.stepfunctions.parser.asl.component.common.retry.retry_outcome import (
     RetryOutcome,
 )
+from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
+    JSONPATH_ROOT_PATH,
+    StringJsonPath,
+)
 from moto.stepfunctions.parser.asl.component.state.exec.execute_state import (
     ExecutionState,
 )
@@ -41,6 +45,9 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.item_selector 
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.items.items import (
     Items,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.distributed_iteration_component import (
+    DistributedIterationComponent,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.distributed_item_processor import (
     DistributedItemProcessor,
@@ -55,6 +62,9 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.item
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.item_processor_factory import (
     from_item_processor_decl,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.itemprocessor.map_run_record import (
+    MapRunRecord,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.iteration_component import (
     IterationComponent,
@@ -84,8 +94,8 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.result_writer.
     ResultWriter,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.tolerated_failure import (
-    ToleratedFailureCount,
     ToleratedFailureCountDecl,
+    ToleratedFailureCountInt,
     ToleratedFailurePercentage,
     ToleratedFailurePercentageDecl,
 )
@@ -121,7 +131,9 @@ class StateMap(ExecutionState):
         super(StateMap, self).from_state_props(state_props)
         if self._is_language_query_jsonpath():
             self.items = None
-            self.items_path = state_props.get(ItemsPath) or ItemsPath()
+            self.items_path = state_props.get(ItemsPath) or ItemsPath(
+                string_sampler=StringJsonPath(JSONPATH_ROOT_PATH)
+            )
         else:
             # TODO: add snapshot test to assert what missing definitions of items means for a states map
             self.items_path = None
@@ -133,7 +145,7 @@ class StateMap(ExecutionState):
             state_props.get(MaxConcurrencyDecl) or MaxConcurrency()
         )
         self.tolerated_failure_count_decl = (
-            state_props.get(ToleratedFailureCountDecl) or ToleratedFailureCount()
+            state_props.get(ToleratedFailureCountDecl) or ToleratedFailureCountInt()
         )
         self.tolerated_failure_percentage_decl = (
             state_props.get(ToleratedFailurePercentageDecl)
@@ -181,8 +193,13 @@ class StateMap(ExecutionState):
         frame.stack = copy.deepcopy(env.stack)
 
         try:
-            if self.items_path:
-                self.items_path.eval(env=env)
+            # ItemsPath in DistributedMap states is only used if a JSONinput is passed from the previous state.
+            if (
+                not isinstance(self.iteration_component, DistributedIterationComponent)
+                or self.item_reader is None
+            ):
+                if self.items_path:
+                    self.items_path.eval(env=env)
 
             if self.items:
                 self.items.eval(env=env)
@@ -242,18 +259,6 @@ class StateMap(ExecutionState):
                 parameters=self.parameters,
                 item_selector=self.item_selector,
             )
-        elif isinstance(self.iteration_component, DistributedIterator):
-            eval_input = DistributedIteratorEvalInput(
-                state_name=self.name,
-                max_concurrency=max_concurrency_num,
-                input_items=input_items,
-                parameters=self.parameters,
-                item_selector=self.item_selector,
-                item_reader=self.item_reader,
-                tolerated_failure_count=tolerated_failure_count,
-                tolerated_failure_percentage=tolerated_failure_percentage,
-                label=label,
-            )
         elif isinstance(self.iteration_component, InlineItemProcessor):
             eval_input = InlineItemProcessorEvalInput(
                 state_name=self.name,
@@ -262,21 +267,41 @@ class StateMap(ExecutionState):
                 item_selector=self.item_selector,
                 parameters=self.parameters,
             )
-        elif isinstance(self.iteration_component, DistributedItemProcessor):
-            eval_input = DistributedItemProcessorEvalInput(
-                state_name=self.name,
+        else:
+            map_run_record = MapRunRecord(
+                state_machine_arn=env.states.context_object.context_object_data[
+                    "StateMachine"
+                ]["Id"],
+                execution_arn=env.states.context_object.context_object_data[
+                    "Execution"
+                ]["Id"],
                 max_concurrency=max_concurrency_num,
-                input_items=input_items,
-                item_reader=self.item_reader,
-                item_selector=self.item_selector,
-                parameters=self.parameters,
                 tolerated_failure_count=tolerated_failure_count,
                 tolerated_failure_percentage=tolerated_failure_percentage,
                 label=label,
             )
-        else:
-            raise RuntimeError(
-                f"Unknown iteration component of type '{type(self.iteration_component)}' '{self.iteration_component}'."
+            env.map_run_record_pool_manager.add(map_run_record)
+            # Choose the distributed input type depending on whether the definition
+            # asks for the legacy Iterator component or an ItemProcessor
+            if isinstance(self.iteration_component, DistributedIterator):
+                distributed_eval_input_class = DistributedIteratorEvalInput
+            elif isinstance(self.iteration_component, DistributedItemProcessor):
+                distributed_eval_input_class = DistributedItemProcessorEvalInput
+            else:
+                raise RuntimeError(
+                    f"Unknown iteration component of type '{type(self.iteration_component)}' '{self.iteration_component}'."
+                )
+            eval_input = distributed_eval_input_class(
+                state_name=self.name,
+                max_concurrency=max_concurrency_num,
+                input_items=input_items,
+                parameters=self.parameters,
+                item_selector=self.item_selector,
+                item_reader=self.item_reader,
+                tolerated_failure_count=tolerated_failure_count,
+                tolerated_failure_percentage=tolerated_failure_percentage,
+                label=label,
+                map_run_record=map_run_record,
             )
 
         env.stack.append(eval_input)

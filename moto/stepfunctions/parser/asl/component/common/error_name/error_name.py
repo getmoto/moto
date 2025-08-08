@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import abc
-from typing import Optional
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.asl.component.component import Component
 
 
 class ErrorName(Component, abc.ABC):
-    error_name: Optional[str]
+    error_name: Final[Optional[str]]
 
     def __init__(self, error_name: Optional[str]):
         self.error_name = error_name

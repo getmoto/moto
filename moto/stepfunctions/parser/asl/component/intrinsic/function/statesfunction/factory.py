@@ -1,5 +1,5 @@
-from moto.stepfunctions.parser.asl.component.intrinsic.argument.function_argument_list import (
-    FunctionArgumentList,
+from moto.stepfunctions.parser.asl.component.intrinsic.argument.argument import (
+    ArgumentList,
 )
 from moto.stepfunctions.parser.asl.component.intrinsic.function.statesfunction.array import (
     array,
@@ -50,59 +50,59 @@ from moto.stepfunctions.parser.asl.component.intrinsic.functionname.states_funct
 class StatesFunctionFactory:
     @staticmethod
     def from_name(
-        func_name: StatesFunctionName, arg_list: FunctionArgumentList
+        func_name: StatesFunctionName, argument_list: ArgumentList
     ) -> StatesFunction:
         # Array.
         if func_name.function_type == StatesFunctionNameType.Array:
-            return array.Array(arg_list=arg_list)
+            return array.Array(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.ArrayPartition:
-            return array_partition.ArrayPartition(arg_list=arg_list)
+            return array_partition.ArrayPartition(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.ArrayContains:
-            return array_contains.ArrayContains(arg_list=arg_list)
+            return array_contains.ArrayContains(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.ArrayRange:
-            return array_range.ArrayRange(arg_list=arg_list)
+            return array_range.ArrayRange(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.ArrayGetItem:
-            return array_get_item.ArrayGetItem(arg_list=arg_list)
+            return array_get_item.ArrayGetItem(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.ArrayLength:
-            return array_length.ArrayLength(arg_list=arg_list)
+            return array_length.ArrayLength(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.ArrayUnique:
-            return array_unique.ArrayUnique(arg_list=arg_list)
+            return array_unique.ArrayUnique(argument_list=argument_list)
 
         # JSON Manipulation
         if func_name.function_type == StatesFunctionNameType.JsonToString:
-            return json_to_string.JsonToString(arg_list=arg_list)
+            return json_to_string.JsonToString(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.StringToJson:
-            return string_to_json.StringToJson(arg_list=arg_list)
+            return string_to_json.StringToJson(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.JsonMerge:
-            return json_merge.JsonMerge(arg_list=arg_list)
+            return json_merge.JsonMerge(argument_list=argument_list)
 
         # Unique Id Generation.
         if func_name.function_type == StatesFunctionNameType.UUID:
-            return uuid.UUID(arg_list=arg_list)
+            return uuid.UUID(argument_list=argument_list)
 
         # String Operations.
         if func_name.function_type == StatesFunctionNameType.StringSplit:
-            return string_split.StringSplit(arg_list=arg_list)
+            return string_split.StringSplit(argument_list=argument_list)
 
         # Hash Calculations.
         if func_name.function_type == StatesFunctionNameType.Hash:
-            return hash_func.HashFunc(arg_list=arg_list)
+            return hash_func.HashFunc(argument_list=argument_list)
 
         # Encoding and Decoding.
         if func_name.function_type == StatesFunctionNameType.Base64Encode:
-            return base_64_encode.Base64Encode(arg_list=arg_list)
+            return base_64_encode.Base64Encode(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.Base64Decode:
-            return base_64_decode.Base64Decode(arg_list=arg_list)
+            return base_64_decode.Base64Decode(argument_list=argument_list)
 
         # Math Operations.
         if func_name.function_type == StatesFunctionNameType.MathRandom:
-            return math_random.MathRandom(arg_list=arg_list)
+            return math_random.MathRandom(argument_list=argument_list)
         if func_name.function_type == StatesFunctionNameType.MathAdd:
-            return math_add.MathAdd(arg_list=arg_list)
+            return math_add.MathAdd(argument_list=argument_list)
 
         # Generic.
         if func_name.function_type == StatesFunctionNameType.Format:
-            return string_format.StringFormat(arg_list=arg_list)
+            return string_format.StringFormat(argument_list=argument_list)
 
         # Unsupported.
-        raise NotImplementedError(func_name.function_type)  # noqa
+        raise NotImplementedError(unsupported)  # noqa

@@ -18,8 +18,8 @@ from moto.stepfunctions.parser.asl.component.state.exec.execute_state import (
     ExecutionState,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
     Credentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     Resource,
@@ -46,7 +46,7 @@ class StateTask(ExecutionState, abc.ABC):
         self.parargs = state_props.get(Parargs)
         self.credentials = state_props.get(Credentials)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:  # noqa
+    def _get_supported_parameters(self) -> Optional[set[str]]:  # noqa
         return None
 
     def _eval_parameters(self, env: Environment) -> dict:
@@ -69,13 +69,15 @@ class StateTask(ExecutionState, abc.ABC):
 
         return parameters
 
-    def _eval_credentials(self, env: Environment) -> ComputedCredentials:
+    def _eval_state_credentials(self, env: Environment) -> StateCredentials:
         if not self.credentials:
-            task_credentials = dict()
+            state_credentials = StateCredentials(
+                role_arn=env.aws_execution_details.role_arn
+            )
         else:
             self.credentials.eval(env=env)
-            task_credentials = env.stack.pop()
-        return task_credentials
+            state_credentials = env.stack.pop()
+        return state_credentials
 
     def _get_timed_out_failure_event(self, env: Environment) -> FailureEvent:
         return FailureEvent(

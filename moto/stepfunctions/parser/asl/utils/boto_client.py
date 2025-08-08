@@ -12,14 +12,14 @@ from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import (
 
 
 def boto_client_for(
-    region: str, account: str, service: str, credentials: Any = None
+    region: str, service: str, state_credentials: Any = None
 ) -> BaseClient:
     intercepting_boto_calls = botocore_stubber.enabled
     kwargs = {}
     if not intercepting_boto_calls:
         kwargs["endpoint_url"] = f"http://localhost:{moto_server_port()}"
     return boto3.client(
-        aws_access_key_id=account,
+        aws_access_key_id="ak",
         region_name=region,
         service_name=service,
         aws_secret_access_key="sk",

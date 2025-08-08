@@ -1310,7 +1310,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only DynamoDB, Logs, RDS, and SageMaker resources are currently supported
+        Only DynamoDB, EFS, Lambda Logs, RDS, and SageMaker resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -1347,12 +1347,44 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.sagemaker_backend.add_tags(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
+                self.lambda_backend.tag_resource(arn, tags)
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.efs_backend.tag_resource(
+                    resource_id, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return {arn: missing_error for arn in missing_resources}
 
-    # def untag_resources(self, resource_arn_list, tag_keys):
-    #     return failed_resources_map
+    def untag_resources(
+        self, resource_arn_list: List[str], tag_keys: List[str]
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Only EFS and Lambda resources are currently supported
+        """
+        missing_resources = []
+        missing_error: Dict[str, Any] = {
+            "StatusCode": 404,
+            "ErrorCode": "InternalServiceException",
+            "ErrorMessage": "Service not yet supported",
+        }
+
+        for arn in resource_arn_list:
+            if arn.startswith(f"arn:{get_partition(self.region_name)}:lambda:"):
+                self.lambda_backend.untag_resource(arn, tag_keys)
+            elif arn.startswith(
+                f"arn:{get_partition(self.region_name)}:elasticfilesystem:"
+            ):
+                resource_id = arn.split("/")[-1]
+                self.efs_backend.untag_resource(resource_id, tag_keys)
+            else:
+                missing_resources.append(arn)
+
+        return {arn: missing_error for arn in missing_resources}
 
 
 resourcegroupstaggingapi_backends = BackendDict(
