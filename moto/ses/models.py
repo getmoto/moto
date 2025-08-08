@@ -146,7 +146,7 @@ class ReceiptRuleSet(BaseModel):
         self.rules: List[Dict[str, Any]] = []
 
     @property
-    def metadata(self) -> dict:
+    def metadata(self) -> dict[str, str]:
         return {
             "CreatedTimestamp": self.created_timestamp,
             "Name": self.name,
@@ -651,7 +651,7 @@ class SESBackend(BaseBackend):
         rule_set.rules.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
 
-    def describe_receipt_rule_set(self, rule_set_name: str) -> List[Dict[str, Any]]:
+    def describe_receipt_rule_set(self, rule_set_name: str) -> ReceiptRuleSet:
         rule_set = self.receipt_rule_set.get(rule_set_name)
 
         if rule_set is None:
