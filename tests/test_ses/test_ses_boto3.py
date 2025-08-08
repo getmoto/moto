@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -788,7 +789,7 @@ def test_describe_receipt_rule_set():
     result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
 
     assert result["Metadata"]["Name"] == "testRuleSet"
-    # assert result['Metadata']['CreatedTimestamp'] == ""
+    assert isinstance(result["Metadata"]["CreatedTimestamp"], datetime)
 
     assert not result["Rules"]
 
@@ -836,7 +837,7 @@ def test_describe_receipt_rule_set_with_rules():
     result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
 
     assert result["Metadata"]["Name"] == "testRuleSet"
-    # assert result['Metadata']['CreatedTimestamp'] == ""
+    assert isinstance(result["Metadata"]["CreatedTimestamp"], datetime)
 
     assert len(result["Rules"]) == 1
     assert result["Rules"][0] == receipt_rule
