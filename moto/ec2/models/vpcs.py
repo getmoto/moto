@@ -374,10 +374,10 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def groups(self) -> List[Dict[str, str]]:
-        # TODO: Populate GroupName
         return [
-            {"GroupId": group_id, "GroupName": "TODO"}
-            for group_id in self.security_group_ids
+            {"GroupId": sg.id, "GroupName": sg.name}
+            for id in self.security_group_ids
+            for sg in [self.ec2_backend.get_security_group_from_id(id)]
         ]
 
     def modify(
@@ -387,6 +387,8 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         remove_subnets: Optional[List[str]],
         add_route_tables: Optional[List[str]],
         remove_route_tables: Optional[List[str]],
+        add_security_groups: Optional[List[str]],
+        remove_security_groups: Optional[List[str]],
     ) -> None:
         if policy_doc:
             self.policy_document = policy_doc
@@ -397,6 +399,17 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
                 subnet_id
                 for subnet_id in self.subnet_ids  # type: ignore[union-attr]
                 if subnet_id not in remove_subnets
+            ]
+        if add_security_groups:
+            self.security_group_ids.extend(
+                [s for s in add_security_groups if s not in self.security_group_ids]
+            )
+
+        if remove_security_groups:
+            self.security_group_ids = [
+                sg_id
+                for sg_id in self.security_group_ids
+                if sg_id not in remove_security_groups
             ]
         if add_route_tables:
             self.route_table_ids.extend(
@@ -1029,6 +1042,8 @@ class VPCBackend:
         remove_subnets: Optional[List[str]],
         remove_route_tables: Optional[List[str]],
         add_route_tables: Optional[List[str]],
+        add_security_groups: Optional[List[str]],
+        remove_security_groups: Optional[List[str]],
     ) -> None:
         endpoint = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_id])[0]
         endpoint.modify(
@@ -1037,6 +1052,8 @@ class VPCBackend:
             remove_subnets,
             add_route_tables,
             remove_route_tables,
+            add_security_groups,
+            remove_security_groups,
         )
 
     def delete_vpc_endpoints(self, vpce_ids: Optional[List[str]] = None) -> None:

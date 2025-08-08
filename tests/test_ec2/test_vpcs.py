@@ -1316,6 +1316,81 @@ def test_modify_vpc_endpoint_remove_route_table():
 
 
 @mock_aws
+def test_modify_vpc_endpoint_add_security_group():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+
+    sg_id = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg", Description="test security group"
+    )["GroupId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddSecurityGroupIds=[sg_id])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["Groups"] == [{"GroupId": sg_id, "GroupName": "test_sg"}]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_add_security_group_duplicate():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+
+    sg_id_1 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_1", Description="test security group"
+    )["GroupId"]
+    sg_id_2 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_2", Description="test security group"
+    )["GroupId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SecurityGroupIds=[sg_id_1, sg_id_2],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, AddSecurityGroupIds=[sg_id_2])
+
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["Groups"] == [
+        {"GroupId": sg_id_1, "GroupName": "test_sg_1"},
+        {"GroupId": sg_id_2, "GroupName": "test_sg_2"},
+    ]
+
+
+@mock_aws
+def test_modify_vpc_endpoint_remove_security_group():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+
+    sg_id_1 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_1", Description="test security group"
+    )["GroupId"]
+    sg_id_2 = ec2.create_security_group(
+        VpcId=vpc_id, GroupName="test_sg_2", Description="test security group"
+    )["GroupId"]
+
+    endpoint = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.tester.my-test-endpoint",
+        VpcEndpointType="interface",
+        SecurityGroupIds=[sg_id_1, sg_id_2],
+    )["VpcEndpoint"]
+    vpc_id = endpoint["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(VpcEndpointId=vpc_id, RemoveSecurityGroupIds=[sg_id_1])
+    endpoint = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_id])["VpcEndpoints"][0]
+    assert endpoint["Groups"] == [{"GroupId": sg_id_2, "GroupName": "test_sg_2"}]
+
+
+@mock_aws
 def test_delete_vpc_end_points():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
