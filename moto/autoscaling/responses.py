@@ -217,7 +217,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_auto_scaling_groups(self) -> str:
+    def describe_auto_scaling_groups(self) -> ActionResult:
         names = self._get_multi_param("AutoScalingGroupNames.member")
         token = self._get_param("NextToken")
         filters = self._get_params().get("Filters", [])
@@ -236,8 +236,8 @@ class AutoScalingResponse(BaseResponse):
         next_token = None
         if max_records and len(all_groups) > start + max_records:
             next_token = groups[-1].name
-        template = self.response_template(DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE)
-        return template.render(groups=groups, next_token=next_token)
+        result = {"AutoScalingGroups": groups, "NextToken": next_token}
+        return ActionResult(result)
 
     def update_auto_scaling_group(self) -> ActionResult:
         self.autoscaling_backend.update_auto_scaling_group(

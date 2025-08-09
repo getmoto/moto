@@ -143,11 +143,11 @@ class InstanceState:
     def launch_template(self) -> Optional[dict[str, Any]]:
         if self.auto_scaling_group is None:
             return None
-        if self.auto_scaling_group.launch_template is None:
+        if self.auto_scaling_group.ec2_launch_template is None:
             return None
         lt = {
-            "LaunchTemplateId": self.auto_scaling_group.launch_template.id,
-            "LaunchTemplateName": self.auto_scaling_group.launch_template.name,
+            "LaunchTemplateId": self.auto_scaling_group.ec2_launch_template.id,
+            "LaunchTemplateName": self.auto_scaling_group.ec2_launch_template.name,
             "Version": self.auto_scaling_group.launch_template_version,
         }
         return lt
@@ -156,7 +156,7 @@ class InstanceState:
     def launch_configuration_name(self) -> Optional[str]:
         if self.auto_scaling_group is None:
             return None
-        return self.auto_scaling_group.launch_config_name
+        return self.auto_scaling_group.launch_configuration_name
 
 
 class LifecycleHook(BaseModel):
@@ -587,21 +587,21 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.max_size = max_size
         self.min_size = min_size
 
-        self.launch_template: Optional[LaunchTemplate] = None
+        self.mixed_instances_policy = mixed_instances_policy
+        self.ec2_launch_template: Optional[LaunchTemplate] = None
         # Will be None if self.launch_template is used instead
         self.launch_config: FakeLaunchConfiguration = None  # type: ignore[assignment]
 
         self._set_launch_configuration(
             launch_config_name, launch_template, mixed_instances_policy
         )
-        self.mixed_instances_policy = mixed_instances_policy
 
         self.default_cooldown = (
             default_cooldown if default_cooldown else DEFAULT_COOLDOWN
         )
-        self.health_check_period = health_check_period
+        self.health_check_grace_period = health_check_period
         self.health_check_type = health_check_type if health_check_type else "EC2"
-        self.load_balancers = load_balancers
+        self.load_balancer_names = load_balancers
         self.target_group_arns = target_group_arns
         self.placement_group = placement_group
         self.capacity_rebalance = capacity_rebalance
@@ -610,7 +610,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             new_instances_protected_from_scale_in
         )
 
-        self.suspended_processes: List[str] = []
+        self.suspended_processes = []
         self.instance_states: List[InstanceState] = []
         self.tags: List[Dict[str, str]] = tags or []
         self.set_desired_capacity(desired_capacity)
@@ -618,6 +618,32 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.metrics: List[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
         self.created_time = created_time.isoformat()
+
+    @property
+    def launch_template(self) -> Optional[dict[str, Any]]:
+        if self.ec2_launch_template is None:
+            return None
+        lt = {
+            "LaunchTemplateId": self.ec2_launch_template.id,
+            "LaunchTemplateName": self.ec2_launch_template.name,
+            "Version": self.provided_launch_template_version,
+        }
+        return lt
+
+    @property
+    def enabled_metrics(self) -> List[dict[str, str]]:
+        return [{"Metric": metric, "Granularity": "1Minute"} for metric in self.metrics]
+
+    @property
+    def suspended_processes(self) -> List[dict[str, str]]:
+        return [
+            {"ProcessName": process, "SuspensionReason": ""}
+            for process in self._suspended_processes
+        ]
+
+    @suspended_processes.setter
+    def suspended_processes(self, processes: List[str]) -> None:
+        self._suspended_processes = processes
 
     @property
     def tags(self) -> List[Dict[str, str]]:
@@ -687,7 +713,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             self.launch_config = self.autoscaling_backend.launch_configurations[
                 launch_config_name
             ]
-            self.launch_config_name = launch_config_name
+            self.launch_configuration_name = launch_config_name
 
         if launch_template or mixed_instances_policy:
             if launch_template:
@@ -716,13 +742,29 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 )
 
             if launch_template_id:
-                self.launch_template = self.ec2_backend.get_launch_template(
+                self.ec2_launch_template = self.ec2_backend.get_launch_template(
                     launch_template_id
                 )
             elif launch_template_name:
-                self.launch_template = self.ec2_backend.get_launch_template_by_name(
+                self.ec2_launch_template = self.ec2_backend.get_launch_template_by_name(
                     launch_template_name
                 )
+
+            # This logic was in the original XML template and may need to be rethought.
+            if (
+                self.ec2_launch_template is not None
+                and self.mixed_instances_policy is not None
+            ):
+                try:
+                    self.mixed_instances_policy["LaunchTemplate"][
+                        "LaunchTemplateSpecification"
+                    ] = {
+                        "LaunchTemplateId": self.ec2_launch_template.id,
+                        "LaunchTemplateName": self.ec2_launch_template.name,
+                        "Version": self.launch_template_version,
+                    }
+                except (AttributeError, KeyError, TypeError):
+                    pass
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -820,42 +862,50 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     @property
     def image_id(self) -> str:
-        if self.launch_template:
-            version = self.launch_template.get_version(self.launch_template_version)
+        if self.ec2_launch_template:
+            version = self.ec2_launch_template.get_version(self.launch_template_version)
             return version.image_id
 
         return self.launch_config.image_id  # type: ignore[union-attr]
 
     @property
     def instance_type(self) -> str:
-        if self.launch_template:
-            version = self.launch_template.get_version(self.launch_template_version)
+        if self.ec2_launch_template:
+            version = self.ec2_launch_template.get_version(self.launch_template_version)
             return version.instance_type
 
         return self.launch_config.instance_type  # type: ignore[union-attr]
 
     @property
     def user_data(self) -> str:
-        if self.launch_template:
-            version = self.launch_template.get_version(self.launch_template_version)
+        if self.ec2_launch_template:
+            version = self.ec2_launch_template.get_version(self.launch_template_version)
             return version.user_data
 
         return self.launch_config.user_data  # type: ignore[union-attr]
 
     @property
     def security_groups(self) -> List[str]:
-        if self.launch_template:
-            version = self.launch_template.get_version(self.launch_template_version)
+        if self.ec2_launch_template:
+            version = self.ec2_launch_template.get_version(self.launch_template_version)
             return version.security_groups
 
         return self.launch_config.security_groups  # type: ignore[union-attr]
 
     @property
     def instance_tags(self) -> Dict[str, str]:
-        if self.launch_template:
-            version = self.launch_template.get_version(self.launch_template_version)
+        if self.ec2_launch_template:
+            version = self.ec2_launch_template.get_version(self.launch_template_version)
             return version.instance_tags
         return {}
+
+    @property
+    def instances(self) -> List[InstanceState]:
+        return self.instance_states
+
+    @property
+    def warm_pool_configuration(self) -> Optional[FakeWarmPool]:
+        return self.warm_pool
 
     def update(
         self,
@@ -888,7 +938,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         )
 
         if health_check_period is not None:
-            self.health_check_period = health_check_period
+            self.health_check_grace_period = health_check_period
         if health_check_type is not None:
             self.health_check_type = health_check_type
         if new_instances_protected_from_scale_in is not None:
@@ -962,11 +1012,11 @@ class FakeAutoScalingGroup(CloudFormationModel):
             else None
         )
         launch_template = None
-        if self.launch_template:
-            if self.launch_template.id:
-                launch_template = {"LaunchTemplateId": self.launch_template.id}
-            elif self.launch_template.name:
-                launch_template = {"LaunchTemplateName": self.launch_template.name}
+        if self.ec2_launch_template:
+            if self.ec2_launch_template.id:
+                launch_template = {"LaunchTemplateId": self.ec2_launch_template.id}
+            elif self.ec2_launch_template.name:
+                launch_template = {"LaunchTemplateName": self.ec2_launch_template.name}
         reservation = self.autoscaling_backend.ec2_backend.run_instances(
             self.image_id,
             count_needed,
@@ -1572,10 +1622,12 @@ class AutoScalingBackend(BaseBackend):
 
         # skip this if group.load_balancers is empty
         # otherwise elb_backend.describe_load_balancers returns all available load balancers
-        if not group.load_balancers:
+        if not group.load_balancer_names:
             return
         try:
-            elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
+            elbs = self.elb_backend.describe_load_balancers(
+                names=group.load_balancer_names
+            )
         except LoadBalancerNotFoundError:
             # ELBs can be deleted before their autoscaling group
             return
@@ -1641,26 +1693,26 @@ class AutoScalingBackend(BaseBackend):
         self, group_name: str, load_balancer_names: List[str]
     ) -> None:
         group = self.autoscaling_groups[group_name]
-        group.load_balancers.extend(
-            [x for x in load_balancer_names if x not in group.load_balancers]
+        group.load_balancer_names.extend(
+            [x for x in load_balancer_names if x not in group.load_balancer_names]
         )
         self.update_attached_elbs(group_name)
 
     def describe_load_balancers(self, group_name: str) -> List[str]:
-        return self.autoscaling_groups[group_name].load_balancers
+        return self.autoscaling_groups[group_name].load_balancer_names
 
     def detach_load_balancers(
         self, group_name: str, load_balancer_names: List[str]
     ) -> None:
         group = self.autoscaling_groups[group_name]
         group_instance_ids = set(state.instance.id for state in group.instance_states)
-        elbs = self.elb_backend.describe_load_balancers(names=group.load_balancers)
+        elbs = self.elb_backend.describe_load_balancers(names=group.load_balancer_names)
         for elb in elbs:
             self.elb_backend.deregister_instances(
                 elb.name, group_instance_ids, from_autoscaling=True
             )
-        group.load_balancers = [
-            x for x in group.load_balancers if x not in load_balancer_names
+        group.load_balancer_names = [
+            x for x in group.load_balancer_names if x not in load_balancer_names
         ]
 
     def attach_load_balancer_target_groups(
@@ -1698,15 +1750,15 @@ class AutoScalingBackend(BaseBackend):
         ]
         group = self.autoscaling_groups[group_name]
         set_to_add = set(scaling_processes or all_proc_names)
-        group.suspended_processes = list(
-            set(group.suspended_processes).union(set_to_add)
-        )
+        suspended_processes = [p["ProcessName"] for p in group.suspended_processes]
+        group.suspended_processes = list(set(suspended_processes).union(set_to_add))
 
     def resume_processes(self, group_name: str, scaling_processes: List[str]) -> None:
         group = self.autoscaling_groups[group_name]
         if scaling_processes:
+            suspended_processes = [p["ProcessName"] for p in group.suspended_processes]
             group.suspended_processes = list(
-                set(group.suspended_processes).difference(set(scaling_processes))
+                set(suspended_processes).difference(set(scaling_processes))
             )
         else:
             group.suspended_processes = []
