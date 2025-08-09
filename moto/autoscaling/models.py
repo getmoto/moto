@@ -133,6 +133,30 @@ class InstanceState:
         self.protected_from_scale_in = protected_from_scale_in
         if not hasattr(self.instance, "autoscaling_group"):
             self.instance.autoscaling_group = autoscaling_group  # type: ignore[attr-defined]
+        self.auto_scaling_group = self.instance.autoscaling_group # type: ignore[attr-defined]
+        self.auto_scaling_group_name = self.auto_scaling_group.name
+        self.availability_zone = self.instance.placement  # type: ignore[attr-defined]
+        self.instance_id = self.instance.id
+        self.instance_type = self.instance.instance_type
+
+    @property
+    def launch_template(self) -> Optional[dict[str, Any]]:
+        if self.auto_scaling_group is None:
+            return None
+        if self.auto_scaling_group.launch_template is None:
+            return None
+        lt = {
+            "LaunchTemplateId": self.auto_scaling_group.launch_template.id,
+            "LaunchTemplateName": self.auto_scaling_group.launch_template.name,
+            "Version": self.auto_scaling_group.launch_template_version,
+        }
+        return lt
+
+    @property
+    def launch_configuration_name(self) -> Optional[str]:
+        if self.auto_scaling_group is None:
+            return None
+        return self.auto_scaling_group.launch_config_name
 
 
 class LifecycleHook(BaseModel):

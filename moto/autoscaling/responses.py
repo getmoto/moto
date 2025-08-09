@@ -275,12 +275,12 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.delete_tags(self._get_params().get("Tags", []))
         return EmptyResult()
 
-    def describe_auto_scaling_instances(self) -> str:
+    def describe_auto_scaling_instances(self) -> ActionResult:
         instance_states = self.autoscaling_backend.describe_auto_scaling_instances(
             instance_ids=self._get_multi_param("InstanceIds.member")
         )
-        template = self.response_template(DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE)
-        return template.render(instance_states=instance_states)
+        result = {"AutoScalingInstances": instance_states}
+        return ActionResult(result)
 
     def put_lifecycle_hook(self) -> ActionResult:
         self.autoscaling_backend.create_lifecycle_hook(
@@ -763,34 +763,3 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
     <RequestId>0f02a07d-b677-11e2-9eb0-dd50EXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeAutoScalingGroupsResponse>"""
-
-
-DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <DescribeAutoScalingInstancesResult>
-    <AutoScalingInstances>
-      {% for instance_state in instance_states %}
-      <member>
-        <HealthStatus>{{ instance_state.health_status }}</HealthStatus>
-        <AutoScalingGroupName>{{ instance_state.instance.autoscaling_group.name }}</AutoScalingGroupName>
-        <AvailabilityZone>{{ instance_state.instance.placement }}</AvailabilityZone>
-        <InstanceId>{{ instance_state.instance.id }}</InstanceId>
-        <InstanceType>{{ instance_state.instance.instance_type }}</InstanceType>
-        {% if instance_state.instance.autoscaling_group.launch_config_name %}
-        <LaunchConfigurationName>{{ instance_state.instance.autoscaling_group.launch_config_name }}</LaunchConfigurationName>
-        {% elif instance_state.instance.autoscaling_group.launch_template %}
-        <LaunchTemplate>
-          <LaunchTemplateId>{{ instance_state.instance.autoscaling_group.launch_template.id }}</LaunchTemplateId>
-          <Version>{{ instance_state.instance.autoscaling_group.launch_template_version }}</Version>
-          <LaunchTemplateName>{{ instance_state.instance.autoscaling_group.launch_template.name }}</LaunchTemplateName>
-        </LaunchTemplate>
-        {% endif %}
-        <LifecycleState>{{ instance_state.lifecycle_state }}</LifecycleState>
-        <ProtectedFromScaleIn>{{ instance_state.protected_from_scale_in|string|lower }}</ProtectedFromScaleIn>
-      </member>
-      {% endfor %}
-    </AutoScalingInstances>
-  </DescribeAutoScalingInstancesResult>
-  <ResponseMetadata>
-    <RequestId>df992dc3-b72f-11e2-81e1-750aa6EXAMPLE</RequestId>
-  </ResponseMetadata>
-</DescribeAutoScalingInstancesResponse>"""
