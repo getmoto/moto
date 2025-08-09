@@ -141,9 +141,10 @@ class InstanceState:
 
     @property
     def launch_template(self) -> Optional[dict[str, Any]]:
-        if self.auto_scaling_group is None:
-            return None
-        if self.auto_scaling_group.ec2_launch_template is None:
+        if (
+            self.auto_scaling_group is not None
+            and self.auto_scaling_group.ec2_launch_template is None
+        ):
             return None
         lt = {
             "LaunchTemplateId": self.auto_scaling_group.ec2_launch_template.id,
@@ -154,9 +155,11 @@ class InstanceState:
 
     @property
     def launch_configuration_name(self) -> Optional[str]:
-        if self.auto_scaling_group is None:
-            return None
-        return self.auto_scaling_group.launch_configuration_name
+        return (
+            self.auto_scaling_group.launch_configuration_name
+            if self.auto_scaling_group is not None
+            else None
+        )
 
 
 class LifecycleHook(BaseModel):
@@ -172,14 +175,8 @@ class LifecycleHook(BaseModel):
         self.auto_scaling_group_name = as_name
         if transition:
             self.lifecycle_transition = transition
-        if timeout:
-            self.heartbeat_timeout = timeout
-        else:
-            self.heartbeat_timeout = 3600
-        if result:
-            self.default_result = result
-        else:
-            self.default_result = "ABANDON"
+        self.heartbeat_timeout = timeout or 3600
+        self.default_result = result or "ABANDON"
         # TODO: These were hardcoded in the original XML template, but should be implemented properly.
         self.role_arn = "arn:aws:iam::1234567890:role/my-auto-scaling-role"
         self.notification_target_arn = "arn:aws:sqs:us-east-1:123456789012:my-queue"

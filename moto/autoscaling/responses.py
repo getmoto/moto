@@ -8,7 +8,6 @@ from .models import AutoScalingBackend, autoscaling_backends
 class AutoScalingResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="autoscaling")
-        # self.automated_parameter_parsing = True
 
     @property
     def autoscaling_backend(self) -> AutoScalingBackend:
@@ -160,7 +159,8 @@ class AutoScalingResponse(BaseResponse):
         return ActionResult(result)
 
     def describe_scaling_activities(self) -> ActionResult:
-        return EmptyResult()
+        result = {"Activities": []}  # type: ignore[var-annotated]
+        return ActionResult(result)
 
     def attach_instances(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
