@@ -24,7 +24,7 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.id = random_managed_prefix_list_id()
         self.prefix_list_name = prefix_list_name
         self.state = "create-complete"
-        self.state_message = "create complete"
+        self.state_message = None
         self.add_tags(tags or {})
         self.version: Optional[int] = 1
         self.entries = {self.version: entry} if entry else {}
@@ -151,7 +151,7 @@ class ManagedPrefixListBackend:
             address_family=address_family,
             entry=entries,
             prefix_list_name=name,
-            owner_id="aws",
+            owner_id="AWS",
         )
         managed_prefix_list.version = None
         managed_prefix_list.max_entries = None
