@@ -133,7 +133,7 @@ class InstanceState:
         self.protected_from_scale_in = protected_from_scale_in
         if not hasattr(self.instance, "autoscaling_group"):
             self.instance.autoscaling_group = autoscaling_group  # type: ignore[attr-defined]
-        self.auto_scaling_group = self.instance.autoscaling_group # type: ignore[attr-defined]
+        self.auto_scaling_group = self.instance.autoscaling_group  # type: ignore[attr-defined]
         self.auto_scaling_group_name = self.auto_scaling_group.name
         self.availability_zone = self.instance.placement  # type: ignore[attr-defined]
         self.instance_id = self.instance.id
@@ -272,8 +272,8 @@ class FakeLaunchConfiguration(CloudFormationModel):
         instance_monitoring: bool,
         instance_profile_name: Optional[str],
         spot_price: Optional[str],
-        ebs_optimized: str,
-        associate_public_ip_address: Union[str, bool],
+        ebs_optimized: bool,
+        associate_public_ip_address: bool,
         block_device_mapping_dict: List[Dict[str, Any]],
         account_id: str,
         region_name: str,
@@ -289,21 +289,17 @@ class FakeLaunchConfiguration(CloudFormationModel):
         self.security_groups = security_groups if security_groups else []
         self.user_data = user_data
         self.instance_type = instance_type
-        self.instance_monitoring = instance_monitoring
-        self.instance_profile_name = instance_profile_name
+        self.instance_monitoring_enabled = instance_monitoring
+        self.iam_instance_profile = instance_profile_name
         self.spot_price = spot_price
         self.ebs_optimized = ebs_optimized
-        if isinstance(associate_public_ip_address, str):
-            self.associate_public_ip_address = (
-                associate_public_ip_address.lower() == "true"
-            )
-        else:
-            self.associate_public_ip_address = associate_public_ip_address
+        self.associate_public_ip_address = associate_public_ip_address
         self.block_device_mapping_dict = block_device_mapping_dict
         self.metadata_options = metadata_options
         self.classic_link_vpc_id = classic_link_vpc_id
         self.classic_link_vpc_security_groups = classic_link_vpc_security_groups
         self.arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:launchConfiguration:9dbbbf87-6141-428a-a409-0752edbe6cad:launchConfigurationName/{self.name}"
+        self.created_time = utcnow()
 
     @classmethod
     def create_from_instance(
@@ -409,17 +405,32 @@ class FakeLaunchConfiguration(CloudFormationModel):
         return self.name
 
     @property
-    def block_device_mappings(self) -> Optional[BlockDeviceMapping]:
+    def block_device_mappings(self) -> List[dict[str, Any]]:
         if not self.block_device_mapping_dict:
-            return None
-        else:
-            return self._parse_block_device_mappings()
+            return []
+        parsed = self._parse_block_device_mappings()
+        value = [
+            {
+                "VirtualName": mapping.ephemeral_name,
+                "DeviceName": mount_point,
+                "Ebs": {
+                    "SnapshotId": mapping.snapshot_id,
+                    "VolumeSize": mapping.size,
+                    "VolumeType": mapping.volume_type,
+                    "DeleteOnTermination": mapping.delete_on_termination,
+                    "Iops": mapping.iops,
+                    "Encrypted": mapping.encrypted,
+                    "Throughput": mapping.throughput,
+                },
+                "NoDevice": mapping.no_device,
+            }
+            for mount_point, mapping in parsed.items()
+        ]
+        return value
 
     @property
-    def instance_monitoring_enabled(self) -> str:
-        if self.instance_monitoring:
-            return "true"
-        return "false"
+    def instance_monitoring(self) -> dict[str, bool]:
+        return {"Enabled": self.instance_monitoring_enabled}
 
     def _parse_block_device_mappings(self) -> BlockDeviceMapping:
         block_device_map = BlockDeviceMapping()
@@ -1029,8 +1040,8 @@ class AutoScalingBackend(BaseBackend):
         instance_monitoring: bool,
         instance_profile_name: Optional[str],
         spot_price: Optional[str],
-        ebs_optimized: str,
-        associate_public_ip_address: str,
+        ebs_optimized: bool,
+        associate_public_ip_address: bool,
         block_device_mappings: List[Dict[str, Any]],
         instance_id: Optional[str] = None,
         metadata_options: Optional[str] = None,

@@ -37,8 +37,10 @@ class AutoScalingResponse(BaseResponse):
             instance_monitoring=instance_monitoring,
             instance_profile_name=params.get("IamInstanceProfile"),
             spot_price=params.get("SpotPrice"),
-            ebs_optimized=params.get("EbsOptimized"),  # type: ignore[arg-type]
-            associate_public_ip_address=params.get("AssociatePublicIpAddress"),  # type: ignore[arg-type]
+            ebs_optimized=self._get_bool_param("EbsOptimized", False),
+            associate_public_ip_address=self._get_bool_param(
+                "AssociatePublicIpAddress", False
+            ),
             block_device_mappings=params.get("BlockDeviceMappings"),  # type: ignore[arg-type]
             instance_id=params.get("InstanceId"),
             metadata_options=params.get("MetadataOptions"),
@@ -47,7 +49,7 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_launch_configurations(self) -> str:
+    def describe_launch_configurations(self) -> ActionResult:
         names = self._get_multi_param("LaunchConfigurationNames.member")
         all_launch_configurations = (
             self.autoscaling_backend.describe_launch_configurations(names)
@@ -67,10 +69,11 @@ class AutoScalingResponse(BaseResponse):
         if len(all_launch_configurations) > start + max_records:
             next_token = launch_configurations_resp[-1].name
 
-        template = self.response_template(DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE)
-        return template.render(
-            launch_configurations=launch_configurations_resp, next_token=next_token
-        )
+        result = {
+            "LaunchConfigurations": launch_configurations_resp,
+            "NextToken": next_token,
+        }
+        return ActionResult(result)
 
     def delete_launch_configuration(self) -> ActionResult:
         launch_configurations_name = self.querystring.get("LaunchConfigurationName")[0]  # type: ignore[index]
@@ -458,122 +461,6 @@ class AutoScalingResponse(BaseResponse):
         group_name = self._get_param("AutoScalingGroupName")
         self.autoscaling_backend.delete_warm_pool(group_name=group_name)
         return EmptyResult()
-
-
-DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <DescribeLaunchConfigurationsResult>
-    <LaunchConfigurations>
-      {% for launch_configuration in launch_configurations %}
-        <member>
-          <AssociatePublicIpAddress>{{ 'true' if launch_configuration.associate_public_ip_address else 'false' }}</AssociatePublicIpAddress>
-          {% if launch_configuration.classic_link_vpc_id %}
-          <ClassicLinkVPCId>{{ launch_configuration.classic_link_vpc_id }}</ClassicLinkVPCId>
-          {% endif %}
-          {% if launch_configuration.classic_link_vpc_security_groups %}
-          <ClassicLinkVPCSecurityGroups>
-            {% for sg in launch_configuration.classic_link_vpc_security_groups %}
-            <member>{{ sg }}</member>
-            {% endfor %}
-          </ClassicLinkVPCSecurityGroups>
-          {% endif %}
-          <SecurityGroups>
-            {% for security_group in launch_configuration.security_groups %}
-              <member>{{ security_group }}</member>
-            {% endfor %}
-          </SecurityGroups>
-          <CreatedTime>2013-01-21T23:04:42.200Z</CreatedTime>
-          {% if launch_configuration.kernel_id %}
-          <KernelId>{{ launch_configuration.kernel_id }}</KernelId>
-          {% else %}
-          <KernelId/>
-          {% endif %}
-          {% if launch_configuration.instance_profile_name %}
-            <IamInstanceProfile>{{ launch_configuration.instance_profile_name }}</IamInstanceProfile>
-          {% endif %}
-          <LaunchConfigurationName>{{ launch_configuration.name }}</LaunchConfigurationName>
-          {% if launch_configuration.user_data %}
-            <UserData>{{ launch_configuration.user_data }}</UserData>
-          {% else %}
-            <UserData/>
-          {% endif %}
-          <InstanceType>{{ launch_configuration.instance_type }}</InstanceType>
-          <LaunchConfigurationARN>{{ launch_configuration.arn }}</LaunchConfigurationARN>
-          {% if launch_configuration.block_device_mappings %}
-            <BlockDeviceMappings>
-            {% for mount_point, mapping in launch_configuration.block_device_mappings.items() %}
-              <member>
-                <DeviceName>{{ mount_point }}</DeviceName>
-                {% if mapping.ephemeral_name %}
-                <VirtualName>{{ mapping.ephemeral_name }}</VirtualName>
-                {% elif mapping.no_device %}
-                <NoDevice>true</NoDevice>
-                {% else %}
-                <Ebs>
-                {% if mapping.snapshot_id %}
-                  <SnapshotId>{{ mapping.snapshot_id }}</SnapshotId>
-                {% endif %}
-                {% if mapping.size %}
-                  <VolumeSize>{{ mapping.size }}</VolumeSize>
-                {% endif %}
-                {% if mapping.iops %}
-                  <Iops>{{ mapping.iops }}</Iops>
-                {% endif %}
-                {% if mapping.throughput %}
-                  <Throughput>{{ mapping.throughput }}</Throughput>
-                {% endif %}
-                {% if mapping.delete_on_termination is not none %}
-                  <DeleteOnTermination>{{ mapping.delete_on_termination }}</DeleteOnTermination>
-                {% endif %}
-                {% if mapping.volume_type %}
-                  <VolumeType>{{ mapping.volume_type }}</VolumeType>
-                {% endif %}
-                  {% if mapping.encrypted %}
-                  <Encrypted>{{ mapping.encrypted }}</Encrypted>
-                  {% endif %}
-                </Ebs>
-                {% endif %}
-              </member>
-            {% endfor %}
-            </BlockDeviceMappings>
-          {% else %}
-            <BlockDeviceMappings/>
-          {% endif %}
-          <ImageId>{{ launch_configuration.image_id }}</ImageId>
-          {% if launch_configuration.key_name %}
-            <KeyName>{{ launch_configuration.key_name }}</KeyName>
-          {% else %}
-            <KeyName/>
-          {% endif %}
-          {% if launch_configuration.ramdisk_id %}
-          <RamdiskId>{{ launch_configuration.ramdisk_id }}</RamdiskId>
-          {% else %}
-          <RamdiskId/>
-          {% endif %}
-          <EbsOptimized>{{ launch_configuration.ebs_optimized }}</EbsOptimized>
-          <InstanceMonitoring>
-            <Enabled>{{ launch_configuration.instance_monitoring_enabled }}</Enabled>
-          </InstanceMonitoring>
-          {% if launch_configuration.spot_price %}
-            <SpotPrice>{{ launch_configuration.spot_price }}</SpotPrice>
-          {% endif %}
-          {% if launch_configuration.metadata_options %}
-          <MetadataOptions>
-            <HttpTokens>{{ launch_configuration.metadata_options.get("HttpTokens") }}</HttpTokens>
-            <HttpPutResponseHopLimit>{{ launch_configuration.metadata_options.get("HttpPutResponseHopLimit") }}</HttpPutResponseHopLimit>
-            <HttpEndpoint>{{ launch_configuration.metadata_options.get("HttpEndpoint") }}</HttpEndpoint>
-          </MetadataOptions>
-          {% endif %}
-        </member>
-      {% endfor %}
-    </LaunchConfigurations>
-    {% if next_token %}
-    <NextToken>{{ next_token }}</NextToken>
-    {% endif %}
-  </DescribeLaunchConfigurationsResult>
-  <ResponseMetadata>
-    <RequestId>d05a22f8-b690-11e2-bf8e-2113fEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DescribeLaunchConfigurationsResponse>"""
 
 
 DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xmlns='http://autoscaling.amazonaws.com/doc/2011-01-01/'>
