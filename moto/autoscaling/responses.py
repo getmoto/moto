@@ -292,13 +292,13 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def describe_lifecycle_hooks(self) -> str:
+    def describe_lifecycle_hooks(self) -> ActionResult:
         lifecycle_hooks = self.autoscaling_backend.describe_lifecycle_hooks(
             as_name=self._get_param("AutoScalingGroupName"),
             lifecycle_hook_names=self._get_multi_param("LifecycleHookNames.member"),
         )
-        template = self.response_template(DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE)
-        return template.render(lifecycle_hooks=lifecycle_hooks)
+        result = {"LifecycleHooks": lifecycle_hooks}
+        return ActionResult(result)
 
     def delete_lifecycle_hook(self) -> ActionResult:
         as_name = self._get_param("AutoScalingGroupName")
@@ -794,26 +794,3 @@ DESCRIBE_AUTOSCALING_INSTANCES_TEMPLATE = """<DescribeAutoScalingInstancesRespon
     <RequestId>df992dc3-b72f-11e2-81e1-750aa6EXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeAutoScalingInstancesResponse>"""
-
-
-DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <DescribeLifecycleHooksResult>
-    <LifecycleHooks>
-      {% for lifecycle_hook in lifecycle_hooks %}
-        <member>
-          <AutoScalingGroupName>{{ lifecycle_hook.as_name }}</AutoScalingGroupName>
-          <RoleARN>arn:aws:iam::1234567890:role/my-auto-scaling-role</RoleARN>
-          <LifecycleTransition>{{ lifecycle_hook.transition }}</LifecycleTransition>
-          <GlobalTimeout>172800</GlobalTimeout>
-          <LifecycleHookName>{{ lifecycle_hook.name }}</LifecycleHookName>
-          <HeartbeatTimeout>{{ lifecycle_hook.timeout }}</HeartbeatTimeout>
-          <DefaultResult>{{ lifecycle_hook.result }}</DefaultResult>
-          <NotificationTargetARN>arn:aws:sqs:us-east-1:123456789012:my-queue</NotificationTargetARN>
-        </member>
-      {% endfor %}
-    </LifecycleHooks>
-  </DescribeLifecycleHooksResult>
-  <ResponseMetadata>
-    <RequestId>ec3bffad-b739-11e2-b38d-15fbEXAMPLE</RequestId>
-  </ResponseMetadata>
-</DescribeLifecycleHooksResponse>"""

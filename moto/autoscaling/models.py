@@ -135,7 +135,7 @@ class InstanceState:
             self.instance.autoscaling_group = autoscaling_group  # type: ignore[attr-defined]
 
 
-class FakeLifeCycleHook(BaseModel):
+class LifecycleHook(BaseModel):
     def __init__(
         self,
         name: str,
@@ -145,17 +145,21 @@ class FakeLifeCycleHook(BaseModel):
         result: Optional[str],
     ):
         self.name = name
-        self.as_name = as_name
+        self.auto_scaling_group_name = as_name
         if transition:
-            self.transition = transition
+            self.lifecycle_transition = transition
         if timeout:
-            self.timeout = timeout
+            self.heartbeat_timeout = timeout
         else:
-            self.timeout = 3600
+            self.heartbeat_timeout = 3600
         if result:
-            self.result = result
+            self.default_result = result
         else:
-            self.result = "ABANDON"
+            self.default_result = "ABANDON"
+        # TODO: These were hardcoded in the original XML template, but should be implemented properly.
+        self.role_arn = "arn:aws:iam::1234567890:role/my-auto-scaling-role"
+        self.notification_target_arn = "arn:aws:sqs:us-east-1:123456789012:my-queue"
+        self.global_timeout = 172800
 
 
 class TargetTrackingConfiguration:
@@ -983,7 +987,7 @@ class AutoScalingBackend(BaseBackend):
         self.launch_configurations: Dict[str, FakeLaunchConfiguration] = OrderedDict()
         self.scheduled_actions: Dict[str, FakeScheduledAction] = OrderedDict()
         self.policies: Dict[str, FakeScalingPolicy] = {}
-        self.lifecycle_hooks: Dict[str, FakeLifeCycleHook] = {}
+        self.lifecycle_hooks: Dict[str, LifecycleHook] = {}
         self.ec2_backend: EC2Backend = ec2_backends[self.account_id][region_name]
         self.elb_backend: ELBBackend = elb_backends[self.account_id][region_name]
         self.elbv2_backend: ELBv2Backend = elbv2_backends[self.account_id][region_name]
@@ -1446,19 +1450,19 @@ class AutoScalingBackend(BaseBackend):
         transition: str,
         timeout: Optional[int],
         result: str,
-    ) -> FakeLifeCycleHook:
-        lifecycle_hook = FakeLifeCycleHook(name, as_name, transition, timeout, result)
+    ) -> LifecycleHook:
+        lifecycle_hook = LifecycleHook(name, as_name, transition, timeout, result)
 
         self.lifecycle_hooks[f"{as_name}_{name}"] = lifecycle_hook
         return lifecycle_hook
 
     def describe_lifecycle_hooks(
         self, as_name: str, lifecycle_hook_names: Optional[List[str]] = None
-    ) -> List[FakeLifeCycleHook]:
+    ) -> List[LifecycleHook]:
         return [
             lifecycle_hook
             for lifecycle_hook in self.lifecycle_hooks.values()
-            if (lifecycle_hook.as_name == as_name)
+            if (lifecycle_hook.auto_scaling_group_name == as_name)
             and (
                 not lifecycle_hook_names or lifecycle_hook.name in lifecycle_hook_names
             )
