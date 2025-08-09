@@ -1,6 +1,5 @@
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.utilities.aws_headers import amz_crc32
 
 from .models import AutoScalingBackend, autoscaling_backends
@@ -174,19 +173,15 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.set_instance_health(instance_id, health_status)
         return EmptyResult()
 
-    def detach_instances(self) -> str:
+    def detach_instances(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
-        should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")
-        if should_decrement_string == "true":
-            should_decrement = True
-        else:
-            should_decrement = False
-        detached_instances = self.autoscaling_backend.detach_instances(
+        should_decrement = self._get_bool_param("ShouldDecrementDesiredCapacity", False)
+        activities = self.autoscaling_backend.detach_instances(
             group_name, instance_ids, should_decrement
         )
-        template = self.response_template(DETACH_INSTANCES_TEMPLATE)
-        return template.render(detached_instances=detached_instances)
+        result = {"Activities": activities}
+        return ActionResult(result)
 
     def attach_load_balancer_target_groups(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
@@ -372,45 +367,24 @@ class AutoScalingResponse(BaseResponse):
         self.autoscaling_backend.detach_load_balancers(group_name, load_balancer_names)
         return EmptyResult()
 
-    def enter_standby(self) -> str:
+    def enter_standby(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
-        should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")
-        if should_decrement_string == "true":
-            should_decrement = True
-        else:
-            should_decrement = False
-        (
-            standby_instances,
-            original_size,
-            desired_capacity,
-        ) = self.autoscaling_backend.enter_standby_instances(
+        should_decrement = self._get_bool_param("ShouldDecrementDesiredCapacity")
+        activities = self.autoscaling_backend.enter_standby_instances(
             group_name, instance_ids, should_decrement
         )
-        template = self.response_template(ENTER_STANDBY_TEMPLATE)
-        return template.render(
-            standby_instances=standby_instances,
-            should_decrement=should_decrement,
-            original_size=original_size,
-            desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(),
-        )
+        result = {"Activities": activities}
+        return ActionResult(result)
 
-    def exit_standby(self) -> str:
+    def exit_standby(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         instance_ids = self._get_multi_param("InstanceIds.member")
-        (
-            standby_instances,
-            original_size,
-            desired_capacity,
-        ) = self.autoscaling_backend.exit_standby_instances(group_name, instance_ids)
-        template = self.response_template(EXIT_STANDBY_TEMPLATE)
-        return template.render(
-            standby_instances=standby_instances,
-            original_size=original_size,
-            desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(),
+        activities = self.autoscaling_backend.exit_standby_instances(
+            group_name, instance_ids
         )
+        result = {"Activities": activities}
+        return ActionResult(result)
 
     def suspend_processes(self) -> ActionResult:
         autoscaling_group_name = self._get_param("AutoScalingGroupName")
@@ -437,26 +411,14 @@ class AutoScalingResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def terminate_instance_in_auto_scaling_group(self) -> str:
+    def terminate_instance_in_auto_scaling_group(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
-        should_decrement_string = self._get_param("ShouldDecrementDesiredCapacity")
-        if should_decrement_string == "true":
-            should_decrement = True
-        else:
-            should_decrement = False
-        (
-            instance,
-            original_size,
-            desired_capacity,
-        ) = self.autoscaling_backend.terminate_instance(instance_id, should_decrement)
-        template = self.response_template(TERMINATE_INSTANCES_TEMPLATE)
-        return template.render(
-            instance=instance,
-            should_decrement=should_decrement,
-            original_size=original_size,
-            desired_capacity=desired_capacity,
-            timestamp=iso_8601_datetime_with_milliseconds(),
+        should_decrement = self._get_bool_param("ShouldDecrementDesiredCapacity", False)
+        activity = self.autoscaling_backend.terminate_instance(
+            instance_id, should_decrement
         )
+        result = {"Activity": activity}
+        return ActionResult(result)
 
     def describe_tags(self) -> ActionResult:
         filters = self._get_params().get("Filters", [])
@@ -614,34 +576,7 @@ DESCRIBE_LAUNCH_CONFIGURATIONS_TEMPLATE = """<DescribeLaunchConfigurationsRespon
 </DescribeLaunchConfigurationsResponse>"""
 
 
-DETACH_INSTANCES_TEMPLATE = """<DetachInstancesResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-<DetachInstancesResult>
-  <Activities>
-    {% for instance in detached_instances %}
-    <member>
-      <ActivityId>5091cb52-547a-47ce-a236-c9ccbc2cb2c9EXAMPLE</ActivityId>
-      <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
-      <Cause>
-      At 2017-10-15T15:55:21Z instance {{ instance.instance.id }} was detached in response to a user request.
-      </Cause>
-      <Description>Detaching EC2 instance: {{ instance.instance.id }}</Description>
-      <StartTime>2017-10-15T15:55:21Z</StartTime>
-      <EndTime>2017-10-15T15:55:21Z</EndTime>
-      <StatusCode>InProgress</StatusCode>
-      <StatusMessage>InProgress</StatusMessage>
-      <Progress>50</Progress>
-      <Details>details</Details>
-    </member>
-    {% endfor %}
-  </Activities>
-</DetachInstancesResult>
-<ResponseMetadata>
-<RequestId></RequestId>
-</ResponseMetadata>
-</DetachInstancesResponse>"""
-
-
-DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
+DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xmlns='http://autoscaling.amazonaws.com/doc/2011-01-01/'>
 <DescribeAutoScalingGroupsResult>
     <AutoScalingGroups>
       {% for group in groups %}
@@ -651,7 +586,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           <member>
             <ResourceType>{{ tag.resource_type or tag.ResourceType }}</ResourceType>
             <ResourceId>{{ tag.resource_id or tag.ResourceId }}</ResourceId>
-            <PropagateAtLaunch>{{ 'true' if tag.get("PropagateAtLaunch") else 'false' }}</PropagateAtLaunch>
+            <PropagateAtLaunch>{{ 'true' if tag.get('PropagateAtLaunch') else 'false' }}</PropagateAtLaunch>
             <Key>{{ tag.key or tag.Key }}</Key>
             <Value>{{ tag.value or tag.Value }}</Value>
           </member>
@@ -678,40 +613,40 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
               <Version>{{ group.launch_template_version }}</Version>
               <LaunchTemplateName>{{ group.launch_template.name }}</LaunchTemplateName>
             </LaunchTemplateSpecification>
-            {% if group.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+            {% if group.mixed_instances_policy.get('LaunchTemplate', {}).get('Overrides', []) %}
             <Overrides>
-              {% for member in group.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", []) %}
+              {% for member in group.mixed_instances_policy.get('LaunchTemplate', {}).get('Overrides', []) %}
               <member>
-                {% if member.get("InstanceType") %}
-                <InstanceType>{{ member.get("InstanceType") }}</InstanceType>
+                {% if member.get('InstanceType') %}
+                <InstanceType>{{ member.get('InstanceType') }}</InstanceType>
                 {% endif %}
-                {% if member.get("WeightedCapacity") %}
-                <WeightedCapacity>{{ member.get("WeightedCapacity") }}</WeightedCapacity>
+                {% if member.get('WeightedCapacity') %}
+                <WeightedCapacity>{{ member.get('WeightedCapacity') }}</WeightedCapacity>
                 {% endif %}
               </member>
               {% endfor %}
             </Overrides>
             {% endif %}
           </LaunchTemplate>
-          {% if group.mixed_instances_policy.get("InstancesDistribution") %}
+          {% if group.mixed_instances_policy.get('InstancesDistribution') %}
           <InstancesDistribution>
-            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") %}
-            <OnDemandAllocationStrategy>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandAllocationStrategy") }}</OnDemandAllocationStrategy>
+            {% if group.mixed_instances_policy.get('InstancesDistribution').get('OnDemandAllocationStrategy') %}
+            <OnDemandAllocationStrategy>{{ group.mixed_instances_policy.get('InstancesDistribution').get('OnDemandAllocationStrategy') }}</OnDemandAllocationStrategy>
             {% endif %}
-            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") %}
-            <OnDemandBaseCapacity>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandBaseCapacity") }}</OnDemandBaseCapacity>
+            {% if group.mixed_instances_policy.get('InstancesDistribution').get('OnDemandBaseCapacity') %}
+            <OnDemandBaseCapacity>{{ group.mixed_instances_policy.get('InstancesDistribution').get('OnDemandBaseCapacity') }}</OnDemandBaseCapacity>
             {% endif %}
-            {% if group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") %}
-            <OnDemandPercentageAboveBaseCapacity>{{ group.mixed_instances_policy.get("InstancesDistribution").get("OnDemandPercentageAboveBaseCapacity") }}</OnDemandPercentageAboveBaseCapacity>
+            {% if group.mixed_instances_policy.get('InstancesDistribution').get('OnDemandPercentageAboveBaseCapacity') %}
+            <OnDemandPercentageAboveBaseCapacity>{{ group.mixed_instances_policy.get('InstancesDistribution').get('OnDemandPercentageAboveBaseCapacity') }}</OnDemandPercentageAboveBaseCapacity>
             {% endif %}
-            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotAllocationStrategy") %}
-            <SpotAllocationStrategy>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotAllocationStrategy") }}</SpotAllocationStrategy>
+            {% if group.mixed_instances_policy.get('InstancesDistribution').get('SpotAllocationStrategy') %}
+            <SpotAllocationStrategy>{{ group.mixed_instances_policy.get('InstancesDistribution').get('SpotAllocationStrategy') }}</SpotAllocationStrategy>
             {% endif %}
-            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotInstancePools") %}
-            <SpotInstancePools>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotInstancePools") }}</SpotInstancePools>
+            {% if group.mixed_instances_policy.get('InstancesDistribution').get('SpotInstancePools') %}
+            <SpotInstancePools>{{ group.mixed_instances_policy.get('InstancesDistribution').get('SpotInstancePools') }}</SpotInstancePools>
             {% endif %}
-            {% if group.mixed_instances_policy.get("InstancesDistribution").get("SpotMaxPrice") %}
-            <SpotMaxPrice>{{ group.mixed_instances_policy.get("InstancesDistribution").get("SpotMaxPrice") }}</SpotMaxPrice>
+            {% if group.mixed_instances_policy.get('InstancesDistribution').get('SpotMaxPrice') %}
+            <SpotMaxPrice>{{ group.mixed_instances_policy.get('InstancesDistribution').get('SpotMaxPrice') }}</SpotMaxPrice>
             {% endif %}
           </InstancesDistribution>
           {% endif %}
@@ -813,7 +748,7 @@ DESCRIBE_AUTOSCALING_GROUPS_TEMPLATE = """<DescribeAutoScalingGroupsResponse xml
           <PoolState>{{ group.warm_pool.pool_state }}</PoolState>
           {% endif %}
           <InstanceReusePolicy>
-            <ReuseOnScaleIn>{{ 'true' if group.warm_pool.instance_reuse_policy["ReuseOnScaleIn"] else 'false' }}</ReuseOnScaleIn>
+            <ReuseOnScaleIn>{{ 'true' if group.warm_pool.instance_reuse_policy['ReuseOnScaleIn'] else 'false' }}</ReuseOnScaleIn>
           </InstanceReusePolicy>
         </WarmPoolConfiguration>
         {% endif %}
@@ -882,74 +817,3 @@ DESCRIBE_LIFECYCLE_HOOKS_TEMPLATE = """<DescribeLifecycleHooksResponse xmlns="ht
     <RequestId>ec3bffad-b739-11e2-b38d-15fbEXAMPLE</RequestId>
   </ResponseMetadata>
 </DescribeLifecycleHooksResponse>"""
-
-
-ENTER_STANDBY_TEMPLATE = """<EnterStandbyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <EnterStandbyResult>
-    <Activities>
-      {% for instance in standby_instances %}
-      <member>
-        <ActivityId>12345678-1234-1234-1234-123456789012</ActivityId>
-        <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
-        {% if should_decrement %}
-        <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was moved to standby in response to a user request, shrinking the capacity from {{ original_size }} to {{ desired_capacity }}.</Cause>
-        {% else %}
-        <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was moved to standby in response to a user request.</Cause>
-        {% endif %}
-        <Description>Moving EC2 instance to Standby: {{ instance.instance.id }}</Description>
-        <Progress>50</Progress>
-        <StartTime>{{ timestamp }}</StartTime>
-        <Details>{&quot;Subnet ID&quot;:&quot;??&quot;,&quot;Availability Zone&quot;:&quot;{{ instance.instance.placement }}&quot;}</Details>
-        <StatusCode>InProgress</StatusCode>
-      </member>
-      {% endfor %}
-    </Activities>
-  </EnterStandbyResult>
-  <ResponseMetadata>
-    <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
-  </ResponseMetadata>
-</EnterStandbyResponse>"""
-
-EXIT_STANDBY_TEMPLATE = """<ExitStandbyResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <ExitStandbyResult>
-    <Activities>
-      {% for instance in standby_instances %}
-      <member>
-        <ActivityId>12345678-1234-1234-1234-123456789012</ActivityId>
-        <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
-        <Description>Moving EC2 instance out of Standby: {{ instance.instance.id }}</Description>
-        <Progress>30</Progress>
-        <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was moved out of standby in response to a user request, increasing the capacity from {{ original_size }} to {{ desired_capacity }}.</Cause>
-        <StartTime>{{ timestamp }}</StartTime>
-        <Details>{&quot;Subnet ID&quot;:&quot;??&quot;,&quot;Availability Zone&quot;:&quot;{{ instance.instance.placement }}&quot;}</Details>
-        <StatusCode>PreInService</StatusCode>
-      </member>
-      {% endfor %}
-    </Activities>
-  </ExitStandbyResult>
-  <ResponseMetadata>
-    <RequestId>7c6e177f-f082-11e1-ac58-3714bEXAMPLE</RequestId>
-  </ResponseMetadata>
-</ExitStandbyResponse>"""
-
-TERMINATE_INSTANCES_TEMPLATE = """<TerminateInstanceInAutoScalingGroupResponse xmlns="http://autoscaling.amazonaws.com/doc/2011-01-01/">
-  <TerminateInstanceInAutoScalingGroupResult>
-    <Activity>
-      <ActivityId>35b5c464-0b63-2fc7-1611-467d4a7f2497EXAMPLE</ActivityId>
-      <AutoScalingGroupName>{{ group_name }}</AutoScalingGroupName>
-      {% if should_decrement %}
-      <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was taken out of service in response to a user request, shrinking the capacity from {{ original_size }} to {{ desired_capacity }}.</Cause>
-      {% else %}
-      <Cause>At {{ timestamp }} instance {{ instance.instance.id }} was taken out of service in response to a user request.</Cause>
-      {% endif %}
-      <Description>Terminating EC2 instance: {{ instance.instance.id }}</Description>
-      <Progress>0</Progress>
-      <StartTime>{{ timestamp }}</StartTime>
-      <Details>{&quot;Subnet ID&quot;:&quot;??&quot;,&quot;Availability Zone&quot;:&quot;{{ instance.instance.placement }}&quot;}</Details>
-      <StatusCode>InProgress</StatusCode>
-    </Activity>
-  </TerminateInstanceInAutoScalingGroupResult>
-  <ResponseMetadata>
-    <RequestId>a1ba8fb9-31d6-4d9a-ace1-a7f76749df11EXAMPLE</RequestId>
-  </ResponseMetadata>
-</TerminateInstanceInAutoScalingGroupResponse>"""

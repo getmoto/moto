@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import itertools
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores
+from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import EC2Backend
@@ -36,6 +38,84 @@ ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 def make_int(value: Union[None, str, int]) -> Optional[int]:
     return int(value) if value is not None else value
+
+
+class Activity:
+    def __init__(
+        self,
+        description: str,
+        cause: str,
+        auto_scaling_group: FakeAutoScalingGroup,
+        activity_id: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        status_code: str = "InProgress",
+    ):
+        self.activity_id = activity_id or str(random.uuid4())
+        self.auto_scaling_group = auto_scaling_group
+        self.description = description
+        self.cause = cause
+        self.start_time = start_time or utcnow()
+        self.end_time = end_time or utcnow()
+        self.status_code = status_code
+        self.progress = 0
+
+    @property
+    def auto_scaling_group_name(self) -> str:
+        return self.auto_scaling_group.name
+
+
+class TerminateInstanceActivity(Activity):
+    def __init__(self, instance: Instance, original_capacity: int):
+        auto_scaling_group = instance.autoscaling_group  # type: ignore[attr-defined]
+        desired_capacity = auto_scaling_group.desired_capacity
+        should_decrement = desired_capacity < original_capacity
+        description = f"Terminating EC2 instance: {instance.id}"
+        timestamp = utcnow()
+        cause = f"At {timestamp}, instance {instance.id} was taken out of service in response to a user request"
+        if should_decrement:
+            cause += f", shrinking the capacity from {original_capacity} to {desired_capacity}."
+        else:
+            cause += "."
+        super().__init__(description, cause, auto_scaling_group, start_time=timestamp)
+
+
+class EnterStandbyActivity(Activity):
+    def __init__(self, instance: Instance, original_capacity: Optional[int] = None):
+        auto_scaling_group = instance.autoscaling_group  # type: ignore[attr-defined]
+        desired_capacity = auto_scaling_group.desired_capacity
+        should_decrement = desired_capacity < original_capacity
+        description = f"Moving EC2 instance to StandBy: {instance.id}"
+        timestamp = utcnow()
+        cause = f"At {timestamp}, instance {instance.id} was moved to standby in response to a user request"
+        if should_decrement:
+            cause += f", shrinking the capacity from {original_capacity} to {desired_capacity}."
+        else:
+            cause += "."
+        super().__init__(description, cause, auto_scaling_group, start_time=timestamp)
+        self.progress = 50
+
+
+class ExitStandbyActivity(Activity):
+    def __init__(self, instance: Instance, original_capacity: Optional[int] = None):
+        auto_scaling_group = instance.autoscaling_group  # type: ignore[attr-defined]
+        desired_capacity = auto_scaling_group.desired_capacity
+        description = f"Moving EC2 instance out of StandBy: {instance.id}"
+        timestamp = utcnow()
+        cause = f"At {timestamp}, instance {instance.id} was moved out of standby in response to a user request, increasing the capacity from {original_capacity} to {desired_capacity}."
+        super().__init__(description, cause, auto_scaling_group, start_time=timestamp)
+        self.progress = 30
+        self.status_code = "PreInService"
+
+
+class DetachInstanceActivity(Activity):
+    def __init__(self, instance: Instance):
+        auto_scaling_group = instance.autoscaling_group  # type: ignore[attr-defined]
+        description = f"Detaching EC2 instance: {instance.id}"
+        timestamp = utcnow()
+        cause = f"At {timestamp}, instance {instance.id} was detached in response to a user request."
+        super().__init__(description, cause, auto_scaling_group, start_time=timestamp)
+        self.progress = 50
 
 
 class InstanceState:
@@ -1303,17 +1383,18 @@ class AutoScalingBackend(BaseBackend):
 
     def detach_instances(
         self, group_name: str, instance_ids: List[str], should_decrement: bool
-    ) -> List[InstanceState]:
+    ) -> List[DetachInstanceActivity]:
         group = self.autoscaling_groups[group_name]
         original_size = group.desired_capacity
-
-        detached_instances = [
+        activities = []
+        detached_instance_states = [
             x for x in group.instance_states if x.instance.id in instance_ids
         ]
-        for instance in detached_instances:
-            self.ec2_backend.delete_tags(
-                [instance.instance.id], {ASG_NAME_TAG: group.name}
-            )
+        for instance_state in detached_instance_states:
+            instance = instance_state.instance
+            self.ec2_backend.delete_tags([instance.id], {ASG_NAME_TAG: group.name})
+            activity = DetachInstanceActivity(instance)
+            activities.append(activity)
 
         new_instance_state = [
             x for x in group.instance_states if x.instance.id not in instance_ids
@@ -1324,7 +1405,7 @@ class AutoScalingBackend(BaseBackend):
             group.desired_capacity = original_size - len(instance_ids)  # type: ignore[operator]
 
         group.set_desired_capacity(group.desired_capacity)
-        return detached_instances
+        return activities
 
     def set_desired_capacity(
         self, group_name: str, desired_capacity: Optional[int]
@@ -1627,48 +1708,52 @@ class AutoScalingBackend(BaseBackend):
 
     def enter_standby_instances(
         self, group_name: str, instance_ids: List[str], should_decrement: bool
-    ) -> Tuple[List[InstanceState], Optional[int], Optional[int]]:
+    ) -> List[EnterStandbyActivity]:
         group = self.autoscaling_groups[group_name]
-        original_size = group.desired_capacity
-        standby_instances = []
+        activities = []
         for instance_state in group.instance_states:
             if instance_state.instance.id in instance_ids:
                 instance_state.lifecycle_state = "Standby"
-                standby_instances.append(instance_state)
-        if should_decrement:
-            group.desired_capacity = group.desired_capacity - len(instance_ids)  # type: ignore[operator]
+                original_size = group.desired_capacity
+                instance = instance_state.instance
+                if should_decrement:
+                    group.desired_capacity -= 1  # type: ignore[operator]
+                activity = EnterStandbyActivity(instance, original_size)
+                activities.append(activity)
         group.set_desired_capacity(group.desired_capacity)
-        return standby_instances, original_size, group.desired_capacity
+        return activities
 
     def exit_standby_instances(
         self, group_name: str, instance_ids: List[str]
-    ) -> Tuple[List[InstanceState], Optional[int], int]:
+    ) -> List[ExitStandbyActivity]:
         group = self.autoscaling_groups[group_name]
-        original_size = group.desired_capacity
-        standby_instances = []
+        activities = []
         for instance_state in group.instance_states:
             if instance_state.instance.id in instance_ids:
                 instance_state.lifecycle_state = "InService"
-                standby_instances.append(instance_state)
-        group.desired_capacity = group.desired_capacity + len(instance_ids)  # type: ignore[operator]
+                original_size = group.desired_capacity
+                instance = instance_state.instance
+                group.desired_capacity += 1  # type: ignore[operator]
+                activity = ExitStandbyActivity(instance, original_size)
+                activities.append(activity)
         group.set_desired_capacity(group.desired_capacity)
-        return standby_instances, original_size, group.desired_capacity
+        return activities
 
     def terminate_instance(
         self, instance_id: str, should_decrement: bool
-    ) -> Tuple[InstanceState, Any, Any]:
-        instance = self.ec2_backend.get_instance(instance_id)
+    ) -> TerminateInstanceActivity:
         instance_state = next(
             instance_state
             for group in self.autoscaling_groups.values()
             for instance_state in group.instance_states
-            if instance_state.instance.id == instance.id
+            if instance_state.instance.id == instance_id
         )
+        instance = instance_state.instance
         group = instance.autoscaling_group  # type: ignore[attr-defined]
         original_size = group.desired_capacity
         self.detach_instances(group.name, [instance.id], should_decrement)
         self.ec2_backend.terminate_instances([instance.id])
-        return instance_state, original_size, group.desired_capacity
+        return TerminateInstanceActivity(instance, original_size)
 
     def describe_tags(self, filters: List[Dict[str, str]]) -> List[Dict[str, str]]:
         """
