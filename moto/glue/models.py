@@ -4,7 +4,7 @@ import re
 import time
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -29,6 +29,7 @@ from .exceptions import (
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
+    NoCrawlsEntryForCrawler,
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
     SchemaNotFoundException,
@@ -61,6 +62,7 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
+from .utils import CrawlFilter, FilterField, FilterOperator
 
 
 class FakeDevEndpoint(BaseModel):
@@ -206,6 +208,12 @@ class GlueBackend(BaseBackend):
             "limit_key": "max_results",
             "limit_default": 100,
             "unique_attribute": "job_run_id",
+        },
+        "list_crawls": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "crawl_id",
         },
     }
 
@@ -460,6 +468,77 @@ class GlueBackend(BaseBackend):
             del self.crawlers[name]
         except KeyError:
             raise CrawlerNotFoundException(name)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_crawls(
+        self, crawler_name: str, filters: List[CrawlFilter]
+    ) -> List["FakeCrawl"]:
+        filter_functions = []
+        for filter in filters:
+            if filter.field_name == FilterField.CRAWL_ID:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.crawl_id
+
+            elif filter.field_name == FilterField.STATE:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.status
+
+            elif filter.field_name == FilterField.START_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.start_time.isoformat()
+
+            elif filter.field_name == FilterField.END_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.end_time.isoformat() if crawl.end_time else None
+
+            if filter.operator == FilterOperator.GT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value > field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.GE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value >= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value < field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value <= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.EQ:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value == field_value
+
+            elif filter.operator == FilterOperator.NE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value != field_value
+
+            def filter_function(crawl: FakeCrawl) -> bool:
+                return compare(get_field(crawl), filter.field_value)
+
+            filter_functions.append(filter_function)
+
+        if crawler := self.crawlers.get(crawler_name):
+            crawlers = []
+            for crawl in crawler.crawls:
+                if all(f(crawl) for f in filter_functions):
+                    crawl.advance()
+                    crawlers.append(crawl)
+            return crawlers
+        else:
+            raise NoCrawlsEntryForCrawler(crawler_name)
 
     def create_job(
         self,
@@ -1356,12 +1435,16 @@ class GlueBackend(BaseBackend):
         response = {
             "PolicyInJson": policy["PolicyInJson"],
             "PolicyHash": policy["PolicyHash"],
-            "CreateTime": policy["CreateTime"].isoformat()
-            if isinstance(policy["CreateTime"], datetime)
-            else policy["CreateTime"],
-            "UpdateTime": policy["UpdateTime"].isoformat()
-            if isinstance(policy["UpdateTime"], datetime)
-            else policy["UpdateTime"],
+            "CreateTime": (
+                policy["CreateTime"].isoformat()
+                if isinstance(policy["CreateTime"], datetime)
+                else policy["CreateTime"]
+            ),
+            "UpdateTime": (
+                policy["UpdateTime"].isoformat()
+                if isinstance(policy["UpdateTime"], datetime)
+                else policy["UpdateTime"]
+            ),
         }
 
         return response
@@ -1566,7 +1649,6 @@ class FakeCrawler(BaseModel):
         self.lineage_configuration = lineage_configuration
         self.configuration = configuration
         self.crawler_security_configuration = crawler_security_configuration
-        self.state = "READY"
         self.creation_time = utcnow()
         self.last_updated = self.creation_time
         self.version = 1
@@ -1575,12 +1657,12 @@ class FakeCrawler(BaseModel):
         self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+        self.crawls: List[FakeCrawl] = []
 
     def get_name(self) -> str:
         return self.name
 
     def as_dict(self) -> Dict[str, Any]:
-        last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None  # type: ignore
         data = {
             "Name": self.name,
             "Role": self.role,
@@ -1591,12 +1673,11 @@ class FakeCrawler(BaseModel):
             "RecrawlPolicy": self.recrawl_policy,
             "SchemaChangePolicy": self.schema_change_policy,
             "LineageConfiguration": self.lineage_configuration,
-            "State": self.state,
+            "State": self.status,
             "TablePrefix": self.table_prefix,
             "CrawlElapsedTime": self.crawl_elapsed_time,
             "CreationTime": self.creation_time.isoformat(),
             "LastUpdated": self.last_updated.isoformat(),
-            "LastCrawl": last_crawl,
             "Version": self.version,
             "Configuration": self.configuration,
             "CrawlerSecurityConfiguration": self.crawler_security_configuration,
@@ -1608,52 +1689,97 @@ class FakeCrawler(BaseModel):
                 "State": "SCHEDULED",
             }
 
-        if self.last_crawl_info:
-            data["LastCrawl"] = self.last_crawl_info.as_dict()
+        if self.crawls:
+            last_crawl = self.crawls[-1]
+            data["LastCrawl"] = {
+                "LogGroup": last_crawl.log_group,
+                "LogStream": last_crawl.log_stream,
+                "MessagePrefix": last_crawl.message_prefix,
+                "StartTime": last_crawl.start_time.isoformat(),
+                "Status": last_crawl.status,
+            }
 
         return data
 
     def start_crawler(self) -> None:
-        if self.state == "RUNNING":
+        if self.crawls and self.crawls[-1].status == "RUNNING":
             raise CrawlerRunningException(
                 f"Crawler with name {self.name} has already started"
             )
-        self.state = "RUNNING"
+        else:
+            self.crawls.append(FakeCrawl(self.name))
 
     def stop_crawler(self) -> None:
-        if self.state != "RUNNING":
+        if not self.crawls:
             raise CrawlerNotRunningException(
                 f"Crawler with name {self.name} isn't running"
             )
-        self.state = "STOPPING"
+        elif self.crawls[-1].status != "RUNNING":
+            raise CrawlerNotRunningException(
+                f"Crawler with name {self.name} isn't running"
+            )
+        else:
+            self.crawls[-1].status = "STOPPING"
+
+    @property
+    def status(self) -> str:
+        if not self.crawls:
+            return "READY"
+        else:
+            if self.crawls[-1].status == "RUNNING":
+                return "RUNNING"
+            elif self.crawls[-1].status in ["COMPLETED", "STOPPED", "FAILED"]:
+                return "READY"
+            elif self.crawls[-1].status == "STOPPING":
+                return "STOPPING"
+            else:
+                raise RuntimeError(
+                    f"Unexpeected state found for crawler, found state {self.crawls[-1].status}"
+                )
 
 
-class LastCrawlInfo(BaseModel):
-    def __init__(
-        self,
-        error_message: str,
-        log_group: str,
-        log_stream: str,
-        message_prefix: str,
-        start_time: str,
-        status: str,
-    ):
-        self.error_message = error_message
-        self.log_group = log_group
-        self.log_stream = log_stream
-        self.message_prefix = message_prefix
-        self.start_time = start_time
-        self.status = status
+class FakeCrawl(ManagedState):
+    def __init__(self, crawler_name: str) -> None:
+        ManagedState.__init__(
+            self,
+            model_name="glue::crawl",
+            transitions=[("RUNNING", "COMPLETED"), ("STOPPING", "STOPPED")],
+        )
+        self.crawl_id = str(mock_random.uuid4())
+        self.dpu_hour = 100
+        self.end_time: Optional[datetime] = None
+        self.log_group = "/aws-glue/crawlers"
+        self.log_stream = crawler_name
+        self.message_prefix = self.crawl_id
+        self.start_time = utcnow()
 
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "ErrorMessage": self.error_message,
+    def as_dict(self) -> Dict[str, Union[str, int]]:
+        response_dict: Dict[str, Union[str, int]] = {
+            "CrawlId": self.crawl_id,
+            "DPUHour": self.dpu_hour,
             "LogGroup": self.log_group,
             "LogStream": self.log_stream,
             "MessagePrefix": self.message_prefix,
-            "StartTime": self.start_time,
-            "Status": self.status,
+            "StartTime": self.start_time.isoformat(),
         }
+        if self.status:
+            # "STOPPING" isn't a real status for crawl, but we need to introduce
+            # a second state transition to simulate the crawler issuing an async stop
+            # command to the crawl
+            response_dict["State"] = (
+                "RUNNING" if self.status == "STOPPING" else self.status
+            )
+        if self.end_time:
+            response_dict["EndTime"] = self.end_time.isoformat()
+        return response_dict
+
+    def advance(self) -> None:
+        previous_state = self.status
+        ManagedState.advance(self)
+        if (previous_state == "RUNNING" and self.status == "COMPLETED") or (
+            previous_state == "STOPPING" and self.status == "STOPPED"
+        ):
+            self.end_time = utcnow()
 
 
 class FakeJob:

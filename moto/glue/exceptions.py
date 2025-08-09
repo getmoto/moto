@@ -196,23 +196,14 @@ class GeneralGSRAlreadyExistsException(GSRAlreadyExistsException):
         )
 
 
-class _InvalidOperationException(GlueClientError):
-    def __init__(self, error_type: str, op: str, msg: str):
-        super().__init__(
-            error_type,
-            "An error occurred (%s) when calling the %s operation: %s"
-            % (error_type, op, msg),
-        )
-
-
-class InvalidStateException(_InvalidOperationException):
+class InvalidStateException(GlueClientError):
     def __init__(self, op: str, msg: str):
-        super().__init__("InvalidStateException", op, msg)
+        super().__init__("InvalidStateException", msg)
 
 
-class InvalidInputException(_InvalidOperationException):
+class InvalidInputException(GlueClientError):
     def __init__(self, op: str, msg: str):
-        super().__init__("InvalidInputException", op, msg)
+        super().__init__("InvalidInputException", msg)
 
 
 class GSRInvalidInputException(GlueClientError):
@@ -315,4 +306,27 @@ class DisabledCompatibilityVersioningException(GSRInvalidInputException):
     ):
         super().__init__(
             f"Compatibility DISABLED does not allow versioning. SchemaId: SchemaId(schemaArn={schema_arn if schema_arn else null}, schemaName={schema_name if schema_name else null}, registryName={registry_name if registry_name else null})"
+        )
+
+
+class InvalidFilterOperatorException(GlueClientError):
+    def __init__(self, value: str, position: int) -> None:
+        super().__init__(
+            "ValidationException",
+            f"Value '{value}' at 'filters.{position}.member.filterOperator' failed to satisfy constraint: Member must satisfy enum value set: [LT, EQ, GT, NE, LE, GE]",
+        )
+
+
+class InvalidFilterFieldNameException(GlueClientError):
+    def __init__(self, value: str, position: int) -> None:
+        super().__init__(
+            "ValidationException",
+            f"Value '{value}' at 'filters.{position}.member.fieldName' failed to satisfy constraint: Member must satisfy enum value set: [START_TIME, END_TIME, STATE, CRAWL_ID, DPU_HOUR]",
+        )
+
+
+class NoCrawlsEntryForCrawler(EntityNotFoundException):
+    def __init__(self, name: str) -> None:
+        super().__init__(
+            f"Crawler entry with name {name} does not exist",
         )

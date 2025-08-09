@@ -28,6 +28,10 @@ state_manager.register_default_transition(
     model_name="glue::job_run", transition={"progression": "immediate"}
 )
 state_manager.register_default_transition(
+    model_name="glue::crawl",
+    transition={"progression": "manual", "times": 1},
+)
+state_manager.register_default_transition(
     model_name="osis::pipeline", transition={"progression": "immediate"}
 )
 state_manager.register_default_transition(

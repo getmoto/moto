@@ -13,6 +13,7 @@ from .models import (
     GlueBackend,
     glue_backends,
 )
+from .utils import validate_crawl_filters
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -325,6 +326,12 @@ class GlueResponse(BaseResponse):
         name = self.parameters.get("Name")
         self.glue_backend.delete_crawler(name)  # type: ignore[arg-type]
         return ""
+
+    def list_crawls(self) -> str:
+        crawler_name = self.parameters.get("CrawlerName")
+        filters = validate_crawl_filters(self.parameters.get("Filters", []))
+        crawls = self.glue_backend.list_crawls(crawler_name, filters)[0]
+        return json.dumps({"Crawls": [crawl.as_dict() for crawl in crawls]})
 
     def create_job(self) -> str:
         name = self._get_param("Name")

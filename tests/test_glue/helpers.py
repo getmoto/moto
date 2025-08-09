@@ -1,4 +1,10 @@
 import copy
+import json
+
+import requests
+
+from moto import settings
+from moto.moto_api import state_manager
 
 from .fixtures.datacatalog import DATABASE_INPUT, PARTITION_INPUT, TABLE_INPUT
 from .fixtures.schema_registry import (
@@ -193,3 +199,14 @@ def register_schema_version(client):
     return client.register_schema_version(
         SchemaId=TEST_SCHEMA_ID, SchemaDefinition=TEST_NEW_AVRO_SCHEMA_DEFINITION
     )
+
+
+def set_transition(model_name, transition={"progression": "immediate"}):
+    if settings.TEST_DECORATOR_MODE:
+        state_manager.set_transition(model_name=model_name, transition=transition)
+    else:
+        post_body = dict(model_name=model_name, transition=transition)
+        requests.post(
+            "http://localhost:5000/moto-api/state-manager/set-transition",
+            data=json.dumps(post_body),
+        )

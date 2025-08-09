@@ -4392,7 +4392,7 @@
 - [ ] list_column_statistics_task_runs
 - [ ] list_connection_types
 - [X] list_crawlers
-- [ ] list_crawls
+- [X] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_data_quality_results
 - [ ] list_data_quality_rule_recommendation_runs
