@@ -475,58 +475,58 @@ class GlueBackend(BaseBackend):
     ) -> List["FakeCrawl"]:
         filter_functions = []
         for filter in filters:
-            if filter.FieldName == FilterField.CRAWL_ID:
+            if filter.field_name == FilterField.CRAWL_ID:
 
                 def get_field(crawl: FakeCrawl) -> Optional[str]:
                     return crawl.crawl_id
 
-            elif filter.FieldName == FilterField.STATE:
+            elif filter.field_name == FilterField.STATE:
 
                 def get_field(crawl: FakeCrawl) -> Optional[str]:
                     return crawl.status
 
-            elif filter.FieldName == FilterField.START_TIME:
+            elif filter.field_name == FilterField.START_TIME:
 
                 def get_field(crawl: FakeCrawl) -> Optional[str]:
                     return crawl.start_time.isoformat()
 
-            elif filter.FieldName == FilterField.END_TIME:
+            elif filter.field_name == FilterField.END_TIME:
 
                 def get_field(crawl: FakeCrawl) -> Optional[str]:
                     return crawl.end_time.isoformat() if crawl.end_time else None
 
-            if filter.FilterOperator == FilterOperator.GT:
+            if filter.operator == FilterOperator.GT:
 
                 def compare(crawl_value: Optional[str], field_value: str) -> bool:
                     return crawl_value > field_value if crawl_value else False
 
-            elif filter.FilterOperator == FilterOperator.GE:
+            elif filter.operator == FilterOperator.GE:
 
                 def compare(crawl_value: Optional[str], field_value: str) -> bool:
                     return crawl_value >= field_value if crawl_value else False
 
-            elif filter.FilterOperator == FilterOperator.LT:
+            elif filter.operator == FilterOperator.LT:
 
                 def compare(crawl_value: Optional[str], field_value: str) -> bool:
                     return crawl_value < field_value if crawl_value else False
 
-            elif filter.FilterOperator == FilterOperator.LE:
+            elif filter.operator == FilterOperator.LE:
 
                 def compare(crawl_value: Optional[str], field_value: str) -> bool:
                     return crawl_value <= field_value if crawl_value else False
 
-            elif filter.FilterOperator == FilterOperator.EQ:
+            elif filter.operator == FilterOperator.EQ:
 
                 def compare(crawl_value: Optional[str], field_value: str) -> bool:
                     return crawl_value == field_value
 
-            elif filter.FilterOperator == FilterOperator.NE:
+            elif filter.operator == FilterOperator.NE:
 
                 def compare(crawl_value: Optional[str], field_value: str) -> bool:
                     return crawl_value != field_value
 
             def filter_function(crawl: FakeCrawl) -> bool:
-                return compare(get_field(crawl), filter.FieldValue)
+                return compare(get_field(crawl), filter.field_value)
 
             filter_functions.append(filter_function)
 

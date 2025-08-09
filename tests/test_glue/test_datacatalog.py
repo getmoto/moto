@@ -1325,11 +1325,6 @@ def test_start_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
 
-    helpers.set_transition(
-        model_name="glue::crawl",
-        transition={"progression": "manual", "times": 1},
-    )
-
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
@@ -1345,11 +1340,6 @@ def test_start_crawler_should_raise_exception_if_already_running():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
 
-    helpers.set_transition(
-        model_name="glue::crawl",
-        transition={"progression": "manual", "times": 1},
-    )
-
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
@@ -1363,11 +1353,6 @@ def test_start_crawler_should_raise_exception_if_already_running():
 def test_stop_crawler():
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
-
-    helpers.set_transition(
-        model_name="glue::crawl",
-        transition={"progression": "manual", "times": 1},
-    )
 
     helpers.create_crawler(client, name)
 
@@ -1563,10 +1548,6 @@ def test_filter_crawls_for_state(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
     helpers.create_crawler(client, name)
-    helpers.set_transition(
-        model_name="glue::crawl",
-        transition={"progression": "manual", "times": 1},
-    )
 
     client.start_crawler(Name=name)
     # turn crawler to completed
@@ -1592,10 +1573,6 @@ def test_filter_crawls_for_state(operator):
 def test_filter_crawls_for_start_time(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
-    helpers.set_transition(
-        model_name="glue::crawl",
-        transition={"progression": "manual", "times": 1},
-    )
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
@@ -1624,10 +1601,6 @@ def test_filter_crawls_for_start_time(operator):
 def test_filter_crawls_for_end_time(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
-    helpers.set_transition(
-        model_name="glue::crawl",
-        transition={"progression": "manual", "times": 1},
-    )
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
@@ -1657,10 +1630,6 @@ def test_filter_crawls_for_end_time(operator):
 def test_multiple_filters(operator):
     client = boto3.client("glue", region_name="us-east-1")
     name = "my_crawler_name"
-    helpers.set_transition(
-        model_name="glue::crawl",
-        transition={"progression": "manual", "times": 1},
-    )
     helpers.create_crawler(client, name)
 
     client.start_crawler(Name=name)
@@ -1740,3 +1709,27 @@ def test_filter_crawls_for_not_crawl_id():
 
     assert len(crawls["Crawls"]) == 1
     assert crawls["Crawls"][0]["CrawlId"] != first_crawl_crawl_id
+
+
+@mock_aws
+def test_crawl_filter_missing_field():
+    client = boto3.client("glue", region_name="us-east-1")
+    name = "my_crawler_name"
+    helpers.create_crawler(client, name)
+
+    with pytest.raises(ClientError) as exc:
+        client.list_crawls(
+            CrawlerName=name,
+            Filters=[
+                {
+                    "FieldName": "CRAWL_ID",
+                    "FilterOperator": "NE",
+                }
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Invalid Filter Provided: FieldName: CRAWL_ID, FilterOperator: NE, FieldValue: null"
+    )

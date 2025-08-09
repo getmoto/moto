@@ -6,7 +6,6 @@ from enum import Enum
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, ValidationError, model_validator
 from pyparsing import (
     CaselessKeyword,
     Forward,
@@ -22,7 +21,6 @@ from pyparsing import (
     one_of,
     pyparsing_common,
 )
-from typing_extensions import Self
 
 try:
     # TODO import directly when depending on pyparsing>=3.1.0
@@ -56,36 +54,50 @@ class FilterOperator(str, Enum):
     NE = "NE"
 
 
-class CrawlFilter(BaseModel):
-    FieldName: FilterField
-    FieldValue: str
-    FilterOperator: FilterOperator
+class CrawlFilter:
+    def __init__(
+        self, field_name: FilterField, operator: FilterOperator, field_value: str
+    ) -> None:
+        self.field_name = field_name
+        self.field_value = field_value
+        self.operator = operator
+        self.check_operator_valid_for_state()
 
-    @model_validator(mode="after")
-    def check_operator_valid_for_state(self) -> Self:
-        if self.FieldName in [FilterField.STATE, FilterField.CRAWL_ID]:
-            if self.FilterOperator not in [FilterOperator.EQ, FilterOperator.NE]:
+    def check_operator_valid_for_state(self) -> None:
+        if self.field_name in [FilterField.STATE, FilterField.CRAWL_ID]:
+            if self.operator not in [FilterOperator.EQ, FilterOperator.NE]:
                 raise InvalidInputException(
                     "ListCrawls",
-                    f"Only EQ or NE operator is allowed for field : {self.FieldName.value}",
+                    f"Only EQ or NE operator is allowed for field : {self.field_name.value}",
                 )
-        return self
 
 
 def validate_crawl_filters(filters: List[Dict[str, str]]) -> List[CrawlFilter]:
     filter_objects: List[CrawlFilter] = []
     for index, filter in enumerate(filters):
+        field_name_input = filter.get("FieldName")
+        operator_input = filter.get("FilterOperator")
+        field_value_input = filter.get("FieldValue")
+        if not all([field_name_input, field_value_input, operator_input]):
+            raise InvalidInputException(
+                "ListCrawls",
+                f"Invalid Filter Provided: FieldName: {field_name_input if field_name_input else 'null'}, "
+                f"FilterOperator: {operator_input if operator_input else 'null'}, "
+                f"FieldValue: {field_value_input if field_value_input else 'null'}",
+            )
+
         try:
-            filter_object = CrawlFilter.model_validate(filter)
-        except ValidationError as e:
-            for error in e.errors():
-                if error["type"] == "enum":
-                    if error["loc"][0] == "FieldName":
-                        raise InvalidFilterFieldNameException(error["input"], index + 1)
-                    elif error["loc"][0] == "FilterOperator":
-                        raise InvalidFilterOperatorException(error["input"], index + 1)
-            raise
-        filter_objects.append(filter_object)
+            field_name = FilterField(field_name_input)
+        except ValueError:
+            raise InvalidFilterFieldNameException(filter["FieldName"], index + 1)
+
+        try:
+            operator = FilterOperator(operator_input)
+        except ValueError:
+            raise InvalidFilterOperatorException(filter["FilterOperator"], index + 1)
+
+        filter_objects.append(CrawlFilter(field_name, operator, filter["FieldValue"]))
+
     return filter_objects
 
 
