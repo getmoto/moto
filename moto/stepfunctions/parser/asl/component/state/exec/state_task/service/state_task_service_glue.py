@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Set
+from typing import Any, Callable, Final, Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -18,7 +18,7 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
     StatesErrorNameType,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
+    StateCredentials,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceCondition,
@@ -32,31 +32,48 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.boto_client import boto_client_for
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: Final[set[ResourceCondition]] = {
     ResourceCondition.Sync,
 }
 
+_SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
+    "startjobrun": {
+        "JobName",
+        "JobRunQueuingEnabled",
+        "JobRunId",
+        "Arguments",
+        "AllocatedCapacity",
+        "Timeout",
+        "MaxCapacity",
+        "SecurityConfiguration",
+        "NotificationProperty",
+        "WorkerType",
+        "NumberOfWorkers",
+        "ExecutionClass",
+    }
+}
+
 # Set of JobRunState value that indicate the JobRun had terminated in an abnormal state.
-_JOB_RUN_STATE_ABNORMAL_TERMINAL_VALUE: Set[str] = {"FAILED", "TIMEOUT", "ERROR"}
+_JOB_RUN_STATE_ABNORMAL_TERMINAL_VALUE: Final[set[str]] = {"FAILED", "TIMEOUT", "ERROR"}
 
 # Set of JobRunState values that indicate the JobRun has terminated.
-_JOB_RUN_STATE_TERMINAL_VALUES: Set[str] = {
+_JOB_RUN_STATE_TERMINAL_VALUES: Final[set[str]] = {
     "STOPPED",
     "SUCCEEDED",
     *_JOB_RUN_STATE_ABNORMAL_TERMINAL_VALUE,
 }
 
 # The handler function name prefix for StateTaskServiceGlue objects.
-_HANDLER_REFLECTION_PREFIX: str = "_handle_"
+_HANDLER_REFLECTION_PREFIX: Final[str] = "_handle_"
 # The sync handler function name prefix for StateTaskServiceGlue objects.
-_SYNC_HANDLER_REFLECTION_PREFIX: str = "_sync_to_"
+_SYNC_HANDLER_REFLECTION_PREFIX: Final[str] = "_sync_to_"
 # The type of (sync)handler function for StateTaskServiceGlue objects.
 _API_ACTION_HANDLER_TYPE = Callable[
-    [Environment, ResourceRuntimePart, dict, ComputedCredentials], None
+    [Environment, ResourceRuntimePart, dict, StateCredentials], None
 ]
 # The type of (sync)handler builder function for StateTaskServiceGlue objects.
 _API_ACTION_HANDLER_BUILDER_TYPE = Callable[
-    [Environment, ResourceRuntimePart, dict, ComputedCredentials],
+    [Environment, ResourceRuntimePart, dict, StateCredentials],
     Callable[[], Optional[Any]],
 ]
 
@@ -64,6 +81,9 @@ _API_ACTION_HANDLER_BUILDER_TYPE = Callable[
 class StateTaskServiceGlue(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
+
+    def _get_supported_parameters(self) -> Optional[set[str]]:
+        return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _get_api_action_handler(self) -> _API_ACTION_HANDLER_TYPE:
         api_action = self._get_boto_service_action()
@@ -83,14 +103,12 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
 
     @staticmethod
     def _get_glue_client(
-        resource_runtime_part: ResourceRuntimePart,
-        task_credentials: ComputedCredentials,
+        resource_runtime_part: ResourceRuntimePart, state_credentials: StateCredentials
     ) -> boto3.client:
         return boto_client_for(
-            region=resource_runtime_part.region,
-            account=resource_runtime_part.account,
             service="glue",
-            credentials=task_credentials,
+            region=resource_runtime_part.region,
+            state_credentials=state_credentials,
         )
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
@@ -127,11 +145,11 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        computed_credentials: ComputedCredentials,
+        computed_credentials: StateCredentials,
     ):
         glue_client = self._get_glue_client(
             resource_runtime_part=resource_runtime_part,
-            task_credentials=computed_credentials,
+            state_credentials=computed_credentials,
         )
         response = glue_client.start_job_run(**normalised_parameters)
         response.pop("ResponseMetadata", None)
@@ -146,12 +164,12 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ):
         # Source the action handler and delegate the evaluation.
         api_action_handler = self._get_api_action_handler()
         api_action_handler(
-            env, resource_runtime_part, normalised_parameters, task_credentials
+            env, resource_runtime_part, normalised_parameters, state_credentials
         )
 
     def _sync_to_start_job_run(
@@ -159,7 +177,7 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         # Poll the job run state from glue, using GetJobRun until the job has terminated. Hence, append the output
         # of GetJobRun to the state.
@@ -172,7 +190,7 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
 
         glue_client = self._get_glue_client(
             resource_runtime_part=resource_runtime_part,
-            task_credentials=task_credentials,
+            state_credentials=state_credentials,
         )
 
         def _sync_resolver() -> Optional[Any]:
@@ -224,10 +242,10 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> Callable[[], Optional[Any]]:
         sync_resolver_builder = self._get_api_action_sync_builder_handler()
         sync_resolver = sync_resolver_builder(
-            env, resource_runtime_part, normalised_parameters, task_credentials
+            env, resource_runtime_part, normalised_parameters, state_credentials
         )
         return sync_resolver

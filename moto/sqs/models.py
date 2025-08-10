@@ -839,13 +839,6 @@ class SQSBackend(BaseBackend):
             # MessageGroupId is a mandatory parameter for all
             # messages in a fifo queue
             raise MissingParameter("MessageGroupId")
-        if group_id and not queue.fifo_queue and validate_group_id:
-            # If the request comes from SNS, we don't need to validate the existence of a group ID
-            msg = (
-                f"Value {group_id} for parameter MessageGroupId is invalid. "
-                "Reason: The request include parameter that is not valid for this queue type."
-            )
-            raise InvalidParameterValue(msg)
 
     def send_message(
         self,

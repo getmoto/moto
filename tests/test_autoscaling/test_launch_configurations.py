@@ -99,7 +99,7 @@ def test_create_launch_configuration_with_block_device_mappings():
     assert xvdp["Ebs"]["VolumeType"] == "standard"
 
     assert xvdb["VirtualName"] == "ephemeral0"
-    assert "Ebs" not in xvdb
+    assert "Ebs" in xvdb
 
 
 @mock_aws
@@ -204,9 +204,9 @@ def test_create_launch_configuration_defaults():
     launch_config = client.describe_launch_configurations()["LaunchConfigurations"][0]
 
     # Defaults
-    assert launch_config["KeyName"] == ""
+    assert "KeyName" not in launch_config
     assert launch_config["SecurityGroups"] == []
-    assert launch_config["UserData"] == ""
+    assert "UserData" not in launch_config
     assert launch_config["InstanceMonitoring"] == {"Enabled": False}
     assert "IamInstanceProfile" not in launch_config
     assert "SpotPrice" not in launch_config

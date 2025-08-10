@@ -50,6 +50,23 @@ def test_describe_db_cluster_initial(client):
     resp = client.describe_db_clusters()
     assert len(resp["DBClusters"]) == 0
 
+    cluster = client.create_db_cluster(
+        DBClusterIdentifier="example",
+        Engine="aurora-postgresql",
+        MasterUsername="admin",
+        MasterUserPassword="password",
+        Domain="example.com",
+    )["DBCluster"]
+    assert cluster["DomainMemberships"][0]["Domain"] == "example"
+    assert cluster["DomainMemberships"][0]["Status"] == "active"
+    assert cluster["DomainMemberships"][0]["FQDN"] == "example.com"
+    assert (
+        cluster["DomainMemberships"][0]["IAMRoleName"]
+        == "rds-directory-service-access-role"
+    )
+    assert cluster["DomainMemberships"][0]["DnsIps"] == []
+    assert cluster["DomainMemberships"][0]["OU"] == "OU=exampleOU,DC=example,DC=com"
+
 
 @mock_aws
 def test_describe_db_cluster_fails_for_non_existent_cluster(client):
@@ -280,6 +297,7 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["DBClusterIdentifier"] == "cluster-id"
     assert cluster["DBClusterParameterGroup"] == "default.aurora8.0"
     assert cluster["DBSubnetGroup"] == "default"
+    assert cluster["DomainMemberships"] == []
     assert cluster["Status"] == "creating"
     assert re.match(
         "cluster-id.cluster-[a-z0-9]{12}.us-west-2.rds.amazonaws.com",
@@ -314,7 +332,6 @@ def test_create_db_cluster__verify_default_properties(client):
     assert cluster["CopyTagsToSnapshot"] is False
     assert cluster["CrossAccountClone"] is False
     assert cluster["DeletionProtection"] is False
-    assert cluster["DomainMemberships"] == []
     assert cluster["TagList"] == []
     assert "ClusterCreateTime" in cluster
     assert cluster["EarliestRestorableTime"] >= cluster["ClusterCreateTime"]

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import copy
-from typing import Any, Dict, List, Optional, Tuple
+import logging
+from typing import Any, Final, List, Optional
 
 from botocore.model import ListShape, Shape, StringShape, StructureShape
 from botocore.response import StreamingBody
@@ -28,8 +29,10 @@ from moto.stepfunctions.parser.asl.component.common.error_name.states_error_name
     StatesErrorNameType,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
-    ComputedCredentials,
-    Credentials,
+    StateCredentials,
+)
+from moto.stepfunctions.parser.asl.component.state.exec.state_task.mock_eval_utils import (
+    eval_mocked_response,
 )
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resource import (
     ResourceRuntimePart,
@@ -38,9 +41,11 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_task.service.resou
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.state_task import (
     StateTask,
 )
+from moto.stepfunctions.parser.asl.component.state.state_props import StateProps
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
+from moto.stepfunctions.parser.mocking.mock_config import MockedResponse
 from moto.stepfunctions.parser.quotas import is_within_size_quota
 from moto.stepfunctions.parser.utils import (
     camel_to_snake_case,
@@ -49,14 +54,30 @@ from moto.stepfunctions.parser.utils import (
     to_str,
 )
 
+LOG = logging.getLogger(__name__)
+
 
 class StateTaskService(StateTask, abc.ABC):
     resource: ServiceResource
 
-    _SERVICE_NAME_SFN_TO_BOTO_OVERRIDES: Dict[str, str] = {
+    _SERVICE_NAME_SFN_TO_BOTO_OVERRIDES: Final[dict[str, str]] = {
         "sfn": "stepfunctions",
         "states": "stepfunctions",
     }
+
+    def from_state_props(self, state_props: StateProps) -> None:
+        super().from_state_props(state_props=state_props)
+        # Validate the service integration is supported on program creation.
+        self._validate_service_integration_is_supported()
+
+    def _validate_service_integration_is_supported(self):
+        # Validate the service integration is supported.
+        supported_parameters = self._get_supported_parameters()
+        if supported_parameters is None:
+            raise ValueError(
+                f"The resource provided {self.resource.resource_arn} not recognized. "
+                "The value is not a valid resource ARN, or the resource is not available in this region."
+            )
 
     def _get_sfn_resource(self) -> str:
         return self.resource.api_action
@@ -99,15 +120,22 @@ class StateTaskService(StateTask, abc.ABC):
     def _to_boto_request(
         self, parameters: dict, structure_shape: StructureShape
     ) -> None:
+        if not isinstance(structure_shape, StructureShape):
+            LOG.warning(
+                "Step Functions could not normalise the request for integration '%s' due to the unexpected request template value of type '%s'",
+                self.resource.resource_arn,
+                type(structure_shape),
+            )
+            return
         shape_members = structure_shape.members
-        norm_member_binds: Dict[str, Tuple[str, StructureShape]] = {
+        norm_member_binds: dict[str, tuple[str, StructureShape]] = {
             camel_to_snake_case(member_key): (member_key, member_value)
             for member_key, member_value in shape_members.items()
         }
         parameters_bind_keys: List[str] = list(parameters.keys())
         for parameter_key in parameters_bind_keys:
             norm_parameter_key = camel_to_snake_case(parameter_key)
-            norm_member_bind: Optional[Tuple[str, Optional[StructureShape]]] = (
+            norm_member_bind: Optional[tuple[str, Optional[StructureShape]]] = (
                 norm_member_binds.get(norm_parameter_key)
             )
             if norm_member_bind is not None:
@@ -137,6 +165,14 @@ class StateTaskService(StateTask, abc.ABC):
         self, response: Any, structure_shape: StructureShape
     ) -> None:
         if not isinstance(response, dict):
+            return
+
+        if not isinstance(structure_shape, StructureShape):
+            LOG.warning(
+                "Step Functions could not normalise the response of integration '%s' due to the unexpected request template value of type '%s'",
+                self.resource.resource_arn,
+                type(structure_shape),
+            )
             return
 
         shape_members = structure_shape.members
@@ -221,7 +257,7 @@ class StateTaskService(StateTask, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ): ...
 
     def _before_eval_execution(
@@ -229,7 +265,7 @@ class StateTaskService(StateTask, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         raw_parameters: dict,
-        task_credentials: TaskCredentials,
+        state_credentials: StateCredentials,
     ) -> None:
         parameters_str = to_json_str(raw_parameters)
 
@@ -249,9 +285,7 @@ class StateTaskService(StateTask, abc.ABC):
             scheduled_event_details["heartbeatInSeconds"] = heartbeat_seconds
         if self.credentials:
             scheduled_event_details["taskCredentials"] = TaskCredentials(
-                roleArn=Credentials.get_role_arn_from(
-                    computed_credentials=task_credentials
-                )
+                roleArn=state_credentials.role_arn
             )
         env.event_manager.add_event(
             context=env.event_history_context,
@@ -277,7 +311,7 @@ class StateTaskService(StateTask, abc.ABC):
         env: Environment,
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
-        task_credentials: ComputedCredentials,
+        state_credentials: StateCredentials,
     ) -> None:
         output = env.stack[-1]
         self._verify_size_quota(env=env, value=output)
@@ -299,24 +333,28 @@ class StateTaskService(StateTask, abc.ABC):
         resource_runtime_part: ResourceRuntimePart = env.stack.pop()
 
         raw_parameters = self._eval_parameters(env=env)
-        task_credentials = self._eval_credentials(env=env)
+        state_credentials = self._eval_state_credentials(env=env)
 
         self._before_eval_execution(
             env=env,
             resource_runtime_part=resource_runtime_part,
             raw_parameters=raw_parameters,
-            task_credentials=task_credentials,
+            state_credentials=state_credentials,
         )
 
         normalised_parameters = copy.deepcopy(raw_parameters)
         self._normalise_parameters(normalised_parameters)
 
-        self._eval_service_task(
-            env=env,
-            resource_runtime_part=resource_runtime_part,
-            normalised_parameters=normalised_parameters,
-            task_credentials=task_credentials,
-        )
+        if env.is_mocked_mode():
+            mocked_response: MockedResponse = env.get_current_mocked_response()
+            eval_mocked_response(env=env, mocked_response=mocked_response)
+        else:
+            self._eval_service_task(
+                env=env,
+                resource_runtime_part=resource_runtime_part,
+                normalised_parameters=normalised_parameters,
+                state_credentials=state_credentials,
+            )
 
         output_value = env.stack[-1]
         self._normalise_response(output_value)
@@ -325,5 +363,5 @@ class StateTaskService(StateTask, abc.ABC):
             env=env,
             resource_runtime_part=resource_runtime_part,
             normalised_parameters=normalised_parameters,
-            task_credentials=task_credentials,
+            state_credentials=state_credentials,
         )

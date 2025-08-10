@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, TypedDict
+from typing import IO, Dict, Iterable, List, Optional, TypedDict, Union
 
 from ..exceptions import AWSError as ServiceException
 
@@ -1191,3 +1191,11 @@ class ValidateStateMachineDefinitionOutput(TypedDict, total=False):
     result: ValidateStateMachineDefinitionResultCode
     diagnostics: ValidateStateMachineDefinitionDiagnosticList
     truncated: Optional[ValidateStateMachineDefinitionTruncated]
+
+
+class InvocationResponse(TypedDict, total=False):
+    Payload: Optional[Union[bytes, IO[bytes], Iterable[bytes]]]
+    StatusCode: Optional[int]
+    FunctionError: Optional[str]
+    LogResult: Optional[str]
+    ExecutedVersion: Optional[str]

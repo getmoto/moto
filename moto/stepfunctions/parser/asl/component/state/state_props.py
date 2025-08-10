@@ -1,11 +1,8 @@
-from typing import Any, Set
+from typing import Any, Final
 
 from moto.stepfunctions.parser.asl.component.common.flow.end import End
 from moto.stepfunctions.parser.asl.component.common.flow.next import Next
 from moto.stepfunctions.parser.asl.component.common.parargs import Parargs
-from moto.stepfunctions.parser.asl.component.common.path.input_path import InputPath
-from moto.stepfunctions.parser.asl.component.common.path.items_path import ItemsPath
-from moto.stepfunctions.parser.asl.component.common.path.output_path import OutputPath
 from moto.stepfunctions.parser.asl.component.common.timeouts.heartbeat import Heartbeat
 from moto.stepfunctions.parser.asl.component.common.timeouts.timeout import Timeout
 from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_type import (
@@ -37,11 +34,8 @@ from moto.stepfunctions.parser.asl.component.state.wait.wait_function.wait_funct
 )
 from moto.stepfunctions.parser.asl.parse.typed_props import TypedProps
 
-UNIQUE_SUBINSTANCES: Set[type] = {
-    InputPath,
+UNIQUE_SUBINSTANCES: Final[set[type]] = {
     Items,
-    ItemsPath,
-    OutputPath,
     Resource,
     WaitFunction,
     Timeout,

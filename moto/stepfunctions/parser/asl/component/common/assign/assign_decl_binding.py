@@ -1,3 +1,5 @@
+from typing import Final
+
 from moto.stepfunctions.parser.asl.component.common.assign.assign_template_binding import (
     AssignTemplateBinding,
 )
@@ -6,7 +8,7 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class AssignDeclBinding(EvalComponent):
-    binding: AssignTemplateBinding
+    binding: Final[AssignTemplateBinding]
 
     def __init__(self, binding: AssignTemplateBinding):
         super().__init__()
