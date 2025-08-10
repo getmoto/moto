@@ -156,6 +156,32 @@ class S3ControlResponse(BaseResponse):
             next_token=next_token, configs=storage_lens_configuration_list
         )
 
+    def put_storage_lens_configuration_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-2]
+        request = xmltodict.parse(self.body)[
+            "PutStorageLensConfigurationTaggingRequest"
+        ]
+        tags = request.get("Tags")
+        self.backend.put_storage_lens_configuration_tagging(
+            config_id=config_id,
+            account_id=account_id,
+            tags=tags,
+        )
+        return ""
+
+    def get_storage_lens_configuration_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-2]
+        storage_lens_tags = self.backend.get_storage_lens_configuration_tagging(
+            config_id=config_id,
+            account_id=account_id,
+        )
+        template = self.response_template(
+            GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE
+        )
+        return template.render(tags=storage_lens_tags)
+
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
@@ -275,4 +301,19 @@ LIST_STORAGE_LENS_CONFIGURATIONS_TEMPLATE = """
     </StorageLensConfiguration>
     {% endfor %}
 </ListStorageLensConfigurationsResult>
+"""
+
+
+GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE = """
+<GetStorageLensConfigurationTaggingResult>
+   <Tags>
+      {% for tag in tags["Tag"] %}
+      <Tag>
+         <Key>{{ tag["Key"] }}</Key>
+         <Value>{{ tag["Value"] }}</Value>
+      </Tag>
+      {% endfor %}
+   </Tags>
+</GetStorageLensConfigurationTaggingResult>
+
 """

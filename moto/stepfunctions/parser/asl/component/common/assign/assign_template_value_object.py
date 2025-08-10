@@ -1,4 +1,4 @@
-from typing import List
+from typing import Final, List
 
 from moto.stepfunctions.parser.asl.component.common.assign.assign_template_binding import (
     AssignTemplateBinding,
@@ -10,7 +10,7 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class AssignTemplateValueObject(AssignTemplateValue):
-    bindings: List[AssignTemplateBinding]
+    bindings: Final[List[AssignTemplateBinding]]
 
     def __init__(self, bindings: List[AssignTemplateBinding]):
         self.bindings = bindings

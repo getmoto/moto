@@ -244,8 +244,7 @@ class EmailResponse(BaseResponse):
     def describe_receipt_rule_set(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         rule_set = self.backend.describe_receipt_rule_set(rule_set_name)
-        result = {"Metadata": {"Name": rule_set_name}, "Rules": rule_set}
-        return ActionResult(result)
+        return ActionResult(rule_set)
 
     def describe_receipt_rule(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")

@@ -79,6 +79,7 @@ from .exceptions import (
     RDSClientError,  # TODO: Refactor into specific exceptions
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
+    SourceClusterNotSupportedFault,
     SourceDatabaseNotSupportedFault,
     SubscriptionAlreadyExistError,
     SubscriptionNotFoundError,
@@ -468,6 +469,27 @@ class MasterUserSecret:
         return tags
 
 
+class DomainMembership:
+    def __init__(
+        self,
+        domain: Optional[str] = None,
+        iam_role_name: Optional[str] = None,
+        domain_ou: Optional[str] = None,
+        domain_fqdn: Optional[str] = None,
+        auth_secret_arn: Optional[str] = None,
+        dns_ips: Optional[List[str]] = None,
+    ):
+        self.domain = domain.split(".")[0] if domain else None
+        self.status = "active"
+        self.fqdn = domain_fqdn or domain
+        self.iam_role_name = iam_role_name or "rds-directory-service-access-role"
+        self.ou = domain_ou or None
+        if self.ou is None and self.domain:
+            self.ou = f"OU={self.domain}OU,DC={self.domain},DC=com"
+        self.auth_secret_arn = auth_secret_arn
+        self.dns_ips = dns_ips or []
+
+
 class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
@@ -491,6 +513,10 @@ class DBCluster(RDSBaseModel):
         master_username: Optional[str] = None,
         master_user_password: Optional[str] = None,
         backup_retention_period: int = 1,
+        domain: Optional[str] = None,
+        domain_iam_role_name: Optional[str] = None,
+        domain_ou: Optional[str] = None,
+        domain_fqdn: Optional[str] = None,
         character_set_name: Optional[str] = None,
         copy_tags_to_snapshot: Optional[bool] = False,
         database_name: Optional[str] = None,
@@ -556,6 +582,17 @@ class DBCluster(RDSBaseModel):
         )
         self.master_username = master_username
         self.character_set_name = character_set_name
+        self.domain_memberships: List[DomainMembership] = []
+        if domain or domain_iam_role_name or domain_ou or domain_fqdn:
+            domain_membership = DomainMembership(
+                domain=domain,
+                iam_role_name=domain_iam_role_name,
+                domain_ou=domain_ou,
+                domain_fqdn=domain_fqdn,
+                auth_secret_arn=kwargs.get("domain_auth_secret_arn"),
+                dns_ips=kwargs.get("domain_dns_ips"),
+            )
+            self.domain_memberships.append(domain_membership)
         self.global_cluster_identifier = kwargs.get("global_cluster_identifier")
         if (
             not self.master_username
@@ -845,10 +882,6 @@ class DBCluster(RDSBaseModel):
         self._vpc_security_group_ids = vpc_security_group_ids
 
     @property
-    def domain_memberships(self) -> List[str]:
-        return []
-
-    @property
     def cross_account_clone(self) -> bool:
         return False
 
@@ -1082,6 +1115,10 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         db_subnet_group_name: Optional[str] = None,
         db_cluster_identifier: Optional[str] = None,
         db_parameter_group_name: Optional[str] = None,
+        domain: Optional[str] = None,
+        domain_iam_role_name: Optional[str] = None,
+        domain_ou: Optional[str] = None,
+        domain_fqdn: Optional[str] = None,
         copy_tags_to_snapshot: bool = False,
         iops: Optional[str] = None,
         master_username: Optional[str] = None,
@@ -1132,6 +1169,17 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
         self.multi_az = multi_az
         self.db_subnet_group_name = db_subnet_group_name
         self.db_security_groups = db_security_groups or []
+        self.domain_memberships: List[DomainMembership] = []
+        if domain or domain_iam_role_name or domain_ou or domain_fqdn:
+            domain_membership = DomainMembership(
+                domain=domain,
+                iam_role_name=domain_iam_role_name,
+                domain_ou=domain_ou,
+                domain_fqdn=domain_fqdn,
+                auth_secret_arn=kwargs.get("domain_auth_secret_arn"),
+                dns_ips=kwargs.get("domain_dns_ips"),
+            )
+            self.domain_memberships.append(domain_membership)
         self.preferred_maintenance_window = preferred_maintenance_window.lower()
         self.db_parameter_group_name = db_parameter_group_name
         if (
@@ -1501,11 +1549,13 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             self.master_user_secret = MasterUserSecret(
                 self, master_user_secret_kms_key_id
             )
+            self.manage_master_user_password = True
         elif manage_master_user_password is False and hasattr(
             self, "master_user_secret"
         ):
             self.master_user_secret.delete_secret()
             del self.master_user_secret
+            self.manage_master_user_password = False
 
         if rotate_master_user_password is True:
             self.master_user_secret.rotate_secret()
@@ -3345,11 +3395,13 @@ class RDSBackend(BaseBackend):
             if manage_master_user_password:
                 kms_key_id = kwargs.pop("master_user_secret_kms_key_id", None)
                 cluster.master_user_secret = MasterUserSecret(cluster, kms_key_id)
+                cluster.manage_master_user_password = True
             elif not manage_master_user_password and hasattr(
                 cluster, "master_user_secret"
             ):
                 cluster.master_user_secret.delete_secret()
                 del cluster.master_user_secret
+                cluster.manage_master_user_password = False
 
         kwargs["db_cluster_identifier"] = kwargs.get("new_db_cluster_identifier", None)
         for k, v in kwargs.items():
@@ -4526,10 +4578,10 @@ class BlueGreenDeployment(RDSBaseModel):
         target_allocated_storage: int | None,
         target_storage_throughput: int | None,
     ) -> str:
-        source_instance: DBInstance | DBCluster = self._get_instance(self.source)
+        source_instance: DBInstance | DBCluster = self._get_valid_instance_or_raise(
+            self.source
+        )
         green_instance: DBInstance | DBCluster
-        if source_instance.manage_master_user_password:
-            raise SourceDatabaseNotSupportedFault(source_instance.arn)
 
         db_kwargs = {
             "engine": source_instance.engine,
@@ -4634,18 +4686,24 @@ class BlueGreenDeployment(RDSBaseModel):
                 )
             return green_instance.db_cluster_arn
 
-    def _get_instance(self, arn: str) -> DBInstance | DBCluster:
+    def _get_valid_instance_or_raise(self, arn: str) -> DBInstance | DBCluster:
         result = re.findall(r"^arn:[A-Za-z][0-9A-Za-z-:._]*", arn)
         if len(result) == 0:
             raise InvalidParameterValue("Provided string is not a valid arn")
         if self.backend._is_cluster(arn):
-            return find_cluster(arn)
+            cluster = find_cluster(arn)
+            if hasattr(cluster, "master_user_secret"):
+                raise SourceClusterNotSupportedFault(cluster.arn)
+            return cluster
         else:
-            return self.backend.find_db_from_id(arn)
+            instance = self.backend.find_db_from_id(arn)
+            if hasattr(instance, "master_user_secret"):
+                raise SourceDatabaseNotSupportedFault(instance.arn)
+            return instance
 
     def switchover(self) -> None:
-        source = self._get_instance(self.source)
-        target = self._get_instance(self.target)
+        source = self._get_valid_instance_or_raise(self.source)
+        target = self._get_valid_instance_or_raise(self.target)
         source_result: DBCluster | DBInstance
         target_result: DBCluster | DBInstance
 

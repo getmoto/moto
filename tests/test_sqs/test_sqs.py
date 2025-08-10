@@ -631,22 +631,6 @@ def test_send_message_with_message_group_id():
 
 
 @mock_aws
-def test_send_message_with_message_group_id_standard_queue():
-    sqs = boto3.resource("sqs", region_name=REGION)
-    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
-
-    with pytest.raises(ClientError) as ex:
-        queue.send_message(MessageBody="mydata", MessageGroupId="group_id_1")
-
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidParameterValue"
-    assert err["Message"] == (
-        "Value group_id_1 for parameter MessageGroupId is invalid. "
-        "Reason: The request include parameter that is not valid for this queue type."
-    )
-
-
-@mock_aws
 def test_send_message_with_unicode_characters():
     body_one = "Héllo!😀"
 

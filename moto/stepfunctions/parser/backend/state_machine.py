@@ -4,9 +4,10 @@ import abc
 import datetime
 import json
 from collections import OrderedDict
-from typing import Dict, Final, Optional
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import (
+    Arn,
     Definition,
     DescribeStateMachineOutput,
     LoggingConfiguration,
@@ -29,15 +30,16 @@ from moto.stepfunctions.parser.asl.eval.event.logging import (
 from moto.stepfunctions.parser.asl.static_analyser.variable_references_static_analyser import (
     VariableReferencesStaticAnalyser,
 )
+from moto.stepfunctions.parser.backend.alias import Alias
 from moto.stepfunctions.parser.utils import long_uid
 
 
 class StateMachineInstance:
     name: Name
-    arn: str
+    arn: Arn
     revision_id: Optional[RevisionId]
     definition: Definition
-    role_arn: str
+    role_arn: Arn
     create_date: datetime.datetime
     sm_type: StateMachineType
     logging_config: LoggingConfiguration
@@ -48,9 +50,9 @@ class StateMachineInstance:
     def __init__(
         self,
         name: Name,
-        arn: str,
+        arn: Arn,
         definition: Definition,
-        role_arn: str,
+        role_arn: Arn,
         logging_config: LoggingConfiguration,
         cloud_watch_logging_configuration: Optional[
             CloudWatchLoggingConfiguration
@@ -105,9 +107,9 @@ class TestStateMachine(StateMachineInstance):
     def __init__(
         self,
         name: Name,
-        arn: str,
+        arn: Arn,
         definition: Definition,
-        role_arn: str,
+        role_arn: Arn,
         create_date: Optional[datetime.datetime] = None,
     ):
         super().__init__(
@@ -127,7 +129,7 @@ class TestStateMachine(StateMachineInstance):
 
 
 class TagManager:
-    _tags: Final[Dict[str, Optional[str]]]
+    _tags: Final[dict[str, Optional[str]]]
 
     def __init__(self):
         self._tags = OrderedDict()
@@ -164,15 +166,16 @@ class TagManager:
 
 class StateMachineRevision(StateMachineInstance):
     _next_version_number: int
-    versions: Final[Dict[RevisionId, str]]
+    versions: Final[dict[RevisionId, Arn]]
     tag_manager: Final[TagManager]
+    aliases: Final[set[Alias]]
 
     def __init__(
         self,
         name: Name,
-        arn: str,
+        arn: Arn,
         definition: Definition,
-        role_arn: str,
+        role_arn: Arn,
         logging_config: LoggingConfiguration,
         cloud_watch_logging_configuration: Optional[CloudWatchLoggingConfiguration],
         create_date: Optional[datetime.datetime] = None,
@@ -197,11 +200,12 @@ class StateMachineRevision(StateMachineInstance):
         self.tag_manager = TagManager()
         if tags:
             self.tag_manager.add_all(tags)
+        self.aliases = set()
 
     def create_revision(
         self,
         definition: Optional[str],
-        role_arn: Optional[str],
+        role_arn: Optional[Arn],
         logging_configuration: Optional[LoggingConfiguration],
     ) -> Optional[RevisionId]:
         update_definition = definition and json.loads(definition) != json.loads(
@@ -244,7 +248,7 @@ class StateMachineRevision(StateMachineInstance):
             return version
         return None
 
-    def delete_version(self, state_machine_version_arn: str) -> None:
+    def delete_version(self, state_machine_version_arn: Arn) -> None:
         source_revision_id = None
         for revision_id, version_arn in self.versions.items():
             if version_arn == state_machine_version_arn:
@@ -262,7 +266,7 @@ class StateMachineRevision(StateMachineInstance):
 
 
 class StateMachineVersion(StateMachineInstance):
-    source_arn: str
+    source_arn: Arn
     version: int
     description: Optional[str]
 

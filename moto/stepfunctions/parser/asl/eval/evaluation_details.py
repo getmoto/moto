@@ -1,12 +1,12 @@
-from typing import Any, Optional
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.api import Arn, Definition, LongArn, StateMachineType
 
 
 class AWSExecutionDetails:
-    account: str
-    region: str
-    role_arn: str
+    account: Final[str]
+    region: Final[str]
+    role_arn: Final[str]
 
     def __init__(self, account: str, region: str, role_arn: str):
         self.account = account
@@ -15,11 +15,11 @@ class AWSExecutionDetails:
 
 
 class ExecutionDetails:
-    arn: LongArn
-    name: str
-    role_arn: Arn
-    inpt: Optional[Any]
-    start_time: str
+    arn: Final[LongArn]
+    name: Final[str]
+    role_arn: Final[Arn]
+    inpt: Final[Optional[Any]]
+    start_time: Final[str]
 
     def __init__(
         self,
@@ -37,10 +37,10 @@ class ExecutionDetails:
 
 
 class StateMachineDetails:
-    arn: Arn
-    name: str
-    typ: StateMachineType
-    definition: Definition
+    arn: Final[Arn]
+    name: Final[str]
+    typ: Final[StateMachineType]
+    definition: Final[Definition]
 
     def __init__(self, arn: Arn, name: str, typ: StateMachineType, definition: str):
         self.arn = arn
@@ -50,9 +50,9 @@ class StateMachineDetails:
 
 
 class EvaluationDetails:
-    aws_execution_details: AWSExecutionDetails
-    execution_details: ExecutionDetails
-    state_machine_details: StateMachineDetails
+    aws_execution_details: Final[AWSExecutionDetails]
+    execution_details: Final[ExecutionDetails]
+    state_machine_details: Final[StateMachineDetails]
 
     def __init__(
         self,

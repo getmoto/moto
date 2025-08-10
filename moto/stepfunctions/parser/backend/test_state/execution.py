@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from typing import Dict, Optional
+from typing import Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -65,8 +65,8 @@ class TestStateExecution(Execution):
         region_name: str,
         state_machine: StateMachineInstance,
         start_date: Timestamp,
-        activity_store: Dict[Arn, Activity],
-        input_data: Optional[Dict] = None,
+        activity_store: dict[Arn, Activity],
+        input_data: Optional[dict] = None,
     ):
         super().__init__(
             name=name,
