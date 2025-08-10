@@ -2,6 +2,7 @@ import abc
 import operator
 import re
 from datetime import date, datetime
+from enum import Enum
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
@@ -29,9 +30,75 @@ except ImportError:
     from pyparsing import delimited_list as DelimitedList  # type: ignore[assignment]
 
 from .exceptions import (
+    InvalidFilterFieldNameException,
+    InvalidFilterOperatorException,
     InvalidInputException,
     InvalidStateException,
 )
+
+
+class FilterField(str, Enum):
+    CRAWL_ID = "CRAWL_ID"
+    STATE = "STATE"
+    START_TIME = "START_TIME"
+    END_TIME = "END_TIME"
+    DPU_HOUR = "DPU_HOUR"
+
+
+class FilterOperator(str, Enum):
+    GT = "GT"
+    GE = "GE"
+    LT = "LT"
+    LE = "LE"
+    EQ = "EQ"
+    NE = "NE"
+
+
+class CrawlFilter:
+    def __init__(
+        self, field_name: FilterField, operator: FilterOperator, field_value: str
+    ) -> None:
+        self.field_name = field_name
+        self.field_value = field_value
+        self.operator = operator
+        self.check_operator_valid_for_state()
+
+    def check_operator_valid_for_state(self) -> None:
+        if self.field_name in [FilterField.STATE, FilterField.CRAWL_ID]:
+            if self.operator not in [FilterOperator.EQ, FilterOperator.NE]:
+                raise InvalidInputException(
+                    "ListCrawls",
+                    f"Only EQ or NE operator is allowed for field : {self.field_name.value}",
+                )
+
+
+def validate_crawl_filters(filters: List[Dict[str, str]]) -> List[CrawlFilter]:
+    filter_objects: List[CrawlFilter] = []
+    for index, filter in enumerate(filters):
+        field_name_input = filter.get("FieldName")
+        operator_input = filter.get("FilterOperator")
+        field_value_input = filter.get("FieldValue")
+        if not all([field_name_input, field_value_input, operator_input]):
+            raise InvalidInputException(
+                "ListCrawls",
+                f"Invalid Filter Provided: FieldName: {field_name_input if field_name_input else 'null'}, "
+                f"FilterOperator: {operator_input if operator_input else 'null'}, "
+                f"FieldValue: {field_value_input if field_value_input else 'null'}",
+            )
+
+        try:
+            field_name = FilterField(field_name_input)
+        except ValueError:
+            raise InvalidFilterFieldNameException(filter["FieldName"], index + 1)
+
+        try:
+            operator = FilterOperator(operator_input)
+        except ValueError:
+            raise InvalidFilterOperatorException(filter["FilterOperator"], index + 1)
+
+        filter_objects.append(CrawlFilter(field_name, operator, filter["FieldValue"]))
+
+    return filter_objects
 
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
