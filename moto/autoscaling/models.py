@@ -173,8 +173,7 @@ class LifecycleHook(BaseModel):
     ):
         self.name = name
         self.auto_scaling_group_name = as_name
-        if transition:
-            self.lifecycle_transition = transition
+        self.lifecycle_transition = transition
         self.heartbeat_timeout = timeout or 3600
         self.default_result = result or "ABANDON"
         # TODO: These were hardcoded in the original XML template, but should be implemented properly.
