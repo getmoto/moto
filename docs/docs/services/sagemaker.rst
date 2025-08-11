@@ -17,6 +17,8 @@ sagemaker
 - [ ] add_association
 - [X] add_tags
 - [X] associate_trial_component
+- [ ] attach_cluster_node_volume
+- [ ] batch_add_cluster_nodes
 - [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
 - [ ] create_action
@@ -149,6 +151,7 @@ sagemaker
 - [ ] describe_auto_ml_job
 - [X] describe_auto_ml_job_v2
 - [X] describe_cluster
+- [ ] describe_cluster_event
 - [X] describe_cluster_node
 - [ ] describe_cluster_scheduler_config
 - [ ] describe_code_repository
@@ -197,6 +200,7 @@ sagemaker
 - [X] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
+- [ ] describe_reserved_capacity
 - [ ] describe_space
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
@@ -208,6 +212,7 @@ sagemaker
 - [ ] describe_user_profile
 - [ ] describe_workforce
 - [ ] describe_workteam
+- [ ] detach_cluster_node_volume
 - [ ] disable_sagemaker_servicecatalog_portfolio
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
@@ -227,6 +232,7 @@ sagemaker
 - [ ] list_associations
 - [X] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
+- [ ] list_cluster_events
 - [X] list_cluster_nodes
 - [ ] list_cluster_scheduler_configs
 - [X] list_clusters
@@ -302,6 +308,7 @@ sagemaker
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
+- [ ] list_ultra_servers_by_reserved_capacity
 - [ ] list_user_profiles
 - [ ] list_workforces
 - [ ] list_workteams

@@ -1,6 +1,51 @@
 Moto Changelog
 ==============
 
+
+
+5.1.10
+-----
+Docker Digest for 5.1.10: <autopopulateddigest>
+
+    New Methods:
+        * Glue:
+            * delete_dev_endpoint()
+            * list_crawls()
+
+        * ElastiCache:
+            * delete_replication_group()
+
+        * EKS:
+            * update_cluster_config()
+
+        * ResourceGroupsTaggingAPI:
+            * untag_resources() (Currently only supports Lambda and EFS resources)
+
+        * S3Control:
+            * get_storage_lens_configuration_tagging()
+            * put_storage_lens_configuration_tagging()
+
+
+    Miscellaneous:
+        * Batch: list_jobs() now supports filters with an asterisk
+        * Batch: list_jobs() now ignores jobStatus when the filters parameter is provided, in parity with AWS
+        * Batch: submit_job() now supports the tags-parameter
+        * CloudFormation: describe_stack_resources() now supports the LogicalResourceId-parameter
+        * EC2: describe_images() now returns the CreationDate-attribute in the correct format (RFC3339) (broken in 5.1.9)
+        * EC2: describe_managed_prefix_lists() now no longer returns a StateMessage, in parity with AWS
+        * EC2: describe_managed_prefix_lists() now returns 'AWS' in upper case for the OwnerId
+        * EC2: modify_vpc_endpoint() now supports the parameters AddSecurityGroupId, RemoveSecurityGroupId and RemoveSubnetId
+        * ELBv2: describe_load_balancers() now returns the CanonicalHostedZoneId again (broken in 5.1.9)
+        * Events: put_targets() now supports StepFunctions
+        * RDS: create_blue_green_deployment() now works correctly when ManageMasterUserPassword has been updated to False
+        * RDS: create_database() now supports the DomainMembership parameters (Domain/DomainFqdn/DomainOu/DomainAuthSecretArn/DomainDnsIps)
+        * ResourceGroupsTaggingAPI: get_resources() now supports DirectConnect resources
+        * ResourceGroupsTaggingAPI: tag_resources() now supports Lambda and EFS resources
+        * SES: describe_receipt_rule_set() now returns the Metadata.CreatedTimestamp field (broken in 5.1.9)
+        * SQS: The max message size has been updated to 1MB, from 256KB (AWS updated this a week ago).
+        * SQS: send_message() now no longer throws an error when supplying the MessageGroupId-parameter against a regular (non-FIFO) queues
+
+
 5.1.9
 -----
 Docker Digest for 5.1.9: _sha256:1fae2f297efbd05522835fec12c20ae88cb4734e1c4c2b9297ddc3063858dcc4_
