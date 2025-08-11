@@ -5,7 +5,7 @@ Moto Changelog
 
 5.1.10
 -----
-Docker Digest for 5.1.10: <autopopulateddigest>
+Docker Digest for 5.1.10: _sha256:c8d59f06ef51ed29ba1a6d008785e9538f0c32f636c2d77bb188b73dd21d8832_
 
     New Methods:
         * Glue:
