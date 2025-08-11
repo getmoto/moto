@@ -1,17 +1,10 @@
 from moto.core.responses import ActionResult, EmptyResult
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 from ..exceptions import AuthFailureRestricted, InvalidRequest
 from ._base_response import EC2BaseResponse
 
 
 class AmisResponse(EC2BaseResponse):
-    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "DescribeImagesResult.imagesSet.Image.CreationDate": (
-            lambda x: iso_8601_datetime_with_milliseconds(x)
-        ),
-    }
-
     def create_image(self) -> ActionResult:
         name = self.querystring.get("Name")[0]  # type: ignore[index]
         description = self._get_param("Description", if_none="")
