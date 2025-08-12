@@ -201,7 +201,10 @@ def test_describe_cluster_master_public_dns():
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
 
     response = client.describe_cluster(ClusterId=cluster_id)
-    assert region_name in response["Cluster"]["MasterPublicDnsName"]
+    master_public_dns_name = response["Cluster"]["MasterPublicDnsName"]
+    assert master_public_dns_name.startswith("ec2-")
+    assert region_name in master_public_dns_name
+    assert master_public_dns_name.endswith(".amazonaws.com")
 
 
 @mock_aws
