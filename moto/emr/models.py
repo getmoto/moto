@@ -582,7 +582,7 @@ class Cluster(CloudFormationModel):
 
         for ec2_instance in self.ec2_instances:
             if ec2_instance.instance_group.id == master_instance_group.id:
-                dashed_ip, domain = ec2_instance.public_dns_name.split(".", 1)
+                dashed_ip, domain = ec2_instance.public_dns_name.split(".", 1)  # type: ignore
                 return ".".join([dashed_ip, self.emr_backend.region_name, domain])
 
         # TODO: Moto does not create instances when InstanceGroups is not provided to RunJobFlow operation.
