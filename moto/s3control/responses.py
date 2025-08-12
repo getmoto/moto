@@ -182,6 +182,24 @@ class S3ControlResponse(BaseResponse):
         )
         return template.render(tags=storage_lens_tags)
 
+    def list_access_points(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+
+        access_points, next_token = self.backend.list_access_points(
+            account_id=account_id,
+            bucket=params.get("bucket"),
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+
+        template = self.response_template(LIST_ACCESS_POINTS_TEMPLATE)
+        return template.render(access_points=access_points, next_token=next_token)
+
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
@@ -317,3 +335,24 @@ GET_STORAGE_LENS_CONFIGURATION_TAGGING_TEMPLATE = """
 </GetStorageLensConfigurationTaggingResult>
 
 """
+LIST_ACCESS_POINTS_TEMPLATE = """<ListAccessPointsResult>
+  <AccessPointList>
+    {% for access_point in access_points %}
+    <AccessPoint>
+      <Name>{{ access_point.name }}</Name>
+      <NetworkOrigin>{{ access_point.network_origin }}</NetworkOrigin>
+      {% if access_point.vpc_id %}
+      <VpcConfiguration>
+        <VpcId>{{ access_point.vpc_id }}</VpcId>
+      </VpcConfiguration>
+      {% endif %}
+      <Bucket>{{ access_point.bucket }}</Bucket>
+      <AccessPointArn>{{ access_point.arn }}</AccessPointArn>
+      <Alias>{{ access_point.alias }}</Alias>
+    </AccessPoint>
+    {% endfor %}
+  </AccessPointList>
+  {% if next_token %}
+  <NextToken>{{ next_token }}</NextToken>
+  {% endif %}
+</ListAccessPointsResult>"""

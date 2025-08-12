@@ -87,6 +87,33 @@ def test_get_access_point_full():
     }
 
 
+@mock_aws
+def test_list_access_points():
+    client = boto3.client("s3control", region_name="ap-southeast-1")
+    s3_client = boto3.client("s3", region_name="ap-southeast-1")
+
+    # Test with no access points initially
+    resp = client.list_access_points(AccountId="111111111111")
+    assert not resp.get("AccessPointList")
+
+    s3_client.create_bucket(
+        Bucket="bucket-a",
+        CreateBucketConfiguration={"LocationConstraint": "ap-southeast-1"},
+    )
+    s3_client.create_bucket(
+        Bucket="bucket-b",
+        CreateBucketConfiguration={"LocationConstraint": "ap-southeast-1"},
+    )
+    client.create_access_point(AccountId="111111111111", Name="ap1", Bucket="bucket-a")
+    client.create_access_point(AccountId="111111111111", Name="ap2", Bucket="bucket-a")
+    client.create_access_point(AccountId="111111111111", Name="ap3", Bucket="bucket-b")
+
+    resp = client.list_access_points(AccountId="111111111111")
+    aps = resp["AccessPointList"]
+    assert len(aps) == 3
+    assert {ap["Name"] for ap in aps} == {"ap1", "ap2", "ap3"}
+
+
 @pytest.mark.aws_verified
 @s3_aws_verified
 def test_delete_access_point(bucket_name=None):
