@@ -25,7 +25,7 @@ class Zone:
         self.zone_id = zone_id
         self.zone_type = zone_type
         self.state = "available"
-        self.messages = []
+        self.messages: List[dict[str, Optional[str]]] = []
 
 
 class RegionsAndZonesBackend:
