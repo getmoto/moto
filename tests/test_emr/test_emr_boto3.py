@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 run_job_flow_args = dict(
@@ -191,7 +191,7 @@ def test_describe_cluster():
 
 @mock_aws
 def test_describe_cluster_master_public_dns():
-    region_name = "us-east-2"
+    region_name = "us-east-1" if settings.TEST_SERVER_MODE else "ap-south-1"
 
     client = boto3.client("emr", region_name=region_name)
 
