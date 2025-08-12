@@ -11,7 +11,7 @@ jobs:
         ruby-version: ['3.3']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Ruby ${{ matrix.ruby-version }}
         uses: ruby/setup-ruby@2a7b30092b0caf9c046252510f9273b4875f3db9
         with:
