@@ -205,16 +205,16 @@ def test_describe_cluster_ebs_volume_fields():
     # Must return proper values when set
     args.update(
         {
-            "EbsRootVolumeSize": 20,
-            "EbsRootVolumeIops": 5000,
-            "EbsRootVolumeThroughput": 250,
+            "EbsRootVolumeSize": 10,
+            "EbsRootVolumeIops": 3000,
+            "EbsRootVolumeThroughput": 125,
         }
     )
     cluster_id = client.run_job_flow(**args)["JobFlowId"]
     response = client.describe_cluster(ClusterId=cluster_id)
-    assert response["Cluster"]["EbsRootVolumeSize"] == 20
-    assert response["Cluster"]["EbsRootVolumeIops"] == 5000
-    assert response["Cluster"]["EbsRootVolumeThroughput"] == 250
+    assert response["Cluster"]["EbsRootVolumeSize"] == 10
+    assert response["Cluster"]["EbsRootVolumeIops"] == 3000
+    assert response["Cluster"]["EbsRootVolumeThroughput"] == 125
 
 
 @mock_aws
