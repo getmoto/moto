@@ -131,6 +131,7 @@ iot
 - [ ] describe_detect_mitigation_actions_task
 - [ ] describe_dimension
 - [X] describe_domain_configuration
+- [ ] describe_encryption_configuration
 - [X] describe_endpoint
 - [ ] describe_event_configurations
 - [ ] describe_fleet_metric
@@ -333,6 +334,7 @@ iot
 - [ ] update_dimension
 - [X] update_domain_configuration
 - [ ] update_dynamic_thing_group
+- [ ] update_encryption_configuration
 - [ ] update_event_configurations
 - [ ] update_fleet_metric
 - [X] update_indexing_configuration

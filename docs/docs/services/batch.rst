@@ -21,10 +21,12 @@ batch
 - [ ] create_consumable_resource
 - [X] create_job_queue
 - [X] create_scheduling_policy
+- [ ] create_service_environment
 - [X] delete_compute_environment
 - [ ] delete_consumable_resource
 - [X] delete_job_queue
 - [X] delete_scheduling_policy
+- [ ] delete_service_environment
 - [X] deregister_job_definition
 - [X] describe_compute_environments
   
@@ -44,6 +46,8 @@ batch
 
 - [X] describe_jobs
 - [X] describe_scheduling_policies
+- [ ] describe_service_environments
+- [ ] describe_service_job
 - [ ] get_job_queue_snapshot
 - [ ] list_consumable_resources
 - [X] list_jobs
@@ -57,6 +61,7 @@ batch
         Pagination is not yet implemented
         
 
+- [ ] list_service_jobs
 - [X] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
@@ -64,11 +69,14 @@ batch
         Parameters RetryStrategy and Parameters are not yet implemented.
         
 
+- [ ] submit_service_job
 - [X] tag_resource
 - [X] terminate_job
+- [ ] terminate_service_job
 - [X] untag_resource
 - [X] update_compute_environment
 - [ ] update_consumable_resource
 - [X] update_job_queue
 - [X] update_scheduling_policy
+- [ ] update_service_environment
 
