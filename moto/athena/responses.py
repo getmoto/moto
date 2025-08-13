@@ -181,7 +181,7 @@ class AthenaResponse(BaseResponse):
             {"DataCatalogsSummary": self.athena_backend.list_data_catalogs()}
         )
 
-    def list_tags_for_resource(self) -> str:
+    def list_tags_for_resource(self) -> Union[Tuple[str, Dict[str, int]], str]:
         resource_arn = self._get_param("ResourceARN")
         tags = self.athena_backend.list_tags_for_resource(resource_arn)
         if not tags:

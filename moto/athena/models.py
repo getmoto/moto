@@ -501,9 +501,10 @@ class AthenaBackend(BaseBackend):
             return self.executions[query_execution_id]
         return None
 
-    def list_tags_for_resource(self, resource_arn: str) -> Optional[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> Optional[Dict[str, Any]]:
         if self.tagger.has_tags(resource_arn):
             return self.tagger.list_tags_for_resource(resource_arn)
         return None
+
 
 athena_backends = BackendDict(AthenaBackend, "athena")
