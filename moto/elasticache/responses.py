@@ -30,6 +30,7 @@ class ElastiCacheResponse(BaseResponse):
         no_password_required = self._get_bool_param("NoPasswordRequired")
         authentication_mode = params.get("AuthenticationMode")
         authentication_type = "null"
+        tags = params.get("Tags")
 
         if no_password_required is not None:
             authentication_type = (
@@ -76,6 +77,7 @@ class ElastiCacheResponse(BaseResponse):
             access_string=access_string,  # type: ignore[arg-type]
             no_password_required=no_password_required,
             authentication_type=authentication_type,
+            tags=tags,
         )
         return ActionResult(user)
 
