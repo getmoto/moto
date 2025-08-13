@@ -2,6 +2,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
+from moto.athena.models import AthenaBackend, athena_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
@@ -69,6 +70,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def appsync_backend(self) -> AppSyncBackend:
         return appsync_backends[self.account_id][self.region_name]
+
+    @property
+    def athena_backend(self) -> AthenaBackend:
+        return athena_backends[self.account_id][self.region_name]
 
     @property
     def s3_backend(self) -> S3Backend:
@@ -310,6 +315,39 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                 yield {"ResourceARN": f"{api.arn}", "Tags": tags}
 
+        # Athena
+        if self.athena_backend:
+            if not resource_type_filters or "athena" in resource_type_filters:
+                athena_backend = athena_backends[self.account_id][self.region_name]
+
+                # Capacity Reservations
+                for (
+                    capacity_reservation
+                ) in self.athena_backend.capacity_reservations.values():
+                    tags = athena_backend.tagger.list_tags_for_resource(
+                        capacity_reservation.name
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{capacity_reservation.name}", "Tags": tags}
+
+                # Workgroups
+                for work_group in self.athena_backend.work_groups.values():
+                    tags = athena_backend.tagger.list_tags_for_resource(
+                        work_group.name
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{work_group.name}", "Tags": tags}
+
+                # Data Catalogs
+                for data_catalog in self.athena_backend.data_catalogs.values():
+                    tags = athena_backend.tagger.list_tags_for_resource(
+                        data_catalog.name
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{data_catalog.name}", "Tags": tags}
         # Backup
         if not resource_type_filters or "backup" in resource_type_filters:
             for vault in self.backup_backend.vaults.values():

@@ -8,6 +8,7 @@ from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.s3.utils import bucket_and_name_from_url
 from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 
@@ -214,6 +215,7 @@ class AthenaBackend(BaseBackend):
         self.query_results: Dict[str, QueryResults] = {}
         self.query_results_queue: List[QueryResults] = []
         self.prepared_statements: Dict[str, PreparedStatement] = {}
+        self.tagger = TaggingService()
 
         # Initialise with the primary workgroup
         self.create_work_group(
@@ -237,6 +239,7 @@ class AthenaBackend(BaseBackend):
             return None
         work_group = WorkGroup(self, name, configuration, description, tags)
         self.work_groups[name] = work_group
+        self.tagger.tag_resource(work_group.name, tags)
         return work_group
 
     def list_work_groups(self) -> List[Dict[str, Any]]:
@@ -398,6 +401,7 @@ class AthenaBackend(BaseBackend):
     ) -> None:
         cr = CapacityReservation(self, name, target_dpus, tags)
         self.capacity_reservations[cr.name] = cr
+        self.tagger.tag_resource(cr.name, tags)
         return None
 
     def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
@@ -455,6 +459,7 @@ class AthenaBackend(BaseBackend):
             self, name, catalog_type, description, parameters, tags
         )
         self.data_catalogs[name] = data_catalog
+        self.tagger.tag_resource(data_catalog.name, tags)
         return data_catalog
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -496,5 +501,9 @@ class AthenaBackend(BaseBackend):
             return self.executions[query_execution_id]
         return None
 
+    def list_tags_for_resource(self, resource_arn: str) -> Optional[Dict[str, str]]:
+        if self.tagger.has_tags(resource_arn):
+            return self.tagger.list_tags_for_resource(resource_arn)
+        return None
 
 athena_backends = BackendDict(AthenaBackend, "athena")

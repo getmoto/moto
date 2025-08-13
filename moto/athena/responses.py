@@ -181,6 +181,13 @@ class AthenaResponse(BaseResponse):
             {"DataCatalogsSummary": self.athena_backend.list_data_catalogs()}
         )
 
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("ResourceARN")
+        tags = self.athena_backend.list_tags_for_resource(resource_arn)
+        if not tags:
+            return self.error(f"Athena Resource, {resource_arn} Does Not Exist", 400)
+        return json.dumps(tags)
+
     def get_data_catalog(self) -> str:
         name = self._get_param("Name")
         return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
