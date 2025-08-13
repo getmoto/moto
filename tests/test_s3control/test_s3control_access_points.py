@@ -58,34 +58,43 @@ def test_get_access_point_minimal():
 
 
 @mock_aws
-def test_get_access_point_full():
-    client = boto3.client("s3control", region_name="ap-southeast-1")
+def test_list_access_points_fully():
+    region = "us-east-1"
+    account_id = "111111111111"
+    client = boto3.client("s3control", region_name=region)
+    s3_client = boto3.client("s3", region_name=region)
+
+    resp = client.list_access_points(AccountId=account_id)
+    assert not resp.get("AccessPointList")
+
+    s3_client.create_bucket(Bucket="bucket-a")
+    s3_client.create_bucket(Bucket="bucket-b")
     client.create_access_point(
-        AccountId="111111111111",
-        Name="ap_name",
-        Bucket="mybucket",
-        VpcConfiguration={"VpcId": "sth"},
-        PublicAccessBlockConfiguration={
-            "BlockPublicAcls": False,
-            "IgnorePublicAcls": False,
-            "BlockPublicPolicy": False,
-            "RestrictPublicBuckets": False,
-        },
+        AccountId=account_id, Name="ap1-a", Bucket="bucket-a"
+    )
+    client.create_access_point(
+        AccountId=account_id, Name="ap2-a", Bucket="bucket-a"
+    )
+    client.create_access_point(
+        AccountId=account_id, Name="ap3-b", Bucket="bucket-b"
     )
 
-    resp = client.get_access_point(AccountId="111111111111", Name="ap_name")
+    resp = client.list_access_points(AccountId=account_id)
+    assert len(resp["AccessPointList"]) == 3
 
-    assert resp["Name"] == "ap_name"
-    assert resp["Bucket"] == "mybucket"
-    assert resp["NetworkOrigin"] == "VPC"
-    assert resp["VpcConfiguration"] == {"VpcId": "sth"}
-    assert resp["PublicAccessBlockConfiguration"] == {
-        "BlockPublicAcls": False,
-        "IgnorePublicAcls": False,
-        "BlockPublicPolicy": False,
-        "RestrictPublicBuckets": False,
-    }
+    resp = client.list_access_points(AccountId=account_id, Bucket="bucket-a")
+    aps = resp["AccessPointList"]
+    assert len(aps) == 2
+    assert {ap["Name"] for ap in aps} == {"ap1-a", "ap2-a"}
 
+    resp = client.list_access_points(AccountId=account_id, MaxResults=2)
+    assert len(resp["AccessPointList"]) == 2
+    assert "NextToken" in resp
+
+    next_token = resp["NextToken"]
+    resp2 = client.list_access_points(AccountId=account_id, NextToken=next_token)
+    assert len(resp2["AccessPointList"]) == 1
+    assert "NextToken" not in resp2
 
 @mock_aws
 def test_list_access_points():
