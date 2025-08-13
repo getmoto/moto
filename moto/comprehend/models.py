@@ -243,7 +243,7 @@ class ComprehendJob(BaseModel):
         output_s3_config: Dict[str, Any],
         data_access_role_arn: str,
         language_code: Optional[str],
-        **kwargs,
+        **kwargs: Any,
     ):
         self.job_id = str(uuid.uuid4())
         self.job_name = job_name or f"moto-job-{self.job_id}"
@@ -282,7 +282,7 @@ class ComprehendJob(BaseModel):
         base_dict["job_type"] = self.job_type
         return base_dict
 
-    def stop(self):
+    def stop(self) -> None:
         if self.job_status in ["SUBMITTED", "IN_PROGRESS"]:
             self.job_status = "STOP_REQUESTED"
 
@@ -686,7 +686,7 @@ class ComprehendBackend(BaseBackend):
             raise ResourceNotFound
         self.resource_policies.pop(resource_arn)
 
-    def _start_job(self, job_type: str, **kwargs) -> ComprehendJob:
+    def _start_job(self, job_type: str, **kwargs: Any) -> ComprehendJob:
         input_config = kwargs.pop("InputDataConfig")
         output_config = kwargs.pop("OutputDataConfig")
         role_arn = kwargs.pop("DataAccessRoleArn")
@@ -737,7 +737,7 @@ class ComprehendBackend(BaseBackend):
 
         return results
 
-    def start_pii_entities_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_pii_entities_detection_job(self, **kwargs: Any) -> ComprehendJob:
         return self._start_job("PiiEntitiesDetection", **kwargs)
 
     def describe_pii_entities_detection_job(self, job_id: str) -> ComprehendJob:
@@ -751,7 +751,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("PiiEntitiesDetection", filter)
 
-    def start_key_phrases_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_key_phrases_detection_job(self, **kwargs: Any) -> ComprehendJob:
         return self._start_job("KeyPhrasesDetection", **kwargs)
 
     def describe_key_phrases_detection_job(self, job_id: str) -> ComprehendJob:
@@ -765,7 +765,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("KeyPhrasesDetection", filter)
 
-    def start_sentiment_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_sentiment_detection_job(self, **kwargs: Any) -> ComprehendJob:
         return self._start_job("SentimentDetection", **kwargs)
 
     def describe_sentiment_detection_job(self, job_id: str) -> ComprehendJob:
@@ -779,7 +779,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("SentimentDetection", filter)
 
-    def start_dominant_language_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_dominant_language_detection_job(self, **kwargs: Any) -> ComprehendJob:
         return self._start_job("DominantLanguageDetection", **kwargs)
 
     def describe_dominant_language_detection_job(self, job_id: str) -> ComprehendJob:
@@ -793,7 +793,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("DominantLanguageDetection", filter)
 
-    def start_entities_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_entities_detection_job(self, **kwargs: Any) -> ComprehendJob:
         if "EntityRecognizerArn" not in kwargs:
             raise InvalidRequestException(
                 "The request is missing the required parameter: EntityRecognizerArn."
@@ -811,7 +811,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("EntitiesDetection", filter)
 
-    def start_topics_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_topics_detection_job(self, **kwargs: Any) -> ComprehendJob:
         return self._start_job("TopicsDetection", **kwargs)
 
     def describe_topics_detection_job(self, job_id: str) -> ComprehendJob:
@@ -822,7 +822,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("TopicsDetection", filter)
 
-    def start_document_classification_job(self, **kwargs) -> ComprehendJob:
+    def start_document_classification_job(self, **kwargs: Any) -> ComprehendJob:
         if "DocumentClassifierArn" not in kwargs:
             raise InvalidRequestException(
                 "The request is missing the required parameter: DocumentClassifierArn."
@@ -837,7 +837,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("DocumentClassification", filter)
 
-    def start_events_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_events_detection_job(self, **kwargs: Any) -> ComprehendJob:
         if "TargetEventTypes" not in kwargs:
             raise InvalidRequestException(
                 "The request is missing the required parameter: TargetEventTypes."
@@ -855,7 +855,7 @@ class ComprehendBackend(BaseBackend):
     ) -> List[ComprehendJob]:
         return self._list_jobs("EventsDetection", filter)
 
-    def start_targeted_sentiment_detection_job(self, **kwargs) -> ComprehendJob:
+    def start_targeted_sentiment_detection_job(self, **kwargs: Any) -> ComprehendJob:
         return self._start_job("TargetedSentimentDetection", **kwargs)
 
     def describe_targeted_sentiment_detection_job(self, job_id: str) -> ComprehendJob:
