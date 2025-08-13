@@ -1,9 +1,12 @@
+from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
 
 def make_arn_for_load_balancer(account_id: str, name: str, region_name: str) -> str:
-    return f"arn:{get_partition(region_name)}:elasticloadbalancing:{region_name}:{account_id}:loadbalancer/app/{name}/50dc6c495c0c9188"
+    lb_id = mock_random.get_random_hex(length=16)
+    return f"arn:{get_partition(region_name)}:elasticloadbalancing:{region_name}:{account_id}:loadbalancer/app/{name}/{lb_id}"
 
 
 def make_arn_for_target_group(account_id: str, name: str, region_name: str) -> str:
-    return f"arn:{get_partition(region_name)}:elasticloadbalancing:{region_name}:{account_id}:targetgroup/{name}/50dc6c495c0c9188"
+    tg_id = mock_random.get_random_hex(length=16)
+    return f"arn:{get_partition(region_name)}:elasticloadbalancing:{region_name}:{account_id}:targetgroup/{name}/{tg_id}"
