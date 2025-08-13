@@ -7,7 +7,6 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.exceptions import JsonRESTError
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -293,7 +292,18 @@ class ComprehendBackend(BaseBackend):
 
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/comprehend/client/detect_key_phrases.html
     detect_key_phrases_languages = [
-        "ar", "hi", "ko", "zh-TW", "ja", "zh", "de", "pt", "en", "it", "fr", "es",
+        "ar",
+        "hi",
+        "ko",
+        "zh-TW",
+        "ja",
+        "zh",
+        "de",
+        "pt",
+        "en",
+        "it",
+        "fr",
+        "es",
     ]
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/comprehend/client/detect_pii_entities.html
     detect_pii_entities_languages = ["en"]
@@ -648,7 +658,9 @@ class ComprehendBackend(BaseBackend):
         revision_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
 
-        creation_time = self.resource_policies.get(resource_arn, {}).get("CreationTime", now)
+        creation_time = self.resource_policies.get(resource_arn, {}).get(
+            "CreationTime", now
+        )
 
         self.resource_policies[resource_arn] = {
             "ResourcePolicy": resource_policy,
@@ -707,7 +719,7 @@ class ComprehendBackend(BaseBackend):
         """Generic method to list and filter jobs."""
         # Pagination is not yet implemented
         job_filter = job_filter or {}
-        
+
         results = [job for job in self.jobs.values() if job.job_type == job_type]
 
         if "JobName" in job_filter:
@@ -722,7 +734,7 @@ class ComprehendBackend(BaseBackend):
         if "SubmitTimeAfter" in job_filter:
             after_time = job_filter["SubmitTimeAfter"]
             results = [job for job in results if job.submit_time > after_time]
-        
+
         return results
 
     def start_pii_entities_detection_job(self, **kwargs) -> ComprehendJob:
