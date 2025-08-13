@@ -3,7 +3,6 @@ import json
 import re
 import time
 from collections import OrderedDict
-from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
@@ -616,7 +615,6 @@ class GlueBackend(BaseBackend):
         previous_run_id: Optional[str],
     ) -> str:
         job = self.get_job(name)
-        print(arguments)
         return job.start_job_run(
             arguments=arguments,
             allocated_capacity=allocated_capacity,
@@ -1959,7 +1957,6 @@ class FakeJobRun(ManagedState):
         security_configuration: Optional[str] = None,
         number_of_workers: Optional[int] = 10,
     ):
-        print(arguments)
         ManagedState.__init__(
             self,
             model_name="glue::job_run",

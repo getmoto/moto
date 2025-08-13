@@ -436,7 +436,6 @@ class GlueResponse(BaseResponse):
         name = self.parameters.get("JobName")
         run_id = self.parameters.get("RunId")
         job_run = self.glue_backend.get_job_run(name, run_id)  # type: ignore[arg-type]
-        print(job_run.arguments)
         return json.dumps({"JobRun": job_run.as_dict()})
 
     def get_job_runs(self) -> str:
