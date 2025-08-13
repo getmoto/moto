@@ -530,6 +530,9 @@ class FakeAction(BaseModel):
                 self.data["ForwardConfig"]["TargetGroupStickinessConfig"] = {
                     "Enabled": False
                 }
+
+            for target_group in self.data["ForwardConfig"].get("TargetGroups", []):
+                target_group.setdefault("Weight", 1)
         # Dynamically give our Action class all properties of the source data.
         self.__dict__.update(self.data)
 

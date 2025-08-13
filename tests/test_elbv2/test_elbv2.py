@@ -996,17 +996,26 @@ def test_handle_listener_rules():
                     "TargetGroups": [
                         {
                             "TargetGroupArn": target_group["TargetGroupArn"],
-                            "Weight": 1,
                         },
                         {
                             "TargetGroupArn": target_group["TargetGroupArn"],
-                            "Weight": 2,
+                            "Weight": 20,
                         },
                     ]
                 },
             },
         ],
     )
+    # test for default weights
+    rule_arn = rules["Rules"][0]["RuleArn"]
+    forward_rule = conn.describe_rules(RuleArns=[rule_arn])["Rules"][0]
+    assert len(forward_rule["Actions"]) == 1
+    assert len(forward_rule["Actions"][0]["ForwardConfig"]["TargetGroups"]) == 2
+    weights = [
+        tg["Weight"]
+        for tg in forward_rule["Actions"][0]["ForwardConfig"]["TargetGroups"]
+    ]
+    assert weights == [1, 20]
 
     # test for PriorityInUse
     with pytest.raises(ClientError):
