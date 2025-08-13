@@ -3,6 +3,7 @@ import json
 import re
 import time
 from collections import OrderedDict
+from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
@@ -601,9 +602,32 @@ class GlueBackend(BaseBackend):
     def get_jobs(self) -> List["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
-    def start_job_run(self, name: str) -> str:
+    def start_job_run(
+        self,
+        name: str,
+        arguments: Optional[Dict[str, str]],
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[Dict[str, int]],
+        previous_run_id: Optional[str],
+    ) -> str:
         job = self.get_job(name)
-        return job.start_job_run()
+        print(arguments)
+        return job.start_job_run(
+            arguments=arguments,
+            allocated_capacity=allocated_capacity,
+            max_capacity=max_capacity,
+            timeout=timeout,
+            worker_type=worker_type,
+            security_configuration=security_configuration,
+            number_of_workers=number_of_workers,
+            notification_property=notification_property,
+            previous_run_id=previous_run_id,
+        )
 
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
@@ -1815,7 +1839,7 @@ class FakeJob:
         self.role = role
         self.execution_property = execution_property or {}
         self.command = command
-        self.default_arguments = default_arguments
+        self.default_arguments = default_arguments or {}
         self.non_overridable_arguments = non_overridable_arguments
         self.connections = connections
         self.max_retries = max_retries
@@ -1868,7 +1892,18 @@ class FakeJob:
             "SourceControlDetails": self.source_control_details,
         }
 
-    def start_job_run(self) -> str:
+    def start_job_run(
+        self,
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[Dict[str, int]],
+        previous_run_id: Optional[str],
+        arguments: Optional[Dict[str, str]],
+    ) -> str:
         running_jobs = len(
             [jr for jr in self.job_runs if jr.status in ["STARTING", "RUNNING"]]
         )
@@ -1876,7 +1911,24 @@ class FakeJob:
             raise ConcurrentRunsExceededException(
                 f"Job with name {self.name} already running"
             )
-        fake_job_run = FakeJobRun(job_name=self.name)
+        job_run_arguments = self.default_arguments.copy()
+        job_run_arguments.update(arguments or {})
+        # this has to be last to ensure it can't be overridden
+        job_run_arguments.update(self.non_overridable_arguments or {})
+
+        fake_job_run = FakeJobRun(
+            job_name=self.name,
+            arguments=job_run_arguments,
+            allocated_capacity=allocated_capacity or self.allocated_capacity,
+            max_capacity=max_capacity or self.max_capacity,
+            timeout=timeout or self.timeout,
+            worker_type=worker_type or self.worker_type,
+            security_configuration=security_configuration
+            or self.security_configuration,
+            number_of_workers=number_of_workers or self.number_of_workers,
+            notification_property=notification_property or self.notification_property,
+            job_run_id=previous_run_id,
+        )
         self.job_runs.append(fake_job_run)
         return fake_job_run.job_run_id
 
@@ -1897,57 +1949,69 @@ class FakeJobRun(ManagedState):
     def __init__(
         self,
         job_name: str,
-        job_run_id: str = "01",
+        job_run_id: Optional[str] = None,
         arguments: Optional[Dict[str, Any]] = None,
-        allocated_capacity: Optional[int] = None,
+        allocated_capacity: Optional[int] = 10,
+        max_capacity: Optional[float] = 10.0,
         timeout: Optional[int] = None,
-        worker_type: str = "Standard",
+        worker_type: Optional[str] = "Standard",
+        notification_property: Optional[Dict[str, int]] = None,
+        security_configuration: Optional[str] = None,
+        number_of_workers: Optional[int] = 10,
     ):
+        print(arguments)
         ManagedState.__init__(
             self,
             model_name="glue::job_run",
             transitions=[("STARTING", "RUNNING"), ("RUNNING", "SUCCEEDED")],
         )
         self.job_name = job_name
-        self.job_run_id = job_run_id
+        self.job_run_id = f"jr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = job_run_id
         self.arguments = arguments
         self.allocated_capacity = allocated_capacity
+        self.max_capacity = max_capacity
         self.timeout = timeout
         self.worker_type = worker_type
         self.started_on = utcnow()
         self.modified_on = utcnow()
         self.completed_on = utcnow()
+        self.notification_property = notification_property
+        self.security_configuration = security_configuration
+        self.number_of_workers = number_of_workers
 
     def get_name(self) -> str:
         return self.job_name
 
     def as_dict(self) -> Dict[str, Any]:
-        return {
+        return_dict = {
             "Id": self.job_run_id,
-            "Attempt": 1,
-            "PreviousRunId": "01",
-            "TriggerName": "test_trigger",
+            "Attempt": 0,
             "JobName": self.job_name,
             "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
             "JobRunState": self.status,
-            "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
-            "ErrorMessage": "",
-            "PredecessorRuns": [
-                {"JobName": "string", "RunId": "string"},
-            ],
-            "AllocatedCapacity": self.allocated_capacity or 123,
+            "PredecessorRuns": [],
             "ExecutionTime": 123,
-            "Timeout": self.timeout or 123,
-            "MaxCapacity": 123.0,
             "WorkerType": self.worker_type,
-            "NumberOfWorkers": 123,
-            "SecurityConfiguration": "string",
             "LogGroupName": "test/log",
-            "NotificationProperty": {"NotifyDelayAfter": 123},
             "GlueVersion": "0.9",
+            "AllocatedCapacity": self.allocated_capacity,
+            "MaxCapacity": self.max_capacity,
+            "NumberOfWorkers": self.number_of_workers,
         }
+        if self.arguments:
+            return_dict["Arguments"] = self.arguments
+        if self.notification_property:
+            return_dict["NotificationProperty"] = self.notification_property
+        if self.security_configuration:
+            return_dict["SecurityConfiguration"] = self.security_configuration
+        if self.timeout:
+            return_dict["Timeout"] = self.timeout
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        return return_dict
 
 
 class FakeRegistry(BaseModel):
