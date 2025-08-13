@@ -176,6 +176,14 @@ def iso_8601_datetime_without_milliseconds_s3(
     return value.strftime("%Y-%m-%dT%H:%M:%S.000Z") if value else None
 
 
+RFC3339_DATETIME_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}"  # YYYY-MM-DD
+    r"[Tt]"  # 'T' or 't' separator
+    r"\d{2}:\d{2}:\d{2}"  # HH:MM:SS
+    r"(?:\.\d+)?"  # Optional fractional seconds (e.g., .123)
+    r"(?:[Zz]|(?:\+|-)\d{2}:\d{2})$"  # 'Z' or 'z' for UTC, or +/-HH:MM offset
+)
+
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 EN_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 EN_MONTHS = [

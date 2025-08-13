@@ -192,6 +192,7 @@ class BatchResponse(BaseResponse):
         timeout = self._get_param("timeout")
         array_properties = self._get_param("arrayProperties", {})
         parameters = self._get_param("parameters")
+        tags = self._get_param("tags")
 
         name, job_id, job_arn = self.batch_backend.submit_job(
             job_name,
@@ -202,6 +203,7 @@ class BatchResponse(BaseResponse):
             timeout=timeout,
             array_properties=array_properties,
             parameters=parameters,
+            tags=tags,
         )
 
         result = {"jobId": job_id, "jobName": name, "jobArn": job_arn}

@@ -9,6 +9,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.utils import RFC3339_DATETIME_PATTERN
 from moto.ec2.models.amis import AMIS
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
 
@@ -72,7 +73,7 @@ def test_ami_create_and_delete():
     assert retrieved_image["VirtualizationType"] == instance["VirtualizationType"]
     assert retrieved_image["Architecture"] == instance["Architecture"]
     assert retrieved_image["Platform"] == instance["Platform"]
-    assert "CreationDate" in retrieved_image
+    assert RFC3339_DATETIME_PATTERN.match(retrieved_image["CreationDate"])
     ec2.terminate_instances(InstanceIds=[instance_id])
 
     # Ensure we're no longer creating a volume

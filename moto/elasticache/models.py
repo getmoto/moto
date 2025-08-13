@@ -40,6 +40,7 @@ class User(BaseModel):
         no_password_required: bool,
         passwords: Optional[List[str]] = None,
         authentication_type: Optional[str] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
     ):
         self.id = user_id
         self.name = user_name
@@ -54,6 +55,7 @@ class User(BaseModel):
         self.region = region
         self.arn = f"arn:{get_partition(self.region)}:elasticache:{self.region}:{account_id}:user:{self.id}"
         self.authentication_type = authentication_type
+        self.tags = tags or []
 
     @property
     def authentication(self) -> dict[str, Any]:
@@ -63,6 +65,9 @@ class User(BaseModel):
             else self.authentication_type,
             "PasswordCount": len(self.passwords) if self.passwords else None,
         }
+
+    def get_tags(self) -> List[Dict[str, str]]:
+        return self.tags
 
 
 class CacheCluster(BaseModel):
@@ -595,7 +600,7 @@ class ElastiCacheBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.arn_regex = re_compile(
-            r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot|subnetgroup|replicationgroup):.*$"
+            r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot|subnetgroup|replicationgroup|user):.*$"
         )
         self.users = dict()
         self.users["default"] = User(
@@ -621,6 +626,7 @@ class ElastiCacheBackend(BaseBackend):
         access_string: str,
         no_password_required: bool,
         authentication_type: str,  # contain it to the str in the enums TODO
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> User:
         if user_id in self.users:
             raise UserAlreadyExists
@@ -658,6 +664,7 @@ class ElastiCacheBackend(BaseBackend):
             access_string=access_string,
             no_password_required=no_password_required,
             authentication_type=authentication_type,
+            tags=tags,
         )
         self.users[user_id] = user
         return user
@@ -837,6 +844,9 @@ class ElastiCacheBackend(BaseBackend):
             elif resource_type == "replicationgroup":
                 if resource_name in self.replication_groups:
                     return self.replication_groups[resource_name].get_tags()
+            elif resource_type == "user":
+                if resource_name in self.users:
+                    return self.users[resource_name].get_tags()
             else:
                 return []
         else:
@@ -946,6 +956,22 @@ class ElastiCacheBackend(BaseBackend):
                 raise ReplicationGroupNotFound(replication_group_id)
         replication_groups = list(self.replication_groups.values())
         return replication_groups
+
+    def delete_replication_group(
+        self, replication_group_id: str, retain_primary_cluster: Optional[bool]
+    ) -> ReplicationGroup:
+        if replication_group_id:
+            if replication_group_id in self.replication_groups:
+                replication_group = self.replication_groups[replication_group_id]
+                replication_group.status = "deleting"
+            if not retain_primary_cluster:
+                replication_group = self.replication_groups[replication_group_id]
+                primary_id = replication_group.primary_cluster_id
+                if primary_id and primary_id in replication_group.member_clusters:
+                    replication_group.member_clusters.remove(primary_id)
+                replication_group.primary_cluster_id = ""
+            return replication_group
+        raise ReplicationGroupNotFound(replication_group_id)
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

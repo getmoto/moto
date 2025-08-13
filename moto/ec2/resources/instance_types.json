@@ -19654,7 +19654,7 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -19786,7 +19786,7 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -20041,7 +20041,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -33794,7 +33794,7 @@
   "GpuInfo": {
    "Gpus": [
     {
-     "Count": 1,
+     "Count": 0,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 5722
@@ -33923,7 +33923,7 @@
   "GpuInfo": {
    "Gpus": [
     {
-     "Count": 1,
+     "Count": 0,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 11444
@@ -34056,7 +34056,7 @@
   "GpuInfo": {
    "Gpus": [
     {
-     "Count": 1,
+     "Count": 0,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 2861
@@ -34182,7 +34182,7 @@
   "GpuInfo": {
    "Gpus": [
     {
-     "Count": 1,
+     "Count": 0,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 2861
@@ -34579,7 +34579,7 @@
   "GpuInfo": {
    "Gpus": [
     {
-     "Count": 1,
+     "Count": 0,
      "Manufacturer": "NVIDIA",
      "MemoryInfo": {
       "SizeInMiB": 11444
@@ -40336,7 +40336,7 @@
    ],
    "NetworkPerformance": "Up to 37.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -40483,7 +40483,7 @@
    ],
    "NetworkPerformance": "Up to 56.25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -40762,7 +40762,7 @@
    ],
    "NetworkPerformance": "Up to 100 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -41733,7 +41733,7 @@
    ],
    "NetworkPerformance": "Up to 75 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -41881,7 +41881,7 @@
    ],
    "NetworkPerformance": "Up to 100 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -42278,7 +42278,7 @@
    ],
    "NetworkPerformance": "100 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -67806,7 +67806,7 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -67938,7 +67938,7 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -68193,7 +68193,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -73854,6 +73854,143 @@
     72,
     84,
     96
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
+ "p5.4xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 10000,
+    "BaselineIops": 32500,
+    "BaselineThroughputInMBps": 1250.0,
+    "MaximumBandwidthInMbps": 10000,
+    "MaximumIops": 32500,
+    "MaximumThroughputInMBps": 1250.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 0,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 81920
+     },
+     "Name": "H100"
+    }
+   ],
+   "TotalGpuMemoryInMiB": 81920
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 3800,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 3800
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "p5.4xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 262144
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 1
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 4,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 100.0,
+     "DefaultEnaQueueCountPerInterface": 16,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "100 Gigabit",
+     "PeakBandwidthInGbps": 100.0
+    }
+   ],
+   "NetworkPerformance": "100 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "unsupported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "AMD",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 3.6
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "capacity-block",
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 8,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 16,
+   "ValidCores": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
    ],
    "ValidThreadsPerCore": [
     1,
@@ -94531,7 +94668,7 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -94663,7 +94800,7 @@
    ],
    "NetworkPerformance": "37.5 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -94918,7 +95055,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -95793,7 +95930,7 @@
    ],
    "NetworkPerformance": "25 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"
@@ -96032,7 +96169,7 @@
    ],
    "NetworkPerformance": "50 Gigabit"
   },
-  "NitroEnclavesSupport": "unsupported",
+  "NitroEnclavesSupport": "supported",
   "NitroTpmInfo": {
    "SupportedVersions": [
     "2.0"

@@ -701,6 +701,37 @@ def test_update_autoscaling_group_max_size_desired_capacity_change():
     assert len(group["Instances"]) == 5
 
 
+@mock_aws
+def test_update_autoscaling_group_health_check():
+    mocked_networking = setup_networking()
+    client = boto3.client("autoscaling", region_name="us-east-1")
+
+    client.create_launch_configuration(
+        LaunchConfigurationName="test_launch_configuration",
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t2.medium",
+    )
+    client.create_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        LaunchConfigurationName="test_launch_configuration",
+        MinSize=2,
+        MaxSize=20,
+        DesiredCapacity=3,
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["AutoScalingGroups"][0]["HealthCheckType"] == "EC2"
+    assert response["AutoScalingGroups"][0]["HealthCheckGracePeriod"] == 300
+    client.update_auto_scaling_group(
+        AutoScalingGroupName="test_asg",
+        HealthCheckType="ELB",
+        HealthCheckGracePeriod=500,
+    )
+    response = client.describe_auto_scaling_groups(AutoScalingGroupNames=["test_asg"])
+    assert response["AutoScalingGroups"][0]["HealthCheckType"] == "ELB"
+    assert response["AutoScalingGroups"][0]["HealthCheckGracePeriod"] == 500
+
+
 @aws_verified
 @pytest.mark.aws_verified
 def test_update_unknown_group():
@@ -862,10 +893,7 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
             "PredefinedMetricType": "ASGAverageNetworkIn",
         },
         "CustomizedMetricSpecification": {
-            "MetricName": "None",
-            "Namespace": "None",
             "Dimensions": [],
-            "Statistic": "None",
             "Metrics": [
                 {
                     "Label": "Get ASGAverageCPUUtilization",
@@ -879,7 +907,6 @@ def test_create_autoscaling_policy_with_policytype__targettrackingscaling():
                             ],
                         },
                         "Stat": "Average",
-                        "Unit": "None",
                     },
                     "ReturnData": False,
                 },
@@ -1417,3 +1444,11 @@ def test_sets_created_time():
     assert asgs[0]["CreatedTime"].strftime("%Y %m %d") == datetime.now().strftime(
         "%Y %m %d"
     )
+
+
+@mock_aws
+def test_describe_scaling_activities():
+    conn = boto3.client("autoscaling", region_name="us-east-1")
+    response = conn.describe_scaling_activities()
+    # Not yet implemented.
+    assert response["Activities"] == []

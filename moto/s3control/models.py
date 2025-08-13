@@ -202,6 +202,28 @@ class S3ControlBackend(BaseBackend):
         storage_lens_configuration_list = list(self.storage_lens_configs.values())
         return storage_lens_configuration_list
 
+    def put_storage_lens_configuration_tagging(
+        self, config_id: str, account_id: str, tags: Dict[str, str]
+    ) -> None:
+        # The account ID should equal the account id that is set for Moto:
+        if account_id != self.account_id:
+            raise WrongPublicAccessBlockAccountIdError()
+
+        if config_id not in self.storage_lens_configs:
+            raise AccessPointNotFound(config_id)
+
+        self.storage_lens_configs[config_id].tags = tags
+
+    def get_storage_lens_configuration_tagging(
+        self, config_id: str, account_id: str
+    ) -> Dict[str, str]:
+        if account_id != self.account_id:
+            raise WrongPublicAccessBlockAccountIdError()
+        if config_id not in self.storage_lens_configs:
+            raise AccessPointNotFound(config_id)
+
+        return self.storage_lens_configs[config_id].tags
+
 
 s3control_backends = BackendDict(
     S3ControlBackend,

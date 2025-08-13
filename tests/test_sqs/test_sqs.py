@@ -133,19 +133,10 @@ def test_create_queue_with_different_attributes_fail():
     assert new_response["QueueUrl"] == response.get("QueueUrl")
 
 
-@mock_aws
-def test_create_fifo_queue():
-    # given
+@sqs_aws_verified(fifo_queue=True)
+@pytest.mark.aws_verified
+def test_create_fifo_queue(account_id, queue_name=None, queue_url=None):
     sqs = boto3.client("sqs", region_name=REGION)
-    queue_name = f"{str(uuid4())[0:6]}.fifo"
-
-    # when
-    queue_url = sqs.create_queue(
-        QueueName=queue_name, Attributes={"FifoQueue": "true"}
-    )["QueueUrl"]
-
-    # then
-    assert queue_name in queue_url
 
     attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
@@ -160,9 +151,9 @@ def test_create_fifo_queue():
     assert isinstance(attributes["LastModifiedTimestamp"], str)
     assert attributes["FifoQueue"] == "true"
     assert attributes["FifoThroughputLimit"] == "perQueue"
-    assert attributes["MaximumMessageSize"] == "262144"
+    assert attributes["MaximumMessageSize"] == "1048576"
     assert attributes["MessageRetentionPeriod"] == "345600"
-    assert attributes["QueueArn"] == (f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{queue_name}")
+    assert attributes["QueueArn"] == f"arn:aws:sqs:{REGION}:{account_id}:{queue_name}"
     assert attributes["ReceiveMessageWaitTimeSeconds"] == "0"
     assert attributes["VisibilityTimeout"] == "30"
 
@@ -631,22 +622,6 @@ def test_send_message_with_message_group_id():
 
 
 @mock_aws
-def test_send_message_with_message_group_id_standard_queue():
-    sqs = boto3.resource("sqs", region_name=REGION)
-    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
-
-    with pytest.raises(ClientError) as ex:
-        queue.send_message(MessageBody="mydata", MessageGroupId="group_id_1")
-
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidParameterValue"
-    assert err["Message"] == (
-        "Value group_id_1 for parameter MessageGroupId is invalid. "
-        "Reason: The request include parameter that is not valid for this queue type."
-    )
-
-
-@mock_aws
 def test_send_message_with_unicode_characters():
     body_one = "Héllo!😀"
 
@@ -790,7 +765,7 @@ def test_get_queue_attributes():
     assert isinstance(response["Attributes"]["CreatedTimestamp"], str)
     assert response["Attributes"]["DelaySeconds"] == "0"
     assert isinstance(response["Attributes"]["LastModifiedTimestamp"], str)
-    assert response["Attributes"]["MaximumMessageSize"] == "262144"
+    assert response["Attributes"]["MaximumMessageSize"] == "1048576"
     assert response["Attributes"]["MessageRetentionPeriod"] == "345600"
     assert response["Attributes"]["QueueArn"] == (
         f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{q_name}"
@@ -811,7 +786,7 @@ def test_get_queue_attributes():
 
     assert response["Attributes"] == {
         "ApproximateNumberOfMessages": "0",
-        "MaximumMessageSize": "262144",
+        "MaximumMessageSize": "1048576",
         "QueueArn": f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{q_name}",
         "VisibilityTimeout": "30",
         "RedrivePolicy": json.dumps(
@@ -2099,10 +2074,10 @@ def test_send_message_batch_errors(queue_name=None, queue_url=None):
 
     with pytest.raises(ClientError) as client_error:
         client.send_message_batch(
-            QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 262145}]
+            QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 1048577}]
         )
     assert client_error.value.response["Error"]["Message"] == (
-        "Batch requests cannot be longer than 262144 bytes. You have sent 262145 bytes."
+        "Batch requests cannot be longer than 1048576 bytes. You have sent 1048577 bytes."
     )
 
     with pytest.raises(ClientError) as client_error:

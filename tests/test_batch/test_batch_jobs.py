@@ -83,6 +83,7 @@ def test_submit_job_by_name():
     assert resp_jobs["jobs"][0]["jobId"] == job_id
     assert resp_jobs["jobs"][0]["jobQueue"] == queue_arn
     assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
+    assert resp_jobs["jobs"][0]["tags"] == {}
 
 
 # SLOW TESTS

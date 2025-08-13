@@ -393,6 +393,9 @@ class Cluster(CloudFormationModel):
         security_configuration: Optional[str] = None,
         kerberos_attributes: Optional[Dict[str, str]] = None,
         auto_scaling_role: Optional[str] = None,
+        ebs_root_volume_size: Optional[int] = None,
+        ebs_root_volume_iops: Optional[int] = None,
+        ebs_root_volume_throughput: Optional[int] = None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -481,6 +484,10 @@ class Cluster(CloudFormationModel):
         self.requested_ami_version = requested_ami_version
         self.running_ami_version = running_ami_version
         self.custom_ami_id = custom_ami_id
+
+        self.ebs_root_volume_size = ebs_root_volume_size
+        self.ebs_root_volume_iops = ebs_root_volume_iops
+        self.ebs_root_volume_throughput = ebs_root_volume_throughput
 
         self.role = job_flow_role or "EMRJobflowDefault"
         self.service_role = service_role
