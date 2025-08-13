@@ -53,6 +53,7 @@ sso-admin
 - [ ] get_application_assignment_configuration
 - [ ] get_application_authentication_method
 - [ ] get_application_grant
+- [ ] get_application_session_configuration
 - [X] get_inline_policy_for_permission_set
 - [ ] get_permissions_boundary_for_permission_set
 - [ ] list_account_assignment_creation_status
@@ -92,6 +93,7 @@ sso-admin
 - [ ] put_application_assignment_configuration
 - [ ] put_application_authentication_method
 - [ ] put_application_grant
+- [ ] put_application_session_configuration
 - [X] put_inline_policy_to_permission_set
 - [ ] put_permissions_boundary_to_permission_set
 - [ ] tag_resource

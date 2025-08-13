@@ -920,6 +920,42 @@
   "Location": "il-central-1"
  },
  {
+  "InstanceType": "r7gd.12xlarge",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.16xlarge",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.2xlarge",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.4xlarge",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.8xlarge",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.large",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.medium",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.metal",
+  "Location": "il-central-1"
+ },
+ {
+  "InstanceType": "r7gd.xlarge",
+  "Location": "il-central-1"
+ },
+ {
   "InstanceType": "t3.2xlarge",
   "Location": "il-central-1"
  },

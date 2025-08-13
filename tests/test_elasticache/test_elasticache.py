@@ -365,6 +365,25 @@ def test_create_user_with_invalid_engine_type():
 
 
 @mock_aws
+def test_create_user_with_tags():
+    # In this test, we will invoke CreateUser with tags
+    # and verify the tags are set correctly via ListTagsForResource.
+    client = boto3.client("elasticache", region_name="us-east-1")
+    user_id = "user1"
+    create_user_response = client.create_user(
+        UserId=user_id,
+        UserName="User1",
+        Engine="Redis",
+        AccessString="on ~* +@all",
+        AuthenticationMode={"Type": "iam"},
+        Tags=[{"Key": "TestKey", "Value": "TestValue"}],
+    )
+
+    resp = client.list_tags_for_resource(ResourceName=create_user_response["ARN"])
+    assert resp["TagList"] == [{"Key": "TestKey", "Value": "TestValue"}]
+
+
+@mock_aws
 def test_delete_user_unknown():
     client = boto3.client("elasticache", region_name="ap-southeast-1")
     with pytest.raises(ClientError) as exc:

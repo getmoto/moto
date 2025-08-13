@@ -69,6 +69,17 @@ Advancement:
 
     Call `boto3.client("glue").get_job_run(..)`
 
+
+**Model**: `glue::crawl`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "RUNNING" --> "COMPLETED"
+
+Transition type: `manual`  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("glue").list_crawls(..)`
+
 Service: S3 (Glacier Restoration)
 -----------------------------------
 

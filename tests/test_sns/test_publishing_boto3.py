@@ -83,7 +83,7 @@ def test_publish_to_sqs_fifo(
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
     queue = sqs.get_queue_by_name(QueueName=queue_name)
-    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=20)
     acquired_message = json.loads(messages[0].body)
     assert acquired_message["Message"] == "message"
 
@@ -100,7 +100,7 @@ def test_publish_from_sns_fifo_to_standard_sqs(
     topic.publish(Message="message", MessageGroupId="message_group_id")
 
     queue = sqs.get_queue_by_name(QueueName=queue_name)
-    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=20)
     acquired_message = json.loads(messages[0].body)
     assert acquired_message["Message"] == "message"
 
