@@ -69,15 +69,9 @@ def test_list_access_points_fully():
 
     s3_client.create_bucket(Bucket="bucket-a")
     s3_client.create_bucket(Bucket="bucket-b")
-    client.create_access_point(
-        AccountId=account_id, Name="ap1-a", Bucket="bucket-a"
-    )
-    client.create_access_point(
-        AccountId=account_id, Name="ap2-a", Bucket="bucket-a"
-    )
-    client.create_access_point(
-        AccountId=account_id, Name="ap3-b", Bucket="bucket-b"
-    )
+    client.create_access_point(AccountId=account_id, Name="ap1-a", Bucket="bucket-a")
+    client.create_access_point(AccountId=account_id, Name="ap2-a", Bucket="bucket-a")
+    client.create_access_point(AccountId=account_id, Name="ap3-b", Bucket="bucket-b")
 
     resp = client.list_access_points(AccountId=account_id)
     assert len(resp["AccessPointList"]) == 3
@@ -95,6 +89,7 @@ def test_list_access_points_fully():
     resp2 = client.list_access_points(AccountId=account_id, NextToken=next_token)
     assert len(resp2["AccessPointList"]) == 1
     assert "NextToken" not in resp2
+
 
 @mock_aws
 def test_list_access_points():
