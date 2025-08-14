@@ -1396,10 +1396,9 @@ Member must satisfy regular expression pattern: {expression}"
         self._validate_port_and_protocol(balancer.type, port, protocol)
         self._validate_actions(default_actions)
 
-        arn = (
-            load_balancer_arn.replace(":loadbalancer/", ":listener/")
-            + f"/{port}{id(self)}"
-        )
+        arn = load_balancer_arn.replace(":loadbalancer/", ":listener/")
+        arn += f"/{mock_random.get_random_hex(16)}"
+
         listener = FakeListener(
             load_balancer_arn,
             arn,
