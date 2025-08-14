@@ -117,8 +117,12 @@ class FakeTargetGroup(CloudFormationModel):
         self.name = name
         self.account_id = account_id
         self.region_name = region_name
+        tg_id = mock_random.get_random_hex(length=16)
         self.arn = make_arn_for_target_group(
-            account_id=self.account_id, name=name, region_name=self.region_name
+            account_id=self.account_id,
+            tg_id=tg_id,
+            name=name,
+            region_name=self.region_name,
         )
         self.vpc_id = vpc_id
         if target_type == "lambda":
@@ -747,8 +751,12 @@ class ELBv2Backend(BaseBackend):
             subnets.append(subnet)
 
         vpc_id = subnets[0].vpc_id
+        lb_id = mock_random.get_random_hex(length=16)
         arn = make_arn_for_load_balancer(
-            account_id=self.account_id, name=name, region_name=self.region_name
+            account_id=self.account_id,
+            lb_id=lb_id,
+            name=name,
+            region_name=self.region_name,
         )
         dns_name = f"{name}-1.{self.region_name}.elb.amazonaws.com"
 
@@ -1391,10 +1399,9 @@ Member must satisfy regular expression pattern: {expression}"
         self._validate_port_and_protocol(balancer.type, port, protocol)
         self._validate_actions(default_actions)
 
-        arn = (
-            load_balancer_arn.replace(":loadbalancer/", ":listener/")
-            + f"/{port}{id(self)}"
-        )
+        arn = load_balancer_arn.replace(":loadbalancer/", ":listener/")
+        arn += f"/{mock_random.get_random_hex(16)}"
+
         listener = FakeListener(
             load_balancer_arn,
             arn,

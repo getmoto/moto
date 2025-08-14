@@ -18,9 +18,8 @@ def test_create_load_balancer():
     lb = response["LoadBalancers"][0]
     assert lb["CanonicalHostedZoneId"].startswith("Z")
     assert lb["DNSName"] == "my-lb-1.us-east-1.elb.amazonaws.com"
-    assert (
-        lb["LoadBalancerArn"]
-        == f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/app/my-lb/50dc6c495c0c9188"
+    assert lb["LoadBalancerArn"].startswith(
+        f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/app/my-lb/"
     )
     assert lb["SecurityGroups"] == [security_group.id]
     assert lb["AvailabilityZones"] == [
