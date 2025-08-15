@@ -146,10 +146,14 @@ class BaseIAMPolicyValidator:
 
     def _validate_version_syntax(self) -> None:
         if "Version" in self._policy_json:
-            assert self._policy_json["Version"] in VALID_VERSIONS
+            assert self._policy_version() in VALID_VERSIONS
 
     def _validate_version(self) -> None:
-        assert self._policy_json["Version"] == "2012-10-17"
+        assert self._policy_version() == "2012-10-17"
+
+    def _policy_version(self) -> str:
+        # Assume an implicit default if 'Version' is not set.
+        return self._policy_json.get("Version", "2008-10-17")
 
     def _validate_sid_uniqueness(self) -> None:
         sids = []
