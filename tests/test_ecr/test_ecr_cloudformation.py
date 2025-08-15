@@ -15,7 +15,16 @@ repo_template = Template(
             "Resources": {
                 "Repo": {
                     "Type": "AWS::ECR::Repository",
-                    "Properties": {"RepositoryName": "${repo_name}"},
+                    "Properties": {
+                        "RepositoryName": "${repo_name}",
+                        "ImageTagMutability": "MUTABLE",
+                        "ImageTagMutabilityExclusionFilters": [
+                            {
+                                "ImageTagMutabilityExclusionFilterType": "WILDCARD",
+                                "ImageTagMutabilityExclusionFilterValue": "dev*",
+                            },
+                        ],
+                    },
                 }
             },
             "Outputs": {
@@ -49,6 +58,7 @@ def test_create_repository():
     response = ecr_client.describe_repositories(repositoryNames=[name])
 
     assert response["repositories"][0]["repositoryArn"] == repo_arn
+    assert response["repositories"][0]["imageTagMutability"] == "MUTABLE_WITH_EXCLUSION"
 
 
 @mock_aws
@@ -79,7 +89,7 @@ def test_update_repository():
         repo["repositoryArn"]
         == f"arn:aws:ecr:eu-central-1:{ACCOUNT_ID}:repository/{name}"
     )
-    assert repo["imageTagMutability"] == "IMMUTABLE"
+    assert repo["imageTagMutability"] == "IMMUTABLE_WITH_EXCLUSION"
 
 
 @mock_aws
