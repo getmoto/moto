@@ -8,6 +8,7 @@ url_bases = [
 
 
 url_paths = {
+    r"{0}/v20180820/accesspoint$": S3ControlResponse.dispatch,
     r"{0}/v20180820/configuration/publicAccessBlock$": S3ControlResponse.dispatch,
     r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)$": S3ControlResponse.dispatch,
     r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/policy$": S3ControlResponse.dispatch,

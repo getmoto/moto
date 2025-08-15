@@ -23,6 +23,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "id",
     },
+    "list_access_points": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 1000,
+        "unique_attribute": "name",
+    },
 }
 
 
@@ -201,6 +207,21 @@ class S3ControlBackend(BaseBackend):
     ) -> List[StorageLensConfiguration]:
         storage_lens_configuration_list = list(self.storage_lens_configs.values())
         return storage_lens_configuration_list
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_access_points(
+        self,
+        account_id: str,
+        bucket: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> List[AccessPoint]:
+        account_access_points = self.access_points.get(account_id, {})
+        all_access_points = list(account_access_points.values())
+
+        if bucket:
+            return [ap for ap in all_access_points if ap.bucket == bucket]
+        return all_access_points
 
     def put_storage_lens_configuration_tagging(
         self, config_id: str, account_id: str, tags: Dict[str, str]
