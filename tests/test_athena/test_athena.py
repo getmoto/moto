@@ -352,6 +352,37 @@ def test_create_data_catalog():
 
 
 @mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("athena", region_name="us-east-1")
+    tags = [{"Key": "key1", "Value": "value1"}, {"Key": "key2", "Value": "value2"}]
+    resource_name = "athena_datacatalog"
+    client.create_data_catalog(
+        Name=resource_name,
+        Type="GLUE",
+        Description="Test data catalog",
+        Parameters={"catalog-id": "AWS Test account ID"},
+        Tags=tags,
+    )
+
+    returned_tags = client.list_tags_for_resource(ResourceARN=resource_name)
+    assert returned_tags["Tags"] == tags
+
+
+@mock_aws
+def test_list_tags_for_resource_not_found():
+    client = boto3.client("athena", region_name="us-east-1")
+    nonexistent_resource_arn = "NONEXISTENTRESOURCEARN"
+    with pytest.raises(ClientError) as exc:
+        client.list_tags_for_resource(ResourceARN=nonexistent_resource_arn)
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert (
+        err["Message"] == f"Athena Resource, {nonexistent_resource_arn} Does Not Exist"
+    )
+
+
+@mock_aws
 def test_create_and_get_data_catalog():
     client = boto3.client("athena", region_name="us-east-1")
 
