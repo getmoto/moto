@@ -2932,15 +2932,13 @@ def test_ecr_image_tag_mutability_with_exclusion_filters():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(
         repositoryName=ECR_REPO,
-        imageTagMutability="MUTABLE",
+        imageTagMutability="MUTABLE_WITH_EXCLUSION",
         imageTagMutabilityExclusionFilters=[
             {"filter": "tagME.*", "filterType": "WILDCARD"},
             {"filter": "tagDME.*", "filterType": "WILDCARD"},
         ],
     )
 
-    # Setting imageTagMutability as MUTABLE and specifying non-empty exclusion filters will set
-    # imageTagMutability (as returned in the DescribeRepositories action) to MUTABLE_WITH_EXCLUSION
     describe_repos_response = client.describe_repositories(repositoryNames=[ECR_REPO])
     assert (
         describe_repos_response["repositories"][0]["imageTagMutability"]
@@ -3127,15 +3125,13 @@ def test_ecr_image_tag_immutability_with_exclusion_filters():
     client = boto3.client("ecr", region_name=ECR_REGION)
     client.create_repository(
         repositoryName=ECR_REPO,
-        imageTagMutability="IMMUTABLE",
+        imageTagMutability="IMMUTABLE_WITH_EXCLUSION",
         imageTagMutabilityExclusionFilters=[
             {"filter": "tagME.*", "filterType": "WILDCARD"},
             {"filter": "tagDME.*", "filterType": "WILDCARD"},
         ],
     )
 
-    # Setting imageTagMutability as IMMUTABLE and specifying non-empty exclusion filters will set
-    # imageTagMutability (as returned in the DescribeRepositories action) to IMMUTABLE_WITH_EXCLUSION
     describe_repos_response = client.describe_repositories(repositoryNames=[ECR_REPO])
     assert (
         describe_repos_response["repositories"][0]["imageTagMutability"]
@@ -3282,8 +3278,6 @@ def test_ecr_failures_due_to_exclusion_filters(
 @pytest.fixture(
     scope="module",
     params=[
-        "MUTABLE",
-        "IMMUTABLE",
         "MUTABLE_WITH_EXCLUSION",
         "IMMUTABLE_WITH_EXCLUSION",
     ],

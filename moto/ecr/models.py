@@ -255,7 +255,7 @@ class Repository(CloudFormationModel, BaseModel):
         tags = properties.get("Tags", [])
 
         # Validations around imageTagMutability properties
-        cls._validate_cfn_image_tag_mutability_params(
+        ecr_backend.validate_image_tag_mutability_params_compatibility(
             image_tag_mutability, image_tag_mutability_exclusion_filters
         )
 
@@ -300,7 +300,7 @@ class Repository(CloudFormationModel, BaseModel):
             image_tag_mutability_exclusion_filters = properties.get(
                 "ImageTagMutabilityExclusionFilters"
             )
-            cls._validate_cfn_image_tag_mutability_params(
+            ecr_backend.validate_image_tag_mutability_params_compatibility(
                 image_tag_mutability, image_tag_mutability_exclusion_filters
             )
             original_resource.update(
@@ -327,33 +327,6 @@ class Repository(CloudFormationModel, BaseModel):
             return cls.create_from_cloudformation_json(
                 new_resource_name, cloudformation_json, account_id, region_name
             )
-
-    @classmethod
-    def _validate_cfn_image_tag_mutability_params(
-        cls,
-        image_tag_mutability: str,
-        image_tag_mutability_exclusion_filters: Optional[
-            List[ImageTagMutabilityExclusionFilterT]
-        ],
-    ) -> None:
-        # If imageTagMutabilityExclusionFilters isn't null, then imageTagMutability can only be the _EXCLUSION variant
-        if image_tag_mutability_exclusion_filters is not None:
-            if image_tag_mutability not in [
-                RepoTagMutability.MUTABLE_WITH_EXCLUSION,
-                RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
-            ]:
-                raise InvalidParameterException(
-                    f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: 'ImageTagMutabilityExclusionFilters can't be null when imageTagMutability is set as {image_tag_mutability}'"
-                )
-        else:
-            # If it is null, then imageTagMutability cannot be the _EXCLUSION variant
-            if image_tag_mutability in [
-                RepoTagMutability.MUTABLE_WITH_EXCLUSION,
-                RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
-            ]:
-                raise InvalidParameterException(
-                    f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: 'ImageTagMutabilityExclusionFilters can't be null when imageTagMutability is set as {image_tag_mutability}'"
-                )
 
     @classmethod
     def _convert_cfn_mutability_exclusion_filters(
@@ -593,6 +566,10 @@ class ECRBackend(BaseBackend):
                 f"{errmsg}",
                 400,
             )
+
+        self.validate_image_tag_mutability_params_compatibility(
+            image_tag_mutability, image_tag_mutability_exclusion_filters
+        )
 
         repository = Repository(
             account_id=self.account_id,
@@ -1477,6 +1454,32 @@ class ECRBackend(BaseBackend):
                 if filter_key == "filterType" and filter_val != "WILDCARD":
                     return f"Invalid value for 'filterType' in mutability exclusion filter: {filter_val}"
         return None
+
+    @staticmethod
+    def validate_image_tag_mutability_params_compatibility(
+        image_tag_mutability: str,
+        image_tag_mutability_exclusion_filters: Optional[
+            List[ImageTagMutabilityExclusionFilterT]
+        ],
+    ) -> None:
+        # If imageTagMutabilityExclusionFilters isn't null, then imageTagMutability can only be the _EXCLUSION variant
+        if image_tag_mutability_exclusion_filters is not None:
+            if image_tag_mutability not in [
+                RepoTagMutability.MUTABLE_WITH_EXCLUSION,
+                RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
+            ]:
+                raise InvalidParameterException(
+                    f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: 'ImageTagMutabilityExclusionFilters can't be null when imageTagMutability is set as {image_tag_mutability}'"
+                )
+        else:
+            # If it is null, then imageTagMutability cannot be the _EXCLUSION variant
+            if image_tag_mutability in [
+                RepoTagMutability.MUTABLE_WITH_EXCLUSION,
+                RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
+            ]:
+                raise InvalidParameterException(
+                    f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: 'ImageTagMutabilityExclusionFilters can't be null when imageTagMutability is set as {image_tag_mutability}'"
+                )
 
 
 ecr_backends = BackendDict(ECRBackend, "ecr")
