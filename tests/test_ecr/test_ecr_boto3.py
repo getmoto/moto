@@ -166,6 +166,22 @@ def test_create_repository_error_name_validation():
 
 
 @mock_aws
+def test_create_repository_invalid_image_tag_mutability_param():
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    repo_name = "invalid-repo"
+    image_tag_mutability = "INVALID"
+
+    with pytest.raises(ClientError) as e:
+        client.create_repository(
+            repositoryName=repo_name, imageTagMutability=image_tag_mutability
+        )
+
+    ex = e.value
+    assert ex.operation_name == "CreateRepository"
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+
+
+@mock_aws
 def test_describe_repositories():
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository1")
@@ -2968,7 +2984,7 @@ def test_ecr_image_tag_mutability_with_exclusion_filters():
     #   1. tagME2
     #   2. tagDME2
     # Even though this satisfies exclusion filters, absence of these tags prior to this
-    # action
+    # action means they are not subject to immutability
     for tag in ["tagME2", "tagDME2"]:
         put_response = client.put_image(
             repositoryName=ECR_REPO,
