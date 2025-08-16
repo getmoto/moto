@@ -54,7 +54,7 @@ class RepoTagMutability(str, Enum):
     IMMUTABLE_WITH_EXCLUSION = "IMMUTABLE_WITH_EXCLUSION"
 
 
-class RepositoryCFNUpdateProperty(str, Enum):
+class RepositoryUpdateProperty(str, Enum):
     IMAGE_TAG_MUTABILITY = "ImageTagMutability"
     IMAGE_SCANNING_CONFIGURATION = "ImageScanningConfiguration"
 
@@ -195,11 +195,11 @@ class Repository(CloudFormationModel, BaseModel):
         property_type: str,
         **kwargs: Any,
     ) -> None:
-        if property_type == RepositoryCFNUpdateProperty.IMAGE_SCANNING_CONFIGURATION:
+        if property_type == RepositoryUpdateProperty.IMAGE_SCANNING_CONFIGURATION:
             self._update_image_scanning_configuration(
                 image_scanning_configuration=kwargs.get("image_scanning_configuration")
             )
-        elif property_type == RepositoryCFNUpdateProperty.IMAGE_TAG_MUTABILITY:
+        elif property_type == RepositoryUpdateProperty.IMAGE_TAG_MUTABILITY:
             self._update_image_tag_mutability(
                 image_tag_mutability=kwargs.get("image_tag_mutability"),
                 image_tag_mutability_exclusion_filters=kwargs.get(
@@ -304,13 +304,13 @@ class Repository(CloudFormationModel, BaseModel):
                 image_tag_mutability, image_tag_mutability_exclusion_filters
             )
             original_resource.update(
-                RepositoryCFNUpdateProperty.IMAGE_SCANNING_CONFIGURATION,
+                RepositoryUpdateProperty.IMAGE_SCANNING_CONFIGURATION,
                 image_scanning_configuration=properties.get(
                     "ImageScanningConfiguration"
                 ),
             )
             original_resource.update(
-                RepositoryCFNUpdateProperty.IMAGE_TAG_MUTABILITY,
+                RepositoryUpdateProperty.IMAGE_TAG_MUTABILITY,
                 image_tag_mutability=image_tag_mutability,
                 image_tag_mutability_exclusion_filters=cls._convert_cfn_mutability_exclusion_filters(
                     image_tag_mutability_exclusion_filters
@@ -1030,7 +1030,7 @@ class ECRBackend(BaseBackend):
 
         repo = self._get_repository(repository_name, registry_id)
         repo.update(
-            RepositoryCFNUpdateProperty.IMAGE_TAG_MUTABILITY,
+            RepositoryUpdateProperty.IMAGE_TAG_MUTABILITY,
             image_tag_mutability=image_tag_mutability,
             image_tag_mutability_exclusion_filters=image_tag_mutability_exclusion_filters,
         )
@@ -1046,7 +1046,7 @@ class ECRBackend(BaseBackend):
     ) -> Dict[str, Any]:
         repo = self._get_repository(repository_name, registry_id)
         repo.update(
-            RepositoryCFNUpdateProperty.IMAGE_SCANNING_CONFIGURATION,
+            RepositoryUpdateProperty.IMAGE_SCANNING_CONFIGURATION,
             image_scanning_configuration=image_scan_config,
         )
 
