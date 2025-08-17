@@ -215,6 +215,12 @@ class GlueBackend(BaseBackend):
             "limit_default": 20,
             "unique_attribute": "crawl_id",
         },
+        "list_workflows": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -230,6 +236,7 @@ class GlueBackend(BaseBackend):
         self.tagger = TaggingService()
         self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
+        self.workflows: Dict[str, FakeWorkflow] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
         self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
@@ -1475,6 +1482,61 @@ class GlueBackend(BaseBackend):
         del self.resource_policies[resource_arn]
         return {}
 
+    def create_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> str:
+        self.workflows[name] = FakeWorkflow(
+            name, default_run_properties, description, max_concurrent_runs, tags
+        )
+        return name
+
+    def get_workflow(
+        self,
+        name: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(name)
+        if workflow:
+            return workflow.as_dict()
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_workflows(self) -> List[str]:
+        return [workflow.name for workflow in self.workflows.values()]
+
+    def update_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+    ) -> str:
+        workflow = self.workflows.get(name)
+        if workflow:
+            if default_run_properties:
+                workflow.default_run_properties = default_run_properties
+            if description:
+                workflow.description = description
+            if max_concurrent_runs:
+                workflow.max_concurrent_runs = max_concurrent_runs
+            workflow.last_modified_on = utcnow()
+            return name
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    def delete_workflow(
+        self,
+        name: str,
+    ) -> str:
+        if self.workflows.get(name):
+            del self.workflows[name]
+        return name
+
 
 class FakeDatabase(BaseModel):
     def __init__(
@@ -2248,6 +2310,38 @@ class FakeConnection(BaseModel):
                 "PhysicalConnectionRequirements"
             ),
         }
+
+
+class FakeWorkflow:
+    def __init__(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> None:
+        self.name = name
+        self.default_run_properties = default_run_properties
+        self.description = description
+        self.max_concurrent_runs = max_concurrent_runs
+        self.tags = tags
+        self.created_on = utcnow()
+        self.last_modified_on = utcnow()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return_dict: Dict[str, Any] = {
+            "CreatedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "Name": self.name,
+        }
+        if self.default_run_properties:
+            return_dict["DefaultRunProperties"] = self.default_run_properties
+        if self.description:
+            return_dict["Description"] = self.description
+        if self.max_concurrent_runs:
+            return_dict["MaxConcurrentRuns"] = self.max_concurrent_runs
+        return return_dict
 
 
 glue_backends = BackendDict(GlueBackend, "glue")

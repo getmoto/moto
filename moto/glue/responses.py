@@ -14,6 +14,7 @@ from .models import (
     glue_backends,
 )
 from .utils import validate_crawl_filters
+from .exceptions import EntityNotFoundException
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -933,3 +934,77 @@ class GlueResponse(BaseResponse):
         )
 
         return "{}"
+
+    def create_workflow(self) -> str:
+        name = self._get_param("Name")
+        default_run_properties = self._get_param("DefaultRunProperties")
+        description = self._get_param("Description")
+        max_concurrent_runs = self._get_int_param("MaxConcurrentRuns")
+        tags = self._get_param("Tags")
+        print(tags)
+
+        workflow_name = self.glue_backend.create_workflow(
+            name,
+            default_run_properties,
+            description,
+            max_concurrent_runs,
+            tags,
+        )
+        return json.dumps({"Name": workflow_name})
+
+    def get_workflow(self) -> str:
+        name = self._get_param("Name")
+
+        workflow = self.glue_backend.get_workflow(name)
+        return json.dumps({"Workflow": workflow})
+
+    def list_workflows(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+
+        workflows, next_token = self.glue_backend.list_workflows(
+            next_token=next_token, max_results=max_results
+        )
+        return json.dumps(
+            {
+                "NextToken": next_token,
+                "Workflows": workflows,
+            }
+        )
+
+    def batch_get_workflows(self) -> str:
+        names = self._get_param("Names")
+        workflows = []
+        missing_workflows = []
+
+        for name in names:
+            try:
+                workflow = self.glue_backend.get_workflow(name)
+                workflows.append(workflow)
+            except EntityNotFoundException:
+                missing_workflows.append(name)
+
+        return json.dumps(
+            {"MissingWorkflows": missing_workflows, "Workflows": workflows}
+        )
+
+    def update_workflow(self) -> str:
+        name = self._get_param("Name")
+        default_run_properties = self._get_param("DefaultRunProperties")
+        description = self._get_param("Description")
+        max_concurrent_runs = self._get_int_param("MaxConcurrentRuns")
+
+        name = self.glue_backend.update_workflow(
+            name,
+            default_run_properties,
+            description,
+            max_concurrent_runs,
+        )
+
+        return json.dumps({"Name": name})
+
+    def delete_workflow(self) -> str:
+        name = self._get_param("Name")
+        name = self.glue_backend.delete_workflow(name)
+
+        return json.dumps({"Name": name})
