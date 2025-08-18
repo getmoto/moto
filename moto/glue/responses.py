@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
+from .exceptions import EntityNotFoundException
 from .models import (
     FakeCrawler,
     FakeJob,
@@ -14,7 +15,6 @@ from .models import (
     glue_backends,
 )
 from .utils import validate_crawl_filters
-from .exceptions import EntityNotFoundException
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -1008,3 +1008,60 @@ class GlueResponse(BaseResponse):
         name = self.glue_backend.delete_workflow(name)
 
         return json.dumps({"Name": name})
+
+    def get_workflow_run(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+
+        workflow_run = self.glue_backend.get_workflow_run(workflow_name, run_id)
+        return json.dumps({"Run": workflow_run})
+
+    def get_workflow_runs(self) -> str:
+        workflow_name = self._get_param("Name")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+
+        workflow_runs, next_token = self.glue_backend.get_workflow_runs(
+            workflow_name,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(
+            {
+                "Runs": workflow_runs,
+                "NextToken": next_token,
+            }
+        )
+
+    def start_workflow_run(self) -> str:
+        workflow_name = self._get_param("Name")
+        properties = self._get_param("RunProperties")
+
+        run_id = self.glue_backend.start_workflow_run(workflow_name, properties)
+        return json.dumps({"RunId": run_id})
+
+    def stop_workflow_run(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+
+        self.glue_backend.stop_workflow_run(workflow_name, run_id)
+        return json.dumps({})
+
+    def get_workflow_run_properties(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+
+        run_properties = self.glue_backend.get_workflow_run_properties(
+            workflow_name, run_id
+        )
+        return json.dumps({"RunProperties": run_properties})
+
+    def put_workflow_run_properties(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+        run_properties = self._get_param("RunProperties")
+
+        self.glue_backend.put_workflow_run_properties(
+            workflow_name, run_id, run_properties
+        )
+        return json.dumps({})

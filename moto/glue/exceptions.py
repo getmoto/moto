@@ -330,3 +330,8 @@ class NoCrawlsEntryForCrawler(EntityNotFoundException):
         super().__init__(
             f"Crawler entry with name {name} does not exist",
         )
+
+
+class IllegalWorkflowStateException(GlueClientError):
+    def __init__(self, msg: str):
+        super().__init__("IllegalWorkflowRunStateException", msg)

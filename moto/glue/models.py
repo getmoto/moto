@@ -26,6 +26,7 @@ from .exceptions import (
     DatabaseNotFoundException,
     EntityNotFoundException,
     IllegalSessionStateException,
+    IllegalWorkflowStateException,
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
@@ -220,6 +221,12 @@ class GlueBackend(BaseBackend):
             "limit_key": "max_results",
             "limit_default": 20,
             "unique_attribute": "name",
+        },
+        "get_workflow_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "workflow_run_id",
         },
     }
 
@@ -1537,6 +1544,65 @@ class GlueBackend(BaseBackend):
             del self.workflows[name]
         return name
 
+    def get_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("TODO")
+        return workflow.get_run(run_id).as_dict()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_workflow_runs(
+        self,
+        workflow_name: str,
+    ) -> List[Dict[str, Any]]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("TODO")
+        return [run.as_dict() for run in workflow.runs.values()]
+
+    def start_workflow_run(
+        self, workflow_name: str, properties: Optional[Dict[str, str]]
+    ) -> str:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("TODO")
+        return workflow.start_run(properties=properties)
+
+    def stop_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("TODO")
+        workflow.stop_run(run_id)
+
+    def get_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, str]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("TODO")
+        return workflow.get_run(run_id).properties
+
+    def put_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+        properties: Dict[str, str],
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("TODO")
+        workflow.get_run(run_id).properties.update(properties)
+
 
 class FakeDatabase(BaseModel):
     def __init__(
@@ -2312,6 +2378,50 @@ class FakeConnection(BaseModel):
         }
 
 
+class FakeWorkflowRun(ManagedState):
+    def __init__(
+        self,
+        workflow_name: str,
+        previous_run_id: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -> None:
+        self.workflow_name = workflow_name
+        self.run_id = mock_random.get_random_hex(64)
+        self.previous_run_id = previous_run_id
+        self.properties = properties or {}
+        ManagedState.__init__(
+            self,
+            model_name="glue::workflow_run",
+            transitions=[
+                ("RUNNING", "COMPLETED"),
+                ("STOPPING", "STOPPED"),
+            ],
+        )
+        self.status = "RUNNING"
+        self.started_on = utcnow()
+        self.completed_on: Optional[datetime] = None
+
+    def as_dict(self) -> Dict[str, Any]:
+        return_dict: Dict[str, Any] = {
+            "Name": self.workflow_name,
+            "WorkflowRunId": self.run_id,
+            "StartedOn": self.started_on.isoformat(),
+            "Status": self.status,
+        }
+        if self.completed_on:
+            return_dict["CompletedOn"] = self.completed_on.isoformat()
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        if self.properties:
+            return_dict["WorkflowRunProperties"] = self.properties
+        return return_dict
+
+    def advance(self) -> None:
+        super().advance()
+        if self.status == "COMPLETED":
+            self.completed_on = utcnow()
+
+
 class FakeWorkflow:
     def __init__(
         self,
@@ -2328,6 +2438,7 @@ class FakeWorkflow:
         self.tags = tags
         self.created_on = utcnow()
         self.last_modified_on = utcnow()
+        self.runs: OrderedDict[str, FakeWorkflowRun] = OrderedDict()
 
     def as_dict(self) -> Dict[str, Any]:
         return_dict: Dict[str, Any] = {
@@ -2341,7 +2452,40 @@ class FakeWorkflow:
             return_dict["Description"] = self.description
         if self.max_concurrent_runs:
             return_dict["MaxConcurrentRuns"] = self.max_concurrent_runs
+        if self.runs:
+            return_dict["LastRun"] = self.runs[next(reversed(self.runs))].as_dict()
         return return_dict
+
+    def start_run(self, properties: Optional[Dict[str, str]]) -> str:
+        if self.runs:
+            previous_run_id = self.runs[next(reversed(self.runs))].run_id
+        else:
+            previous_run_id = None
+        workflow_run = FakeWorkflowRun(
+            workflow_name=self.name,
+            properties=properties,
+            previous_run_id=previous_run_id,
+        )
+        self.runs[workflow_run.run_id] = workflow_run
+        return workflow_run.run_id
+
+    def get_run(self, run_id: str) -> FakeWorkflowRun:
+        try:
+            self.runs[run_id].advance()
+            return self.runs[run_id]
+        except KeyError:
+            raise EntityNotFoundException("TODO")
+
+    def stop_run(self, run_id: str) -> None:
+        try:
+            run = self.runs[run_id]
+        except KeyError:
+            raise EntityNotFoundException("TODO")
+        if run.status not in ["RUNNING"]:
+            raise IllegalWorkflowStateException(
+                f"WorkflowRun with id {run_id} is not in RUNNING state"
+            )
+        run.status = "STOPPING"
 
 
 glue_backends = BackendDict(GlueBackend, "glue")
