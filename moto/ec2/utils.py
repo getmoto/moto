@@ -806,11 +806,11 @@ def filter_iam_instance_profile_associations(
         if filter_dict.get("instance-id"):
             if (
                 iam_instance_association.instance.id  # type: ignore[attr-defined]
-                not in filter_dict.get("instance-id").values()
+                not in filter_dict.get("instance-id", [])
             ):
                 filter_passed = False
         if filter_dict.get("state"):
-            if iam_instance_association.state not in filter_dict.get("state").values():  # type: ignore[attr-defined]
+            if iam_instance_association.state not in filter_dict.get("state", []):  # type: ignore[attr-defined]
                 filter_passed = False
         if filter_passed:
             result.append(iam_instance_association)

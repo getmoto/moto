@@ -207,7 +207,7 @@ def test_create_target_group_and_listeners():
     assert e.value.operation_name == "DeleteTargetGroup"
     assert (
         e.value.response["Error"]["Message"]
-        == f"The target group 'arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:targetgroup/a-target/50dc6c495c0c9188' is currently in use by a listener or a rule"
+        == f"The target group '{target_group_arn}' is currently in use by a listener or a rule"
     )
 
     # Delete one listener

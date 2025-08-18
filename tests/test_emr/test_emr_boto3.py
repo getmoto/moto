@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 run_job_flow_args = dict(
@@ -187,6 +187,24 @@ def test_describe_cluster():
         cl["ClusterArn"]
         == f"arn:aws:elasticmapreduce:{region_name}:{ACCOUNT_ID}:cluster/{cluster_id}"
     )
+
+
+@mock_aws
+def test_describe_cluster_master_public_dns():
+    region_name = "us-east-1" if settings.TEST_SERVER_MODE else "ap-south-1"
+
+    client = boto3.client("emr", region_name=region_name)
+
+    args = deepcopy(run_job_flow_args)
+    args["Instances"] = {"InstanceGroups": input_instance_groups}
+
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+
+    response = client.describe_cluster(ClusterId=cluster_id)
+    master_public_dns_name = response["Cluster"]["MasterPublicDnsName"]
+    assert master_public_dns_name.startswith("ec2-")
+    assert region_name in master_public_dns_name
+    assert master_public_dns_name.endswith(".amazonaws.com")
 
 
 @mock_aws
