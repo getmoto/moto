@@ -2148,6 +2148,10 @@
   "Location": "apne1-az1"
  },
  {
+  "InstanceType": "p5.4xlarge",
+  "Location": "apne1-az1"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "apne1-az1"
  },

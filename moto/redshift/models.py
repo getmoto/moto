@@ -100,6 +100,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
         super().__init__(redshift_backend.account_id, region_name, tags)
         self.redshift_backend = redshift_backend
         self.cluster_identifier = cluster_identifier
+        self.unique_cluster_id = mock_random.get_random_hex(length=12)
         self.create_time = utcnow()
         self.status = "available"
         self.node_type = node_type
@@ -237,7 +238,7 @@ class Cluster(TaggableResourceMixin, CloudFormationModel):
 
     @property
     def address(self) -> str:
-        return f"{self.cluster_identifier}.cg034hpkmmjt.{self.region}.redshift.amazonaws.com"
+        return f"{self.cluster_identifier}.{self.unique_cluster_id}.{self.region}.redshift.amazonaws.com"
 
     @property
     def security_groups(self) -> List[SecurityGroup]:

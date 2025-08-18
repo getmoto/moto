@@ -345,6 +345,8 @@ class ElasticMapReduceResponse(BaseResponse):
                     cluster.id, instance_groups[i], instance_group_result[i]
                 )
 
+        # TODO: Instances also must be created when `Instances.InstanceType` and `Instances.InstanceCount` are specified in the request.
+
         tags = self._get_list_prefix("Tags.member")
         if tags:
             self.backend.add_tags(

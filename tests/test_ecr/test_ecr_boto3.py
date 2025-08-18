@@ -4,7 +4,7 @@ from unittest import SkipTest
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, ParamValidationError
 from dateutil.tz import tzlocal
 from freezegun import freeze_time
 
@@ -159,6 +159,22 @@ def test_create_repository_error_name_validation():
 
     with pytest.raises(ClientError) as e:
         client.create_repository(repositoryName=repo_name)
+
+    ex = e.value
+    assert ex.operation_name == "CreateRepository"
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+
+
+@mock_aws
+def test_create_repository_invalid_image_tag_mutability_param():
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    repo_name = "invalid-repo"
+    image_tag_mutability = "INVALID"
+
+    with pytest.raises(ClientError) as e:
+        client.create_repository(
+            repositoryName=repo_name, imageTagMutability=image_tag_mutability
+        )
 
     ex = e.value
     assert ex.operation_name == "CreateRepository"
@@ -1714,7 +1730,7 @@ def test_put_image_tag_mutability_error_invalid_param():
     assert ex.response["Error"]["Code"] == "InvalidParameterException"
     assert (
         ex.response["Error"]["Message"]
-        == "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: 'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
+        == "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: 'Member must satisfy enum value set: [IMMUTABLE, MUTABLE, MUTABLE_WITH_EXCLUSION, IMMUTABLE_WITH_EXCLUSION]'"
     )
 
 
@@ -2832,3 +2848,439 @@ def test_ecr_image_digest():
     # then
     assert put_response["image"]["imageId"]["imageDigest"] == digest
     assert describe_response["imageDetails"][0]["imageDigest"] == digest
+
+
+@mock_aws
+def test_ecr_image_tag_mutability():
+    # We will create a repository
+    # First with imageTagMutability = MUTABLE
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    client.create_repository(repositoryName=ECR_REPO, imageTagMutability="MUTABLE")
+    image_manifest = _create_image_manifest()
+    image_digest = image_manifest["config"]["digest"]
+    # Push an image with tag=tagA
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagA",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Pushing the same image with the same tag (tagA) will give an error
+    with pytest.raises(ClientError) as e:
+        client.put_image(
+            repositoryName=ECR_REPO,
+            imageManifest=json.dumps(image_manifest),
+            imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+            imageTag="tagA",
+            imageDigest=image_digest,
+        )
+    assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+
+    # Push the same image again, now with tag=tagB. This is a valid action
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagB",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Pushing the same image with either tagA or tagB should give an error
+    # Since it's the same image with the same tag that already exists
+    for tag in ["tagA", "tagB"]:
+        with pytest.raises(ClientError) as e:
+            client.put_image(
+                repositoryName=ECR_REPO,
+                imageManifest=json.dumps(image_manifest),
+                imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+                imageTag=tag,
+                imageDigest=image_digest,
+            )
+        assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+
+    # Now create a second image (different manifest)
+    new_image_manifest = _create_image_manifest()
+    new_image_digest = new_image_manifest["config"]["digest"]
+    # Push this image with tag=tagA. Because the repository properties has
+    # imageTagMutability set to MUTABLE, this is allowed
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(new_image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagA",
+        imageDigest=new_image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Fetch the images corresponding to the two tags and assert that they match
+    # the expected image digests
+    list_images_response = client.list_images(repositoryName=ECR_REPO)
+    # There should be two images
+    assert len(list_images_response["imageIds"]) == 2
+    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+        image_digest,
+        new_image_digest,
+    }
+
+
+@mock_aws
+def test_ecr_image_tag_mutability_with_exclusion_filters():
+    # We will create a repository
+    # First with imageTagMutability = MUTABLE
+    # And with imageTagMutabilityFilters
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    client.create_repository(
+        repositoryName=ECR_REPO,
+        imageTagMutability="MUTABLE_WITH_EXCLUSION",
+        imageTagMutabilityExclusionFilters=[
+            {"filter": "tagME.*", "filterType": "WILDCARD"},
+            {"filter": "tagDME.*", "filterType": "WILDCARD"},
+        ],
+    )
+
+    describe_repos_response = client.describe_repositories(repositoryNames=[ECR_REPO])
+    assert (
+        describe_repos_response["repositories"][0]["imageTagMutability"]
+        == "MUTABLE_WITH_EXCLUSION"
+    )
+
+    image_manifest = _create_image_manifest()
+    image_digest = image_manifest["config"]["digest"]
+    # Push an image with tag=tagME1
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagME1",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Push the same image with tag=tagDME1
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagDME1",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Pushing the same image with the following tags will give error:
+    #   1. tagME1 (existing tag on same image, and also excluded by filter)
+    #   2. tagDME1 (existing tag on same image and also excluded by filter)
+    for tag in ["tagME1", "tagDME1"]:
+        with pytest.raises(ClientError) as e:
+            client.put_image(
+                repositoryName=ECR_REPO,
+                imageManifest=json.dumps(image_manifest),
+                imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+                imageTag=tag,
+                imageDigest=image_digest,
+            )
+        assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+    # Whereas, pushing the same image with the following tags will succeed:
+    #   1. tagME2
+    #   2. tagDME2
+    # Even though this satisfies exclusion filters, absence of these tags prior to this
+    # action means they are not subject to immutability
+    for tag in ["tagME2", "tagDME2"]:
+        put_response = client.put_image(
+            repositoryName=ECR_REPO,
+            imageManifest=json.dumps(image_manifest),
+            imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+            imageTag=tag,
+            imageDigest=image_digest,
+        )
+        assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Push the same image again, now with tag=tagA. This is a valid action
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagA",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Now create a second image (different manifest)
+    new_image_manifest = _create_image_manifest()
+    new_image_digest = new_image_manifest["config"]["digest"]
+    # Push this image with tag=tagA. Because the repository properties has
+    # imageTagMutability set to MUTABLE, and because the tag does not
+    # follow either of the patterns specified in the exclusion filters,
+    # this is allowed
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(new_image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagA",
+        imageDigest=new_image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Pushing this new image with tagME1, tagME2, tagDME1 and tagDME2 will give error
+    # because immutability is guaranteed via the exclusion filters
+    for tag in ["tagME1", "tagME2", "tagDME1", "tagDME2"]:
+        with pytest.raises(ClientError) as e:
+            client.put_image(
+                repositoryName=ECR_REPO,
+                imageManifest=json.dumps(new_image_manifest),
+                imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+                imageTag=tag,
+                imageDigest=new_image_digest,
+            )
+        assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+
+    # Fetch the images corresponding to the two tags and assert that they match
+    # the expected image digests
+    list_images_response = client.list_images(repositoryName=ECR_REPO)
+    # There should be 5 "images"
+    assert len(list_images_response["imageIds"]) == 5
+    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+        image_digest,
+        new_image_digest,
+    }
+
+
+@mock_aws
+def test_ecr_image_tag_immutability():
+    # We will create a repository
+    # First with imageTagMutability = IMMUTABLE
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    client.create_repository(repositoryName=ECR_REPO, imageTagMutability="IMMUTABLE")
+    image_manifest = _create_image_manifest()
+    image_digest = image_manifest["config"]["digest"]
+    # Push an image with tag=tagA
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagA",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Pushing the same image with the same tag (tagA) will give an error
+    with pytest.raises(ClientError) as e:
+        client.put_image(
+            repositoryName=ECR_REPO,
+            imageManifest=json.dumps(image_manifest),
+            imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+            imageTag="tagA",
+            imageDigest=image_digest,
+        )
+    assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+
+    # Push the same image again, now with tag=tagB. This is a valid action
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagB",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Pushing the same image with either tagA or tagB should give an error
+    # Since it's the same image with the same tag that already exists
+    for tag in ["tagA", "tagB"]:
+        with pytest.raises(ClientError) as e:
+            client.put_image(
+                repositoryName=ECR_REPO,
+                imageManifest=json.dumps(image_manifest),
+                imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+                imageTag=tag,
+                imageDigest=image_digest,
+            )
+        assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+
+    # Now create a second image (different manifest)
+    new_image_manifest = _create_image_manifest()
+    new_image_digest = new_image_manifest["config"]["digest"]
+    # This PutImage action isn't allowed either because of the IMMUTABLE tag
+    for tag in ["tagA", "tagB"]:
+        with pytest.raises(ClientError) as e:
+            put_response = client.put_image(
+                repositoryName=ECR_REPO,
+                imageManifest=json.dumps(new_image_manifest),
+                imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+                imageTag=tag,
+                imageDigest=new_image_digest,
+            )
+        assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+
+    # Fetch the images corresponding to the two tags and assert that they match
+    # the expected image digests
+    list_images_response = client.list_images(repositoryName=ECR_REPO)
+    # There is only one image, but because it has two tags, the length is 2
+    assert len(list_images_response["imageIds"]) == 2
+    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+        image_digest,
+    }
+
+
+@mock_aws
+def test_ecr_image_tag_immutability_with_exclusion_filters():
+    # We will create a repository
+    # First with imageTagMutability = IMMUTABLE
+    # And with imageTagMutabilityFilters
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    client.create_repository(
+        repositoryName=ECR_REPO,
+        imageTagMutability="IMMUTABLE_WITH_EXCLUSION",
+        imageTagMutabilityExclusionFilters=[
+            {"filter": "tagME.*", "filterType": "WILDCARD"},
+            {"filter": "tagDME.*", "filterType": "WILDCARD"},
+        ],
+    )
+
+    describe_repos_response = client.describe_repositories(repositoryNames=[ECR_REPO])
+    assert (
+        describe_repos_response["repositories"][0]["imageTagMutability"]
+        == "IMMUTABLE_WITH_EXCLUSION"
+    )
+
+    image_manifest = _create_image_manifest()
+    image_digest = image_manifest["config"]["digest"]
+    # Push an image with tag=tagME1
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagME1",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Push the same image with tag=tagDME1
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagDME1",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Pushing the same image with the following tags will give error:
+    #   1. tagME1 (existing tag on same image)
+    #   2. tagDME1 (existing tag on same image)
+    for tag in ["tagME1", "tagDME1"]:
+        with pytest.raises(ClientError) as e:
+            client.put_image(
+                repositoryName=ECR_REPO,
+                imageManifest=json.dumps(image_manifest),
+                imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+                imageTag=tag,
+                imageDigest=image_digest,
+            )
+        assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+    # Whereas pushing the same image with the following tags will succeed:
+    #   1. tagME2
+    #   2. tagDME2
+    for tag in ["tagME2", "tagDME2"]:
+        put_response = client.put_image(
+            repositoryName=ECR_REPO,
+            imageManifest=json.dumps(image_manifest),
+            imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+            imageTag=tag,
+            imageDigest=image_digest,
+        )
+        assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Push the same image again, now with tag=tagA. This is a valid action
+    put_response = client.put_image(
+        repositoryName=ECR_REPO,
+        imageManifest=json.dumps(image_manifest),
+        imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+        imageTag="tagA",
+        imageDigest=image_digest,
+    )
+    assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Now create a second image (different manifest)
+    new_image_manifest = _create_image_manifest()
+    new_image_digest = new_image_manifest["config"]["digest"]
+    # Pushing this image with tag=tagA. Because the repository properties has
+    # imageTagMutability set to IMMUTABLE, and because the tag does not
+    # follow either of the patterns specified in the exclusion filters,
+    # this is not allowed
+    with pytest.raises(ClientError) as e:
+        put_response = client.put_image(
+            repositoryName=ECR_REPO,
+            imageManifest=json.dumps(new_image_manifest),
+            imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+            imageTag="tagA",
+            imageDigest=new_image_digest,
+        )
+    assert e.value.response["Error"]["Code"] == "ImageAlreadyExistsException"
+    # Whereas pushing the image with the earlier tags will all succeed
+    for tag in ["tagME1", "tagDME1", "tagME2", "tagDME2"]:
+        put_response = client.put_image(
+            repositoryName=ECR_REPO,
+            imageManifest=json.dumps(new_image_manifest),
+            imageManifestMediaType="application/vnd.oci.image.manifest.v1+json",
+            imageTag=tag,
+            imageDigest=new_image_digest,
+        )
+        assert put_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Fetch the images corresponding to the two tags and assert that they match
+    # the expected image digests
+    list_images_response = client.list_images(repositoryName=ECR_REPO)
+    # There should be 5 "images"
+    assert len(list_images_response["imageIds"]) == 5
+    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+        image_digest,
+        new_image_digest,
+    }
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "exclusion_filters, error_type",
+    [
+        ([], "ParamValidationError"),
+        ([{"k1": "v1", "k2": "v2", "k3": "v3"}], "ParamValidationError"),
+        ([{"filter": "v1", "k2": "v2"}], "ParamValidationError"),
+        ([{"filter": "abc", "filterType": "invalid"}], "InvalidParameterException"),
+        ([{"filter": "", "filterType": "WILDCARD"}], "ParamValidationError"),
+    ],
+    ids=[
+        "empty_list",
+        "contains_more_keys",
+        "contains_keys_other_than_filter_filterType",
+        "filterType_not_WILDCARD",
+        "filter_not_in_pattern",
+    ],
+)
+def test_ecr_failures_due_to_exclusion_filters(
+    ecr_image_tag_mutability, exclusion_filters, error_type
+):
+    client = boto3.client("ecr", region_name=ECR_REGION)
+    with pytest.raises((ClientError, ParamValidationError)) as e:
+        client.create_repository(
+            repositoryName=ECR_REPO,
+            imageTagMutability=ecr_image_tag_mutability,
+            imageTagMutabilityExclusionFilters=exclusion_filters,
+        )
+    assert e.typename == error_type
+    # The same set of failures occur if we tried to modify the imageTagMutability (related)
+    # settings on an existing repository as well
+    create_response = client.create_repository(
+        repositoryName=ECR_REPO, imageTagMutability="MUTABLE"
+    )
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    with pytest.raises((ClientError, ParamValidationError)) as e:
+        client.put_image_tag_mutability(
+            repositoryName=ECR_REPO,
+            imageTagMutability=ecr_image_tag_mutability,
+            imageTagMutabilityExclusionFilters=exclusion_filters,
+        )
+    assert e.typename == error_type
+
+
+@pytest.fixture(
+    scope="module",
+    params=[
+        "MUTABLE_WITH_EXCLUSION",
+        "IMMUTABLE_WITH_EXCLUSION",
+    ],
+)
+def ecr_image_tag_mutability(request):
+    return request.param

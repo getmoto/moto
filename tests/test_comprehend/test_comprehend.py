@@ -913,7 +913,6 @@ def test_tags_from_resourcegroupsapi():
 def test_resource_policy_lifecycle():
     client = boto3.client("comprehend", region_name="us-west-2")
 
-    # Create a resource to attach a policy to
     recognizer_arn = client.create_entity_recognizer(
         DataAccessRoleArn="iam_role_with_20_chars",
         InputDataConfig=INPUT_DATA_CONFIG,
@@ -921,7 +920,6 @@ def test_resource_policy_lifecycle():
         RecognizerName="recognizer-for-policy-test",
     )["EntityRecognizerArn"]
 
-    # 1. Describe should fail when no policy exists
     with pytest.raises(ClientError) as exc:
         client.describe_resource_policy(ResourceArn=recognizer_arn)
     err = exc.value.response["Error"]
