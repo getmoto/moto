@@ -202,6 +202,7 @@ def test_describe_elasticsearch_domain():
     assert domain["UpgradeProcessing"] is False
     assert "ElasticsearchVersion" not in domain
 
+
 @mock_aws
 def test_describe_elasticsearch_domain_config():
     client = boto3.client("es", region_name="ap-southeast-1")
@@ -210,6 +211,7 @@ def test_describe_elasticsearch_domain_config():
     resp = client.describe_elasticsearch_domain_config(DomainName="motosearch")
     domain_config = resp["DomainConfig"]
     assert domain_config["ElasticsearchClusterConfig"]["Options"]["InstanceCount"] == 1
+
 
 @mock_aws
 def test_list_domain_names_initial():
