@@ -4191,6 +4191,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "pca-connector-ad": {
+                "Value": "pca-connector-ad",
+                "endpoint": {
+                  "Value": "pca-connector-ad.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "pi": {
                 "Value": "pi",
                 "endpoint": {
@@ -61818,6 +61827,15 @@
                 "Value": "synthetics",
                 "endpoint": {
                   "Value": "synthetics.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "taxsettings": {
+                "Value": "taxsettings",
+                "endpoint": {
+                  "Value": "tax.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
