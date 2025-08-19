@@ -183,6 +183,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         tags = self._get_param("tags")
         launch_type = self._get_param("launchType")
         network_configuration = self._get_param("networkConfiguration")
+        group = self._get_param("group")
         tasks = self.ecs_backend.run_task(
             cluster_str,
             task_definition_str,
@@ -192,6 +193,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             launch_type,
             network_configuration,
+            group,
         )
         return json.dumps(
             {"tasks": [task.response_object() for task in tasks], "failures": []}
@@ -216,6 +218,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         container_instances = self._get_param("containerInstances")
         started_by = self._get_param("startedBy")
         tags = self._get_param("tags")
+        group = self._get_param("group")
         tasks = self.ecs_backend.start_task(
             cluster_str,
             task_definition_str,
@@ -223,6 +226,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             overrides,
             started_by,
             tags,
+            group,
         )
         return json.dumps(
             {"tasks": [task.response_object() for task in tasks], "failures": []}

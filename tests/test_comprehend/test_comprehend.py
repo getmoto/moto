@@ -26,7 +26,6 @@ INPUT_DATA_CONFIG = {
 OUTPUT_DATA_CONFIG = {
     "S3Uri": "string",
     "KmsKeyId": "string",
-    "FlywheelStatsS3Prefix": "string",
 }
 
 DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG = {
@@ -908,3 +907,62 @@ def test_tags_from_resourcegroupsapi():
         {"Key": "k1", "Value": "v1"},
         {"Key": "k2", "Value": "v2"},
     ]
+
+
+@mock_aws
+def test_resource_policy_lifecycle():
+    client = boto3.client("comprehend", region_name="us-west-2")
+
+    recognizer_arn = client.create_entity_recognizer(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        RecognizerName="recognizer-for-policy-test",
+    )["EntityRecognizerArn"]
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_resource_policy(ResourceArn=recognizer_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
+
+    policy_doc = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"comprehend:*"}]}'
+    put_resp = client.put_resource_policy(
+        ResourceArn=recognizer_arn, ResourcePolicy=policy_doc
+    )
+    assert "PolicyRevisionId" in put_resp
+    first_revision_id = put_resp["PolicyRevisionId"]
+
+    desc_resp = client.describe_resource_policy(ResourceArn=recognizer_arn)
+    assert desc_resp["ResourcePolicy"] == policy_doc
+    assert desc_resp["PolicyRevisionId"] == first_revision_id
+    assert "CreationTime" in desc_resp
+    assert "LastModifiedTime" in desc_resp
+    creation_time = desc_resp["CreationTime"]
+
+    updated_policy_doc = '{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":"*","Action":"comprehend:*"}]}'
+    update_resp = client.put_resource_policy(
+        ResourceArn=recognizer_arn, ResourcePolicy=updated_policy_doc
+    )
+    second_revision_id = update_resp["PolicyRevisionId"]
+    assert second_revision_id != first_revision_id
+
+    desc_resp_updated = client.describe_resource_policy(ResourceArn=recognizer_arn)
+    assert desc_resp_updated["ResourcePolicy"] == updated_policy_doc
+    assert desc_resp_updated["PolicyRevisionId"] == second_revision_id
+    assert desc_resp_updated["CreationTime"] == creation_time
+    assert desc_resp_updated["LastModifiedTime"] != desc_resp["LastModifiedTime"]
+
+    client.delete_resource_policy(ResourceArn=recognizer_arn)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_resource_policy(ResourceArn=recognizer_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_resource_policy(ResourceArn=recognizer_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."

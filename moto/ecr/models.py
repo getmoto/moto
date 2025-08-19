@@ -6,7 +6,8 @@ import re
 import threading
 from collections import namedtuple
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from enum import Enum
+from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple
 
 from botocore.exceptions import ParamValidationError
 
@@ -43,6 +44,20 @@ EcrRepositoryArn = namedtuple(
     "EcrRepositoryArn", ["partition", "region", "account_id", "repo_name"]
 )
 
+ImageTagMutabilityExclusionFilterT = Dict[Literal["filter", "filterType"], str]
+
+
+class RepoTagMutability(str, Enum):
+    MUTABLE = "MUTABLE"
+    IMMUTABLE = "IMMUTABLE"
+    MUTABLE_WITH_EXCLUSION = "MUTABLE_WITH_EXCLUSION"
+    IMMUTABLE_WITH_EXCLUSION = "IMMUTABLE_WITH_EXCLUSION"
+
+
+class RepositoryUpdateProperty(str, Enum):
+    IMAGE_TAG_MUTABILITY = "ImageTagMutability"
+    IMAGE_SCANNING_CONFIGURATION = "ImageScanningConfiguration"
+
 
 class Repository(CloudFormationModel, BaseModel):
     def __init__(
@@ -53,7 +68,10 @@ class Repository(CloudFormationModel, BaseModel):
         registry_id: Optional[str],
         encryption_config: Optional[Dict[str, str]],
         image_scan_config: str,
-        image_tag_mutablility: str,
+        image_tag_mutability: str,
+        image_tag_mutability_exclusion_filters: Optional[
+            List[ImageTagMutabilityExclusionFilterT]
+        ] = None,
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -64,7 +82,13 @@ class Repository(CloudFormationModel, BaseModel):
         self.uri = (
             f"{self.registry_id}.dkr.ecr.{region_name}.amazonaws.com/{repository_name}"
         )
-        self.image_tag_mutability = image_tag_mutablility or "MUTABLE"
+        self.image_tag_mutability_exclusion_filters = (
+            image_tag_mutability_exclusion_filters
+        )
+        self.image_tag_mutability = self._determine_image_tag_mutability(
+            image_tag_mutability
+        )
+
         self.image_scanning_configuration = image_scan_config or {"scanOnPush": False}
         self.encryption_configuration = self._determine_encryption_config(
             encryption_config
@@ -90,6 +114,30 @@ class Repository(CloudFormationModel, BaseModel):
                 f"arn:{get_partition(self.region_name)}:kms:{self.region_name}:{self.account_id}:key/{random.uuid4()}"
             )
         return encryption_config
+
+    def _determine_image_tag_mutability(
+        self, image_tag_mutability: Optional[str]
+    ) -> str:
+        if not image_tag_mutability:
+            return RepoTagMutability.MUTABLE
+        elif image_tag_mutability == RepoTagMutability.MUTABLE_WITH_EXCLUSION or (
+            image_tag_mutability == RepoTagMutability.MUTABLE
+            and self.image_tag_mutability_exclusion_filters
+        ):
+            return RepoTagMutability.MUTABLE_WITH_EXCLUSION
+        elif image_tag_mutability == RepoTagMutability.IMMUTABLE_WITH_EXCLUSION or (
+            image_tag_mutability == RepoTagMutability.IMMUTABLE
+            and self.image_tag_mutability_exclusion_filters
+        ):
+            return RepoTagMutability.IMMUTABLE_WITH_EXCLUSION
+        else:
+            return image_tag_mutability
+
+    def is_tag_immutable(self) -> bool:
+        return self.image_tag_mutability in [
+            RepoTagMutability.IMMUTABLE,
+            RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
+        ]
 
     def _get_image(
         self, image_tag: Optional[str], image_digest: Optional[str]
@@ -122,15 +170,42 @@ class Repository(CloudFormationModel, BaseModel):
     def physical_resource_id(self) -> str:
         return self.name
 
+    def _update_image_tag_mutability(
+        self,
+        image_tag_mutability: Optional[str],
+        image_tag_mutability_exclusion_filters: Optional[
+            List[ImageTagMutabilityExclusionFilterT]
+        ],
+    ) -> None:
+        self.image_tag_mutability_exclusion_filters = (
+            image_tag_mutability_exclusion_filters
+        )
+        self.image_tag_mutability = self._determine_image_tag_mutability(
+            image_tag_mutability
+        )
+
+    def _update_image_scanning_configuration(
+        self, image_scanning_configuration: Optional[Dict[str, bool]]
+    ) -> None:
+        if image_scanning_configuration:
+            self.image_scanning_configuration = image_scanning_configuration
+
     def update(
         self,
-        image_scan_config: Optional[Dict[str, Any]] = None,
-        image_tag_mutability: Optional[str] = None,
+        property_type: str,
+        **kwargs: Any,
     ) -> None:
-        if image_scan_config:
-            self.image_scanning_configuration = image_scan_config
-        if image_tag_mutability:
-            self.image_tag_mutability = image_tag_mutability
+        if property_type == RepositoryUpdateProperty.IMAGE_SCANNING_CONFIGURATION:
+            self._update_image_scanning_configuration(
+                image_scanning_configuration=kwargs.get("image_scanning_configuration")
+            )
+        elif property_type == RepositoryUpdateProperty.IMAGE_TAG_MUTABILITY:
+            self._update_image_tag_mutability(
+                image_tag_mutability=kwargs.get("image_tag_mutability"),
+                image_tag_mutability_exclusion_filters=kwargs.get(
+                    "image_tag_mutability_exclusion_filters"
+                ),
+            )
 
     def delete(self, account_id: str, region_name: str) -> None:
         ecr_backend = ecr_backends[account_id][region_name]
@@ -173,8 +248,22 @@ class Repository(CloudFormationModel, BaseModel):
 
         encryption_config = properties.get("EncryptionConfiguration")
         image_scan_config = properties.get("ImageScanningConfiguration")
-        image_tag_mutablility = properties.get("ImageTagMutability")
+        image_tag_mutability = properties.get("ImageTagMutability")
+        image_tag_mutability_exclusion_filters = properties.get(
+            "ImageTagMutabilityExclusionFilters"
+        )
         tags = properties.get("Tags", [])
+
+        # Validations around imageTagMutability properties
+        ecr_backend.validate_image_tag_mutability_params_compatibility(
+            image_tag_mutability, image_tag_mutability_exclusion_filters
+        )
+
+        image_tag_mutability_exclusion_filters = (
+            cls._convert_cfn_mutability_exclusion_filters(
+                properties.get("ImageTagMutabilityExclusionFilters", [])
+            )
+        )
 
         return ecr_backend.create_repository(
             # RepositoryName is optional in CloudFormation, thus create a random
@@ -183,7 +272,8 @@ class Repository(CloudFormationModel, BaseModel):
             registry_id=None,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
-            image_tag_mutablility=image_tag_mutablility,
+            image_tag_mutability=image_tag_mutability,
+            image_tag_mutability_exclusion_filters=image_tag_mutability_exclusion_filters,
             tags=tags,
         )
 
@@ -206,9 +296,25 @@ class Repository(CloudFormationModel, BaseModel):
             new_resource_name == original_resource.name
             and encryption_configuration == original_resource.encryption_configuration
         ):
+            image_tag_mutability = properties.get("ImageTagMutability")
+            image_tag_mutability_exclusion_filters = properties.get(
+                "ImageTagMutabilityExclusionFilters"
+            )
+            ecr_backend.validate_image_tag_mutability_params_compatibility(
+                image_tag_mutability, image_tag_mutability_exclusion_filters
+            )
             original_resource.update(
-                properties.get("ImageScanningConfiguration"),
-                properties.get("ImageTagMutability"),
+                RepositoryUpdateProperty.IMAGE_SCANNING_CONFIGURATION,
+                image_scanning_configuration=properties.get(
+                    "ImageScanningConfiguration"
+                ),
+            )
+            original_resource.update(
+                RepositoryUpdateProperty.IMAGE_TAG_MUTABILITY,
+                image_tag_mutability=image_tag_mutability,
+                image_tag_mutability_exclusion_filters=cls._convert_cfn_mutability_exclusion_filters(
+                    image_tag_mutability_exclusion_filters
+                ),
             )
 
             ecr_backend.tagger.tag_resource(
@@ -221,6 +327,29 @@ class Repository(CloudFormationModel, BaseModel):
             return cls.create_from_cloudformation_json(
                 new_resource_name, cloudformation_json, account_id, region_name
             )
+
+    @classmethod
+    def _convert_cfn_mutability_exclusion_filters(
+        cls,
+        exclusion_filters: Optional[List[Dict[str, str]]],
+    ) -> Optional[List[ImageTagMutabilityExclusionFilterT]]:
+        if not exclusion_filters:
+            return None
+        image_tag_mutability_exclusion_filters: List[
+            ImageTagMutabilityExclusionFilterT
+        ] = []
+        for exclusion_filter in exclusion_filters:
+            image_tag_mutability_exclusion_filters.append(
+                {
+                    "filterType": exclusion_filter[
+                        "ImageTagMutabilityExclusionFilterType"
+                    ],
+                    "filter": exclusion_filter[
+                        "ImageTagMutabilityExclusionFilterValue"
+                    ],
+                }
+            )
+        return image_tag_mutability_exclusion_filters
 
 
 class Image(BaseModel):
@@ -402,8 +531,11 @@ class ECRBackend(BaseBackend):
         registry_id: Optional[str],
         encryption_config: Dict[str, str],
         image_scan_config: Any,
-        image_tag_mutablility: str,
+        image_tag_mutability: str,
         tags: List[Dict[str, str]],
+        image_tag_mutability_exclusion_filters: Optional[
+            List[ImageTagMutabilityExclusionFilterT]
+        ] = None,
     ) -> Repository:
         if self.repositories.get(repository_name):
             raise RepositoryAlreadyExistsException(repository_name, self.account_id)
@@ -414,6 +546,31 @@ class ECRBackend(BaseBackend):
                 f"Invalid parameter at 'repositoryName' failed to satisfy constraint: 'must satisfy regular expression '{ECR_REPOSITORY_NAME_PATTERN}'"
             )
 
+        # Validate imageTagMutability if provided explicitly
+        if image_tag_mutability and image_tag_mutability not in [
+            value for value in RepoTagMutability
+        ]:
+            raise InvalidParameterException(
+                "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
+                "must be one of 'MUTABLE', 'IMMUTABLE', 'MUTABLE_WITH_EXCLUSION', 'IMMUTABLE_WITH_EXCLUSION'",
+                400,
+            )
+
+        # Validate imageTagMutabilityExclusionFilters
+        errmsg = self._validate_mutability_exclusion_filters(
+            image_tag_mutability_exclusion_filters
+        )
+        if errmsg:
+            raise InvalidParameterException(
+                f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: "
+                f"{errmsg}",
+                400,
+            )
+
+        self.validate_image_tag_mutability_params_compatibility(
+            image_tag_mutability, image_tag_mutability_exclusion_filters
+        )
+
         repository = Repository(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -421,7 +578,8 @@ class ECRBackend(BaseBackend):
             registry_id=registry_id,
             encryption_config=encryption_config,
             image_scan_config=image_scan_config,
-            image_tag_mutablility=image_tag_mutablility,
+            image_tag_mutability=image_tag_mutability,
+            image_tag_mutability_exclusion_filters=image_tag_mutability_exclusion_filters,
         )
         self.repositories[repository_name] = repository
         self.tagger.tag_resource(repository.arn, tags)
@@ -536,19 +694,9 @@ class ECRBackend(BaseBackend):
             )
         )
 
-        # if an image with a matching manifest exists and it is tagged,
-        # trying to put the same image with the same tag will result in an
-        # ImageAlreadyExistsException
-
-        try:
-            existing_images_with_matching_tag = list(
-                filter(
-                    lambda x: image_tag in x.image_tags,
-                    repository.images,
-                )
-            )
-        except KeyError:
-            existing_images_with_matching_tag = []
+        existing_images_with_matching_tag = self._resolve_image_tag_mutability(
+            repository, image_tag
+        )
 
         if not existing_images_with_matching_manifest:
             # this image is not in ECR yet
@@ -560,18 +708,19 @@ class ECRBackend(BaseBackend):
                 image_manifest_mediatype,
                 digest,
             )
-            repository.images.append(image)
             if existing_images_with_matching_tag:
-                # Tags are unique, so delete any existing image with this tag first
-                # (or remove the tag if the image has more than one tag)
                 self.batch_delete_image(
                     repository_name=repository_name, image_ids=[{"imageTag": image_tag}]
                 )
+            # "Add" this image to the repository after removing the existing ones with the same tag
+            repository.images.append(image)
             return image
         else:
             # this image is in ECR
             image = existing_images_with_matching_manifest[0]
-            if image.image_tag == image_tag:
+            # The same image can have multiple tags. The exception is thrown if we are
+            # pushing the same image with an existing tag
+            if image_tag in image.image_tags:
                 raise ImageAlreadyExistsException(
                     registry_id=repository.registry_id,
                     image_tag=image_tag,
@@ -579,14 +728,93 @@ class ECRBackend(BaseBackend):
                     repository_name=repository_name,
                 )
             else:
-                # Tags are unique, so delete any existing image with this tag first
-                # (or remove the tag if the image has more than one tag)
                 self.batch_delete_image(
                     repository_name=repository_name, image_ids=[{"imageTag": image_tag}]
                 )
                 # update existing image
                 image.update_tag(image_tag)
                 return image
+
+    def _resolve_image_tag_mutability(
+        self,
+        repository: Repository,
+        proposed_image_tag: str,
+    ) -> List[Image]:
+        """
+        The idea is the following:
+
+        If exclusion filters are set (irrespective of the base property of imageTagMutability), then we have to check if the current image tag falls under one of those filters.
+        If they do, then we need to find the existing image that is tagged so, and if we are operating with exclusions on MUTABLE, then we have to block the current push.
+
+        Otherwise we have to find images that have the exact same tag, and if we are operating under IMMUTABLE tag properties (with or without exclusions),
+        that is another case we have to block the current push
+        """
+        existing_images_with_matching_tag: List[Image] = []
+        try:
+            if repository.image_tag_mutability_exclusion_filters:
+                # First check if the proposed image tag is under exclusion filters
+                matching_filters: List[ImageTagMutabilityExclusionFilterT] = list(
+                    filter(
+                        lambda ef: re.match(ef["filter"], proposed_image_tag),
+                        repository.image_tag_mutability_exclusion_filters,
+                    )
+                )
+                if matching_filters:
+                    # If it is, then find images with this tag
+                    existing_images_with_matching_tag = (
+                        self._find_images_with_tags_matching_exclusion_filters(
+                            repository,
+                            proposed_image_tag,
+                        )
+                    )
+                    if (
+                        existing_images_with_matching_tag
+                        and repository.image_tag_mutability
+                        == RepoTagMutability.MUTABLE_WITH_EXCLUSION
+                    ):
+                        # Under this mutability setting, this operation is not allowed
+                        raise ImageAlreadyExistsException(
+                            registry_id=repository.registry_id,
+                            image_tag=proposed_image_tag,
+                            digest=existing_images_with_matching_tag[
+                                0
+                            ].get_image_digest(),
+                            repository_name=repository.name,
+                        )
+
+            if not existing_images_with_matching_tag:
+                existing_images_with_matching_tag = (
+                    self._find_images_with_tags_matching_exclusion_filters(
+                        repository,
+                        proposed_image_tag,
+                    )
+                )
+                # If we are dealing with IMMUTABLE setting and we have existing images with the same tag,
+                # then this operation is not allowed
+                if existing_images_with_matching_tag and repository.is_tag_immutable():
+                    raise ImageAlreadyExistsException(
+                        registry_id=repository.registry_id,
+                        image_tag=proposed_image_tag,
+                        digest=existing_images_with_matching_tag[0].get_image_digest(),
+                        repository_name=repository.name,
+                    )
+
+        except KeyError:
+            pass
+
+        return existing_images_with_matching_tag
+
+    def _find_images_with_tags_matching_exclusion_filters(
+        self,
+        repository: Repository,
+        proposed_image_tag: str,
+    ) -> List[Image]:
+        return list(
+            filter(
+                lambda x: proposed_image_tag in x.image_tags,
+                repository.images,
+            )
+        )
 
     def batch_get_image(
         self,
@@ -776,16 +1004,36 @@ class ECRBackend(BaseBackend):
         self.tagger.untag_resource_using_names(repo.arn, tag_keys)
 
     def put_image_tag_mutability(
-        self, registry_id: str, repository_name: str, image_tag_mutability: str
+        self,
+        registry_id: str,
+        repository_name: str,
+        image_tag_mutability: str,
+        image_tag_mutability_exclusion_filters: Optional[
+            List[ImageTagMutabilityExclusionFilterT]
+        ] = None,
     ) -> Dict[str, str]:
-        if image_tag_mutability not in ["IMMUTABLE", "MUTABLE"]:
+        if image_tag_mutability not in [value for value in RepoTagMutability]:
             raise InvalidParameterException(
                 "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
-                "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE]'"
+                "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE, MUTABLE_WITH_EXCLUSION, IMMUTABLE_WITH_EXCLUSION]'"
+            )
+
+        # Validate Mutability Exclusion Filters parameter
+        errmsg = self._validate_mutability_exclusion_filters(
+            image_tag_mutability_exclusion_filters
+        )
+        if errmsg:
+            raise InvalidParameterException(
+                "Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: "
+                f"{errmsg}"
             )
 
         repo = self._get_repository(repository_name, registry_id)
-        repo.update(image_tag_mutability=image_tag_mutability)
+        repo.update(
+            RepositoryUpdateProperty.IMAGE_TAG_MUTABILITY,
+            image_tag_mutability=image_tag_mutability,
+            image_tag_mutability_exclusion_filters=image_tag_mutability_exclusion_filters,
+        )
 
         return {
             "registryId": repo.registry_id,
@@ -797,7 +1045,10 @@ class ECRBackend(BaseBackend):
         self, registry_id: str, repository_name: str, image_scan_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         repo = self._get_repository(repository_name, registry_id)
-        repo.update(image_scan_config=image_scan_config)
+        repo.update(
+            RepositoryUpdateProperty.IMAGE_SCANNING_CONFIGURATION,
+            image_scanning_configuration=image_scan_config,
+        )
 
         return {
             "registryId": repo.registry_id,
@@ -1183,6 +1434,52 @@ class ECRBackend(BaseBackend):
             "registryId": self.account_id,
             "replicationConfiguration": self.replication_config,
         }
+
+    def _validate_mutability_exclusion_filters(
+        self,
+        image_tag_mutability_exclusion_filters: Optional[
+            List[ImageTagMutabilityExclusionFilterT]
+        ],
+    ) -> Optional[str]:
+        if image_tag_mutability_exclusion_filters is None:
+            # It is not mandatory
+            return None
+        # [This is handled by botocore]: The length of this list of filters should be between 1 and 5
+        # For each exclusion filter specified:
+        #   1. The only allowed keys are filter and filterType
+        #   2. [Only this isn't checked by botocore] The only allowed value of filterType is WILDCARD [https://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_ImageTagMutabilityExclusionFilter.html]
+        #   3. filter should be a regex of this pattern ^[0-9a-zA-Z._*-]{1,128}$
+        for exclusion_filter in image_tag_mutability_exclusion_filters:
+            for filter_key, filter_val in exclusion_filter.items():
+                if filter_key == "filterType" and filter_val != "WILDCARD":
+                    return f"Invalid value for 'filterType' in mutability exclusion filter: {filter_val}"
+        return None
+
+    @staticmethod
+    def validate_image_tag_mutability_params_compatibility(
+        image_tag_mutability: str,
+        image_tag_mutability_exclusion_filters: Optional[
+            List[ImageTagMutabilityExclusionFilterT]
+        ],
+    ) -> None:
+        # If imageTagMutabilityExclusionFilters isn't null, then imageTagMutability can only be the _EXCLUSION variant
+        if image_tag_mutability_exclusion_filters is not None:
+            if image_tag_mutability not in [
+                RepoTagMutability.MUTABLE_WITH_EXCLUSION,
+                RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
+            ]:
+                raise InvalidParameterException(
+                    f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: 'ImageTagMutabilityExclusionFilters can't be null when imageTagMutability is set as {image_tag_mutability}'"
+                )
+        else:
+            # If it is null, then imageTagMutability cannot be the _EXCLUSION variant
+            if image_tag_mutability in [
+                RepoTagMutability.MUTABLE_WITH_EXCLUSION,
+                RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
+            ]:
+                raise InvalidParameterException(
+                    f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: 'ImageTagMutabilityExclusionFilters can't be null when imageTagMutability is set as {image_tag_mutability}'"
+                )
 
 
 ecr_backends = BackendDict(ECRBackend, "ecr")

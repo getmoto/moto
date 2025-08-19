@@ -165,7 +165,10 @@ class SecurityGroups(EC2BaseResponse):
         group = self.ec2_backend.create_security_group(
             name, description, vpc_id=vpc_id, tags=tags
         )
-        result = {"GroupId": group.id}
+        result = {
+            "GroupId": group.id,
+            "SecurityGroupArn": group.arn,
+        }
         return ActionResult(result)
 
     def delete_security_group(self) -> ActionResult:
