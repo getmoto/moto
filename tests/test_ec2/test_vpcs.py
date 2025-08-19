@@ -724,7 +724,7 @@ def test_vpc_associate_ipv6_cidr_block():
         )
     assert (
         str(ex.value)
-        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 1"
+        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network {vpc.id} has met its maximum number of allowed CIDRs: 1"
     )
 
     # Test associate ipv6 cidr block after vpc created
