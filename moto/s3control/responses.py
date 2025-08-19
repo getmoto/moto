@@ -301,6 +301,39 @@ GET_STORAGE_LENS_CONFIGURATION_TEMPLATE = """
    </DataExport>
    {% endif %}
    <IsEnabled>{{config["IsEnabled"]}}</IsEnabled>
+   <AccountLevel>
+        <ActivityMetrics>
+            <IsEnabled>{{config["AccountLevel"]["ActivityMetrics"]["IsEnabled"]}}</IsEnabled>
+        </ActivityMetrics>
+        <BucketLevel>
+            <ActivityMetrics>
+                <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["ActivityMetrics"]["IsEnabled"]}}</IsEnabled>
+            </ActivityMetrics>
+            <PrefixLevel>
+                <StorageMetrics>
+                    <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["IsEnabled"]}}</IsEnabled>
+                    <SelectionCriteria>
+                        <Delimiter>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["Delimiter"]}}</Delimiter>
+                        <MaxDepth>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["MaxDepth"]}}</MaxDepth>
+                        <MinStorageBytesPercentage>{{config["AccountLevel"]["BucketLevel"]["PrefixLevel"]["StorageMetrics"]["SelectionCriteria"]["MinStorageBytesPercentage"]}}</MinStorageBytesPercentage>
+                    </SelectionCriteria>
+                </StorageMetrics>
+            </PrefixLevel>
+            <DetailedStatusCodesMetrics>
+                <IsEnabled>{{config["AccountLevel"]["BucketLevel"]["DetailedStatusCodesMetrics"]["IsEnabled"]}}</IsEnabled>
+            </DetailedStatusCodesMetrics>
+        </BucketLevel>
+        <AdvancedDataProtectionMetrics>
+            <IsEnabled>{{config["AccountLevel"]["AdvancedDataProtectionMetrics"]["IsEnabled"]}}</IsEnabled>
+        </AdvancedDataProtectionMetrics>
+        <DetailedStatusCodesMetrics>
+            <IsEnabled>{{config["AccountLevel"]["DetailedStatusCodesMetrics"]["IsEnabled"]}}</IsEnabled>
+        </DetailedStatusCodesMetrics>
+   </AccountLevel>
+   <AwsOrg>
+        <Arn>{{config.get("AwsOrg", {}).get("Arn", "")}}</Arn>
+    </AwsOrg>
+    <StorageLensArn>{{config.get("StorageLensArn")}}</StorageLensArn>
 </StorageLensConfiguration>
 """
 
