@@ -169,9 +169,40 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         return None
 
     @property
+    def instance_ipv6_address_list(self) -> list[dict[str, Any]]:
+        # This matches the original XML template for DescribeInstances...
+        ipv6_addresses = [
+            {
+                "Ipv6Address": ipv6,
+                "IsPrimaryIpv6": False,
+            }
+            for ipv6 in self.ipv6_addresses
+        ]
+        return ipv6_addresses
+
+    @property
     def network_interface_ipv6_addresses_list(self) -> list[dict[str, str]]:
         addresses = [{"Ipv6Address": ip} for ip in self.ipv6_addresses if ip]
         return addresses
+
+    @property
+    def instance_private_ip_address_list(self) -> list[dict[str, Any]]:
+        # This matches the original XML template for DescribeInstances...
+        ip_addresses = []
+        for ip_address in self.private_ip_addresses:
+            item = {
+                "PrivateIpAddress": ip_address.get("PrivateIpAddress"),
+                "Primary": ip_address.get("Primary", False),
+            }
+            if ip_address.get("PrivateIpAddress") == self.private_ip_address:
+                item["Primary"] = True
+                if self.public_ip:
+                    item["Association"] = {
+                        "PublicIp": self.public_ip,
+                        "IpOwnerId": self.ec2_backend.account_id,
+                    }
+            ip_addresses.append(item)
+        return ip_addresses
 
     @property
     def association(self) -> Dict[str, Any]:  # type: ignore[misc]
