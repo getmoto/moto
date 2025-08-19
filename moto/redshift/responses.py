@@ -295,6 +295,27 @@ class RedshiftResponse(BaseResponse):
 
         return EmptyResult()
 
+    def describe_default_cluster_parameters(self) -> ActionResult:
+        params = self.redshift_backend.describe_default_cluster_parameters()
+        return ActionResult(
+            {
+                "DefaultClusterParameters": {
+                    "Parameters": params,
+                }
+            }
+        )
+
+    def describe_cluster_parameters(self) -> ActionResult:
+        group_name = self._get_param("ParameterGroupName")
+        params = self.redshift_backend.describe_cluster_parameters(
+            parameter_group_name=group_name
+        )
+        return ActionResult(
+            {
+                "Parameters": params,
+            }
+        )
+
     def create_cluster_snapshot(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")

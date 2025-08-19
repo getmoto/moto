@@ -364,6 +364,52 @@ def test_create_cluster_with_iam_roles():
 
 
 @mock_aws
+def test_describe_default_cluster_params():
+    client = boto3.client(
+        "redshift",
+        region_name="us-east-1",
+    )
+    response = client.describe_default_cluster_parameters(
+        ParameterGroupFamily="redshift-1.0"
+    )
+    assert len(response["DefaultClusterParameters"]["Parameters"])
+    assert all(
+        ("ParameterName" in param and "ParameterValue" in param)
+        for param in response["DefaultClusterParameters"]["Parameters"]
+    )
+
+
+@mock_aws
+def test_describe_cluster_params():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    param_group_name = "groupx"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_cluster_parameters(
+            ParameterGroupName=param_group_name,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClusterParameterGroupNotFound"
+    assert err["Message"] == "ClusterParameterGroup not found: groupx"
+
+    client.create_cluster_parameter_group(
+        ParameterGroupFamily="redshift-1.0",
+        ParameterGroupName=param_group_name,
+        Description="blahblah",
+    )
+
+    response = client.describe_cluster_parameters(
+        ParameterGroupName=param_group_name,
+    )
+    assert len(response["Parameters"])
+    assert all(
+        ("ParameterName" in param and "ParameterValue" in param)
+        for param in response["Parameters"]
+    )
+
+
+@mock_aws
 def test_create_cluster_with_parameter_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_id = "my-cluster"
