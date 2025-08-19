@@ -2,7 +2,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
-from moto.athena.models import AthenaBackend, athena_backends
+from moto.athena.models import athena_backends
 from moto.awslambda.models import LambdaBackend, lambda_backends
 from moto.backup.models import BackupBackend, backup_backends
 from moto.clouddirectory import CloudDirectoryBackend, clouddirectory_backends
@@ -70,10 +70,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def appsync_backend(self) -> AppSyncBackend:
         return appsync_backends[self.account_id][self.region_name]
-
-    @property
-    def athena_backend(self) -> AthenaBackend:
-        return athena_backends[self.account_id][self.region_name]
 
     @property
     def s3_backend(self) -> S3Backend:
