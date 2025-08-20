@@ -23,5 +23,10 @@ class ElasticsearchServiceBackend(OpenSearchServiceBackend):
         # Method is kept here to make sure our documentation register this as supported
         pass
 
+    def describe_elasticsearch_domain_config(self) -> None:
+        # Functionality is part of OpenSearch, as that includes all of ES functionality + more
+        # Method is kept here to make sure our documentation register this as supported
+        pass
+
 
 es_backends = BackendDict(ElasticsearchServiceBackend, "es")
