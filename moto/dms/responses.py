@@ -58,7 +58,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps({"ReplicationTask": replication_task.to_dict()})
 
     def describe_replication_tasks(self) -> str:
-        filters = self._get_list_prefix("Filters.member")
+        filters = self._get_param("Filters")
         max_records = self._get_int_param("MaxRecords")
         replication_tasks = self.dms_backend.describe_replication_tasks(
             filters=filters, max_records=max_records
@@ -74,27 +74,6 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         allocated_storage = params.get("AllocatedStorage")
         replication_instance_class = params.get("ReplicationInstanceClass")
         vpc_security_group_ids = self._get_param("VpcSecurityGroupIds")
-        if vpc_security_group_ids:
-            # If the parameter is directly available, use it
-            vpc_security_group_ids = (
-                vpc_security_group_ids.split(",")
-                if isinstance(vpc_security_group_ids, str)
-                else [vpc_security_group_ids]
-            )
-        else:
-            # If we need to extract from list prefix, get string values
-            vpc_security_group_list = self._get_list_prefix(
-                "VpcSecurityGroupIds.member"
-            )
-            vpc_security_group_ids = (
-                [
-                    sg_id.get("VpcSecurityGroupId", "")
-                    for sg_id in vpc_security_group_list
-                ]
-                if vpc_security_group_list
-                else None
-            )
-
         availability_zone = params.get("AvailabilityZone")
         replication_subnet_group_identifier = params.get(
             "ReplicationSubnetGroupIdentifier"
