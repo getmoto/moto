@@ -37,6 +37,8 @@ def test_elastic_network_interfaces():
     eni = my_enis[0]
     assert len(eni["Groups"]) == 1
     assert len(eni["PrivateIpAddresses"]) == 1
+    assert eni["RequesterId"] == "AIDAIT2UOQQY3AUEMOTO"
+    assert eni["RequesterManaged"] is False
     assert eni["PrivateIpAddresses"][0]["PrivateIpAddress"].startswith("10.") is True
 
     with pytest.raises(ClientError) as ex:
