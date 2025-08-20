@@ -381,6 +381,7 @@ def transform_certificates(data: list[str]) -> Optional[list[dict[str, str]]]:
 class ELBV2Response(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
         "CreateTargetGroupOutput.TargetGroups.TargetGroup.LoadBalancerArns": return_if_not_empty,
+        "CreateTargetGroupOutput.TargetGroups.TargetGroup.HealthCheckPort": return_if_not_empty,
         "CreateListenerOutput.Listeners.Listener.Certificates": transform_certificates,
         "DescribeListenerAttributesOutput.Attributes": transform_dict,
         "DescribeListenersOutput.Listeners.Listener.Certificates": transform_certificates,

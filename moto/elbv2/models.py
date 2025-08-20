@@ -136,7 +136,9 @@ class FakeTargetGroup(CloudFormationModel):
             self.protocol_version = protocol_version
         self.port = port
         self.health_check_protocol = healthcheck_protocol or self.protocol
-        self.health_check_port = healthcheck_port or "traffic-port"
+        self.health_check_port = None
+        if target_type != "lambda":
+            self.health_check_port = healthcheck_port or "traffic-port"
         self.health_check_path = healthcheck_path
         self.health_check_interval_seconds = healthcheck_interval_seconds or 30
         self.health_check_timeout_seconds = healthcheck_timeout_seconds or 10
@@ -154,7 +156,8 @@ class FakeTargetGroup(CloudFormationModel):
         if self.health_check_protocol != "TCP":
             self.matcher: Dict[str, Any] = matcher or {"HttpCode": "200"}
             self.health_check_path = self.health_check_path
-            self.health_check_port = self.health_check_port or str(self.port)
+            if target_type != "lambda":
+                self.health_check_port = self.health_check_port or str(self.port)
         self.target_type = target_type or "instance"
 
         self.attributes = {

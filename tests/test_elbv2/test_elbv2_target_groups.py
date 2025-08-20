@@ -679,6 +679,9 @@ def test_create_target_group_with_target_type(target_type):
     if target_type != "lambda":
         assert "Protocol" in group
         assert "VpcId" in group
+        assert "HealthCheckPort" in group
+    else:
+        assert "HealthCheckPort" not in group
 
     group = conn.describe_target_groups()["TargetGroups"][0]
     assert "TargetGroupArn" in group
@@ -687,6 +690,9 @@ def test_create_target_group_with_target_type(target_type):
     if target_type != "lambda":
         assert "Protocol" in group
         assert "VpcId" in group
+        assert "HealthCheckPort" in group
+    else:
+        assert "HealthCheckPort" not in group
 
 
 @mock_aws
