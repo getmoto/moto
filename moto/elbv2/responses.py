@@ -1,5 +1,8 @@
+from typing import Optional
+
 from moto.core.exceptions import RESTError
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.serialize import return_if_not_empty
 
 from .exceptions import ListenerOrBalancerMissingError, TargetGroupNotFoundError
 from .models import ELBv2Backend, elbv2_backends
@@ -371,12 +374,13 @@ def transform_dict(data: dict[str, str]) -> list[dict[str, str]]:
     return transformed
 
 
-def transform_certificates(data: list[str]) -> list[dict[str, str]]:
-    return [{"CertificateArn": cert} for cert in data]
+def transform_certificates(data: list[str]) -> Optional[list[dict[str, str]]]:
+    return [{"CertificateArn": cert} for cert in data] or None
 
 
 class ELBV2Response(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "CreateTargetGroupOutput.TargetGroups.TargetGroup.LoadBalancerArns": return_if_not_empty,
         "CreateListenerOutput.Listeners.Listener.Certificates": transform_certificates,
         "DescribeListenerAttributesOutput.Attributes": transform_dict,
         "DescribeListenersOutput.Listeners.Listener.Certificates": transform_certificates,

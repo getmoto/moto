@@ -180,6 +180,10 @@ class FakeTargetGroup(CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.arn
 
+    @property
+    def health_check_enabled(self) -> bool:
+        return self.healthcheck_enabled
+
     def register(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
             if instance := self.ec2_backend.get_instance_by_id(target["id"]):
