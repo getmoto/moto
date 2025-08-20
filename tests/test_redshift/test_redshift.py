@@ -790,7 +790,7 @@ def test_describe_non_existent_parameter_group_boto3():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ClusterParameterGroupNotFound"
-    assert err["Message"] == "Parameter group not-a-parameter-group not found."
+    assert err["Message"] == "ClusterParameterGroup not found: not-a-parameter-group"
 
 
 @mock_aws
@@ -813,7 +813,7 @@ def test_delete_parameter_group_boto3():
     assert err["Code"] == "ClusterParameterGroupNotFound"
     # BUG: This is what AWS returns
     # assert err["Message"] == "ParameterGroup not found: my-parameter-group"
-    assert err["Message"] == "Parameter group my-parameter-group not found."
+    assert err["Message"] == "ClusterParameterGroup not found: my-parameter-group"
 
     assert len(client.describe_cluster_parameter_groups()["ParameterGroups"]) == 1
 
