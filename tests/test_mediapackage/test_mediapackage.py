@@ -141,6 +141,8 @@ def test_create_origin_endpoint_succeeds():
     assert endpoint["Description"] == origin_endpoint_config["Description"]
     assert endpoint["HlsPackage"] == origin_endpoint_config["HlsPackage"]
     assert endpoint["Origination"] == "ALLOW"
+    assert endpoint["Whitelist"] == ["whitelist"]
+    assert endpoint["TimeDelaySeconds"] == 1
 
 
 @mock_aws
@@ -209,9 +211,11 @@ def test_update_origin_endpoint_succeeds():
         Id=endpoint_id,
         Description="updated-channel-description",
         ManifestName="updated-manifest-name",
+        Whitelist=["new-whitelist-item"],
     )
     assert endpoint["Description"] == "updated-channel-description"
     assert endpoint["ManifestName"] == "updated-manifest-name"
+    assert endpoint["Whitelist"] == ["new-whitelist-item"]
 
 
 @mock_aws
