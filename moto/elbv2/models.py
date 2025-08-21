@@ -145,7 +145,7 @@ class FakeTargetGroup(CloudFormationModel):
         self.ip_address_type = (
             ip_address_type or "ipv4" if self.protocol != "GENEVE" else None
         )
-        self.healthcheck_enabled = (
+        self.health_check_enabled = (
             healthcheck_enabled.lower() == "true"
             if healthcheck_enabled in ["true", "false"]
             else True
@@ -182,10 +182,6 @@ class FakeTargetGroup(CloudFormationModel):
     @property
     def physical_resource_id(self) -> str:
         return self.arn
-
-    @property
-    def health_check_enabled(self) -> bool:
-        return self.healthcheck_enabled
 
     def register(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
@@ -1835,7 +1831,7 @@ Member must satisfy regular expression pattern: {expression}"
         if health_check_timeout is not None:
             target_group.health_check_timeout_seconds = health_check_timeout
         if health_check_enabled is not None:
-            target_group.healthcheck_enabled = health_check_enabled
+            target_group.health_check_enabled = health_check_enabled
         if healthy_threshold_count is not None:
             target_group.healthy_threshold_count = healthy_threshold_count
         if unhealthy_threshold_count is not None:
