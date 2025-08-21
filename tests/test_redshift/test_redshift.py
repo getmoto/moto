@@ -372,6 +372,9 @@ def test_describe_default_cluster_params():
     response = client.describe_default_cluster_parameters(
         ParameterGroupFamily="redshift-1.0"
     )
+    assert (
+        response["DefaultClusterParameters"]["ParameterGroupFamily"] == "redshift-1.0"
+    )
     assert len(response["DefaultClusterParameters"]["Parameters"])
     assert all(
         ("ParameterName" in param and "ParameterValue" in param)

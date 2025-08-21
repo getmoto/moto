@@ -296,10 +296,12 @@ class RedshiftResponse(BaseResponse):
         return EmptyResult()
 
     def describe_default_cluster_parameters(self) -> ActionResult:
+        family = self._get_param("ParameterGroupFamily")
         params = self.redshift_backend.describe_default_cluster_parameters()
         return ActionResult(
             {
                 "DefaultClusterParameters": {
+                    "ParameterGroupFamily": family,
                     "Parameters": params,
                 }
             }
