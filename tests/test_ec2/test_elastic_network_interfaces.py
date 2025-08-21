@@ -40,6 +40,7 @@ def test_elastic_network_interfaces():
     assert eni["RequesterId"] == "AIDAIT2UOQQY3AUEMOTO"
     assert eni["RequesterManaged"] is False
     assert eni["PrivateIpAddresses"][0]["PrivateIpAddress"].startswith("10.") is True
+    assert "Association" not in eni
 
     with pytest.raises(ClientError) as ex:
         ec2client.delete_network_interface(NetworkInterfaceId=eni_id, DryRun=True)
