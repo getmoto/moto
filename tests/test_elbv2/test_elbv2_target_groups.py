@@ -134,7 +134,7 @@ def test_create_target_group_and_listeners():
     target_group_arn = target_group["TargetGroupArn"]
     assert target_group["HealthCheckProtocol"] == "HTTP"
     assert target_group["HealthCheckEnabled"] is True
-    assert target_group.get("LoadBalancerArns") is None
+    assert "LoadBalancerArns" not in target_group
 
     # Check it's in the describe_target_groups response
     response = conn.describe_target_groups()
@@ -150,7 +150,7 @@ def test_create_target_group_and_listeners():
     listener = response["Listeners"][0]
     assert listener["Port"] == 80
     assert listener["Protocol"] == "HTTP"
-    assert listener.get("Certificates") is None
+    assert "Certificates" not in listener
     assert listener["DefaultActions"] == [
         {"TargetGroupArn": target_group_arn, "Type": "forward"}
     ]
