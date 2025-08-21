@@ -1,5 +1,4 @@
 from moto.core.responses import ActionResult, EmptyResult
-from moto.core.serialize import return_if_not_empty
 from moto.ec2.exceptions import InvalidParameterValueErrorUnknownAttribute
 from moto.ec2.utils import add_tag_specification, get_attribute_value
 
@@ -7,10 +6,6 @@ from ._base_response import EC2BaseResponse
 
 
 class ElasticNetworkInterfaces(EC2BaseResponse):
-    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "DescribeNetworkInterfacesResult.networkInterfaceSet.NetworkInterface.Association": return_if_not_empty,
-    }
-
     def create_network_interface(self) -> ActionResult:
         subnet_id = self._get_param("SubnetId")
         private_ip_address = self._get_param("PrivateIpAddress")
