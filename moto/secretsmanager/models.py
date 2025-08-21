@@ -648,6 +648,9 @@ class SecretsManagerBackend(BaseBackend):
             return None
         # Check if the secret_string/secret_binary values corresponding to this version matches that of the current request
         matching_secret_version = existing_secret.versions[client_request_token]
+        # If this version stage label is AWSPENDING, it means this version was created as part of rotation
+        if "AWSPENDING" in matching_secret_version.get("version_stages", []):
+            return None
         if (
             matching_secret_version.get("secret_string") == secret_string
             and matching_secret_version.get("secret_binary") == secret_binary
