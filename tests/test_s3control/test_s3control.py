@@ -176,6 +176,10 @@ def test_storage_lens_configuration():
     assert s3_dest["Arn"] == "arn:aws:s3:::bucket_name"
     assert "Encryption" in s3_dest
     assert s3_dest["Encryption"]["SSES3"] == {}
+    assert resp["StorageLensConfiguration"]["AccountLevel"]["ActivityMetrics"] == {
+        "IsEnabled": True
+    }
+    assert resp["StorageLensConfiguration"]["AwsOrg"]["Arn"] == "string"
 
     # List the configurations
     resp = client.list_storage_lens_configurations(AccountId=ACCOUNT_ID)
@@ -184,6 +188,11 @@ def test_storage_lens_configuration():
     # but the ID from the config itself
     assert resp["StorageLensConfigurationList"][0]["Id"] == "id-test"
     assert "StorageLensArn" in resp["StorageLensConfigurationList"][0]
+    assert resp["StorageLensConfigurationList"][0]["IsEnabled"] is True
+    assert (
+        resp["StorageLensConfigurationList"][0]["StorageLensArn"]
+        == "arn:aws:s3:us-east-1:123456789012:storage-lens/my-test-config-id"
+    )
     assert resp["StorageLensConfigurationList"][0]["IsEnabled"] is True
 
 

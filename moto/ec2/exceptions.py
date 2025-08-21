@@ -611,7 +611,7 @@ class CidrLimitExceeded(EC2ClientError):
     def __init__(self, vpc_id: str, max_cidr_limit: int):
         super().__init__(
             "CidrLimitExceeded",
-            f"This network '{vpc_id}' has met its maximum number of allowed CIDRs: {max_cidr_limit}",
+            f"This network {vpc_id} has met its maximum number of allowed CIDRs: {max_cidr_limit}",
         )
 
 
