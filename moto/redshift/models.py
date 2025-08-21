@@ -569,13 +569,13 @@ class RedshiftBackend(BaseBackend):
         self.snapshot_copy_grants: Dict[str, SnapshotCopyGrant] = {}
         self.default_params = {
             "auto_analyze": True,
-            "datestyle": "ISO,MDY",
+            "datestyle": "ISO, MDY",
             "enable_user_activity_logging": False,
             "extra_float_digits": 0,
             "max_concurrency_scaling_clusters": 1,
             "query_group": "default",
             "require_ssl": False,
-            "search_path": "$user,public",
+            "search_path": "$user, public",
             "statement_timeout": 0,
             "wlm_json_configuration": [{"auto_wlm": True}],
             "use_fips_ssl": False,
