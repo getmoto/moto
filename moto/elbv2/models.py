@@ -616,8 +616,8 @@ class FakeLoadBalancer(CloudFormationModel):
         self.ip_address_type = "ipv4"
         self.attrs = {
             # "access_logs.s3.enabled": "false",  # commented out for TF compatibility
-            "access_logs.s3.bucket": None,
-            "access_logs.s3.prefix": None,
+            "access_logs.s3.bucket": "",
+            "access_logs.s3.prefix": "",
             "deletion_protection.enabled": "false",
             # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
             "load_balancing.cross_zone.enabled": "false",
