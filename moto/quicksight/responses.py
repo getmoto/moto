@@ -328,3 +328,133 @@ class QuickSightResponse(BaseResponse):
             public_sharing_enabled=public_sharing_enabled,
         )
         return json.dumps(dict(Status=200))
+
+    def create_data_source(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        data_source_id = self._get_param("DataSourceId")
+        name = self._get_param("Name")
+        data_source_type = self._get_param("DataSourceType")
+        data_source_parameters = self._get_param("DataSourceParameters")
+        ssl_properties = self._get_param("SslProperties")
+        vpc_connection_properties = self._get_param("VpcConnectionProperties")
+        tags = self._get_param("Tags")
+
+        data_source = self.quicksight_backend.create_data_source(
+            aws_account_id=aws_account_id,
+            data_source_id=data_source_id,
+            name=name,
+            data_source_type=data_source_type,
+            data_source_parameters=data_source_parameters,
+            ssl_properties=ssl_properties,
+            vpc_connection_properties=vpc_connection_properties,
+            tags=tags,
+        )
+
+        return json.dumps(
+            {
+                "Arn": data_source.arn,
+                "DataSourceId": data_source.data_source_id,
+                "CreationStatus": data_source.status,
+                "RequestId": "request_id",
+                "Status": 200,
+            }
+        )
+
+    def delete_data_source(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        data_source_id = self._get_param("DataSourceId")
+
+        resp = self.quicksight_backend.delete_data_source(
+            aws_account_id=aws_account_id, data_source_id=data_source_id
+        )
+
+        if resp is not None:
+            return json.dumps(
+                {
+                    "Arn": resp.arn,
+                    "DataSourceId": resp.data_source_id,
+                    "RequestId": "request_id",
+                    "Status": 200,
+                }
+            )
+
+    def describe_data_source(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        data_source_id = self._get_param("DataSourceId")
+
+        data_source = self.quicksight_backend.describe_data_source(
+            aws_account_id=aws_account_id, data_source_id=data_source_id
+        )
+
+        return json.dumps(
+            {
+                "DataSource": data_source.to_json(),
+                "RequestId": "request_id",
+                "Status": 200,
+            }
+        )
+
+    def list_data_sources(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+
+        data_sources, next_token = self.quicksight_backend.list_data_sources(
+            aws_account_id=aws_account_id,
+            next_token=next_token,
+            max_results=max_results,
+        )
+
+        return json.dumps(
+            {
+                "DataSources": data_sources,
+                "NextToken": next_token,
+                "RequestId": "request_id",
+                "Status": 200,
+            }
+        )
+
+    def update_data_source(self) -> str:
+        aws_account_id = self._get_param("AwsAccountId")
+        data_source_id = self._get_param("DataSourceId")
+        name = self._get_param("Name")
+        data_source_parameters = self._get_param("DataSourceParameters")
+
+        data_source = self.quicksight_backend.update_data_source(
+            aws_account_id=aws_account_id,
+            data_source_id=data_source_id,
+            name=name,
+            data_source_parameters=data_source_parameters,
+        )
+
+        return json.dumps(
+            {
+                "Arn": data_source.arn,
+                "DataSourceId": data_source.data_source_id,
+                "UpdateStatus": data_source.status,
+                "RequestId": "request_id",
+                "Status": 200,
+            }
+        )
+
+    def tag_resource(self) -> str:
+        resource_arn = unquote(self._get_param("ResourceArn"))
+        tags = self._get_param("Tags")
+
+        self.quicksight_backend.tag_resource(resource_arn, tags)
+
+        return json.dumps(dict(RequestId="request_id", Status=200))
+
+    def untag_resource(self) -> str:
+        resource_arn = unquote(self._get_param("ResourceArn"))
+        tag_keys = self.__dict__["data"]["keys"]
+
+        self.quicksight_backend.untag_resource(resource_arn, tag_keys)
+
+        return json.dumps(dict(RequestId="request_id", Status=200))
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = unquote(self._get_param("ResourceArn"))
+        tags = self.quicksight_backend.list_tags_for_resource(arn=resource_arn)
+
+        return json.dumps(dict(Tags=tags, RequestId="request_id", Status=200))
