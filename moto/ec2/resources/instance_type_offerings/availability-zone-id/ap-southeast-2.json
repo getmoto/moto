@@ -7584,6 +7584,10 @@
   "Location": "apse2-az3"
  },
  {
+  "InstanceType": "p5.4xlarge",
+  "Location": "apse2-az3"
+ },
+ {
   "InstanceType": "p5e.48xlarge",
   "Location": "apse2-az3"
  },

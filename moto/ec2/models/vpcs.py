@@ -687,7 +687,7 @@ class VPC(TaggedEC2Resource, CloudFormationModel):
 
         association_set: Dict[str, Any] = {
             "association_id": association_id,
-            "cidr_block_state": {"state": "associated", "StatusMessage": ""},
+            "cidr_block_state": {"state": "associated", "StatusMessage": None},
         }
 
         association_set["cidr_block"] = (

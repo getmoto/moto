@@ -95,7 +95,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         """
         The parameter WithoutSettings has not yet been implemented
         """
-        replication_tasks = filter_tasks(self.replication_tasks.values(), filters)
+        replication_tasks = filter_tasks(list(self.replication_tasks.values()), filters)
 
         if max_records and max_records > 0:
             replication_tasks = replication_tasks[:max_records]

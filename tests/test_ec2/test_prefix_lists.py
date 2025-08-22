@@ -1,7 +1,9 @@
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests.test_ec2 import ec2_aws_verified
 
 
 @mock_aws
@@ -41,18 +43,20 @@ def test_create_with_tags():
     assert prefix_list["Tags"] == [{"Key": "key1", "Value": "val1"}]
 
 
-@mock_aws
-def test_describe_managed_prefix_lists():
-    ec2 = boto3.client("ec2", region_name="us-west-1")
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=False, create_sg=False)
+def test_describe_managed_prefix_lists(ec2_client=None):
+    ec2 = ec2_client
 
     prefix_list = ec2.create_managed_prefix_list(
-        PrefixListName="examplelist", MaxEntries=2, AddressFamily="?"
+        PrefixListName="examplelist", MaxEntries=2, AddressFamily="IPv4"
     )
     pl_id = prefix_list["PrefixList"]["PrefixListId"]
 
     all_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
     assert pl_id in [pl["PrefixListId"] for pl in all_lists]
-    assert set([pl["OwnerId"] for pl in all_lists]) == {"aws", ACCOUNT_ID}
+    assert all("StateMessage" not in pl for pl in all_lists)
+    assert "AWS" in [pl["OwnerId"] for pl in all_lists]
 
 
 @mock_aws
@@ -62,7 +66,7 @@ def test_describe_managed_prefix_lists_with_prefix():
     default_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
     if not settings.TEST_SERVER_MODE:
         # ServerMode is not guaranteed to only have AWS prefix lists
-        assert set([pl["OwnerId"] for pl in default_lists]) == {"aws"}
+        assert set([pl["OwnerId"] for pl in default_lists]) == {"AWS"}
 
     random_list_id = default_lists[0]["PrefixListId"]
 
@@ -71,7 +75,7 @@ def test_describe_managed_prefix_lists_with_prefix():
     ]
     assert len(lists_by_id) == 1
     if not settings.TEST_SERVER_MODE:
-        assert lists_by_id[0]["OwnerId"] == "aws"
+        assert lists_by_id[0]["OwnerId"] == "AWS"
 
 
 @mock_aws

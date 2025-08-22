@@ -402,9 +402,35 @@ class GlueResponse(BaseResponse):
         )
 
     def start_job_run(self) -> str:
-        name = self.parameters.get("JobName")
-        job_run_id = self.glue_backend.start_job_run(name)  # type: ignore[arg-type]
-        return json.dumps(dict(JobRunId=job_run_id))
+        allocated_capacity = self._get_int_param("AllocatedCapacity")
+        notification_property = self._get_dict_param("NotificationProperty")
+        number_of_workers = self._get_int_param("NumberOfWorkers")
+        security_configuration = self._get_param("SecurityConfiguration")
+        timeout = self._get_int_param("Timeout")
+        worker_type = self._get_param("WorkerType")
+        name = self._get_param("JobName")
+        arguments = self._get_param("Arguments")
+        max_capacity = self._get_float_param("MaxCapacity")
+        previous_job_run_id = self._get_param("JobRunId")
+
+        if allocated_capacity and max_capacity:
+            raise InvalidInputException(
+                "StartJobRun", "Please set only Allocated Capacity or Max Capacity"
+            )
+
+        job_run_id = self.glue_backend.start_job_run(
+            name,
+            arguments,
+            allocated_capacity,
+            max_capacity,
+            timeout,
+            worker_type,
+            security_configuration,
+            number_of_workers,
+            notification_property,
+            previous_job_run_id,
+        )
+        return json.dumps({"JobRunId": job_run_id})
 
     def get_job_run(self) -> str:
         name = self.parameters.get("JobName")

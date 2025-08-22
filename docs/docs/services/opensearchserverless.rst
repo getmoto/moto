@@ -22,18 +22,21 @@ opensearchserverless
 - [ ] batch_get_vpc_endpoint
 - [ ] create_access_policy
 - [X] create_collection
+- [ ] create_index
 - [ ] create_lifecycle_policy
 - [ ] create_security_config
 - [X] create_security_policy
 - [X] create_vpc_endpoint
 - [ ] delete_access_policy
 - [X] delete_collection
+- [ ] delete_index
 - [ ] delete_lifecycle_policy
 - [ ] delete_security_config
 - [ ] delete_security_policy
 - [ ] delete_vpc_endpoint
 - [ ] get_access_policy
 - [ ] get_account_settings
+- [ ] get_index
 - [ ] get_policies_stats
 - [ ] get_security_config
 - [X] get_security_policy
@@ -57,6 +60,7 @@ opensearchserverless
 - [ ] update_access_policy
 - [ ] update_account_settings
 - [ ] update_collection
+- [ ] update_index
 - [ ] update_lifecycle_policy
 - [ ] update_security_config
 - [X] update_security_policy

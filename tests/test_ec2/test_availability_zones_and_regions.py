@@ -47,6 +47,7 @@ def test_availability_zones__parameters():
     ]
     assert len(zones) == 1
     assert zones[0]["ZoneId"] == "use1-az1"
+    assert zones[0]["Messages"] == []
 
     zones = us_east.describe_availability_zones(ZoneNames=["us-east-1a", "us-east-1b"])[
         "AvailabilityZones"

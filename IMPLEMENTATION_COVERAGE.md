@@ -758,17 +758,19 @@
 
 ## batch
 <details>
-<summary>77% implemented</summary>
+<summary>61% implemented</summary>
 
 - [X] cancel_job
 - [X] create_compute_environment
 - [ ] create_consumable_resource
 - [X] create_job_queue
 - [X] create_scheduling_policy
+- [ ] create_service_environment
 - [X] delete_compute_environment
 - [ ] delete_consumable_resource
 - [X] delete_job_queue
 - [X] delete_scheduling_policy
+- [ ] delete_service_environment
 - [X] deregister_job_definition
 - [X] describe_compute_environments
 - [ ] describe_consumable_resource
@@ -776,28 +778,38 @@
 - [X] describe_job_queues
 - [X] describe_jobs
 - [X] describe_scheduling_policies
+- [ ] describe_service_environments
+- [ ] describe_service_job
 - [ ] get_job_queue_snapshot
 - [ ] list_consumable_resources
 - [X] list_jobs
 - [ ] list_jobs_by_consumable_resource
 - [X] list_scheduling_policies
+- [ ] list_service_jobs
 - [X] list_tags_for_resource
 - [X] register_job_definition
 - [X] submit_job
+- [ ] submit_service_job
 - [X] tag_resource
 - [X] terminate_job
+- [ ] terminate_service_job
 - [X] untag_resource
 - [X] update_compute_environment
 - [ ] update_consumable_resource
 - [X] update_job_queue
 - [X] update_scheduling_policy
+- [ ] update_service_environment
 </details>
 
 ## bedrock
 <details>
-<summary>18% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] batch_delete_evaluation_job
+- [ ] cancel_automated_reasoning_policy_build_workflow
+- [ ] create_automated_reasoning_policy
+- [ ] create_automated_reasoning_policy_test_case
+- [ ] create_automated_reasoning_policy_version
 - [ ] create_custom_model
 - [ ] create_custom_model_deployment
 - [ ] create_evaluation_job
@@ -812,6 +824,9 @@
 - [ ] create_model_invocation_job
 - [ ] create_prompt_router
 - [ ] create_provisioned_model_throughput
+- [ ] delete_automated_reasoning_policy
+- [ ] delete_automated_reasoning_policy_build_workflow
+- [ ] delete_automated_reasoning_policy_test_case
 - [X] delete_custom_model
 - [ ] delete_custom_model_deployment
 - [ ] delete_foundation_model_agreement
@@ -823,6 +838,14 @@
 - [ ] delete_prompt_router
 - [ ] delete_provisioned_model_throughput
 - [ ] deregister_marketplace_model_endpoint
+- [ ] export_automated_reasoning_policy_version
+- [ ] get_automated_reasoning_policy
+- [ ] get_automated_reasoning_policy_annotations
+- [ ] get_automated_reasoning_policy_build_workflow
+- [ ] get_automated_reasoning_policy_build_workflow_result_assets
+- [ ] get_automated_reasoning_policy_next_scenario
+- [ ] get_automated_reasoning_policy_test_case
+- [ ] get_automated_reasoning_policy_test_result
 - [X] get_custom_model
 - [ ] get_custom_model_deployment
 - [ ] get_evaluation_job
@@ -840,6 +863,10 @@
 - [ ] get_prompt_router
 - [ ] get_provisioned_model_throughput
 - [ ] get_use_case_for_model_access
+- [ ] list_automated_reasoning_policies
+- [ ] list_automated_reasoning_policy_build_workflows
+- [ ] list_automated_reasoning_policy_test_cases
+- [ ] list_automated_reasoning_policy_test_results
 - [ ] list_custom_model_deployments
 - [X] list_custom_models
 - [ ] list_evaluation_jobs
@@ -859,11 +886,16 @@
 - [X] put_model_invocation_logging_configuration
 - [ ] put_use_case_for_model_access
 - [ ] register_marketplace_model_endpoint
+- [ ] start_automated_reasoning_policy_build_workflow
+- [ ] start_automated_reasoning_policy_test_workflow
 - [ ] stop_evaluation_job
 - [X] stop_model_customization_job
 - [ ] stop_model_invocation_job
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_automated_reasoning_policy
+- [ ] update_automated_reasoning_policy_annotations
+- [ ] update_automated_reasoning_policy_test_case
 - [ ] update_guardrail
 - [ ] update_marketplace_model_endpoint
 - [ ] update_provisioned_model_throughput
@@ -2457,7 +2489,7 @@
 
 ## ds
 <details>
-<summary>32% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -2469,10 +2501,12 @@
 - [ ] create_computer
 - [ ] create_conditional_forwarder
 - [X] create_directory
+- [ ] create_hybrid_ad
 - [X] create_log_subscription
 - [X] create_microsoft_ad
 - [ ] create_snapshot
 - [X] create_trust
+- [ ] delete_ad_assessment
 - [ ] delete_conditional_forwarder
 - [X] delete_directory
 - [X] delete_log_subscription
@@ -2480,6 +2514,7 @@
 - [X] delete_trust
 - [ ] deregister_certificate
 - [ ] deregister_event_topic
+- [ ] describe_ad_assessment
 - [ ] describe_certificate
 - [ ] describe_client_authentication_settings
 - [ ] describe_conditional_forwarders
@@ -2487,6 +2522,7 @@
 - [ ] describe_directory_data_access
 - [ ] describe_domain_controllers
 - [ ] describe_event_topics
+- [ ] describe_hybrid_ad_update
 - [X] describe_ldaps_settings
 - [ ] describe_regions
 - [X] describe_settings
@@ -2506,6 +2542,7 @@
 - [X] enable_sso
 - [X] get_directory_limits
 - [ ] get_snapshot_limits
+- [ ] list_ad_assessments
 - [ ] list_certificates
 - [ ] list_ip_routes
 - [X] list_log_subscriptions
@@ -2520,10 +2557,12 @@
 - [ ] reset_user_password
 - [ ] restore_from_snapshot
 - [ ] share_directory
+- [ ] start_ad_assessment
 - [ ] start_schema_extension
 - [ ] unshare_directory
 - [ ] update_conditional_forwarder
 - [ ] update_directory_setup
+- [ ] update_hybrid_ad
 - [ ] update_number_of_domain_controllers
 - [ ] update_radius
 - [X] update_settings
@@ -3583,7 +3622,7 @@
 - [ ] delete_cache_security_group
 - [ ] delete_cache_subnet_group
 - [ ] delete_global_replication_group
-- [X] delete_replication_group
+- [ ] delete_replication_group
 - [ ] delete_serverless_cache
 - [ ] delete_serverless_cache_snapshot
 - [ ] delete_snapshot
@@ -3943,7 +3982,7 @@
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
 - [X] describe_elasticsearch_domain
-- [ ] describe_elasticsearch_domain_config
+- [X] describe_elasticsearch_domain_config
 - [X] describe_elasticsearch_domains
 - [ ] describe_elasticsearch_instance_type_limits
 - [ ] describe_inbound_cross_cluster_search_connections
@@ -4286,7 +4325,7 @@
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
-- [X] delete_dev_endpoint
+- [ ] delete_dev_endpoint
 - [ ] delete_integration
 - [ ] delete_integration_table_properties
 - [X] delete_job
@@ -4392,7 +4431,7 @@
 - [ ] list_column_statistics_task_runs
 - [ ] list_connection_types
 - [X] list_crawlers
-- [X] list_crawls
+- [ ] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_data_quality_results
 - [ ] list_data_quality_rule_recommendation_runs
@@ -5038,6 +5077,7 @@
 - [ ] describe_detect_mitigation_actions_task
 - [ ] describe_dimension
 - [X] describe_domain_configuration
+- [ ] describe_encryption_configuration
 - [X] describe_endpoint
 - [ ] describe_event_configurations
 - [ ] describe_fleet_metric
@@ -5188,6 +5228,7 @@
 - [ ] update_dimension
 - [X] update_domain_configuration
 - [ ] update_dynamic_thing_group
+- [ ] update_encryption_configuration
 - [ ] update_event_configurations
 - [ ] update_fleet_metric
 - [X] update_indexing_configuration
@@ -5211,8 +5252,9 @@
 
 ## iot-data
 <details>
-<summary>71% implemented</summary>
+<summary>62% implemented</summary>
 
+- [ ] delete_connection
 - [X] delete_thing_shadow
 - [ ] get_retained_message
 - [X] get_thing_shadow
@@ -6539,7 +6581,7 @@
 
 ## opensearchserverless
 <details>
-<summary>32% implemented</summary>
+<summary>29% implemented</summary>
 
 - [X] batch_get_collection
 - [ ] batch_get_effective_lifecycle_policy
@@ -6547,18 +6589,21 @@
 - [ ] batch_get_vpc_endpoint
 - [ ] create_access_policy
 - [X] create_collection
+- [ ] create_index
 - [ ] create_lifecycle_policy
 - [ ] create_security_config
 - [X] create_security_policy
 - [X] create_vpc_endpoint
 - [ ] delete_access_policy
 - [X] delete_collection
+- [ ] delete_index
 - [ ] delete_lifecycle_policy
 - [ ] delete_security_config
 - [ ] delete_security_policy
 - [ ] delete_vpc_endpoint
 - [ ] get_access_policy
 - [ ] get_account_settings
+- [ ] get_index
 - [ ] get_policies_stats
 - [ ] get_security_config
 - [X] get_security_policy
@@ -6574,6 +6619,7 @@
 - [ ] update_access_policy
 - [ ] update_account_settings
 - [ ] update_collection
+- [ ] update_index
 - [ ] update_lifecycle_policy
 - [ ] update_security_config
 - [X] update_security_policy
@@ -8333,6 +8379,8 @@
 - [ ] add_association
 - [X] add_tags
 - [X] associate_trial_component
+- [ ] attach_cluster_node_volume
+- [ ] batch_add_cluster_nodes
 - [ ] batch_delete_cluster_nodes
 - [ ] batch_describe_model_package
 - [ ] create_action
@@ -8465,6 +8513,7 @@
 - [ ] describe_auto_ml_job
 - [X] describe_auto_ml_job_v2
 - [X] describe_cluster
+- [ ] describe_cluster_event
 - [X] describe_cluster_node
 - [ ] describe_cluster_scheduler_config
 - [ ] describe_code_repository
@@ -8513,6 +8562,7 @@
 - [X] describe_pipeline_execution
 - [X] describe_processing_job
 - [ ] describe_project
+- [ ] describe_reserved_capacity
 - [ ] describe_space
 - [ ] describe_studio_lifecycle_config
 - [ ] describe_subscribed_workteam
@@ -8524,6 +8574,7 @@
 - [ ] describe_user_profile
 - [ ] describe_workforce
 - [ ] describe_workteam
+- [ ] detach_cluster_node_volume
 - [ ] disable_sagemaker_servicecatalog_portfolio
 - [X] disassociate_trial_component
 - [ ] enable_sagemaker_servicecatalog_portfolio
@@ -8543,6 +8594,7 @@
 - [ ] list_associations
 - [X] list_auto_ml_jobs
 - [ ] list_candidates_for_auto_ml_job
+- [ ] list_cluster_events
 - [X] list_cluster_nodes
 - [ ] list_cluster_scheduler_configs
 - [X] list_clusters
@@ -8613,6 +8665,7 @@
 - [X] list_transform_jobs
 - [X] list_trial_components
 - [X] list_trials
+- [ ] list_ultra_servers_by_reserved_capacity
 - [ ] list_user_profiles
 - [ ] list_workforces
 - [ ] list_workteams
@@ -9152,7 +9205,7 @@
 
 ## sesv2
 <details>
-<summary>24% implemented</summary>
+<summary>22% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -9169,6 +9222,8 @@
 - [ ] create_export_job
 - [ ] create_import_job
 - [ ] create_multi_region_endpoint
+- [ ] create_tenant
+- [ ] create_tenant_resource_association
 - [X] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
 - [X] delete_contact
@@ -9180,6 +9235,8 @@
 - [ ] delete_email_template
 - [ ] delete_multi_region_endpoint
 - [ ] delete_suppressed_destination
+- [ ] delete_tenant
+- [ ] delete_tenant_resource_association
 - [ ] get_account
 - [ ] get_blacklist_reports
 - [X] get_configuration_set
@@ -9201,7 +9258,9 @@
 - [ ] get_import_job
 - [ ] get_message_insights
 - [ ] get_multi_region_endpoint
+- [ ] get_reputation_entity
 - [ ] get_suppressed_destination
+- [ ] get_tenant
 - [X] list_configuration_sets
 - [X] list_contact_lists
 - [X] list_contacts
@@ -9215,8 +9274,12 @@
 - [ ] list_import_jobs
 - [ ] list_multi_region_endpoints
 - [ ] list_recommendations
+- [ ] list_reputation_entities
+- [ ] list_resource_tenants
 - [ ] list_suppressed_destinations
 - [ ] list_tags_for_resource
+- [ ] list_tenant_resources
+- [ ] list_tenants
 - [ ] put_account_dedicated_ip_warmup_attributes
 - [ ] put_account_details
 - [ ] put_account_sending_attributes
@@ -9251,6 +9314,8 @@
 - [ ] update_custom_verification_email_template
 - [X] update_email_identity_policy
 - [ ] update_email_template
+- [ ] update_reputation_entity_customer_managed_status
+- [ ] update_reputation_entity_policy
 </details>
 
 ## shield
@@ -9551,7 +9616,7 @@
 
 ## sso-admin
 <details>
-<summary>34% implemented</summary>
+<summary>33% implemented</summary>
 
 - [X] attach_customer_managed_policy_reference_to_permission_set
 - [X] attach_managed_policy_to_permission_set
@@ -9590,6 +9655,7 @@
 - [ ] get_application_assignment_configuration
 - [ ] get_application_authentication_method
 - [ ] get_application_grant
+- [ ] get_application_session_configuration
 - [X] get_inline_policy_for_permission_set
 - [ ] get_permissions_boundary_for_permission_set
 - [ ] list_account_assignment_creation_status
@@ -9617,6 +9683,7 @@
 - [ ] put_application_assignment_configuration
 - [ ] put_application_authentication_method
 - [ ] put_application_grant
+- [ ] put_application_session_configuration
 - [X] put_inline_policy_to_permission_set
 - [ ] put_permissions_boundary_to_permission_set
 - [ ] tag_resource
@@ -10136,12 +10203,13 @@
 
 ## workspaces-web
 <details>
-<summary>39% implemented</summary>
+<summary>36% implemented</summary>
 
 - [X] associate_browser_settings
 - [ ] associate_data_protection_settings
 - [ ] associate_ip_access_settings
 - [X] associate_network_settings
+- [ ] associate_session_logger
 - [ ] associate_trust_store
 - [X] associate_user_access_logging_settings
 - [X] associate_user_settings
@@ -10151,6 +10219,7 @@
 - [ ] create_ip_access_settings
 - [X] create_network_settings
 - [X] create_portal
+- [ ] create_session_logger
 - [ ] create_trust_store
 - [X] create_user_access_logging_settings
 - [X] create_user_settings
@@ -10160,6 +10229,7 @@
 - [ ] delete_ip_access_settings
 - [X] delete_network_settings
 - [X] delete_portal
+- [ ] delete_session_logger
 - [ ] delete_trust_store
 - [X] delete_user_access_logging_settings
 - [X] delete_user_settings
@@ -10167,6 +10237,7 @@
 - [ ] disassociate_data_protection_settings
 - [ ] disassociate_ip_access_settings
 - [ ] disassociate_network_settings
+- [ ] disassociate_session_logger
 - [ ] disassociate_trust_store
 - [ ] disassociate_user_access_logging_settings
 - [ ] disassociate_user_settings
@@ -10179,6 +10250,7 @@
 - [X] get_portal
 - [ ] get_portal_service_provider_metadata
 - [ ] get_session
+- [ ] get_session_logger
 - [ ] get_trust_store
 - [ ] get_trust_store_certificate
 - [X] get_user_access_logging_settings
@@ -10189,6 +10261,7 @@
 - [ ] list_ip_access_settings
 - [X] list_network_settings
 - [X] list_portals
+- [ ] list_session_loggers
 - [ ] list_sessions
 - [X] list_tags_for_resource
 - [ ] list_trust_store_certificates
@@ -10203,6 +10276,7 @@
 - [ ] update_ip_access_settings
 - [ ] update_network_settings
 - [ ] update_portal
+- [ ] update_session_logger
 - [ ] update_trust_store
 - [ ] update_user_access_logging_settings
 - [ ] update_user_settings
@@ -10227,6 +10301,7 @@
 - apprunner
 - appstream
 - apptest
+- arc-region-switch
 - arc-zonal-shift
 - artifact
 - auditmanager
