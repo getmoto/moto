@@ -568,17 +568,17 @@ class RedshiftBackend(BaseBackend):
         }
         self.snapshot_copy_grants: Dict[str, SnapshotCopyGrant] = {}
         self.default_params = {
-            "auto_analyze": True,
+            "auto_analyze": "true",
             "datestyle": "ISO, MDY",
-            "enable_user_activity_logging": False,
-            "extra_float_digits": 0,
-            "max_concurrency_scaling_clusters": 1,
+            "enable_user_activity_logging": "false",
+            "extra_float_digits": "0",
+            "max_concurrency_scaling_clusters": "1",
             "query_group": "default",
-            "require_ssl": False,
+            "require_ssl": "false",
             "search_path": "$user, public",
-            "statement_timeout": 0,
-            "wlm_json_configuration": [{"auto_wlm": True}],
-            "use_fips_ssl": False,
+            "statement_timeout": "0",
+            "wlm_json_configuration": '[{"auto_wlm":true}]',
+            "use_fips_ssl": "false",
         }
 
     def enable_snapshot_copy(self, **kwargs: Any) -> Cluster:
@@ -857,7 +857,7 @@ class RedshiftBackend(BaseBackend):
                 "Source": "engine-default",
                 "DataType": "type",
                 "ApplyType": "static",
-                "IsModifiable": True,
+                "IsModifiable": "true",
             }
             for key, value in self.default_params.items()
         ]
