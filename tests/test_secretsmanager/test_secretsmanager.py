@@ -1606,6 +1606,85 @@ def test_can_list_secret_version_ids():
 
 
 @mock_aws
+def test_managing_secrets_versions_with_client_request_tokens():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    # Create a secret with a specific client request token
+    crt = uuid4()
+    response = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    secret_arn = response["ARN"]
+    # Trying to create this secret again with the same ClientRequestToken AND the same secret value should
+    # result in the request just being ignored
+    response = conn.create_secret(
+        Name=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
+    # in a ResourceExistsException
+    with pytest.raises(ClientError) as exc:
+        conn.create_secret(
+            Name=DEFAULT_SECRET_NAME,
+            SecretString="first_secret_string-new",
+            ClientRequestToken=str(crt),
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
+    assert exc.value.response["Error"]["Message"] == (
+        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
+    )
+
+    # The same applies when using PutSecret as well
+    # Trying to use the same ClientRequestToken AND the same secret value should result in the request just being ignored
+    response = conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
+    # in a ResourceExistsException
+    with pytest.raises(ClientError) as exc:
+        conn.put_secret_value(
+            SecretId=DEFAULT_SECRET_NAME,
+            SecretString="first_secret_string-new",
+            ClientRequestToken=str(crt),
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
+    assert exc.value.response["Error"]["Message"] == (
+        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
+    )
+
+    # And finally, we repeat the set of steps with UpdateSecret
+    response = conn.update_secret(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="first_secret_string",
+        ClientRequestToken=str(crt),
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["VersionId"] == str(crt)
+    # However, trying to use the same ClientRequestToken but modifying the secret string value should result
+    # in a ResourceExistsException
+    with pytest.raises(ClientError) as exc:
+        conn.update_secret(
+            SecretId=DEFAULT_SECRET_NAME,
+            SecretString="first_secret_string-new",
+            ClientRequestToken=str(crt),
+        )
+    assert exc.value.response["Error"]["Code"] == "ResourceExistsException"
+    assert exc.value.response["Error"]["Message"] == (
+        f"You can't use ClientRequestToken {str(crt)} because that value is already in use for a version of secret {secret_arn}"
+    )
+
+
+@mock_aws
 def test_put_secret_value_version_stages_response():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 

@@ -3,6 +3,7 @@ import json
 import boto3
 
 from moto import mock_aws
+from tests import DEFAULT_ACCOUNT_ID
 from tests.test_cloudformation.fixtures import (
     rds_mysql_with_db_parameter_group,
     rds_mysql_with_read_replica,
@@ -43,6 +44,10 @@ def test_create_subnetgroup_via_cf():
     assert created_subnet["DBSubnetGroupName"] == "subnetgroupname"
     assert created_subnet["DBSubnetGroupDescription"] == "subnetgroupdesc"
     assert created_subnet["VpcId"] == vpc["VpcId"]
+    assert (
+        created_subnet["DBSubnetGroupArn"]
+        == f"arn:aws:rds:us-west-2:{DEFAULT_ACCOUNT_ID}:subgrp:subnetgroupname"
+    )
 
 
 @mock_aws
@@ -87,6 +92,10 @@ def test_create_dbinstance_via_cf():
     assert created["DBInstanceIdentifier"] == db_instance_identifier
     assert created["Engine"] == "mysql"
     assert created["DBInstanceStatus"] == "available"
+    assert (
+        created["DBInstanceArn"]
+        == f"arn:aws:rds:us-west-2:{DEFAULT_ACCOUNT_ID}:db:{db_instance_identifier}"
+    )
 
     # Verify the stack outputs are correct
     o = _get_stack_outputs(cf, stack_name="test_stack")
