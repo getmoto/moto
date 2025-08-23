@@ -4,6 +4,7 @@ from typing import Dict, List
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 
+from ..core.utils import utcnow
 from .exceptions import (
     InvalidParameterValueError,
     ResourceNotFoundException,
@@ -25,6 +26,24 @@ class Environment(BaseModel):
         self.environment_name = environment_name
         self.solution_stack_name = solution_stack_name
         self.tags = tags
+        self.date_created = utcnow()
+        self.date_updated = utcnow()
+        # TODO: These attributes were all hardcoded in the original XML templates and need to be properly implemented.
+        self.environment_id = ""
+        self.version_label = 1
+        self.solution_stack_name = "None"
+        self.endpoint_url = ""
+        self.cname = ""
+        self.status = "Ready"
+        self.abortable_operation_in_progress = False
+        self.health = "Grey"
+        self.health_status = "No Data"
+        self.tier = {
+            "Name": "WebServer",
+            "Type": "Standard",
+            "Version": "1.0",
+        }
+        self.environment_links: list[dict[str, str]] = []
 
     @property
     def application_name(self) -> str:
