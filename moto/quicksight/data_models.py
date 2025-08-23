@@ -209,10 +209,11 @@ class QuickSightDataSource(BaseModel):
         region: str,
         data_source_id: str,
         name: str,
-        data_source_parameters: Optional[Dict[str, Any]] = None,
+        data_source_parameters: Optional[Dict[str, Dict[str, Any]]] = None,
         alternate_data_source_parameters: Optional[List[Dict[str, Any]]] = None,
         ssl_properties: Optional[Dict[str, Any]] = None,
         status: Optional[str] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
         data_source_type: Optional[str] = None,
         vpc_connection_properties: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -227,16 +228,21 @@ class QuickSightDataSource(BaseModel):
         self.data_source_type = data_source_type
         self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:datasource/{data_source_id}"
         self.status = status
+        self.tags = tags or []
         self.ssl_properties = ssl_properties
         self.vpc_connection_properties = vpc_connection_properties
 
     def to_json(self) -> Dict[str, Any]:
         return {
+            "AlternateDataSourceParameters": self.alternate_data_source_parameters,
             "Arn": self.arn,
             "CreatedTime": self.created_time.isoformat(),
             "DataSourceId": self.data_source_id,
+            "DataSourceParameters": self.data_source_parameters,
             "LastUpdatedTime": self.last_updated_time.isoformat(),
             "Name": self.name,
+            "SslProperties": self.ssl_properties,
             "Status": self.status,
             "Type": self.data_source_type,
+            "VpcConnectionProperties": self.vpc_connection_properties,
         }

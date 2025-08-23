@@ -11,8 +11,8 @@ def test_create_data_source():
         AwsAccountId=ACCOUNT_ID,
         DataSourceId="my-test-datasource",
         Name="My Test DataSource",
-        DataSourceType="ATHENA",
-        DataSourceParameters={"WorkGroup": "primary"},
+        Type="ATHENA",
+        DataSourceParameters={"AthenaParameters": {"WorkGroup": "primary"}},
     )
 
     assert resp["Arn"] == (
@@ -31,14 +31,16 @@ def test_describe_data_source():
             AwsAccountId=ACCOUNT_ID,
             DataSourceId=f"my-test-datasource-{i}",
             Name=f"My Test DataSource {i}",
-            DataSourceType="ATHENA",
-            DataSourceParameters={"WorkGroup": "primary"},
+            Type="ATHENA",
+            DataSourceParameters={"AthenaParameters": {"WorkGroup": "primary"}},
         )
 
     resp = client.describe_data_source(
         AwsAccountId=ACCOUNT_ID, DataSourceId="my-test-datasource-1"
     )
+
     ds = resp["DataSource"]
+
     assert ds["Arn"] == (
         f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:datasource/my-test-datasource-1"
     )
@@ -47,6 +49,7 @@ def test_describe_data_source():
     assert ds["Status"] == "CREATION_SUCCESSFUL"
     assert ds["Type"] == "ATHENA"
     assert resp["Status"] == 200
+    assert ds["DataSourceParameters"] == {"AthenaParameters": {"WorkGroup": "primary"}}
 
 
 @mock_aws
@@ -56,15 +59,15 @@ def test_update_data_source():
         AwsAccountId=ACCOUNT_ID,
         DataSourceId="my-test-datasource",
         Name="My Test DataSource",
-        DataSourceType="ATHENA",
-        DataSourceParameters={"WorkGroup": "primary"},
+        Type="ATHENA",
+        DataSourceParameters={"AthenaParameters": {"WorkGroup": "primary"}},
     )
 
     resp = client.update_data_source(
         AwsAccountId=ACCOUNT_ID,
         DataSourceId="my-test-datasource",
         Name="My Updated Test DataSource",
-        DataSourceParameters={"WorkGroup": "secondary"},
+        DataSourceParameters={"AthenaParameters": {"WorkGroup": "secondary"}},
     )
 
     assert resp["Arn"] == (
@@ -83,11 +86,12 @@ def test_list_data_sources():
             AwsAccountId=ACCOUNT_ID,
             DataSourceId=f"my-test-datasource-{i}",
             Name=f"My Test DataSource {i}",
-            DataSourceType="ATHENA",
-            DataSourceParameters={"WorkGroup": "primary"},
+            Type="ATHENA",
+            DataSourceParameters={"AthenaParameters": {"WorkGroup": "primary"}},
         )
 
     resp = client.list_data_sources(AwsAccountId=ACCOUNT_ID)
+
     assert len(resp["DataSources"]) == 5
     ds = resp["DataSources"][0]
     assert "Arn" in ds
@@ -107,8 +111,8 @@ def test_delete_data_source():
             AwsAccountId=ACCOUNT_ID,
             DataSourceId=f"my-test-datasource-{i}",
             Name=f"My Test DataSource {i}",
-            DataSourceType="ATHENA",
-            DataSourceParameters={"WorkGroup": "primary"},
+            Type="ATHENA",
+            DataSourceParameters={"AthenaParameters": {"WorkGroup": "primary"}},
         )
 
     client.delete_data_source(

@@ -9,11 +9,11 @@ from .data_models import (
     QuicksightAccountSettings,
     QuicksightDashboard,
     QuicksightDataSet,
+    QuickSightDataSource,
     QuicksightGroup,
     QuicksightIngestion,
     QuicksightMembership,
     QuicksightUser,
-    QuickSightDataSource,
 )
 from .exceptions import ResourceNotFoundException
 from .utils import PAGINATION_MODEL, QuicksightSearchFilterFactory
@@ -296,13 +296,13 @@ class QuickSightBackend(BaseBackend):
         data_source_id: str,
         name: str,
         data_source_type: str,
-        data_source_parameters: Optional[Dict[str, Any]] = None,
+        data_source_parameters: Optional[Dict[str, Dict[str, Any]]] = None,
         vpc_connection_properties: Optional[Dict[str, Any]] = None,
         ssl_properties: Optional[Dict[str, Any]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> QuickSightDataSource:
         data_source = QuickSightDataSource(
-            aws_account_id=aws_account_id,
+            account_id=aws_account_id,
             region=self.region_name,
             data_source_id=data_source_id,
             name=name,
@@ -313,7 +313,9 @@ class QuickSightBackend(BaseBackend):
             vpc_connection_properties=vpc_connection_properties,
             tags=tags,
         )
+
         self.data_sources[data_source_id] = data_source
+
         return data_source
 
     def update_data_source(
@@ -321,8 +323,9 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         data_source_id: str,
         name: str,
-        data_source_parameters: Dict[str, Any],
-        quicksight_data_source,
+        data_source_parameters: Optional[Dict[str, Any]] = None,
+        vpc_connection_properties: Optional[Dict[str, Any]] = None,
+        ssl_properties: Optional[Dict[str, Any]] = None,
     ):
         data_source = self.data_sources.get(data_source_id)
         if not data_source:
@@ -346,20 +349,9 @@ class QuickSightBackend(BaseBackend):
     def list_data_sources(self, aws_account_id: str) -> List[Dict[str, Any]]:
         data_sources = self.data_sources.values()
         data_source_list: List[Dict[str, Any]] = []
+
         for data_source in data_sources:
-            ds_dict = {
-                "Arn": data_source.arn,
-                "DataSourceId": data_source.data_source_id,
-                "Name": data_source.name,
-                "Type": data_source.data_source_type,
-                "CreatedTime": str(data_source.created_time),
-                "LastUpdatedTime": str(data_source.last_updated_time),
-                "DataSourceParameters": data_source.data_source_parameters,
-                "AlternateDataSourceParameters": data_source.data_source_parameters,
-                "VpcConnectionProperties": data_source.vpc_connection_properties,
-                "SslProperties": data_source.ssl_properties,
-            }
-            data_source_list.append(ds_dict)
+            data_source_list.append(data_source.to_json())
 
         return data_source_list
 

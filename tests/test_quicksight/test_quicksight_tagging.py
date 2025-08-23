@@ -5,13 +5,13 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_aws
-def test_tag_datasource():
+def test_tag_data_source():
     client = boto3.client("quicksight", region_name="us-east-1")
     client.create_data_source(
         AwsAccountId=ACCOUNT_ID,
         DataSourceId="ds1",
         Name="TestDS",
-        DataSourceType="ATHENA",
+        Type="ATHENA",
         DataSourceParameters={"WorkGroup": "primary"},
     )
     arn = f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:datasource/ds1"

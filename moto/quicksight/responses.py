@@ -333,7 +333,7 @@ class QuickSightResponse(BaseResponse):
         aws_account_id = self._get_param("AwsAccountId")
         data_source_id = self._get_param("DataSourceId")
         name = self._get_param("Name")
-        data_source_type = self._get_param("DataSourceType")
+        data_source_type = self._get_param("Type")
         data_source_parameters = self._get_param("DataSourceParameters")
         ssl_properties = self._get_param("SslProperties")
         vpc_connection_properties = self._get_param("VpcConnectionProperties")
