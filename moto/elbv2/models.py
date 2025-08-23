@@ -136,14 +136,16 @@ class FakeTargetGroup(CloudFormationModel):
             self.protocol_version = protocol_version
         self.port = port
         self.health_check_protocol = healthcheck_protocol or self.protocol
-        self.health_check_port = healthcheck_port or "traffic-port"
+        self.health_check_port = None
+        if target_type != "lambda":
+            self.health_check_port = healthcheck_port or "traffic-port"
         self.health_check_path = healthcheck_path
         self.health_check_interval_seconds = healthcheck_interval_seconds or 30
         self.health_check_timeout_seconds = healthcheck_timeout_seconds or 10
         self.ip_address_type = (
             ip_address_type or "ipv4" if self.protocol != "GENEVE" else None
         )
-        self.healthcheck_enabled = (
+        self.health_check_enabled = (
             healthcheck_enabled.lower() == "true"
             if healthcheck_enabled in ["true", "false"]
             else True
@@ -154,7 +156,8 @@ class FakeTargetGroup(CloudFormationModel):
         if self.health_check_protocol != "TCP":
             self.matcher: Dict[str, Any] = matcher or {"HttpCode": "200"}
             self.health_check_path = self.health_check_path
-            self.health_check_port = self.health_check_port or str(self.port)
+            if target_type != "lambda":
+                self.health_check_port = self.health_check_port or str(self.port)
         self.target_type = target_type or "instance"
 
         self.attributes = {
@@ -609,8 +612,8 @@ class FakeLoadBalancer(CloudFormationModel):
         self.ip_address_type = "ipv4"
         self.attrs = {
             # "access_logs.s3.enabled": "false",  # commented out for TF compatibility
-            "access_logs.s3.bucket": None,
-            "access_logs.s3.prefix": None,
+            "access_logs.s3.bucket": "",
+            "access_logs.s3.prefix": "",
             "deletion_protection.enabled": "false",
             # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
             "load_balancing.cross_zone.enabled": "false",
@@ -1828,7 +1831,7 @@ Member must satisfy regular expression pattern: {expression}"
         if health_check_timeout is not None:
             target_group.health_check_timeout_seconds = health_check_timeout
         if health_check_enabled is not None:
-            target_group.healthcheck_enabled = health_check_enabled
+            target_group.health_check_enabled = health_check_enabled
         if healthy_threshold_count is not None:
             target_group.healthy_threshold_count = healthy_threshold_count
         if unhealthy_threshold_count is not None:
