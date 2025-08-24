@@ -48,8 +48,8 @@ def test_describe_data_source():
     assert ds["Name"] == "My Test DataSource 1"
     assert ds["Status"] == "CREATION_SUCCESSFUL"
     assert ds["Type"] == "ATHENA"
-    assert resp["Status"] == 200
     assert ds["DataSourceParameters"] == {"AthenaParameters": {"WorkGroup": "primary"}}
+    assert resp["Status"] == 200
 
 
 @mock_aws
@@ -63,6 +63,10 @@ def test_update_data_source():
         DataSourceParameters={"AthenaParameters": {"WorkGroup": "primary"}},
     )
 
+    original_ds = client.describe_data_source(
+        AwsAccountId=ACCOUNT_ID, DataSourceId="my-test-datasource"
+    )["DataSource"]
+
     resp = client.update_data_source(
         AwsAccountId=ACCOUNT_ID,
         DataSourceId="my-test-datasource",
@@ -70,6 +74,11 @@ def test_update_data_source():
         DataSourceParameters={"AthenaParameters": {"WorkGroup": "secondary"}},
     )
 
+    updated_ds = client.describe_data_source(
+        AwsAccountId=ACCOUNT_ID, DataSourceId="my-test-datasource"
+    )["DataSource"]
+
+    assert original_ds["LastUpdatedTime"] < updated_ds["LastUpdatedTime"]
     assert resp["Arn"] == (
         f"arn:aws:quicksight:us-east-2:{ACCOUNT_ID}:datasource/my-test-datasource"
     )
