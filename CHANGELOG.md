@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.11
 -----
-Docker Digest for 5.1.11: <autopopulateddigest>
+Docker Digest for 5.1.11: _sha256:8ca337023ebaa5c0b8b33503b178d4db3326fca184551d6f47b07b8dd8532644_
 
     New Methods:
         * Athena:
