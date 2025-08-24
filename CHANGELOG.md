@@ -1,6 +1,86 @@
 Moto Changelog
 ==============
 
+5.1.11
+-----
+Docker Digest for 5.1.11: <autopopulateddigest>
+
+    New Methods:
+        * Athena:
+            * list_tags_for_resource()
+
+        * Comprehend:
+            * delete_resource_policy()
+            * describe_document_classification_job()
+            * describe_dominant_language_detection_job()
+            * describe_entities_detection_job()
+            * describe_events_detection_job()
+            * describe_key_phrases_detection_job()
+            * describe_pii_entities_detection_job()
+            * describe_resource_policy()
+            * describe_sentiment_detection_job()
+            * describe_targeted_sentiment_detection_job()
+            * describe_topics_detection_job()
+            * list_document_classification_jobs()
+            * list_dominant_language_detection_jobs()
+            * list_entities_detection_jobs()
+            * list_events_detection_jobs()
+            * list_key_phrases_detection_jobs()
+            * list_pii_entities_detection_jobs()
+            * list_sentiment_detection_jobs()
+            * list_targeted_sentiment_detection_jobs()
+            * list_topics_detection_jobs()
+            * put_resource_policy()
+            * start_document_classification_job()
+            * start_dominant_language_detection_job()
+            * start_entities_detection_job()
+            * start_events_detection_job()
+            * start_key_phrases_detection_job()
+            * start_pii_entities_detection_job()
+            * start_sentiment_detection_job()
+            * start_targeted_sentiment_detection_job()
+            * start_topics_detection_job()
+            * stop_dominant_language_detection_job()
+            * stop_entities_detection_job()
+            * stop_events_detection_job()
+            * stop_key_phrases_detection_job()
+            * stop_pii_entities_detection_job()
+            * stop_sentiment_detection_job()
+            * stop_targeted_sentiment_detection_job()
+
+        * ElasticSearch:
+            * describe_elasticsearch_domain_config()
+
+        * Redshift:
+            * describe_cluster_parameters()
+            * describe_default_cluster_parameters()
+
+        * S3Control:
+            * list_access_points()
+
+    Miscellaneous:
+        * DMS: describe_replication_tasks() now correctly supports the `Filters`-parameter
+        * EC2: create_security_group() now returns the SecurityGroupArn-attribute
+        * EC2: describe_network_interfaces() now returns the `RequesterId` and `RequesterManaged`-attributes
+        * ECR: create_repository() now supports the imageTagMutabilityExclusionFilters-parameter
+        * ECR: create_repository() now enforces the imageTagMutability-parameter
+        * ECS: start_task() now supports the `group`-parameter
+        * ECS: run_task() now supports the `group`-parameter
+        * ElastiCache: create_user() now supports the `Tags`-parameter
+        * ELBv2: ARNs are now unique for Listeners/LoadBalancers/TargetGroups
+        * ELBv2: create_rule() now assigns a default Weight of 1, if not specified
+        * ELBv2: create_target_group() now only returns the HealthCheckPort if the target is not 'lambda'
+        * ELBv2: describe_load_balancer_attributes() now correctly returns an empty string for `access_logs.s3`-attributes
+        * EMR: describe_cluster() now returns the correct Cluster.MasterPublicDnsName-attribute (if applicable)
+        * EMR: run_job_flow() now supports the parameters `EbsRootVolumeSize`, `EbsRootVolumeIops` and `EbsRootVolumeThroughput`
+        * Glue: start_job_run() now no longer returns mock-values for the parameters: `Arguments`, `NotificationProperty`, `SecurityConfiguration`, `Timeout` and `PreviousRunId`
+        * MediaPackage: create_origin_endpoint() now supports the `WhiteList` and `TimeDelaySeconds`-parameters
+        * ResourceGroupsTaggingAPI: get_resources() now supports Athena's CapacityReservations, Workgroups and DataCatalog resources
+        * S3: complete_multipart_upload() now respects the IfNoneMatch-parameter for objects created by MultiPart-uploads
+        * S3Control: get_storage_lens_configuration() now returns the `AccountLevel` and `StorageLensArn`-attributes
+        * SecretsManager: create_secret() now supports the `ClientRequestToken`-parameter
+        * SecretsManager: put_secret_value() now supports the `ClientRequestToken`-parameter
+        * SecretsManager: update_secret() now supports the `ClientRequestToken`-parameter
 
 
 5.1.10
