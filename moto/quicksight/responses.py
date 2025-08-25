@@ -396,13 +396,10 @@ class QuickSightResponse(BaseResponse):
 
     def list_data_sources(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
-        max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
 
-        data_sources, next_token = self.quicksight_backend.list_data_sources(
+        data_sources = self.quicksight_backend.list_data_sources(
             aws_account_id=aws_account_id,
-            next_token=next_token,
-            max_results=max_results,
         )
 
         return json.dumps(

@@ -345,7 +345,6 @@ class QuickSightBackend(BaseBackend):
     ) -> QuickSightDataSource:
         return self.data_sources.get(data_source_id)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
     def list_data_sources(self, aws_account_id: str) -> List[Dict[str, Any]]:
         data_sources = self.data_sources.values()
         data_source_list: List[Dict[str, Any]] = []
