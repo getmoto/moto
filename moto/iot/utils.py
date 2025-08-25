@@ -31,6 +31,18 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "thingArn",
     },
+    "list_things_in_billing_group": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "thingName",
+    },
+    "list_billing_groups_for_thing": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "billingGroupName",
+    }
 }
 
 

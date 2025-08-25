@@ -853,3 +853,308 @@ def test_delete_job_template_with_simple_cloudformation():
 
     # and
     assert len(iot_conn.list_job_templates()["jobTemplates"]) == 0
+
+
+@mock_aws
+def test_create_billing_group_with_simple_cloudformation():
+    # given
+    stack_name = "test_stack"
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT BillingGroup CloudFormation",
+        "Resources": {
+            "testBillingGroup": {
+                "Type": "AWS::IoT::BillingGroup",
+            },
+        },
+        "Outputs": {
+            "BillingGroupArn": {"Value": {"Fn::GetAtt": ["testBillingGroup", "Arn"]}},
+            "BillingGroupId": {"Value": {"Fn::GetAtt": ["testBillingGroup", "Id"]}},
+        },
+    }
+
+    # when
+    template_json = json.dumps(template)
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    # then check list of billing groups
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    billing_groups = iot_conn.list_billing_groups()["billingGroups"]
+    assert len(billing_groups) == 1
+    assert billing_groups[0]["billingGroupName"].startswith("test_stack-testBillingGroup-")
+    assert billing_groups[0]["billingGroupArn"].startswith(
+        "arn:aws:iot:us-west-1:123456789012:billinggroup/test_stack-testBillingGroup-"
+    )
+
+    # and check if they are the same as in a stack outputs
+    stack = cfn_conn.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        Output["OutputKey"]: Output["OutputValue"] for Output in stack["Outputs"]
+    }
+    assert outputs["BillingGroupArn"] == billing_groups[0]["billingGroupArn"]
+    assert outputs["BillingGroupId"] == billing_groups[0]["billingGroupId"]
+
+
+@mock_aws
+def test_create_billing_group_with_properties_through_cloudformation():
+    # given
+    test_billing_group_name = "Test_BillingGroup"
+    stack_name = "test_stack"
+
+    billing_group_properties = {
+        "billingGroupDescription": "Test billing group with properties",
+        "attributePayload": {
+            "attributes": {
+                "environment": "test",
+                "project": "iot-billing"
+            }
+        }
+    }
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT BillingGroup CloudFormation",
+        "Resources": {
+            "testBillingGroup": {
+                "Type": "AWS::IoT::BillingGroup",
+                "Properties": {
+                    "BillingGroupName": test_billing_group_name,
+                    "BillingGroupProperties": billing_group_properties,
+                },
+            },
+        },
+        "Outputs": {
+            "BillingGroupArn": {"Value": {"Fn::GetAtt": ["testBillingGroup", "Arn"]}},
+            "BillingGroupId": {"Value": {"Fn::GetAtt": ["testBillingGroup", "Id"]}},
+        },
+    }
+
+    # when
+    template_json = json.dumps(template)
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    # then check list of billing groups
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_billing_groups()["billingGroups"]) == 1
+
+    # describe billing group
+    resp = iot_conn.describe_billing_group(billingGroupName=test_billing_group_name)
+    assert resp["billingGroupName"] == test_billing_group_name
+    assert resp["billingGroupArn"] == "arn:aws:iot:us-west-1:123456789012:billinggroup/Test_BillingGroup"
+    assert resp["billingGroupProperties"] == billing_group_properties
+
+    # Check stack outputs
+    stack = cfn_conn.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        Output["OutputKey"]: Output["OutputValue"] for Output in stack["Outputs"]
+    }
+    assert outputs["BillingGroupArn"] == resp["billingGroupArn"]
+    assert outputs["BillingGroupId"] == resp["billingGroupId"]
+
+
+@mock_aws
+def test_update_billing_group_name_should_recreate_billing_group_and_change_id():
+    # given
+    test_billing_group_name = "Test_BillingGroup"
+    updated_billing_group_name = "Updated_BillingGroup"
+    stack_name = "test_stack"
+
+    first_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT BillingGroup CloudFormation",
+        "Resources": {
+            "testBillingGroup": {
+                "Type": "AWS::IoT::BillingGroup",
+                "Properties": {"BillingGroupName": test_billing_group_name},
+            },
+        },
+    }
+    updated_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT BillingGroup CloudFormation",
+        "Resources": {
+            "testBillingGroup": {
+                "Type": "AWS::IoT::BillingGroup",
+                "Properties": {"BillingGroupName": updated_billing_group_name},
+            },
+        },
+    }
+
+    # when
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=json.dumps(first_template))
+
+    # then check list of billing groups and the only one billing group
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_billing_groups()["billingGroups"]) == 1
+    first_resp = iot_conn.describe_billing_group(billingGroupName=test_billing_group_name)
+    assert first_resp["billingGroupName"] == test_billing_group_name
+    assert (
+        first_resp["billingGroupArn"] == "arn:aws:iot:us-west-1:123456789012:billinggroup/Test_BillingGroup"
+    )
+
+    # and
+    cfn_conn.update_stack(
+        StackName=stack_name, TemplateBody=json.dumps(updated_template)
+    )
+    assert len(iot_conn.list_billing_groups()["billingGroups"]) == 1
+    updated_resp = iot_conn.describe_billing_group(billingGroupName=updated_billing_group_name)
+    assert updated_resp["billingGroupName"] == updated_billing_group_name
+    assert (
+        updated_resp["billingGroupArn"]
+        == "arn:aws:iot:us-west-1:123456789012:billinggroup/Updated_BillingGroup"
+    )
+
+    # and it's a different billing group
+    assert first_resp["billingGroupId"] != updated_resp["billingGroupId"]
+
+
+@mock_aws
+def test_delete_billing_group_resource_should_delete_billing_group():
+    # given
+    test_billing_group_name = "Test_BillingGroup"
+    stack_name = "test_stack"
+
+    first_template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT BillingGroup CloudFormation",
+        "Resources": {
+            "testBillingGroup": {
+                "Type": "AWS::IoT::BillingGroup",
+                "Properties": {
+                    "BillingGroupName": test_billing_group_name,
+                },
+            },
+        },
+    }
+
+    # when
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=json.dumps(first_template))
+
+    # then check list of billing groups and the only one billing group
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_billing_groups()["billingGroups"]) == 1
+
+    # and
+    cfn_conn.delete_stack(StackName=stack_name)
+    assert len(iot_conn.list_billing_groups()["billingGroups"]) == 0
+
+
+@mock_aws
+def test_create_thing_with_billing_group_through_cloudformation():
+    # given
+    test_thing_name = "Test_Thing_With_Billing"
+    test_billing_group_name = "Test_BillingGroup_For_Thing"
+    stack_name = "test_stack"
+
+    thing_attributes = {"attributes": {"attr1": "value1", "attr2": "value2"}}
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT Thing with BillingGroup CloudFormation",
+        "Resources": {
+            "testBillingGroup": {
+                "Type": "AWS::IoT::BillingGroup",
+                "Properties": {
+                    "BillingGroupName": test_billing_group_name,
+                },
+            },
+            "testThing": {
+                "Type": "AWS::IoT::Thing",
+                "Properties": {
+                    "ThingName": test_thing_name,
+                    "AttributePayload": json.dumps(thing_attributes),
+                    "BillingGroupName": test_billing_group_name,
+                },
+                "DependsOn": ["testBillingGroup"],
+            },
+        },
+        "Outputs": {
+            "ThingArn": {"Value": {"Fn::GetAtt": ["testThing", "Arn"]}},
+            "ThingId": {"Value": {"Fn::GetAtt": ["testThing", "Id"]}},
+            "BillingGroupArn": {"Value": {"Fn::GetAtt": ["testBillingGroup", "Arn"]}},
+        },
+    }
+
+    # when
+    template_json = json.dumps(template)
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    # then check list of things
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_things()["things"]) == 1
+
+    # describe thing
+    resp = iot_conn.describe_thing(thingName=test_thing_name)
+    assert resp["thingName"] == test_thing_name
+    assert resp["thingArn"] == "arn:aws:iot:us-west-1:123456789012:thing/Test_Thing_With_Billing"
+    assert resp["attributes"] == thing_attributes["attributes"]
+    assert resp["billingGroupName"] == test_billing_group_name
+
+    # Check stack outputs
+    stack = cfn_conn.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        Output["OutputKey"]: Output["OutputValue"] for Output in stack["Outputs"]
+    }
+    assert outputs["ThingArn"] == resp["thingArn"]
+    assert outputs["ThingId"] == resp["thingId"]
+    assert outputs["BillingGroupArn"] == "arn:aws:iot:us-west-1:123456789012:billinggroup/Test_BillingGroup_For_Thing"
+
+
+@mock_aws
+def test_create_thing_with_billing_group_reference_through_cloudformation():
+    # given
+    test_thing_name = "Test_Thing_With_Billing_Ref"
+    test_billing_group_name = "Test_BillingGroup_For_Thing_Ref"
+    stack_name = "test_stack"
+
+    thing_attributes = {"attributes": {"attr1": "value1"}}
+    template = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "IOT Thing with BillingGroup Reference CloudFormation",
+        "Resources": {
+            "testBillingGroup": {
+                "Type": "AWS::IoT::BillingGroup",
+                "Properties": {
+                    "BillingGroupName": test_billing_group_name,
+                },
+            },
+            "testThing": {
+                "Type": "AWS::IoT::Thing",
+                "Properties": {
+                    "ThingName": test_thing_name,
+                    "AttributePayload": json.dumps(thing_attributes),
+                    "BillingGroupName": {"Ref": "testBillingGroup"},
+                },
+                "DependsOn": ["testBillingGroup"],
+            },
+        },
+        "Outputs": {
+            "ThingArn": {"Value": {"Fn::GetAtt": ["testThing", "Arn"]}},
+            "BillingGroupArn": {"Value": {"Fn::GetAtt": ["testBillingGroup", "Arn"]}},
+        },
+    }
+
+    # when
+    template_json = json.dumps(template)
+    cfn_conn = boto3.client("cloudformation", region_name=TEST_REGION)
+    cfn_conn.create_stack(StackName=stack_name, TemplateBody=template_json)
+
+    # then check list of things
+    iot_conn = boto3.client("iot", region_name=TEST_REGION)
+    assert len(iot_conn.list_things()["things"]) == 1
+
+    # describe thing
+    resp = iot_conn.describe_thing(thingName=test_thing_name)
+    assert resp["thingName"] == test_thing_name
+    assert resp["billingGroupName"] == test_billing_group_name
+
+    # Check stack outputs
+    stack = cfn_conn.describe_stacks(StackName=stack_name)["Stacks"][0]
+    outputs = {
+        Output["OutputKey"]: Output["OutputValue"] for Output in stack["Outputs"]
+    }
+    assert outputs["ThingArn"] == resp["thingArn"]
+    assert outputs["BillingGroupArn"] == "arn:aws:iot:us-west-1:123456789012:billinggroup/Test_BillingGroup_For_Thing_Ref"

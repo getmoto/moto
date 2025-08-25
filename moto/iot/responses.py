@@ -34,10 +34,12 @@ class IoTResponse(BaseResponse):
         thing_name = self._get_param("thingName")
         thing_type_name = self._get_param("thingTypeName")
         attribute_payload = self._get_param("attributePayload")
+        billing_group_name = self._get_param("billingGroupName")
         thing = self.iot_backend.create_thing(
             thing_name=thing_name,
             thing_type_name=thing_type_name,
             attribute_payload=attribute_payload,
+            billing_group_name=billing_group_name,
         )
         return json.dumps(
             dict(thingName=thing.thing_name, thingArn=thing.arn, thingId=thing.thing_id)
@@ -911,3 +913,89 @@ class IoTResponse(BaseResponse):
                 "jobExecutionsRetryConfig": job_template.job_execution_retry_config,
             }
         )
+
+    def create_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group_properties = self._get_param("billingGroupProperties")
+        
+        billing_group = self.iot_backend.create_billing_group(
+            billing_group_name=billing_group_name,
+            billing_group_properties=billing_group_properties or {},
+        )
+        
+        return json.dumps(
+            {
+                "billingGroupArn": billing_group.arn,
+                "billingGroupName": billing_group.billing_group_name,
+                "billingGroupId": billing_group.billing_group_id,
+            }
+        )
+
+    def describe_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group = self.iot_backend.describe_billing_group(billing_group_name)
+        
+        return json.dumps(billing_group.to_dict())
+
+    def delete_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        self.iot_backend.delete_billing_group(billing_group_name)
+        return json.dumps({})
+
+    def list_billing_groups(self) -> str:
+        billing_groups = list(self.iot_backend.billing_groups.values())
+        billing_groups_data = [bg.to_dict() for bg in billing_groups]
+        
+        return json.dumps({"billingGroups": billing_groups_data})
+
+    def add_thing_to_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group_arn = self._get_param("billingGroupArn")
+        thing_name = self._get_param("thingName")
+        thing_arn = self._get_param("thingArn")
+        self.iot_backend.add_thing_to_billing_group(
+            billing_group_name=billing_group_name,
+            billing_group_arn=billing_group_arn,
+            thing_name=thing_name,
+            thing_arn=thing_arn,
+        )
+        return json.dumps(dict())
+
+    def remove_thing_from_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group_arn = self._get_param("billingGroupArn")
+        thing_name = self._get_param("thingName")
+        thing_arn = self._get_param("thingArn")
+        self.iot_backend.remove_thing_from_billing_group(
+            billing_group_name=billing_group_name,
+            billing_group_arn=billing_group_arn,
+            thing_name=thing_name,
+            thing_arn=thing_arn,
+        )
+        return json.dumps(dict())
+
+    def list_things_in_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        things = self.iot_backend.list_things_in_billing_group(
+            billing_group_name=billing_group_name
+        )
+        thing_names = [_.thing_name for _ in things]
+        return json.dumps(dict(things=thing_names))
+
+    def list_billing_groups_for_thing(self) -> str:
+        thing_name = self._get_param("thingName")
+        billing_groups = self.iot_backend.list_billing_groups_for_thing(
+            thing_name=thing_name
+        )
+        return json.dumps(dict(billingGroups=billing_groups))
+
+    def update_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group_properties = self._get_param("billingGroupProperties")
+        expected_version = self._get_param("expectedVersion")
+        version = self.iot_backend.update_billing_group(
+            billing_group_name=billing_group_name,
+            billing_group_properties=billing_group_properties or {},
+            expected_version=expected_version,
+        )
+        return json.dumps(dict(version=version))

@@ -6,17 +6,7 @@ from collections import OrderedDict
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timedelta
 from json import JSONDecodeError
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Pattern,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Pattern, Tuple
 
 from cryptography import x509
 from cryptography.hazmat._oid import NameOID
@@ -176,13 +166,18 @@ class FakeThing(CloudFormationModel):
 
         thing_name = properties.get("ThingName", resource_name)
         attribute_payload = properties.get("AttributePayload", "")
-        try:
-            attributes = json.loads(attribute_payload)
-        except JSONDecodeError:
-            attributes = None
+
+        # Convert string to dict if needed, or use empty dict if not provided
+        if isinstance(attribute_payload, str) and attribute_payload:
+            try:
+                attribute_payload = json.loads(attribute_payload)
+            except JSONDecodeError:
+                attribute_payload = {}
+        elif not attribute_payload:
+            attribute_payload = {}
 
         return iot_backend.create_thing(
-            thing_name=thing_name, thing_type_name="", attribute_payload=attributes
+            thing_name=thing_name, thing_type_name="", attribute_payload=attribute_payload
         )
 
     @classmethod
@@ -198,10 +193,15 @@ class FakeThing(CloudFormationModel):
         properties = cloudformation_json["Properties"]
         thing_name = properties.get("ThingName", new_resource_name)
         attribute_payload = properties.get("AttributePayload", "")
-        try:
-            attributes = json.loads(attribute_payload)
-        except JSONDecodeError:
-            attributes = None
+
+        # Convert string to dict if needed, or use empty dict if not provided
+        if isinstance(attribute_payload, str) and attribute_payload:
+            try:
+                attribute_payload = json.loads(attribute_payload)
+            except JSONDecodeError:
+                attribute_payload = {}
+        elif not attribute_payload:
+            attribute_payload = {}
 
         if thing_name != original_resource.thing_name:
             iot_backend.delete_thing(original_resource.thing_name)
@@ -212,7 +212,7 @@ class FakeThing(CloudFormationModel):
             iot_backend.update_thing(
                 thing_name=thing_name,
                 thing_type_name="",
-                attribute_payload=attributes,
+                attribute_payload=attribute_payload,
                 remove_thing_type=False,
             )
             return original_resource
@@ -837,7 +837,7 @@ class FakeJobTemplate(CloudFormationModel):
         self.timeout_config = timeout_config
         self.created_at = time.mktime(datetime(2015, 1, 1).timetuple())
 
-    def to_dict(self) -> Dict[str, Union[str, float]]:
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "jobTemplateArn": self.job_template_arn,
             "jobTemplateId": self.job_template_id,
@@ -1399,13 +1399,14 @@ class IoTBackend(BaseBackend):
             ]
         return self.thing_types.values()
 
-    @paginate(PAGINATION_MODEL)
-    def list_things(  # type: ignore[misc]
+    def list_things(
         self,
         attribute_name: str,
         attribute_value: str,
         thing_type_name: str,
-    ) -> list[dict[str, Any]]:
+        max_results: int,
+        token: Optional[str],
+    ) -> Tuple[Iterable[FakeThing], Optional[str]]:
         all_things = [_.to_dict() for _ in self.things.values()]
         if attribute_name is not None and thing_type_name is not None:
             filtered_things = list(
@@ -1436,7 +1437,21 @@ class IoTBackend(BaseBackend):
         else:
             filtered_things = all_things
 
-        return filtered_things
+        if token is None:
+            things = filtered_things[0:max_results]
+            next_token = (
+                str(max_results) if len(filtered_things) > max_results else None
+            )
+        else:
+            int_token = int(token)
+            things = filtered_things[int_token : int_token + max_results]
+            next_token = (
+                str(int_token + max_results)
+                if len(filtered_things) > int_token + max_results
+                else None
+            )
+
+        return things, next_token
 
     def describe_thing(self, thing_name: str) -> FakeThing:
         things = [_ for _ in self.things.values() if _.thing_name == thing_name]
@@ -2299,11 +2314,11 @@ class IoTBackend(BaseBackend):
         return self.jobs[job_id]
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_jobs(self) -> List[FakeJob]:
+    def list_jobs(self) -> List[Dict[str, Any]]:
         """
         The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
         """
-        return [_ for _ in self.jobs.values()]
+        return [_.to_dict() for _ in self.jobs.values()]
 
     def describe_job_execution(
         self, job_id: str, thing_name: str, execution_number: int
@@ -2359,25 +2374,56 @@ class IoTBackend(BaseBackend):
         else:
             raise InvalidStateTransitionException()
 
-    @paginate(PAGINATION_MODEL)
     def list_job_executions_for_job(
-        self, job_id: str, status: str
-    ) -> List[FakeJobExecution]:
-        return [
-            job_exec
-            for (_id, _), job_exec in self.job_executions.items()
-            if _id == job_id and (not status or job_exec.status == status)
+        self, job_id: str, status: str, max_results: int, token: Optional[str]
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        job_executions = [
+            self.job_executions[je].to_dict()
+            for je in self.job_executions
+            if je[0] == job_id
         ]
+
+        if status is not None:
+            job_executions = list(
+                filter(
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
+                    job_executions,
+                )
+            )
+
+        if token is None:
+            job_executions = job_executions[0:max_results]
+            next_token = str(max_results) if len(job_executions) > max_results else None
+        else:
+            int_token = int(token)
+            job_executions = job_executions[int_token : int_token + max_results]
+            next_token = (
+                str(int_token + max_results)
+                if len(job_executions) > int_token + max_results
+                else None
+            )
+
+        return job_executions, next_token
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_job_executions_for_thing(
         self, thing_name: str, status: Optional[str]
-    ) -> List[FakeJobExecution]:
-        return [
-            job_exec
-            for (_, name), job_exec in self.job_executions.items()
-            if name == thing_name and (not status or job_exec.status == status)
+    ) -> List[Dict[str, Any]]:
+        job_executions = [
+            self.job_executions[je].to_dict()
+            for je in self.job_executions
+            if je[1] == thing_name
         ]
+
+        if status is not None:
+            job_executions = list(
+                filter(
+                    lambda elem: elem["jobExecutionSummary"].get("status") == status,
+                    job_executions,
+                )
+            )
+
+        return job_executions
 
     def list_topic_rules(self) -> List[Dict[str, Any]]:
         return [r.to_dict() for r in self.rules.values()]
@@ -2607,7 +2653,7 @@ class IoTBackend(BaseBackend):
         return job_template
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
-    def list_job_templates(self) -> List[Dict[str, Union[str, float]]]:
+    def list_job_templates(self) -> List[Dict[str, Any]]:
         return [_.to_dict() for _ in self.jobs_templates.values()]
 
     def delete_job_template(self, job_template_id: str) -> None:

@@ -1,4 +1,5 @@
 import boto3
+import pytest
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -300,3 +301,161 @@ def test_list_things_with_attribute_and_thing_type_filter_and_next_token():
         and item["thingTypeName"] == thing_type_name
         for item in things["things"]
     )
+
+
+@mock_aws
+def test_create_thing_with_billing_group():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_name = "my-thing-with-billing"
+    billing_group_name = "my-billing-group"
+    
+    # Create a billing group first
+    client.create_billing_group(billingGroupName=billing_group_name)
+    
+    # Create a thing with billing group
+    thing = client.create_thing(
+        thingName=thing_name,
+        billingGroupName=billing_group_name
+    )
+    
+    assert thing["thingName"] == thing_name
+    assert thing["thingArn"] is not None
+    assert thing["thingId"] is not None
+    
+    # Verify the thing was created with billing group
+    thing_details = client.describe_thing(thingName=thing_name)
+    assert thing_details["billingGroupName"] == billing_group_name
+
+
+@mock_aws
+def test_create_thing_with_billing_group_and_type():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_name = "my-thing-with-billing-and-type"
+    thing_type_name = "my-thing-type"
+    billing_group_name = "my-billing-group"
+    
+    # Create a thing type first
+    client.create_thing_type(thingTypeName=thing_type_name)
+    
+    # Create a billing group first
+    client.create_billing_group(billingGroupName=billing_group_name)
+    
+    # Create a thing with both billing group and thing type
+    thing = client.create_thing(
+        thingName=thing_name,
+        thingTypeName=thing_type_name,
+        billingGroupName=billing_group_name
+    )
+    
+    assert thing["thingName"] == thing_name
+    assert thing["thingArn"] is not None
+    assert thing["thingId"] is not None
+    
+    # Verify the thing was created with both billing group and thing type
+    thing_details = client.describe_thing(thingName=thing_name)
+    assert thing_details["billingGroupName"] == billing_group_name
+    assert thing_details["thingTypeName"] == thing_type_name
+
+
+@mock_aws
+def test_create_thing_with_invalid_billing_group():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_name = "my-thing-invalid-billing"
+    invalid_billing_group = "non-existent-billing-group"
+    
+    # Attempt to create a thing with non-existent billing group
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.create_thing(
+            thingName=thing_name,
+            billingGroupName=invalid_billing_group
+        )
+
+
+@mock_aws
+def test_describe_thing_with_billing_group():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_name = "my-thing-to-describe"
+    billing_group_name = "my-billing-group-to-describe"
+    
+    # Create a billing group first
+    client.create_billing_group(billingGroupName=billing_group_name)
+    
+    # Create a thing with billing group
+    client.create_thing(
+        thingName=thing_name,
+        billingGroupName=billing_group_name
+    )
+    
+    # Describe the thing and verify billing group is included
+    thing_details = client.describe_thing(thingName=thing_name)
+    
+    assert thing_details["thingName"] == thing_name
+    assert thing_details["thingArn"] is not None
+    assert thing_details["thingId"] is not None
+    assert thing_details["billingGroupName"] == billing_group_name
+    assert "attributes" in thing_details
+    assert "version" in thing_details
+
+
+@mock_aws
+def test_list_things_includes_billing_group():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_name = "my-thing-for-listing"
+    billing_group_name = "my-billing-group-for-listing"
+    
+    # Create a billing group first
+    client.create_billing_group(billingGroupName=billing_group_name)
+    
+    # Create a thing with billing group
+    client.create_thing(
+        thingName=thing_name,
+        billingGroupName=billing_group_name
+    )
+    
+    # List things and verify billing group information is included
+    things = client.list_things()
+    assert len(things["things"]) == 1
+    
+    thing_info = things["things"][0]
+    assert thing_info["thingName"] == thing_name
+    assert thing_info["thingArn"] is not None
+    assert thing_info["billingGroupName"] == billing_group_name
+
+
+@mock_aws
+def test_thing_lifecycle_with_billing_group():
+    client = boto3.client("iot", region_name="ap-northeast-1")
+    thing_name = "lifecycle-test-thing"
+    billing_group_name = "lifecycle-test-billing-group"
+    
+    # Create a billing group first
+    client.create_billing_group(billingGroupName=billing_group_name)
+    
+    # 1. Create thing with billing group
+    create_response = client.create_thing(
+        thingName=thing_name,
+        billingGroupName=billing_group_name
+    )
+    assert create_response["thingName"] == thing_name
+    assert "thingArn" in create_response
+    
+    # 2. Describe thing and verify billing group
+    describe_response = client.describe_thing(thingName=thing_name)
+    assert describe_response["thingName"] == thing_name
+    assert describe_response["billingGroupName"] == billing_group_name
+    
+    # 3. List things and verify billing group is included
+    list_response = client.list_things()
+    assert len(list_response["things"]) == 1
+    assert list_response["things"][0]["billingGroupName"] == billing_group_name
+    
+    # 4. Delete thing
+    client.delete_thing(thingName=thing_name)
+    
+    # 5. Verify deletion
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.describe_thing(thingName=thing_name)
+    
+    # 6. List things (should be empty)
+    list_response = client.list_things()
+    assert len(list_response["things"]) == 0
