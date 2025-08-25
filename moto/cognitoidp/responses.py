@@ -103,9 +103,7 @@ class CognitoIdpResponse(BaseResponse):
             user_pool_id, domain, custom_domain_config
         )
         domain_description = user_pool_domain.to_json(extended=False)
-        if domain_description:
-            return ActionResult(domain_description)
-        return EmptyResult()
+        return ActionResult(domain_description)
 
     def describe_user_pool_domain(self) -> ActionResult:
         domain = self._get_param("Domain")
@@ -128,9 +126,7 @@ class CognitoIdpResponse(BaseResponse):
             domain, custom_domain_config
         )
         domain_description = user_pool_domain.to_json(extended=False)
-        if domain_description:
-            return ActionResult(domain_description)
-        return EmptyResult()
+        return ActionResult(domain_description)
 
     # User pool client
     def create_user_pool_client(self) -> ActionResult:
