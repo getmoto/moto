@@ -11,7 +11,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH
+from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH, MAX_ROLE_NAME_LENGTH
 
 
 @freeze_time("2012-01-01 12:00:00")
@@ -131,6 +131,36 @@ def test_assume_role(region, partition):
     assert len(assume_role_response["AssumedRoleUser"]["AssumedRoleId"]) == (
         21 + 1 + len(session_name)
     )
+
+
+@freeze_time("2012-01-01 12:00:00")
+@mock_aws
+def test_assume_role_with_too_long_role_session_name():
+    client = boto3.client("sts", region_name="us-east-1")
+    iam_client = boto3.client("iam", region_name="us-east-1")
+
+    session_name = "s" * 65
+    trust_policy_document = {
+        "Version": "2012-10-17",
+        "Statement": {
+            "Effect": "Allow",
+            "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+            "Action": "sts:AssumeRole",
+        },
+    }
+    role = iam_client.create_role(
+        RoleName="test-role", AssumeRolePolicyDocument=json.dumps(trust_policy_document)
+    )["Role"]
+    role_arn = role["Arn"]
+    with pytest.raises(ClientError) as ex:
+        client.assume_role(
+            RoleArn=role_arn,
+            RoleSessionName=session_name,
+            DurationSeconds=900,
+        )
+    assert ex.value.response["Error"]["Code"] == "ValidationError"
+    assert str(MAX_ROLE_NAME_LENGTH) in ex.value.response["Error"]["Message"]
+    assert session_name in ex.value.response["Error"]["Message"]
 
 
 @freeze_time("2012-01-01 12:00:00")
