@@ -1,4 +1,3 @@
-import datetime
 import enum
 import re
 import time
@@ -794,7 +793,7 @@ class CognitoIdpGroup(BaseModel):
         self.description = description or ""
         self.role_arn = role_arn
         self.precedence = precedence
-        self.last_modified_date = datetime.datetime.now()
+        self.last_modified_date = utcnow()
         self.creation_date = self.last_modified_date
 
         # Users who are members of this group.
@@ -813,7 +812,7 @@ class CognitoIdpGroup(BaseModel):
             self.role_arn = role_arn
         if precedence is not None:
             self.precedence = precedence
-        self.last_modified_date = datetime.datetime.now()
+        self.last_modified_date = utcnow()
 
     def to_json(self) -> Dict[str, Any]:
         return {
