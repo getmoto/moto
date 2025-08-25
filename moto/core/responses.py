@@ -666,7 +666,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         context = ActionContext(
             service_model, operation_model, serializer_cls, self.__class__
         )
-        return action_result.execute_result(context)
+        status_code, headers, body = action_result.execute_result(context)
+        headers.update(self.response_headers)
+        return status_code, self.response_headers, body
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers

@@ -481,8 +481,8 @@ class CognitoIdpUserPool(BaseModel):
             "Arn": self.arn,
             "Name": self.name,
             "Status": self.status,
-            "CreationDate": time.mktime(self.creation_date.timetuple()),
-            "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
+            "CreationDate": self.creation_date,
+            "LastModifiedDate": self.last_modified_date,
             "MfaConfiguration": self.mfa_config,
             "EstimatedNumberOfUsers": len(self.users),
         }
@@ -768,8 +768,8 @@ class CognitoIdpIdentityProvider(BaseModel):
         return {
             "ProviderName": self.name,
             "ProviderType": self.extended_config.get("ProviderType"),
-            "CreationDate": time.mktime(self.creation_date.timetuple()),
-            "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
+            "CreationDate": self.creation_date,
+            "LastModifiedDate": self.last_modified_date,
         }
 
     def to_json(self, extended: bool = False) -> Dict[str, Any]:
@@ -822,8 +822,8 @@ class CognitoIdpGroup(BaseModel):
             "Description": self.description,
             "RoleArn": self.role_arn,
             "Precedence": self.precedence,
-            "LastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
-            "CreationDate": time.mktime(self.creation_date.timetuple()),
+            "LastModifiedDate": self.last_modified_date,
+            "CreationDate": self.creation_date,
         }
 
 
@@ -865,8 +865,8 @@ class CognitoIdpUser(BaseModel):
             "UserPoolId": self.user_pool_id,
             "Username": self.username,
             "UserStatus": self.status,
-            "UserCreateDate": time.mktime(self.create_date.timetuple()),
-            "UserLastModifiedDate": time.mktime(self.last_modified_date.timetuple()),
+            "UserCreateDate": self.create_date,
+            "UserLastModifiedDate": self.last_modified_date,
         }
 
     # list_users brings back "Attributes" while admin_get_user brings back "UserAttributes".
