@@ -9,6 +9,7 @@ MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
 class TokenResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="sts")
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> STSBackend:
@@ -20,7 +21,7 @@ class TokenResponse(BaseResponse):
         return "*"
 
     def get_session_token(self) -> ActionResult:
-        duration = int(self.querystring.get("DurationSeconds", [43200])[0])
+        duration = self._get_int_param("DurationSeconds", 43200)
         token = self.backend.get_session_token(duration=duration)
         result = {
             "Credentials": {
@@ -33,9 +34,8 @@ class TokenResponse(BaseResponse):
         return ActionResult(result)
 
     def get_federation_token(self) -> ActionResult:
-        duration = int(self.querystring.get("DurationSeconds", [43200])[0])
-        policy = self.querystring.get("Policy", [None])[0]
-
+        duration = self._get_int_param("DurationSeconds", 43200)
+        policy = self._get_param("Policy")
         if policy is not None and len(policy) > MAX_FEDERATION_TOKEN_POLICY_LENGTH:
             raise STSValidationError(
                 "1 validation error detected: Value "
@@ -43,8 +43,7 @@ class TokenResponse(BaseResponse):
                 "at 'policy' failed to satisfy constraint: Member must have length less than or "
                 f" equal to {MAX_FEDERATION_TOKEN_POLICY_LENGTH}"
             )
-
-        name = self.querystring.get("Name")[0]  # type: ignore
+        name = self._get_param("Name")
         token = self.backend.get_federation_token(duration=duration, name=name)
         result = {
             "Credentials": {
@@ -62,13 +61,11 @@ class TokenResponse(BaseResponse):
         return ActionResult(result)
 
     def assume_role(self) -> ActionResult:
-        role_session_name = self.querystring.get("RoleSessionName")[0]  # type: ignore
-        role_arn = self.querystring.get("RoleArn")[0]  # type: ignore
-
-        policy = self.querystring.get("Policy", [None])[0]
-        duration = int(self.querystring.get("DurationSeconds", [3600])[0])
-        external_id = self.querystring.get("ExternalId", [None])[0]
-
+        role_session_name = self._get_param("RoleSessionName")
+        role_arn = self._get_param("RoleArn")
+        policy = self._get_param("Policy")
+        duration = self._get_int_param("DurationSeconds", 3600)
+        external_id = self._get_param("ExternalId")
         role = self.backend.assume_role(
             region_name=self.region,
             role_session_name=role_session_name,
@@ -88,13 +85,11 @@ class TokenResponse(BaseResponse):
         return ActionResult(result)
 
     def assume_role_with_web_identity(self) -> ActionResult:
-        role_session_name = self.querystring.get("RoleSessionName")[0]  # type: ignore
-        role_arn = self.querystring.get("RoleArn")[0]  # type: ignore
-
-        policy = self.querystring.get("Policy", [None])[0]
-        duration = int(self.querystring.get("DurationSeconds", [3600])[0])
-        external_id = self.querystring.get("ExternalId", [None])[0]
-
+        role_session_name = self._get_param("RoleSessionName")
+        role_arn = self._get_param("RoleArn")
+        policy = self._get_param("Policy")
+        duration = self._get_int_param("DurationSeconds", 3600)
+        external_id = self._get_param("ExternalId")
         role = self.backend.assume_role_with_web_identity(
             region_name=self.region,
             role_session_name=role_session_name,
@@ -114,10 +109,9 @@ class TokenResponse(BaseResponse):
         return ActionResult(result)
 
     def assume_role_with_saml(self) -> ActionResult:
-        role_arn = self.querystring.get("RoleArn")[0]  # type: ignore
-        principal_arn = self.querystring.get("PrincipalArn")[0]  # type: ignore
-        saml_assertion = self.querystring.get("SAMLAssertion")[0]  # type: ignore
-
+        role_arn = self._get_param("RoleArn")
+        principal_arn = self._get_param("PrincipalArn")
+        saml_assertion = self._get_param("SAMLAssertion")
         role = self.backend.assume_role_with_saml(
             role_arn=role_arn,
             principal_arn=principal_arn,
