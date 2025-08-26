@@ -1,3 +1,4 @@
+import base64
 import re
 from collections import defaultdict
 from typing import Any, Dict
@@ -5,6 +6,7 @@ from typing import Any, Dict
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import camelcase_to_underscores
 
+from ..core.parsers import XFormedDict
 from .exceptions import InvalidParameterValue, SNSInvalidParameter, SNSNotFoundError
 from .models import SNSBackend, sns_backends
 from .utils import is_e164
@@ -25,23 +27,23 @@ class SNSResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="sns")
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> SNSBackend:
         return sns_backends[self.current_account][self.region]
 
-    def _get_attributes(self) -> Dict[str, str]:
-        attributes = self._get_list_prefix("Attributes.entry")
-        return dict((attribute["key"], attribute["value"]) for attribute in attributes)
+    def _get_attributes(self) -> Dict[str, Any]:
+        attributes = self._get_param("Attributes", XFormedDict())
+        return attributes.original_dict()
 
     def _get_tags(self) -> Dict[str, str]:
-        tags = self._get_list_prefix("Tags.member")
+        tags = self._get_param("Tags", [])
         return {tag["key"]: tag["value"] for tag in tags}
 
     def _parse_message_attributes(self) -> Dict[str, Any]:
-        message_attributes = self._get_object_map(
-            "MessageAttributes.entry", name="Name", value="Value"
-        )
+        message_attributes = self._get_param("MessageAttributes", XFormedDict())
+        message_attributes = message_attributes.original_dict()
         return self._transform_message_attributes(message_attributes)
 
     def _transform_message_attributes(
@@ -86,7 +88,7 @@ class SNSResponse(BaseResponse):
                                 f"Could not cast message attribute '{name}' value to number."
                             )
             elif "BinaryValue" in value:
-                transform_value = value["BinaryValue"]
+                transform_value = base64.b64encode(value["BinaryValue"]).decode()
             if transform_value == "":
                 raise InvalidParameterValue(
                     f"The message attribute '{name}' must contain non-empty "
@@ -239,18 +241,14 @@ class SNSResponse(BaseResponse):
 
     def publish_batch(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
-        publish_batch_request_entries = self._get_multi_param(
-            "PublishBatchRequestEntries.member"
+        publish_batch_request_entries = self._get_param(
+            "PublishBatchRequestEntries", []
         )
         for entry in publish_batch_request_entries:
             if "MessageAttributes" in entry:
-                # Convert into the same format as the regular publish-method
-                # FROM: [{'Name': 'a', 'Value': {'DataType': 'String', 'StringValue': 'v'}}]
-                # TO  : {'name': {'DataType': 'Number', 'StringValue': '123'}}
-                msg_attrs = {y["Name"]: y["Value"] for y in entry["MessageAttributes"]}
                 # Use the same validation/processing as the regular publish-method
                 entry["MessageAttributes"] = self._transform_message_attributes(
-                    msg_attrs
+                    entry["MessageAttributes"]
                 )
         successful, failed = self.backend.publish_batch(
             topic_arn=topic_arn,
@@ -400,8 +398,8 @@ class SNSResponse(BaseResponse):
     def add_permission(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
         label = self._get_param("Label")
-        aws_account_ids = self._get_multi_param("AWSAccountId.member.")
-        action_names = self._get_multi_param("ActionName.member.")
+        aws_account_ids = self._get_param("AWSAccountId", [])
+        action_names = self._get_param("ActionName", [])
         self.backend.add_permission(
             region_name=self.region,
             topic_arn=topic_arn,
@@ -455,13 +453,14 @@ class SNSResponse(BaseResponse):
 
     def untag_resource(self) -> ActionResult:
         arn = self._get_param("ResourceArn")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        tag_keys = self._get_param("TagKeys", [])
         self.backend.untag_resource(arn, tag_keys)
         return EmptyResult()
 
     @staticmethod
     def serve_pem(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         sns = SNSResponse()
+        sns.automated_parameter_parsing = False
         sns.setup_class(request, full_url, headers)
         key_name = full_url.split("/")[-1]
         key = sns.backend._message_public_keys[key_name]
