@@ -133,7 +133,6 @@ def test_assume_role(region, partition):
     )
 
 
-@freeze_time("2012-01-01 12:00:00")
 @mock_aws
 def test_assume_role_with_too_long_role_session_name():
     client = boto3.client("sts", region_name="us-east-1")
