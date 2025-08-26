@@ -443,7 +443,7 @@ class QuickSightResponse(BaseResponse):
         tags = self._get_param("Tags")
 
         self.quicksight_backend.tag_resource(resource_arn, tags)
-        
+
         return json.dumps(dict(RequestId="request_id", Status=200))
 
     def untag_resource(self) -> str:

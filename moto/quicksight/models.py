@@ -38,8 +38,12 @@ class QuickSightBackend(BaseBackend):
         self.data_sets: Dict[str, QuicksightDataSet] = dict()
         self.tagger = TaggingService()
 
-    def create_data_set(self, data_set_id: str, name: str, tags: Optional[List[Dict[str, str]]] = None,
-) -> QuicksightDataSet:
+    def create_data_set(
+        self,
+        data_set_id: str,
+        name: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> QuicksightDataSet:
         dataset = QuicksightDataSet(
             self.account_id, self.region_name, data_set_id, name=name
         )
@@ -172,7 +176,7 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         namespace: str,
         user_name: str,
-        tags: Optional[List[Dict[str, str]]] = None
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> QuicksightUser:
         """
         The following parameters are not yet implemented:
