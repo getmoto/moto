@@ -93,8 +93,8 @@ class TemplateMessage(BaseModel):
         self,
         message_id: str,
         source: str,
-        template: List[str],
-        template_data: List[str],
+        template: str,
+        template_data: str,
         destinations: Any,
     ):
         self.id = message_id
@@ -109,8 +109,8 @@ class BulkTemplateMessage(BaseModel):
         self,
         message_ids: List[str],
         source: str,
-        template: List[str],
-        template_data: List[str],
+        template: str,
+        template_data: str,
         destinations: Any,
     ):
         self.ids = message_ids
@@ -288,8 +288,8 @@ class SESBackend(BaseBackend):
     def send_bulk_templated_email(
         self,
         source: str,
-        template: List[str],
-        template_data: List[str],
+        template: str,
+        template_data: str,
         destinations: List[Dict[str, Dict[str, List[str]]]],
     ) -> BulkTemplateMessage:
         recipient_count = len(destinations)
@@ -306,8 +306,8 @@ class SESBackend(BaseBackend):
             self.rejected_messages_count += 1
             raise MessageRejectedError(f"Email address not verified {source}")
 
-        if not self.templates.get(template[0]):
-            raise TemplateDoesNotExist(f"Template ({template[0]}) does not exist")
+        if not self.templates.get(template):
+            raise TemplateDoesNotExist(f"Template ({template}) does not exist")
 
         self.__process_sns_feedback__(source, destinations)
 
@@ -324,8 +324,8 @@ class SESBackend(BaseBackend):
     def send_templated_email(
         self,
         source: str,
-        template: List[str],
-        template_data: List[str],
+        template: str,
+        template_data: str,
         destinations: Dict[str, List[str]],
     ) -> TemplateMessage:
         recipient_count = sum(map(len, destinations.values()))
@@ -342,8 +342,8 @@ class SESBackend(BaseBackend):
             if msg is not None:
                 raise InvalidParameterValue(msg)
 
-        if not self.templates.get(template[0]):
-            raise TemplateDoesNotExist(f"Template ({template[0]}) does not exist")
+        if not self.templates.get(template):
+            raise TemplateDoesNotExist(f"Template ({template}) does not exist")
 
         self.__process_sns_feedback__(source, destinations)
 
