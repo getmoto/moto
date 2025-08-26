@@ -2215,7 +2215,7 @@ class FakeTrigger(BaseModel):
         workflow_name: str,
         trigger_type: str,  # to avoid any issues with built-in function type()
         schedule: str,
-        predicate: Predicate,
+        predicate: Optional[Predicate],
         actions: List[Action],
         description: str,
         start_on_creation: bool,

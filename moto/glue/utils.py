@@ -91,9 +91,10 @@ class Condition:
                 "JobName or CrawlerName in condition cannot be null or empty",
             )
 
-        self.logical_operator = inputs.get("LogicalOperator")
-
-        if not self.logical_operator:
+        logical_operator = inputs.get("LogicalOperator")
+        if logical_operator:
+            self.logical_operator = logical_operator
+        else:
             raise InvalidInputException(
                 "CreateTrigger",
                 "Logical operator cannot be null or empty",
@@ -117,7 +118,7 @@ class Condition:
 
 
 class Predicate:
-    def __init__(self, inputs: Dict[str, str | List[Dict[str, str]]]) -> None:
+    def __init__(self, inputs: Dict[str, Any]) -> None:
         self.logical = Logical(inputs.get("Logical"))
 
         self.conditions: List[Condition] = [
