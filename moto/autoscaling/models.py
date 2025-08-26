@@ -1852,8 +1852,10 @@ class AutoScalingBackend(BaseBackend):
             if f["Name"] == "auto-scaling-group":
                 tags = [t for t in tags if t["ResourceId"] in f["Values"]]
             if f["Name"] == "propagate-at-launch":
-                values = [v.lower() for v in f["Values"]]
-                tags = [t for t in tags if t.get("PropagateAtLaunch", False) in values]
+                values = [v for v in f["Values"]]
+                tags = [
+                    t for t in tags if str(t.get("PropagateAtLaunch", False)) in values
+                ]
             if f["Name"] == "key":
                 tags = [t for t in tags if t["Key"] in f["Values"]]
             if f["Name"] == "value":
