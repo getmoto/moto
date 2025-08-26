@@ -40,6 +40,7 @@ from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttribut
 from moto.core.utils import (
     camelcase_to_underscores,
     get_service_model,
+    get_value,
     gzip_decompress,
     method_names_from_class,
     params_sort_function,
@@ -653,7 +654,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
         parsed = parser.parse(
-            {"query_params": normalized_request.values}, operation_model
+            {
+                "query_params": normalized_request.values,
+                "headers": normalized_request.headers,
+                "body": normalized_request.data,
+            },
+            operation_model,
         )  # type: ignore[no-untyped-call]
         self.params = cast(Any, parsed)
 
@@ -751,6 +757,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return headers, body
 
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
+        if self.automated_parameter_parsing:
+            return get_value(self.params, param_name, default=if_none)
+
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
