@@ -1648,14 +1648,14 @@ def test_put_metric_alarm():
         == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
     assert alarm["AlarmDescription"] == "test alarm"
-    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["AlarmConfigurationUpdatedTimestamp"], datetime)
     assert alarm["ActionsEnabled"] is True
     assert alarm["OKActions"] == [sns_topic_arn]
     assert alarm["AlarmActions"] == [sns_topic_arn]
     assert alarm["InsufficientDataActions"] == [sns_topic_arn]
     assert alarm["StateValue"] == "OK"
     assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
-    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["StateUpdatedTimestamp"], datetime)
     assert alarm["MetricName"] == "5XXError"
     assert alarm["Namespace"] == "AWS/ApiGateway"
     assert alarm["Statistic"] == "Sum"

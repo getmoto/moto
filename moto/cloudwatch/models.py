@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional, SupportsFloat, Tuple
 
@@ -595,14 +596,14 @@ class CloudWatchBackend(BaseBackend):
             if timestamp is not None and type(timestamp) is not datetime:
                 timestamp = parser.parse(timestamp)
             metric_name = metric_member["MetricName"]
-            dimension = metric_member.get("Dimensions.member", _EMPTY_LIST)
+            dimension = metric_member.get("Dimensions", _EMPTY_LIST)
             unit = metric_member.get("Unit")
 
             # put_metric_data can include "value" as single value or "values" as a list
-            if metric_member.get("Values.member"):
-                values = metric_member["Values.member"]
+            if metric_member.get("Values"):
+                values = metric_member["Values"]
                 # value[i] should be added count[i] times (with default count 1)
-                counts = metric_member.get("Counts.member") or ["1"] * len(values)
+                counts = metric_member.get("Counts") or ["1"] * len(values)
                 for i in range(0, len(values)):
                     value = values[i]
                     timestamp = metric_member.get("Timestamp")
@@ -996,24 +997,24 @@ class CloudWatchBackend(BaseBackend):
         :raises: InvalidParameterCombination
         """
         # basic validation of input
-        if metric.get("Value") == "NaN":
+        if math.isnan(metric.get("Value", float())):
             # single value
             raise InvalidParameterValue(
                 f"The value NaN for parameter MetricData.member.{query_num}.Value is invalid."
             )
-        if metric.get("Values.member"):
+        if metric.get("Values"):
             # list of values
             if "Value" in metric:
                 raise InvalidParameterValue(
                     f"The parameters MetricData.member.{query_num}.Value and MetricData.member.{query_num}.Values are mutually exclusive and you have specified both."
                 )
-            if metric.get("Counts.member"):
-                if len(metric["Counts.member"]) != len(metric["Values.member"]):
+            if metric.get("Counts"):
+                if len(metric["Counts"]) != len(metric["Values"]):
                     raise InvalidParameterValue(
                         f"The parameters MetricData.member.{query_num}.Values and MetricData.member.{query_num}.Counts must be of the same size."
                     )
-            for value in metric["Values.member"]:
-                if value.lower() == "nan":
+            for value in metric["Values"]:
+                if math.isnan(value):
                     raise InvalidParameterValue(
                         f"The value {value} for parameter MetricData.member.{query_num}.Values is invalid."
                     )
