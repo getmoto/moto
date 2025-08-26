@@ -1,5 +1,3 @@
-from typing import Any, List
-
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .models import RedshiftBackend, redshift_backends
@@ -13,42 +11,11 @@ class RedshiftResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="redshift")
+        self.automated_parameter_parsing = True
 
     @property
     def redshift_backend(self) -> RedshiftBackend:
         return redshift_backends[self.current_account][self.region]
-
-    def unpack_list_params(self, label: str, child_label: str) -> Any:
-        root = self._get_multi_param_dict(label) or {}
-        return root.get(child_label, [])
-
-    def _get_cluster_security_groups(self) -> List[str]:
-        cluster_security_groups = self._get_multi_param("ClusterSecurityGroups.member")
-        if not cluster_security_groups:
-            cluster_security_groups = self._get_multi_param(
-                "ClusterSecurityGroups.ClusterSecurityGroupName"
-            )
-        return cluster_security_groups
-
-    def _get_vpc_security_group_ids(self) -> List[str]:
-        vpc_security_group_ids = self._get_multi_param("VpcSecurityGroupIds.member")
-        if not vpc_security_group_ids:
-            vpc_security_group_ids = self._get_multi_param(
-                "VpcSecurityGroupIds.VpcSecurityGroupId"
-            )
-        return vpc_security_group_ids
-
-    def _get_iam_roles(self) -> List[str]:
-        iam_roles = self._get_multi_param("IamRoles.member")
-        if not iam_roles:
-            iam_roles = self._get_multi_param("IamRoles.IamRoleArn")
-        return iam_roles
-
-    def _get_subnet_ids(self) -> List[str]:
-        subnet_ids = self._get_multi_param("SubnetIds.member")
-        if not subnet_ids:
-            subnet_ids = self._get_multi_param("SubnetIds.SubnetIdentifier")
-        return subnet_ids
 
     def create_cluster(self) -> ActionResult:
         cluster_kwargs = {
@@ -58,8 +25,8 @@ class RedshiftResponse(BaseResponse):
             "master_user_password": self._get_param("MasterUserPassword"),
             "db_name": self._get_param("DBName"),
             "cluster_type": self._get_param("ClusterType"),
-            "cluster_security_groups": self._get_cluster_security_groups(),
-            "vpc_security_group_ids": self._get_vpc_security_group_ids(),
+            "cluster_security_groups": self._get_param("ClusterSecurityGroups", []),
+            "vpc_security_group_ids": self._get_param("VpcSecurityGroupIds", []),
             "cluster_subnet_group_name": self._get_param("ClusterSubnetGroupName"),
             "availability_zone": self._get_param("AvailabilityZone"),
             "preferred_maintenance_window": self._get_param(
@@ -78,8 +45,8 @@ class RedshiftResponse(BaseResponse):
             "publicly_accessible": self._get_bool_param("PubliclyAccessible", False),
             "encrypted": self._get_bool_param("Encrypted", False),
             "region_name": self.region,
-            "tags": self.unpack_list_params("Tags", "Tag"),
-            "iam_roles_arn": self._get_iam_roles(),
+            "tags": self._get_param("Tags", []),
+            "iam_roles_arn": self._get_param("IamRoles", []),
             "enhanced_vpc_routing": self._get_bool_param("EnhancedVpcRouting", False),
             "kms_key_id": self._get_param("KmsKeyId"),
         }
@@ -111,8 +78,8 @@ class RedshiftResponse(BaseResponse):
             "cluster_parameter_group_name": self._get_param(
                 "ClusterParameterGroupName"
             ),
-            "cluster_security_groups": self._get_cluster_security_groups(),
-            "vpc_security_group_ids": self._get_vpc_security_group_ids(),
+            "cluster_security_groups": self._get_param("ClusterSecurityGroups", []),
+            "vpc_security_group_ids": self._get_param("VpcSecurityGroupIds", []),
             "preferred_maintenance_window": self._get_param(
                 "PreferredMaintenanceWindow"
             ),
@@ -120,7 +87,7 @@ class RedshiftResponse(BaseResponse):
                 "AutomatedSnapshotRetentionPeriod"
             ),
             "region_name": self.region,
-            "iam_roles_arn": self._get_iam_roles(),
+            "iam_roles_arn": self._get_param("IamRoles", []),
         }
         if enhanced_vpc_routing is not None:
             restore_kwargs["enhanced_vpc_routing"] = enhanced_vpc_routing
@@ -144,8 +111,8 @@ class RedshiftResponse(BaseResponse):
             "node_type": self._get_param("NodeType"),
             "master_user_password": self._get_param("MasterUserPassword"),
             "cluster_type": self._get_param("ClusterType"),
-            "cluster_security_groups": self._get_cluster_security_groups(),
-            "vpc_security_group_ids": self._get_vpc_security_group_ids(),
+            "cluster_security_groups": self._get_param("ClusterSecurityGroups", []),
+            "vpc_security_group_ids": self._get_param("VpcSecurityGroupIds", []),
             "cluster_subnet_group_name": self._get_param("ClusterSubnetGroupName"),
             "preferred_maintenance_window": self._get_param(
                 "PreferredMaintenanceWindow"
@@ -161,7 +128,7 @@ class RedshiftResponse(BaseResponse):
             "number_of_nodes": self._get_int_param("NumberOfNodes"),
             "publicly_accessible": self._get_param("PubliclyAccessible"),
             "encrypted": self._get_param("Encrypted"),
-            "iam_roles_arn": self._get_iam_roles(),
+            "iam_roles_arn": self._get_param("IamRoles", []),
             "enhanced_vpc_routing": self._get_param("EnhancedVpcRouting"),
         }
         cluster_kwargs = {}
@@ -191,8 +158,8 @@ class RedshiftResponse(BaseResponse):
     def create_cluster_subnet_group(self) -> ActionResult:
         cluster_subnet_group_name = self._get_param("ClusterSubnetGroupName")
         description = self._get_param("Description")
-        subnet_ids = self._get_subnet_ids()
-        tags = self.unpack_list_params("Tags", "Tag")
+        subnet_ids = self._get_param("SubnetIds", [])
+        tags = self._get_param("Tags", [])
 
         subnet_group = self.redshift_backend.create_cluster_subnet_group(
             cluster_subnet_group_name=cluster_subnet_group_name,
@@ -221,7 +188,7 @@ class RedshiftResponse(BaseResponse):
     def create_cluster_security_group(self) -> ActionResult:
         cluster_security_group_name = self._get_param("ClusterSecurityGroupName")
         description = self._get_param("Description")
-        tags = self.unpack_list_params("Tags", "Tag")
+        tags = self._get_param("Tags", [])
 
         security_group = self.redshift_backend.create_cluster_security_group(
             cluster_security_group_name=cluster_security_group_name,
@@ -271,7 +238,7 @@ class RedshiftResponse(BaseResponse):
         cluster_parameter_group_name = self._get_param("ParameterGroupName")
         group_family = self._get_param("ParameterGroupFamily")
         description = self._get_param("Description")
-        tags = self.unpack_list_params("Tags", "Tag")
+        tags = self._get_param("Tags", [])
 
         parameter_group = self.redshift_backend.create_cluster_parameter_group(
             cluster_parameter_group_name, group_family, description, self.region, tags
@@ -321,7 +288,7 @@ class RedshiftResponse(BaseResponse):
     def create_cluster_snapshot(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")
-        tags = self.unpack_list_params("Tags", "Tag")
+        tags = self._get_param("Tags", [])
 
         snapshot = self.redshift_backend.create_cluster_snapshot(
             cluster_identifier, snapshot_identifier, self.region, tags
@@ -374,7 +341,7 @@ class RedshiftResponse(BaseResponse):
 
     def create_tags(self) -> ActionResult:
         resource_name = self._get_param("ResourceName")
-        tags = self.unpack_list_params("Tags", "Tag")
+        tags = self._get_param("Tags", [])
 
         self.redshift_backend.create_tags(resource_name, tags)
 
@@ -391,7 +358,7 @@ class RedshiftResponse(BaseResponse):
 
     def delete_tags(self) -> ActionResult:
         resource_name = self._get_param("ResourceName")
-        tag_keys = self.unpack_list_params("TagKeys", "TagKey")
+        tag_keys = self._get_param("TagKeys", [])
 
         self.redshift_backend.delete_tags(resource_name, tag_keys)
 
