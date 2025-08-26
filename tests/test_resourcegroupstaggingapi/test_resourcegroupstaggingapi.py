@@ -1599,6 +1599,133 @@ def test_untag_resources_efs():
 
 
 @mock_aws
+def test_tag_resources_quicksight():
+    client = boto3.client("quicksight", region_name="us-east-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    ds = client.create_data_source(
+        AwsAccountId=ACCOUNT_ID,
+        DataSourceId="my-test-datasource",
+        Name="My Test DataSource",
+        Type="ATHENA",
+        DataSourceParameters={"AthenaParameters": {"WorkGroup": "primary"}},
+    )
+
+    rtapi.tag_resources(
+        ResourceARNList=[ds["Arn"]], Tags={"firsttag": "qs1", "secondtag": "qs2"}
+    )
+
+    tags = client.list_tags_for_resource(ResourceArn=ds["Arn"])["Tags"]
+
+    expected_tags = [
+        {"Key": "firsttag", "Value": "qs1"},
+        {"Key": "secondtag", "Value": "qs2"},
+    ]
+
+    for tag in expected_tags:
+        assert tag in tags
+
+
+@mock_aws
+def test_get_resources_quicksight():
+    client = boto3.client("quicksight", region_name="us-east-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    client.create_data_set(
+        AwsAccountId=ACCOUNT_ID,
+        DataSetId="ds1",
+        Name="TestDataSet",
+        PhysicalTableMap={
+            "table1": {
+                "RelationalTable": {
+                    "DataSourceArn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:datasource/ds1",
+                    "Schema": "public",
+                    "Name": "table1",
+                    "InputColumns": [
+                        {"Name": "col1", "Type": "STRING"},
+                    ],
+                }
+            }
+        },
+        ImportMode="SPICE",
+        Tags=[
+            {"Key": "dstagone", "Value": "dstagvalue1"},
+            {"Key": "dstagtwo", "Value": "dstagvalue2"},
+        ],
+    )
+
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["quicksight:data_sets"],
+        TagFilters=[{"Key": "dstagone", "Values": ["dstagvalue1"]}],
+    )
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "dstagone", "Value": "dstagvalue1"} in resp[
+        "ResourceTagMappingList"
+    ][0]["Tags"]
+
+
+@mock_aws
+def test_untag_resources_quicksight():
+    qs = boto3.client("quicksight", region_name="us-east-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    user = qs.register_user(
+        AwsAccountId=ACCOUNT_ID,
+        Namespace="default",
+        Email="user@example.com",
+        IdentityType="QUICKSIGHT",
+        UserName="testuser",
+        UserRole="READER",
+        Tags=[
+            {"Key": "UserTagA", "Value": "ValueA"},
+            {"Key": "UserTagB", "Value": "ValueB"},
+        ],
+    )
+
+    dash = qs.create_dashboard(
+        AwsAccountId=ACCOUNT_ID,
+        DashboardId="dash1",
+        Name="TestDashboard",
+        SourceEntity={
+            "SourceTemplate": {
+                "DataSetReferences": [
+                    {
+                        "DataSetPlaceholder": "placeholder",
+                        "DataSetArn": f"arn:aws:quicksight:eu-west-1:{ACCOUNT_ID}:dataset/ds1",
+                    }
+                ],
+                "Arn": f"arn:aws:quicksight:us-east-1:{ACCOUNT_ID}:template/template1",
+            }
+        },
+        Tags=[
+            {"Key": "dashtag", "Value": "dashvalue1"},
+            {"Key": "dashsecondtag", "Value": "dashvalue2"},
+            {"Key": "dashthirdtag", "Value": "dashvalue3"},
+        ],
+    )
+
+    rtapi.untag_resources(
+        ResourceARNList=[user["User"]["Arn"]], TagKeys=["UserTagA", "ValueA"]
+    )
+
+    rtapi.untag_resources(ResourceARNList=[dash["Arn"]], TagKeys=["dashsecondtag"])
+
+    resp = qs.list_tags_for_resource(ResourceArn=user["User"]["Arn"])
+
+    assert len(resp["Tags"]) == 1
+    assert {"Key": "UserTagA", "Value": "ValueA"} not in resp["Tags"]
+    assert {"Key": "UserTagB", "Value": "ValueB"} in resp["Tags"]
+
+    resp = qs.list_tags_for_resource(ResourceArn=dash["Arn"])
+
+    assert len(resp["Tags"]) == 2
+    assert {"Key": "dashtag", "Value": "dashvalue1"} in resp["Tags"]
+    assert {"Key": "dashthirdtag", "Value": "dashvalue3"} in resp["Tags"]
+    assert {"Key": "dashsecondtag", "Value": "dashvalue2"} not in resp["Tags"]
+
+
+@mock_aws
 def test_get_resources_stepfunction():
     simple_definition = (
         '{"Comment": "An example of the Amazon States Language using a choice state.",'

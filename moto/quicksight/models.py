@@ -35,12 +35,23 @@ class QuickSightBackend(BaseBackend):
             account_id=account_id
         )
         self.data_sources: Dict[str, QuickSightDataSource] = dict()
+        self.data_sets: Dict[str, QuicksightDataSet] = dict()
         self.tagger = TaggingService()
 
-    def create_data_set(self, data_set_id: str, name: str) -> QuicksightDataSet:
-        return QuicksightDataSet(
+    def create_data_set(self, data_set_id: str, name: str, tags: Optional[List[Dict[str, str]]] = None,
+) -> QuicksightDataSet:
+        dataset = QuicksightDataSet(
             self.account_id, self.region_name, data_set_id, name=name
         )
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=dataset.arn,
+                tags=tags,
+            )
+
+        self.data_sets[data_set_id] = dataset
+        return dataset
 
     def create_group(
         self, group_name: str, description: str, aws_account_id: str, namespace: str
@@ -161,6 +172,7 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         namespace: str,
         user_name: str,
+        tags: Optional[List[Dict[str, str]]] = None
     ) -> QuicksightUser:
         """
         The following parameters are not yet implemented:
@@ -175,6 +187,13 @@ class QuickSightBackend(BaseBackend):
             username=user_name,
         )
         _id = _create_id(aws_account_id, namespace, user_name)
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=user.arn,
+                tags=tags,
+            )
+
         self.users[_id] = user
         return user
 
@@ -234,6 +253,13 @@ class QuickSightBackend(BaseBackend):
             version_description=version_description,
             validation_strategy=validation_strategy,
         )
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=dashboard.arn,
+                tags=tags,
+            )
+
         self.dashboards[dashboard_id] = dashboard
         return dashboard
 
@@ -314,8 +340,13 @@ class QuickSightBackend(BaseBackend):
             tags=tags,
         )
 
-        self.data_sources[data_source_id] = data_source
+        if tags:
+            self.tagger.tag_resource(
+                arn=data_source.arn,
+                tags=tags,
+            )
 
+        self.data_sources[data_source_id] = data_source
         return data_source
 
     def update_data_source(

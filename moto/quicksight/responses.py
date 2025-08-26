@@ -22,7 +22,9 @@ class QuickSightResponse(BaseResponse):
         params = json.loads(self.body)
         data_set_id = params.get("DataSetId")
         name = params.get("Name")
-        data_set = self.quicksight_backend.create_data_set(data_set_id, name)
+        tags = self._get_param("Tags")
+
+        data_set = self.quicksight_backend.create_data_set(data_set_id, name, tags)
         return json.dumps(data_set.to_json())
 
     def create_group(self) -> str:
@@ -131,6 +133,7 @@ class QuickSightResponse(BaseResponse):
         aws_account_id = self._get_param("AwsAccountId")
         namespace = self._get_param("Namespace")
         user_name = params.get("UserName")
+        tags = params.get("Tags")
         user = self.quicksight_backend.register_user(
             identity_type=identity_type,
             email=email,
@@ -138,6 +141,7 @@ class QuickSightResponse(BaseResponse):
             aws_account_id=aws_account_id,
             namespace=namespace,
             user_name=user_name,
+            tags=tags,
         )
         return json.dumps(dict(User=user.to_json(), UserInvitationUrl="TBD"))
 
@@ -439,7 +443,7 @@ class QuickSightResponse(BaseResponse):
         tags = self._get_param("Tags")
 
         self.quicksight_backend.tag_resource(resource_arn, tags)
-
+        
         return json.dumps(dict(RequestId="request_id", Status=200))
 
     def untag_resource(self) -> str:

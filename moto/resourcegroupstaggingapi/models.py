@@ -37,6 +37,7 @@ from moto.kms.models import KmsBackend, kms_backends
 from moto.lexv2models.models import LexModelsV2Backend, lexv2models_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
+from moto.quicksight.models import QuickSightBackend, quicksight_backends
 from moto.rds.models import RDSBackend, rds_backends
 from moto.redshift.models import RedshiftBackend, redshift_backends
 from moto.s3.models import S3Backend, s3_backends
@@ -234,6 +235,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         if self.region_name in connectcampaigns_backends[self.account_id].regions:
             return connectcampaigns_backends[self.account_id][self.region_name]
         return None
+
+    @property
+    def quicksight_backend(self) -> QuickSightBackend:
+        return quicksight_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -797,6 +802,33 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": group.arn, "Tags": tags}
 
+        # Quicksight
+        resource_map: dict[str, dict[str, Any]] = {
+            "quicksight:dashboards": dict(self.quicksight_backend.dashboards),
+            "quicksight:data_sources": dict(self.quicksight_backend.data_sources),
+            "quicksight:data_sets": dict(self.quicksight_backend.data_sets),
+            "quicksight:users": dict(self.quicksight_backend.users),
+        }
+
+        for resource_type, resource_source in resource_map.items():
+            if (
+                not resource_type_filters
+                or "quicksight" in resource_type_filters
+                or resource_type in resource_type_filters
+            ):
+                for resource in resource_source.values():
+                    tags = self.quicksight_backend.tagger.list_tags_for_resource(
+                        resource.arn
+                    )["Tags"]
+
+                    if not tags or not tag_filter(tags):
+                        continue
+
+                    yield {
+                        "ResourceARN": resource.arn,
+                        "Tags": tags,
+                    }
+
         # RDS resources
         resource_map: dict[str, dict[str, Any]] = {
             "rds:cluster": dict(self.rds_backend.clusters),
@@ -1342,7 +1374,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arns: List[str], tags: Dict[str, str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only DynamoDB, EFS, Lambda Logs, RDS, and SageMaker resources are currently supported
+        Only DynamoDB, EFS, Lambda Logs, Quicksight RDS, and SageMaker resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -1388,6 +1420,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.efs_backend.tag_resource(
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
+                self.quicksight_backend.tag_resource(
+                    arn, TaggingService.convert_dict_to_tags_input(tags)
+                )
             else:
                 missing_resources.append(arn)
         return {arn: missing_error for arn in missing_resources}
@@ -1396,7 +1432,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         self, resource_arn_list: List[str], tag_keys: List[str]
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Only EFS and Lambda resources are currently supported
+        Only EFS, Lambda, and Quicksight resources are currently supported
         """
         missing_resources = []
         missing_error: Dict[str, Any] = {
@@ -1413,6 +1449,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             ):
                 resource_id = arn.split("/")[-1]
                 self.efs_backend.untag_resource(resource_id, tag_keys)
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
+                self.quicksight_backend.untag_resource(arn, tag_keys)
             else:
                 missing_resources.append(arn)
 
