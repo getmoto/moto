@@ -404,9 +404,9 @@ class ELBV2Response(BaseResponse):
     def create_load_balancer(self) -> ActionResult:
         params = self._get_params()
         load_balancer_name = params.get("Name")
-        subnet_ids = self._get_multi_param("Subnets.member")
+        subnet_ids = params.get("Subnets", [])
         subnet_mappings = params.get("SubnetMappings", [])
-        security_groups = self._get_multi_param("SecurityGroups.member")
+        security_groups = params.get("SecurityGroups", [])
         scheme = params.get("Scheme")
         loadbalancer_type = params.get("Type")
         tags = params.get("Tags")
@@ -482,7 +482,7 @@ class ELBV2Response(BaseResponse):
         protocol = self._get_param("Protocol")
         port = self._get_param("Port")
         ssl_policy = self._get_param("SslPolicy", "ELBSecurityPolicy-2016-08")
-        certificates = self._get_list_prefix("Certificates.member")
+        certificates = self._get_param("Certificates", [])
         if certificates:
             certificate = certificates[0].get("certificate_arn")
         else:
@@ -506,8 +506,8 @@ class ELBV2Response(BaseResponse):
         return ActionResult(result)
 
     def describe_load_balancers(self) -> ActionResult:
-        arns = self._get_multi_param("LoadBalancerArns.member")
-        names = self._get_multi_param("Names.member")
+        arns = self._get_param("LoadBalancerArns", [])
+        names = self._get_param("Names", [])
         all_load_balancers = list(
             self.elbv2_backend.describe_load_balancers(arns, names)
         )
@@ -529,15 +529,7 @@ class ELBV2Response(BaseResponse):
 
     def describe_rules(self) -> ActionResult:
         listener_arn = self._get_param("ListenerArn")
-        rule_arns = (
-            self._get_multi_param("RuleArns.member")
-            if any(
-                k
-                for k in list(self.querystring.keys())
-                if k.startswith("RuleArns.member")
-            )
-            else None
-        )
+        rule_arns = self._get_param("RuleArns")
         all_rules = list(self.elbv2_backend.describe_rules(listener_arn, rule_arns))
         all_arns = [rule.arn for rule in all_rules]
         page_size = self._get_int_param("PageSize", 50)  # set 50 for temporary
@@ -557,8 +549,8 @@ class ELBV2Response(BaseResponse):
 
     def describe_target_groups(self) -> ActionResult:
         load_balancer_arn = self._get_param("LoadBalancerArn")
-        target_group_arns = self._get_multi_param("TargetGroupArns.member")
-        names = self._get_multi_param("Names.member")
+        target_group_arns = self._get_param("TargetGroupArns", [])
+        names = self._get_param("Names", [])
         target_groups = self.elbv2_backend.describe_target_groups(
             load_balancer_arn, target_group_arns, names
         )
@@ -575,7 +567,7 @@ class ELBV2Response(BaseResponse):
 
     def describe_listeners(self) -> ActionResult:
         load_balancer_arn = self._get_param("LoadBalancerArn")
-        listener_arns = self._get_multi_param("ListenerArns.member")
+        listener_arns = self._get_param("ListenerArns", [])
         if not load_balancer_arn and not listener_arns:
             raise ListenerOrBalancerMissingError()
 
@@ -618,7 +610,7 @@ class ELBV2Response(BaseResponse):
 
     def modify_target_group_attributes(self) -> ActionResult:
         target_group_arn = self._get_param("TargetGroupArn")
-        attrs = self._get_list_prefix("Attributes.member")
+        attrs = self._get_param("Attributes", [])
         attributes = {attr["key"]: attr["value"] for attr in attrs}
         self.elbv2_backend.modify_target_group_attributes(target_group_arn, attributes)
         result = {"Attributes": attributes}
@@ -626,19 +618,19 @@ class ELBV2Response(BaseResponse):
 
     def register_targets(self) -> ActionResult:
         target_group_arn = self._get_param("TargetGroupArn")
-        targets = self._get_list_prefix("Targets.member")
+        targets = self._get_param("Targets", [])
         self.elbv2_backend.register_targets(target_group_arn, targets)
         return EmptyResult()
 
     def deregister_targets(self) -> ActionResult:
         target_group_arn = self._get_param("TargetGroupArn")
-        targets = self._get_list_prefix("Targets.member")
+        targets = self._get_param("Targets", [])
         self.elbv2_backend.deregister_targets(target_group_arn, targets)
         return EmptyResult()
 
     def describe_target_health(self) -> ActionResult:
         target_group_arn = self._get_param("TargetGroupArn")
-        targets = self._get_list_prefix("Targets.member")
+        targets = self._get_param("Targets", [])
         target_health_descriptions = self.elbv2_backend.describe_target_health(
             target_group_arn, targets
         )
@@ -646,27 +638,25 @@ class ELBV2Response(BaseResponse):
         return ActionResult(result)
 
     def set_rule_priorities(self) -> ActionResult:
-        rule_priorities = self._get_list_prefix("RulePriorities.member")
-        for rule_priority in rule_priorities:
-            rule_priority["priority"] = int(rule_priority["priority"])
+        rule_priorities = self._get_param("RulePriorities", [])
         rules = self.elbv2_backend.set_rule_priorities(rule_priorities)
         result = {"Rules": rules}
         return ActionResult(result)
 
     def add_tags(self) -> ActionResult:
-        resource_arns = self._get_multi_param("ResourceArns.member")
-        tags = self._get_params().get("Tags")
+        resource_arns = self._get_param("ResourceArns", [])
+        tags = self._get_param("Tags", [])
         self.elbv2_backend.add_tags(resource_arns, tags)  # type: ignore
         return EmptyResult()
 
     def remove_tags(self) -> ActionResult:
-        resource_arns = self._get_multi_param("ResourceArns.member")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        resource_arns = self._get_param("ResourceArns", [])
+        tag_keys = self._get_param("TagKeys", [])
         self.elbv2_backend.remove_tags(resource_arns, tag_keys)
         return EmptyResult()
 
     def describe_tags(self) -> ActionResult:
-        resource_arns = self._get_multi_param("ResourceArns.member")
+        resource_arns = self._get_param("ResourceArns", [])
         resource_tags = self.elbv2_backend.describe_tags(resource_arns)
         result = {
             "TagDescriptions": [
@@ -697,7 +687,7 @@ class ELBV2Response(BaseResponse):
         return ActionResult(result)
 
     def describe_ssl_policies(self) -> ActionResult:
-        names = self._get_multi_param("Names.member.")
+        names = self._get_param("Names", [])
         # Supports paging but not worth implementing yet
         # marker = self._get_param('Marker')
         # page_size = self._get_int_param('PageSize')
@@ -718,24 +708,23 @@ class ELBV2Response(BaseResponse):
 
     def set_security_groups(self) -> ActionResult:
         arn = self._get_param("LoadBalancerArn")
-        sec_groups = self._get_multi_param("SecurityGroups.member.")
+        sec_groups = self._get_param("SecurityGroups", [])
         self.elbv2_backend.set_security_groups(arn, sec_groups)
         result = {"SecurityGroups": sec_groups}
         return ActionResult(result)
 
     def set_subnets(self) -> ActionResult:
         arn = self._get_param("LoadBalancerArn")
-        subnets = self._get_multi_param("Subnets.member.")
-        subnet_mappings = self._get_params().get("SubnetMappings", [])
+        subnets = self._get_param("Subnets", [])
+        subnet_mappings = self._get_param("SubnetMappings", [])
         subnet_zone_list = self.elbv2_backend.set_subnets(arn, subnets, subnet_mappings)
         result = {"AvailabilityZones": subnet_zone_list}
         return ActionResult(result)
 
     def modify_load_balancer_attributes(self) -> ActionResult:
         arn = self._get_param("LoadBalancerArn")
-        attrs = self._get_map_prefix(
-            "Attributes.member", key_end="Key", value_end="Value"
-        )
+        attrs = self._get_param("Attributes", [])
+        attrs = {attr["Key"]: attr["Value"] for attr in attrs}
         all_attrs = self.elbv2_backend.modify_load_balancer_attributes(arn, attrs)
         result = {"Attributes": all_attrs}
         return ActionResult(result)
@@ -780,8 +769,8 @@ class ELBV2Response(BaseResponse):
         port = self._get_param("Port")
         protocol = self._get_param("Protocol")
         ssl_policy = self._get_param("SslPolicy")
-        certificates = self._get_list_prefix("Certificates.member")
-        default_actions = self._get_params().get("DefaultActions", [])
+        certificates = self._get_param("Certificates", [])
+        default_actions = self._get_param("DefaultActions", [])
 
         # Should really move SSL Policies to models
         if ssl_policy is not None and ssl_policy not in [
@@ -798,7 +787,7 @@ class ELBV2Response(BaseResponse):
 
     def add_listener_certificates(self) -> ActionResult:
         arn = self._get_param("ListenerArn")
-        certificates = self._get_list_prefix("Certificates.member")
+        certificates = self._get_param("Certificates", [])
         certificate_arns = self.elbv2_backend.add_listener_certificates(
             arn, certificates
         )
@@ -813,7 +802,7 @@ class ELBV2Response(BaseResponse):
 
     def remove_listener_certificates(self) -> ActionResult:
         arn = self._get_param("ListenerArn")
-        certificates = self._get_list_prefix("Certificates.member")
+        certificates = self._get_param("Certificates", [])
         self.elbv2_backend.remove_listener_certificates(arn, certificates)
         return EmptyResult()
 
