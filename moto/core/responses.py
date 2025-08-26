@@ -1072,55 +1072,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return results
 
-    def _get_object_map(
-        self, prefix: str, name: str = "Name", value: str = "Value"
-    ) -> Dict[str, Any]:
-        """
-        Given a query dict like
-        {
-            Prefix.1.Name: [u'event'],
-            Prefix.1.Value.StringValue: [u'order_cancelled'],
-            Prefix.1.Value.DataType: [u'String'],
-            Prefix.2.Name: [u'store'],
-            Prefix.2.Value.StringValue: [u'example_corp'],
-            Prefix.2.Value.DataType [u'String'],
-        }
-
-        returns
-        {
-            'event': {
-                'DataType': 'String',
-                'StringValue': 'example_corp'
-            },
-            'store': {
-                'DataType': 'String',
-                'StringValue': 'order_cancelled'
-            }
-        }
-        """
-        object_map = {}
-        index = 1
-        while True:
-            # Loop through looking for keys representing object name
-            name_key = f"{prefix}.{index}.{name}"
-            obj_name = self.querystring.get(name_key)
-            if not obj_name:
-                # Found all keys
-                break
-
-            obj = {}
-            value_key_prefix = f"{prefix}.{index}.{value}."
-            for k, v in self.querystring.items():
-                if k.startswith(value_key_prefix):
-                    _, value_key = k.split(value_key_prefix, 1)
-                    obj[value_key] = v[0]
-
-            object_map[obj_name[0]] = obj
-
-            index += 1
-
-        return object_map
-
     @property
     def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
