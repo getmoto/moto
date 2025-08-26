@@ -4,6 +4,7 @@ from .exceptions import STSValidationError
 from .models import STSBackend, sts_backends
 
 MAX_FEDERATION_TOKEN_POLICY_LENGTH = 2048
+MAX_ROLE_NAME_LENGTH = 64
 
 
 class TokenResponse(BaseResponse):
@@ -66,6 +67,13 @@ class TokenResponse(BaseResponse):
         policy = self._get_param("Policy")
         duration = self._get_int_param("DurationSeconds", 3600)
         external_id = self._get_param("ExternalId")
+        if role_session_name is not None and len(role_session_name) > 64:
+            raise STSValidationError(
+                "1 validation error detected: Value "
+                f"'{role_session_name}' "
+                "at 'roleSessionName' failed to satisfy constraint: Member must have length less than or "
+                f" equal to {MAX_ROLE_NAME_LENGTH}"
+            )
         role = self.backend.assume_role(
             region_name=self.region,
             role_session_name=role_session_name,
