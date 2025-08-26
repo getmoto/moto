@@ -126,8 +126,8 @@ class Predicate:
             for index, condition in enumerate(inputs.get("Conditions", []))
         ]
 
-    def as_dict(self) -> Dict[str, str | List[Dict[str, str]]]:
-        return_dict: Dict[str, str | List[Dict[str, str]]] = {}
+    def as_dict(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
+        return_dict: Dict[str, Union[str, List[Dict[str, str]]]] = {}
         if self.logical:
             return_dict["Logical"] = self.logical.value
         if self.conditions:
@@ -138,7 +138,7 @@ class Predicate:
 
 
 class Action:
-    def __init__(self, inputs: Dict[str, str | Dict[str, str] | int]) -> None:
+    def __init__(self, inputs: Dict[str, Union[str, Dict[str, str], int]]) -> None:
         self.arguments = inputs.get("Arguments")
         self.crawler_name = inputs.get("CrawlerName")
         self.job_name = inputs.get("JobName")
@@ -152,8 +152,8 @@ class Action:
                 "Both JobName and CrawlerName cannot be set together in an action",
             )
 
-    def as_dict(self) -> Dict[str, str | Dict[str, str] | int]:
-        return_dict: Dict[str, str | Dict[str, str] | int] = {}
+    def as_dict(self) -> Dict[str, Union[str, Dict[str, str], int]]:
+        return_dict: Dict[str, Union[str, Dict[str, str], int]] = {}
         if self.arguments:
             return_dict["Arguments"] = self.arguments
         if self.crawler_name:
