@@ -237,8 +237,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return None
 
     @property
-    def quicksight_backend(self) -> QuickSightBackend:
-        return quicksight_backends[self.account_id][self.region_name]
+    def quicksight_backend(self) -> Optional[QuickSightBackend]:
+        if self.region_name in quicksight_backends[self.account_id].regions:
+            return quicksight_backends[self.account_id][self.region_name]
+        return None
 
     def _get_resources_generator(
         self,
@@ -803,31 +805,32 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": group.arn, "Tags": tags}
 
         # Quicksight
-        quicksight_resource_map: dict[str, dict[str, Any]] = {
-            "quicksight:dashboards": dict(self.quicksight_backend.dashboards),
-            "quicksight:data_sources": dict(self.quicksight_backend.data_sources),
-            "quicksight:data_sets": dict(self.quicksight_backend.data_sets),
-            "quicksight:users": dict(self.quicksight_backend.users),
-        }
+        if self.quicksight_backend:
+            quicksight_resource_map: dict[str, dict[str, Any]] = {
+                "quicksight:dashboards": dict(self.quicksight_backend.dashboards),
+                "quicksight:data_sources": dict(self.quicksight_backend.data_sources),
+                "quicksight:data_sets": dict(self.quicksight_backend.data_sets),
+                "quicksight:users": dict(self.quicksight_backend.users),
+            }
 
-        for resource_type, resource_source in quicksight_resource_map.items():
-            if (
-                not resource_type_filters
-                or "quicksight" in resource_type_filters
-                or resource_type in resource_type_filters
-            ):
-                for resource in resource_source.values():
-                    tags = self.quicksight_backend.tagger.list_tags_for_resource(
-                        resource.arn
-                    )["Tags"]
+            for resource_type, resource_source in quicksight_resource_map.items():
+                if (
+                    not resource_type_filters
+                    or "quicksight" in resource_type_filters
+                    or resource_type in resource_type_filters
+                ):
+                    for resource in resource_source.values():
+                        tags = self.quicksight_backend.tagger.list_tags_for_resource(
+                            resource.arn
+                        )["Tags"]
 
-                    if not tags or not tag_filter(tags):
-                        continue
+                        if not tags or not tag_filter(tags):
+                            continue
 
-                    yield {
-                        "ResourceARN": resource.arn,
-                        "Tags": tags,
-                    }
+                        yield {
+                            "ResourceARN": resource.arn,
+                            "Tags": tags,
+                        }
 
         # RDS resources
         resource_map: dict[str, dict[str, Any]] = {
@@ -1421,6 +1424,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     resource_id, TaggingService.convert_dict_to_tags_input(tags)
                 )
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
+                assert self.quicksight_backend is not None
                 self.quicksight_backend.tag_resource(
                     arn, TaggingService.convert_dict_to_tags_input(tags)
                 )
@@ -1450,6 +1454,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 resource_id = arn.split("/")[-1]
                 self.efs_backend.untag_resource(resource_id, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:quicksight:"):
+                assert self.quicksight_backend is not None
                 self.quicksight_backend.untag_resource(arn, tag_keys)
             else:
                 missing_resources.append(arn)
