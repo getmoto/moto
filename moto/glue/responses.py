@@ -1,11 +1,11 @@
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from .exceptions import InvalidInputException
+from .exceptions import EntityNotFoundException
 from .models import (
     FakeCrawler,
     FakeJob,
@@ -14,7 +14,7 @@ from .models import (
     GlueBackend,
     glue_backends,
 )
-from .utils import Action, Predicate, validate_crawl_filters
+from .utils import validate_crawl_filters
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -708,26 +708,12 @@ class GlueResponse(BaseResponse):
         workflow_name = self._get_param("WorkflowName")
         trigger_type = self._get_param("Type")
         schedule = self._get_param("Schedule")
-
-        predicate_input: Optional[Dict[str, str | List[Dict[str, str]]]] = (
-            self._get_param("Predicate")
-        )
-        if predicate_input:
-            predicate = Predicate(predicate_input)
-        else:
-            predicate = None
-
-        actions = [Action(inputs) for inputs in self._get_param("Actions", [])]
+        predicate = self._get_param("Predicate")
+        actions = self._get_param("Actions")
         description = self._get_param("Description")
         start_on_creation = self._get_param("StartOnCreation")
         tags = self._get_param("Tags")
         event_batching_condition = self._get_param("EventBatchingCondition")
-
-        if trigger_type == "CONDITIONAL" and not predicate:
-            raise InvalidInputException(
-                "CreateTrigger", "Predicate cannot be null or empty"
-            )
-
         self.glue_backend.create_trigger(
             name=name,
             workflow_name=workflow_name,

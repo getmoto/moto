@@ -63,7 +63,7 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
-from .utils import Action, CrawlFilter, FilterField, FilterOperator, Predicate
+from .utils import CrawlFilter, FilterField, FilterOperator
 
 
 class FakeDevEndpoint(BaseModel):
@@ -1081,8 +1081,8 @@ class GlueBackend(BaseBackend):
         workflow_name: str,
         trigger_type: str,
         schedule: str,
-        predicate: Optional[Predicate],
-        actions: List[Action],
+        predicate: Dict[str, Any],
+        actions: List[Dict[str, Any]],
         description: str,
         start_on_creation: bool,
         tags: Dict[str, str],
@@ -1122,7 +1122,9 @@ class GlueBackend(BaseBackend):
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if action.job_name and (action.job_name == dependent_job_name):
+                    if ("JobName" in action) and (
+                        action["JobName"] == dependent_job_name
+                    ):
                         triggers.append(trigger)
             return triggers
 
@@ -1134,7 +1136,9 @@ class GlueBackend(BaseBackend):
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if action.job_name and (action.job_name == dependent_job_name):
+                    if ("JobName" in action) and (
+                        action["JobName"] == dependent_job_name
+                    ):
                         triggers.append(trigger)
             return triggers
 
@@ -2343,8 +2347,8 @@ class FakeTrigger(BaseModel):
         workflow_name: str,
         trigger_type: str,  # to avoid any issues with built-in function type()
         schedule: str,
-        predicate: Predicate,
-        actions: List[Action],
+        predicate: Dict[str, Any],
+        actions: List[Dict[str, Any]],
         description: str,
         start_on_creation: bool,
         tags: Dict[str, str],
@@ -2379,7 +2383,7 @@ class FakeTrigger(BaseModel):
         data: Dict[str, Any] = {
             "Name": self.name,
             "Type": self.trigger_type,
-            "Actions": [action.as_dict() for action in self.actions],
+            "Actions": self.actions,
             "State": self.state,
         }
 
@@ -2390,7 +2394,7 @@ class FakeTrigger(BaseModel):
             data["Schedule"] = self.schedule
 
         if self.predicate:
-            data["Predicate"] = self.predicate.as_dict()
+            data["Predicate"] = self.predicate
 
         if self.description:
             data["Description"] = self.description
