@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
-from .exceptions import EntityNotFoundException
+from .exceptions import EntityNotFoundException, InvalidInputException
 from .models import (
     FakeCrawler,
     FakeJob,
