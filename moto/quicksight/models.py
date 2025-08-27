@@ -361,24 +361,35 @@ class QuickSightBackend(BaseBackend):
         data_source_parameters: Optional[Dict[str, Any]] = None,
         vpc_connection_properties: Optional[Dict[str, Any]] = None,
         ssl_properties: Optional[Dict[str, Any]] = None,
-    ):
+    ) -> QuickSightDataSource:
         data_source = self.data_sources.get(data_source_id)
+
         if not data_source:
             raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
+
         data_source.name = name
         data_source.data_source_parameters = data_source_parameters
         data_source.last_updated_time = datetime.now()
         data_source.status = "UPDATE_SUCCESSFUL"
         return data_source
 
-    def delete_data_source(self, aws_account_id: str, data_source_id: str) -> None:
+    def delete_data_source(self, aws_account_id: str, data_source_id: str) -> QuickSightDataSource:
         data_source = self.data_sources.pop(data_source_id, None)
+
+        if data_source is None:
+            raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
+        
         return data_source
 
     def describe_data_source(
         self, aws_account_id: str, data_source_id: str
     ) -> QuickSightDataSource:
-        return self.data_sources.get(data_source_id)
+        data_source = self.data_sources.get(data_source_id)
+
+        if not data_source:
+            raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
+        
+        return data_source
 
     def list_data_sources(self, aws_account_id: str) -> List[Dict[str, Any]]:
         data_sources = self.data_sources.values()

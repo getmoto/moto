@@ -372,15 +372,14 @@ class QuickSightResponse(BaseResponse):
             aws_account_id=aws_account_id, data_source_id=data_source_id
         )
 
-        if resp is not None:
-            return json.dumps(
-                {
-                    "Arn": resp.arn,
-                    "DataSourceId": resp.data_source_id,
-                    "RequestId": "request_id",
-                    "Status": 200,
-                }
-            )
+        return json.dumps(
+            {
+                "Arn": resp.arn,
+                "DataSourceId": resp.data_source_id,
+                "RequestId": "request_id",
+                "Status": 200,
+            }
+        )
 
     def describe_data_source(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")

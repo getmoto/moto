@@ -803,14 +803,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": group.arn, "Tags": tags}
 
         # Quicksight
-        resource_map: dict[str, dict[str, Any]] = {
+        quicksight_resource_map: dict[str, dict[str, Any]] = {
             "quicksight:dashboards": dict(self.quicksight_backend.dashboards),
             "quicksight:data_sources": dict(self.quicksight_backend.data_sources),
             "quicksight:data_sets": dict(self.quicksight_backend.data_sets),
             "quicksight:users": dict(self.quicksight_backend.users),
         }
 
-        for resource_type, resource_source in resource_map.items():
+        for resource_type, resource_source in quicksight_resource_map.items():
             if (
                 not resource_type_filters
                 or "quicksight" in resource_type_filters
