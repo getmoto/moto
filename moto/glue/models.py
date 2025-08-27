@@ -1579,7 +1579,7 @@ class GlueBackend(BaseBackend):
     def get_workflow_runs(
         self,
         workflow_name: str,
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, Union[str, Dict[str, str]]]]:
         workflow = self.workflows.get(workflow_name)
         if not workflow:
             raise EntityNotFoundException("Entity not found")
@@ -2453,8 +2453,8 @@ class FakeWorkflowRun:
         self.started_on = utcnow()
         self.completed_on: Optional[datetime] = None
 
-    def as_dict(self) -> Dict[str, Any]:
-        return_dict: Dict[str, Any] = {
+    def as_dict(self) -> Dict[str, Union[str, Dict[str, str]]]:
+        return_dict: Dict[str, Union[str, Dict[str, str]]] = {
             "Name": self.workflow_name,
             "WorkflowRunId": self.run_id,
             "StartedOn": self.started_on.isoformat(),

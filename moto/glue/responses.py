@@ -967,7 +967,6 @@ class GlueResponse(BaseResponse):
         description = self._get_param("Description")
         max_concurrent_runs = self._get_int_param("MaxConcurrentRuns")
         tags = self._get_param("Tags")
-        print(tags)
 
         workflow_name = self.glue_backend.create_workflow(
             name,
