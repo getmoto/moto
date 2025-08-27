@@ -46,6 +46,7 @@ class ELBResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="elb")
+        self.automated_parameter_parsing = True
 
     @property
     def elb_backend(self) -> ELBBackend:
@@ -53,12 +54,12 @@ class ELBResponse(BaseResponse):
 
     def create_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
-        availability_zones = self._get_multi_param("AvailabilityZones.member")
-        ports = self._get_list_prefix("Listeners.member")
+        availability_zones = self._get_param("AvailabilityZones", [])
+        ports = self._get_param("Listeners", [])
         scheme = self._get_param("Scheme")
-        subnets = self._get_multi_param("Subnets.member")
-        security_groups = self._get_multi_param("SecurityGroups.member")
-
+        subnets = self._get_param("Subnets", [])
+        security_groups = self._get_param("SecurityGroups", [])
+        tags = self._get_param("Tags", [])
         load_balancer = self.elb_backend.create_load_balancer(
             name=load_balancer_name,
             zones=availability_zones,
@@ -67,13 +68,13 @@ class ELBResponse(BaseResponse):
             subnets=subnets,
             security_groups=security_groups,
         )
-        self._add_tags(load_balancer)
+        self._add_tags(load_balancer, tags)
         result = {"DNSName": load_balancer.dns_name}
         return ActionResult(result)
 
     def create_load_balancer_listeners(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
-        ports = self._get_list_prefix("Listeners.member")
+        ports = self._get_param("Listeners", [])
 
         self.elb_backend.create_load_balancer_listeners(
             name=load_balancer_name, ports=ports
@@ -81,7 +82,7 @@ class ELBResponse(BaseResponse):
         return EmptyResult()
 
     def describe_load_balancers(self) -> ActionResult:
-        names = self._get_multi_param("LoadBalancerNames.member")
+        names = self._get_param("LoadBalancerNames", [])
         all_load_balancers = list(self.elb_backend.describe_load_balancers(names))
         marker = self._get_param("Marker")
         all_names = [balancer.name for balancer in all_load_balancers]
@@ -105,7 +106,7 @@ class ELBResponse(BaseResponse):
 
     def delete_load_balancer_listeners(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
-        ports = self._get_multi_param("LoadBalancerPorts.member")
+        ports = self._get_param("LoadBalancerPorts", [])
         ports = [int(port) for port in ports]
 
         self.elb_backend.delete_load_balancer_listeners(load_balancer_name, ports)
@@ -117,7 +118,7 @@ class ELBResponse(BaseResponse):
         return EmptyResult()
 
     def delete_load_balancer_policy(self) -> ActionResult:
-        load_balancer_name = self.querystring.get("LoadBalancerName")[0]  # type: ignore
+        load_balancer_name = self._get_param("LoadBalancerName")
         names = self._get_param("PolicyName")
         self.elb_backend.delete_load_balancer_policy(
             lb_name=load_balancer_name, policy_name=names
@@ -126,7 +127,7 @@ class ELBResponse(BaseResponse):
 
     def apply_security_groups_to_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
-        security_group_ids = self._get_multi_param("SecurityGroups.member")
+        security_group_ids = self._get_param("SecurityGroups", [])
         self.elb_backend.apply_security_groups_to_load_balancer(
             load_balancer_name, security_group_ids
         )
@@ -147,10 +148,8 @@ class ELBResponse(BaseResponse):
 
     def register_instances_with_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
-        instance_ids = [
-            list(param.values())[0]
-            for param in self._get_list_prefix("Instances.member")
-        ]
+        instances = self._get_param("Instances", [])
+        instance_ids = [i["InstanceId"] for i in instances]
         load_balancer = self.elb_backend.register_instances(
             load_balancer_name, instance_ids
         )
@@ -159,8 +158,8 @@ class ELBResponse(BaseResponse):
 
     def set_load_balancer_listener_ssl_certificate(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
-        ssl_certificate_id = self.querystring["SSLCertificateId"][0]
-        lb_port = self.querystring["LoadBalancerPort"][0]
+        ssl_certificate_id = self._get_param("SSLCertificateId")
+        lb_port = self._get_param("LoadBalancerPort")
 
         self.elb_backend.set_load_balancer_listener_ssl_certificate(
             load_balancer_name, lb_port, ssl_certificate_id
@@ -169,10 +168,8 @@ class ELBResponse(BaseResponse):
 
     def deregister_instances_from_load_balancer(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
-        instance_ids = [
-            list(param.values())[0]
-            for param in self._get_list_prefix("Instances.member")
-        ]
+        instances = self._get_param("Instances", [])
+        instance_ids = [i["InstanceId"] for i in instances]
         load_balancer = self.elb_backend.deregister_instances(
             load_balancer_name, instance_ids
         )
@@ -189,38 +186,38 @@ class ELBResponse(BaseResponse):
         load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
 
-        cross_zone = self._get_dict_param(
-            "LoadBalancerAttributes.CrossZoneLoadBalancing."
+        cross_zone = self._get_param(
+            "LoadBalancerAttributes.CrossZoneLoadBalancing", {}
         )
         if cross_zone:
             self.elb_backend.modify_load_balancer_attributes(
                 load_balancer_name, cross_zone=cross_zone
             )
 
-        access_log = self._get_dict_param("LoadBalancerAttributes.AccessLog.")
+        access_log = self._get_param("LoadBalancerAttributes.AccessLog", {})
         if access_log:
             self.elb_backend.modify_load_balancer_attributes(
                 load_balancer_name, access_log=access_log
             )
 
-        connection_draining = self._get_dict_param(
-            "LoadBalancerAttributes.ConnectionDraining."
+        connection_draining = self._get_param(
+            "LoadBalancerAttributes.ConnectionDraining", {}
         )
         if connection_draining:
             self.elb_backend.modify_load_balancer_attributes(
                 load_balancer_name, connection_draining=connection_draining
             )
 
-        connection_settings = self._get_dict_param(
-            "LoadBalancerAttributes.ConnectionSettings."
+        connection_settings = self._get_param(
+            "LoadBalancerAttributes.ConnectionSettings", {}
         )
         if connection_settings:
             self.elb_backend.modify_load_balancer_attributes(
                 load_balancer_name, connection_settings=connection_settings
             )
 
-        additional_attributes_raw = self._get_multi_param(
-            "LoadBalancerAttributes.AdditionalAttributes.member"
+        additional_attributes_raw = self._get_param(
+            "LoadBalancerAttributes.AdditionalAttributes", []
         )
         additional_attributes = []
         for attr in additional_attributes_raw:
@@ -243,7 +240,7 @@ class ELBResponse(BaseResponse):
 
         policy_name = self._get_param("PolicyName")
         policy_type_name = self._get_param("PolicyTypeName")
-        policy_attrs = self._get_multi_param("PolicyAttributes.member.")
+        policy_attrs = self._get_param("PolicyAttributes", [])
 
         self.elb_backend.create_load_balancer_policy(
             load_balancer_name, policy_name, policy_type_name, policy_attrs
@@ -295,9 +292,9 @@ class ELBResponse(BaseResponse):
         return EmptyResult()
 
     def set_load_balancer_policies_for_backend_server(self) -> ActionResult:
-        load_balancer_name = self.querystring.get("LoadBalancerName")[0]  # type: ignore
+        load_balancer_name = self._get_param("LoadBalancerName")
         load_balancer = self.elb_backend.get_load_balancer(load_balancer_name)
-        instance_port = int(self.querystring.get("InstancePort")[0])  # type: ignore
+        instance_port = self._get_int_param("InstancePort")
 
         mb_backend = [
             b for b in load_balancer.backends if int(b.instance_port) == instance_port
@@ -312,8 +309,8 @@ class ELBResponse(BaseResponse):
         return EmptyResult()
 
     def describe_load_balancer_policies(self) -> ActionResult:
-        load_balancer_name = self.querystring.get("LoadBalancerName")[0]  # type: ignore
-        names = self._get_multi_param("PolicyNames.member.")
+        load_balancer_name = self._get_param("LoadBalancerName")
+        names = self._get_param("PolicyNames", [])
         policies = self.elb_backend.describe_load_balancer_policies(
             lb_name=load_balancer_name, policy_names=names
         )
@@ -322,7 +319,7 @@ class ELBResponse(BaseResponse):
 
     def describe_instance_health(self) -> ActionResult:
         lb_name = self._get_param("LoadBalancerName")
-        instances = self._get_params().get("Instances", [])
+        instances = self._get_param("Instances", [])
         instances = self.elb_backend.describe_instance_health(lb_name, instances)
         result = {
             "InstanceStates": [
@@ -338,47 +335,34 @@ class ELBResponse(BaseResponse):
         return ActionResult(result)
 
     def add_tags(self) -> ActionResult:
-        for key, value in self.querystring.items():
-            if "LoadBalancerNames.member" in key:
-                load_balancer_name = value[0]
-                elb = self.elb_backend.get_load_balancer(load_balancer_name)
-                if not elb:
-                    raise LoadBalancerNotFoundError(load_balancer_name)
-
-                self._add_tags(elb)
-
+        load_balancer_names = self._get_param("LoadBalancerNames", [])
+        tags = self._get_param("Tags", [])
+        for load_balancer_name in load_balancer_names:
+            elb = self.elb_backend.get_load_balancer(load_balancer_name)
+            if not elb:
+                raise LoadBalancerNotFoundError(load_balancer_name)
+            self._add_tags(elb, tags)
         return EmptyResult()
 
     def remove_tags(self) -> ActionResult:
-        for key in self.querystring:
-            if "LoadBalancerNames.member" in key:
-                number = key.split(".")[2]
-                load_balancer_name = self._get_param(
-                    f"LoadBalancerNames.member.{number}"
-                )
-                elb = self.elb_backend.get_load_balancer(load_balancer_name)
-                if not elb:
-                    raise LoadBalancerNotFoundError(load_balancer_name)
-
-                for t_key, t_val in self.querystring.items():
-                    if t_key.startswith("Tags.member."):
-                        if t_key.split(".")[3] == "Key":
-                            elb.remove_tag(t_val[0])
-
+        load_balancer_names = self._get_param("LoadBalancerNames", [])
+        tags = self._get_param("Tags", [])
+        for load_balancer_name in load_balancer_names:
+            elb = self.elb_backend.get_load_balancer(load_balancer_name)
+            if not elb:
+                raise LoadBalancerNotFoundError(load_balancer_name)
+            for tag in tags:
+                elb.remove_tag(tag["Key"])
         return EmptyResult()
 
     def describe_tags(self) -> ActionResult:
+        load_balancer_names = self._get_param("LoadBalancerNames", [])
         elbs = []
-        for key in self.querystring:
-            if "LoadBalancerNames.member" in key:
-                number = key.split(".")[2]
-                load_balancer_name = self._get_param(
-                    f"LoadBalancerNames.member.{number}"
-                )
-                elb = self.elb_backend.get_load_balancer(load_balancer_name)
-                if not elb:
-                    raise LoadBalancerNotFoundError(load_balancer_name)
-                elbs.append(elb)
+        for load_balancer_name in load_balancer_names:
+            elb = self.elb_backend.get_load_balancer(load_balancer_name)
+            if not elb:
+                raise LoadBalancerNotFoundError(load_balancer_name)
+            elbs.append(elb)
         result = {
             "TagDescriptions": [
                 {"LoadBalancerName": elb.name, "Tags": elb.tags} for elb in elbs
@@ -386,17 +370,8 @@ class ELBResponse(BaseResponse):
         }
         return ActionResult(result)
 
-    def _add_tags(self, elb: LoadBalancer) -> None:
-        tag_values = []
-        tag_keys = []
-
-        for t_key, t_val in sorted(self.querystring.items()):
-            if t_key.startswith("Tags.member."):
-                if t_key.split(".")[3] == "Key":
-                    tag_keys.extend(t_val)
-                elif t_key.split(".")[3] == "Value":
-                    tag_values.extend(t_val)
-
+    def _add_tags(self, elb: LoadBalancer, tags: list[dict[str, str]]) -> None:
+        tag_keys = [t["Key"] for t in tags]
         count_dict = {}
         for i in tag_keys:
             count_dict[i] = tag_keys.count(i)
@@ -407,8 +382,8 @@ class ELBResponse(BaseResponse):
             # We have dupes...
             raise DuplicateTagKeysError(counts[0])
 
-        for tag_key, tag_value in zip(tag_keys, tag_values):
-            elb.add_tag(tag_key, tag_value)
+        for tag in tags:
+            elb.add_tag(tag["Key"], tag["Value"])
 
     def enable_availability_zones_for_load_balancer(self) -> ActionResult:
         params = self._get_params()

@@ -52,8 +52,7 @@ from moto.config.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, ConfigQueryModel
-from moto.core.responses import AWSServiceSpec
-from moto.core.utils import utcnow
+from moto.core.utils import get_service_model, utcnow
 from moto.iam.config import policy_config_query, role_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
@@ -913,7 +912,7 @@ class ConfigBackend(BaseBackend):
         self.config_aggregators: Dict[str, ConfigAggregator] = {}
         self.aggregation_authorizations: Dict[str, ConfigAggregationAuthorization] = {}
         self.organization_conformance_packs: Dict[str, OrganizationConformancePack] = {}
-        self.config_schema: Optional[AWSServiceSpec] = None
+        self.config_schema = get_service_model("config")
         self.query_results: Dict[str, List[Dict[str, Any]]] = {}
         self.query_results_queue: List[List[Dict[str, Any]]] = []
         self.retention_configuration: Optional[RetentionConfiguration] = None
@@ -922,38 +921,26 @@ class ConfigBackend(BaseBackend):
         self.config_rules: Dict[str, ConfigRule] = {}
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
-        if not self.config_schema:
-            self.config_schema = AWSServiceSpec(
-                path="data/config/2014-11-12/service-2.json"
-            )
-
+        shape = self.config_schema.shape_for("ResourceType")
+        valid_resource_types = getattr(shape, "enum", [])
         # Verify that each entry exists in the supported list:
         bad_list = []
         for resource in resource_list:
-            if resource not in self.config_schema.shapes["ResourceType"]["enum"]:
+            if resource not in valid_resource_types:
                 bad_list.append(resource)
-
         if bad_list:
-            raise InvalidResourceTypeException(
-                bad_list, self.config_schema.shapes["ResourceType"]["enum"]
-            )
+            raise InvalidResourceTypeException(bad_list, valid_resource_types)
 
     def _validate_delivery_snapshot_properties(
         self, properties: Dict[str, Any]
     ) -> None:
-        if not self.config_schema:
-            self.config_schema = AWSServiceSpec(
-                path="data/config/2014-11-12/service-2.json"
-            )
-
+        shape = self.config_schema.shape_for("MaximumExecutionFrequency")
+        valid_delivery_frequencies = getattr(shape, "enum", [])
         # Verify that the deliveryFrequency is set to an acceptable value:
-        if (
-            properties.get("deliveryFrequency", None)
-            not in self.config_schema.shapes["MaximumExecutionFrequency"]["enum"]
-        ):
+        delivery_frequency = properties.get("deliveryFrequency", None)
+        if delivery_frequency not in valid_delivery_frequencies:
             raise InvalidDeliveryFrequency(
-                properties.get("deliveryFrequency", None),
-                self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],
+                delivery_frequency, valid_delivery_frequencies
             )
 
     def put_configuration_aggregator(

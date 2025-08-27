@@ -8608,6 +8608,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-3": {
+                "Value": "ap-southeast-3",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-4": {
                 "Value": "ap-southeast-4",
                 "endpoint": {
@@ -8818,6 +8827,15 @@
                 "Value": "us-east-1",
                 "endpoint": {
                   "Value": "bedrock-data-automation.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -59748,6 +59766,24 @@
                 "Value": "us-east-2",
                 "endpoint": {
                   "Value": "rum.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-east-1": {
+                "Value": "us-gov-east-1",
+                "endpoint": {
+                  "Value": "rum.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "us-gov-west-1": {
+                "Value": "us-gov-west-1",
+                "endpoint": {
+                  "Value": "rum.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

@@ -53,6 +53,7 @@ cognito-idp
 - [X] create_identity_provider
 - [ ] create_managed_login_branding
 - [X] create_resource_server
+- [ ] create_terms
 - [ ] create_user_import_job
 - [X] create_user_pool
 - [X] create_user_pool_client
@@ -61,6 +62,7 @@ cognito-idp
 - [X] delete_identity_provider
 - [ ] delete_managed_login_branding
 - [ ] delete_resource_server
+- [ ] delete_terms
 - [ ] delete_user
 - [ ] delete_user_attributes
 - [X] delete_user_pool
@@ -72,6 +74,7 @@ cognito-idp
 - [ ] describe_managed_login_branding_by_client
 - [X] describe_resource_server
 - [ ] describe_risk_configuration
+- [ ] describe_terms
 - [ ] describe_user_import_job
 - [X] describe_user_pool
 - [X] describe_user_pool_client
@@ -107,6 +110,7 @@ cognito-idp
 - [X] list_identity_providers
 - [X] list_resource_servers
 - [ ] list_tags_for_resource
+- [ ] list_terms
 - [ ] list_user_import_jobs
 - [X] list_user_pool_clients
 - [X] list_user_pools
@@ -134,6 +138,7 @@ cognito-idp
 - [X] update_identity_provider
 - [ ] update_managed_login_branding
 - [ ] update_resource_server
+- [ ] update_terms
 - [X] update_user_attributes
   
         The parameter ClientMetadata has not yet been implemented. No CodeDeliveryDetails are returned.
