@@ -325,8 +325,8 @@ def test_create_cluster_with_security_group(is_json):
         "&MasterUsername=masteruser"
         "&MasterUserPassword=12345678Aa"
         "&NodeType=ds2.xlarge"
-        "&ClusterSecurityGroups.member.1=csg1"
-        "&ClusterSecurityGroups.member.2=csg2"
+        "&ClusterSecurityGroups.ClusterSecurityGroupName.1=csg1"
+        "&ClusterSecurityGroups.ClusterSecurityGroupName.2=csg2"
     )
     if is_json:
         create_params += "&ContentType=JSON"

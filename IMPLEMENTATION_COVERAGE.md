@@ -52,7 +52,7 @@
 
 ## amp
 <details>
-<summary>51% implemented</summary>
+<summary>47% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
@@ -63,12 +63,14 @@
 - [ ] delete_alert_manager_definition
 - [X] delete_logging_configuration
 - [ ] delete_query_logging_configuration
+- [ ] delete_resource_policy
 - [X] delete_rule_groups_namespace
 - [ ] delete_scraper
 - [X] delete_workspace
 - [ ] describe_alert_manager_definition
 - [X] describe_logging_configuration
 - [ ] describe_query_logging_configuration
+- [ ] describe_resource_policy
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
 - [X] describe_workspace
@@ -79,6 +81,7 @@
 - [X] list_tags_for_resource
 - [X] list_workspaces
 - [ ] put_alert_manager_definition
+- [ ] put_resource_policy
 - [X] put_rule_groups_namespace
 - [X] tag_resource
 - [X] untag_resource
@@ -1799,7 +1802,7 @@
 
 ## cognito-idp
 <details>
-<summary>54% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] add_custom_attributes
 - [X] admin_add_user_to_group
@@ -1838,6 +1841,7 @@
 - [X] create_identity_provider
 - [ ] create_managed_login_branding
 - [X] create_resource_server
+- [ ] create_terms
 - [ ] create_user_import_job
 - [X] create_user_pool
 - [X] create_user_pool_client
@@ -1846,6 +1850,7 @@
 - [X] delete_identity_provider
 - [ ] delete_managed_login_branding
 - [ ] delete_resource_server
+- [ ] delete_terms
 - [ ] delete_user
 - [ ] delete_user_attributes
 - [X] delete_user_pool
@@ -1857,6 +1862,7 @@
 - [ ] describe_managed_login_branding_by_client
 - [X] describe_resource_server
 - [ ] describe_risk_configuration
+- [ ] describe_terms
 - [ ] describe_user_import_job
 - [X] describe_user_pool
 - [X] describe_user_pool_client
@@ -1882,6 +1888,7 @@
 - [X] list_identity_providers
 - [X] list_resource_servers
 - [ ] list_tags_for_resource
+- [ ] list_terms
 - [ ] list_user_import_jobs
 - [X] list_user_pool_clients
 - [X] list_user_pools
@@ -1909,6 +1916,7 @@
 - [X] update_identity_provider
 - [ ] update_managed_login_branding
 - [ ] update_resource_server
+- [ ] update_terms
 - [X] update_user_attributes
 - [X] update_user_pool
 - [X] update_user_pool_client
@@ -3231,6 +3239,7 @@
 - [X] modify_image_attribute
 - [X] modify_instance_attribute
 - [ ] modify_instance_capacity_reservation_attributes
+- [ ] modify_instance_connect_endpoint
 - [ ] modify_instance_cpu_options
 - [ ] modify_instance_credit_specification
 - [ ] modify_instance_event_start_time
@@ -3982,7 +3991,7 @@
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
 - [X] describe_elasticsearch_domain
-- [X] describe_elasticsearch_domain_config
+- [ ] describe_elasticsearch_domain_config
 - [X] describe_elasticsearch_domains
 - [ ] describe_elasticsearch_instance_type_limits
 - [ ] describe_inbound_cross_cluster_search_connections
@@ -4261,7 +4270,7 @@
 
 ## glue
 <details>
-<summary>31% implemented</summary>
+<summary>30% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -4296,6 +4305,7 @@
 - [ ] create_data_quality_ruleset
 - [X] create_database
 - [X] create_dev_endpoint
+- [ ] create_glue_identity_center_configuration
 - [ ] create_integration
 - [ ] create_integration_resource_property
 - [ ] create_integration_table_properties
@@ -4326,6 +4336,7 @@
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
+- [ ] delete_glue_identity_center_configuration
 - [ ] delete_integration
 - [ ] delete_integration_table_properties
 - [X] delete_job
@@ -4381,6 +4392,7 @@
 - [X] get_dev_endpoint
 - [X] get_dev_endpoints
 - [ ] get_entity_records
+- [ ] get_glue_identity_center_configuration
 - [ ] get_integration_resource_property
 - [ ] get_integration_table_properties
 - [X] get_job
@@ -4501,6 +4513,7 @@
 - [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
+- [ ] update_glue_identity_center_configuration
 - [ ] update_integration_resource_property
 - [ ] update_integration_table_properties
 - [ ] update_job
@@ -4618,7 +4631,7 @@
 
 ## guardduty
 <details>
-<summary>16% implemented</summary>
+<summary>14% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -4630,7 +4643,9 @@
 - [ ] create_members
 - [ ] create_publishing_destination
 - [ ] create_sample_findings
+- [ ] create_threat_entity_set
 - [ ] create_threat_intel_set
+- [ ] create_trusted_entity_set
 - [ ] decline_invitations
 - [X] delete_detector
 - [X] delete_filter
@@ -4639,7 +4654,9 @@
 - [ ] delete_malware_protection_plan
 - [ ] delete_members
 - [ ] delete_publishing_destination
+- [ ] delete_threat_entity_set
 - [ ] delete_threat_intel_set
+- [ ] delete_trusted_entity_set
 - [ ] describe_malware_scans
 - [ ] describe_organization_configuration
 - [ ] describe_publishing_destination
@@ -4663,7 +4680,9 @@
 - [ ] get_members
 - [ ] get_organization_statistics
 - [ ] get_remaining_free_trial_days
+- [ ] get_threat_entity_set
 - [ ] get_threat_intel_set
+- [ ] get_trusted_entity_set
 - [ ] get_usage_statistics
 - [ ] invite_members
 - [ ] list_coverage
@@ -4677,7 +4696,9 @@
 - [X] list_organization_admin_accounts
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
+- [ ] list_threat_entity_sets
 - [ ] list_threat_intel_sets
+- [ ] list_trusted_entity_sets
 - [ ] start_malware_scan
 - [ ] start_monitoring_members
 - [ ] stop_monitoring_members
@@ -4693,7 +4714,9 @@
 - [ ] update_member_detectors
 - [ ] update_organization_configuration
 - [ ] update_publishing_destination
+- [ ] update_threat_entity_set
 - [ ] update_threat_intel_set
+- [ ] update_trusted_entity_set
 </details>
 
 ## iam
@@ -6708,7 +6731,7 @@
 
 ## organizations
 <details>
-<summary>74% implemented</summary>
+<summary>71% implemented</summary>
 
 - [ ] accept_handshake
 - [X] attach_policy
@@ -6743,11 +6766,13 @@
 - [ ] leave_organization
 - [X] list_accounts
 - [X] list_accounts_for_parent
+- [ ] list_accounts_with_invalid_effective_policy
 - [X] list_aws_service_access_for_organization
 - [X] list_children
 - [X] list_create_account_status
 - [X] list_delegated_administrators
 - [X] list_delegated_services_for_account
+- [ ] list_effective_policy_validation_errors
 - [ ] list_handshakes_for_account
 - [ ] list_handshakes_for_organization
 - [X] list_organizational_units_for_parent
@@ -10147,6 +10172,7 @@
 - [ ] describe_connect_client_add_ins
 - [ ] describe_connection_alias_permissions
 - [ ] describe_connection_aliases
+- [ ] describe_custom_workspace_image_import
 - [ ] describe_image_associations
 - [ ] describe_ip_groups
 - [X] describe_tags
@@ -10165,6 +10191,7 @@
 - [ ] disassociate_workspace_application
 - [ ] get_account_link
 - [ ] import_client_branding
+- [ ] import_custom_workspace_image
 - [ ] import_workspace_image
 - [ ] list_account_links
 - [ ] list_available_management_cidr_ranges
@@ -10309,8 +10336,10 @@
 - b2bi
 - backup-gateway
 - backupsearch
+- bcm-dashboards
 - bcm-data-exports
 - bcm-pricing-calculator
+- bcm-recommended-actions
 - bedrock-agent-runtime
 - bedrock-agentcore
 - bedrock-agentcore-control

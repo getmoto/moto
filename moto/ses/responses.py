@@ -1,5 +1,4 @@
-import base64
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import utcnow
@@ -18,12 +17,12 @@ class EmailResponse(BaseResponse):
         return ses_backends[self.current_account][self.region]
 
     def verify_email_identity(self) -> ActionResult:
-        address = self.querystring.get("EmailAddress")[0]  # type: ignore
+        address = self._get_param("EmailAddress")
         self.backend.verify_email_identity(address)
         return EmptyResult()
 
     def verify_email_address(self) -> ActionResult:
-        address = self.querystring.get("EmailAddress")[0]  # type: ignore
+        address = self._get_param("EmailAddress")
         self.backend.verify_email_address(address)
         return EmptyResult()
 
@@ -43,7 +42,7 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def verify_domain_dkim(self) -> ActionResult:
-        domain = self.querystring.get("Domain")[0]  # type: ignore
+        domain = self._get_param("Domain")
         self.backend.verify_domain(domain)
         result = {
             "DkimTokens": [
@@ -55,13 +54,13 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def verify_domain_identity(self) -> ActionResult:
-        domain = self.querystring.get("Domain")[0]  # type: ignore
+        domain = self._get_param("Domain")
         self.backend.verify_domain(domain)
         result = {"VerificationToken": "QTKknzFg2J4ygwa+XvHAxUl1hyHoY0gVfZdfjIedHZ0="}
         return ActionResult(result)
 
     def delete_identity(self) -> ActionResult:
-        domain = self.querystring.get("Identity")[0]  # type: ignore
+        domain = self._get_param("Identity")
         self.backend.delete_identity(domain)
         return EmptyResult()
 
@@ -69,19 +68,19 @@ class EmailResponse(BaseResponse):
         bodydatakey = "Message.Body.Text.Data"
         if "Message.Body.Html.Data" in self.querystring:
             bodydatakey = "Message.Body.Html.Data"
-        body = self.querystring.get(bodydatakey)[0]  # type: ignore
-        source = self.querystring.get("Source")[0]  # type: ignore
-        subject = self.querystring.get("Message.Subject.Data")[0]  # type: ignore
-        destinations = self.params.get("Destination", {})
+        body = self._get_param(bodydatakey)
+        source = self._get_param("Source")
+        subject = self._get_param("Message.Subject.Data")
+        destinations = self._get_param("Destination", {})
         message = self.backend.send_email(source, subject, body, destinations)
         result = {"MessageId": message.id}
         return ActionResult(result)
 
     def send_templated_email(self) -> ActionResult:
-        source = self.querystring.get("Source")[0]  # type: ignore
-        template: List[str] = self.querystring.get("Template")  # type: ignore
-        template_data: List[str] = self.querystring.get("TemplateData")  # type: ignore
-        destinations = self.params.get("Destination", {})
+        source = self._get_param("Source")
+        template = self._get_param("Template")
+        template_data = self._get_param("TemplateData")
+        destinations = self._get_param("Destination", {})
         message = self.backend.send_templated_email(
             source, template, template_data, destinations
         )
@@ -89,28 +88,24 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def send_bulk_templated_email(self) -> ActionResult:
-        source = self.querystring.get("Source")[0]  # type: ignore
-        template = self.querystring.get("Template")
-        template_data = self.querystring.get("DefaultTemplateData")
-        destinations = self.params.get("Destinations", [])
+        source = self._get_param("Source")
+        template = self._get_param("Template")
+        template_data = self._get_param("DefaultTemplateData")
+        destinations = self._get_param("Destinations", [])
         message = self.backend.send_bulk_templated_email(
             source,
-            template,  # type: ignore
-            template_data,  # type: ignore
+            template,
+            template_data,
             destinations,
         )
         result = {"Status": [{"MessageId": msg_id} for msg_id in message.ids]}
         return ActionResult(result)
 
     def send_raw_email(self) -> ActionResult:
-        source = self.querystring.get("Source")
-        if source is not None:
-            (source,) = source
-
-        raw_data = self.querystring.get("RawMessage.Data")[0]  # type: ignore
-        raw_data = base64.b64decode(raw_data)
+        source = self._get_param("Source")
+        raw_data = self._get_param("RawMessage.Data")
         raw_data = raw_data.decode("utf-8")
-        destinations = self.params.get("Destinations", [])
+        destinations = self._get_param("Destinations", [])
         message = self.backend.send_raw_email(source, destinations, raw_data)  # type: ignore[arg-type]
         result = {"MessageId": message.id}
         return ActionResult(result)
@@ -120,23 +115,21 @@ class EmailResponse(BaseResponse):
         return ActionResult(quota)
 
     def get_identity_notification_attributes(self) -> ActionResult:
-        identities = self._get_params()["Identities"]
+        identities = self._get_param("Identities")
         identities = self.backend.get_identity_notification_attributes(identities)
         result = {"NotificationAttributes": identities}
         return ActionResult(result)
 
     def set_identity_feedback_forwarding_enabled(self) -> ActionResult:
         identity = self._get_param("Identity")
-        enabled = self._get_bool_param("ForwardingEnabled")
+        enabled = self._get_bool_param("ForwardingEnabled", False)
         self.backend.set_identity_feedback_forwarding_enabled(identity, enabled)
         return EmptyResult()
 
     def set_identity_notification_topic(self) -> ActionResult:
-        identity = self.querystring.get("Identity")[0]  # type: ignore
-        not_type = self.querystring.get("NotificationType")[0]  # type: ignore
-        sns_topic = self.querystring.get("SnsTopic")
-        if sns_topic:
-            sns_topic = sns_topic[0]
+        identity = self._get_param("Identity")
+        not_type = self._get_param("NotificationType")
+        sns_topic = self._get_param("SnsTopic")
         self.backend.set_identity_notification_topic(identity, not_type, sns_topic)
         return EmptyResult()
 
@@ -146,19 +139,17 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def create_configuration_set(self) -> ActionResult:
-        configuration_set_name = self.querystring.get("ConfigurationSet.Name")[0]  # type: ignore
+        configuration_set_name = self._get_param("ConfigurationSet.Name")
         self.backend.create_configuration_set(
             configuration_set_name=configuration_set_name
         )
         return EmptyResult()
 
     def describe_configuration_set(self) -> ActionResult:
-        configuration_set_name = self.querystring.get("ConfigurationSetName")[0]  # type: ignore
+        configuration_set_name = self._get_param("ConfigurationSetName")
         config_set = self.backend.describe_configuration_set(configuration_set_name)
 
-        attribute_names = self._get_multi_param(
-            "ConfigurationSetAttributeNames.member."
-        )
+        attribute_names = self._get_param("ConfigurationSetAttributeNames", [])
 
         event_destination: Optional[Dict[str, Any]] = None
         if "eventDestinations" in attribute_names:
@@ -174,7 +165,7 @@ class EmailResponse(BaseResponse):
 
     def create_configuration_set_event_destination(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
-        event_destination = self._get_params().get("EventDestination", {})
+        event_destination = self._get_param("EventDestination", {})
         self.backend.create_configuration_set_event_destination(
             configuration_set_name=configuration_set_name,
             event_destination=event_destination,
@@ -182,23 +173,23 @@ class EmailResponse(BaseResponse):
         return EmptyResult()
 
     def create_template(self) -> ActionResult:
-        template_data = self._get_dict_param("Template")
+        template_data = self._get_param("Template", {})
         template_info = {}
-        template_info["text_part"] = template_data.get("._text_part", "")
-        template_info["html_part"] = template_data.get("._html_part", "")
-        template_info["template_name"] = template_data.get("._name", "")
-        template_info["subject_part"] = template_data.get("._subject_part", "")
+        template_info["text_part"] = template_data.get("text_part", "")
+        template_info["html_part"] = template_data.get("html_part", "")
+        template_info["template_name"] = template_data.get("template_name", "")
+        template_info["subject_part"] = template_data.get("subject_part", "")
         template_info["Timestamp"] = utcnow()
         self.backend.add_template(template_info=template_info)
         return EmptyResult()
 
     def update_template(self) -> ActionResult:
-        template_data = self._get_dict_param("Template")
+        template_data = self._get_param("Template", {})
         template_info = {}
-        template_info["text_part"] = template_data.get("._text_part", "")
-        template_info["html_part"] = template_data.get("._html_part", "")
-        template_info["template_name"] = template_data.get("._name", "")
-        template_info["subject_part"] = template_data.get("._subject_part", "")
+        template_info["text_part"] = template_data.get("text_part", "")
+        template_info["html_part"] = template_data.get("html_part", "")
+        template_info["template_name"] = template_data.get("template_name", "")
+        template_info["subject_part"] = template_data.get("subject_part", "")
         template_info["Timestamp"] = utcnow()
         self.backend.update_template(template_info=template_info)
         return EmptyResult()
@@ -219,7 +210,10 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def test_render_template(self) -> ActionResult:
-        render_info = self._get_dict_param("Template")
+        render_info = {
+            "name": self._get_param("TemplateName"),
+            "data": self._get_param("TemplateData"),
+        }
         rendered_template = self.backend.render_template(render_info)
         result = {"RenderedTemplate": rendered_template}
         return ActionResult(result)
@@ -235,9 +229,8 @@ class EmailResponse(BaseResponse):
         return EmptyResult()
 
     def create_receipt_rule(self) -> ActionResult:
-        params = self._get_params()
-        rule_set_name = params.get("RuleSetName", "")
-        rule = params.get("Rule", {})
+        rule_set_name = self._get_param("RuleSetName", "")
+        rule = self._get_param("Rule", {})
         self.backend.create_receipt_rule(rule_set_name, rule)
         return EmptyResult()
 
@@ -254,9 +247,8 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def update_receipt_rule(self) -> ActionResult:
-        params = self._get_params()
-        rule_set_name = params.get("RuleSetName", "")
-        rule = params.get("Rule", {})
+        rule_set_name = self._get_param("RuleSetName", "")
+        rule = self._get_param("Rule", {})
         self.backend.update_receipt_rule(rule_set_name, rule)
         return EmptyResult()
 
@@ -271,7 +263,7 @@ class EmailResponse(BaseResponse):
         return EmptyResult()
 
     def get_identity_mail_from_domain_attributes(self) -> ActionResult:
-        identities = self._get_multi_param("Identities.member.")
+        identities = self._get_param("Identities", [])
         attributes_by_identity = self.backend.get_identity_mail_from_domain_attributes(
             identities
         )
@@ -279,8 +271,7 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def get_identity_verification_attributes(self) -> ActionResult:
-        params = self._get_params()
-        identities = params.get("Identities")
+        identities = self._get_param("Identities", [])
         verification_attributes = self.backend.get_identity_verification_attributes(
             identities=identities,
         )
@@ -288,17 +279,15 @@ class EmailResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_configuration_set(self) -> ActionResult:
-        params = self._get_params()
-        configuration_set_name = params.get("ConfigurationSetName")
+        configuration_set_name = self._get_param("ConfigurationSetName")
         self.backend.delete_configuration_set(
             configuration_set_name=str(configuration_set_name)
         )
         return EmptyResult()
 
     def list_configuration_sets(self) -> ActionResult:
-        params = self._get_params()
-        next_token = params.get("NextToken")
-        max_items = params.get("MaxItems")
+        next_token = self._get_param("NextToken")
+        max_items = self._get_param("MaxItems")
         configuration_sets, next_token = self.backend.list_configuration_sets(
             next_token=next_token,
             max_items=max_items,
@@ -312,7 +301,7 @@ class EmailResponse(BaseResponse):
 
     def update_configuration_set_reputation_metrics_enabled(self) -> ActionResult:
         configuration_set_name = self._get_param("ConfigurationSetName")
-        enabled = self._get_param("Enabled")
+        enabled = self._get_bool_param("Enabled", False)
         self.backend.update_configuration_set_reputation_metrics_enabled(
             configuration_set_name=configuration_set_name,
             enabled=enabled,
@@ -320,7 +309,7 @@ class EmailResponse(BaseResponse):
         return EmptyResult()
 
     def get_identity_dkim_attributes(self) -> ActionResult:
-        identities = self._get_multi_param("Identities.member.")
+        identities = self._get_param("Identities", [])
         dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
         result = {"DkimAttributes": dkim_attributes}
         return ActionResult(result)

@@ -75,6 +75,8 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
         self.public_ip_auto_assign = public_ip_auto_assign
         self.start()
         self.add_tags(tags or {})
+        self.requester_managed = False
+        self.requester_id = "AIDAIT2UOQQY3AUEMOTO"
         self.status = "available"
         self.mac_address = random_mac_address()
         self.interface_type = "interface"

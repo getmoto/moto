@@ -2389,7 +2389,7 @@ class IAMBackend(BaseBackend):
             policy.tags.pop(ref_key, None)
 
     def create_policy_version(
-        self, policy_arn: str, policy_document: str, set_as_default: str
+        self, policy_arn: str, policy_document: str, set_as_default: bool
     ) -> PolicyVersion:
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
         iam_policy_document_validator.validate()
@@ -2401,12 +2401,11 @@ class IAMBackend(BaseBackend):
             raise LimitExceededException(
                 "A managed policy can have up to 5 versions. Before you create a new version, you must delete an existing version."
             )
-        _as_default = set_as_default == "true"  # convert it to python bool
-        version = PolicyVersion(policy_arn, policy_document, _as_default)
+        version = PolicyVersion(policy_arn, policy_document, set_as_default)
         policy.versions.append(version)
         version.version_id = f"v{policy.next_version_num}"
         policy.next_version_num += 1
-        if _as_default:
+        if set_as_default:
             policy.update_default_version(version.version_id)
         return version
 

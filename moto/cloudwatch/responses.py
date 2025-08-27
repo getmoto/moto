@@ -1,8 +1,6 @@
 import json
 from typing import Iterable, List
 
-from dateutil.parser import parse as dtparse
-
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import (
@@ -26,6 +24,7 @@ from .models import (
 class CloudWatchResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="cloudwatch")
+        self.automated_parameter_parsing = True
 
     @property
     def cloudwatch_backend(self) -> CloudWatchBackend:
@@ -35,16 +34,14 @@ class CloudWatchResponse(BaseResponse):
         name = self._get_param("AlarmName")
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
-        metrics = self._get_multi_param("Metrics.member", skip_result_conversion=True)
+        metrics = self._get_param("Metrics", [])
         metric_data_queries = None
         if metrics:
             metric_data_queries = []
             for metric in metrics:
                 metric_dimensions = []
                 dims = (
-                    metric.get("MetricStat", {})
-                    .get("Metric", {})
-                    .get("Dimensions.member", [])
+                    metric.get("MetricStat", {}).get("Metric", {}).get("Dimensions", [])
                 )
                 for dim in dims:
                     metric_dimensions.append(
@@ -86,13 +83,11 @@ class CloudWatchResponse(BaseResponse):
         statistic = self._get_param("Statistic")
         extended_statistic = self._get_param("ExtendedStatistic")
         description = self._get_param("AlarmDescription")
-        dimensions = self._get_list_prefix("Dimensions.member")
-        alarm_actions = self._get_multi_param("AlarmActions.member")
-        ok_actions = self._get_multi_param("OKActions.member")
+        dimensions = self._get_param("Dimensions", [])
+        alarm_actions = self._get_param("AlarmActions", [])
+        ok_actions = self._get_param("OKActions", [])
         actions_enabled = self._get_bool_param("ActionsEnabled")
-        insufficient_data_actions = self._get_multi_param(
-            "InsufficientDataActions.member"
-        )
+        insufficient_data_actions = self._get_param("InsufficientDataActions", [])
         unit = self._get_param("Unit")
         treat_missing_data = self._get_param("TreatMissingData")
         evaluate_low_sample_count_percentile = self._get_param(
@@ -101,7 +96,7 @@ class CloudWatchResponse(BaseResponse):
         threshold_metric_id = self._get_param("ThresholdMetricId")
         # fetch AlarmRule to re-use this method for composite alarms as well
         rule = self._get_param("AlarmRule")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
         self.cloudwatch_backend.put_metric_alarm(
             name=name,
             namespace=namespace,
@@ -132,7 +127,7 @@ class CloudWatchResponse(BaseResponse):
     def describe_alarms(self) -> ActionResult:
         action_prefix = self._get_param("ActionPrefix")
         alarm_name_prefix = self._get_param("AlarmNamePrefix")
-        alarm_names = self._get_multi_param("AlarmNames.member")
+        alarm_names = self._get_param("AlarmNames", [])
         state_value = self._get_param("StateValue")
 
         if action_prefix:
@@ -155,20 +150,20 @@ class CloudWatchResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_alarms(self) -> ActionResult:
-        alarm_names = self._get_multi_param("AlarmNames.member")
+        alarm_names = self._get_param("AlarmNames", [])
         self.cloudwatch_backend.delete_alarms(alarm_names)
         return EmptyResult()
 
     def put_metric_data(self) -> ActionResult:
         namespace = self._get_param("Namespace")
-        metric_data = self._get_multi_param("MetricData.member")
+        metric_data = self._get_param("MetricData", [])
         self.cloudwatch_backend.put_metric_data(namespace, metric_data)
         return EmptyResult()
 
     def get_metric_data(self) -> ActionResult:
         params = self._get_params()
-        start = dtparse(params["StartTime"])
-        end = dtparse(params["EndTime"])
+        start = params["StartTime"]
+        end = params["EndTime"]
         scan_by = params.get("ScanBy") or "TimestampDescending"
 
         queries = params.get("MetricDataQueries", [])
@@ -188,11 +183,11 @@ class CloudWatchResponse(BaseResponse):
     def get_metric_statistics(self) -> ActionResult:
         namespace = self._get_param("Namespace")
         metric_name = self._get_param("MetricName")
-        start_time = dtparse(self._get_param("StartTime"))
-        end_time = dtparse(self._get_param("EndTime"))
-        period = int(self._get_param("Period"))
-        statistics = self._get_multi_param("Statistics.member")
-        dimensions = self._get_multi_param("Dimensions.member")
+        start_time = self._get_param("StartTime")
+        end_time = self._get_param("EndTime")
+        period = self._get_int_param("Period")
+        statistics = self._get_param("Statistics", [])
+        dimensions = self._get_param("Dimensions", [])
 
         # Unsupported Parameters (To Be Implemented)
         unit = self._get_param("Unit")
@@ -228,7 +223,7 @@ class CloudWatchResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_dashboards(self) -> ActionResult:
-        dashboards = self._get_multi_param("DashboardNames.member")
+        dashboards = self._get_param("DashboardNames", [])
         if not dashboards:
             raise InvalidParameterValue("Need at least 1 dashboard")
 
@@ -305,13 +300,13 @@ class CloudWatchResponse(BaseResponse):
 
     def tag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
         self.cloudwatch_backend.tag_resource(resource_arn, tags)
         return EmptyResult()
 
     def untag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        tag_keys = self._get_param("TagKeys", [])
         self.cloudwatch_backend.untag_resource(resource_arn, tag_keys)
         return EmptyResult()
 
@@ -319,7 +314,7 @@ class CloudWatchResponse(BaseResponse):
         name = self._get_param("RuleName")
         state = self._get_param("RuleState")
         definition = self._get_param("RuleDefinition")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
         self.cloudwatch_backend.put_insight_rule(
             name=name,
             state=state,
@@ -334,19 +329,19 @@ class CloudWatchResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_insight_rules(self) -> ActionResult:
-        names = self._get_multi_param("RuleNames.member")
+        names = self._get_param("RuleNames", [])
         failures = self.cloudwatch_backend.delete_insight_rules(rule_names=names)
         result = {"Failures": failures}
         return ActionResult(result)
 
     def disable_insight_rules(self) -> ActionResult:
-        names = self._get_multi_param("RuleNames.member")
+        names = self._get_param("RuleNames", [])
         failures = self.cloudwatch_backend.disable_insight_rules(rule_names=names)
         result = {"Failures": failures}
         return ActionResult(result)
 
     def enable_insight_rules(self) -> ActionResult:
-        names = self._get_multi_param("RuleNames.member")
+        names = self._get_param("RuleNames", [])
         failures = self.cloudwatch_backend.enable_insight_rules(rule_names=names)
         result = {"Failures": failures}
         return ActionResult(result)
