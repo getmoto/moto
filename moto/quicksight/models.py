@@ -373,12 +373,14 @@ class QuickSightBackend(BaseBackend):
         data_source.status = "UPDATE_SUCCESSFUL"
         return data_source
 
-    def delete_data_source(self, aws_account_id: str, data_source_id: str) -> QuickSightDataSource:
+    def delete_data_source(
+        self, aws_account_id: str, data_source_id: str
+    ) -> QuickSightDataSource:
         data_source = self.data_sources.pop(data_source_id, None)
 
         if data_source is None:
             raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
-        
+
         return data_source
 
     def describe_data_source(
@@ -388,7 +390,7 @@ class QuickSightBackend(BaseBackend):
 
         if not data_source:
             raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
-        
+
         return data_source
 
     def list_data_sources(self, aws_account_id: str) -> List[Dict[str, Any]]:
