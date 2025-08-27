@@ -107,7 +107,7 @@ class ElastiCacheResponse(BaseResponse):
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
         cache_security_group_names = self._get_param("CacheSecurityGroupNames")
         security_group_ids = self._get_param("SecurityGroupIds")
-        tags = (self._get_multi_param_dict("Tags") or {}).get("Tag", [])
+        tags = self._get_param("Tags", [])
         snapshot_arns = self._get_param("SnapshotArns")
         snapshot_name = self._get_param("SnapshotName")
         preferred_maintenance_window = self._get_param("PreferredMaintenanceWindow")
@@ -190,8 +190,8 @@ class ElastiCacheResponse(BaseResponse):
     def create_cache_subnet_group(self) -> ActionResult:
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
         cache_subnet_group_description = self._get_param("CacheSubnetGroupDescription")
-        subnet_ids = self._get_multi_param_dict("SubnetIds").get("SubnetIdentifier", [])
-        tags = (self._get_multi_param_dict("Tags") or {}).get("Tag", [])
+        subnet_ids = self._get_param("SubnetIds", [])
+        tags = self._get_param("Tags", [])
         cache_subnet_group = self.elasticache_backend.create_cache_subnet_group(
             cache_subnet_group_name=cache_subnet_group_name,
             cache_subnet_group_description=cache_subnet_group_description,
@@ -223,22 +223,10 @@ class ElastiCacheResponse(BaseResponse):
         automatic_failover_enabled = self._get_bool_param("AutomaticFailoverEnabled")
         multi_az_enabled = self._get_bool_param("MultiAZEnabled")
         num_cache_clusters = self._get_int_param("NumCacheClusters")
-        preferred_cache_cluster_azs = (
-            self._get_multi_param_dict("PreferredCacheClusterAZs").get(
-                "AvailabilityZone", []
-            )
-            if self._get_multi_param_dict("PreferredCacheClusterAZs")
-            else []
-        )
+        preferred_cache_cluster_azs = self._get_param("PreferredCacheClusterAZs", [])
         num_node_groups = self._get_int_param("NumNodeGroups")
         replicas_per_node_group = self._get_int_param("ReplicasPerNodeGroup")
-        node_group_configuration = (
-            self._get_multi_param_dict("NodeGroupConfiguration").get(
-                "NodeGroupConfiguration", []
-            )
-            if self._get_multi_param_dict("NodeGroupConfiguration")
-            else []
-        )
+        node_group_configuration = self._get_param("NodeGroupConfiguration", [])
         cache_node_type = self._get_param("CacheNodeType")
         engine = self._get_param("Engine")
         engine_version = self._get_param("EngineVersion")
@@ -246,7 +234,7 @@ class ElastiCacheResponse(BaseResponse):
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
         cache_security_group_names = self._get_param("CacheSecurityGroupNames")
         security_group_ids = self._get_param("SecurityGroupIds")
-        tags = (self._get_multi_param_dict("Tags") or {}).get("Tag", [])
+        tags = self._get_param("Tags", [])
         snapshot_arns = self._get_param("SnapshotArns")
         snapshot_name = self._get_param("SnapshotName")
         preferred_maintenance_window = self._get_param("PreferredMaintenanceWindow")

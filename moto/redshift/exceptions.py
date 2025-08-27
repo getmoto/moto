@@ -33,7 +33,7 @@ class ClusterParameterGroupNotFoundError(RedshiftClientError):
     def __init__(self, group_identifier: str):
         super().__init__(
             "ClusterParameterGroupNotFound",
-            f"Parameter group {group_identifier} not found.",
+            f"ClusterParameterGroup not found: {group_identifier}",
         )
 
 

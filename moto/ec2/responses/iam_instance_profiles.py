@@ -4,12 +4,6 @@ from ._base_response import EC2BaseResponse
 
 
 class IamInstanceProfiles(EC2BaseResponse):
-    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "AssociateIamInstanceProfileResult.iamInstanceProfileAssociation.State": lambda _: "associating",
-        "ReplaceIamInstanceProfileAssociationResult.iamInstanceProfileAssociation.State": lambda _: "associating",
-        "DisassociateIamInstanceProfileResult.iamInstanceProfileAssociation.State": lambda _: "disassociating",
-    }
-
     def associate_iam_instance_profile(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
         iam_instance_profile_name = self._get_param("IamInstanceProfile.Name")

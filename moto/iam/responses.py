@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.serialize import never_return, return_if_not_empty, url_encode
 
 from .exceptions import NotFoundException
@@ -39,6 +39,7 @@ class IamResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="iam")
+        self.automated_parameter_parsing = True
 
     @property
     def backend(self) -> IAMBackend:
@@ -64,44 +65,44 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         role_name = self._get_param("RoleName")
         self.backend.attach_role_policy(policy_arn, role_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def detach_role_policy(self) -> ActionResult:
         role_name = self._get_param("RoleName")
         policy_arn = self._get_param("PolicyArn")
         self.backend.detach_role_policy(policy_arn, role_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def attach_group_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
         group_name = self._get_param("GroupName")
         self.backend.attach_group_policy(policy_arn, group_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def detach_group_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
         group_name = self._get_param("GroupName")
         self.backend.detach_group_policy(policy_arn, group_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def attach_user_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
         user_name = self._get_param("UserName")
         self.backend.attach_user_policy(policy_arn, user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def detach_user_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
         user_name = self._get_param("UserName")
         self.backend.detach_user_policy(policy_arn, user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_policy(self) -> ActionResult:
         description = self._get_param("Description")
         path = self._get_param("Path")
         policy_document = self._get_param("PolicyDocument")
         policy_name = self._get_param("PolicyName")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
         policy = self.backend.create_policy(
             description, path, policy_document, policy_name, tags
         )
@@ -249,7 +250,7 @@ class IamResponse(BaseResponse):
         policy_arn = self._get_param("PolicyArn")
         version_id = self._get_param("VersionId")
         self.backend.set_default_policy_version(policy_arn, version_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_role(self) -> ActionResult:
         role_name = self._get_param("RoleName")
@@ -257,7 +258,7 @@ class IamResponse(BaseResponse):
         assume_role_policy_document = self._get_param("AssumeRolePolicyDocument")
         permissions_boundary = self._get_param("PermissionsBoundary")
         description = self._get_param("Description")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
         max_session_duration = self._get_param("MaxSessionDuration", 3600)
 
         role = self.backend.create_role(
@@ -281,7 +282,7 @@ class IamResponse(BaseResponse):
     def delete_role(self) -> ActionResult:
         role_name = self._get_param("RoleName")
         self.backend.delete_role(role_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_role_policies(self) -> ActionResult:
         role_name = self._get_param("RoleName")
@@ -294,13 +295,13 @@ class IamResponse(BaseResponse):
         policy_name = self._get_param("PolicyName")
         policy_document = self._get_param("PolicyDocument")
         self.backend.put_role_policy(role_name, policy_name, policy_document)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_role_policy(self) -> ActionResult:
         role_name = self._get_param("RoleName")
         policy_name = self._get_param("PolicyName")
         self.backend.delete_role_policy(role_name, policy_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def get_role_policy(self) -> ActionResult:
         role_name = self._get_param("RoleName")
@@ -319,7 +320,7 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
         policy_document = self._get_param("PolicyDocument")
         self.backend.update_assume_role_policy(role_name, policy_document)
-        return ActionResult({})
+        return EmptyResult()
 
     def update_role_description(self) -> ActionResult:
         role_name = self._get_param("RoleName")
@@ -333,23 +334,23 @@ class IamResponse(BaseResponse):
         description = self._get_param("Description")
         max_session_duration = self._get_param("MaxSessionDuration", 3600)
         self.backend.update_role(role_name, description, max_session_duration)
-        return ActionResult({})
+        return EmptyResult()
 
     def put_role_permissions_boundary(self) -> ActionResult:
         permissions_boundary = self._get_param("PermissionsBoundary")
         role_name = self._get_param("RoleName")
         self.backend.put_role_permissions_boundary(role_name, permissions_boundary)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_role_permissions_boundary(self) -> ActionResult:
         role_name = self._get_param("RoleName")
         self.backend.delete_role_permissions_boundary(role_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_policy_version(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
         policy_document = self._get_param("PolicyDocument")
-        set_as_default = self._get_param("SetAsDefault")
+        set_as_default = self._get_param("SetAsDefault", False)
         policy_version = self.backend.create_policy_version(
             policy_arn, policy_document, set_as_default
         )
@@ -380,31 +381,31 @@ class IamResponse(BaseResponse):
 
     def tag_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
 
         self.backend.tag_policy(policy_arn, tags)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        tag_keys = self._get_param("TagKeys", [])
 
         self.backend.untag_policy(policy_arn, tag_keys)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_policy_version(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
         version_id = self._get_param("VersionId")
 
         self.backend.delete_policy_version(policy_arn, version_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_instance_profile(self) -> ActionResult:
         profile_name = self._get_param("InstanceProfileName")
         path = self._get_param("Path", "/")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
 
         profile = self.backend.create_instance_profile(
             profile_name, path, role_names=[], tags=tags
@@ -416,7 +417,7 @@ class IamResponse(BaseResponse):
         profile_name = self._get_param("InstanceProfileName")
 
         self.backend.delete_instance_profile(profile_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def get_instance_profile(self) -> ActionResult:
         profile_name = self._get_param("InstanceProfileName")
@@ -430,14 +431,14 @@ class IamResponse(BaseResponse):
         role_name = self._get_param("RoleName")
 
         self.backend.add_role_to_instance_profile(profile_name, role_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_role_from_instance_profile(self) -> ActionResult:
         profile_name = self._get_param("InstanceProfileName")
         role_name = self._get_param("RoleName")
 
         self.backend.remove_role_from_instance_profile(profile_name, role_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_roles(self) -> ActionResult:
         path_prefix = self._get_param("PathPrefix", "/")
@@ -520,7 +521,7 @@ class IamResponse(BaseResponse):
     def delete_server_certificate(self) -> ActionResult:
         cert_name = self._get_param("ServerCertificateName")
         self.backend.delete_server_certificate(cert_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_group(self) -> ActionResult:
         group_name = self._get_param("GroupName")
@@ -554,7 +555,7 @@ class IamResponse(BaseResponse):
         policy_name = self._get_param("PolicyName")
         policy_document = self._get_param("PolicyDocument")
         self.backend.put_group_policy(group_name, policy_name, policy_document)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_group_policies(self) -> ActionResult:
         group_name = self._get_param("GroupName")
@@ -577,24 +578,24 @@ class IamResponse(BaseResponse):
         group_name = self._get_param("GroupName")
         policy_name = self._get_param("PolicyName")
         self.backend.delete_group_policy(group_name, policy_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_group(self) -> ActionResult:
         group_name = self._get_param("GroupName")
         self.backend.delete_group(group_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def update_group(self) -> ActionResult:
         group_name = self._get_param("GroupName")
         new_group_name = self._get_param("NewGroupName")
         new_path = self._get_param("NewPath")
         self.backend.update_group(group_name, new_group_name, new_path)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_user(self) -> ActionResult:
         user_name = self._get_param("UserName")
         path = self._get_param("Path")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
         user = self.backend.create_user(
             self.region, user_name=user_name, path=path, tags=tags
         )
@@ -628,7 +629,7 @@ class IamResponse(BaseResponse):
         new_path = self._get_param("NewPath")
         new_user_name = self._get_param("NewUserName")
         self.backend.update_user(user_name, new_path, new_user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_login_profile(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -660,21 +661,21 @@ class IamResponse(BaseResponse):
         password = self._get_param("Password")
         password_reset_required = self._get_param("PasswordResetRequired")
         self.backend.update_login_profile(user_name, password, password_reset_required)
-        return ActionResult({})
+        return EmptyResult()
 
     def add_user_to_group(self) -> ActionResult:
         group_name = self._get_param("GroupName")
         user_name = self._get_param("UserName")
 
         self.backend.add_user_to_group(group_name, user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def remove_user_from_group(self) -> ActionResult:
         group_name = self._get_param("GroupName")
         user_name = self._get_param("UserName")
 
         self.backend.remove_user_from_group(group_name, user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def get_user_policy(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -706,14 +707,14 @@ class IamResponse(BaseResponse):
         policy_document = self._get_param("PolicyDocument")
 
         self.backend.put_user_policy(user_name, policy_name, policy_document)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_user_policy(self) -> ActionResult:
         user_name = self._get_param("UserName")
         policy_name = self._get_param("PolicyName")
 
         self.backend.delete_user_policy(user_name, policy_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def create_access_key(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -735,7 +736,7 @@ class IamResponse(BaseResponse):
             user_name = access_key["user_name"]
 
         self.backend.update_access_key(user_name, access_key_id, status)
-        return ActionResult({})
+        return EmptyResult()
 
     def get_access_key_last_used(self) -> ActionResult:
         access_key_id = self._get_param("AccessKeyId")
@@ -774,7 +775,7 @@ class IamResponse(BaseResponse):
             user_name = access_key["user_name"]
 
         self.backend.delete_access_key(access_key_id, user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def upload_ssh_public_key(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -805,21 +806,21 @@ class IamResponse(BaseResponse):
         status = self._get_param("Status")
 
         self.backend.update_ssh_public_key(user_name, ssh_public_key_id, status)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_ssh_public_key(self) -> ActionResult:
         user_name = self._get_param("UserName")
         ssh_public_key_id = self._get_param("SSHPublicKeyId")
 
         self.backend.delete_ssh_public_key(user_name, ssh_public_key_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def deactivate_mfa_device(self) -> ActionResult:
         user_name = self._get_param("UserName")
         serial_number = self._get_param("SerialNumber")
 
         self.backend.deactivate_mfa_device(user_name, serial_number)
-        return ActionResult({})
+        return EmptyResult()
 
     def enable_mfa_device(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -830,7 +831,7 @@ class IamResponse(BaseResponse):
         self.backend.enable_mfa_device(
             user_name, serial_number, authentication_code_1, authentication_code_2
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def list_mfa_devices(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -864,7 +865,7 @@ class IamResponse(BaseResponse):
 
         self.backend.delete_virtual_mfa_device(serial_number)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def list_virtual_mfa_devices(self) -> ActionResult:
         assignment_status = self._get_param("AssignmentStatus", "Any")
@@ -885,17 +886,17 @@ class IamResponse(BaseResponse):
     def delete_user(self) -> ActionResult:
         user_name = self._get_param("UserName")
         self.backend.delete_user(user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_policy(self) -> ActionResult:
         policy_arn = self._get_param("PolicyArn")
         self.backend.delete_policy(policy_arn)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_login_profile(self) -> ActionResult:
         user_name = self._get_param("UserName")
         self.backend.delete_login_profile(user_name)
-        return ActionResult({})
+        return EmptyResult()
 
     def generate_credential_report(self) -> ActionResult:
         if self.backend.report_generated():
@@ -925,14 +926,14 @@ class IamResponse(BaseResponse):
     def create_account_alias(self) -> ActionResult:
         alias = self._get_param("AccountAlias")
         self.backend.create_account_alias(alias)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_account_alias(self) -> ActionResult:
         self.backend.delete_account_alias()
-        return ActionResult({})
+        return EmptyResult()
 
     def get_account_authorization_details(self) -> ActionResult:
-        filter_param = self._get_multi_param("Filter.member")
+        filter_param = self._get_param("Filter", [])
         account_details = self.backend.get_account_authorization_details(filter_param)
         result = {
             "UserDetailList": account_details["users"],
@@ -965,7 +966,7 @@ class IamResponse(BaseResponse):
         saml_provider_arn = self._get_param("SAMLProviderArn")
         self.backend.delete_saml_provider(saml_provider_arn)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def list_saml_providers(self) -> ActionResult:
         saml_providers = self.backend.list_saml_providers()
@@ -993,14 +994,14 @@ class IamResponse(BaseResponse):
         status = self._get_param("Status")
 
         self.backend.update_signing_certificate(user_name, cert_id, status)
-        return ActionResult({})
+        return EmptyResult()
 
     def delete_signing_certificate(self) -> ActionResult:
         user_name = self._get_param("UserName")
         cert_id = self._get_param("CertificateId")
 
         self.backend.delete_signing_certificate(user_name, cert_id)
-        return ActionResult({})
+        return EmptyResult()
 
     def list_signing_certificates(self) -> ActionResult:
         user_name = self._get_param("UserName")
@@ -1025,25 +1026,25 @@ class IamResponse(BaseResponse):
 
     def tag_role(self) -> ActionResult:
         role_name = self._get_param("RoleName")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
 
         self.backend.tag_role(role_name, tags)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_role(self) -> ActionResult:
         role_name = self._get_param("RoleName")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        tag_keys = self._get_param("TagKeys", [])
 
         self.backend.untag_role(role_name, tag_keys)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def create_open_id_connect_provider(self) -> ActionResult:
         open_id_provider_url = self._get_param("Url")
-        thumbprint_list = self._get_multi_param("ThumbprintList.member")
-        client_id_list = self._get_multi_param("ClientIDList.member")
-        tags = self._get_multi_param("Tags.member")
+        thumbprint_list = self._get_param("ThumbprintList", [])
+        client_id_list = self._get_param("ClientIDList", [])
+        tags = self._get_param("Tags", [])
 
         open_id_provider = self.backend.create_open_id_connect_provider(
             open_id_provider_url, thumbprint_list, client_id_list, tags
@@ -1054,29 +1055,29 @@ class IamResponse(BaseResponse):
 
     def update_open_id_connect_provider_thumbprint(self) -> ActionResult:
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
-        thumbprint_list = self._get_multi_param("ThumbprintList.member")
+        thumbprint_list = self._get_param("ThumbprintList", [])
 
         self.backend.update_open_id_connect_provider_thumbprint(
             open_id_provider_arn, thumbprint_list
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def tag_open_id_connect_provider(self) -> ActionResult:
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
 
         self.backend.tag_open_id_connect_provider(open_id_provider_arn, tags)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_open_id_connect_provider(self) -> ActionResult:
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        tag_keys = self._get_param("TagKeys", [])
 
         self.backend.untag_open_id_connect_provider(open_id_provider_arn, tag_keys)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def list_open_id_connect_provider_tags(self) -> ActionResult:
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
@@ -1093,7 +1094,7 @@ class IamResponse(BaseResponse):
 
         self.backend.delete_open_id_connect_provider(open_id_provider_arn)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def get_open_id_connect_provider(self) -> ActionResult:
         open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
@@ -1141,7 +1142,7 @@ class IamResponse(BaseResponse):
             require_uppercase_characters,
         )
 
-        return ActionResult({})
+        return EmptyResult()
 
     def get_account_password_policy(self) -> ActionResult:
         account_password_policy = self.backend.get_account_password_policy()
@@ -1152,7 +1153,7 @@ class IamResponse(BaseResponse):
     def delete_account_password_policy(self) -> ActionResult:
         self.backend.delete_account_password_policy()
 
-        return ActionResult({})
+        return EmptyResult()
 
     def get_account_summary(self) -> ActionResult:
         account_summary = self.backend.get_account_summary()
@@ -1162,19 +1163,19 @@ class IamResponse(BaseResponse):
 
     def tag_user(self) -> ActionResult:
         name = self._get_param("UserName")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
 
         self.backend.tag_user(name, tags)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_user(self) -> ActionResult:
         name = self._get_param("UserName")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        tag_keys = self._get_param("TagKeys", [])
 
         self.backend.untag_user(name, tag_keys)
 
-        return ActionResult({})
+        return EmptyResult()
 
     def create_service_linked_role(self) -> ActionResult:
         service_name = self._get_param("AWSServiceName")
@@ -1204,20 +1205,20 @@ class IamResponse(BaseResponse):
 
     def tag_instance_profile(self) -> ActionResult:
         instance_profile_name = self._get_param("InstanceProfileName")
-        tags = self._get_multi_param("Tags.member")
+        tags = self._get_param("Tags", [])
 
         self.backend.tag_instance_profile(
             instance_profile_name=instance_profile_name,
             tags=tags,
         )
-        return ActionResult({})
+        return EmptyResult()
 
     def untag_instance_profile(self) -> ActionResult:
         instance_profile_name = self._get_param("InstanceProfileName")
-        tags = self._get_multi_param("TagKeys.member")
+        tags = self._get_param("TagKeys", [])
 
         self.backend.untag_instance_profile(
             instance_profile_name=instance_profile_name,
             tagKeys=tags,
         )
-        return ActionResult({})
+        return EmptyResult()

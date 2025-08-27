@@ -47,6 +47,7 @@ glue
 - [ ] create_data_quality_ruleset
 - [X] create_database
 - [X] create_dev_endpoint
+- [ ] create_glue_identity_center_configuration
 - [ ] create_integration
 - [ ] create_integration_resource_property
 - [ ] create_integration_table_properties
@@ -81,6 +82,7 @@ glue
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
 - [ ] delete_dev_endpoint
+- [ ] delete_glue_identity_center_configuration
 - [ ] delete_integration
 - [ ] delete_integration_table_properties
 - [X] delete_job
@@ -136,6 +138,7 @@ glue
 - [X] get_dev_endpoint
 - [X] get_dev_endpoints
 - [ ] get_entity_records
+- [ ] get_glue_identity_center_configuration
 - [ ] get_integration_resource_property
 - [ ] get_integration_table_properties
 - [X] get_job
@@ -268,6 +271,7 @@ glue
 - [ ] update_data_quality_ruleset
 - [X] update_database
 - [ ] update_dev_endpoint
+- [ ] update_glue_identity_center_configuration
 - [ ] update_integration_resource_property
 - [ ] update_integration_table_properties
 - [ ] update_job

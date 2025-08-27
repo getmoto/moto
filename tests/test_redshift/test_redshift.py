@@ -364,6 +364,55 @@ def test_create_cluster_with_iam_roles():
 
 
 @mock_aws
+def test_describe_default_cluster_params():
+    client = boto3.client(
+        "redshift",
+        region_name="us-east-1",
+    )
+    response = client.describe_default_cluster_parameters(
+        ParameterGroupFamily="redshift-1.0"
+    )
+    assert (
+        response["DefaultClusterParameters"]["ParameterGroupFamily"] == "redshift-1.0"
+    )
+    assert len(response["DefaultClusterParameters"]["Parameters"])
+    assert all(
+        ("ParameterName" in param and "ParameterValue" in param)
+        for param in response["DefaultClusterParameters"]["Parameters"]
+    )
+
+
+@mock_aws
+def test_describe_cluster_params():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    param_group_name = "groupx"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_cluster_parameters(
+            ParameterGroupName=param_group_name,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClusterParameterGroupNotFound"
+    assert err["Message"] == "ClusterParameterGroup not found: groupx"
+
+    client.create_cluster_parameter_group(
+        ParameterGroupFamily="redshift-1.0",
+        ParameterGroupName=param_group_name,
+        Description="blahblah",
+    )
+
+    response = client.describe_cluster_parameters(
+        ParameterGroupName=param_group_name,
+    )
+    assert len(response["Parameters"])
+    assert all(
+        ("ParameterName" in param and "ParameterValue" in param)
+        for param in response["Parameters"]
+    )
+
+
+@mock_aws
 def test_create_cluster_with_parameter_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_id = "my-cluster"
@@ -744,7 +793,7 @@ def test_describe_non_existent_parameter_group_boto3():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ClusterParameterGroupNotFound"
-    assert err["Message"] == "Parameter group not-a-parameter-group not found."
+    assert err["Message"] == "ClusterParameterGroup not found: not-a-parameter-group"
 
 
 @mock_aws
@@ -767,7 +816,7 @@ def test_delete_parameter_group_boto3():
     assert err["Code"] == "ClusterParameterGroupNotFound"
     # BUG: This is what AWS returns
     # assert err["Message"] == "ParameterGroup not found: my-parameter-group"
-    assert err["Message"] == "Parameter group my-parameter-group not found."
+    assert err["Message"] == "ClusterParameterGroup not found: my-parameter-group"
 
     assert len(client.describe_cluster_parameter_groups()["ParameterGroups"]) == 1
 

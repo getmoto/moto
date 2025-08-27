@@ -26,7 +26,7 @@ class FakeItem(BaseModel):
         # Lock this, so we know noone else touches this list while we're operating on it
         with self.lock:
             for attr in attributes:
-                if attr.get("replace", "false").lower() == "true":
+                if attr.get("replace", False):
                     self._remove_attributes(attr["name"])
                 self.attributes.append(attr)
 

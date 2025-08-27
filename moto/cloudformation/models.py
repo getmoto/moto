@@ -835,7 +835,7 @@ class CloudFormationBackend(BaseBackend):
                     instance.parameters[parameter["parameter_key"]],
                 )
                 for parameter in incoming_params
-                if parameter.get("use_previous_value") == "true"
+                if parameter.get("use_previous_value", False)
             ]
         )
         parameters.update(previous)

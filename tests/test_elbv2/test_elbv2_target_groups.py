@@ -133,6 +133,8 @@ def test_create_target_group_and_listeners():
     target_group = response["TargetGroups"][0]
     target_group_arn = target_group["TargetGroupArn"]
     assert target_group["HealthCheckProtocol"] == "HTTP"
+    assert target_group["HealthCheckEnabled"] is True
+    assert "LoadBalancerArns" not in target_group
 
     # Check it's in the describe_target_groups response
     response = conn.describe_target_groups()
@@ -148,6 +150,7 @@ def test_create_target_group_and_listeners():
     listener = response["Listeners"][0]
     assert listener["Port"] == 80
     assert listener["Protocol"] == "HTTP"
+    assert "Certificates" not in listener
     assert listener["DefaultActions"] == [
         {"TargetGroupArn": target_group_arn, "Type": "forward"}
     ]
@@ -676,6 +679,9 @@ def test_create_target_group_with_target_type(target_type):
     if target_type != "lambda":
         assert "Protocol" in group
         assert "VpcId" in group
+        assert "HealthCheckPort" in group
+    else:
+        assert "HealthCheckPort" not in group
 
     group = conn.describe_target_groups()["TargetGroups"][0]
     assert "TargetGroupArn" in group
@@ -684,6 +690,9 @@ def test_create_target_group_with_target_type(target_type):
     if target_type != "lambda":
         assert "Protocol" in group
         assert "VpcId" in group
+        assert "HealthCheckPort" in group
+    else:
+        assert "HealthCheckPort" not in group
 
 
 @mock_aws
