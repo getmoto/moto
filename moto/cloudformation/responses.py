@@ -28,7 +28,7 @@ class StackResourceDTO:
         # FIXME: None of these attributes are part of CloudFormationModel interface...
         self.logical_resource_id = getattr(resource, "logical_resource_id", None)
         self.physical_resource_id = getattr(resource, "physical_resource_id", None)
-        self.resource_type = getattr(resource, "resource_type", None)
+        self.resource_type = getattr(resource, "cf_resource_type", None)
         self.stack_status = stack.status
         self.creation_time = stack.creation_time
         self.timestamp = "2010-07-27T22:27:28Z"  # Hardcoded in original XML template.
@@ -118,6 +118,7 @@ class CloudFormationResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="cloudformation")
+        self.automated_parameter_parsing = True
 
     @property
     def cloudformation_backend(self) -> CloudFormationBackend:
@@ -127,7 +128,9 @@ class CloudFormationResponse(BaseResponse):
     def cfnresponse(cls, *args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
         request, full_url, headers = args
         full_url += "&Action=ProcessCfnResponse"
-        return cls.dispatch(request=request, full_url=full_url, headers=headers)
+        cf = CloudFormationResponse()
+        cf.automated_parameter_parsing = False
+        return cf._dispatch(request=request, full_url=full_url, headers=headers)
 
     def _get_stack_from_s3_url(self, template_url: str) -> str:
         return get_stack_from_s3_url(
@@ -150,10 +153,10 @@ class CloudFormationResponse(BaseResponse):
     ) -> Dict[str, Any]:
         result = {}
         for parameter in parameters_list:
-            if parameter.keys() >= {"parameter_key", "parameter_value"}:
+            if set(parameter.keys()) >= {"parameter_key", "parameter_value"}:
                 result[parameter["parameter_key"]] = parameter["parameter_value"]
             elif (
-                parameter.keys() >= {"parameter_key", "use_previous_value"}
+                set(parameter.keys()) >= {"parameter_key", "use_previous_value"}
                 and parameter["parameter_key"] in existing_params
             ):
                 result[parameter["parameter_key"]] = existing_params[
@@ -184,17 +187,16 @@ class CloudFormationResponse(BaseResponse):
         enable_termination_protection = self._get_param("EnableTerminationProtection")
         timeout_in_mins = self._get_param("TimeoutInMinutes")
         stack_policy_body = self._get_param("StackPolicyBody")
-        parameters_list = self._get_list_prefix("Parameters.member")
+        parameters_list = self._get_param("Parameters", [])
         tags = dict(
-            (item["key"], item["value"])
-            for item in self._get_list_prefix("Tags.member")
+            (item["key"], item["value"]) for item in self._get_param("Tags", [])
         )
 
         parameters = self._get_params_from_list(parameters_list)
 
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
-        stack_notification_arns = self._get_multi_param("NotificationARNs.member")
+        stack_notification_arns = self._get_param("NotificationARNs", [])
 
         stack = self.cloudformation_backend.create_stack(
             name=stack_name,
@@ -213,14 +215,14 @@ class CloudFormationResponse(BaseResponse):
     def validate_template_and_stack_body(self) -> None:
         if (
             self._get_param("TemplateBody") or self._get_param("TemplateURL")
-        ) and self._get_param("UsePreviousTemplate", "false").lower() == "true":
+        ) and self._get_bool_param("UsePreviousTemplate", False):
             raise ValidationError(
                 message="An error occurred (ValidationError) when calling the CreateChangeSet operation: You cannot specify both usePreviousTemplate and Template Body/Template URL."
             )
         elif (
             not self._get_param("TemplateBody")
             and not self._get_param("TemplateURL")
-            and self._get_param("UsePreviousTemplate", "false").lower() == "false"
+            and not self._get_bool_param("UsePreviousTemplate", False)
         ):
             raise ValidationError(
                 message="An error occurred (ValidationError) when calling the CreateChangeSet operation: Either Template URL or Template Body must be specified."
@@ -232,26 +234,22 @@ class CloudFormationResponse(BaseResponse):
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
         update_or_create = self._get_param("ChangeSetType", "CREATE")
-        use_previous_template = (
-            self._get_param("UsePreviousTemplate", "false").lower() == "true"
-        )
+        use_previous_template = self._get_bool_param("UsePreviousTemplate", False)
         if update_or_create == "UPDATE":
             stack = self.cloudformation_backend.get_stack(stack_name)
             self.validate_template_and_stack_body()
-
             if use_previous_template:
                 stack_body = stack.template
         description = self._get_param("Description")
         role_arn = self._get_param("RoleARN")
-        parameters_list = self._get_list_prefix("Parameters.member")
+        parameters_list = self._get_param("Parameters", [])
         tags = dict(
-            (item["key"], item["value"])
-            for item in self._get_list_prefix("Tags.member")
+            (item["key"], item["value"]) for item in self._get_param("Tags", [])
         )
         parameters = {
             param["parameter_key"]: (
                 stack.stack_parameters[param["parameter_key"]]
-                if param.get("use_previous_value", "").lower() == "true"
+                if param.get("use_previous_value", False)
                 else param["parameter_value"]
             )
             for param in parameters_list
@@ -261,7 +259,7 @@ class CloudFormationResponse(BaseResponse):
 
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
-        stack_notification_arns = self._get_multi_param("NotificationARNs.member")
+        stack_notification_arns = self._get_param("NotificationARNs", [])
         change_set_id, stack_id = self.cloudformation_backend.create_change_set(
             stack_name=stack_name,
             change_set_name=change_set_name,
@@ -350,7 +348,7 @@ class CloudFormationResponse(BaseResponse):
         return ActionResult(result)
 
     def list_stacks(self) -> ActionResult:
-        status_filter = self._get_multi_param("StackStatusFilter.member")
+        status_filter = self._get_param("StackStatusFilter", [])
         stacks = self.cloudformation_backend.list_stacks(status_filter)
         result = {"StackSummaries": stacks}
         return ActionResult(result)
@@ -366,7 +364,7 @@ class CloudFormationResponse(BaseResponse):
                     "LogicalResourceId": getattr(resource, "logical_resource_id", ""),
                     "LastUpdateTimestamp": "2011-06-21T20:15:58Z",
                     "PhysicalResourceId": getattr(resource, "physical_resource_id", ""),
-                    "ResourceType": getattr(resource, "resource_type", ""),
+                    "ResourceType": getattr(resource, "cf_resource_type", ""),
                 }
                 for resource in resources
             ]
@@ -374,9 +372,8 @@ class CloudFormationResponse(BaseResponse):
         return ActionResult(result)
 
     def get_template(self) -> ActionResult:
-        name_or_stack_id = self.querystring.get("StackName")[0]  # type: ignore[index]
+        name_or_stack_id = self._get_param("StackName")
         stack_template = self.cloudformation_backend.get_template(name_or_stack_id)
-
         result = {"TemplateBody": stack_template}
         return ActionResult(result)
 
@@ -429,16 +426,14 @@ class CloudFormationResponse(BaseResponse):
         template_url = self._get_param("TemplateURL")
         stack_body = self._get_param("TemplateBody")
         stack = self.cloudformation_backend.get_stack(stack_name)
-        if self._get_param("UsePreviousTemplate") == "true":
+        if self._get_bool_param("UsePreviousTemplate", False):
             stack_body = stack.template
         elif not stack_body and template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
 
-        incoming_params = self._get_list_prefix("Parameters.member")
+        incoming_params = self._get_param("Parameters", [])
         for param in incoming_params:
-            if param.get("use_previous_value") == "true" and param.get(
-                "parameter_value"
-            ):
+            if param.get("use_previous_value") and param.get("parameter_value"):
                 raise ValidationError(
                     message=f"Invalid input for parameter key {param['parameter_key']}. Cannot specify usePreviousValue as true and non empty value for a parameter"
                 )
@@ -446,8 +441,7 @@ class CloudFormationResponse(BaseResponse):
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.
         tags: Optional[Dict[str, str]] = dict(
-            (item["key"], item["value"])
-            for item in self._get_list_prefix("Tags.member")
+            (item["key"], item["value"]) for item in self._get_param("Tags", [])
         )
         # so that if we don't pass the parameter, we don't clear all the tags accidentally
         if not tags:
@@ -468,8 +462,7 @@ class CloudFormationResponse(BaseResponse):
         return ActionResult(result)
 
     def delete_stack(self) -> ActionResult:
-        name_or_stack_id = self.querystring.get("StackName")[0]  # type: ignore[index]
-
+        name_or_stack_id = self._get_param("StackName")
         self.cloudformation_backend.delete_stack(name_or_stack_id)
         return EmptyResult()
 
@@ -514,13 +507,12 @@ class CloudFormationResponse(BaseResponse):
         stack_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
         permission_model = self._get_param("PermissionModel")
-        parameters_list = self._get_list_prefix("Parameters.member")
+        parameters_list = self._get_param("Parameters", [])
         admin_role = self._get_param("AdministrationRoleARN")
         exec_role = self._get_param("ExecutionRoleName")
         description = self._get_param("Description")
         tags = dict(
-            (item["key"], item["value"])
-            for item in self._get_list_prefix("Tags.member")
+            (item["key"], item["value"]) for item in self._get_param("Tags", [])
         )
 
         # Copy-Pasta - Hack dict-comprehension
@@ -548,9 +540,9 @@ class CloudFormationResponse(BaseResponse):
 
     def create_stack_instances(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
-        accounts = self._get_multi_param("Accounts.member")
-        regions = self._get_multi_param("Regions.member")
-        parameters = self._get_multi_param("ParameterOverrides.member")
+        accounts = self._get_param("Accounts", [])
+        regions = self._get_param("Regions", [])
+        parameters = self._get_param("ParameterOverrides", [])
         deployment_targets = self._get_params().get("DeploymentTargets")
         if deployment_targets and "OrganizationalUnitIds" in deployment_targets:
             for ou_id in deployment_targets.get("OrganizationalUnitIds", []):
@@ -578,8 +570,8 @@ class CloudFormationResponse(BaseResponse):
 
     def delete_stack_instances(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
-        accounts = self._get_multi_param("Accounts.member")
-        regions = self._get_multi_param("Regions.member")
+        accounts = self._get_param("Accounts", [])
+        regions = self._get_param("Regions", [])
         operation = self.cloudformation_backend.delete_stack_instances(
             stackset_name, accounts, regions
         )
@@ -670,17 +662,16 @@ class CloudFormationResponse(BaseResponse):
         description = self._get_param("Description")
         execution_role = self._get_param("ExecutionRoleName")
         admin_role = self._get_param("AdministrationRoleARN")
-        accounts = self._get_multi_param("Accounts.member")
-        regions = self._get_multi_param("Regions.member")
+        accounts = self._get_param("Accounts", [])
+        regions = self._get_param("Regions", [])
         template_body = self._get_param("TemplateBody")
         template_url = self._get_param("TemplateURL")
         if template_url:
             template_body = self._get_stack_from_s3_url(template_url)
         tags = dict(
-            (item["key"], item["value"])
-            for item in self._get_list_prefix("Tags.member")
+            (item["key"], item["value"]) for item in self._get_param("Tags", [])
         )
-        parameters_list = self._get_list_prefix("Parameters.member")
+        parameters_list = self._get_param("Parameters", [])
 
         operation = self.cloudformation_backend.update_stack_set(
             stackset_name=stackset_name,
@@ -700,9 +691,9 @@ class CloudFormationResponse(BaseResponse):
 
     def update_stack_instances(self) -> ActionResult:
         stackset_name = self._get_param("StackSetName")
-        accounts = self._get_multi_param("Accounts.member")
-        regions = self._get_multi_param("Regions.member")
-        parameters = self._get_multi_param("ParameterOverrides.member")
+        accounts = self._get_param("Accounts", [])
+        regions = self._get_param("Regions", [])
+        parameters = self._get_param("ParameterOverrides", [])
         operation = self.cloudformation_backend.update_stack_instances(
             stackset_name, accounts, regions, parameters
         )

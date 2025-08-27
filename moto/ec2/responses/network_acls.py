@@ -1,3 +1,5 @@
+from moto.core.responses import ActionResult, EmptyResult
+
 from ._base_response import EC2BaseResponse
 
 
@@ -11,7 +13,7 @@ class NetworkACLs(EC2BaseResponse):
         template = self.response_template(CREATE_NETWORK_ACL_RESPONSE)
         return template.render(network_acl=network_acl)
 
-    def create_network_acl_entry(self) -> str:
+    def create_network_acl_entry(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         protocol = self._get_param("Protocol")
@@ -24,7 +26,7 @@ class NetworkACLs(EC2BaseResponse):
         port_range_to = self._get_param("PortRange.To")
         ipv6_cidr_block = self._get_param("Ipv6CidrBlock")
 
-        network_acl_entry = self.ec2_backend.create_network_acl_entry(
+        self.ec2_backend.create_network_acl_entry(
             network_acl_id=network_acl_id,
             rule_number=rule_number,
             protocol=protocol,
@@ -38,24 +40,21 @@ class NetworkACLs(EC2BaseResponse):
             ipv6_cidr_block=ipv6_cidr_block,
         )
 
-        template = self.response_template(CREATE_NETWORK_ACL_ENTRY_RESPONSE)
-        return template.render(network_acl_entry=network_acl_entry)
+        return EmptyResult()
 
-    def delete_network_acl(self) -> str:
+    def delete_network_acl(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         self.ec2_backend.delete_network_acl(network_acl_id)
-        template = self.response_template(DELETE_NETWORK_ACL_ASSOCIATION)
-        return template.render()
+        return EmptyResult()
 
-    def delete_network_acl_entry(self) -> str:
+    def delete_network_acl_entry(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         egress = self._get_param("Egress")
         self.ec2_backend.delete_network_acl_entry(network_acl_id, rule_number, egress)
-        template = self.response_template(DELETE_NETWORK_ACL_ENTRY_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def replace_network_acl_entry(self) -> str:
+    def replace_network_acl_entry(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         protocol = self._get_param("Protocol")
@@ -82,8 +81,7 @@ class NetworkACLs(EC2BaseResponse):
             ipv6_cidr_block=ipv6_cidr_block,
         )
 
-        template = self.response_template(REPLACE_NETWORK_ACL_ENTRY_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
     def describe_network_acls(self) -> str:
         network_acl_ids = self._get_multi_param("NetworkAclId")
@@ -183,37 +181,10 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
 </DescribeNetworkAclsResponse>
 """
 
-CREATE_NETWORK_ACL_ENTRY_RESPONSE = """
-<CreateNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</CreateNetworkAclEntryResponse>
-"""
-
-REPLACE_NETWORK_ACL_ENTRY_RESPONSE = """
-<ReplaceNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</ReplaceNetworkAclEntryResponse>
-"""
 
 REPLACE_NETWORK_ACL_ASSOCIATION = """
 <ReplaceNetworkAclAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <newAssociationId>{{ association.new_association_id }}</newAssociationId>
 </ReplaceNetworkAclAssociationResponse>
-"""
-
-DELETE_NETWORK_ACL_ASSOCIATION = """
-<DeleteNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</DeleteNetworkAclResponse>
-"""
-
-DELETE_NETWORK_ACL_ENTRY_RESPONSE = """
-<DeleteNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</DeleteNetworkAclEntryResponse>
 """

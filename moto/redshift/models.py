@@ -567,6 +567,19 @@ class RedshiftBackend(BaseBackend):
             "subnetgroup": self.subnet_groups,  # type: ignore
         }
         self.snapshot_copy_grants: Dict[str, SnapshotCopyGrant] = {}
+        self.default_params = {
+            "auto_analyze": "true",
+            "datestyle": "ISO, MDY",
+            "enable_user_activity_logging": "false",
+            "extra_float_digits": "0",
+            "max_concurrency_scaling_clusters": "1",
+            "query_group": "default",
+            "require_ssl": "false",
+            "search_path": "$user, public",
+            "statement_timeout": "0",
+            "wlm_json_configuration": '[{"auto_wlm":true}]',
+            "use_fips_ssl": "false",
+        }
 
     def enable_snapshot_copy(self, **kwargs: Any) -> Cluster:
         cluster_identifier = kwargs["cluster_identifier"]
@@ -834,6 +847,27 @@ class RedshiftBackend(BaseBackend):
         if parameter_group_name in self.parameter_groups:
             return self.parameter_groups.pop(parameter_group_name)
         raise ClusterParameterGroupNotFoundError(parameter_group_name)
+
+    def describe_default_cluster_parameters(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "ParameterName": key,
+                "ParameterValue": value,
+                "Description": "mock parameter",
+                "Source": "engine-default",
+                "DataType": "type",
+                "ApplyType": "static",
+                "IsModifiable": "true",
+            }
+            for key, value in self.default_params.items()
+        ]
+
+    def describe_cluster_parameters(
+        self, parameter_group_name: str
+    ) -> List[Dict[str, Any]]:
+        if parameter_group_name not in self.parameter_groups:
+            raise ClusterParameterGroupNotFoundError(parameter_group_name)
+        return self.describe_default_cluster_parameters()
 
     def create_cluster_snapshot(
         self,

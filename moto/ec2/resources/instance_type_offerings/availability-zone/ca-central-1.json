@@ -5316,6 +5316,50 @@
   "Location": "ca-central-1d"
  },
  {
+  "InstanceType": "m6a.12xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.16xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.24xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.2xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.32xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.48xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.4xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.8xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.large",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.metal",
+  "Location": "ca-central-1d"
+ },
+ {
+  "InstanceType": "m6a.xlarge",
+  "Location": "ca-central-1d"
+ },
+ {
   "InstanceType": "m6g.12xlarge",
   "Location": "ca-central-1d"
  },

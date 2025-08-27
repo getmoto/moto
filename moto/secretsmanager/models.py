@@ -558,10 +558,13 @@ class SecretsManagerBackend(BaseBackend):
         if secret_id not in self.secrets:
             raise SecretNotFoundException()
 
-        secret = self.secrets[secret_id]
-        if isinstance(secret, ReplicaSecret):
-            raise OperationNotPermittedOnReplica
+        existing_secret_info = self._check_with_existing_secrets_and_versions(
+            secret_id, client_request_token, secret_string, secret_binary
+        )
+        if existing_secret_info:
+            return existing_secret_info
 
+        secret = self.secrets[secret_id]
         if secret.is_deleted():
             raise InvalidRequestException(
                 "An error occurred (InvalidRequestException) when calling the UpdateSecret operation: "
@@ -595,10 +598,11 @@ class SecretsManagerBackend(BaseBackend):
         replica_regions: List[Dict[str, str]],
         force_overwrite: bool,
     ) -> str:
-        if name in self.secrets.keys():
-            raise ResourceExistsException(
-                "A resource with the ID you requested already exists."
-            )
+        existing_secret = self._check_with_existing_secrets_and_versions(
+            name, client_request_token, secret_string, secret_binary
+        )
+        if existing_secret:
+            return existing_secret
 
         secret, new_version = self._add_secret(
             name,
@@ -613,6 +617,53 @@ class SecretsManagerBackend(BaseBackend):
         )
 
         return secret.to_short_dict(include_version_id=new_version)
+
+    def _check_with_existing_secrets_and_versions(
+        self,
+        secret_name: str,
+        client_request_token: Optional[str],
+        secret_string: Optional[str],
+        secret_binary: Optional[str],
+    ) -> Optional[str]:
+        """
+        Check if a secret with the given name and version ID already exists.
+        If they do and the original operation is intending to modify it, that will be flagged.
+        Since we can only add new versions of secrets, not modify existing ones
+        """
+        if secret_name not in self.secrets.keys():
+            # Nothing to validate here
+            return None
+        existing_secret = self.secrets[secret_name]
+        if isinstance(existing_secret, ReplicaSecret):
+            raise OperationNotPermittedOnReplica
+        # If the secret already exists, and a client request token is provided,
+        # we need to check if it matches the existing secret's version ID.
+        if not client_request_token:
+            # No version identifier was provided to compare with
+            raise ResourceExistsException(
+                "A resource with the ID you requested already exists."
+            )
+        # Check if client_request_token is part of any version of this secret
+        if client_request_token not in existing_secret.versions:
+            return None
+        # Check if the secret_string/secret_binary values corresponding to this version matches that of the current request
+        matching_secret_version = existing_secret.versions[client_request_token]
+        # If this version stage label is AWSPENDING, it means this version was created as part of rotation
+        if "AWSPENDING" in matching_secret_version.get("version_stages", []):
+            return None
+        if (
+            matching_secret_version.get("secret_string") == secret_string
+            and matching_secret_version.get("secret_binary") == secret_binary
+        ):
+            # If they match, we can return the existing secret without error
+            return existing_secret.to_short_dict(
+                include_version_id=True, version_id=client_request_token
+            )
+        # If they do not match, though, then the request fails since we cannot modify
+        # an existing version
+        raise ResourceExistsException(
+            f"You can't use ClientRequestToken {client_request_token} because that value is already in use for a version of secret {existing_secret.arn}"
+        )
 
     def _add_secret(
         self,
@@ -735,6 +786,12 @@ class SecretsManagerBackend(BaseBackend):
             description = secret.description
 
         version_id = self._from_client_request_token(client_request_token)
+        existing_secret = self._check_with_existing_secrets_and_versions(
+            secret.name, version_id, secret_string, secret_binary
+        )
+        # If it exists, then return the existing secret
+        if existing_secret:
+            return existing_secret
 
         secret, _ = self._add_secret(
             secret_id,

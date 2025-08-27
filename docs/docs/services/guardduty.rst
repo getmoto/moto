@@ -24,7 +24,9 @@ guardduty
 - [ ] create_members
 - [ ] create_publishing_destination
 - [ ] create_sample_findings
+- [ ] create_threat_entity_set
 - [ ] create_threat_intel_set
+- [ ] create_trusted_entity_set
 - [ ] decline_invitations
 - [X] delete_detector
 - [X] delete_filter
@@ -33,7 +35,9 @@ guardduty
 - [ ] delete_malware_protection_plan
 - [ ] delete_members
 - [ ] delete_publishing_destination
+- [ ] delete_threat_entity_set
 - [ ] delete_threat_intel_set
+- [ ] delete_trusted_entity_set
 - [ ] describe_malware_scans
 - [ ] describe_organization_configuration
 - [ ] describe_publishing_destination
@@ -59,7 +63,9 @@ guardduty
 - [ ] get_members
 - [ ] get_organization_statistics
 - [ ] get_remaining_free_trial_days
+- [ ] get_threat_entity_set
 - [ ] get_threat_intel_set
+- [ ] get_trusted_entity_set
 - [ ] get_usage_statistics
 - [ ] invite_members
 - [ ] list_coverage
@@ -81,7 +87,9 @@ guardduty
 
 - [ ] list_publishing_destinations
 - [ ] list_tags_for_resource
+- [ ] list_threat_entity_sets
 - [ ] list_threat_intel_sets
+- [ ] list_trusted_entity_sets
 - [ ] start_malware_scan
 - [ ] start_monitoring_members
 - [ ] stop_monitoring_members
@@ -97,5 +105,7 @@ guardduty
 - [ ] update_member_detectors
 - [ ] update_organization_configuration
 - [ ] update_publishing_destination
+- [ ] update_threat_entity_set
 - [ ] update_threat_intel_set
+- [ ] update_trusted_entity_set
 

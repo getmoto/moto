@@ -6,6 +6,7 @@ from .models import SimpleDBBackend, sdb_backends
 class SimpleDBResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="sdb")
+        self.automated_parameter_parsing = True
 
     @property
     def sdb_backend(self) -> SimpleDBBackend:
@@ -29,7 +30,7 @@ class SimpleDBResponse(BaseResponse):
     def get_attributes(self) -> ActionResult:
         domain_name = self._get_param("DomainName")
         item_name = self._get_param("ItemName")
-        attribute_names = self._get_multi_param("AttributeName.")
+        attribute_names = self._get_param("AttributeNames")
         attributes = self.sdb_backend.get_attributes(
             domain_name=domain_name,
             item_name=item_name,
@@ -41,7 +42,7 @@ class SimpleDBResponse(BaseResponse):
     def put_attributes(self) -> ActionResult:
         domain_name = self._get_param("DomainName")
         item_name = self._get_param("ItemName")
-        attributes = self._get_list_prefix("Attribute")
+        attributes = self._get_param("Attributes")
         self.sdb_backend.put_attributes(
             domain_name=domain_name, item_name=item_name, attributes=attributes
         )

@@ -1,4 +1,5 @@
 import datetime
+from io import BytesIO
 
 import boto3
 import botocore.exceptions
@@ -8,6 +9,7 @@ from botocore.client import ClientError
 from moto import mock_aws
 from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
+from moto.settings import S3_UPLOAD_PART_MIN_SIZE
 
 from . import s3_aws_verified
 from .test_s3 import enable_versioning
@@ -278,3 +280,77 @@ def test_put_object_if_match(bucket_name=None):
         s3.put_object(Bucket=bucket_name, Key="unknown", Body=b"test", IfMatch="test")
     err = exc.value.response["Error"]
     assert err["Code"] == "NoSuchKey"
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_multipart_upload__if_none_match__put_object(bucket_name=None):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    client.put_object(Bucket=bucket_name, Key="key.txt")
+
+    part1 = b"0" * S3_UPLOAD_PART_MIN_SIZE
+    part2 = b"1"
+    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="key.txt")
+    kwargs = {
+        "Bucket": bucket_name,
+        "Key": "key.txt",
+        "UploadId": multipart["UploadId"],
+    }
+
+    up1 = client.upload_part(Body=BytesIO(part1), PartNumber=1, **kwargs)
+    up2 = client.upload_part(Body=BytesIO(part2), PartNumber=2, **kwargs)
+
+    parts = {
+        "Parts": [
+            {"ETag": up1["ETag"], "PartNumber": 1},
+            {"ETag": up2["ETag"], "PartNumber": 2},
+        ]
+    }
+
+    with pytest.raises(ClientError) as exc:
+        client.complete_multipart_upload(
+            MultipartUpload=parts, IfNoneMatch="*", **kwargs
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "PreconditionFailed"
+    assert (
+        err["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
+    assert err["Condition"] == "If-None-Match"
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_multipart_upload__if_none_match__another_multipart(bucket_name=None):
+    client = boto3.client("s3", region_name="us-east-1")
+
+    key = "test-key"
+
+    # Step 1: Create object via multipart upload
+    content = b"a" * S3_UPLOAD_PART_MIN_SIZE
+    multipart1 = client.create_multipart_upload(Bucket=bucket_name, Key=key)
+    kwargs1 = {"Bucket": bucket_name, "Key": key, "UploadId": multipart1["UploadId"]}
+    up1 = client.upload_part(Body=BytesIO(content), PartNumber=1, **kwargs1)
+    parts1 = {"Parts": [{"ETag": up1["ETag"], "PartNumber": 1}]}
+    client.complete_multipart_upload(MultipartUpload=parts1, **kwargs1)
+
+    # Second multipart upload with IfNoneMatch="*"
+    multipart2 = client.create_multipart_upload(Bucket=bucket_name, Key=key)
+    kwargs2 = {"Bucket": bucket_name, "Key": key, "UploadId": multipart2["UploadId"]}
+    up2 = client.upload_part(Body=BytesIO(content), PartNumber=1, **kwargs2)
+    parts2 = {"Parts": [{"ETag": up2["ETag"], "PartNumber": 1}]}
+
+    # This should raise ClientError with PreconditionFailed, but it doesn't
+    with pytest.raises(ClientError) as exc:
+        client.complete_multipart_upload(
+            MultipartUpload=parts2, IfNoneMatch="*", **kwargs2
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "PreconditionFailed"
+    assert (
+        err["Message"]
+        == "At least one of the pre-conditions you specified did not hold"
+    )
+    assert err["Condition"] == "If-None-Match"

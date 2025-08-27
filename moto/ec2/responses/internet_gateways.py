@@ -1,15 +1,17 @@
+from moto.core.responses import ActionResult, EmptyResult
+
 from ._base_response import EC2BaseResponse
 
 
 class InternetGateways(EC2BaseResponse):
-    def attach_internet_gateway(self) -> str:
+    def attach_internet_gateway(self) -> ActionResult:
         igw_id = self._get_param("InternetGatewayId")
         vpc_id = self._get_param("VpcId")
 
         self.error_on_dryrun()
 
         self.ec2_backend.attach_internet_gateway(igw_id, vpc_id)
-        return self.response_template(ATTACH_INTERNET_GATEWAY_RESPONSE).render()
+        return EmptyResult()
 
     def create_internet_gateway(self) -> str:
         self.error_on_dryrun()
@@ -22,12 +24,12 @@ class InternetGateways(EC2BaseResponse):
             internet_gateway=igw
         )
 
-    def delete_internet_gateway(self) -> str:
+    def delete_internet_gateway(self) -> ActionResult:
         igw_id = self._get_param("InternetGatewayId")
         self.error_on_dryrun()
 
         self.ec2_backend.delete_internet_gateway(igw_id)
-        return self.response_template(DELETE_INTERNET_GATEWAY_RESPONSE).render()
+        return EmptyResult()
 
     def describe_internet_gateways(self) -> str:
         filter_dict = self._filters_from_querystring()
@@ -42,7 +44,7 @@ class InternetGateways(EC2BaseResponse):
         template = self.response_template(DESCRIBE_INTERNET_GATEWAYS_RESPONSE)
         return template.render(internet_gateways=igws)
 
-    def detach_internet_gateway(self) -> str:
+    def detach_internet_gateway(self) -> ActionResult:
         # TODO validate no instances with EIPs in VPC before detaching
         # raise else DependencyViolationError()
         igw_id = self._get_param("InternetGatewayId")
@@ -50,13 +52,8 @@ class InternetGateways(EC2BaseResponse):
         self.error_on_dryrun()
 
         self.ec2_backend.detach_internet_gateway(igw_id, vpc_id)
-        return self.response_template(DETACH_INTERNET_GATEWAY_RESPONSE).render()
+        return EmptyResult()
 
-
-ATTACH_INTERNET_GATEWAY_RESPONSE = """<AttachInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>true</return>
-</AttachInternetGatewayResponse>"""
 
 CREATE_INTERNET_GATEWAY_RESPONSE = """<CreateInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
@@ -75,10 +72,6 @@ CREATE_INTERNET_GATEWAY_RESPONSE = """<CreateInternetGatewayResponse xmlns="http
   </internetGateway>
 </CreateInternetGatewayResponse>"""
 
-DELETE_INTERNET_GATEWAY_RESPONSE = """<DeleteInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-    <return>true</return>
-</DeleteInternetGatewayResponse>"""
 
 DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-
 15/">
@@ -110,8 +103,3 @@ DESCRIBE_INTERNET_GATEWAYS_RESPONSE = """<DescribeInternetGatewaysResponse xmlns
     {% endfor %}
   </internetGatewaySet>
 </DescribeInternetGatewaysResponse>"""
-
-DETACH_INTERNET_GATEWAY_RESPONSE = """<DetachInternetGatewayResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>true</return>
-</DetachInternetGatewayResponse>"""
