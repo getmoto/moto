@@ -62,7 +62,8 @@ def test_put_a_ton_of_metric_data():
             )
 
     cloudwatch.put_metric_data(Namespace="acme", MetricData=metrics)
-    # We don't really need any assertions - we just need to know that the call succeeds
+    resp = cloudwatch.list_metrics(MetricName="TestCWMetrics")
+    assert len(resp["Metrics"]) == 50
 
 
 @mock_aws
