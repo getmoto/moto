@@ -9155,7 +9155,7 @@
 <details>
 <summary>46% implemented</summary>
 
-- [ ] clone_receipt_rule_set
+- [X] clone_receipt_rule_set
 - [X] create_configuration_set
 - [X] create_configuration_set_event_destination
 - [ ] create_configuration_set_tracking_options

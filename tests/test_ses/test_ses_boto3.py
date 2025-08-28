@@ -811,6 +811,79 @@ def test_create_receipt_rule():
 
 
 @mock_aws
+def test_clone_receipt_rule_set():
+    conn = boto3.client("ses", region_name="us-east-1")
+    # First create a rule set that we will eventually clone
+    rule_set_name = "testRuleSet"
+    conn.create_receipt_rule_set(RuleSetName=rule_set_name)
+
+    result = conn.create_receipt_rule(
+        RuleSetName=rule_set_name,
+        Rule={
+            "Name": "testRule",
+            "Enabled": False,
+            "TlsPolicy": "Optional",
+            "Recipients": ["string"],
+            "Actions": [
+                {
+                    "S3Action": {
+                        "TopicArn": "string",
+                        "BucketName": "string",
+                        "ObjectKeyPrefix": "string",
+                        "KmsKeyArn": "string",
+                    },
+                    "BounceAction": {
+                        "TopicArn": "string",
+                        "SmtpReplyCode": "string",
+                        "StatusCode": "string",
+                        "Message": "string",
+                        "Sender": "string",
+                    },
+                }
+            ],
+            "ScanEnabled": False,
+        },
+    )
+
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Now try to execute Clone action by passing a non-existent rule set name
+    with pytest.raises(ClientError) as ex:
+        conn.clone_receipt_rule_set(
+            RuleSetName="ClonedRuleSet",
+            OriginalRuleSetName="NonExistentRuleSet",
+        )
+
+    assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Rule set does not exist: NonExistentRuleSet"
+    )
+
+    # Now try to clone it to a ruleset that already exists, i.e., itself
+    with pytest.raises(ClientError) as ex:
+        conn.clone_receipt_rule_set(
+            RuleSetName=rule_set_name,
+            OriginalRuleSetName=rule_set_name,
+        )
+
+    assert ex.value.response["Error"]["Code"] == "AlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"] == "Rule set already exists: testRuleSet"
+    )
+
+    # Now perform a valid clone - it succeeds
+    conn.clone_receipt_rule_set(
+        RuleSetName="ClonedRuleSet",
+        OriginalRuleSetName=rule_set_name,
+    )
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Verify that the cloned rule set also has one 1 rule
+    cloned_rules = conn.describe_receipt_rule_set(RuleSetName="ClonedRuleSet")
+    assert len(cloned_rules["Rules"]) == 1
+
+
+@mock_aws
 def test_describe_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     create_receipt_rule_set_response = conn.create_receipt_rule_set(
