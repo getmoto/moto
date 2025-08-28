@@ -894,6 +894,8 @@ def test_create_stack_set():
     assert stack_set["Description"] == "desc"
     assert stack_set["ExecutionRoleName"] == "AWSCloudFormationStackSetExecutionRole"
     assert stack_set["Tags"] == tags
+    if LooseVersion(boto3_version) < LooseVersion("1.23.10"):
+        return
     assert stack_set["ManagedExecution"]["Active"] is False
 
 
