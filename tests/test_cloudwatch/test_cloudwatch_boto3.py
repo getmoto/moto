@@ -34,8 +34,6 @@ def test_put_a_ton_of_metric_data():
     A sufficiently large call with metric data triggers request compression
     Moto should decompress the request if this is the case, and the request should succeed
     """
-    if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't test large requests in ServerMode")
     cloudwatch = boto3.client("cloudwatch", "us-east-1")
 
     metrics = []
