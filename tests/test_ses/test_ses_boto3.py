@@ -674,6 +674,39 @@ def test_create_receipt_rule_set():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "rule_set_name, exc_message",
+    [
+        (
+            '123"',
+            "Value at 'ruleSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$",
+        ),
+        (
+            "_123",
+            "Value at 'ruleSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$",
+        ),
+        (
+            "123_",
+            "Value at 'ruleSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$",
+        ),
+        ("a" * 65, f"Not a valid ruleSetName: {'a' * 65}"),
+    ],
+    ids=[
+        "having_invalid_characters",
+        "invalid_start_character",
+        "invalid_end_character",
+        "exceeding_max_length",
+    ],
+)
+def test_create_receipt_rule_set_invalid(rule_set_name, exc_message):
+    conn = boto3.client("ses", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule_set(RuleSetName=rule_set_name)
+    assert ex.value.response["Error"]["Code"] == "ValidationError"
+    assert ex.value.response["Error"]["Message"] == exc_message
+
+
+@mock_aws
 def test_create_receipt_rule():
     conn = boto3.client("ses", region_name="us-east-1")
     rule_set_name = "testRuleSet"
