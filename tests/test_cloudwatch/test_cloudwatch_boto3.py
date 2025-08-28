@@ -2,7 +2,6 @@ import copy
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from operator import itemgetter
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -11,7 +10,7 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
 from freezegun import freeze_time
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
