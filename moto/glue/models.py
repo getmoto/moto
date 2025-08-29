@@ -215,6 +215,18 @@ class GlueBackend(BaseBackend):
             "limit_default": 20,
             "unique_attribute": "crawl_id",
         },
+        "list_workflows": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "name",
+        },
+        "get_workflow_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "workflow_run_id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -230,6 +242,7 @@ class GlueBackend(BaseBackend):
         self.tagger = TaggingService()
         self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
+        self.workflows: Dict[str, FakeWorkflow] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
         self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
@@ -1493,6 +1506,120 @@ class GlueBackend(BaseBackend):
         del self.resource_policies[resource_arn]
         return {}
 
+    def create_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> str:
+        self.workflows[name] = FakeWorkflow(
+            name, default_run_properties, description, max_concurrent_runs, tags
+        )
+        return name
+
+    def get_workflow(
+        self,
+        name: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(name)
+        if workflow:
+            return workflow.as_dict()
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_workflows(self) -> List[str]:
+        return [workflow.name for workflow in self.workflows.values()]
+
+    def update_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+    ) -> str:
+        workflow = self.workflows.get(name)
+        if workflow:
+            if default_run_properties:
+                workflow.default_run_properties = default_run_properties
+            if description:
+                workflow.description = description
+            if max_concurrent_runs:
+                workflow.max_concurrent_runs = max_concurrent_runs
+            workflow.last_modified_on = utcnow()
+            return name
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    def delete_workflow(
+        self,
+        name: str,
+    ) -> str:
+        if self.workflows.get(name):
+            del self.workflows[name]
+        return name
+
+    def get_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).as_dict()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_workflow_runs(
+        self,
+        workflow_name: str,
+    ) -> List[Dict[str, Union[str, Dict[str, str]]]]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return [run.as_dict() for run in workflow.runs.values()]
+
+    def start_workflow_run(
+        self, workflow_name: str, properties: Optional[Dict[str, str]]
+    ) -> str:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.start_run(properties=properties)
+
+    def stop_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.stop_run(run_id)
+
+    def get_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, str]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).properties
+
+    def put_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+        properties: Dict[str, str],
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.get_run(run_id).properties.update(properties)
+
 
 class FakeDatabase(BaseModel):
     def __init__(
@@ -2305,6 +2432,101 @@ class FakeConnection(BaseModel):
                 "PhysicalConnectionRequirements"
             ),
         }
+
+
+class FakeWorkflowRun:
+    def __init__(
+        self,
+        workflow_name: str,
+        previous_run_id: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -> None:
+        self.workflow_name = workflow_name
+        self.run_id = f"wr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = previous_run_id
+        self.properties = properties or {}
+        self.status = "RUNNING"
+        self.started_on = utcnow()
+        self.completed_on: Optional[datetime] = None
+
+    def as_dict(self) -> Dict[str, Union[str, Dict[str, str]]]:
+        return_dict: Dict[str, Union[str, Dict[str, str]]] = {
+            "Name": self.workflow_name,
+            "WorkflowRunId": self.run_id,
+            "StartedOn": self.started_on.isoformat(),
+            "Status": self.status,
+        }
+        if self.completed_on:
+            return_dict["CompletedOn"] = self.completed_on.isoformat()
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        if self.properties:
+            return_dict["WorkflowRunProperties"] = self.properties
+        return return_dict
+
+
+class FakeWorkflow:
+    def __init__(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> None:
+        self.name = name
+        self.default_run_properties = default_run_properties
+        self.description = description
+        self.max_concurrent_runs = max_concurrent_runs
+        self.tags = tags
+        self.created_on = utcnow()
+        self.last_modified_on = utcnow()
+        self.runs: OrderedDict[str, FakeWorkflowRun] = OrderedDict()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return_dict: Dict[str, Any] = {
+            "CreatedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "Name": self.name,
+        }
+        if self.default_run_properties:
+            return_dict["DefaultRunProperties"] = self.default_run_properties
+        if self.description:
+            return_dict["Description"] = self.description
+        if self.max_concurrent_runs:
+            return_dict["MaxConcurrentRuns"] = self.max_concurrent_runs
+        if self.runs:
+            return_dict["LastRun"] = self.runs[next(reversed(self.runs))].as_dict()
+        return return_dict
+
+    def start_run(self, properties: Optional[Dict[str, str]]) -> str:
+        run_properties = (
+            self.default_run_properties.copy() if self.default_run_properties else {}
+        )
+        if properties:
+            run_properties.update(properties)
+        if self.runs:
+            previous_run_id = self.runs[next(reversed(self.runs))].run_id
+        else:
+            previous_run_id = None
+        workflow_run = FakeWorkflowRun(
+            workflow_name=self.name,
+            properties=run_properties,
+            previous_run_id=previous_run_id,
+        )
+        self.runs[workflow_run.run_id] = workflow_run
+        return workflow_run.run_id
+
+    def get_run(self, run_id: str) -> FakeWorkflowRun:
+        run = self.runs.get(run_id)
+        if not run:
+            raise EntityNotFoundException("Entity not found")
+        else:
+            return run
+
+    def stop_run(self, run_id: str) -> None:
+        if not self.runs.get(run_id):
+            raise EntityNotFoundException("Entity not found")
 
 
 glue_backends = BackendDict(GlueBackend, "glue")
