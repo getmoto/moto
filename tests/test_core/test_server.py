@@ -1,9 +1,11 @@
+import gzip
 from typing import Iterable
 from unittest.mock import Mock, patch
 
 import boto3
 import pytest
 
+from moto import server
 from moto.server import ThreadedMotoServer, main
 
 
@@ -48,3 +50,17 @@ def moto_server() -> Iterable[str]:
 def test_s3_using_moto_fixture(moto_server: str) -> None:
     client = boto3.client("s3", endpoint_url=moto_server)
     client.list_buckets()
+
+
+def test_request_decompression() -> None:
+    backend = server.create_backend_app("rds")
+    test_client = backend.test_client()
+    headers = {
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Host": "rds.us-east-1.amazonaws.com",
+    }
+    data = gzip.compress(b"Action=DescribeDBInstances")
+    resp = test_client.post(headers=headers, data=data)
+    assert resp.status_code == 200
+    assert "<DescribeDBInstancesResult>" in resp.data.decode("utf-8")
