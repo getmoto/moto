@@ -85,6 +85,24 @@ class FakeThing(CloudFormationModel):
         if query_string.startswith("thingName:"):
             qs = query_string[10:].replace("*", ".*").replace("?", ".")
             return re.search(f"^{qs}$", self.thing_name) is not None
+        if query_string.startswith("thingGroupNames:"):
+            thing_group_to_find = query_string.removeprefix("thingGroupNames:")
+            thing_group_match = re.compile(f"^{thing_group_to_find}$")
+
+            # Billing group are matched in thingGroupNames field too
+            if self.billing_group_name and thing_group_match.match(
+                self.billing_group_name
+            ):
+                return True
+
+            backend = iot_backends[self.account_id][self.region_name]
+            all_thing_groups = backend.list_thing_groups(None, None, None)
+            for thing_group in all_thing_groups:
+                if not thing_group_match.match(thing_group.thing_group_name):
+                    continue
+                if self.arn in thing_group.things:
+                    return True
+            return False
         if query_string.startswith("attributes."):
             k, v = query_string[11:].split(":")
             return self.attributes.get(k) == v
