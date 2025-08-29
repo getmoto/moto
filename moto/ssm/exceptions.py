@@ -158,3 +158,10 @@ class ParameterAlreadyExists(JsonRESTError):
             "ParameterAlreadyExists",
             "The parameter already exists. To overwrite this value, set the overwrite option in the request to true.",
         )
+
+
+class AlreadyExistsException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("AlreadyExistsException", message)

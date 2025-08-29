@@ -21,6 +21,7 @@ from moto.utilities.utils import load_resource
 
 from .exceptions import (
     AccessDeniedException,
+    AlreadyExistsException,
     DocumentAlreadyExists,
     DocumentPermissionLimit,
     DoesNotExistException,
@@ -1164,6 +1165,29 @@ class FakePatchBaseline:
         return "pb-" + "".join(str(random.choice(chars)) for _ in range(17))
 
 
+class FakePatchGroup:
+    def __init__(self, name):
+        self.name = name
+        self.default_associations: Dict[str, str] = {
+            "WINDOWS": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-04fb4ae6142167966",
+            "AMAZON_LINUX": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0d5ff2de2fa3fa0ff",
+            "AMAZON_LINUX_2": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0e930e75b392d70da",
+            "AMAZON_LINUX_2022": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-037a9df9b290208cf",
+            "UBUNTU": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0dcda0730ce35c5e6",
+            "REDHAT_ENTERPRISE_LINUX": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-054123d940f3d2056",
+            "SUSE": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0aee740f9a480ec2e",
+            "CENTOS": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0b641de5f3a9f3b2f",
+            "ORACLE_LINUX": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-06ac4861e0c6d047f",
+            "DEBIAN": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-04d1ad3cad30d44ff",
+            "MACOS": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-03dbdd88b851b829c",
+            "RASPBIAN": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0bcede5146d0adbd4",
+            "ROCKY_LINUX": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0b12e36f68dafa2ba",
+            "ALMA_LINUX": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-07dbd9f0b517b769e",
+            "AMAZON_LINUX_2023": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0a624803d647da0ab",
+        }
+        self.associations = self.default_associations
+
+
 class SimpleSystemManagerBackend(BaseBackend):
     """
     Moto supports the following default parameters out of the box:
@@ -1189,6 +1213,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
+        self.patch_groups: Dict[str, FakePatchGroup] = dict()
         self.ssm_prefix = (
             f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
         )
@@ -2520,6 +2545,32 @@ class SimpleSystemManagerBackend(BaseBackend):
     ) -> None:
         window = self.get_maintenance_window(window_id)
         del window.tasks[window_task_id]
+
+    def register_patch_baseline_for_patch_group(self, baseline_id, patch_group):
+        baseline_match = re.search(r"^[a-zA-Z0-9_\-:/]{20,128}$", baseline_id)
+        if baseline_match is None:
+            raise InvalidResourceId()
+        patch_group_match = re.search(r"^([a-zA-Z0-9 _.:/=+\-@]*)$", patch_group)
+        if patch_group_match is None:
+            raise InvalidResourceId()
+        if baseline_id not in self.baselines.keys():
+            return DoesNotExistException
+        baseline_os = self.baselines[baseline_id].operating_system
+        if patch_group in self.patch_groups.keys():
+            for group in self.patch_groups[patch_group]:
+                if (
+                    group.patch_baseline_id != baseline_id
+                    and group.patch_baseline_os != baseline_os
+                ):
+                    raise AlreadyExistsException()
+            self.patch_groups[patch_group].associations[baseline_os] = (
+                baseline_id
+            )
+        else:
+            fake_patch_group = FakePatchGroup(patch_group)
+            fake_patch_group.associations[baseline_os] = baseline_id
+            self.patch_groups[patch_group] = fake_patch_group
+        return baseline_id, patch_group
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

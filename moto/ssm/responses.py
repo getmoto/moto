@@ -554,3 +554,14 @@ class SimpleSystemManagerResponse(BaseResponse):
             window_id, window_task_id
         )
         return "{}"
+
+    def register_patch_baseline_for_patch_group(self) -> str:
+        baseline_id = self._get_param("BaselineId")
+        patch_group = self._get_param("PatchGroup")
+        baseline_id, patch_group = (
+            self.ssm_backend.register_patch_baseline_for_patch_group(
+                baseline_id=baseline_id,
+                patch_group=patch_group,
+            )
+        )
+        return json.dumps(dict(BaselineId=baseline_id, PatchGroup=patch_group))
