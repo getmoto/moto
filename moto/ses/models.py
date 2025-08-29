@@ -145,6 +145,7 @@ class ReceiptRuleSet(BaseModel):
         self.created_timestamp = datetime.datetime.now(
             datetime.timezone.utc
         ).isoformat()
+        self.is_active = False  # By default, during creation
         self.rules: List[Dict[str, Any]] = []
 
     @property
@@ -686,6 +687,22 @@ class SESBackend(BaseBackend):
         self.receipt_rule_set[rule_set_name].rules = copy.deepcopy(
             original_rule_set.rules
         )
+
+    def set_active_receipt_rule_set(self, rule_set_name: Optional[str]) -> Optional[ReceiptRuleSet]:
+        if not rule_set_name:
+            # A null rule_set_name parameter (i.e., not passed in the request at all) means that all receipt rule sets should be marked inactive
+            for rs in self.receipt_rule_set.values():
+                rs.is_active = False
+            return None
+        self._validate_rule_set_name_param(rule_set_name)
+        # Verify that the rule set exists
+        if rule_set_name not in self.receipt_rule_set:
+            raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+        # Only one active rule set is allowed at a time
+        for rs in self.receipt_rule_set.values():
+            rs.is_active = False
+        self.receipt_rule_set[rule_set_name].is_active = True
+        return self.receipt_rule_set[rule_set_name]
 
     def _validate_rule_set_name_param(self, rule_set_name: str) -> None:
         # Boto3 throws an error with the same message for both failures, even though we could have very well combined it into one regex

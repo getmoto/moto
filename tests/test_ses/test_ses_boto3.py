@@ -884,6 +884,37 @@ def test_clone_receipt_rule_set():
 
 
 @mock_aws
+def test_active_receipt_rule_set():
+    # Create one rule
+    conn = boto3.client("ses", region_name="us-east-1")
+    create_response = conn.create_receipt_rule_set(
+        RuleSetName="testRuleSet"
+    )
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    
+    # Try to set the active receipt rule set as a rule set that doesn't exist
+    with pytest.raises(ClientError) as ex:
+        conn.set_active_receipt_rule_set(RuleSetName="NonExistentRuleSet")
+    assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Rule set does not exist: NonExistentRuleSet"
+    )
+    
+    # Now set the active receipt rule set as the one we created
+    set_active_response = conn.set_active_receipt_rule_set(RuleSetName="testRuleSet")
+    assert set_active_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Now create a second receipt rule set
+    create_response_2 = conn.create_receipt_rule_set(RuleSetName="testRuleSet2")
+    assert create_response_2["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Now set the active receipt rule set as the second one
+    set_active_response_2 = conn.set_active_receipt_rule_set(RuleSetName="testRuleSet2")
+    assert set_active_response_2["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
 def test_describe_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     create_receipt_rule_set_response = conn.create_receipt_rule_set(

@@ -9206,7 +9206,7 @@
 - [X] send_email
 - [X] send_raw_email
 - [X] send_templated_email
-- [ ] set_active_receipt_rule_set
+- [X] set_active_receipt_rule_set
 - [ ] set_identity_dkim_enabled
 - [X] set_identity_feedback_forwarding_enabled
 - [ ] set_identity_headers_in_notifications_enabled
