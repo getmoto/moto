@@ -2,12 +2,23 @@
 import base64
 from collections import OrderedDict
 from collections.abc import Mapping, MutableMapping
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from botocore import xform_name
-from botocore.utils import parse_timestamp
+from botocore.utils import parse_timestamp as botocore_parse_timestamp
 
 UNDEFINED = object()  # Sentinel to signal the absence of a field in the input
+
+
+def parse_timestamp(value: str) -> datetime:
+    """Parse a timestamp and return a naive datetime object in UTC.
+    This matches Moto's internal representation of timestamps, based
+    on moto.core.utils.utcnow().
+    """
+    parsed = botocore_parse_timestamp(value)
+    as_naive_utc = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return as_naive_utc
 
 
 class QueryParser:
