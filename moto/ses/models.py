@@ -688,7 +688,9 @@ class SESBackend(BaseBackend):
             original_rule_set.rules
         )
 
-    def set_active_receipt_rule_set(self, rule_set_name: Optional[str]) -> Optional[ReceiptRuleSet]:
+    def set_active_receipt_rule_set(
+        self, rule_set_name: Optional[str]
+    ) -> Optional[ReceiptRuleSet]:
         if not rule_set_name:
             # A null rule_set_name parameter (i.e., not passed in the request at all) means that all receipt rule sets should be marked inactive
             for rs in self.receipt_rule_set.values():
@@ -703,6 +705,12 @@ class SESBackend(BaseBackend):
             rs.is_active = False
         self.receipt_rule_set[rule_set_name].is_active = True
         return self.receipt_rule_set[rule_set_name]
+
+    def describe_active_receipt_rule_set(self) -> Optional[ReceiptRuleSet]:
+        for rs in self.receipt_rule_set.values():
+            if rs.is_active:
+                return rs
+        return None
 
     def _validate_rule_set_name_param(self, rule_set_name: str) -> None:
         # Boto3 throws an error with the same message for both failures, even though we could have very well combined it into one regex

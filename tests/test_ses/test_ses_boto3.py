@@ -887,11 +887,9 @@ def test_clone_receipt_rule_set():
 def test_active_receipt_rule_set():
     # Create one rule
     conn = boto3.client("ses", region_name="us-east-1")
-    create_response = conn.create_receipt_rule_set(
-        RuleSetName="testRuleSet"
-    )
+    create_response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
     assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    
+
     # Try to set the active receipt rule set as a rule set that doesn't exist
     with pytest.raises(ClientError) as ex:
         conn.set_active_receipt_rule_set(RuleSetName="NonExistentRuleSet")
@@ -900,10 +898,14 @@ def test_active_receipt_rule_set():
         ex.value.response["Error"]["Message"]
         == "Rule set does not exist: NonExistentRuleSet"
     )
-    
+
     # Now set the active receipt rule set as the one we created
     set_active_response = conn.set_active_receipt_rule_set(RuleSetName="testRuleSet")
     assert set_active_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Verify it via DescribeActiveReceiptRuleSet action as well
+    active_rule_set = conn.describe_active_receipt_rule_set()
+    assert active_rule_set["Metadata"]["Name"] == "testRuleSet"
 
     # Now create a second receipt rule set
     create_response_2 = conn.create_receipt_rule_set(RuleSetName="testRuleSet2")
@@ -912,6 +914,18 @@ def test_active_receipt_rule_set():
     # Now set the active receipt rule set as the second one
     set_active_response_2 = conn.set_active_receipt_rule_set(RuleSetName="testRuleSet2")
     assert set_active_response_2["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Verify it, again, via DescribeActiveReceiptRuleSet action
+    active_rule_set_2 = conn.describe_active_receipt_rule_set()
+    assert active_rule_set_2["Metadata"]["Name"] == "testRuleSet2"
+
+    # Finally, invoking SetActiveReceiptRuleSet with no RuleSetName parameter causes all rules to become inactive
+    set_active_response_3 = conn.set_active_receipt_rule_set()
+    assert set_active_response_3["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    active_rule_set_3 = conn.describe_active_receipt_rule_set()
+    assert set_active_response_3["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert "Metadata" not in active_rule_set_3
 
 
 @mock_aws

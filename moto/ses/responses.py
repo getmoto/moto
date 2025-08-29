@@ -250,6 +250,10 @@ class EmailResponse(BaseResponse):
         rule_set = self.backend.describe_receipt_rule_set(rule_set_name)
         return ActionResult(rule_set)
 
+    def describe_active_receipt_rule_set(self) -> ActionResult:
+        rule_set = self.backend.describe_active_receipt_rule_set()
+        return ActionResult(rule_set)
+
     def describe_receipt_rule(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         rule_name = self._get_param("RuleName")

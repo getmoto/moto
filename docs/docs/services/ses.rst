@@ -16,7 +16,7 @@ ses
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] clone_receipt_rule_set
+- [X] clone_receipt_rule_set
 - [X] create_configuration_set
 - [X] create_configuration_set_event_destination
 - [ ] create_configuration_set_tracking_options
@@ -36,7 +36,7 @@ ses
 - [ ] delete_receipt_rule_set
 - [X] delete_template
 - [ ] delete_verified_email_address
-- [ ] describe_active_receipt_rule_set
+- [X] describe_active_receipt_rule_set
 - [X] describe_configuration_set
 - [X] describe_receipt_rule
 - [X] describe_receipt_rule_set
@@ -67,7 +67,7 @@ ses
 - [X] send_email
 - [X] send_raw_email
 - [X] send_templated_email
-- [ ] set_active_receipt_rule_set
+- [X] set_active_receipt_rule_set
 - [ ] set_identity_dkim_enabled
 - [X] set_identity_feedback_forwarding_enabled
 - [ ] set_identity_headers_in_notifications_enabled
