@@ -2,7 +2,6 @@ from copy import deepcopy
 from typing import Any, Dict, List
 
 from moto.core.responses import ActionResult, EmptyResult
-from moto.core.serialize import return_if_not_empty
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
     InvalidParameterCombination,
@@ -15,15 +14,6 @@ from ._base_response import EC2BaseResponse
 
 
 class InstanceResponse(EC2BaseResponse):
-    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        # Initial instance state is always 'pending'.
-        "RunInstances.Reservation.Instances.Instance.State": lambda _: {
-            "Code": 0,
-            "Name": "pending",
-        },
-        "Instances.Instance.Tags": return_if_not_empty,
-    }
-
     def describe_instances(self) -> ActionResult:
         self.error_on_dryrun()
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_instances.html

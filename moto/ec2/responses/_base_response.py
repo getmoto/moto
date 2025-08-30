@@ -15,6 +15,12 @@ class EC2BaseResponse(BaseResponse):
         "AssociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "associating",
         "DisassociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "disassociating",
         "ReplaceIamInstanceProfileAssociationResult.IamInstanceProfileAssociation.State": lambda _: "associating",
+        # Instances
+        "Instances.Instance.Tags": return_if_not_empty,
+        "RunInstances.Reservation.Instances.Instance.State": lambda _: {
+            "Code": 0,
+            "Name": "pending",
+        },
     }
 
     @property
