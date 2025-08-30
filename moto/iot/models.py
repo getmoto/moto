@@ -74,7 +74,7 @@ class FakeThing(CloudFormationModel):
         # for iot-data
         self.thing_shadows: Dict[Optional[str], FakeShadow] = {}
 
-    def matches(self, query_string: str) -> bool:
+    def _matches_single_query(self, query_string: str) -> bool:
         if query_string == "*":
             return True
         if query_string.startswith("thingTypeName:"):
@@ -104,9 +104,102 @@ class FakeThing(CloudFormationModel):
                     return True
             return False
         if query_string.startswith("attributes."):
-            k, v = query_string[11:].split(":")
-            return self.attributes.get(k) == v
+            try:
+                k, v = query_string[11:].split(":", 1)
+                return self.attributes.get(k) == v
+            except ValueError:
+                return False
         return query_string in self.thing_name
+
+    def matches(self, query_string: str) -> bool:
+        if not query_string.strip():
+            return False
+        if query_string == "*":
+            return True
+
+        # Replace "-" sign at the beginning of a term with a regular NOT operator
+        query_string = re.sub(r"(^|\s)-", r"\1NOT ", query_string)
+
+        # Tokenize by spaces, and treat parentheses as separate tokens
+        tokens = query_string.replace("(", " ( ").replace(")", " ) ").split()
+        # Filter out empty tokens that may result from multiple spaces
+        tokens = [token for token in tokens if token]
+
+        precedence = {"OR": 1, "AND": 2, "NOT": 3}
+        output_queue: List[str] = []
+        operator_stack: List[str] = []
+
+        # Implicit AND handling
+        # If a token is an operand, and the previous token was also an operand, we insert an AND operator.
+        prev_token_is_operand = False
+        processed_tokens = []
+        for token in tokens:
+            is_operand = token.upper() not in ["AND", "OR", "NOT"] and token not in [
+                "(",
+                ")",
+            ]
+            if is_operand and prev_token_is_operand:
+                processed_tokens.append("AND")
+            processed_tokens.append(token)
+            prev_token_is_operand = is_operand
+        tokens = processed_tokens
+
+        # Convert to Reverse Polish Notation
+        for token in tokens:
+            if token.upper() in ("AND", "OR"):
+                while (
+                    operator_stack
+                    and operator_stack[-1] != "("
+                    and precedence.get(operator_stack[-1].upper(), 0)
+                    >= precedence.get(token.upper(), 0)
+                ):
+                    output_queue.append(operator_stack.pop())
+                operator_stack.append(token)
+            elif token.upper() == "NOT":
+                operator_stack.append(token)
+            elif token == "(":
+                operator_stack.append(token)
+            elif token == ")":
+                while operator_stack and operator_stack[-1] != "(":
+                    output_queue.append(operator_stack.pop())
+                if not operator_stack or operator_stack[-1] != "(":
+                    raise InvalidRequestException("Mismatched parentheses")
+                operator_stack.pop()  # Pop '('
+            else:  # operand
+                output_queue.append(token)
+
+        while operator_stack:
+            op = operator_stack.pop()
+            if op == "(":
+                raise InvalidRequestException("Mismatched parentheses")
+            output_queue.append(op)
+
+        # Now evaluate the RPN expression in output_queue
+        eval_stack: List[bool] = []
+        for token in output_queue:
+            if token.upper() == "AND":
+                if len(eval_stack) < 2:
+                    raise InvalidRequestException("Invalid query syntax")
+                stack_op2 = eval_stack.pop()
+                stack_op1 = eval_stack.pop()
+                eval_stack.append(stack_op1 and stack_op2)
+            elif token.upper() == "OR":
+                if len(eval_stack) < 2:
+                    raise InvalidRequestException("Invalid query syntax")
+                stack_op2 = eval_stack.pop()
+                stack_op1 = eval_stack.pop()
+                eval_stack.append(stack_op1 or stack_op2)
+            elif token.upper() == "NOT":
+                if len(eval_stack) < 1:
+                    raise InvalidRequestException("Invalid query syntax")
+                eval_stack.append(not eval_stack.pop())
+            else:
+                eval_stack.append(self._matches_single_query(token))
+
+        if len(eval_stack) != 1:
+            raise InvalidRequestException("Invalid query syntax")
+
+        return eval_stack[0]
 
     def to_dict(
         self,
