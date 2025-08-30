@@ -723,6 +723,10 @@ class SESBackend(BaseBackend):
             raise CannotDelete(f"Cannot delete active rule set: {rule_set_name}")
         del self.receipt_rule_set[rule_set_name]
 
+    def list_receipt_rule_sets(self) -> List[ReceiptRuleSet]:
+        # The receipt rule sets are ordered by name
+        return sorted(self.receipt_rule_set.values(), key=lambda rs: rs.name)
+
     def _validate_rule_set_name_param(self, rule_set_name: str) -> None:
         # Boto3 throws an error with the same message for both failures, even though we could have very well combined it into one regex
         if (

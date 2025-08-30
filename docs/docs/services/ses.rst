@@ -55,7 +55,7 @@ ses
 - [X] list_identities
 - [ ] list_identity_policies
 - [ ] list_receipt_filters
-- [ ] list_receipt_rule_sets
+- [X] list_receipt_rule_sets
 - [X] list_templates
 - [X] list_verified_email_addresses
 - [ ] put_configuration_set_delivery_options

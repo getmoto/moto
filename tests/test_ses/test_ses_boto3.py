@@ -911,6 +911,14 @@ def test_active_receipt_rule_set():
     create_response_2 = conn.create_receipt_rule_set(RuleSetName="testRuleSet2")
     assert create_response_2["ResponseMetadata"]["HTTPStatusCode"] == 200
 
+    # Verify that two rule sets exist
+    rule_sets = conn.list_receipt_rule_sets()
+    assert len(rule_sets["RuleSets"]) == 2
+    assert [rs["Name"] for rs in rule_sets["RuleSets"]] == [
+        "testRuleSet",
+        "testRuleSet2",
+    ]
+
     # Now set the active receipt rule set as the second one
     set_active_response_2 = conn.set_active_receipt_rule_set(RuleSetName="testRuleSet2")
     assert set_active_response_2["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -1026,13 +1034,10 @@ def test_delete_receipt_rule_set():
     delete_response = conn.delete_receipt_rule_set(RuleSetName="testRuleSet")
     assert delete_response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    # Describe receipt rule set to receive an empty list
-    with pytest.raises(ClientError) as ex:
-        conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
-    assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
-    assert (
-        ex.value.response["Error"]["Message"] == "Rule set does not exist: testRuleSet"
-    )
+    # This can be verified via a ListReceiptRuleSets action
+    result = conn.list_receipt_rule_sets()
+    assert result["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert len(result["RuleSets"]) == 0
 
 
 @mock_aws

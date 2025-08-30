@@ -259,6 +259,11 @@ class EmailResponse(BaseResponse):
         self.backend.delete_receipt_rule_set(rule_set_name)
         return EmptyResult()
 
+    def list_receipt_rule_sets(self) -> ActionResult:
+        rule_sets = self.backend.list_receipt_rule_sets()
+        result = {"RuleSets": [rs.metadata for rs in rule_sets]}
+        return ActionResult(result)
+
     def describe_receipt_rule(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         rule_name = self._get_param("RuleName")
