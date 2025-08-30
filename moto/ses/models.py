@@ -17,6 +17,7 @@ from moto.utilities.paginator import paginate
 
 from .exceptions import (
     AlreadyExists,
+    CannotDelete,
     ConfigurationSetAlreadyExists,
     ConfigurationSetDoesNotExist,
     EventDestinationAlreadyExists,
@@ -711,6 +712,16 @@ class SESBackend(BaseBackend):
             if rs.is_active:
                 return rs
         return None
+
+    def delete_receipt_rule_set(self, rule_set_name: str) -> None:
+        self._validate_rule_set_name_param(rule_set_name)
+        # If the rule set does not exist, boto3 silently returns with success response
+        if rule_set_name not in self.receipt_rule_set:
+            return
+        # If the rule set is active, then raise a CannotDeleteException
+        if self.receipt_rule_set[rule_set_name].is_active:
+            raise CannotDelete(f"Cannot delete active rule set: {rule_set_name}")
+        del self.receipt_rule_set[rule_set_name]
 
     def _validate_rule_set_name_param(self, rule_set_name: str) -> None:
         # Boto3 throws an error with the same message for both failures, even though we could have very well combined it into one regex

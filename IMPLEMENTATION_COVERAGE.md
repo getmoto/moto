@@ -9153,7 +9153,7 @@
 
 ## ses
 <details>
-<summary>51% implemented</summary>
+<summary>52% implemented</summary>
 
 - [X] clone_receipt_rule_set
 - [X] create_configuration_set
@@ -9172,7 +9172,7 @@
 - [ ] delete_identity_policy
 - [ ] delete_receipt_filter
 - [ ] delete_receipt_rule
-- [ ] delete_receipt_rule_set
+- [X] delete_receipt_rule_set
 - [X] delete_template
 - [ ] delete_verified_email_address
 - [X] describe_active_receipt_rule_set

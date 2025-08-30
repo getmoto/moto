@@ -885,7 +885,7 @@ def test_clone_receipt_rule_set():
 
 @mock_aws
 def test_active_receipt_rule_set():
-    # Create one rule
+    # Create a receipt rule set
     conn = boto3.client("ses", region_name="us-east-1")
     create_response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
     assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -992,6 +992,47 @@ def test_describe_receipt_rule_set_with_rules():
 
     assert len(result["Rules"]) == 1
     assert result["Rules"][0] == receipt_rule
+
+
+@mock_aws
+def test_delete_receipt_rule_set():
+    # Create a receipt rule set
+    conn = boto3.client("ses", region_name="us-east-1")
+    create_response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
+    assert create_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Delete a receipt rule set that doesn't exist. It is still considered a successful operation
+    delete_response = conn.delete_receipt_rule_set(RuleSetName="nonExistentRuleSet")
+    assert delete_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Mark the receipt rule set as active
+    set_active_response = conn.set_active_receipt_rule_set(RuleSetName="testRuleSet")
+    assert set_active_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Now attempt a deletion
+    with pytest.raises(ClientError) as ex:
+        conn.delete_receipt_rule_set(RuleSetName="testRuleSet")
+    assert ex.value.response["Error"]["Code"] == "CannotDelete"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Cannot delete active rule set: testRuleSet"
+    )
+
+    # Mark (all) receipt rule set as inactive
+    set_inactive_response = conn.set_active_receipt_rule_set()
+    assert set_inactive_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Now the deletion goes through successfully
+    delete_response = conn.delete_receipt_rule_set(RuleSetName="testRuleSet")
+    assert delete_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # Describe receipt rule set to receive an empty list
+    with pytest.raises(ClientError) as ex:
+        conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
+    assert ex.value.response["Error"]["Code"] == "RuleSetDoesNotExist"
+    assert (
+        ex.value.response["Error"]["Message"] == "Rule set does not exist: testRuleSet"
+    )
 
 
 @mock_aws
