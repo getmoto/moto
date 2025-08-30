@@ -115,11 +115,22 @@ class SerializationContext:
 class ErrorShape(StructureShape):
     _shape_model: dict[str, Any]
 
+    @property
+    def is_sender_fault(self) -> bool:
+        internal_fault = self._shape_model.get("fault", False)
+        error_info = self.metadata.get("error", {})
+        sender_fault = error_info.get("senderFault", False)
+        return sender_fault or not internal_fault
+
     # Overriding super class property to keep mypy happy...
     @property
     def error_code(self) -> str:
         code = str(super().error_code)
         return code
+
+    @classmethod
+    def from_existing_shape(cls, shape: Shape) -> ErrorShape:
+        return cls(shape.name, shape._shape_model, shape._shape_resolver)  # type: ignore[attr-defined]
 
 
 class ShapeHelpersMixin:
@@ -397,6 +408,8 @@ class ResponseSerializer(ShapeHelpersMixin):
                 },
             }
             error_shape = ErrorShape(error_name, generic_error_model)
+        else:
+            error_shape = ErrorShape.from_existing_shape(error_shape)
         return error_shape
 
     #
@@ -531,9 +544,7 @@ class BaseJSONSerializer(ResponseSerializer):
     ) -> None:
         if "awsQueryCompatible" not in self.service_model.metadata:
             return
-        error_info = shape.metadata.get("error", {})
-        sender_fault = error_info.get("senderFault", False)
-        fault = "Sender" if sender_fault else "Receiver"
+        fault = "Sender" if shape.is_sender_fault else "Receiver"
         resp["headers"]["x-amzn-query-error"] = f"{shape.error_code};{fault}"
 
     def _get_protocol_specific_content_type(self) -> str:
@@ -667,9 +678,7 @@ class BaseXMLSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        at_fault = shape._shape_model.get("fault", False)
-        sender_fault = shape.metadata.get("error", {}).get("senderFault", False)
-        serialized["Type"] = "Receiver" if (at_fault and not sender_fault) else "Sender"
+        serialized["Type"] = "Sender" if shape.is_sender_fault else "Receiver"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
         if message is not None:
