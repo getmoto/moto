@@ -17,14 +17,63 @@ import time
 from botocore.model import ServiceModel, ShapeResolver
 from xmltodict import parse
 
+from moto.core.exceptions import ServiceException
 from moto.core.serialize import (
     AttributePickerContext,
+    JSONSerializer,
     QuerySerializer,
     XFormedAttributePicker,
     never_return,
     return_if_not_empty,
     url_encode,
 )
+
+
+def test_aws_query_compatible_error() -> None:
+    model = {
+        "metadata": {
+            "protocol": "json",
+            "apiVersion": "2014-01-01",
+            "awsQueryCompatible": {},
+        },
+        "documentation": "",
+        "operations": {
+            "TestOperation": {
+                "name": "TestOperation",
+                "http": {
+                    "method": "POST",
+                    "requestUri": "/",
+                },
+            }
+        },
+        "shapes": {
+            "QueryCompatibleError": {
+                "type": "structure",
+                "members": {
+                    "message": {"shape": "StringType"},
+                },
+                "error": {
+                    "code": "PreservedErrorCode",
+                    "httpStatusCode": 400,
+                    "senderFault": True,
+                },
+                "exception": True,
+            },
+            "StringType": {
+                "type": "string",
+            },
+        },
+    }
+
+    class TestError(ServiceException):
+        pass
+
+    service_model = ServiceModel(model)
+    operation_model = service_model.operation_model("TestOperation")
+    serializer = JSONSerializer(operation_model)
+    serialized = serializer.serialize(TestError("PreservedErrorCode", "test-message"))
+    headers = serialized["headers"]
+    assert headers.get("x-amzn-query-error") == "PreservedErrorCode;Sender"
 
 
 def test_serialize_from_object() -> None:

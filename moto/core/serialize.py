@@ -523,7 +523,16 @@ class BaseJSONSerializer(ResponseSerializer):
         error_code = self._get_protocol_specific_error_code(shape.error_code)
         resp["headers"]["X-Amzn-Errortype"] = error_code
         resp["headers"]["Content-Type"] = self._get_protocol_specific_content_type()
+        self._serialize_query_compatible_error_to_response(resp, shape)
         return resp
+
+    def _serialize_query_compatible_error_to_response(
+        self, resp: ResponseDict, shape: ErrorShape
+    ) -> None:
+        if "awsQueryCompatible" in self.service_model.metadata:
+            sender_fault = shape.metadata.get("error", {}).get("senderFault", False)
+            fault = "Sender" if sender_fault else "Receiver"
+            resp["headers"]["x-amzn-query-error"] = f"{shape.error_code};{fault}"
 
     def _get_protocol_specific_content_type(self) -> str:
         content_type = self.CONTENT_TYPE
