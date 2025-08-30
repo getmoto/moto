@@ -54,7 +54,7 @@ def test_aws_query_compatible_error() -> None:
                 },
                 "error": {
                     "code": "PreservedErrorCode",
-                    "httpStatusCode": 400,
+                    "httpStatusCode": 409,
                     "senderFault": True,
                 },
                 "exception": True,
@@ -72,6 +72,7 @@ def test_aws_query_compatible_error() -> None:
     operation_model = service_model.operation_model("TestOperation")
     serializer = JSONSerializer(operation_model)
     serialized = serializer.serialize(TestError("PreservedErrorCode", "test-message"))
+    assert serialized["status_code"] == 409
     headers = serialized["headers"]
     assert headers.get("x-amzn-query-error") == "PreservedErrorCode;Sender"
 
