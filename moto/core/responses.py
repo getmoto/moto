@@ -35,7 +35,7 @@ from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
 from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
-from moto.core.request import normalize_request
+from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -47,6 +47,7 @@ from moto.core.utils import (
     utcfromtimestamp,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
+from moto.utilities.constants import APPLICATION_JSON, JSON_TYPES
 from moto.utilities.utils import get_partition, load_resource, load_resource_as_bytes
 
 log = logging.getLogger(__name__)
@@ -650,7 +651,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         normalized_request = normalize_request(request)
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
-        protocol = service_model.protocol
+        protocol = determine_request_protocol(normalized_request, service_model)
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
         parsed = parser.parse(
@@ -663,11 +664,26 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         )  # type: ignore[no-untyped-call]
         self.params = cast(Any, parsed)
 
+    def determine_response_protocol(self, service_model: ServiceModel) -> str:
+        protocol = str(service_model.protocol)
+        supported_protocols = service_model.metadata.get("protocols", [protocol])
+        content_type = self.headers.get("Content-Type", "")
+        if content_type in JSON_TYPES:
+            protocol = "rest-json" if content_type == APPLICATION_JSON else "json"
+        elif content_type.startswith("application/x-www-form-urlencoded"):
+            protocol = "ec2" if "ec2" in supported_protocols else "query"
+        if protocol not in supported_protocols:
+            raise NotImplementedError(
+                f"Unsupported protocol [{protocol}] for service {service_model.service_name}"
+            )
+        if protocol == "query" and self.request_json:
+            protocol += "-json"
+        return protocol
+
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
-        protocol = service_model.protocol
-        protocol += "-json" if protocol == "query" and self.request_json else ""
+        protocol = self.determine_response_protocol(service_model)
         serializer_cls = SERIALIZERS[protocol]
         context = ActionContext(
             service_model, operation_model, serializer_cls, self.__class__
