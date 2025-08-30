@@ -47,6 +47,7 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
     def get_tag_values(self) -> str:
         pagination_token = self._get_param("PaginationToken")
         key = self._get_param("Key")
+
         pagination_token, tag_values = self.backend.get_tag_values(
             pagination_token=pagination_token, key=key
         )

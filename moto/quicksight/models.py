@@ -1,12 +1,15 @@
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
+from moto.utilities.tagging_service import TaggingService
 
 from .data_models import (
     QuicksightAccountSettings,
     QuicksightDashboard,
     QuicksightDataSet,
+    QuickSightDataSource,
     QuicksightGroup,
     QuicksightIngestion,
     QuicksightMembership,
@@ -31,11 +34,28 @@ class QuickSightBackend(BaseBackend):
         self.account_settings: QuicksightAccountSettings = QuicksightAccountSettings(
             account_id=account_id
         )
+        self.data_sources: Dict[str, QuickSightDataSource] = dict()
+        self.data_sets: Dict[str, QuicksightDataSet] = dict()
+        self.tagger = TaggingService()
 
-    def create_data_set(self, data_set_id: str, name: str) -> QuicksightDataSet:
-        return QuicksightDataSet(
+    def create_data_set(
+        self,
+        data_set_id: str,
+        name: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> QuicksightDataSet:
+        dataset = QuicksightDataSet(
             self.account_id, self.region_name, data_set_id, name=name
         )
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=dataset.arn,
+                tags=tags,
+            )
+
+        self.data_sets[data_set_id] = dataset
+        return dataset
 
     def create_group(
         self, group_name: str, description: str, aws_account_id: str, namespace: str
@@ -156,6 +176,7 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         namespace: str,
         user_name: str,
+        tags: Optional[List[Dict[str, str]]] = None,
     ) -> QuicksightUser:
         """
         The following parameters are not yet implemented:
@@ -170,6 +191,13 @@ class QuickSightBackend(BaseBackend):
             username=user_name,
         )
         _id = _create_id(aws_account_id, namespace, user_name)
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=user.arn,
+                tags=tags,
+            )
+
         self.users[_id] = user
         return user
 
@@ -229,6 +257,13 @@ class QuickSightBackend(BaseBackend):
             version_description=version_description,
             validation_strategy=validation_strategy,
         )
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=dashboard.arn,
+                tags=tags,
+            )
+
         self.dashboards[dashboard_id] = dashboard
         return dashboard
 
@@ -284,6 +319,104 @@ class QuickSightBackend(BaseBackend):
         self, aws_account_id: str, public_sharing_enabled: bool
     ) -> None:
         self.account_settings.public_sharing_enabled = public_sharing_enabled
+
+    def create_data_source(
+        self,
+        aws_account_id: str,
+        data_source_id: str,
+        name: str,
+        data_source_type: str,
+        data_source_parameters: Optional[Dict[str, Dict[str, Any]]] = None,
+        vpc_connection_properties: Optional[Dict[str, Any]] = None,
+        ssl_properties: Optional[Dict[str, Any]] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> QuickSightDataSource:
+        data_source = QuickSightDataSource(
+            account_id=aws_account_id,
+            region=self.region_name,
+            data_source_id=data_source_id,
+            name=name,
+            status="CREATION_SUCCESSFUL",
+            data_source_type=data_source_type,
+            data_source_parameters=data_source_parameters,
+            ssl_properties=ssl_properties,
+            vpc_connection_properties=vpc_connection_properties,
+            tags=tags,
+        )
+
+        if tags:
+            self.tagger.tag_resource(
+                arn=data_source.arn,
+                tags=tags,
+            )
+
+        self.data_sources[data_source_id] = data_source
+        return data_source
+
+    def update_data_source(
+        self,
+        aws_account_id: str,
+        data_source_id: str,
+        name: str,
+        data_source_parameters: Optional[Dict[str, Any]] = None,
+        vpc_connection_properties: Optional[Dict[str, Any]] = None,
+        ssl_properties: Optional[Dict[str, Any]] = None,
+    ) -> QuickSightDataSource:
+        data_source = self.data_sources.get(data_source_id)
+
+        if not data_source:
+            raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
+
+        data_source.name = name
+        data_source.data_source_parameters = data_source_parameters
+        data_source.last_updated_time = datetime.now()
+        data_source.status = "UPDATE_SUCCESSFUL"
+        return data_source
+
+    def delete_data_source(
+        self, aws_account_id: str, data_source_id: str
+    ) -> QuickSightDataSource:
+        data_source = self.data_sources.pop(data_source_id, None)
+
+        if data_source is None:
+            raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
+
+        return data_source
+
+    def describe_data_source(
+        self, aws_account_id: str, data_source_id: str
+    ) -> QuickSightDataSource:
+        data_source = self.data_sources.get(data_source_id)
+
+        if not data_source:
+            raise ResourceNotFoundException(f"DataSource {data_source_id} Not Found")
+
+        return data_source
+
+    def list_data_sources(self, aws_account_id: str) -> List[Dict[str, Any]]:
+        data_sources = self.data_sources.values()
+        data_source_list: List[Dict[str, Any]] = []
+
+        for data_source in data_sources:
+            data_source_list.append(data_source.to_json())
+
+        return data_source_list
+
+    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+        self.tagger.tag_resource(
+            arn=resource_arn,
+            tags=tags,
+        )
+
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+        self.tagger.untag_resource_using_names(
+            resource_arn,
+            tag_keys,
+        )
+
+    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+        tags = self.tagger.list_tags_for_resource(arn)
+        return tags.get("Tags", [])
 
 
 quicksight_backends = BackendDict(QuickSightBackend, "quicksight")
