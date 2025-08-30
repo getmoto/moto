@@ -207,11 +207,12 @@ class TransitGatewayAttachment(EC2BaseResponse):
 CREATE_TRANSIT_GATEWAY_VPC_ATTACHMENT = """<CreateTransitGatewayVpcAttachmentResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
         <requestId>9b5766ac-2af6-4b92-9a8a-4d74ae46ae79</requestId>
         <transitGatewayVpcAttachment>
-            <createTime>{{ transit_gateway_attachment.create_time }}</createTime>
+            <creationTime>{{ transit_gateway_attachment.create_time }}</creationTime>
             <options>
                 <applianceModeSupport>{{ transit_gateway_attachment.options.ApplianceModeSupport }}</applianceModeSupport>
                 <dnsSupport>{{ transit_gateway_attachment.options.DnsSupport }}</dnsSupport>
                 <ipv6Support>{{ transit_gateway_attachment.options.Ipv6Support }}</ipv6Support>
+                <securityGroupReferencingSupport>enable</securityGroupReferencingSupport>
             </options>
             <state>{{ transit_gateway_attachment.state }}</state>
             <subnetIds>
@@ -219,6 +220,7 @@ CREATE_TRANSIT_GATEWAY_VPC_ATTACHMENT = """<CreateTransitGatewayVpcAttachmentRes
                 <item>{{ subnet_id }}</item>
             {% endfor %}
             </subnetIds>
+            {% if transit_gateway_attachment.get_tags() %}
             <tagSet>
             {% for tag in transit_gateway_attachment.get_tags() %}
                 <item>
@@ -227,6 +229,7 @@ CREATE_TRANSIT_GATEWAY_VPC_ATTACHMENT = """<CreateTransitGatewayVpcAttachmentRes
                 </item>
             {% endfor %}
             </tagSet>
+            {% endif %}
             <transitGatewayAttachmentId>{{ transit_gateway_attachment.id }}</transitGatewayAttachmentId>
             <transitGatewayId>{{ transit_gateway_attachment.transit_gateway_id }}</transitGatewayId>
             <vpcId>{{ transit_gateway_attachment.vpc_id }}</vpcId>
@@ -249,6 +252,7 @@ DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS = """<DescribeTransitGatewayAttachmentsResp
             <resourceOwnerId>{{ transit_gateway_attachment.resource_owner_id }}</resourceOwnerId>
             <resourceType>{{ transit_gateway_attachment.resource_type }}</resourceType>
             <state>{{ transit_gateway_attachment.state }}</state>
+            {% if transit_gateway_attachment.get_tags() %}
             <tagSet>
             {% for tag in transit_gateway_attachment.get_tags() %}
                 <item>
@@ -257,6 +261,7 @@ DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS = """<DescribeTransitGatewayAttachmentsResp
                 </item>
             {% endfor %}
             </tagSet>
+            {% endif %}
             <transitGatewayAttachmentId>{{ transit_gateway_attachment.id }}</transitGatewayAttachmentId>
             <transitGatewayId>{{ transit_gateway_attachment.transit_gateway_id }}</transitGatewayId>
             <transitGatewayOwnerId>{{ transit_gateway_attachment.resource_owner_id }}</transitGatewayOwnerId>
@@ -272,12 +277,13 @@ DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DescribeTransitGatewayVpcAttachme
         <transitGatewayVpcAttachments>
         {% for transit_gateway_vpc_attachment in transit_gateway_vpc_attachments %}
             <item>
-                <creationTime>2021-07-18T08:57:21.000Z</creationTime>
+                <creationTime>{{ transit_gateway_vpc_attachment.create_time }}</creationTime>
                 {% if transit_gateway_vpc_attachment.options %}
                 <options>
                     <applianceModeSupport>{{ transit_gateway_vpc_attachment.options.ApplianceModeSupport }}</applianceModeSupport>
                     <dnsSupport>{{ transit_gateway_vpc_attachment.options.DnsSupport }}</dnsSupport>
                     <ipv6Support>{{ transit_gateway_vpc_attachment.options.Ipv6Support }}</ipv6Support>
+                    <securityGroupReferencingSupport>enable</securityGroupReferencingSupport>
                 </options>
                 {% endif %}
                 <state>{{ transit_gateway_vpc_attachment.state }}</state>
@@ -286,6 +292,7 @@ DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DescribeTransitGatewayVpcAttachme
                     <item>{{ id }}</item>
                 {% endfor %}
                 </subnetIds>
+                {% if transit_gateway_vpc_attachment.get_tags() %}
                 <tagSet>
                 {% for tag in transit_gateway_vpc_attachment.get_tags() %}
                     <item>
@@ -294,6 +301,7 @@ DESCRIBE_TRANSIT_GATEWAY_VPC_ATTACHMENTS = """<DescribeTransitGatewayVpcAttachme
                     </item>
                 {% endfor %}
                 </tagSet>
+                {% endif %}
                 <transitGatewayAttachmentId>{{ transit_gateway_vpc_attachment.id }}</transitGatewayAttachmentId>
                 <transitGatewayId>{{ transit_gateway_vpc_attachment.transit_gateway_id }}</transitGatewayId>
                 <vpcId>{{ transit_gateway_vpc_attachment.vpc_id }}</vpcId>
