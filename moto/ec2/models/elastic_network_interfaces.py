@@ -219,7 +219,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
                 association["associationId"] = eip.association_id or None
             association["natEnabled"] = True
             association["publicIp"] = self.public_ip
-        association["ipOwnerId"] = self.ec2_backend.account_id
+            association["ipOwnerId"] = self.ec2_backend.account_id
         return association
 
     @property
