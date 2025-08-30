@@ -240,10 +240,29 @@ class EmailResponse(BaseResponse):
         self.backend.clone_receipt_rule_set(original_rule_set_name, rule_set_name)
         return EmptyResult()
 
+    def set_active_receipt_rule_set(self) -> ActionResult:
+        rule_set_name = self._get_param("RuleSetName")
+        result = self.backend.set_active_receipt_rule_set(rule_set_name)
+        return ActionResult(result)
+
     def describe_receipt_rule_set(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
         rule_set = self.backend.describe_receipt_rule_set(rule_set_name)
         return ActionResult(rule_set)
+
+    def describe_active_receipt_rule_set(self) -> ActionResult:
+        rule_set = self.backend.describe_active_receipt_rule_set()
+        return ActionResult(rule_set)
+
+    def delete_receipt_rule_set(self) -> ActionResult:
+        rule_set_name = self._get_param("RuleSetName")
+        self.backend.delete_receipt_rule_set(rule_set_name)
+        return EmptyResult()
+
+    def list_receipt_rule_sets(self) -> ActionResult:
+        rule_sets = self.backend.list_receipt_rule_sets()
+        result = {"RuleSets": [rs.metadata for rs in rule_sets]}
+        return ActionResult(result)
 
     def describe_receipt_rule(self) -> ActionResult:
         rule_set_name = self._get_param("RuleSetName")
