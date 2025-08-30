@@ -627,7 +627,7 @@ def test_register_instances():
     )
     balancer = client.describe_load_balancers()["LoadBalancerDescriptions"][0]
     instance_ids = [instance["InstanceId"] for instance in balancer["Instances"]]
-    assert set(instance_ids) == set([instance_id1, instance_id2])
+    assert set(instance_ids) == {instance_id1, instance_id2}
 
 
 @mock_aws

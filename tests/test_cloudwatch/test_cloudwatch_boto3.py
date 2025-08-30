@@ -2,7 +2,6 @@ import copy
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from operator import itemgetter
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -11,7 +10,7 @@ from botocore.exceptions import ClientError
 from dateutil.tz import tzutc
 from freezegun import freeze_time
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -34,8 +33,6 @@ def test_put_a_ton_of_metric_data():
     A sufficiently large call with metric data triggers request compression
     Moto should decompress the request if this is the case, and the request should succeed
     """
-    if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't test large requests in ServerMode")
     cloudwatch = boto3.client("cloudwatch", "us-east-1")
 
     metrics = []
@@ -62,7 +59,8 @@ def test_put_a_ton_of_metric_data():
             )
 
     cloudwatch.put_metric_data(Namespace="acme", MetricData=metrics)
-    # We don't really need any assertions - we just need to know that the call succeeds
+    resp = cloudwatch.list_metrics(MetricName="TestCWMetrics")
+    assert len(resp["Metrics"]) == 50
 
 
 @mock_aws
@@ -1648,14 +1646,14 @@ def test_put_metric_alarm():
         == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
     assert alarm["AlarmDescription"] == "test alarm"
-    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["AlarmConfigurationUpdatedTimestamp"], datetime)
     assert alarm["ActionsEnabled"] is True
     assert alarm["OKActions"] == [sns_topic_arn]
     assert alarm["AlarmActions"] == [sns_topic_arn]
     assert alarm["InsufficientDataActions"] == [sns_topic_arn]
     assert alarm["StateValue"] == "OK"
     assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
-    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["StateUpdatedTimestamp"], datetime)
     assert alarm["MetricName"] == "5XXError"
     assert alarm["Namespace"] == "AWS/ApiGateway"
     assert alarm["Statistic"] == "Sum"

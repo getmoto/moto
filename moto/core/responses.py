@@ -40,6 +40,7 @@ from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttribut
 from moto.core.utils import (
     camelcase_to_underscores,
     get_service_model,
+    get_value,
     gzip_decompress,
     method_names_from_class,
     params_sort_function,
@@ -653,7 +654,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
         parsed = parser.parse(
-            {"query_params": normalized_request.values}, operation_model
+            {
+                "query_params": normalized_request.values,
+                "headers": normalized_request.headers,
+                "body": normalized_request.data,
+            },
+            operation_model,
         )  # type: ignore[no-untyped-call]
         self.params = cast(Any, parsed)
 
@@ -666,7 +672,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         context = ActionContext(
             service_model, operation_model, serializer_cls, self.__class__
         )
-        return action_result.execute_result(context)
+        status_code, headers, body = action_result.execute_result(context)
+        headers.update(self.response_headers)
+        return status_code, headers, body
 
     def call_action(self) -> TYPE_RESPONSE:
         headers = self.response_headers
@@ -749,6 +757,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return headers, body
 
     def _get_param(self, param_name: str, if_none: Any = None) -> Any:
+        if self.automated_parameter_parsing:
+            return get_value(self.params, param_name, default=if_none)
+
         val = self.querystring.get(param_name)
         if val is not None:
             return val[0]
@@ -776,6 +787,16 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         val = self._get_param(param_name)
         if val is not None:
             return int(val)
+        return if_none
+
+    def _get_float_param(
+        self,
+        param_name: str,
+        if_none: TYPE_IF_NONE = None,  # type: ignore[assignment]
+    ) -> Union[float, TYPE_IF_NONE]:
+        val = self._get_param(param_name)
+        if val is not None:
+            return float(val)
         return if_none
 
     def _get_bool_param(
@@ -1050,55 +1071,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             param_index += 1
 
         return results
-
-    def _get_object_map(
-        self, prefix: str, name: str = "Name", value: str = "Value"
-    ) -> Dict[str, Any]:
-        """
-        Given a query dict like
-        {
-            Prefix.1.Name: [u'event'],
-            Prefix.1.Value.StringValue: [u'order_cancelled'],
-            Prefix.1.Value.DataType: [u'String'],
-            Prefix.2.Name: [u'store'],
-            Prefix.2.Value.StringValue: [u'example_corp'],
-            Prefix.2.Value.DataType [u'String'],
-        }
-
-        returns
-        {
-            'event': {
-                'DataType': 'String',
-                'StringValue': 'example_corp'
-            },
-            'store': {
-                'DataType': 'String',
-                'StringValue': 'order_cancelled'
-            }
-        }
-        """
-        object_map = {}
-        index = 1
-        while True:
-            # Loop through looking for keys representing object name
-            name_key = f"{prefix}.{index}.{name}"
-            obj_name = self.querystring.get(name_key)
-            if not obj_name:
-                # Found all keys
-                break
-
-            obj = {}
-            value_key_prefix = f"{prefix}.{index}.{value}."
-            for k, v in self.querystring.items():
-                if k.startswith(value_key_prefix):
-                    _, value_key = k.split(value_key_prefix, 1)
-                    obj[value_key] = v[0]
-
-            object_map[obj_name[0]] = obj
-
-            index += 1
-
-        return object_map
 
     @property
     def request_json(self) -> bool:

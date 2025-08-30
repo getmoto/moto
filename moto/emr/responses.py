@@ -216,6 +216,9 @@ class ElasticMapReduceResponse(BaseResponse):
             job_flow_role=self._get_param("JobFlowRole"),
             service_role=self._get_param("ServiceRole"),
             auto_scaling_role=self._get_param("AutoScalingRole"),
+            ebs_root_volume_iops=self._get_param("EbsRootVolumeIops"),
+            ebs_root_volume_size=self._get_param("EbsRootVolumeSize"),
+            ebs_root_volume_throughput=self._get_param("EbsRootVolumeThroughput"),
             steps=steps_from_query_string(self._get_list_prefix("Steps.member")),
             visible_to_all_users=self._get_bool_param("VisibleToAllUsers", False),
             instance_attrs=instance_attrs,
@@ -341,6 +344,8 @@ class ElasticMapReduceResponse(BaseResponse):
                 self.backend.run_instances(
                     cluster.id, instance_groups[i], instance_group_result[i]
                 )
+
+        # TODO: Instances also must be created when `Instances.InstanceType` and `Instances.InstanceCount` are specified in the request.
 
         tags = self._get_list_prefix("Tags.member")
         if tags:

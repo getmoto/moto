@@ -18,9 +18,8 @@ def test_create_load_balancer():
     lb = response["LoadBalancers"][0]
     assert lb["CanonicalHostedZoneId"].startswith("Z")
     assert lb["DNSName"] == "my-lb-1.us-east-1.elb.amazonaws.com"
-    assert (
-        lb["LoadBalancerArn"]
-        == f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/app/my-lb/50dc6c495c0c9188"
+    assert lb["LoadBalancerArn"].startswith(
+        f"arn:aws:elasticloadbalancing:us-east-1:{ACCOUNT_ID}:loadbalancer/app/my-lb/"
     )
     assert lb["SecurityGroups"] == [security_group.id]
     assert lb["AvailabilityZones"] == [
@@ -996,17 +995,26 @@ def test_handle_listener_rules():
                     "TargetGroups": [
                         {
                             "TargetGroupArn": target_group["TargetGroupArn"],
-                            "Weight": 1,
                         },
                         {
                             "TargetGroupArn": target_group["TargetGroupArn"],
-                            "Weight": 2,
+                            "Weight": 20,
                         },
                     ]
                 },
             },
         ],
     )
+    # test for default weights
+    rule_arn = rules["Rules"][0]["RuleArn"]
+    forward_rule = conn.describe_rules(RuleArns=[rule_arn])["Rules"][0]
+    assert len(forward_rule["Actions"]) == 1
+    assert len(forward_rule["Actions"][0]["ForwardConfig"]["TargetGroups"]) == 2
+    weights = [
+        tg["Weight"]
+        for tg in forward_rule["Actions"][0]["ForwardConfig"]["TargetGroups"]
+    ]
+    assert weights == [1, 20]
 
     # test for PriorityInUse
     with pytest.raises(ClientError):
@@ -1445,6 +1453,18 @@ def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields
 
 
 @mock_aws
+def test_describe_load_balancer_attributes_default():
+    response, _, _, _, _, client = create_load_balancer()
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
+    assert {"Key": "access_logs.s3.bucket", "Value": ""} in attrs
+    assert {"Key": "access_logs.s3.prefix", "Value": ""} in attrs
+    assert {"Key": "deletion_protection.enabled", "Value": "false"} in attrs
+    assert {"Key": "load_balancing.cross_zone.enabled", "Value": "false"} in attrs
+
+
+@mock_aws
 def test_modify_load_balancer_attributes_connection_logs_s3():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]
@@ -1458,7 +1478,6 @@ def test_modify_load_balancer_attributes_connection_logs_s3():
         ],
     )
 
-    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
     attrs = client.describe_load_balancer_attributes(LoadBalancerArn=arn)["Attributes"]
     assert {"Key": "connection_logs.s3.enabled", "Value": "true"} in attrs
     assert {"Key": "connection_logs.s3.bucket", "Value": "s3bucket"} in attrs

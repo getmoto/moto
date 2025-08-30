@@ -22,7 +22,18 @@ def test_create_and_get_replication_task():
     )
 
     tasks = client.describe_replication_tasks(
-        Filters=[{"Name": "replication-task-id", "Values": ["test"]}]
+        Filters=[
+            {"Name": "replication-task-id", "Values": ["test"]},
+            {"Name": "migration-type", "Values": ["full-load"]},
+            {
+                "Name": "endpoint-arn",
+                "Values": ["source-endpoint-arn", "target-endpoint-arn"],
+            },
+            {
+                "Name": "replication-instance-arn",
+                "Values": ["replication-instance-arn"],
+            },
+        ]
     )
 
     assert len(tasks["ReplicationTasks"]) == 1
@@ -237,6 +248,9 @@ def test_create_replication_instance():
     assert instance["AutoMinorVersionUpgrade"] is True
     assert instance["PubliclyAccessible"] is True
     assert instance["NetworkType"] == "IPV4"
+    assert instance["VpcSecurityGroups"] == [
+        {"Status": "active", "VpcSecurityGroupId": "sg-12345"}
+    ]
 
     arn = instance["ReplicationInstanceArn"]
     assert arn.startswith("arn:aws:dms:us-east-1:")
@@ -246,10 +260,11 @@ def test_create_replication_instance():
         Filters=[{"Name": "replication-instance-id", "Values": ["test-instance"]}]
     )
     assert len(response["ReplicationInstances"]) == 1
-    assert (
-        response["ReplicationInstances"][0]["ReplicationInstanceIdentifier"]
-        == "test-instance"
-    )
+    instance = response["ReplicationInstances"][0]
+    assert instance["ReplicationInstanceIdentifier"] == "test-instance"
+    assert instance["VpcSecurityGroups"] == [
+        {"Status": "active", "VpcSecurityGroupId": "sg-12345"}
+    ]
 
 
 @mock_aws

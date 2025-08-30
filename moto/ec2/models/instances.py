@@ -498,7 +498,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             self.ec2_backend.disassociate_iam_instance_profile(
                 association_id=self.ec2_backend.iam_instance_profile_associations[
                     self.id
-                ].id
+                ].association_id
             )
 
         return previous_state

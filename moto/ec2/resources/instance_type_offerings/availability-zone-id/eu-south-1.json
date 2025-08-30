@@ -1060,6 +1060,42 @@
   "Location": "eus1-az1"
  },
  {
+  "InstanceType": "r7gd.12xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.16xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.2xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.4xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.8xlarge",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.large",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.medium",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.metal",
+  "Location": "eus1-az1"
+ },
+ {
+  "InstanceType": "r7gd.xlarge",
+  "Location": "eus1-az1"
+ },
+ {
   "InstanceType": "r7i.12xlarge",
   "Location": "eus1-az1"
  },
@@ -2336,6 +2372,42 @@
   "Location": "eus1-az2"
  },
  {
+  "InstanceType": "r7gd.12xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.16xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.2xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.4xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.8xlarge",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.large",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.medium",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.metal",
+  "Location": "eus1-az2"
+ },
+ {
+  "InstanceType": "r7gd.xlarge",
+  "Location": "eus1-az2"
+ },
+ {
   "InstanceType": "r7i.12xlarge",
   "Location": "eus1-az2"
  },
@@ -3593,6 +3665,42 @@
  },
  {
   "InstanceType": "r7g.xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.12xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.16xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.2xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.4xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.8xlarge",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.large",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.medium",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.metal",
+  "Location": "eus1-az3"
+ },
+ {
+  "InstanceType": "r7gd.xlarge",
   "Location": "eus1-az3"
  },
  {

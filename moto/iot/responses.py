@@ -34,10 +34,12 @@ class IoTResponse(BaseResponse):
         thing_name = self._get_param("thingName")
         thing_type_name = self._get_param("thingTypeName")
         attribute_payload = self._get_param("attributePayload")
+        billing_group_name = self._get_param("billingGroupName")
         thing = self.iot_backend.create_thing(
             thing_name=thing_name,
             thing_type_name=thing_type_name,
             attribute_payload=attribute_payload,
+            billing_group_name=billing_group_name,
         )
         return json.dumps(
             dict(thingName=thing.thing_name, thingArn=thing.arn, thingId=thing.thing_id)
@@ -910,4 +912,83 @@ class IoTResponse(BaseResponse):
                 "timeoutConfig": job_template.timeout_config,
                 "jobExecutionsRetryConfig": job_template.job_execution_retry_config,
             }
+        )
+
+    def create_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group_properties = self._get_param("billingGroupProperties")
+        billing_group = self.iot_backend.create_billing_group(
+            billing_group_name=billing_group_name,
+            billing_group_properties=billing_group_properties,
+        )
+        return json.dumps(billing_group.to_dict())
+
+    def describe_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group = self.iot_backend.describe_billing_group(
+            billing_group_name=billing_group_name
+        )
+        return json.dumps(billing_group.to_description_dict())
+
+    def delete_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+
+        self.iot_backend.delete_billing_group(billing_group_name=billing_group_name)
+        return json.dumps(dict())
+
+    def list_billing_groups(self) -> str:
+        name_prefix_filter = self._get_param("namePrefixFilter")
+        max_results = self._get_int_param("maxResults", 100)
+        token = self._get_param("nextToken")
+
+        billing_groups, next_token = self.iot_backend.list_billing_groups(
+            name_prefix_filter=name_prefix_filter, max_results=max_results, token=token
+        )
+
+        return json.dumps(dict(billingGroups=billing_groups, nextToken=next_token))
+
+    def update_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        billing_group_properties = self._get_param("billingGroupProperties")
+        expected_version = self._get_param("expectedVersion")
+
+        version = self.iot_backend.update_billing_group(
+            billing_group_name=billing_group_name,
+            billing_group_properties=billing_group_properties,
+            expected_version=expected_version,
+        )
+
+        return json.dumps(dict(version=version))
+
+    def add_thing_to_billing_group(self) -> str:
+        self.iot_backend.add_thing_to_billing_group(
+            billing_group_name=self._get_param("billingGroupName"),
+            billing_group_arn=self._get_param("billingGroupArn"),
+            thing_name=self._get_param("thingName"),
+            thing_arn=self._get_param("thingArn"),
+        )
+
+        return json.dumps(dict())
+
+    def remove_thing_from_billing_group(self) -> str:
+        self.iot_backend.remove_thing_from_billing_group(
+            billing_group_name=self._get_param("billingGroupName"),
+            billing_group_arn=self._get_param("billingGroupArn"),
+            thing_name=self._get_param("thingName"),
+            thing_arn=self._get_param("thingArn"),
+        )
+
+        return json.dumps(dict())
+
+    def list_things_in_billing_group(self) -> str:
+        billing_group_name = self._get_param("billingGroupName")
+        max_results = self._get_int_param("maxResults", 100)
+        token = self._get_param("nextToken")
+        things, next_token = self.iot_backend.list_things_in_billing_group(
+            billing_group_name=billing_group_name,
+            max_results=max_results,
+            token=token,
+        )
+        return json.dumps(
+            dict(things=[thing.thing_name for thing in things], nextToken=next_token)
         )

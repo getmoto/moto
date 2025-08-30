@@ -1,11 +1,24 @@
 # mypy: ignore-errors
+import base64
 from collections import OrderedDict
 from collections.abc import Mapping, MutableMapping
+from datetime import datetime, timezone
+from typing import Any, Optional
 
 from botocore import xform_name
-from botocore.utils import parse_timestamp
+from botocore.utils import parse_timestamp as botocore_parse_timestamp
 
 UNDEFINED = object()  # Sentinel to signal the absence of a field in the input
+
+
+def parse_timestamp(value: str) -> datetime:
+    """Parse a timestamp and return a naive datetime object in UTC.
+    This matches Moto's internal representation of timestamps, based
+    on moto.core.utils.utcnow().
+    """
+    parsed = botocore_parse_timestamp(value)
+    as_naive_utc = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return as_naive_utc
 
 
 class QueryParser:
@@ -13,12 +26,21 @@ class QueryParser:
 
     MAP_TYPE = dict
 
-    def __init__(self, timestamp_parser=None, map_type=None):
+    def __init__(self, timestamp_parser=None, blob_parser=None, map_type=None):
         if timestamp_parser is None:
             timestamp_parser = parse_timestamp
         self._timestamp_parser = timestamp_parser
+        if blob_parser is None:
+            blob_parser = self._default_blob_parser
+        self._blob_parser = blob_parser
         if map_type is not None:
             self.MAP_TYPE = map_type
+
+    def _default_blob_parser(self, value):
+        # Blobs are always returned as bytes type (this matters on python3).
+        # We don't decode this to a str because it's entirely possible that the
+        # blob contains binary data that actually can't be decoded.
+        return base64.b64decode(value)
 
     def parse(self, request_dict, operation_model):
         shape = operation_model.input_shape
@@ -61,8 +83,15 @@ class QueryParser:
         if node.get(prefix, UNDEFINED) == "":
             return []
 
-        list_name = shape.member.serialization.get("name", "member")
-        list_prefix = f"{prefix}.{list_name}"
+        if self._is_shape_flattened(shape):
+            list_prefix = prefix
+            if shape.member.serialization.get("name"):
+                name = self._get_serialized_name(shape.member, default_name="")
+                # Replace '.Original' with '.{name}'.
+                list_prefix = ".".join(prefix.split(".")[:-1] + [name])
+        else:
+            list_name = shape.member.serialization.get("name", "member")
+            list_prefix = f"{prefix}.{list_name}"
         parsed_list = []
         i = 1
         while True:
@@ -101,6 +130,13 @@ class QueryParser:
     def _handle_timestamp(self, shape, query_params, prefix=""):
         value = self._default_handle(shape, query_params, prefix)
         return value if value is UNDEFINED else self._timestamp_parser(value)
+
+    def _handle_blob(self, shape, query_params, prefix=""):
+        # Blob args must be base64 encoded.
+        value = self._default_handle(shape, query_params, prefix)
+        if value is UNDEFINED:
+            return value
+        return self._blob_parser(value)
 
     def _handle_boolean(self, shape, query_params, prefix=""):
         value = self._default_handle(shape, query_params, prefix)
@@ -153,7 +189,9 @@ class XFormedDict(MutableMapping):
 
     """
 
-    def __init__(self, data=None, **kwargs):
+    def __init__(
+        self, data: Optional[dict[str, Any]] = None, **kwargs: dict[str, Any]
+    ) -> None:
         self._xform_cache = {}
         self._store = OrderedDict()
         if data is None:
@@ -183,6 +221,16 @@ class XFormedDict(MutableMapping):
     def original_items(self):
         """Like iteritems(), but with all PascalCase keys."""
         return ((keyval[0], keyval[1]) for (_, keyval) in self._store.items())
+
+    def original_dict(self) -> dict[str, Any]:
+        original_dict = {}
+        for _, keyval in self._store.items():
+            key = keyval[0]
+            value = keyval[1]
+            if isinstance(value, XFormedDict):
+                value = value.original_dict()
+            original_dict[key] = value
+        return original_dict
 
     def __eq__(self, other):
         if isinstance(other, Mapping):

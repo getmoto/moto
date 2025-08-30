@@ -1,6 +1,8 @@
 """ComprehendBackend class with methods for supported APIs."""
 
 import random
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -10,6 +12,7 @@ from moto.utilities.utils import get_partition
 
 from .exceptions import (
     DetectPIIValidationException,
+    InvalidRequestException,
     ResourceNotFound,
     TextSizeLimitExceededException,
 )
@@ -227,6 +230,63 @@ class Flywheel(BaseModel):
         }
 
 
+class ComprehendJob(BaseModel):
+    """Generic model for any Comprehend asynchronous job."""
+
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        job_type: str,
+        job_name: Optional[str],
+        input_s3_config: Dict[str, Any],
+        output_s3_config: Dict[str, Any],
+        data_access_role_arn: str,
+        language_code: Optional[str],
+        **kwargs: Any,
+    ):
+        self.job_id = str(uuid.uuid4())
+        self.job_name = job_name or f"moto-job-{self.job_id}"
+        self.job_status = "SUBMITTED"
+        self.submit_time = datetime.now(timezone.utc)
+        self.end_time = None
+        self.job_type = job_type
+        self.input_s3_config = input_s3_config
+        self.output_s3_config = output_s3_config
+        self.data_access_role_arn = data_access_role_arn
+        self.language_code = language_code
+        self.extra_args = kwargs
+
+        job_type_path = "".join(
+            f"-{c.lower()}" if c.isupper() else c for c in self.job_type
+        ).lstrip("-")
+        self.job_arn = f"arn:{get_partition(region_name)}:comprehend:{region_name}:{account_id}:{job_type_path}-job/{self.job_id}"
+
+    def to_dict(self) -> Dict[str, Any]:
+        base_dict = {
+            "JobId": self.job_id,
+            "JobArn": self.job_arn,
+            "JobName": self.job_name,
+            "JobStatus": self.job_status,
+            "SubmitTime": self.submit_time,
+            "EndTime": self.end_time,
+            "InputDataConfig": self.input_s3_config,
+            "OutputDataConfig": self.output_s3_config,
+            "DataAccessRoleArn": self.data_access_role_arn,
+        }
+        if self.language_code:
+            base_dict["LanguageCode"] = self.language_code
+
+        base_dict.update(self.extra_args)
+        # Add internal job_type for response handler to use
+        base_dict["job_type"] = self.job_type
+        return base_dict
+
+    def stop(self) -> None:
+        if self.job_status in ["SUBMITTED", "IN_PROGRESS"]:
+            self.job_status = "STOP_REQUESTED"
+
+
 class ComprehendBackend(BaseBackend):
     """Implementation of Comprehend APIs."""
 
@@ -255,6 +315,8 @@ class ComprehendBackend(BaseBackend):
         self.endpoints: Dict[str, Endpoint] = dict()
         self.classifiers: Dict[str, DocumentClassifier] = dict()
         self.flywheels: Dict[str, Flywheel] = dict()
+        self.resource_policies: Dict[str, Dict[str, Any]] = dict()
+        self.jobs: Dict[str, ComprehendJob] = {}
 
     def list_entity_recognizers(
         self, _filter: Dict[str, Any]
@@ -582,6 +644,230 @@ class ComprehendBackend(BaseBackend):
         flywheel_arn: str,
     ) -> str:
         return desired_model_arn
+
+    def put_resource_policy(
+        self,
+        resource_arn: str,
+        resource_policy: str,
+        policy_revision_id: Optional[str] = None,
+    ) -> str:
+        """
+        The PolicyRevisionId-parameter for conditional updates is not yet implemented.
+        A check for whether the resource itself exists is also not yet implemented.
+        """
+        revision_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+
+        creation_time = self.resource_policies.get(resource_arn, {}).get(
+            "CreationTime", now
+        )
+
+        self.resource_policies[resource_arn] = {
+            "ResourcePolicy": resource_policy,
+            "PolicyRevisionId": revision_id,
+            "CreationTime": creation_time,
+            "LastModifiedTime": now,
+        }
+        return revision_id
+
+    def describe_resource_policy(self, resource_arn: str) -> Dict[str, Any]:
+        policy_details = self.resource_policies.get(resource_arn)
+        if not policy_details:
+            raise ResourceNotFound
+        return policy_details
+
+    def delete_resource_policy(
+        self, resource_arn: str, policy_revision_id: Optional[str] = None
+    ) -> None:
+        """
+        The PolicyRevisionId-parameter for conditional deletion is not yet implemented.
+        """
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFound
+        self.resource_policies.pop(resource_arn)
+
+    def _start_job(self, job_type: str, **kwargs: Any) -> ComprehendJob:
+        input_config = kwargs.pop("InputDataConfig")
+        output_config = kwargs.pop("OutputDataConfig")
+        role_arn = kwargs.pop("DataAccessRoleArn")
+        job_name = kwargs.pop("JobName", None)
+        # LanguageCode is optional for DominantLanguageDetectionJob
+        language_code = kwargs.pop("LanguageCode", None)
+
+        job = ComprehendJob(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            job_type=job_type,
+            job_name=job_name,
+            input_s3_config=input_config,
+            output_s3_config=output_config,
+            data_access_role_arn=role_arn,
+            language_code=language_code,
+            **kwargs,
+        )
+        self.jobs[job.job_id] = job
+        return job
+
+    def _get_job(self, job_id: str) -> ComprehendJob:
+        if job_id not in self.jobs:
+            raise ResourceNotFound
+        return self.jobs[job_id]
+
+    def _list_jobs(
+        self, job_type: str, job_filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        """Generic method to list and filter jobs."""
+        # Pagination is not yet implemented
+        job_filter = job_filter or {}
+
+        results = [job for job in self.jobs.values() if job.job_type == job_type]
+
+        if "JobName" in job_filter:
+            results = [job for job in results if job.job_name == job_filter["JobName"]]
+        if "JobStatus" in job_filter:
+            results = [
+                job for job in results if job.job_status == job_filter["JobStatus"]
+            ]
+        if "SubmitTimeBefore" in job_filter:
+            before_time = job_filter["SubmitTimeBefore"]
+            results = [job for job in results if job.submit_time < before_time]
+        if "SubmitTimeAfter" in job_filter:
+            after_time = job_filter["SubmitTimeAfter"]
+            results = [job for job in results if job.submit_time > after_time]
+
+        return results
+
+    def start_pii_entities_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        return self._start_job("PiiEntitiesDetection", **kwargs)
+
+    def describe_pii_entities_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def stop_pii_entities_detection_job(self, job_id: str) -> None:
+        self._get_job(job_id).stop()
+
+    def list_pii_entities_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("PiiEntitiesDetection", filter)
+
+    def start_key_phrases_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        return self._start_job("KeyPhrasesDetection", **kwargs)
+
+    def describe_key_phrases_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def stop_key_phrases_detection_job(self, job_id: str) -> None:
+        self._get_job(job_id).stop()
+
+    def list_key_phrases_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("KeyPhrasesDetection", filter)
+
+    def start_sentiment_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        return self._start_job("SentimentDetection", **kwargs)
+
+    def describe_sentiment_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def stop_sentiment_detection_job(self, job_id: str) -> None:
+        self._get_job(job_id).stop()
+
+    def list_sentiment_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("SentimentDetection", filter)
+
+    def start_dominant_language_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        return self._start_job("DominantLanguageDetection", **kwargs)
+
+    def describe_dominant_language_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def stop_dominant_language_detection_job(self, job_id: str) -> None:
+        self._get_job(job_id).stop()
+
+    def list_dominant_language_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("DominantLanguageDetection", filter)
+
+    def start_entities_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        if "EntityRecognizerArn" not in kwargs:
+            raise InvalidRequestException(
+                "The request is missing the required parameter: EntityRecognizerArn."
+            )
+        return self._start_job("EntitiesDetection", **kwargs)
+
+    def describe_entities_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def stop_entities_detection_job(self, job_id: str) -> None:
+        self._get_job(job_id).stop()
+
+    def list_entities_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("EntitiesDetection", filter)
+
+    def start_topics_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        return self._start_job("TopicsDetection", **kwargs)
+
+    def describe_topics_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def list_topics_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("TopicsDetection", filter)
+
+    def start_document_classification_job(self, **kwargs: Any) -> ComprehendJob:
+        if "DocumentClassifierArn" not in kwargs:
+            raise InvalidRequestException(
+                "The request is missing the required parameter: DocumentClassifierArn."
+            )
+        return self._start_job("DocumentClassification", **kwargs)
+
+    def describe_document_classification_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def list_document_classification_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("DocumentClassification", filter)
+
+    def start_events_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        if "TargetEventTypes" not in kwargs:
+            raise InvalidRequestException(
+                "The request is missing the required parameter: TargetEventTypes."
+            )
+        return self._start_job("EventsDetection", **kwargs)
+
+    def describe_events_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def stop_events_detection_job(self, job_id: str) -> None:
+        self._get_job(job_id).stop()
+
+    def list_events_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("EventsDetection", filter)
+
+    def start_targeted_sentiment_detection_job(self, **kwargs: Any) -> ComprehendJob:
+        return self._start_job("TargetedSentimentDetection", **kwargs)
+
+    def describe_targeted_sentiment_detection_job(self, job_id: str) -> ComprehendJob:
+        return self._get_job(job_id)
+
+    def stop_targeted_sentiment_detection_job(self, job_id: str) -> None:
+        self._get_job(job_id).stop()
+
+    def list_targeted_sentiment_detection_jobs(
+        self, filter: Optional[Dict[str, Any]]
+    ) -> List[ComprehendJob]:
+        return self._list_jobs("TargetedSentimentDetection", filter)
 
 
 comprehend_backends = BackendDict(ComprehendBackend, "comprehend")

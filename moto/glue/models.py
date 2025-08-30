@@ -4,7 +4,7 @@ import re
 import time
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -29,6 +29,7 @@ from .exceptions import (
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
+    NoCrawlsEntryForCrawler,
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
     SchemaNotFoundException,
@@ -61,6 +62,7 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
+from .utils import Action, CrawlFilter, FilterField, FilterOperator, Predicate
 
 
 class FakeDevEndpoint(BaseModel):
@@ -207,6 +209,24 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "job_run_id",
         },
+        "list_crawls": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "crawl_id",
+        },
+        "list_workflows": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "name",
+        },
+        "get_workflow_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "workflow_run_id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -222,6 +242,7 @@ class GlueBackend(BaseBackend):
         self.tagger = TaggingService()
         self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
+        self.workflows: Dict[str, FakeWorkflow] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
         self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
@@ -461,6 +482,77 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise CrawlerNotFoundException(name)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_crawls(
+        self, crawler_name: str, filters: List[CrawlFilter]
+    ) -> List["FakeCrawl"]:
+        filter_functions = []
+        for filter in filters:
+            if filter.field_name == FilterField.CRAWL_ID:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.crawl_id
+
+            elif filter.field_name == FilterField.STATE:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.status
+
+            elif filter.field_name == FilterField.START_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.start_time.isoformat()
+
+            elif filter.field_name == FilterField.END_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.end_time.isoformat() if crawl.end_time else None
+
+            if filter.operator == FilterOperator.GT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value > field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.GE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value >= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value < field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value <= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.EQ:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value == field_value
+
+            elif filter.operator == FilterOperator.NE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value != field_value
+
+            def filter_function(crawl: FakeCrawl) -> bool:
+                return compare(get_field(crawl), filter.field_value)
+
+            filter_functions.append(filter_function)
+
+        if crawler := self.crawlers.get(crawler_name):
+            crawlers = []
+            for crawl in crawler.crawls:
+                if all(f(crawl) for f in filter_functions):
+                    crawl.advance()
+                    crawlers.append(crawl)
+            return crawlers
+        else:
+            raise NoCrawlsEntryForCrawler(crawler_name)
+
     def create_job(
         self,
         name: str,
@@ -522,9 +614,31 @@ class GlueBackend(BaseBackend):
     def get_jobs(self) -> List["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
-    def start_job_run(self, name: str) -> str:
+    def start_job_run(
+        self,
+        name: str,
+        arguments: Optional[Dict[str, str]],
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[Dict[str, int]],
+        previous_run_id: Optional[str],
+    ) -> str:
         job = self.get_job(name)
-        return job.start_job_run()
+        return job.start_job_run(
+            arguments=arguments,
+            allocated_capacity=allocated_capacity,
+            max_capacity=max_capacity,
+            timeout=timeout,
+            worker_type=worker_type,
+            security_configuration=security_configuration,
+            number_of_workers=number_of_workers,
+            notification_property=notification_property,
+            previous_run_id=previous_run_id,
+        )
 
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
@@ -966,8 +1080,8 @@ class GlueBackend(BaseBackend):
         workflow_name: str,
         trigger_type: str,
         schedule: str,
-        predicate: Dict[str, Any],
-        actions: List[Dict[str, Any]],
+        predicate: Optional[Predicate],
+        actions: List[Action],
         description: str,
         start_on_creation: bool,
         tags: Dict[str, str],
@@ -1007,9 +1121,7 @@ class GlueBackend(BaseBackend):
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if ("JobName" in action) and (
-                        action["JobName"] == dependent_job_name
-                    ):
+                    if action.job_name and (action.job_name == dependent_job_name):
                         triggers.append(trigger)
             return triggers
 
@@ -1021,9 +1133,7 @@ class GlueBackend(BaseBackend):
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if ("JobName" in action) and (
-                        action["JobName"] == dependent_job_name
-                    ):
+                    if action.job_name and (action.job_name == dependent_job_name):
                         triggers.append(trigger)
             return triggers
 
@@ -1356,12 +1466,16 @@ class GlueBackend(BaseBackend):
         response = {
             "PolicyInJson": policy["PolicyInJson"],
             "PolicyHash": policy["PolicyHash"],
-            "CreateTime": policy["CreateTime"].isoformat()
-            if isinstance(policy["CreateTime"], datetime)
-            else policy["CreateTime"],
-            "UpdateTime": policy["UpdateTime"].isoformat()
-            if isinstance(policy["UpdateTime"], datetime)
-            else policy["UpdateTime"],
+            "CreateTime": (
+                policy["CreateTime"].isoformat()
+                if isinstance(policy["CreateTime"], datetime)
+                else policy["CreateTime"]
+            ),
+            "UpdateTime": (
+                policy["UpdateTime"].isoformat()
+                if isinstance(policy["UpdateTime"], datetime)
+                else policy["UpdateTime"]
+            ),
         }
 
         return response
@@ -1391,6 +1505,120 @@ class GlueBackend(BaseBackend):
 
         del self.resource_policies[resource_arn]
         return {}
+
+    def create_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> str:
+        self.workflows[name] = FakeWorkflow(
+            name, default_run_properties, description, max_concurrent_runs, tags
+        )
+        return name
+
+    def get_workflow(
+        self,
+        name: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(name)
+        if workflow:
+            return workflow.as_dict()
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_workflows(self) -> List[str]:
+        return [workflow.name for workflow in self.workflows.values()]
+
+    def update_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+    ) -> str:
+        workflow = self.workflows.get(name)
+        if workflow:
+            if default_run_properties:
+                workflow.default_run_properties = default_run_properties
+            if description:
+                workflow.description = description
+            if max_concurrent_runs:
+                workflow.max_concurrent_runs = max_concurrent_runs
+            workflow.last_modified_on = utcnow()
+            return name
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    def delete_workflow(
+        self,
+        name: str,
+    ) -> str:
+        if self.workflows.get(name):
+            del self.workflows[name]
+        return name
+
+    def get_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).as_dict()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_workflow_runs(
+        self,
+        workflow_name: str,
+    ) -> List[Dict[str, Union[str, Dict[str, str]]]]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return [run.as_dict() for run in workflow.runs.values()]
+
+    def start_workflow_run(
+        self, workflow_name: str, properties: Optional[Dict[str, str]]
+    ) -> str:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.start_run(properties=properties)
+
+    def stop_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.stop_run(run_id)
+
+    def get_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, str]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).properties
+
+    def put_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+        properties: Dict[str, str],
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.get_run(run_id).properties.update(properties)
 
 
 class FakeDatabase(BaseModel):
@@ -1566,7 +1794,6 @@ class FakeCrawler(BaseModel):
         self.lineage_configuration = lineage_configuration
         self.configuration = configuration
         self.crawler_security_configuration = crawler_security_configuration
-        self.state = "READY"
         self.creation_time = utcnow()
         self.last_updated = self.creation_time
         self.version = 1
@@ -1575,12 +1802,12 @@ class FakeCrawler(BaseModel):
         self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+        self.crawls: List[FakeCrawl] = []
 
     def get_name(self) -> str:
         return self.name
 
     def as_dict(self) -> Dict[str, Any]:
-        last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None  # type: ignore
         data = {
             "Name": self.name,
             "Role": self.role,
@@ -1591,12 +1818,11 @@ class FakeCrawler(BaseModel):
             "RecrawlPolicy": self.recrawl_policy,
             "SchemaChangePolicy": self.schema_change_policy,
             "LineageConfiguration": self.lineage_configuration,
-            "State": self.state,
+            "State": self.status,
             "TablePrefix": self.table_prefix,
             "CrawlElapsedTime": self.crawl_elapsed_time,
             "CreationTime": self.creation_time.isoformat(),
             "LastUpdated": self.last_updated.isoformat(),
-            "LastCrawl": last_crawl,
             "Version": self.version,
             "Configuration": self.configuration,
             "CrawlerSecurityConfiguration": self.crawler_security_configuration,
@@ -1608,52 +1834,97 @@ class FakeCrawler(BaseModel):
                 "State": "SCHEDULED",
             }
 
-        if self.last_crawl_info:
-            data["LastCrawl"] = self.last_crawl_info.as_dict()
+        if self.crawls:
+            last_crawl = self.crawls[-1]
+            data["LastCrawl"] = {
+                "LogGroup": last_crawl.log_group,
+                "LogStream": last_crawl.log_stream,
+                "MessagePrefix": last_crawl.message_prefix,
+                "StartTime": last_crawl.start_time.isoformat(),
+                "Status": last_crawl.status,
+            }
 
         return data
 
     def start_crawler(self) -> None:
-        if self.state == "RUNNING":
+        if self.crawls and self.crawls[-1].status == "RUNNING":
             raise CrawlerRunningException(
                 f"Crawler with name {self.name} has already started"
             )
-        self.state = "RUNNING"
+        else:
+            self.crawls.append(FakeCrawl(self.name))
 
     def stop_crawler(self) -> None:
-        if self.state != "RUNNING":
+        if not self.crawls:
             raise CrawlerNotRunningException(
                 f"Crawler with name {self.name} isn't running"
             )
-        self.state = "STOPPING"
+        elif self.crawls[-1].status != "RUNNING":
+            raise CrawlerNotRunningException(
+                f"Crawler with name {self.name} isn't running"
+            )
+        else:
+            self.crawls[-1].status = "STOPPING"
+
+    @property
+    def status(self) -> str:
+        if not self.crawls:
+            return "READY"
+        else:
+            if self.crawls[-1].status == "RUNNING":
+                return "RUNNING"
+            elif self.crawls[-1].status in ["COMPLETED", "STOPPED", "FAILED"]:
+                return "READY"
+            elif self.crawls[-1].status == "STOPPING":
+                return "STOPPING"
+            else:
+                raise RuntimeError(
+                    f"Unexpeected state found for crawler, found state {self.crawls[-1].status}"
+                )
 
 
-class LastCrawlInfo(BaseModel):
-    def __init__(
-        self,
-        error_message: str,
-        log_group: str,
-        log_stream: str,
-        message_prefix: str,
-        start_time: str,
-        status: str,
-    ):
-        self.error_message = error_message
-        self.log_group = log_group
-        self.log_stream = log_stream
-        self.message_prefix = message_prefix
-        self.start_time = start_time
-        self.status = status
+class FakeCrawl(ManagedState):
+    def __init__(self, crawler_name: str) -> None:
+        ManagedState.__init__(
+            self,
+            model_name="glue::crawl",
+            transitions=[("RUNNING", "COMPLETED"), ("STOPPING", "STOPPED")],
+        )
+        self.crawl_id = str(mock_random.uuid4())
+        self.dpu_hour = 100
+        self.end_time: Optional[datetime] = None
+        self.log_group = "/aws-glue/crawlers"
+        self.log_stream = crawler_name
+        self.message_prefix = self.crawl_id
+        self.start_time = utcnow()
 
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "ErrorMessage": self.error_message,
+    def as_dict(self) -> Dict[str, Union[str, int]]:
+        response_dict: Dict[str, Union[str, int]] = {
+            "CrawlId": self.crawl_id,
+            "DPUHour": self.dpu_hour,
             "LogGroup": self.log_group,
             "LogStream": self.log_stream,
             "MessagePrefix": self.message_prefix,
-            "StartTime": self.start_time,
-            "Status": self.status,
+            "StartTime": self.start_time.isoformat(),
         }
+        if self.status:
+            # "STOPPING" isn't a real status for crawl, but we need to introduce
+            # a second state transition to simulate the crawler issuing an async stop
+            # command to the crawl
+            response_dict["State"] = (
+                "RUNNING" if self.status == "STOPPING" else self.status
+            )
+        if self.end_time:
+            response_dict["EndTime"] = self.end_time.isoformat()
+        return response_dict
+
+    def advance(self) -> None:
+        previous_state = self.status
+        ManagedState.advance(self)
+        if (previous_state == "RUNNING" and self.status == "COMPLETED") or (
+            previous_state == "STOPPING" and self.status == "STOPPED"
+        ):
+            self.end_time = utcnow()
 
 
 class FakeJob:
@@ -1689,7 +1960,7 @@ class FakeJob:
         self.role = role
         self.execution_property = execution_property or {}
         self.command = command
-        self.default_arguments = default_arguments
+        self.default_arguments = default_arguments or {}
         self.non_overridable_arguments = non_overridable_arguments
         self.connections = connections
         self.max_retries = max_retries
@@ -1742,7 +2013,18 @@ class FakeJob:
             "SourceControlDetails": self.source_control_details,
         }
 
-    def start_job_run(self) -> str:
+    def start_job_run(
+        self,
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[Dict[str, int]],
+        previous_run_id: Optional[str],
+        arguments: Optional[Dict[str, str]],
+    ) -> str:
         running_jobs = len(
             [jr for jr in self.job_runs if jr.status in ["STARTING", "RUNNING"]]
         )
@@ -1750,7 +2032,24 @@ class FakeJob:
             raise ConcurrentRunsExceededException(
                 f"Job with name {self.name} already running"
             )
-        fake_job_run = FakeJobRun(job_name=self.name)
+        job_run_arguments = self.default_arguments.copy()
+        job_run_arguments.update(arguments or {})
+        # this has to be last to ensure it can't be overridden
+        job_run_arguments.update(self.non_overridable_arguments or {})
+
+        fake_job_run = FakeJobRun(
+            job_name=self.name,
+            arguments=job_run_arguments,
+            allocated_capacity=allocated_capacity or self.allocated_capacity,
+            max_capacity=max_capacity or self.max_capacity,
+            timeout=timeout or self.timeout,
+            worker_type=worker_type or self.worker_type,
+            security_configuration=security_configuration
+            or self.security_configuration,
+            number_of_workers=number_of_workers or self.number_of_workers,
+            notification_property=notification_property or self.notification_property,
+            job_run_id=previous_run_id,
+        )
         self.job_runs.append(fake_job_run)
         return fake_job_run.job_run_id
 
@@ -1771,11 +2070,15 @@ class FakeJobRun(ManagedState):
     def __init__(
         self,
         job_name: str,
-        job_run_id: str = "01",
+        job_run_id: Optional[str] = None,
         arguments: Optional[Dict[str, Any]] = None,
-        allocated_capacity: Optional[int] = None,
+        allocated_capacity: Optional[int] = 10,
+        max_capacity: Optional[float] = 10.0,
         timeout: Optional[int] = None,
-        worker_type: str = "Standard",
+        worker_type: Optional[str] = "Standard",
+        notification_property: Optional[Dict[str, int]] = None,
+        security_configuration: Optional[str] = None,
+        number_of_workers: Optional[int] = 10,
     ):
         ManagedState.__init__(
             self,
@@ -1783,45 +2086,52 @@ class FakeJobRun(ManagedState):
             transitions=[("STARTING", "RUNNING"), ("RUNNING", "SUCCEEDED")],
         )
         self.job_name = job_name
-        self.job_run_id = job_run_id
+        self.job_run_id = f"jr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = job_run_id
         self.arguments = arguments
         self.allocated_capacity = allocated_capacity
+        self.max_capacity = max_capacity
         self.timeout = timeout
         self.worker_type = worker_type
         self.started_on = utcnow()
         self.modified_on = utcnow()
         self.completed_on = utcnow()
+        self.notification_property = notification_property
+        self.security_configuration = security_configuration
+        self.number_of_workers = number_of_workers
 
     def get_name(self) -> str:
         return self.job_name
 
     def as_dict(self) -> Dict[str, Any]:
-        return {
+        return_dict = {
             "Id": self.job_run_id,
-            "Attempt": 1,
-            "PreviousRunId": "01",
-            "TriggerName": "test_trigger",
+            "Attempt": 0,
             "JobName": self.job_name,
             "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
             "JobRunState": self.status,
-            "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
-            "ErrorMessage": "",
-            "PredecessorRuns": [
-                {"JobName": "string", "RunId": "string"},
-            ],
-            "AllocatedCapacity": self.allocated_capacity or 123,
+            "PredecessorRuns": [],
             "ExecutionTime": 123,
-            "Timeout": self.timeout or 123,
-            "MaxCapacity": 123.0,
             "WorkerType": self.worker_type,
-            "NumberOfWorkers": 123,
-            "SecurityConfiguration": "string",
             "LogGroupName": "test/log",
-            "NotificationProperty": {"NotifyDelayAfter": 123},
             "GlueVersion": "0.9",
+            "AllocatedCapacity": self.allocated_capacity,
+            "MaxCapacity": self.max_capacity,
+            "NumberOfWorkers": self.number_of_workers,
         }
+        if self.arguments:
+            return_dict["Arguments"] = self.arguments
+        if self.notification_property:
+            return_dict["NotificationProperty"] = self.notification_property
+        if self.security_configuration:
+            return_dict["SecurityConfiguration"] = self.security_configuration
+        if self.timeout:
+            return_dict["Timeout"] = self.timeout
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        return return_dict
 
 
 class FakeRegistry(BaseModel):
@@ -2032,8 +2342,8 @@ class FakeTrigger(BaseModel):
         workflow_name: str,
         trigger_type: str,  # to avoid any issues with built-in function type()
         schedule: str,
-        predicate: Dict[str, Any],
-        actions: List[Dict[str, Any]],
+        predicate: Optional[Predicate],
+        actions: List[Action],
         description: str,
         start_on_creation: bool,
         tags: Dict[str, str],
@@ -2068,7 +2378,7 @@ class FakeTrigger(BaseModel):
         data: Dict[str, Any] = {
             "Name": self.name,
             "Type": self.trigger_type,
-            "Actions": self.actions,
+            "Actions": [action.as_dict() for action in self.actions],
             "State": self.state,
         }
 
@@ -2079,7 +2389,7 @@ class FakeTrigger(BaseModel):
             data["Schedule"] = self.schedule
 
         if self.predicate:
-            data["Predicate"] = self.predicate
+            data["Predicate"] = self.predicate.as_dict()
 
         if self.description:
             data["Description"] = self.description
@@ -2122,6 +2432,101 @@ class FakeConnection(BaseModel):
                 "PhysicalConnectionRequirements"
             ),
         }
+
+
+class FakeWorkflowRun:
+    def __init__(
+        self,
+        workflow_name: str,
+        previous_run_id: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -> None:
+        self.workflow_name = workflow_name
+        self.run_id = f"wr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = previous_run_id
+        self.properties = properties or {}
+        self.status = "RUNNING"
+        self.started_on = utcnow()
+        self.completed_on: Optional[datetime] = None
+
+    def as_dict(self) -> Dict[str, Union[str, Dict[str, str]]]:
+        return_dict: Dict[str, Union[str, Dict[str, str]]] = {
+            "Name": self.workflow_name,
+            "WorkflowRunId": self.run_id,
+            "StartedOn": self.started_on.isoformat(),
+            "Status": self.status,
+        }
+        if self.completed_on:
+            return_dict["CompletedOn"] = self.completed_on.isoformat()
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        if self.properties:
+            return_dict["WorkflowRunProperties"] = self.properties
+        return return_dict
+
+
+class FakeWorkflow:
+    def __init__(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> None:
+        self.name = name
+        self.default_run_properties = default_run_properties
+        self.description = description
+        self.max_concurrent_runs = max_concurrent_runs
+        self.tags = tags
+        self.created_on = utcnow()
+        self.last_modified_on = utcnow()
+        self.runs: OrderedDict[str, FakeWorkflowRun] = OrderedDict()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return_dict: Dict[str, Any] = {
+            "CreatedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "Name": self.name,
+        }
+        if self.default_run_properties:
+            return_dict["DefaultRunProperties"] = self.default_run_properties
+        if self.description:
+            return_dict["Description"] = self.description
+        if self.max_concurrent_runs:
+            return_dict["MaxConcurrentRuns"] = self.max_concurrent_runs
+        if self.runs:
+            return_dict["LastRun"] = self.runs[next(reversed(self.runs))].as_dict()
+        return return_dict
+
+    def start_run(self, properties: Optional[Dict[str, str]]) -> str:
+        run_properties = (
+            self.default_run_properties.copy() if self.default_run_properties else {}
+        )
+        if properties:
+            run_properties.update(properties)
+        if self.runs:
+            previous_run_id = self.runs[next(reversed(self.runs))].run_id
+        else:
+            previous_run_id = None
+        workflow_run = FakeWorkflowRun(
+            workflow_name=self.name,
+            properties=run_properties,
+            previous_run_id=previous_run_id,
+        )
+        self.runs[workflow_run.run_id] = workflow_run
+        return workflow_run.run_id
+
+    def get_run(self, run_id: str) -> FakeWorkflowRun:
+        run = self.runs.get(run_id)
+        if not run:
+            raise EntityNotFoundException("Entity not found")
+        else:
+            return run
+
+    def stop_run(self, run_id: str) -> None:
+        if not self.runs.get(run_id):
+            raise EntityNotFoundException("Entity not found")
 
 
 glue_backends = BackendDict(GlueBackend, "glue")

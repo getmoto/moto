@@ -4116,10 +4116,28 @@
                   "Value": "HTTPS"
                 }
               },
+              "license-manager": {
+                "Value": "license-manager",
+                "endpoint": {
+                  "Value": "license-manager.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "license-manager-linux-subscriptions": {
                 "Value": "license-manager-linux-subscriptions",
                 "endpoint": {
                   "Value": "license-manager-linux-subscriptions.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "license-manager-user-subscriptions": {
+                "Value": "license-manager-user-subscriptions",
+                "endpoint": {
+                  "Value": "license-manager-user-subscriptions.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4168,6 +4186,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-ad": {
+                "Value": "pca-connector-ad",
+                "endpoint": {
+                  "Value": "pca-connector-ad.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -4300,6 +4327,15 @@
                 "Value": "sagemaker",
                 "endpoint": {
                   "Value": "api.sagemaker.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sagemaker-runtime": {
+                "Value": "sagemaker-runtime",
+                "endpoint": {
+                  "Value": "runtime.sagemaker.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -21354,6 +21390,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "chatbot": {
                 "Value": "chatbot"
               },
@@ -23161,6 +23206,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -24692,13 +24746,37 @@
                   "Value": "HTTPS"
                 }
               },
+              "iot-jobs-data": {
+                "Value": "iot-jobs-data",
+                "endpoint": {
+                  "Value": "data.jobs.iot.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iotdevicedefender": {
-                "Value": "iotdevicedefender"
+                "Value": "iotdevicedefender",
+                "endpoint": {
+                  "Value": "iot.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "iotdevicemanagement": {
                 "Value": "iotdevicemanagement",
                 "endpoint": {
                   "Value": "iot.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotsecuretunneling": {
+                "Value": "iotsecuretunneling",
+                "endpoint": {
+                  "Value": "api.tunneling.iot.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36481,6 +36559,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -42060,13 +42147,37 @@
                   "Value": "HTTPS"
                 }
               },
+              "iot-jobs-data": {
+                "Value": "iot-jobs-data",
+                "endpoint": {
+                  "Value": "data.jobs.iot.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "iotdevicedefender": {
-                "Value": "iotdevicedefender"
+                "Value": "iotdevicedefender",
+                "endpoint": {
+                  "Value": "iot.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "iotdevicemanagement": {
                 "Value": "iotdevicemanagement",
                 "endpoint": {
                   "Value": "iot.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iotsecuretunneling": {
+                "Value": "iotsecuretunneling",
+                "endpoint": {
+                  "Value": "api.tunneling.iot.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -51170,6 +51281,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "emr-serverless": {
+                "Value": "emr-serverless",
+                "endpoint": {
+                  "Value": "emr-serverless.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "es": {
                 "Value": "es",
                 "endpoint": {
@@ -52843,6 +52963,15 @@
                 "Value": "iot-data",
                 "endpoint": {
                   "Value": "data-ats.iot.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "iot-jobs-data": {
+                "Value": "iot-jobs-data",
+                "endpoint": {
+                  "Value": "data.jobs.iot.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -61712,6 +61841,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "taxsettings": {
+                "Value": "taxsettings",
+                "endpoint": {
+                  "Value": "tax.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "textract": {
                 "Value": "textract",
                 "endpoint": {
@@ -65862,6 +66000,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "s3": {
                 "Value": "s3",
                 "endpoint": {
@@ -66449,6 +66596,15 @@
                 "Value": "bedrock",
                 "endpoint": {
                   "Value": "bedrock.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock-data-automation": {
+                "Value": "bedrock-data-automation",
+                "endpoint": {
+                  "Value": "bedrock-data-automation.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -67649,6 +67805,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rum": {
+                "Value": "rum",
+                "endpoint": {
+                  "Value": "rum.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

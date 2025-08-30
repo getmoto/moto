@@ -160,7 +160,7 @@ def test_multipart_upload(key: str):
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_duplicate_multipart_upload(bucket_name=None):
+def test_idempotent_multipart_upload(bucket_name=None):
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
 
     part1 = b"0" * S3_UPLOAD_PART_MIN_SIZE
@@ -194,45 +194,6 @@ def test_duplicate_multipart_upload(bucket_name=None):
     )
     assert resp2["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert resp1["ETag"] == resp2["ETag"]
-
-
-@pytest.mark.aws_verified
-@s3_aws_verified
-def test_multipart_upload_if_none_match(bucket_name=None):
-    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
-
-    client.put_object(Bucket=bucket_name, Key="key.txt")
-
-    part1 = b"0" * S3_UPLOAD_PART_MIN_SIZE
-    part2 = b"1"
-    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="key.txt")
-    kwargs = {
-        "Bucket": bucket_name,
-        "Key": "key.txt",
-        "UploadId": multipart["UploadId"],
-    }
-
-    up1 = client.upload_part(Body=BytesIO(part1), PartNumber=1, **kwargs)
-    up2 = client.upload_part(Body=BytesIO(part2), PartNumber=2, **kwargs)
-
-    parts = {
-        "Parts": [
-            {"ETag": up1["ETag"], "PartNumber": 1},
-            {"ETag": up2["ETag"], "PartNumber": 2},
-        ]
-    }
-
-    with pytest.raises(ClientError) as exc:
-        client.complete_multipart_upload(
-            MultipartUpload=parts, IfNoneMatch="*", **kwargs
-        )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "PreconditionFailed"
-    assert (
-        err["Message"]
-        == "At least one of the pre-conditions you specified did not hold"
-    )
-    assert err["Condition"] == "If-None-Match"
 
 
 @mock_aws

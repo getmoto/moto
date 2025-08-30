@@ -609,6 +609,7 @@ ec2
 - [X] modify_image_attribute
 - [X] modify_instance_attribute
 - [ ] modify_instance_capacity_reservation_attributes
+- [ ] modify_instance_connect_endpoint
 - [ ] modify_instance_cpu_options
 - [ ] modify_instance_credit_specification
 - [ ] modify_instance_event_start_time

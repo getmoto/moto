@@ -9,6 +9,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 
+from . import ec2_aws_verified
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"
@@ -544,37 +545,44 @@ def test_vpc_associate_dhcp_options():
     assert dhcp_options.id == vpc.dhcp_options_id
 
 
-@mock_aws
-def test_associate_vpc_ipv4_cidr_block():
-    ec2 = boto3.resource("ec2", region_name="us-west-1")
-
-    vpc = ec2.create_vpc(CidrBlock="10.10.42.0/24")
-
+@ec2_aws_verified(create_vpc=True, create_sg=False)
+@pytest.mark.aws_verified
+def test_associate_vpc_ipv4_cidr_block(ec2_client=None, vpc_id=None):
     # Associate/Extend vpc CIDR range up to 5 ciders
     for i in range(43, 47):
-        response = ec2.meta.client.associate_vpc_cidr_block(
-            VpcId=vpc.id, CidrBlock=f"10.10.{i}.0/24"
+        response = ec2_client.associate_vpc_cidr_block(
+            VpcId=vpc_id, CidrBlock=f"10.10.{i}.0/24"
         )
         assert (
             response["CidrBlockAssociation"]["CidrBlockState"]["State"] == "associating"
+        )
+        assert (
+            response["CidrBlockAssociation"]["CidrBlockState"].get("StatusMessage")
+            is None
         )
         assert response["CidrBlockAssociation"]["CidrBlock"] == f"10.10.{i}.0/24"
         assert "vpc-cidr-assoc" in response["CidrBlockAssociation"]["AssociationId"]
 
     # Check all associations exist
-    vpc = ec2.Vpc(vpc.id)
-    assert len(vpc.cidr_block_association_set) == 5
-    assert vpc.cidr_block_association_set[2]["CidrBlockState"]["State"] == "associated"
-    assert vpc.cidr_block_association_set[4]["CidrBlockState"]["State"] == "associated"
+    cidr_block_association_set = ec2_client.describe_vpcs(VpcIds=[vpc_id])["Vpcs"][0][
+        "CidrBlockAssociationSet"
+    ]
+    assert len(cidr_block_association_set) == 5
+    assert not any(
+        item["CidrBlockState"].get("StatusMessage")
+        for item in cidr_block_association_set
+    )
+    assert cidr_block_association_set[2]["CidrBlockState"]["State"] == "associated"
+    assert cidr_block_association_set[4]["CidrBlockState"]["State"] == "associated"
 
     # Check error on adding 6th association.
     with pytest.raises(ClientError) as ex:
-        response = ec2.meta.client.associate_vpc_cidr_block(
-            VpcId=vpc.id, CidrBlock="10.10.50.0/22"
+        response = ec2_client.associate_vpc_cidr_block(
+            VpcId=vpc_id, CidrBlock="10.10.50.0/22"
         )
     assert (
         str(ex.value)
-        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 5"
+        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network {vpc_id} has met its maximum number of allowed CIDRs: 5"
     )
 
 
@@ -716,7 +724,7 @@ def test_vpc_associate_ipv6_cidr_block():
         )
     assert (
         str(ex.value)
-        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network '{vpc.id}' has met its maximum number of allowed CIDRs: 1"
+        == f"An error occurred (CidrLimitExceeded) when calling the AssociateVpcCidrBlock operation: This network {vpc.id} has met its maximum number of allowed CIDRs: 1"
     )
 
     # Test associate ipv6 cidr block after vpc created

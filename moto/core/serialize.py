@@ -442,8 +442,7 @@ class ResponseSerializer(ShapeHelpersMixin):
     ) -> None:
         member_value = self.get_value(value, key, shape)
         if member_value is not None:
-            key_name = key  # self.get_serialized_name(shape, key)
-            self._serialize(serialized, member_value, shape, key_name)
+            self._serialize(serialized, member_value, shape, key)
 
     def _serialize_type_map(
         self, serialized: Serialized, value: Any, shape: MapShape, key: str
@@ -705,19 +704,17 @@ class BaseXMLSerializer(ResponseSerializer):
         list_obj = []
         for list_item in value:
             wrapper = {}
-            item_key = shape.member.name
-            self._serialize(wrapper, list_item, shape.member, item_key)
+            self._serialize(wrapper, list_item, shape.member, shape.member.name)
             if wrapper:
-                value = list(wrapper.values())[0]
+                item_key = self.get_serialized_name(shape.member, shape.member.name)
+                value = wrapper[item_key]
                 if value != {}:
                     list_obj.append(value)
         if not list_obj:  # empty list serialized as "" in XML
             self._default_serialize(serialized, "", shape, key)
             return
         if self.is_flattened(shape):
-            # items_name = self.get_serialized_name(shape.member, key)
             self._default_serialize(serialized, list_obj, shape.member, key)
-            # serialized[items_name] = list_obj
         else:
             items_name = self.get_serialized_name(shape.member, "member")
             self._default_serialize(serialized, {items_name: list_obj}, shape, key)

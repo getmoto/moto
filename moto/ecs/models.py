@@ -368,6 +368,7 @@ class Task(BaseObject, ManagedState):
         container_instance_arn: Optional[str],
         resource_requirements: Optional[Dict[str, str]],
         backend: "EC2ContainerServiceBackend",
+        group: str,
         launch_type: str = "",
         overrides: Optional[Dict[str, Any]] = None,
         started_by: str = "",
@@ -409,6 +410,7 @@ class Task(BaseObject, ManagedState):
         self._account_id = backend.account_id
         self._backend = backend
         self.attachments = []
+        self.group = group
 
         if task_definition.network_mode == "awsvpc":
             if not networking_configuration:
@@ -1383,6 +1385,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         tags: Optional[List[Dict[str, str]]],
         launch_type: Optional[str],
         networking_configuration: Optional[Dict[str, Any]] = None,
+        group: Optional[str] = None,
     ) -> List[Task]:
         if launch_type and launch_type not in ["EC2", "FARGATE", "EXTERNAL"]:
             raise InvalidParameterException(
@@ -1392,6 +1395,10 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster = self._get_cluster(cluster_str)
 
         task_definition = self.describe_task_definition(task_definition_str)
+        # The "group" associated with this task is either the one passed explicitly or derived from "family" of the task definition
+        if group is None:
+            group = f"family:{task_definition.family}"
+
         resource_requirements = self._calculate_task_resource_requirements(
             task_definition
         )
@@ -1406,6 +1413,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     container_instance_arn=None,
                     resource_requirements=resource_requirements,
                     backend=self,
+                    group=group,
                     overrides=overrides or {},
                     started_by=started_by or "",
                     tags=tags or [],
@@ -1443,6 +1451,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                         container_instance_arn,
                         resource_requirements,
                         backend=self,
+                        group=group,
                         overrides=overrides or {},
                         started_by=started_by or "",
                         tags=tags or [],
@@ -1548,10 +1557,14 @@ class EC2ContainerServiceBackend(BaseBackend):
         overrides: Dict[str, Any],
         started_by: str,
         tags: Optional[List[Dict[str, str]]] = None,
+        group: Optional[str] = None,
     ) -> List[Task]:
         cluster = self._get_cluster(cluster_str)
 
         task_definition = self.describe_task_definition(task_definition_str)
+        if group is None:
+            group = f"family:{task_definition.family}"
+
         if cluster.name not in self.tasks:
             self.tasks[cluster.name] = {}
         tasks = []
@@ -1572,6 +1585,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 container_instance.container_instance_arn,
                 resource_requirements,
                 backend=self,
+                group=group,
                 overrides=overrides or {},
                 started_by=started_by or "",
                 tags=tags,

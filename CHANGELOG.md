@@ -1,6 +1,131 @@
 Moto Changelog
 ==============
 
+5.1.11
+-----
+Docker Digest for 5.1.11: _sha256:8ca337023ebaa5c0b8b33503b178d4db3326fca184551d6f47b07b8dd8532644_
+
+    New Methods:
+        * Athena:
+            * list_tags_for_resource()
+
+        * Comprehend:
+            * delete_resource_policy()
+            * describe_document_classification_job()
+            * describe_dominant_language_detection_job()
+            * describe_entities_detection_job()
+            * describe_events_detection_job()
+            * describe_key_phrases_detection_job()
+            * describe_pii_entities_detection_job()
+            * describe_resource_policy()
+            * describe_sentiment_detection_job()
+            * describe_targeted_sentiment_detection_job()
+            * describe_topics_detection_job()
+            * list_document_classification_jobs()
+            * list_dominant_language_detection_jobs()
+            * list_entities_detection_jobs()
+            * list_events_detection_jobs()
+            * list_key_phrases_detection_jobs()
+            * list_pii_entities_detection_jobs()
+            * list_sentiment_detection_jobs()
+            * list_targeted_sentiment_detection_jobs()
+            * list_topics_detection_jobs()
+            * put_resource_policy()
+            * start_document_classification_job()
+            * start_dominant_language_detection_job()
+            * start_entities_detection_job()
+            * start_events_detection_job()
+            * start_key_phrases_detection_job()
+            * start_pii_entities_detection_job()
+            * start_sentiment_detection_job()
+            * start_targeted_sentiment_detection_job()
+            * start_topics_detection_job()
+            * stop_dominant_language_detection_job()
+            * stop_entities_detection_job()
+            * stop_events_detection_job()
+            * stop_key_phrases_detection_job()
+            * stop_pii_entities_detection_job()
+            * stop_sentiment_detection_job()
+            * stop_targeted_sentiment_detection_job()
+
+        * ElasticSearch:
+            * describe_elasticsearch_domain_config()
+
+        * Redshift:
+            * describe_cluster_parameters()
+            * describe_default_cluster_parameters()
+
+        * S3Control:
+            * list_access_points()
+
+    Miscellaneous:
+        * DMS: describe_replication_tasks() now correctly supports the `Filters`-parameter
+        * EC2: create_security_group() now returns the SecurityGroupArn-attribute
+        * EC2: describe_network_interfaces() now returns the `RequesterId` and `RequesterManaged`-attributes
+        * ECR: create_repository() now supports the imageTagMutabilityExclusionFilters-parameter
+        * ECR: create_repository() now enforces the imageTagMutability-parameter
+        * ECS: start_task() now supports the `group`-parameter
+        * ECS: run_task() now supports the `group`-parameter
+        * ElastiCache: create_user() now supports the `Tags`-parameter
+        * ELBv2: ARNs are now unique for Listeners/LoadBalancers/TargetGroups
+        * ELBv2: create_rule() now assigns a default Weight of 1, if not specified
+        * ELBv2: create_target_group() now only returns the HealthCheckPort if the target is not 'lambda'
+        * ELBv2: describe_load_balancer_attributes() now correctly returns an empty string for `access_logs.s3`-attributes
+        * EMR: describe_cluster() now returns the correct Cluster.MasterPublicDnsName-attribute (if applicable)
+        * EMR: run_job_flow() now supports the parameters `EbsRootVolumeSize`, `EbsRootVolumeIops` and `EbsRootVolumeThroughput`
+        * Glue: start_job_run() now no longer returns mock-values for the parameters: `Arguments`, `NotificationProperty`, `SecurityConfiguration`, `Timeout` and `PreviousRunId`
+        * MediaPackage: create_origin_endpoint() now supports the `WhiteList` and `TimeDelaySeconds`-parameters
+        * ResourceGroupsTaggingAPI: get_resources() now supports Athena's CapacityReservations, Workgroups and DataCatalog resources
+        * S3: complete_multipart_upload() now respects the IfNoneMatch-parameter for objects created by MultiPart-uploads
+        * S3Control: get_storage_lens_configuration() now returns the `AccountLevel` and `StorageLensArn`-attributes
+        * SecretsManager: create_secret() now supports the `ClientRequestToken`-parameter
+        * SecretsManager: put_secret_value() now supports the `ClientRequestToken`-parameter
+        * SecretsManager: update_secret() now supports the `ClientRequestToken`-parameter
+
+
+5.1.10
+-----
+Docker Digest for 5.1.10: _sha256:c8d59f06ef51ed29ba1a6d008785e9538f0c32f636c2d77bb188b73dd21d8832_
+
+    New Methods:
+        * Glue:
+            * delete_dev_endpoint()
+            * list_crawls()
+
+        * ElastiCache:
+            * delete_replication_group()
+
+        * EKS:
+            * update_cluster_config()
+
+        * ResourceGroupsTaggingAPI:
+            * untag_resources() (Currently only supports Lambda and EFS resources)
+
+        * S3Control:
+            * get_storage_lens_configuration_tagging()
+            * put_storage_lens_configuration_tagging()
+
+
+    Miscellaneous:
+        * Batch: list_jobs() now supports filters with an asterisk
+        * Batch: list_jobs() now ignores jobStatus when the filters parameter is provided, in parity with AWS
+        * Batch: submit_job() now supports the tags-parameter
+        * CloudFormation: describe_stack_resources() now supports the LogicalResourceId-parameter
+        * EC2: describe_images() now returns the CreationDate-attribute in the correct format (RFC3339) (broken in 5.1.9)
+        * EC2: describe_managed_prefix_lists() now no longer returns a StateMessage, in parity with AWS
+        * EC2: describe_managed_prefix_lists() now returns 'AWS' in upper case for the OwnerId
+        * EC2: modify_vpc_endpoint() now supports the parameters AddSecurityGroupId, RemoveSecurityGroupId and RemoveSubnetId
+        * ELBv2: describe_load_balancers() now returns the CanonicalHostedZoneId again (broken in 5.1.9)
+        * Events: put_targets() now supports StepFunctions
+        * RDS: create_blue_green_deployment() now works correctly when ManageMasterUserPassword has been updated to False
+        * RDS: create_database() now supports the DomainMembership parameters (Domain/DomainFqdn/DomainOu/DomainAuthSecretArn/DomainDnsIps)
+        * ResourceGroupsTaggingAPI: get_resources() now supports DirectConnect resources
+        * ResourceGroupsTaggingAPI: tag_resources() now supports Lambda and EFS resources
+        * SES: describe_receipt_rule_set() now returns the Metadata.CreatedTimestamp field (broken in 5.1.9)
+        * SQS: The max message size has been updated to 1MB, from 256KB (AWS updated this a week ago).
+        * SQS: send_message() now no longer throws an error when supplying the MessageGroupId-parameter against a regular (non-FIFO) queues
+
+
 5.1.9
 -----
 Docker Digest for 5.1.9: _sha256:1fae2f297efbd05522835fec12c20ae88cb4734e1c4c2b9297ddc3063858dcc4_

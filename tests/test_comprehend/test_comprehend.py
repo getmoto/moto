@@ -26,7 +26,6 @@ INPUT_DATA_CONFIG = {
 OUTPUT_DATA_CONFIG = {
     "S3Uri": "string",
     "KmsKeyId": "string",
-    "FlywheelStatsS3Prefix": "string",
 }
 
 DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG = {
@@ -878,33 +877,59 @@ def test_update_endpoint():
 
 
 @mock_aws
-def test_tags_from_resourcegroupsapi():
-    client = boto3.client("comprehend", region_name="ap-southeast-1")
-    arn = client.create_document_classifier(
-        DataAccessRoleArn="iam_role_with_20_chars",
-        InputDataConfig=DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
-        LanguageCode="en",
-        DocumentClassifierName="tf-acc-test-1726651689102157637",
-        VersionName="terraform-20221003201727469000000002",
-        OutputDataConfig=OUTPUT_DATA_CONFIG,
-        ClientRequestToken="unique-token",
-        VolumeKmsKeyId="kms-key-id",
-        VpcConfig={"SecurityGroupIds": ["sg-12345678"], "Subnets": ["subnet-12345678"]},
-        Mode="MULTI_CLASS",
-        Tags=[{"Key": "k1", "Value": "v1"}, {"Key": "k2", "Value": "v2"}],
-        ModelKmsKeyId="model-kms-key-id",
-        ModelPolicy="model-policy",
-    )["DocumentClassifierArn"]
+def test_resource_policy_lifecycle():
+    client = boto3.client("comprehend", region_name="us-west-2")
 
-    resource_groups_client = boto3.client(
-        "resourcegroupstaggingapi", region_name="ap-southeast-1"
+    recognizer_arn = client.create_entity_recognizer(
+        DataAccessRoleArn="iam_role_with_20_chars",
+        InputDataConfig=INPUT_DATA_CONFIG,
+        LanguageCode="en",
+        RecognizerName="recognizer-for-policy-test",
+    )["EntityRecognizerArn"]
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_resource_policy(ResourceArn=recognizer_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
+
+    policy_doc = '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"comprehend:*"}]}'
+    put_resp = client.put_resource_policy(
+        ResourceArn=recognizer_arn, ResourcePolicy=policy_doc
     )
-    tags = resource_groups_client.get_resources(
-        ResourceARNList=[arn],
-    )["ResourceTagMappingList"]
-    assert len(tags) == 1
-    assert tags[0]["ResourceARN"] == arn
-    assert tags[0]["Tags"] == [
-        {"Key": "k1", "Value": "v1"},
-        {"Key": "k2", "Value": "v2"},
-    ]
+    assert "PolicyRevisionId" in put_resp
+    first_revision_id = put_resp["PolicyRevisionId"]
+
+    desc_resp = client.describe_resource_policy(ResourceArn=recognizer_arn)
+    assert desc_resp["ResourcePolicy"] == policy_doc
+    assert desc_resp["PolicyRevisionId"] == first_revision_id
+    assert "CreationTime" in desc_resp
+    assert "LastModifiedTime" in desc_resp
+    creation_time = desc_resp["CreationTime"]
+
+    updated_policy_doc = '{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":"*","Action":"comprehend:*"}]}'
+    update_resp = client.put_resource_policy(
+        ResourceArn=recognizer_arn, ResourcePolicy=updated_policy_doc
+    )
+    second_revision_id = update_resp["PolicyRevisionId"]
+    assert second_revision_id != first_revision_id
+
+    desc_resp_updated = client.describe_resource_policy(ResourceArn=recognizer_arn)
+    assert desc_resp_updated["ResourcePolicy"] == updated_policy_doc
+    assert desc_resp_updated["PolicyRevisionId"] == second_revision_id
+    assert desc_resp_updated["CreationTime"] == creation_time
+    assert desc_resp_updated["LastModifiedTime"] != desc_resp["LastModifiedTime"]
+
+    client.delete_resource_policy(ResourceArn=recognizer_arn)
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_resource_policy(ResourceArn=recognizer_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_resource_policy(ResourceArn=recognizer_arn)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "RESOURCE_NOT_FOUND: Could not find specified resource."

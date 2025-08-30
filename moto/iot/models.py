@@ -58,6 +58,7 @@ class FakeThing(CloudFormationModel):
         attributes: Dict[str, Any],
         account_id: str,
         region_name: str,
+        billing_group_name: Optional[str] = None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -67,6 +68,7 @@ class FakeThing(CloudFormationModel):
         self.attributes = attributes
         self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:thing/{thing_name}"
         self.version = 1
+        self.billing_group_name = billing_group_name
         # TODO: we need to handle "version"?
 
         # for iot-data
@@ -83,6 +85,24 @@ class FakeThing(CloudFormationModel):
         if query_string.startswith("thingName:"):
             qs = query_string[10:].replace("*", ".*").replace("?", ".")
             return re.search(f"^{qs}$", self.thing_name) is not None
+        if query_string.startswith("thingGroupNames:"):
+            thing_group_to_find = query_string.removeprefix("thingGroupNames:")
+            thing_group_match = re.compile(f"^{thing_group_to_find}$")
+
+            # Billing group are matched in thingGroupNames field too
+            if self.billing_group_name and thing_group_match.match(
+                self.billing_group_name
+            ):
+                return True
+
+            backend = iot_backends[self.account_id][self.region_name]
+            all_thing_groups = backend.list_thing_groups(None, None, None)
+            for thing_group in all_thing_groups:
+                if not thing_group_match.match(thing_group.thing_group_name):
+                    continue
+                if self.arn in thing_group.things:
+                    return True
+            return False
         if query_string.startswith("attributes."):
             k, v = query_string[11:].split(":")
             return self.attributes.get(k) == v
@@ -104,6 +124,8 @@ class FakeThing(CloudFormationModel):
         }
         if self.thing_type:
             obj["thingTypeName"] = self.thing_type.thing_type_name
+        if self.billing_group_name:
+            obj["billingGroupName"] = self.billing_group_name
         if include_default_client_id:
             obj["defaultClientId"] = self.thing_name
         if include_connectivity:
@@ -182,7 +204,9 @@ class FakeThing(CloudFormationModel):
             attributes = None
 
         return iot_backend.create_thing(
-            thing_name=thing_name, thing_type_name="", attribute_payload=attributes
+            thing_name=thing_name,
+            thing_type_name="",
+            attribute_payload=attributes,
         )
 
     @classmethod
@@ -389,6 +413,127 @@ class FakeThingGroup(BaseModel):
             "thingGroupMetadata": self.metadata,
             "thingGroupArn": self.arn,
         }
+
+
+class FakeBillingGroup(CloudFormationModel):
+    def __init__(
+        self,
+        billing_group_name: str,
+        billing_group_properties: Optional[Dict[str, Any]],
+        account_id: str,
+        region_name: str,
+    ):
+        self.account_id = account_id
+        self.region_name = region_name
+        self.billing_group_name = billing_group_name
+        self.billing_group_properties = billing_group_properties or {}
+        self.billing_group_id = str(random.uuid4())
+        self.arn = f"arn:{get_partition(self.region_name)}:iot:{self.region_name}:{self.account_id}:billinggroup/{billing_group_name}"
+        self.version = 1
+        self.things: List[str] = []
+        self.metadata = {"creationDate": datetime.utcnow().isoformat()}
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "billingGroupName": self.billing_group_name,
+            "billingGroupArn": self.arn,
+            "billingGroupId": self.billing_group_id,
+        }
+
+    def to_short_dict(self) -> Dict[str, Any]:
+        return {
+            "groupName": self.billing_group_name,
+            "groupArn": self.arn,
+        }
+
+    def to_description_dict(self) -> Dict[str, Any]:
+        return {
+            "billingGroupName": self.billing_group_name,
+            "billingGroupId": self.billing_group_id,
+            "billingGroupArn": self.arn,
+            "billingGroupProperties": self.billing_group_properties,
+            "billingGroupMetadata": self.metadata,
+        }
+
+    @staticmethod
+    def cloudformation_name_type() -> str:
+        return "BillingGroup"
+
+    @staticmethod
+    def cloudformation_type() -> str:
+        return "AWS::IoT::BillingGroup"
+
+    @classmethod
+    def has_cfn_attr(cls, attr: str) -> bool:
+        return attr in ["Arn", "Id"]
+
+    def get_cfn_attribute(self, attribute_name: str) -> Any:
+        from moto.cloudformation.exceptions import UnformattedGetAttTemplateException
+
+        if attribute_name == "Arn":
+            return self.arn
+        elif attribute_name == "Id":
+            return self.billing_group_id
+        raise UnformattedGetAttTemplateException()
+
+    @classmethod
+    def create_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+        **kwargs: Any,
+    ) -> "FakeBillingGroup":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json.get("Properties", {})
+        billing_group_name = properties.get("BillingGroupName", resource_name)
+        billing_group_properties = properties.get("BillingGroupProperties")
+
+        return iot_backend.create_billing_group(
+            billing_group_name=billing_group_name,
+            billing_group_properties=billing_group_properties,
+        )
+
+    @classmethod
+    def update_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        original_resource: "FakeBillingGroup",
+        new_resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> "FakeBillingGroup":
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json.get("Properties", {})
+        billing_group_name = properties.get("BillingGroupName", new_resource_name)
+        billing_group_properties = properties.get("BillingGroupProperties")
+
+        if billing_group_name != original_resource.billing_group_name:
+            iot_backend.delete_billing_group(original_resource.billing_group_name)
+            return cls.create_from_cloudformation_json(
+                new_resource_name, cloudformation_json, account_id, region_name
+            )
+        else:
+            iot_backend.update_billing_group(
+                billing_group_name=billing_group_name,
+                billing_group_properties=billing_group_properties,
+                expected_version=original_resource.version,
+            )
+            return original_resource
+
+    @classmethod
+    def delete_from_cloudformation_json(  # type: ignore[misc]
+        cls,
+        resource_name: str,
+        cloudformation_json: Any,
+        account_id: str,
+        region_name: str,
+    ) -> None:
+        iot_backend = iot_backends[account_id][region_name]
+        properties = cloudformation_json.get("Properties", {})
+        billing_group_name = properties.get("BillingGroupName", resource_name)
+        iot_backend.delete_billing_group(billing_group_name=billing_group_name)
 
 
 class FakeCertificate(BaseModel):
@@ -1266,6 +1411,7 @@ class IoTBackend(BaseBackend):
         self.job_executions: Dict[Tuple[str, str], FakeJobExecution] = OrderedDict()
         self.thing_types: Dict[str, FakeThingType] = OrderedDict()
         self.thing_groups: Dict[str, FakeThingGroup] = OrderedDict()
+        self.billing_groups: Dict[str, FakeBillingGroup] = OrderedDict()
         self.ca_certificates: Dict[str, FakeCaCertificate] = OrderedDict()
         self.certificates: Dict[str, FakeCertificate] = OrderedDict()
         self.policies: Dict[str, FakePolicy] = OrderedDict()
@@ -1348,6 +1494,7 @@ class IoTBackend(BaseBackend):
         thing_name: str,
         thing_type_name: str,
         attribute_payload: Optional[Dict[str, Any]],
+        billing_group_name: Optional[str] = None,
     ) -> FakeThing:
         thing_types = self.list_thing_types()
         thing_type = None
@@ -1371,9 +1518,18 @@ class IoTBackend(BaseBackend):
         else:
             attributes = attribute_payload["attributes"]
         thing = FakeThing(
-            thing_name, thing_type, attributes, self.account_id, self.region_name
+            thing_name,
+            thing_type,
+            attributes,
+            self.account_id,
+            self.region_name,
+            billing_group_name,
         )
         self.things[thing.arn] = thing
+        if billing_group_name:
+            self.add_thing_to_billing_group(
+                billing_group_name=billing_group_name, thing_arn=thing.arn
+            )
         return thing
 
     def create_thing_type(
@@ -1467,6 +1623,14 @@ class IoTBackend(BaseBackend):
         for k in list(self.principal_things.keys()):
             if k[1] == thing_name:
                 raise ThingStillAttached(thing_name)
+
+        # Remove thing from any associated billing groups
+        for billing_group in self.billing_groups.values():
+            if thing.arn in billing_group.things:
+                billing_group.things.remove(thing.arn)
+                # Also set the billing_group_name of the thing to None
+                # This is important if the thing object is still referenced elsewhere
+                thing.billing_group_name = None
 
         del self.things[thing.arn]
 
@@ -2528,9 +2692,9 @@ class IoTBackend(BaseBackend):
         new_role_alias = FakeRoleAlias(
             role_alias=role_alias_name,
             role_arn=role_arn,
+            credential_duration_seconds=credential_duration_seconds,
             account_id=self.account_id,
             region_name=self.region_name,
-            credential_duration_seconds=credential_duration_seconds,
         )
         self.role_aliases[role_alias_name] = new_role_alias
         return new_role_alias
@@ -2541,7 +2705,7 @@ class IoTBackend(BaseBackend):
     def describe_role_alias(self, role_alias_name: str) -> FakeRoleAlias:
         if role_alias_name not in self.role_aliases:
             raise ResourceNotFoundException(
-                f"RoleAlias not found (name= {role_alias_name})",
+                f"RoleAlias not found (name= {role_alias_name})"
             )
         return self.role_aliases[role_alias_name]
 
@@ -2602,7 +2766,6 @@ class IoTBackend(BaseBackend):
             account_id=self.account_id,
             region_name=self.region_name,
         )
-
         self.jobs_templates[job_template_id] = job_template
         return job_template
 
@@ -2619,6 +2782,125 @@ class IoTBackend(BaseBackend):
         if job_template_id not in self.jobs_templates:
             raise ResourceNotFoundException(f"Job template {job_template_id} not found")
         return self.jobs_templates[job_template_id]
+
+    def create_billing_group(
+        self,
+        billing_group_name: str,
+        billing_group_properties: Optional[Dict[str, Any]],
+    ) -> FakeBillingGroup:
+        if billing_group_name in self.billing_groups:
+            raise ResourceAlreadyExistsException(
+                f"Billing group {billing_group_name} already exists.",
+                resource_id=billing_group_name,
+                resource_arn=self.billing_groups[billing_group_name].arn,
+            )
+        billing_group = FakeBillingGroup(
+            billing_group_name=billing_group_name,
+            billing_group_properties=billing_group_properties,
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+        self.billing_groups[billing_group_name] = billing_group
+        return billing_group
+
+    def describe_billing_group(self, billing_group_name: str) -> FakeBillingGroup:
+        if billing_group_name not in self.billing_groups:
+            raise ResourceNotFoundException()
+        return self.billing_groups[billing_group_name]
+
+    def delete_billing_group(self, billing_group_name: str) -> None:
+        if billing_group_name not in self.billing_groups:
+            raise ResourceNotFoundException()
+        del self.billing_groups[billing_group_name]
+
+    @paginate(PAGINATION_MODEL)
+    def list_billing_groups(
+        self, name_prefix_filter: Optional[str] = None
+    ) -> List[Dict[str, str]]:
+        if name_prefix_filter:
+            result = [
+                group.to_short_dict()
+                for group in self.billing_groups.values()
+                if group.billing_group_name.startswith(name_prefix_filter)
+            ]
+            return result
+        return [group.to_short_dict() for group in self.billing_groups.values()]
+
+    def update_billing_group(
+        self,
+        billing_group_name: str,
+        billing_group_properties: Dict[str, Any],
+        expected_version: int,
+    ) -> int:
+        billing_group = self.describe_billing_group(billing_group_name)
+        if expected_version is not None and billing_group.version != expected_version:
+            raise VersionConflictException(billing_group_name)
+        billing_group.billing_group_properties = billing_group_properties
+        billing_group.version += 1
+        return billing_group.version
+
+    def add_thing_to_billing_group(
+        self,
+        billing_group_name: Optional[str] = None,
+        billing_group_arn: Optional[str] = None,
+        thing_name: Optional[str] = None,
+        thing_arn: Optional[str] = None,
+    ) -> None:
+        if billing_group_name:
+            billing_group = self.describe_billing_group(billing_group_name)
+        elif billing_group_arn:
+            billing_group = self.describe_billing_group(
+                billing_group_arn.split("/")[-1]
+            )
+        else:
+            raise InvalidRequestException(
+                "Both billingGroupName and billingGroupArn cannot be null"
+            )
+
+        if thing_name:
+            thing = self.describe_thing(thing_name)
+        elif thing_arn:
+            thing = self.describe_thing(thing_arn.split("/")[-1])
+        else:
+            raise InvalidRequestException("Both thingName and thingArn cannot be null")
+
+        if thing.arn not in billing_group.things:
+            billing_group.things.append(thing.arn)
+            thing.billing_group_name = billing_group.billing_group_name
+
+    def remove_thing_from_billing_group(
+        self,
+        billing_group_name: Optional[str] = None,
+        billing_group_arn: Optional[str] = None,
+        thing_name: Optional[str] = None,
+        thing_arn: Optional[str] = None,
+    ) -> None:
+        if billing_group_name:
+            billing_group = self.describe_billing_group(billing_group_name)
+        elif billing_group_arn:
+            billing_group = self.describe_billing_group(
+                billing_group_arn.split("/")[-1]
+            )
+        else:
+            raise InvalidRequestException(
+                "Both billingGroupName and billingGroupArn cannot be null"
+            )
+
+        if thing_name:
+            thing = self.describe_thing(thing_name)
+        elif thing_arn:
+            thing = self.describe_thing(thing_arn.split("/")[-1])
+        else:
+            raise InvalidRequestException("Both thingName and thingArn cannot be null")
+
+        if thing.arn in billing_group.things:
+            billing_group.things.remove(thing.arn)
+            thing.billing_group_name = None
+
+    @paginate(PAGINATION_MODEL)
+    def list_things_in_billing_group(self, billing_group_name: str) -> List[FakeThing]:
+        billing_group = self.describe_billing_group(billing_group_name)
+        return [self.things[arn] for arn in billing_group.things]
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

@@ -22,7 +22,7 @@ from moto.core.base_backend import BackendDict
 from moto.core.utils import convert_to_flask_response
 from moto.settings import DISABLE_GLOBAL_CORS
 
-from .utilities import AWSTestHelper, RegexConverter
+from .utilities import AWSTestHelper, RegexConverter, decompress_request_body
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
@@ -275,6 +275,7 @@ def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
     backend_app = Flask("moto", template_folder=template_dir)
     backend_app.debug = True
     backend_app.service = service  # type: ignore[attr-defined]
+    backend_app.before_request(decompress_request_body)
 
     if not DISABLE_GLOBAL_CORS:
         CORS(backend_app)

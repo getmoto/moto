@@ -12,7 +12,7 @@ jobs:
     outputs:
       folders: ${{ steps.set-folders.outputs.folders }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: set-folders
         name: Get Services
         shell: bash
@@ -31,7 +31,7 @@ jobs:
         service: ${{ fromJson(needs.find-jobs.outputs.folders )}}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
     - name: Set up Python 3.12

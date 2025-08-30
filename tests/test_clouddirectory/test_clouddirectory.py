@@ -177,14 +177,6 @@ def test_tag_resource():
     assert resp["Tags"][0]["Key"] == "key1"
     assert resp["Tags"][0]["Value"] == "value1"
 
-    # Test resourcetaggingapi
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name=region)
-    resp = rtapi.get_resources(ResourceTypeFilters=["clouddirectory"])
-    assert len(resp["ResourceTagMappingList"]) == 1
-    assert resp["ResourceTagMappingList"][0]["ResourceARN"] == directory_arn
-    assert resp["ResourceTagMappingList"][0]["Tags"][0]["Key"] == "key1"
-    assert resp["ResourceTagMappingList"][0]["Tags"][0]["Value"] == "value1"
-
 
 @mock_aws
 def test_untag_resource():

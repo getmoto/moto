@@ -100,3 +100,35 @@ def test_search_by_thing_type(query_string, results):
 
     thing_names = {t["thingName"] for t in resp["things"]}
     assert thing_names == results
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "query_string,results",
+    [
+        ["thingGroupNames:foothinggroup", {"foo"}],
+        ["thingGroupNames:foobillinggroup", {"foo"}],
+        ["thingGroupNames:.*billinggroup", {"foo", "bar", "baz"}],
+        ["thingGroupNames:.*thinggroup", {"foo", "bar", "baz"}],
+        ["thingGroupNames:ba.*group", {"bar", "baz"}],
+    ],
+)
+def test_search_by_thing_groups_and_billing_groups(query_string, results):
+    client = boto3.client("iot", region_name="ap-northeast-1")
+
+    for name in ["foo", "bar", "baz"]:
+        client.create_thing_group(thingGroupName=f"{name}thinggroup")
+        client.create_billing_group(billingGroupName=f"{name}billinggroup")
+        client.create_thing(thingName=name, billingGroupName=f"{name}billinggroup")
+        client.add_thing_to_thing_group(
+            thingName=name, thingGroupName=f"{name}thinggroup"
+        )
+
+    client.create_thing(thingName="theOneWithoutAnythingSet")
+
+    resp = client.search_index(queryString=query_string)
+
+    assert resp["thingGroups"] == []
+
+    thing_names = {t["thingName"] for t in resp["things"]}
+    assert thing_names == results
