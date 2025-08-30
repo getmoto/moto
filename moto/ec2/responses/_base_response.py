@@ -10,7 +10,7 @@ from ..utils import convert_tag_spec
 class EC2BaseResponse(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
         # ENI
-        "DescribeNetworkInterfacesResult.NetworkInterfaceSet.NetworkInterface.Association": return_if_not_empty,
+        "DescribeNetworkInterfacesResult.NetworkInterfaces.NetworkInterface.Association": return_if_not_empty,
         # IAM Instance Profiles
         "AssociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "associating",
         "DisassociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "disassociating",
