@@ -4,8 +4,6 @@ from datetime import datetime, timedelta
 from functools import cache, cached_property
 from typing import Any, Dict, List, Optional, Tuple
 
-from dateutil.parser import parse as dtparse
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import utcnow
@@ -39,10 +37,17 @@ class Application(BaseModel):
 
 
 class BootstrapAction(BaseModel):
-    def __init__(self, args: List[str], name: str, script_path: str):
-        self.args = args or []
+    def __init__(self, name: str, script_bootstrap_action: dict[str, Any]):
         self.name = name
-        self.script_path = script_path
+        self.script_bootstrap_action = script_bootstrap_action
+
+    @property
+    def script_path(self) -> Optional[str]:
+        return self.script_bootstrap_action.get("path")
+
+    @property
+    def args(self) -> List[str]:
+        return self.script_bootstrap_action.get("args", [])
 
 
 class Instance(BaseModel):
@@ -287,19 +292,16 @@ class Step(BaseModel):
         self,
         state: str,
         name: str = "",
-        jar: str = "",
-        args: Optional[List[str]] = None,
-        properties: Optional[Dict[str, str]] = None,
+        hadoop_jar_step: Optional[Dict[str, Any]] = None,
         action_on_failure: str = "TERMINATE_CLUSTER",
     ):
         self.id = random_step_id()
-
         self.action_on_failure = action_on_failure
-        self.args = args or []
         self.name = name
-        self.jar = jar
-        self.properties = properties or {}
-
+        self.hadoop_jar_step = hadoop_jar_step or {}
+        self.jar = self.hadoop_jar_step.get("Jar", "")
+        self.args = self.hadoop_jar_step.get("Args", [])
+        self.properties = self.hadoop_jar_step.get("Properties", {})
         self.creation_date_time = utcnow()
         self.end_date_time = None
         self.ready_date_time = None
@@ -310,17 +312,11 @@ class Step(BaseModel):
     def config(self) -> dict[str, Any]:
         config = {
             "ActionOnFailure": self.action_on_failure,
-            "HadoopJarStep": {
-                "Jar": self.jar,
-                "Args": self.args,
-                "Properties": [
-                    {"Key": k, "Value": v} for k, v in self.properties.items()
-                ],
-            },
+            "HadoopJarStep": self.hadoop_jar_step,
             "Name": self.name,
             "Jar": self.jar,
             "Args": self.args,
-            "Properties": self.properties,
+            "Properties": {p["Key"]: p["Value"] for p in self.properties},
         }
         return config
 
@@ -478,7 +474,7 @@ class Cluster(CloudFormationModel):
         self.slave_security_group = instance_attrs.get(
             "emr_managed_slave_security_group"
         )
-        self.termination_protected = instance_attrs.get("termination_protected")
+        self.termination_protected = instance_attrs.get("termination_protected", False)
 
         self.release_label = release_label
         self.requested_ami_version = requested_ami_version
@@ -526,15 +522,7 @@ class Cluster(CloudFormationModel):
     def bootstrap_action_detail_list(self) -> list[dict[str, Any]]:
         details = []
         for bootstrap_action in self.bootstrap_actions:
-            member = {
-                "BootstrapActionConfig": {
-                    "Name": bootstrap_action.name,
-                    "ScriptBootstrapAction": {
-                        "Args": bootstrap_action.args,
-                        "Path": bootstrap_action.script_path,
-                    },
-                }
-            }
+            member = {"BootstrapActionConfig": bootstrap_action}
             details.append(member)
         return details
 
@@ -925,8 +913,8 @@ class ElasticMapReduceBackend(BaseBackend):
         self,
         job_flow_ids: Optional[List[str]] = None,
         job_flow_states: Optional[List[str]] = None,
-        created_after: Optional[str] = None,
-        created_before: Optional[str] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None,
     ) -> List[Cluster]:
         clusters = list(self.clusters.values())
 
@@ -938,17 +926,9 @@ class ElasticMapReduceBackend(BaseBackend):
         if job_flow_states:
             clusters = [c for c in clusters if c.state in job_flow_states]
         if created_after:
-            clusters = [
-                c
-                for c in clusters
-                if c.creation_datetime > dtparse(created_after).replace(tzinfo=None)
-            ]
+            clusters = [c for c in clusters if c.creation_datetime > created_after]
         if created_before:
-            clusters = [
-                c
-                for c in clusters
-                if c.creation_datetime < dtparse(created_before).replace(tzinfo=None)
-            ]
+            clusters = [c for c in clusters if c.creation_datetime < created_before]
 
         # Amazon EMR can return a maximum of 512 job flow descriptions
         return sorted(clusters, key=lambda x: x.id)[:512]
@@ -988,8 +968,8 @@ class ElasticMapReduceBackend(BaseBackend):
     def list_clusters(
         self,
         cluster_states: Optional[List[str]] = None,
-        created_after: Optional[str] = None,
-        created_before: Optional[str] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None,
         marker: Optional[str] = None,
     ) -> Tuple[List[Cluster], Optional[str]]:
         max_items = 50
@@ -997,17 +977,9 @@ class ElasticMapReduceBackend(BaseBackend):
         if cluster_states:
             clusters = [c for c in clusters if c.state in cluster_states]
         if created_after:
-            clusters = [
-                c
-                for c in clusters
-                if c.creation_datetime > dtparse(created_after).replace(tzinfo=None)
-            ]
+            clusters = [c for c in clusters if c.creation_datetime > created_after]
         if created_before:
-            clusters = [
-                c
-                for c in clusters
-                if c.creation_datetime < dtparse(created_before).replace(tzinfo=None)
-            ]
+            clusters = [c for c in clusters if c.creation_datetime < created_before]
         clusters = sorted(clusters, key=lambda x: x.id)
         start_idx = 0 if marker is None else int(marker)
         marker = (

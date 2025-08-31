@@ -6,6 +6,7 @@ import pytest
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from tests.test_ec2 import ec2_aws_verified
 
 
 @mock_aws
@@ -249,52 +250,68 @@ def retrieve_all_attachments(client):
     return att
 
 
-@mock_aws
-def test_create_and_describe_transit_gateway_vpc_attachment():
-    ec2 = boto3.client("ec2", region_name="us-west-1")
-    response = ec2.create_transit_gateway_vpc_attachment(
-        TransitGatewayId="gateway_id", VpcId="some-vpc-id", SubnetIds=["sub1"]
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True, create_subnet=True, create_transit_gateway=True)
+def test_create_and_describe_transit_gateway_vpc_attachment(
+    account_id, ec2_client=None, vpc_id=None, subnet_id=None, tg_id=None
+):
+    response = ec2_client.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=tg_id,
+        VpcId=vpc_id,
+        SubnetIds=[subnet_id],
     )
-    attachment = response["TransitGatewayVpcAttachment"]
-    assert attachment["TransitGatewayAttachmentId"].startswith("tgw-attach-")
-    assert attachment["TransitGatewayId"] == "gateway_id"
-    assert attachment["VpcId"] == "some-vpc-id"
-    assert attachment["VpcOwnerId"] == ACCOUNT_ID
-    assert attachment["State"] == "available"
-    assert attachment["SubnetIds"] == ["sub1"]
-    assert attachment["Options"] == {
-        "DnsSupport": "enable",
-        "Ipv6Support": "disable",
-        "ApplianceModeSupport": "disable",
-    }
-    assert attachment["Tags"] == []
+    create = response["TransitGatewayVpcAttachment"]
+
+    assert create["TransitGatewayAttachmentId"].startswith("tgw-attach-")
+    assert create["TransitGatewayId"] == tg_id
+    assert create["VpcId"] == vpc_id
+    assert create["VpcOwnerId"] == account_id
+    # AWS returns 'pending' - Moto is immediately 'available'
+    assert create["State"] in ["pending", "available"]
+    assert create["SubnetIds"] == [subnet_id]
+    assert create["Options"]["DnsSupport"] == "enable"
+    assert create["Options"]["Ipv6Support"] == "disable"
+    assert create["Options"]["ApplianceModeSupport"] == "disable"
+    # When running this test against AWS, the value appears to be random at creation
+    assert create["Options"]["SecurityGroupReferencingSupport"] in ["disable", "enable"]
+    assert "Tags" not in create
+    assert "CreationTime" in create
     #
     # Verify we can retrieve it as a VPC attachment
-    attachments = ec2.describe_transit_gateway_vpc_attachments(
-        TransitGatewayAttachmentIds=[attachment["TransitGatewayAttachmentId"]]
+    attachments = ec2_client.describe_transit_gateway_vpc_attachments(
+        TransitGatewayAttachmentIds=[create["TransitGatewayAttachmentId"]]
     )["TransitGatewayVpcAttachments"]
     assert len(attachments) == 1
-    assert "CreationTime" in attachments[0]
-    del attachments[0]["CreationTime"]
-    assert attachment == attachments[0]
+    describe = attachments[0]
+    assert "CreationTime" in describe
+    assert describe["Options"] == create["Options"]
+    # AWS returns 'pending' - Moto is immediately 'available'
+    assert describe["State"] in ["pending", "available"]
+    assert (
+        describe["TransitGatewayAttachmentId"] == create["TransitGatewayAttachmentId"]
+    )
+    assert describe["TransitGatewayId"] == tg_id
+    assert describe["VpcId"] == vpc_id
+    assert describe["VpcOwnerId"] == account_id
+
     #
     # Verify we can retrieve it as a general attachment
-    attachments = ec2.describe_transit_gateway_attachments(
-        TransitGatewayAttachmentIds=[attachment["TransitGatewayAttachmentId"]]
+    attachments = ec2_client.describe_transit_gateway_attachments(
+        TransitGatewayAttachmentIds=[describe["TransitGatewayAttachmentId"]]
     )["TransitGatewayAttachments"]
     assert len(attachments) == 1
     assert "CreationTime" in attachments[0]
-    assert attachments[0]["TransitGatewayOwnerId"] == ACCOUNT_ID
-    assert attachments[0]["ResourceOwnerId"] == ACCOUNT_ID
+    assert attachments[0]["TransitGatewayOwnerId"] == account_id
+    assert attachments[0]["ResourceOwnerId"] == account_id
     assert attachments[0]["ResourceType"] == "vpc"
-    assert attachments[0]["ResourceId"] == "some-vpc-id"
-    assert attachments[0]["State"] == "available"
-    assert attachments[0]["Tags"] == []
+    assert attachments[0]["ResourceId"] == vpc_id
+    # AWS returns 'pending' - Moto is immediately 'available'
+    assert attachments[0]["State"] in ["pending", "available"]
     assert (
         attachments[0]["TransitGatewayAttachmentId"]
-        == attachment["TransitGatewayAttachmentId"]
+        == describe["TransitGatewayAttachmentId"]
     )
-    assert attachments[0]["TransitGatewayId"] == "gateway_id"
+    assert attachments[0]["TransitGatewayId"] == tg_id
 
 
 @mock_aws
@@ -583,7 +600,7 @@ def test_create_transit_gateway_vpc_attachment():
     assert attachment["VpcOwnerId"] == ACCOUNT_ID
     assert attachment["SubnetIds"] == ["sub1"]
     assert attachment["State"] == "available"
-    assert attachment["Tags"] == []
+    assert "Tags" not in attachment
 
 
 @mock_aws
