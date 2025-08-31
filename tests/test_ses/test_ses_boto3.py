@@ -905,15 +905,39 @@ def test_create_receipt_rule_invalid_top_level(
             "InvalidParameterValue",
             "Could not assume the provided IAM role",
         ),
+        (
+            {
+                "BounceAction": {
+                    "TopicArn": "non-existent-topic",
+                    "SmtpReplyCode": "string",
+                    "Message": "string",
+                    "Sender": "string",
+                }
+            },
+            "InvalidSnsTopic",
+            "Invalid SNS topic: non-existent-topic",
+        ),
+        (
+            {
+                "WorkmailAction": {
+                    "TopicArn": "non-existent-topic",
+                    "OrganizationArn": "string",
+                }
+            },
+            "InvalidSnsTopic",
+            "Invalid SNS topic: non-existent-topic",
+        ),
     ],
     ids=[
         "non_existent_bucket",
         "non_existent_kms_key",
         "non_existent_sns_topic",
         "non_existent_iam_role",
+        "non_existent_sns_topic_for_bounce",
+        "non_existent_sns_topic_for_workmail",
     ],
 )
-def test_create_receipt_rule_invalid_s3_action(action, err_code, err_message):
+def test_create_receipt_rule_invalid_action(action, err_code, err_message):
     conn = boto3.client("ses", region_name="us-east-1")
     # Create a rule set with one rule
     response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")

@@ -765,6 +765,10 @@ class SESBackend(BaseBackend):
         for action in actions:
             if "S3Action" in action:
                 self._validate_s3_action(action["S3Action"])
+            if "BounceAction" in action:
+                self._validate_sns_topic(action["BounceAction"].get("topic_arn"))
+            if "WorkmailAction" in action:
+                self._validate_sns_topic(action["WorkmailAction"].get("topic_arn"))
 
     def _validate_s3_action(self, s3_action: Dict[str, str]) -> None:
         from moto.s3.models import s3_backends
@@ -799,7 +803,11 @@ class SESBackend(BaseBackend):
                 f"Unable to use AWS KMS key: {kms_key_arn}"
             )
 
-    def _validate_sns_topic(self, topic_arn: str) -> None:
+    def _validate_sns_topic(self, topic_arn: Optional[str]) -> None:
+        # Nothing to validate
+        if not topic_arn:
+            return
+
         from moto.sns.models import sns_backends
 
         # Raise an exception if the SNS topic does not exist
