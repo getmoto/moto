@@ -680,7 +680,15 @@ class SESBackend(BaseBackend):
             raise AlreadyExists(f"Rule already exists: {rule['name']}")
         # Validate the actions as part of the receipt_rule
         self._validate_receipt_rule_actions(rule)
-        rule_set.rules.append(rule)
+        if not after:
+            # If after is not provided, the new rule is inserted at the beginning of the rule list
+            rule_set.rules.insert(0, rule)
+        else:
+            # Find the position of the rule specified by after parameter
+            for rule_idx, _ in enumerate(rule_set.rules):
+                if rule_set.rules[rule_idx]["name"] == after:
+                    rule_set.rules.insert(rule_idx + 1, rule)
+                    break
         self.receipt_rule_set[rule_set_name] = rule_set
 
     def clone_receipt_rule_set(

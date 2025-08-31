@@ -1145,14 +1145,7 @@ def test_describe_receipt_rule_set_with_rules():
         "Recipients": ["string"],
         "Actions": [
             {
-                "S3Action": {
-                    "TopicArn": "string",
-                    "BucketName": "string",
-                    "ObjectKeyPrefix": "string",
-                    "KmsKeyArn": "string",
-                },
                 "BounceAction": {
-                    "TopicArn": "string",
                     "SmtpReplyCode": "string",
                     "StatusCode": "string",
                     "Message": "string",
@@ -1176,6 +1169,57 @@ def test_describe_receipt_rule_set_with_rules():
 
     assert len(result["Rules"]) == 1
     assert result["Rules"][0] == receipt_rule
+
+    # Create another rule, without passing in Action parameter - that rule should show up first
+    receipt_rule = {
+        "Name": "testRule2",
+        "Enabled": True,
+        "Actions": [
+            {
+                "BounceAction": {
+                    "SmtpReplyCode": "string",
+                    "Message": "string",
+                    "Sender": "string",
+                },
+            }
+        ],
+    }
+    create_receipt_rule_response = conn.create_receipt_rule(
+        RuleSetName="testRuleSet", Rule=receipt_rule
+    )
+    assert create_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Verified via describe_receipt_rule_set
+    result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
+    assert result["Metadata"]["Name"] == "testRuleSet"
+    assert len(result["Rules"]) == 2
+    assert [rule["Name"] for rule in result["Rules"]] == ["testRule2", "testRule"]
+
+    # Create a third rule, by passing in after parameter
+    receipt_rule = {
+        "Name": "testRule3",
+        "Actions": [
+            {
+                "BounceAction": {
+                    "SmtpReplyCode": "string",
+                    "Message": "string",
+                    "Sender": "string",
+                },
+            }
+        ],
+    }
+    create_receipt_rule_response = conn.create_receipt_rule(
+        RuleSetName="testRuleSet", Rule=receipt_rule, After="testRule2"
+    )
+    assert create_receipt_rule_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Verified via describe_receipt_rule_set
+    result = conn.describe_receipt_rule_set(RuleSetName="testRuleSet")
+    assert result["Metadata"]["Name"] == "testRuleSet"
+    assert len(result["Rules"]) == 3
+    assert [rule["Name"] for rule in result["Rules"]] == [
+        "testRule2",
+        "testRule3",
+        "testRule",
+    ]
 
 
 @mock_aws
