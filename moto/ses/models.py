@@ -14,6 +14,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.sns.models import sns_backends
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AlreadyExists,
@@ -23,6 +24,8 @@ from .exceptions import (
     EventDestinationAlreadyExists,
     InvalidParameterValue,
     InvalidRenderingParameterException,
+    InvalidS3ConfigurationException,
+    InvalidSnsTopicException,
     MessageRejectedError,
     RuleDoesNotExist,
     RuleSetDoesNotExist,
@@ -674,6 +677,8 @@ class SESBackend(BaseBackend):
             raise RuleDoesNotExist(f"Rule does not exist: {after}")
         if rule in rule_set.rules:
             raise AlreadyExists(f"Rule already exists: {rule['name']}")
+        # Validate the actions as part of the receipt_rule
+        self._validate_receipt_rule_actions(rule)
         rule_set.rules.append(rule)
         self.receipt_rule_set[rule_set_name] = rule_set
 
@@ -753,6 +758,63 @@ class SESBackend(BaseBackend):
         if len(name) > 64:
             raise ValidationError(f"Not a valid {param_name}: {name}")
         return
+
+    def _validate_receipt_rule_actions(self, rule: Dict[str, Any]) -> None:
+        # Allowed to be empty
+        actions = rule.get("actions", [])
+        for action in actions:
+            if "S3Action" in action:
+                self._validate_s3_action(action["S3Action"])
+
+    def _validate_s3_action(self, s3_action: Dict[str, str]) -> None:
+        from moto.s3.models import s3_backends
+
+        # Raise an exception if the bucket does not exist
+        try:
+            partition = get_partition(self.region_name)
+            s3_backends[self.account_id][partition].get_bucket(s3_action["bucket_name"])
+        except Exception:
+            raise InvalidS3ConfigurationException(
+                f"Could not write to bucket: {s3_action['bucket_name']}"
+            )
+
+        if s3_action.get("kms_key_arn"):
+            self._validate_kms_key(s3_action["kms_key_arn"])
+
+        if s3_action.get("topic_arn"):
+            self._validate_sns_topic(s3_action["topic_arn"])
+
+        if s3_action.get("iam_role_arn"):
+            self._validate_iam_role(s3_action["iam_role_arn"])
+
+    def _validate_kms_key(self, kms_key_arn: str) -> None:
+        from moto.kms.models import kms_backends
+
+        # Raise an exception if the KMS key does not exist
+        try:
+            region_kms_backend = kms_backends[self.account_id][self.region_name]
+            _ = region_kms_backend.describe_key(kms_key_arn)
+        except Exception:
+            raise InvalidS3ConfigurationException(
+                f"Unable to use AWS KMS key: {kms_key_arn}"
+            )
+
+    def _validate_sns_topic(self, topic_arn: str) -> None:
+        from moto.sns.models import sns_backends
+
+        # Raise an exception if the SNS topic does not exist
+        if topic_arn not in sns_backends[self.account_id][self.region_name].topics:
+            raise InvalidSnsTopicException(f"Invalid SNS topic: {topic_arn}")
+
+    def _validate_iam_role(self, role_arn: str) -> None:
+        from moto.iam.models import iam_backends
+
+        # Raise an exception if the IAM role does not exist
+        if (
+            role_arn
+            not in iam_backends[self.account_id][get_partition(self.region_name)].roles
+        ):
+            raise InvalidParameterValue("Could not assume the provided IAM role")
 
     def describe_receipt_rule_set(self, rule_set_name: str) -> ReceiptRuleSet:
         rule_set = self.receipt_rule_set.get(rule_set_name)

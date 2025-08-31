@@ -57,6 +57,14 @@ class CannotDelete(SesError):
     code = "CannotDelete"
 
 
+class InvalidS3ConfigurationException(SesError):
+    code = "InvalidS3Configuration"
+
+
+class InvalidSnsTopicException(SesError):
+    code = "InvalidSnsTopic"
+
+
 class MissingRenderingAttributeException(SesError):
     code = "MissingRenderingAttributeException"
 

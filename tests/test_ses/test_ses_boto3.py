@@ -838,7 +838,9 @@ def test_create_receipt_rule():
     ],
     ids=["invalid_rule_set_name", "invalid_rule_name", "invalid_after_rule_param"],
 )
-def test_create_receipt_rule_invalid(rule_set_name, rule, after, err_code, err_message):
+def test_create_receipt_rule_invalid_top_level(
+    rule_set_name, rule, after, err_code, err_message
+):
     conn = boto3.client("ses", region_name="us-east-1")
     # Create a rule set with one rule
     response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
@@ -854,6 +856,75 @@ def test_create_receipt_rule_invalid(rule_set_name, rule, after, err_code, err_m
     }
     if after:
         kwargs["After"] = after
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule(**kwargs)
+    assert ex.value.response["Error"]["Code"] == err_code
+    assert ex.value.response["Error"]["Message"] == err_message
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "action, err_code, err_message",
+    [
+        (
+            {
+                "S3Action": {
+                    "BucketName": "my-bucket",
+                }
+            },
+            "InvalidS3Configuration",
+            "Could not write to bucket: my-bucket",
+        ),
+        (
+            {
+                "S3Action": {
+                    "BucketName": "test-bucket",
+                    "KmsKeyArn": "non-existent-key",
+                }
+            },
+            "InvalidS3Configuration",
+            "Unable to use AWS KMS key: non-existent-key",
+        ),
+        (
+            {
+                "S3Action": {
+                    "BucketName": "test-bucket",
+                    "TopicArn": "non-existent-topic",
+                }
+            },
+            "InvalidSnsTopic",
+            "Invalid SNS topic: non-existent-topic",
+        ),
+        (
+            {
+                "S3Action": {
+                    "BucketName": "test-bucket",
+                    "IamRoleArn": "my-role-arn-made-up-to-something-long",
+                }
+            },
+            "InvalidParameterValue",
+            "Could not assume the provided IAM role",
+        ),
+    ],
+    ids=[
+        "non_existent_bucket",
+        "non_existent_kms_key",
+        "non_existent_sns_topic",
+        "non_existent_iam_role",
+    ],
+)
+def test_create_receipt_rule_invalid_s3_action(action, err_code, err_message):
+    conn = boto3.client("ses", region_name="us-east-1")
+    # Create a rule set with one rule
+    response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    # Create an S3 bucket
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    s3_client.create_bucket(Bucket="test-bucket")
+    kwargs = {
+        "RuleSetName": "testRuleSet",
+        "Rule": {"Name": "r1", "Actions": [action]},
+    }
     with pytest.raises(ClientError) as ex:
         conn.create_receipt_rule(**kwargs)
     assert ex.value.response["Error"]["Code"] == err_code
