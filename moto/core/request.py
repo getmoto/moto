@@ -33,10 +33,12 @@ def normalize_request(request: AWSPreparedRequest | Request) -> Request:
     return normalized_request
 
 
-def determine_request_protocol(request: Request, service_model: ServiceModel) -> str:
+def determine_request_protocol(
+    service_model: ServiceModel, content_type: str | None = None
+) -> str:
     protocol = str(service_model.protocol)
     supported_protocols = service_model.metadata.get("protocols", [protocol])
-    content_type = request.content_type if request.content_type else ""
+    content_type = content_type if content_type is not None else ""
     if content_type in JSON_TYPES:
         protocol = "rest-json" if content_type == APPLICATION_JSON else "json"
     elif content_type.startswith("application/x-www-form-urlencoded"):
