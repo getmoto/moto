@@ -658,7 +658,9 @@ class SESBackend(BaseBackend):
             raise AlreadyExists(f"Rule set already exists: {rule_set_name}")
         self.receipt_rule_set[rule_set_name] = ReceiptRuleSet(name=rule_set_name)
 
-    def create_receipt_rule(self, rule_set_name: str, rule: Dict[str, Any]) -> None:
+    def create_receipt_rule(
+        self, rule_set_name: str, rule: Dict[str, Any], after: Optional[str]
+    ) -> None:
         # Validate ruleSetName
         self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
         # Validate the name of the rule
@@ -667,6 +669,9 @@ class SESBackend(BaseBackend):
         rule_set = self.receipt_rule_set.get(rule_set_name)
         if rule_set is None:
             raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
+        # If "after" is specified, then verify if a rule exists by that name under the rule set
+        if after and not any(r["name"] == after for r in rule_set.rules):
+            raise RuleDoesNotExist(f"Rule does not exist: {after}")
         if rule in rule_set.rules:
             raise AlreadyExists(f"Rule already exists: {rule['name']}")
         rule_set.rules.append(rule)

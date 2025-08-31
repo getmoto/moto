@@ -812,27 +812,50 @@ def test_create_receipt_rule():
 
 @mock_aws
 @pytest.mark.parametrize(
-    "rule_set_name, rule, err_code, err_message",
+    "rule_set_name, rule, after, err_code, err_message",
     [
         (
             "123_",
             {"Name": "testRule"},
+            None,
             "ValidationError",
             "Value at 'ruleSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$",
         ),
         (
-            "testRuleSet",
+            "invalidRuleSet",
             {"Name": "_123", "Enabled": False},
+            None,
             "ValidationError",
             "Value at 'rule.name' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$",
         ),
+        (
+            "testRuleSet",
+            {"Name": "rule1", "Enabled": False},
+            "invalidRule",
+            "RuleDoesNotExist",
+            "Rule does not exist: invalidRule",
+        ),
     ],
-    ids=["invalid_rule_set_name", "invalid_rule_name"],
+    ids=["invalid_rule_set_name", "invalid_rule_name", "invalid_after_rule_param"],
 )
-def test_create_receipt_rule_invalid(rule_set_name, rule, err_code, err_message):
+def test_create_receipt_rule_invalid(rule_set_name, rule, after, err_code, err_message):
     conn = boto3.client("ses", region_name="us-east-1")
+    # Create a rule set with one rule
+    response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    response = conn.create_receipt_rule(
+        RuleSetName="testRuleSet", Rule={"Name": "testRule"}
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    kwargs = {
+        "RuleSetName": rule_set_name,
+        "Rule": rule,
+    }
+    if after:
+        kwargs["After"] = after
     with pytest.raises(ClientError) as ex:
-        conn.create_receipt_rule(RuleSetName=rule_set_name, Rule=rule)
+        conn.create_receipt_rule(**kwargs)
     assert ex.value.response["Error"]["Code"] == err_code
     assert ex.value.response["Error"]["Message"] == err_message
 
