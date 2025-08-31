@@ -22,6 +22,7 @@ from .exceptions import (
     ConfigurationSetAlreadyExists,
     ConfigurationSetDoesNotExist,
     EventDestinationAlreadyExists,
+    InvalidLambdaFunctionException,
     InvalidParameterValue,
     InvalidRenderingParameterException,
     InvalidS3ConfigurationException,
@@ -769,6 +770,8 @@ class SESBackend(BaseBackend):
                 self._validate_sns_topic(action["BounceAction"].get("topic_arn"))
             if "WorkmailAction" in action:
                 self._validate_sns_topic(action["WorkmailAction"].get("topic_arn"))
+            if "LambdaAction" in action:
+                self._validate_lambda_action(action["LambdaAction"])
 
     def _validate_s3_action(self, s3_action: Dict[str, str]) -> None:
         from moto.s3.models import s3_backends
@@ -790,6 +793,21 @@ class SESBackend(BaseBackend):
 
         if s3_action.get("iam_role_arn"):
             self._validate_iam_role(s3_action["iam_role_arn"])
+
+    def _validate_lambda_action(self, lambda_action: Dict[str, str]) -> None:
+        from moto.awslambda.models import lambda_backends
+
+        # Raise an exception if the Lambda function does not exist
+        try:
+            _ = lambda_backends[self.account_id][self.region_name].get_function(
+                lambda_action["function_arn"]
+            )
+        except Exception:
+            raise InvalidLambdaFunctionException(
+                f"Invalid Lambda function: {lambda_action['function_arn']}"
+            )
+
+        self._validate_sns_topic(lambda_action.get("topic_arn"))
 
     def _validate_kms_key(self, kms_key_arn: str) -> None:
         from moto.kms.models import kms_backends

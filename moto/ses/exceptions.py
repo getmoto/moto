@@ -65,6 +65,10 @@ class InvalidSnsTopicException(SesError):
     code = "InvalidSnsTopic"
 
 
+class InvalidLambdaFunctionException(SesError):
+    code = "InvalidLambdaFunction"
+
+
 class MissingRenderingAttributeException(SesError):
     code = "MissingRenderingAttributeException"
 

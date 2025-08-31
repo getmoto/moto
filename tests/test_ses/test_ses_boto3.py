@@ -9,6 +9,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import aws_verified
+from tests.test_awslambda.utilities import get_role_name
 
 
 @mock_aws
@@ -927,6 +928,25 @@ def test_create_receipt_rule_invalid_top_level(
             "InvalidSnsTopic",
             "Invalid SNS topic: non-existent-topic",
         ),
+        (
+            {
+                "LambdaAction": {
+                    "FunctionArn": "non-existent-function",
+                }
+            },
+            "InvalidLambdaFunction",
+            "Invalid Lambda function: non-existent-function",
+        ),
+        (
+            {
+                "LambdaAction": {
+                    "FunctionArn": "arn:aws:lambda:us-east-1:123456789012:function:test-function",
+                    "TopicArn": "non-existent-topic",
+                }
+            },
+            "InvalidSnsTopic",
+            "Invalid SNS topic: non-existent-topic",
+        ),
     ],
     ids=[
         "non_existent_bucket",
@@ -935,6 +955,8 @@ def test_create_receipt_rule_invalid_top_level(
         "non_existent_iam_role",
         "non_existent_sns_topic_for_bounce",
         "non_existent_sns_topic_for_workmail",
+        "non_existent_lambda_function",
+        "non_existent_sns_topic_for_lambda_action",
     ],
 )
 def test_create_receipt_rule_invalid_action(action, err_code, err_message):
@@ -942,9 +964,18 @@ def test_create_receipt_rule_invalid_action(action, err_code, err_message):
     # Create a rule set with one rule
     response = conn.create_receipt_rule_set(RuleSetName="testRuleSet")
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    # Create an S3 bucket
+    # Create a S3 bucket
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_client.create_bucket(Bucket="test-bucket")
+    # Create a Lambda function
+    lambda_client = boto3.client("lambda", region_name="us-east-1")
+    lambda_client.create_function(
+        FunctionName="test-function",
+        Runtime="python3.8",
+        Role=get_role_name(),
+        Handler="lambda_function.lambda_handler",
+        Code={"ZipFile": b"def lambda_handler(event, context): return 'Hello, World!'"},
+    )
     kwargs = {
         "RuleSetName": "testRuleSet",
         "Rule": {"Name": "r1", "Actions": [action]},
