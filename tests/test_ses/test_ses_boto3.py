@@ -722,14 +722,7 @@ def test_create_receipt_rule():
             "Recipients": ["string"],
             "Actions": [
                 {
-                    "S3Action": {
-                        "TopicArn": "string",
-                        "BucketName": "string",
-                        "ObjectKeyPrefix": "string",
-                        "KmsKeyArn": "string",
-                    },
                     "BounceAction": {
-                        "TopicArn": "string",
                         "SmtpReplyCode": "string",
                         "StatusCode": "string",
                         "Message": "string",
@@ -753,14 +746,7 @@ def test_create_receipt_rule():
                 "Recipients": ["string"],
                 "Actions": [
                     {
-                        "S3Action": {
-                            "TopicArn": "string",
-                            "BucketName": "string",
-                            "ObjectKeyPrefix": "string",
-                            "KmsKeyArn": "string",
-                        },
                         "BounceAction": {
-                            "TopicArn": "string",
                             "SmtpReplyCode": "string",
                             "StatusCode": "string",
                             "Message": "string",
@@ -785,14 +771,7 @@ def test_create_receipt_rule():
                 "Recipients": ["string"],
                 "Actions": [
                     {
-                        "S3Action": {
-                            "TopicArn": "string",
-                            "BucketName": "string",
-                            "ObjectKeyPrefix": "string",
-                            "KmsKeyArn": "string",
-                        },
                         "BounceAction": {
-                            "TopicArn": "string",
                             "SmtpReplyCode": "string",
                             "StatusCode": "string",
                             "Message": "string",
@@ -1002,14 +981,7 @@ def test_clone_receipt_rule_set():
             "Recipients": ["string"],
             "Actions": [
                 {
-                    "S3Action": {
-                        "TopicArn": "string",
-                        "BucketName": "string",
-                        "ObjectKeyPrefix": "string",
-                        "KmsKeyArn": "string",
-                    },
                     "BounceAction": {
-                        "TopicArn": "string",
                         "SmtpReplyCode": "string",
                         "StatusCode": "string",
                         "Message": "string",
@@ -1266,6 +1238,10 @@ def test_describe_receipt_rule():
     rule_set_name = "testRuleSet"
     conn.create_receipt_rule_set(RuleSetName=rule_set_name)
 
+    # Create S3 bucket testBucketName
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    s3_client.create_bucket(Bucket="testBucketName")
+
     rule_name = "testRule"
     conn.create_receipt_rule(
         RuleSetName=rule_set_name,
@@ -1277,13 +1253,10 @@ def test_describe_receipt_rule():
             "Actions": [
                 {
                     "S3Action": {
-                        "TopicArn": "string",
                         "BucketName": "testBucketName",
                         "ObjectKeyPrefix": "testObjectKeyPrefix",
-                        "KmsKeyArn": "string",
                     },
                     "BounceAction": {
-                        "TopicArn": "string",
                         "SmtpReplyCode": "string",
                         "StatusCode": "string",
                         "Message": "string",
@@ -1311,25 +1284,15 @@ def test_describe_receipt_rule():
     assert len(receipt_rule_response["Rule"]["Actions"]) == 1
     assert "S3Action" in receipt_rule_response["Rule"]["Actions"][0]
 
-    assert (
-        receipt_rule_response["Rule"]["Actions"][0]["S3Action"]["TopicArn"] == "string"
-    )
     assert receipt_rule_response["Rule"]["Actions"][0]["S3Action"]["BucketName"] == (
         "testBucketName"
     )
     assert receipt_rule_response["Rule"]["Actions"][0]["S3Action"][
         "ObjectKeyPrefix"
     ] == ("testObjectKeyPrefix")
-    assert (
-        receipt_rule_response["Rule"]["Actions"][0]["S3Action"]["KmsKeyArn"] == "string"
-    )
 
     assert "BounceAction" in receipt_rule_response["Rule"]["Actions"][0]
 
-    assert (
-        receipt_rule_response["Rule"]["Actions"][0]["BounceAction"]["TopicArn"]
-        == "string"
-    )
     assert (
         receipt_rule_response["Rule"]["Actions"][0]["BounceAction"]["SmtpReplyCode"]
         == "string"
@@ -1376,6 +1339,9 @@ def test_update_receipt_rule():
     rule_set_name = "testRuleSet"
     conn.create_receipt_rule_set(RuleSetName=rule_set_name)
 
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    s3_client.create_bucket(Bucket="testBucketName")
+
     rule_name = "testRule"
     conn.create_receipt_rule(
         RuleSetName=rule_set_name,
@@ -1387,13 +1353,10 @@ def test_update_receipt_rule():
             "Actions": [
                 {
                     "S3Action": {
-                        "TopicArn": "string",
                         "BucketName": "testBucketName",
                         "ObjectKeyPrefix": "testObjectKeyPrefix",
-                        "KmsKeyArn": "string",
                     },
                     "BounceAction": {
-                        "TopicArn": "string",
                         "SmtpReplyCode": "string",
                         "StatusCode": "string",
                         "Message": "string",
@@ -1415,13 +1378,10 @@ def test_update_receipt_rule():
             "Actions": [
                 {
                     "S3Action": {
-                        "TopicArn": "string",
                         "BucketName": "testBucketName",
                         "ObjectKeyPrefix": "testObjectKeyPrefix",
-                        "KmsKeyArn": "string",
                     },
                     "BounceAction": {
-                        "TopicArn": "string",
                         "SmtpReplyCode": "string",
                         "StatusCode": "string",
                         "Message": "string",
@@ -1459,13 +1419,10 @@ def test_update_receipt_rule():
                 "Actions": [
                     {
                         "S3Action": {
-                            "TopicArn": "string",
                             "BucketName": "testBucketName",
                             "ObjectKeyPrefix": "testObjectKeyPrefix",
-                            "KmsKeyArn": "string",
                         },
                         "BounceAction": {
-                            "TopicArn": "string",
                             "SmtpReplyCode": "string",
                             "StatusCode": "string",
                             "Message": "string",
@@ -1493,13 +1450,10 @@ def test_update_receipt_rule():
                 "Actions": [
                     {
                         "S3Action": {
-                            "TopicArn": "string",
                             "BucketName": "testBucketName",
                             "ObjectKeyPrefix": "testObjectKeyPrefix",
-                            "KmsKeyArn": "string",
                         },
                         "BounceAction": {
-                            "TopicArn": "string",
                             "SmtpReplyCode": "string",
                             "StatusCode": "string",
                             "Message": "string",
@@ -1523,6 +1477,9 @@ def test_update_receipt_rule_actions():
     rule_set_name = "testRuleSet"
     conn.create_receipt_rule_set(RuleSetName=rule_set_name)
 
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    s3_client.create_bucket(Bucket="testBucketName")
+
     rule_name = "testRule"
     conn.create_receipt_rule(
         RuleSetName=rule_set_name,
@@ -1534,13 +1491,10 @@ def test_update_receipt_rule_actions():
             "Actions": [
                 {
                     "S3Action": {
-                        "TopicArn": "string",
                         "BucketName": "testBucketName",
                         "ObjectKeyPrefix": "testObjectKeyPrefix",
-                        "KmsKeyArn": "string",
                     },
                     "BounceAction": {
-                        "TopicArn": "string",
                         "SmtpReplyCode": "string",
                         "StatusCode": "string",
                         "Message": "string",
@@ -1562,13 +1516,10 @@ def test_update_receipt_rule_actions():
             "Actions": [
                 {
                     "S3Action": {
-                        "TopicArn": "newString",
                         "BucketName": "updatedTestBucketName",
                         "ObjectKeyPrefix": "updatedTestObjectKeyPrefix",
-                        "KmsKeyArn": "newString",
                     },
                     "BounceAction": {
-                        "TopicArn": "newString",
                         "SmtpReplyCode": "newString",
                         "StatusCode": "newString",
                         "Message": "newString",
@@ -1590,27 +1541,15 @@ def test_update_receipt_rule_actions():
     assert "S3Action" in updated_rule_description["Rule"]["Actions"][0]
 
     assert (
-        (updated_rule_description["Rule"]["Actions"][0]["S3Action"]["TopicArn"])
-        == "newString"
-    )
-    assert (
         (updated_rule_description["Rule"]["Actions"][0]["S3Action"]["BucketName"])
         == "updatedTestBucketName"
     )
     assert updated_rule_description["Rule"]["Actions"][0]["S3Action"][
         "ObjectKeyPrefix"
     ] == ("updatedTestObjectKeyPrefix")
-    assert (
-        updated_rule_description["Rule"]["Actions"][0]["S3Action"]["KmsKeyArn"]
-        == "newString"
-    )
 
     assert "BounceAction" in updated_rule_description["Rule"]["Actions"][0]
 
-    assert (
-        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["TopicArn"]
-        == "newString"
-    )
     assert (
         (
             updated_rule_description["Rule"]["Actions"][0]["BounceAction"][
