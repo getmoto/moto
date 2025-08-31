@@ -1862,7 +1862,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
+                    timestamp=utcnow().replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Bytes",
@@ -1877,7 +1877,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
+                    timestamp=utcnow().replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Count",

@@ -990,5 +990,5 @@ class IoTResponse(BaseResponse):
             token=token,
         )
         return json.dumps(
-            dict(things=[thing.to_dict() for thing in things], nextToken=next_token)
+            dict(things=[thing.thing_name for thing in things], nextToken=next_token)
         )

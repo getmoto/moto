@@ -3,9 +3,6 @@ import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, Iterable, List, Optional, SupportsFloat, Tuple
 
-from dateutil import parser
-from dateutil.tz import tzutc
-
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import BackendDict, BaseModel, CloudWatchMetricProvider
 from moto.core.utils import utcnow
@@ -225,7 +222,7 @@ class MetricDatumBase(BaseModel):
     ):
         self.namespace = namespace
         self.name = name
-        self.timestamp = timestamp or utcnow().replace(tzinfo=tzutc())
+        self.timestamp = timestamp or utcnow()
         self.dimensions = [
             Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
@@ -593,8 +590,6 @@ class CloudWatchBackend(BaseBackend):
         for metric_member in metric_data:
             # Preserve "datetime" for get_metric_statistics comparisons
             timestamp = metric_member.get("Timestamp")
-            if timestamp is not None and type(timestamp) is not datetime:
-                timestamp = parser.parse(timestamp)
             metric_name = metric_member["MetricName"]
             dimension = metric_member.get("Dimensions", _EMPTY_LIST)
             unit = metric_member.get("Unit")
@@ -607,9 +602,6 @@ class CloudWatchBackend(BaseBackend):
                 for i in range(0, len(values)):
                     value = values[i]
                     timestamp = metric_member.get("Timestamp")
-                    if timestamp is not None and type(timestamp) is not datetime:
-                        timestamp = parser.parse(timestamp)
-
                     # add the value count[i] times
                     for _ in range(0, int(float(counts[i]))):
                         self.metric_data.append(
