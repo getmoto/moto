@@ -209,7 +209,9 @@ class SESBackend(BaseBackend):
     Note that, as this is an internal API, the exact format may differ per versions.
     """
 
-    __RULE_SET_NAME_REGEX = r"^[a-zA-Z0-9_.-]+$"
+    __RULE_NAME_REGEX = r"^[a-zA-Z0-9_.-]+$"
+    __RULE_SET_PARAM = "ruleSetName"
+    __RULE_PARAM = "rule.name"
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -651,12 +653,17 @@ class SESBackend(BaseBackend):
             3. Contain 64 characters or lesser
         """
         # Boto3 throws an error with the same message for both failures, even though we could have very well combined it into one regex
-        self._validate_rule_set_name_param(rule_set_name)
+        self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
         if self.receipt_rule_set.get(rule_set_name) is not None:
             raise AlreadyExists(f"Rule set already exists: {rule_set_name}")
         self.receipt_rule_set[rule_set_name] = ReceiptRuleSet(name=rule_set_name)
 
     def create_receipt_rule(self, rule_set_name: str, rule: Dict[str, Any]) -> None:
+        # Validate ruleSetName
+        self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
+        # Validate the name of the rule
+        self._validate_name_param(self.__RULE_PARAM, rule["name"])
+        # Start operating on the rule set, if it exists
         rule_set = self.receipt_rule_set.get(rule_set_name)
         if rule_set is None:
             raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
@@ -669,8 +676,8 @@ class SESBackend(BaseBackend):
         self, original_rule_set_name: str, rule_set_name: str
     ) -> None:
         # Boto3 validates both the original and new rule set names
-        self._validate_rule_set_name_param(original_rule_set_name)
-        self._validate_rule_set_name_param(rule_set_name)
+        self._validate_name_param(self.__RULE_SET_PARAM, original_rule_set_name)
+        self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
 
         # Check if original_rule_set_name exists
         if self.receipt_rule_set.get(original_rule_set_name) is None:
@@ -697,7 +704,7 @@ class SESBackend(BaseBackend):
             for rs in self.receipt_rule_set.values():
                 rs.is_active = False
             return None
-        self._validate_rule_set_name_param(rule_set_name)
+        self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
         # Verify that the rule set exists
         if rule_set_name not in self.receipt_rule_set:
             raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
@@ -714,7 +721,7 @@ class SESBackend(BaseBackend):
         return None
 
     def delete_receipt_rule_set(self, rule_set_name: str) -> None:
-        self._validate_rule_set_name_param(rule_set_name)
+        self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
         # If the rule set does not exist, boto3 silently returns with success response
         if rule_set_name not in self.receipt_rule_set:
             return
@@ -727,19 +734,19 @@ class SESBackend(BaseBackend):
         # The receipt rule sets are ordered by name
         return sorted(self.receipt_rule_set.values(), key=lambda rs: rs.name)
 
-    def _validate_rule_set_name_param(self, rule_set_name: str) -> None:
+    def _validate_name_param(self, param_name: str, name: str) -> None:
         # Boto3 throws an error with the same message for both failures, even though we could have very well combined it into one regex
         if (
-            not re.match(SESBackend.__RULE_SET_NAME_REGEX, rule_set_name)
-            or not rule_set_name[0].isalnum()
-            or not rule_set_name[-1].isalnum()
+            not re.match(SESBackend.__RULE_NAME_REGEX, name)
+            or not name[0].isalnum()
+            or not name[-1].isalnum()
         ):
             raise ValidationError(
-                "Value at 'ruleSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$"
+                f"Value at '{param_name}' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$"
             )
         # A different message thrown for length of the rule_name_set string
-        if len(rule_set_name) > 64:
-            raise ValidationError(f"Not a valid ruleSetName: {rule_set_name}")
+        if len(name) > 64:
+            raise ValidationError(f"Not a valid {param_name}: {name}")
         return
 
     def describe_receipt_rule_set(self, rule_set_name: str) -> ReceiptRuleSet:

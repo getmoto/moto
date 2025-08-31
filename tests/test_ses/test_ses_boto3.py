@@ -811,6 +811,33 @@ def test_create_receipt_rule():
 
 
 @mock_aws
+@pytest.mark.parametrize(
+    "rule_set_name, rule, err_code, err_message",
+    [
+        (
+            "123_",
+            {"Name": "testRule"},
+            "ValidationError",
+            "Value at 'ruleSetName' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$",
+        ),
+        (
+            "testRuleSet",
+            {"Name": "_123", "Enabled": False},
+            "ValidationError",
+            "Value at 'rule.name' failed to satisfy constraint: Member must satisfy regular expression pattern: ^[a-zA-Z0-9_.-]+$",
+        ),
+    ],
+    ids=["invalid_rule_set_name", "invalid_rule_name"],
+)
+def test_create_receipt_rule_invalid(rule_set_name, rule, err_code, err_message):
+    conn = boto3.client("ses", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        conn.create_receipt_rule(RuleSetName=rule_set_name, Rule=rule)
+    assert ex.value.response["Error"]["Code"] == err_code
+    assert ex.value.response["Error"]["Message"] == err_message
+
+
+@mock_aws
 def test_clone_receipt_rule_set():
     conn = boto3.client("ses", region_name="us-east-1")
     # First create a rule set that we will eventually clone
