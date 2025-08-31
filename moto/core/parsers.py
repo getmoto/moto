@@ -1,5 +1,6 @@
 # mypy: ignore-errors
 import base64
+import json
 from collections import OrderedDict
 from collections.abc import Mapping, MutableMapping
 from datetime import datetime, timezone
@@ -172,7 +173,87 @@ class QueryParser:
         return shape.serialization.get("flattened")
 
 
+class JSONParser:
+    DEFAULT_ENCODING = "utf-8"
+    MAP_TYPE = dict
+
+    def __init__(self, timestamp_parser=None, map_type=None):
+        if timestamp_parser is None:
+            timestamp_parser = parse_timestamp
+        self._timestamp_parser = timestamp_parser
+        if map_type is not None:
+            self.MAP_TYPE = map_type
+
+    def parse(self, request_dict, operation_model):
+        shape = operation_model.input_shape
+        parsed = self._do_parse(request_dict, shape)
+        return parsed if parsed is not UNDEFINED else {}
+
+    def _do_parse(self, request_dict, shape):
+        parsed = self.MAP_TYPE()
+        if shape is not None:
+            parsed = self._handle_json_body(request_dict["body"], shape)
+        return parsed
+
+    def _handle_json_body(self, raw_body, shape):
+        parsed_json = self._parse_body_as_json(raw_body)
+        return self._parse_shape(shape, parsed_json)
+
+    def _parse_body_as_json(self, body_contents):
+        if not body_contents:
+            return {}
+        body = body_contents.decode(self.DEFAULT_ENCODING)
+        original_parsed = json.loads(body)
+        return original_parsed
+
+    def _parse_shape(self, shape, node):
+        handler = getattr(self, "_handle_%s" % shape.type_name, self._default_handle)
+        return handler(shape, node)
+
+    def _default_handle(self, _, value):
+        return value
+
+    def _handle_float(self, _, value):
+        return float(value) if value is not UNDEFINED else value
+
+    def _handle_list(self, shape, node):
+        parsed = []
+        member_shape = shape.member
+        for item in node:
+            parsed.append(self._parse_shape(member_shape, item))
+        return parsed
+
+    def _handle_map(self, shape, value):
+        parsed = self.MAP_TYPE()
+        key_shape = shape.key
+        value_shape = shape.value
+        for key, value in value.items():
+            actual_key = self._parse_shape(key_shape, key)
+            actual_value = self._parse_shape(value_shape, value)
+            parsed[actual_key] = actual_value
+        return parsed
+
+    def _handle_structure(self, shape, value):
+        member_shapes = shape.members
+        final_parsed = self.MAP_TYPE()
+        for member_name in member_shapes:
+            member_shape = member_shapes[member_name]
+            json_name = member_shape.serialization.get("name", member_name)
+            raw_value = value.get(json_name)
+            if raw_value is not None:
+                final_parsed[member_name] = self._parse_shape(
+                    member_shapes[member_name], raw_value
+                )
+        return final_parsed
+
+    def _handle_timestamp(self, _, value):
+        return self._timestamp_parser(value)
+
+    _handle_double = _handle_float
+
+
 PROTOCOL_PARSERS = {
+    "json": JSONParser,
     "query": QueryParser,
 }
 
