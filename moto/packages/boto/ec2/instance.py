@@ -138,8 +138,6 @@ class Instance(TaggedEC2Object):
     def __init__(self, connection: Any = None):
         super().__init__(connection)
         self.dns_name = None
-        # self.public_dns_name = None
-        # self.private_dns_name = None
         self.key_name = None
         self.kernel = None
         self.ramdisk = None
@@ -148,16 +146,10 @@ class Instance(TaggedEC2Object):
         self.monitored = False
         self.monitoring_state = None
         self.spot_instance_request_id = None
-        # self.subnet_id = None
-        # self.private_ip_address = None
         self.ip_address = None
         self.requester_id = None
         self._in_monitoring_element = False
         self.persistent = False
-        # Hardcoded in original XML template
-        self.root_device_name: Optional[str] = "/dev/sda1"
-        self.root_device_type = "ebs"
-        # self.state_reason = None
         self.group_name = None
         self.client_token = None
         self.eventsSet = None
@@ -173,42 +165,6 @@ class Instance(TaggedEC2Object):
 
     def __repr__(self) -> str:
         return "Instance:%s" % self.id  # type: ignore
-
-    @property
-    def state(self) -> str:
-        return self._state.name  # type: ignore
-
-    @property
-    def state_code(self) -> int:
-        return self._state.code  # type: ignore
-
-    @property
-    def instance_status(self) -> dict[str, Any]:
-        if self.state_code != 16:
-            return {"Status": "not-applicable"}
-        return {
-            "Details": [
-                {
-                    "Name": "reachability",
-                    "Status": "passed",
-                }
-            ],
-            "Status": "ok",
-        }
-
-    @property
-    def system_status(self) -> dict[str, Any]:
-        if self.state_code != 16:
-            return {"Status": "not-applicable"}
-        return {
-            "Details": [
-                {
-                    "Name": "reachability",
-                    "Status": "passed",
-                }
-            ],
-            "Status": "ok",
-        }
 
     @property
     def placement(self) -> InstancePlacement:

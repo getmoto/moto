@@ -161,7 +161,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.platform = ami.platform if ami else None
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
         self.architecture = ami.architecture if ami else "x86_64"
-        self.root_device_name = ami.root_device_name if ami else self.root_device_name
+        self.root_device_name = ami.root_device_name if ami else "/dev/sda1"
+        self.root_device_type = "ebs"
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
 
@@ -204,6 +205,42 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     @property
     def state_transition_reason(self) -> Optional[str]:
         return self._reason
+
+    @property
+    def state(self) -> str:
+        return self._state.name  # type: ignore
+
+    @property
+    def state_code(self) -> int:
+        return self._state.code  # type: ignore
+
+    @property
+    def instance_status(self) -> dict[str, Any]:
+        if self.state_code != 16:
+            return {"Status": "not-applicable"}
+        return {
+            "Details": [
+                {
+                    "Name": "reachability",
+                    "Status": "passed",
+                }
+            ],
+            "Status": "ok",
+        }
+
+    @property
+    def system_status(self) -> dict[str, Any]:
+        if self.state_code != 16:
+            return {"Status": "not-applicable"}
+        return {
+            "Details": [
+                {
+                    "Name": "reachability",
+                    "Status": "passed",
+                }
+            ],
+            "Status": "ok",
+        }
 
     @property
     def monitoring(self) -> dict[str, str | None]:
