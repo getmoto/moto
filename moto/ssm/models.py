@@ -1166,7 +1166,7 @@ class FakePatchBaseline:
 
 
 class FakePatchGroup:
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
         self.default_associations: Dict[str, str] = {
             "WINDOWS": "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-04fb4ae6142167966",
@@ -2548,14 +2548,14 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def register_patch_baseline_for_patch_group(
         self, baseline_id: str, patch_group: str
-    ) -> [str, str]:
+    ) -> (str, str):
         """register a patch group in ssm backend"""
         if baseline_id not in self.baselines.keys():
             return DoesNotExistException
         baseline_os = self.baselines[baseline_id].operating_system
         if patch_group in self.patch_groups.keys():
             if self.patch_groups[patch_group].associations[baseline_os] != baseline_id:
-                raise AlreadyExistsException()
+                raise AlreadyExistsException(baseline_os)
             self.patch_groups[patch_group].associations[baseline_os] = baseline_id
         else:
             fake_patch_group = FakePatchGroup(patch_group)
@@ -2565,7 +2565,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def get_patch_baseline_for_patch_group(
         self, patch_group: str, operating_system: str
-    ) -> [str, str, str]:
+    ) -> (str, str, str):
         """get baselineid for patch group for operating system"""
         if patch_group not in self.patch_groups.keys():
             fake_patch_group = FakePatchGroup("Fake")
@@ -2576,7 +2576,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def deregister_patch_baseline_for_patch_group(
         self, baseline_id: str, patch_group: str
-    ) -> [str, str]:
+    ) -> (str, str):
         """deregister a patch baseline for os on patch group, set default"""
         baseline_match = re.search(r"^[a-zA-Z0-9_\-:/]{20,128}$", baseline_id)
         if baseline_match is None:
