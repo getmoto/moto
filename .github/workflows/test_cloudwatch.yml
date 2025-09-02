@@ -6,6 +6,7 @@ on:
       - "moto/core/**"
       - "moto/cloudwatch/**"
       - "tests/test_cloudwatch/**"
+  workflow_dispatch:
 jobs:
   test-cloudwatch-protocols:
     name: ${{ matrix.botocore-version == 'botocore==1.40.16' && 'Query Protocol' || 'JSON Protocol' }}
