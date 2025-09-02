@@ -164,4 +164,7 @@ class AlreadyExistsException(JsonRESTError):
     code = 400
 
     def __init__(self, operating_system: str):
-        super().__init__("AlreadyExistsException", f"Patch Group baseline already has a baseline registered for OperatingSystem {operating_system}")
+        super().__init__(
+            "AlreadyExistsException",
+            f"Patch Group baseline already has a baseline registered for OperatingSystem {operating_system}",
+        )
