@@ -2546,30 +2546,44 @@ class SimpleSystemManagerBackend(BaseBackend):
         window = self.get_maintenance_window(window_id)
         del window.tasks[window_task_id]
 
-    def register_patch_baseline_for_patch_group(self, baseline_id, patch_group):
-        baseline_match = re.search(r"^[a-zA-Z0-9_\-:/]{20,128}$", baseline_id)
-        if baseline_match is None:
-            raise InvalidResourceId()
-        patch_group_match = re.search(r"^([a-zA-Z0-9 _.:/=+\-@]*)$", patch_group)
-        if patch_group_match is None:
-            raise InvalidResourceId()
-        if baseline_id not in self.baselines.keys():
-            return DoesNotExistException
+    def register_patch_baseline_for_patch_group(
+        self, baseline_id, patch_group
+    ) -> (str, str):
         baseline_os = self.baselines[baseline_id].operating_system
         if patch_group in self.patch_groups.keys():
-            for group in self.patch_groups[patch_group]:
-                if (
-                    group.patch_baseline_id != baseline_id
-                    and group.patch_baseline_os != baseline_os
-                ):
-                    raise AlreadyExistsException()
-            self.patch_groups[patch_group].associations[baseline_os] = (
-                baseline_id
-            )
+            if (
+                self.patch_groups[patch_group].patch_baseline_id != baseline_id
+                and self.patch_groups[patch_group].patch_baseline_os != baseline_os
+            ):
+                raise AlreadyExistsException()
+            self.patch_groups[patch_group].associations[baseline_os] = baseline_id
         else:
             fake_patch_group = FakePatchGroup(patch_group)
             fake_patch_group.associations[baseline_os] = baseline_id
             self.patch_groups[patch_group] = fake_patch_group
+        return baseline_id, patch_group
+
+    def get_patch_baseline_for_patch_group(
+        self, patch_group, operating_system
+    ) -> (str, str, str):
+        if patch_group not in self.patch_groups.keys():
+            fake_patch_group = FakePatchGroup("Fake")
+            baseline_id = fake_patch_group.associations[operating_system]
+        else:
+            baseline_id = self.patch_groups[patch_group].associations[operating_system]
+        return baseline_id, patch_group, operating_system
+
+    def deregister_patch_baseline_for_patch_group(
+        self, baseline_id, patch_group
+    ) -> (str, str):
+        baseline_match = re.search(r"^[a-zA-Z0-9_\-:/]{20,128}$", baseline_id)
+        if baseline_match is None:
+            raise InvalidResourceId()
+        if patch_group in self.patch_groups.keys():
+            if baseline_id not in self.baselines.keys():
+                return InvalidResourceId
+            baseline_os = self.baselines[baseline_id].operating_system
+            self.patch_groups[patch_group].associations[baseline_os] = baseline_id
         return baseline_id, patch_group
 
 
