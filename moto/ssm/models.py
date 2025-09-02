@@ -2551,7 +2551,7 @@ class SimpleSystemManagerBackend(BaseBackend):
     ) -> Tuple[str, str]:
         """register a patch group in ssm backend"""
         if baseline_id not in self.baselines.keys():
-            raise DoesNotExistException
+            raise DoesNotExistException(baseline_id)
         baseline_os = self.baselines[baseline_id].operating_system
         if patch_group in self.patch_groups.keys():
             if self.patch_groups[patch_group].associations[baseline_os] != baseline_id:
