@@ -42,6 +42,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,  # This should be the sum of the directory limits
         "unique_attribute": "arn",
     },
+    "list_data_sources": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,  # This should be the sum of the directory limits
+        "unique_attribute": "arn",
+    },
 }
 
 

@@ -137,7 +137,7 @@ def test_add_thing_to_billing_group():
 
     response = client.list_things_in_billing_group(billingGroupName=billing_group_name)
     assert len(response["things"]) == 1
-    assert response["things"][0]["thingName"] == thing_name
+    assert thing_name in response["things"]
 
 
 @mock_aws
@@ -178,7 +178,7 @@ def test_remove_thing_from_billing_group_by_arn():
     # Verify the thing is in the billing group
     response = client.list_things_in_billing_group(billingGroupName=billing_group_name)
     assert len(response["things"]) == 1
-    assert response["things"][0]["thingName"] == thing_name
+    assert thing_name in response["things"]
 
     # Get ARNs
     billing_group_arn = create_bg_resp["billingGroupArn"]
@@ -250,7 +250,7 @@ def test_thing_removed_from_billing_group_on_thing_deletion():
     # Verify the thing is in the billing group
     response = client.list_things_in_billing_group(billingGroupName=billing_group_name)
     assert len(response["things"]) == 1
-    assert response["things"][0]["thingName"] == thing_name
+    assert thing_name in response["things"]
 
     # Delete the thing
     client.delete_thing(thingName=thing_name)

@@ -53,6 +53,10 @@ class RuleDoesNotExist(SesError):
     code = "RuleDoesNotExist"
 
 
+class CannotDelete(SesError):
+    code = "CannotDelete"
+
+
 class MissingRenderingAttributeException(SesError):
     code = "MissingRenderingAttributeException"
 

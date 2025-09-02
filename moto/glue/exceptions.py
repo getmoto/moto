@@ -325,8 +325,21 @@ class InvalidFilterFieldNameException(GlueClientError):
         )
 
 
+class InvalidLogicalOperatorException(GlueClientError):
+    def __init__(self, value: str, position: int) -> None:
+        super().__init__(
+            "ValidationException",
+            f"Value '{value}' at 'predicate.conditions.{position}.member.logicalOperator' failed to satisfy constraint: Member must satisfy enum value set: [Equals]",
+        )
+
+
 class NoCrawlsEntryForCrawler(EntityNotFoundException):
     def __init__(self, name: str) -> None:
         super().__init__(
             f"Crawler entry with name {name} does not exist",
         )
+
+
+class IllegalWorkflowStateException(GlueClientError):
+    def __init__(self, msg: str):
+        super().__init__("IllegalWorkflowRunStateException", msg)

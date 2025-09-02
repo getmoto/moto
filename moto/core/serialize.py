@@ -115,11 +115,22 @@ class SerializationContext:
 class ErrorShape(StructureShape):
     _shape_model: dict[str, Any]
 
+    @property
+    def is_sender_fault(self) -> bool:
+        internal_fault = self._shape_model.get("fault", False)
+        error_info = self.metadata.get("error", {})
+        sender_fault = error_info.get("senderFault", False)
+        return sender_fault or not internal_fault
+
     # Overriding super class property to keep mypy happy...
     @property
     def error_code(self) -> str:
         code = str(super().error_code)
         return code
+
+    @classmethod
+    def from_existing_shape(cls, shape: Shape) -> ErrorShape:
+        return cls(shape.name, shape._shape_model, shape._shape_resolver)  # type: ignore[attr-defined]
 
 
 class ShapeHelpersMixin:
@@ -281,7 +292,8 @@ class ResponseSerializer(ShapeHelpersMixin):
             value_picker = DefaultAttributePicker()
         self._value_picker = value_picker
         self._timestamp_serializer = TimestampSerializer(self.DEFAULT_TIMESTAMP_FORMAT)
-        self.path = []
+        self.operation_name = str(operation_model.name)
+        self.path = [self.operation_name]
 
     def _create_default_response(self) -> ResponseDict:
         response_dict: ResponseDict = {
@@ -396,6 +408,8 @@ class ResponseSerializer(ShapeHelpersMixin):
                 },
             }
             error_shape = ErrorShape(error_name, generic_error_model)
+        else:
+            error_shape = ErrorShape.from_existing_shape(error_shape)
         return error_shape
 
     #
@@ -415,11 +429,11 @@ class ResponseSerializer(ShapeHelpersMixin):
         method(serialized, value, shape, key)
         self.path.pop()
 
-    @staticmethod
     def _default_serialize(
-        serialized: Serialized, value: Any, _: Shape, key: str
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
-        serialized[key] = value
+        serialization_key = self.get_serialized_name(shape, key)
+        serialized[serialization_key] = value
 
     def _serialize_type_structure(
         self, serialized: Serialized, value: Any, shape: StructureShape, key: str
@@ -427,46 +441,39 @@ class ResponseSerializer(ShapeHelpersMixin):
         if value is None:
             return
         if key:
-            new_serialized = self.MAP_TYPE()
-            serialized[key] = new_serialized
-            serialized = new_serialized
+            wrapper: Any = self.MAP_TYPE()
+        else:
+            wrapper = serialized
         for member_key, member_shape in shape.members.items():
             setattr(member_shape, "parent", shape)
-            self._serialize_structure_member(
-                serialized, value, member_shape, member_key
-            )
+            self._serialize_structure_member(wrapper, value, member_shape, member_key)
+        if key:
+            self._default_serialize(serialized, wrapper, shape, key)
 
     def _serialize_structure_member(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
         member_value = self.get_value(value, key, shape)
         if member_value is not None:
-            key_name = self.get_serialized_name(shape, key)
-            self._serialize(serialized, member_value, shape, key_name)
+            self._serialize(serialized, member_value, shape, key)
 
     def _serialize_type_map(
         self, serialized: Serialized, value: Any, shape: MapShape, key: str
     ) -> None:
-        map_list = []
-        if self.is_flattened(shape):
-            items_name = key
-            serialized[items_name] = map_list
-        else:
-            items_name = "entry"
-            serialized[key] = {items_name: map_list}
         key_shape = shape.key
         assert isinstance(key_shape, Shape)
         value_shape = shape.value
         assert isinstance(value_shape, Shape)
-        for key in value:
+        map_list = []
+        for k, v in value.items():
             wrapper = {"__current__": {}}
-            key_prefix = self.get_serialized_name(key_shape, "key")
-            value_prefix = self.get_serialized_name(value_shape, "value")
-            self._serialize(wrapper["__current__"], key, key_shape, key_prefix)
-            self._serialize(
-                wrapper["__current__"], value[key], value_shape, value_prefix
-            )
+            self._serialize(wrapper["__current__"], k, key_shape, "key")
+            self._serialize(wrapper["__current__"], v, value_shape, "value")
             map_list.append(wrapper["__current__"])
+        if self.is_flattened(shape):
+            self._default_serialize(serialized, map_list, shape, key)
+        else:
+            self._default_serialize(serialized, {"entry": map_list}, shape, key)
 
     def _serialize_type_timestamp(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
@@ -529,7 +536,16 @@ class BaseJSONSerializer(ResponseSerializer):
         error_code = self._get_protocol_specific_error_code(shape.error_code)
         resp["headers"]["X-Amzn-Errortype"] = error_code
         resp["headers"]["Content-Type"] = self._get_protocol_specific_content_type()
+        self._serialize_query_compatible_error_to_response(resp, shape)
         return resp
+
+    def _serialize_query_compatible_error_to_response(
+        self, resp: ResponseDict, shape: ErrorShape
+    ) -> None:
+        if "awsQueryCompatible" not in self.service_model.metadata:
+            return
+        fault = "Sender" if shape.is_sender_fault else "Receiver"
+        resp["headers"]["x-amzn-query-error"] = f"{shape.error_code};{fault}"
 
     def _get_protocol_specific_content_type(self) -> str:
         content_type = self.CONTENT_TYPE
@@ -574,7 +590,7 @@ class BaseJSONSerializer(ResponseSerializer):
         self, serialized: Serialized, value: Any, shape: MapShape, key: str
     ) -> None:
         map_obj = self.MAP_TYPE()
-        serialized[key] = map_obj
+        self._default_serialize(serialized, map_obj, shape, key)
         for sub_key, sub_value in value.items():
             assert isinstance(shape.value, Shape)  # mypy hint
             self._serialize(map_obj, sub_value, shape.value, sub_key)
@@ -583,7 +599,6 @@ class BaseJSONSerializer(ResponseSerializer):
         self, serialized: Serialized, value: Any, shape: ListShape, key: str
     ) -> None:
         list_obj = []
-        serialized[key] = list_obj
         for list_item in value:
             wrapper = {}
             # The JSON list serialization is the only case where we aren't
@@ -597,6 +612,7 @@ class BaseJSONSerializer(ResponseSerializer):
                 list_obj.append(wrapper[item_key])
             else:
                 list_obj.append(list_item)
+        self._default_serialize(serialized, list_obj, shape, key)
 
     def _serialize_type_structure(
         self, serialized: Serialized, value: Any, shape: StructureShape, key: str
@@ -662,9 +678,7 @@ class BaseXMLSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        at_fault = shape._shape_model.get("fault", False)
-        sender_fault = shape.metadata.get("error", {}).get("senderFault", False)
-        serialized["Type"] = "Receiver" if (at_fault and not sender_fault) else "Sender"
+        serialized["Type"] = "Sender" if shape.is_sender_fault else "Receiver"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
         if message is not None:
@@ -708,20 +722,22 @@ class BaseXMLSerializer(ResponseSerializer):
     ) -> None:
         assert isinstance(shape.member, Shape)  # mypy hinting
         list_obj = []
-        if self.is_flattened(shape):
-            items_name = self.get_serialized_name(shape.member, key)
-            serialized[items_name] = list_obj
-        else:
-            items_name = self.get_serialized_name(shape.member, "member")
-            serialized[key] = {items_name: list_obj}
         for list_item in value:
             wrapper = {}
-            item_key = shape.member.name
-            self._serialize(wrapper, list_item, shape.member, item_key)
-            if item_key in wrapper and wrapper[item_key] != {}:
-                list_obj.append(wrapper[item_key])
-        if not list_obj:
-            serialized[key] = ""
+            self._serialize(wrapper, list_item, shape.member, shape.member.name)
+            if wrapper:
+                item_key = self.get_serialized_name(shape.member, shape.member.name)
+                value = wrapper[item_key]
+                if value != {}:
+                    list_obj.append(value)
+        if not list_obj:  # empty list serialized as "" in XML
+            self._default_serialize(serialized, "", shape, key)
+            return
+        if self.is_flattened(shape):
+            self._default_serialize(serialized, list_obj, shape.member, key)
+        else:
+            items_name = self.get_serialized_name(shape.member, "member")
+            self._default_serialize(serialized, {items_name: list_obj}, shape, key)
 
     _serialize_type_long = _serialize_type_integer
 
@@ -1036,9 +1052,10 @@ class AttributePicker(DefaultAttributePicker):
         else:
             value = None
         key_path = f"{context.key_path}.{context.key}"
-        if key_path in self.response_transformers:
-            transform = self.response_transformers[key_path]
-            value = transform(value)
+        for transform_path, transform in self.response_transformers.items():
+            if key_path.endswith(transform_path):
+                value = transform(value)
+                break
         return value
 
     def get_possible_keys(self, context: AttributePickerContext) -> Generator[str]:
