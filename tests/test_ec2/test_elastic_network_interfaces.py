@@ -1058,3 +1058,25 @@ def setup_vpc(boto3):
         VpcId=vpc.id, CidrBlock="10.0.0.0/18", Ipv6CidrBlock="2001:db8::/64"
     )
     return ec2resource, ec2client, vpc, subnet
+
+
+@mock_aws
+def test_elastic_network_interfaces_association():
+    ec2resource, ec2client, vpc, subnet = setup_vpc(boto3)
+
+    eni = ec2resource.create_network_interface(
+        SubnetId=subnet.id, PrivateIpAddress="10.0.1.0", Description="test eni"
+    )
+    allocation = ec2client.allocate_address(Domain="vpc")
+    association = ec2client.associate_address(
+        AllocationId=allocation["AllocationId"], NetworkInterfaceId=eni.id
+    )
+    assert "AssociationId" in association
+    enis = ec2client.describe_network_interfaces(NetworkInterfaceIds=[eni.id])[
+        "NetworkInterfaces"
+    ]
+    assert len(enis) == 1
+    eni = enis[0]
+    assert "Association" in eni
+    assert eni["Association"]["PublicIp"] == allocation["PublicIp"]
+    assert eni["Association"]["AllocationId"] == allocation["AllocationId"]
