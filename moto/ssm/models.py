@@ -2548,7 +2548,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def register_patch_baseline_for_patch_group(
         self, baseline_id: str, patch_group: str
-    ) -> (str, str):
+    ) -> Tuple[str, str]:
         """register a patch group in ssm backend"""
         if baseline_id not in self.baselines.keys():
             return DoesNotExistException
@@ -2565,7 +2565,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def get_patch_baseline_for_patch_group(
         self, patch_group: str, operating_system: str
-    ) -> (str, str, str):
+    ) -> Tuple[str, str, str]:
         """get baselineid for patch group for operating system"""
         if patch_group not in self.patch_groups.keys():
             fake_patch_group = FakePatchGroup("Fake")
@@ -2576,7 +2576,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
     def deregister_patch_baseline_for_patch_group(
         self, baseline_id: str, patch_group: str
-    ) -> (str, str):
+    ) -> Tuple[str, str]:
         """deregister a patch baseline for os on patch group, set default"""
         baseline_match = re.search(r"^[a-zA-Z0-9_\-:/]{20,128}$", baseline_id)
         if baseline_match is None:
