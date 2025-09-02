@@ -22,6 +22,7 @@ from moto.utilities.utils import load_resource
 from .exceptions import (
     AccessDeniedException,
     AlreadyExistsException,
+    BaselineDoesNotExistException,
     DocumentAlreadyExists,
     DocumentPermissionLimit,
     DoesNotExistException,
@@ -2578,12 +2579,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         self, baseline_id: str, patch_group: str
     ) -> Tuple[str, str]:
         """deregister a patch baseline for os on patch group, set default"""
-        baseline_match = re.search(r"^[a-zA-Z0-9_\-:/]{20,128}$", baseline_id)
-        if baseline_match is None:
-            raise InvalidResourceId()
         if patch_group in self.patch_groups.keys():
             if baseline_id not in self.baselines.keys():
-                raise InvalidResourceId
+                raise BaselineDoesNotExistException
             baseline_os = self.baselines[baseline_id].operating_system
             self.patch_groups[patch_group].associations[baseline_os] = baseline_id
         return baseline_id, patch_group
