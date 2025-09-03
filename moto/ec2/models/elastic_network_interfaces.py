@@ -172,7 +172,10 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def instance_ipv6_address_list(self) -> list[dict[str, Any]]:
-        # This matches the original XML template for DescribeInstances...
+        """This property is invoked for DescribeInstances, not for DescribeNetworkInterfaces."""
+        # The logic here was pulled directly from Moto's original (and now deleted)
+        # XML template for the DescribeInstances response and may not be entirely correct.
+        # TODO: Verify correctness against AWS and unify with `self.network_interface_ipv6_addresses_list` if possible.
         ipv6_addresses = [
             {
                 "Ipv6Address": ipv6,
@@ -189,7 +192,10 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
 
     @property
     def instance_private_ip_address_list(self) -> list[dict[str, Any]]:
-        # This matches the original XML template for DescribeInstances...
+        """This property is invoked for DescribeInstances, not for DescribeNetworkInterfaces."""
+        # The logic here was pulled directly from Moto's original (and now deleted)
+        # XML template for the DescribeInstances response and may not be entirely correct.
+        # TODO: Verify correctness against AWS and unify with `self.private_ip_addresses` if possible.
         ip_addresses = []
         for ip_address in self.private_ip_addresses:
             item = {
@@ -199,10 +205,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             if ip_address.get("PrivateIpAddress") == self.private_ip_address:
                 item["Primary"] = True
                 if self.public_ip:
-                    item["Association"] = {
-                        "PublicIp": self.public_ip,
-                        "IpOwnerId": self.ec2_backend.account_id,
-                    }
+                    item["Association"] = self.association
             ip_addresses.append(item)
         return ip_addresses
 
