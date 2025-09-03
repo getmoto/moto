@@ -4,7 +4,7 @@ from pathlib import Path
 
 import boto3
 
-session = boto3.Session(profile_name="SandboxPowerUsers")
+session = boto3.Session()
 
 def save_to_file(destination_path: str, content: dict):
     print("Attempting to save data to {}", destination_path)
