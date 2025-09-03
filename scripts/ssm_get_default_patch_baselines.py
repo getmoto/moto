@@ -51,7 +51,6 @@ def main():
      - Store this in the dedicated moto/ssm/resources-folder
     """
     regions = session.get_available_regions("ssm")
-    regions = ["us-west-2", "us-west-1", "us-east-1"]
     operating_systems = [
         "WINDOWS",
         "AMAZON_LINUX",
