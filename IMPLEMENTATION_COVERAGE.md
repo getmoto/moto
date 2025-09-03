@@ -5772,7 +5772,7 @@
 
 ## macie2
 <details>
-<summary>9% implemented</summary>
+<summary>12% implemented</summary>
 
 - [X] accept_invitation
 - [ ] batch_get_custom_data_identifiers
@@ -5798,7 +5798,7 @@
 - [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_member
-- [ ] enable_macie
+- [X] enable_macie
 - [ ] enable_organization_admin_account
 - [X] get_administrator_account
 - [ ] get_allow_list
@@ -5812,7 +5812,7 @@
 - [ ] get_findings_filter
 - [ ] get_findings_publication_configuration
 - [ ] get_invitations_count
-- [ ] get_macie_session
+- [X] get_macie_session
 - [ ] get_master_account
 - [ ] get_member
 - [ ] get_resource_profile
