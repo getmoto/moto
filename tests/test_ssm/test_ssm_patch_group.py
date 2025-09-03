@@ -158,7 +158,8 @@ def test_get_patch_baseline_for_patch_group():
 
 @mock_aws
 def test_get_patch_baseline_for_patch_group_default():
-    client = boto3.client("ssm", region_name="us-east-2")
+    region_name = "us-east-2"
+    client = boto3.client("ssm", region_name=region_name)
     patch_group_name = "test"
 
     resp = client.get_patch_baseline_for_patch_group(
@@ -167,7 +168,7 @@ def test_get_patch_baseline_for_patch_group_default():
 
     assert (
         resp["BaselineId"]
-        == "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0d5ff2de2fa3fa0ff"
+        == f"arn:aws:ssm:{region_name}:280605243866:patchbaseline/pb-0d5ff2de2fa3fa0ff"
     )
     assert resp["PatchGroup"] == patch_group_name
 
