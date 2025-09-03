@@ -1167,26 +1167,20 @@ class FakePatchBaseline:
 
 
 class FakePatchGroup:
-    def __init__(self, name: str):
+    def __init__(self, name: str, region_name: str):
         self.name = name
-        self.default_associations: Dict[str, str] = {
-            "WINDOWS": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-04fb4ae6142167966",
-            "AMAZON_LINUX": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0d5ff2de2fa3fa0ff",
-            "AMAZON_LINUX_2": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0e930e75b392d70da",
-            "AMAZON_LINUX_2022": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-037a9df9b290208cf",
-            "UBUNTU": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0dcda0730ce35c5e6",
-            "REDHAT_ENTERPRISE_LINUX": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-054123d940f3d2056",
-            "SUSE": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0aee740f9a480ec2e",
-            "CENTOS": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0b641de5f3a9f3b2f",
-            "ORACLE_LINUX": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-06ac4861e0c6d047f",
-            "DEBIAN": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-04d1ad3cad30d44ff",
-            "MACOS": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-03dbdd88b851b829c",
-            "RASPBIAN": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0bcede5146d0adbd4",
-            "ROCKY_LINUX": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0b12e36f68dafa2ba",
-            "ALMA_LINUX": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-07dbd9f0b517b769e",
-            "AMAZON_LINUX_2023": f"arn:{self.partition}:ssm:{self.region_name}:280605243866:patchbaseline/pb-0a624803d647da0ab",
-        }
+        self.region_name = region_name
+        self._load_latest_baselines()
         self.associations = self.default_associations
+
+    def _load_latest_baselines(self) -> None:
+        try:
+            latest_patch_baselines = load_resource(
+                __name__, "resources/default_baselines.json"
+            )
+        except FileNotFoundError:
+            latest_patch_baselines = {}
+        self.default_associations = latest_patch_baselines[self.region_name]
 
 
 class SimpleSystemManagerBackend(BaseBackend):
@@ -2559,7 +2553,7 @@ class SimpleSystemManagerBackend(BaseBackend):
                 raise AlreadyExistsException(baseline_os)
             self.patch_groups[patch_group].associations[baseline_os] = baseline_id
         else:
-            fake_patch_group = FakePatchGroup(patch_group)
+            fake_patch_group = FakePatchGroup(patch_group, self.region_name)
             fake_patch_group.associations[baseline_os] = baseline_id
             self.patch_groups[patch_group] = fake_patch_group
         return baseline_id, patch_group
@@ -2569,7 +2563,7 @@ class SimpleSystemManagerBackend(BaseBackend):
     ) -> Tuple[str, str, str]:
         """get baselineid for patch group for operating system"""
         if patch_group not in self.patch_groups.keys():
-            fake_patch_group = FakePatchGroup("Fake")
+            fake_patch_group = FakePatchGroup("Fake", self.region_name)
             baseline_id = fake_patch_group.associations[operating_system]
         else:
             baseline_id = self.patch_groups[patch_group].associations[operating_system]

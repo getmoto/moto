@@ -3,6 +3,7 @@ import botocore
 import pytest
 
 from moto import mock_aws
+from moto.utilities.utils import load_resource
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html
@@ -161,15 +162,15 @@ def test_get_patch_baseline_for_patch_group_default():
     region_name = "us-east-2"
     client = boto3.client("ssm", region_name=region_name)
     patch_group_name = "test"
+    default_baseline = load_resource(
+        __name__, "../../moto/ssm/resources/default_baselines.json"
+    )[region]["AMAZON_LINUX"]
 
     resp = client.get_patch_baseline_for_patch_group(
         OperatingSystem="AMAZON_LINUX", PatchGroup=patch_group_name
     )
 
-    assert (
-        resp["BaselineId"]
-        == f"arn:aws:ssm:{region_name}:280605243866:patchbaseline/pb-0d5ff2de2fa3fa0ff"
-    )
+    assert resp["BaselineId"] == default_baseline
     assert resp["PatchGroup"] == patch_group_name
 
 
@@ -218,11 +219,12 @@ def test_deregister_patch_baseline_for_patch_group():
 
 @mock_aws
 def test_deregister_patch_baseline_for_patch_group_default():
-    client = boto3.client("ssm", region_name="us-east-2")
+    region = "us-east-2"
+    client = boto3.client("ssm", region_name=region)
     patch_group_name = "test"
-    default_baseline = (
-        "arn:aws:ssm:us-west-2:280605243866:patchbaseline/pb-0d5ff2de2fa3fa0ff"
-    )
+    default_baseline = load_resource(
+        __name__, "../../moto/ssm/resources/default_baselines.json"
+    )[region]["AMAZON_LINUX"]
     resp = client.deregister_patch_baseline_for_patch_group(
         BaselineId=default_baseline, PatchGroup=patch_group_name
     )
