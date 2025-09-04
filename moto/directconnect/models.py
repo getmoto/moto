@@ -68,7 +68,7 @@ class Connection(BaseModel):
 
     def __post_init__(self) -> None:
         if self.connection_id == "":
-            self.connection_id = f"arn:aws:directconnect:{self.region}:{self.owner_account}:dx-con:dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            self.connection_id = f"arn:aws:directconnect:{self.region}:{self.owner_account}:dx-con/dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def to_dict(
         self,
