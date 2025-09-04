@@ -61,13 +61,14 @@ class Connection(BaseModel):
     port_encryption_status: PortEncryptionStatusType
     provider_name: Optional[str]
     region: str
+    tags: Optional[List[Dict[str, str]]]
     vlan: int
     connection_id: str = field(default="", init=False)
     backend: "DirectConnectBackend"
 
     def __post_init__(self) -> None:
         if self.connection_id == "":
-            self.connection_id = f"dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            self.connection_id = f"arn:aws:directconnect:{self.region}:{self.owner_account}:dx-con:dx-moto-{self.connection_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def to_dict(
         self,
@@ -123,9 +124,7 @@ class LAG(BaseModel):
 
     def __post_init__(self) -> None:
         if self.lag_id == "":
-            self.lag_id = (
-                f"dxlag-moto-{self.lag_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            )
+            self.lag_id = f"arn:aws:directconnect:{self.region}:{self.owner_account}:dxlag/dxlag-moto-{self.lag_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def to_dict(
         self,
@@ -212,6 +211,7 @@ class DirectConnectBackend(BaseBackend):
             port_encryption_status=PortEncryptionStatusType.DOWN,
             provider_name=provider_name,
             region=self.region_name,
+            tags=tags,
             vlan=0,
             backend=self,
         )
@@ -290,7 +290,7 @@ class DirectConnectBackend(BaseBackend):
             start_on=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         )
 
-        if connection_id.startswith("dxlag-"):
+        if "dxlag-" in connection_id:
             return self._associate_mac_sec_key_with_lag(
                 lag_id=connection_id, mac_sec_key=mac_sec_key
             )
@@ -405,7 +405,7 @@ class DirectConnectBackend(BaseBackend):
         self, connection_id: str, secret_arn: str
     ) -> Tuple[str, MacSecKey]:
         mac_sec_keys: List[MacSecKey] = []
-        if connection_id.startswith("dxlag-"):
+        if "dxlag-" in connection_id:
             if connection_id in self.lags:
                 mac_sec_keys = self.lags[connection_id].mac_sec_keys
         elif connection_id in self.connections:
