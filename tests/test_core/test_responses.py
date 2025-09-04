@@ -1,97 +1,15 @@
 import datetime
 from collections import OrderedDict
 from gzip import compress as gzip_compress
-from typing import Any, Dict
+from typing import Any
 from unittest import SkipTest, mock
 
 from botocore.awsrequest import AWSPreparedRequest, HTTPHeaders
 from freezegun import freeze_time
 
 from moto import settings
-from moto.core.responses import AWSServiceSpec, BaseResponse, flatten_json_request_body
+from moto.core.responses import BaseResponse
 from moto.s3.responses import S3Response
-
-
-def test_flatten_json_request_body() -> None:
-    spec = AWSServiceSpec("data/emr/2009-03-31/service-2.json").input_spec("RunJobFlow")
-
-    body: Dict[str, Any] = {
-        "Name": "cluster",
-        "Instances": {
-            "Ec2KeyName": "ec2key",
-            "InstanceGroups": [
-                {"InstanceRole": "MASTER", "InstanceType": "m1.small"},
-                {"InstanceRole": "CORE", "InstanceType": "m1.medium"},
-            ],
-            "Placement": {"AvailabilityZone": "us-east-1"},
-        },
-        "Steps": [
-            {
-                "HadoopJarStep": {
-                    "Properties": [
-                        {"Key": "k1", "Value": "v1"},
-                        {"Key": "k2", "Value": "v2"},
-                    ],
-                    "Args": ["arg1", "arg2"],
-                }
-            }
-        ],
-        "Configurations": [
-            {
-                "Classification": "class",
-                "Properties": {"propkey1": "propkey1", "propkey2": "propkey2"},
-            },
-            {"Classification": "anotherclass", "Properties": {"propkey3": "propkey3"}},
-        ],
-    }
-
-    flat = flatten_json_request_body("", body, spec)
-    assert flat["Name"] == body["Name"]
-    assert flat["Instances.Ec2KeyName"] == body["Instances"]["Ec2KeyName"]
-    for idx in range(2):
-        inst = body["Instances"]["InstanceGroups"][idx]
-        assert (
-            flat[f"Instances.InstanceGroups.member.{(idx + 1)}.InstanceRole"]
-            == inst["InstanceRole"]
-        )
-        assert (
-            flat[f"Instances.InstanceGroups.member.{(idx + 1)}.InstanceType"]
-            == inst["InstanceType"]
-        )
-    assert (
-        flat["Instances.Placement.AvailabilityZone"]
-        == body["Instances"]["Placement"]["AvailabilityZone"]
-    )
-
-    for idx in range(1):
-        prefix = "Steps.member." + str(idx + 1) + ".HadoopJarStep"
-        step = body["Steps"][idx]["HadoopJarStep"]
-        i = 0
-        while prefix + ".Properties.member." + str(i + 1) + ".Key" in flat:
-            prop = step["Properties"][i]
-            assert flat[f"{prefix}.Properties.member.{(i + 1)}.Key"] == prop["Key"]
-            assert flat[f"{prefix}.Properties.member.{(i + 1)}.Value"] == prop["Value"]
-            i += 1
-        i = 0
-        while prefix + ".Args.member." + str(i + 1) in flat:
-            assert flat[f"{prefix}.Args.member.{(i + 1)}"] == step["Args"][i]
-            i += 1
-
-    for idx in range(2):
-        assert (
-            flat["Configurations.member." + str(idx + 1) + ".Classification"]
-            == body["Configurations"][idx]["Classification"]
-        )
-
-        props = {}
-        i = 1
-        keyfmt = "Configurations.member.{0}.Properties.entry.{1}"
-        key = keyfmt.format(idx + 1, i)
-        while key + ".key" in flat:
-            props[flat[key + ".key"]] = flat[key + ".value"]
-            i += 1
-            key = keyfmt.format(idx + 1, i)
-        assert props == body["Configurations"][idx]["Properties"]
 
 
 def test_parse_qs_unicode_decode_error() -> None:

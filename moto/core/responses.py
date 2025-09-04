@@ -35,7 +35,7 @@ from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
 from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
-from moto.core.request import normalize_request
+from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -44,10 +44,9 @@ from moto.core.utils import (
     gzip_decompress,
     method_names_from_class,
     params_sort_function,
-    utcfromtimestamp,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
-from moto.utilities.utils import get_partition, load_resource, load_resource_as_bytes
+from moto.utilities.utils import get_partition
 
 log = logging.getLogger(__name__)
 
@@ -351,7 +350,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
-    aws_service_spec: Optional["AWSServiceSpec"] = None
 
     def __init__(self, service_name: Optional[str] = None):
         super().__init__()
@@ -453,21 +451,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if not querystring:
             querystring.update(parse_qs(self.parsed_url.query, keep_blank_values=True))
         if not querystring:
-            if (
-                "json" in request.headers.get("content-type", [])
-                and self.aws_service_spec
-            ):
-                decoded = json.loads(self.body)
-
-                target = request.headers.get("x-amz-target") or request.headers.get(
-                    "X-Amz-Target"
-                )
-                _, method = target.split(".")
-                input_spec = self.aws_service_spec.input_spec(method)
-                flat = flatten_json_request_body("", decoded, input_spec)
-                for key, value in flat.items():
-                    querystring[key] = [value]
-            elif self.body and not use_raw_body:
+            if self.body and not use_raw_body:
                 try:
                     querystring.update(
                         OrderedDict(
@@ -650,7 +634,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         normalized_request = normalize_request(request)
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
-        protocol = service_model.protocol
+        protocol = determine_request_protocol(
+            service_model, normalized_request.content_type
+        )
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
         parsed = parser.parse(
@@ -663,11 +649,17 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         )  # type: ignore[no-untyped-call]
         self.params = cast(Any, parsed)
 
+    def determine_response_protocol(self, service_model: ServiceModel) -> str:
+        content_type = self.headers.get("Content-Type", "")
+        protocol = determine_request_protocol(service_model, content_type)
+        if protocol == "query" and self.request_json:
+            protocol = "query-json"
+        return protocol
+
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
-        protocol = service_model.protocol
-        protocol += "-json" if protocol == "query" and self.request_json else ""
+        protocol = self.determine_response_protocol(service_model)
         serializer_cls = SERIALIZERS[protocol]
         context = ActionContext(
             service_model, operation_model, serializer_cls, self.__class__
@@ -1081,201 +1073,3 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             a = self._get_param("Action")
             message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
             raise DryRunClientError(error_type="DryRunOperation", message=message)
-
-
-class _RecursiveDictRef(object):
-    """Store a recursive reference to dict."""
-
-    def __init__(self) -> None:
-        self.key: Optional[str] = None
-        self.dic: Dict[str, Any] = {}
-
-    def __repr__(self) -> str:
-        return f"{self.dic}"
-
-    def __getattr__(self, key: str) -> Any:
-        return self.dic.__getattr__(key)  # type: ignore[attr-defined]
-
-    def __getitem__(self, key: str) -> Any:
-        return self.dic.__getitem__(key)
-
-    def set_reference(self, key: str, dic: Dict[str, Any]) -> None:
-        """Set the RecursiveDictRef object to keep reference to dict object
-        (dic) at the key.
-
-        """
-        self.key = key
-        self.dic = dic
-
-
-class AWSServiceSpec(object):
-    """Parse data model from botocore. This is used to recover type info
-    for fields in AWS API XML response.
-
-    """
-
-    def __init__(self, path: str):
-        try:
-            spec = load_resource("botocore", path)
-        except FileNotFoundError:
-            # botocore >= 1.32.1 sends compressed files
-            compressed = load_resource_as_bytes("botocore", f"{path}.gz")
-            spec = json.loads(gzip_decompress(compressed).decode("utf-8"))
-
-        self.metadata = spec["metadata"]
-        self.operations = spec["operations"]
-        self.shapes = spec["shapes"]
-
-    def input_spec(self, operation: str) -> Dict[str, Any]:
-        try:
-            op = self.operations[operation]
-        except KeyError:
-            raise ValueError(f"Invalid operation: {operation}")
-        if "input" not in op:
-            return {}
-        shape = self.shapes[op["input"]["shape"]]
-        return self._expand(shape)
-
-    def output_spec(self, operation: str) -> Dict[str, Any]:
-        """Produce a JSON with a valid API response syntax for operation, but
-        with type information. Each node represented by a key has the
-        value containing field type, e.g.,
-
-          output_spec["SomeBooleanNode"] => {"type": "boolean"}
-
-        """
-        try:
-            op = self.operations[operation]
-        except KeyError:
-            raise ValueError(f"Invalid operation: {operation}")
-        if "output" not in op:
-            return {}
-        shape = self.shapes[op["output"]["shape"]]
-        return self._expand(shape)
-
-    def _expand(self, shape: Dict[str, Any]) -> Dict[str, Any]:
-        def expand(
-            dic: Dict[str, Any], seen: Optional[Dict[str, Any]] = None
-        ) -> Dict[str, Any]:
-            seen = seen or {}
-            if dic["type"] == "structure":
-                nodes: Dict[str, Any] = {}
-                for k, v in dic["members"].items():
-                    seen_till_here = dict(seen)
-                    if k in seen_till_here:
-                        nodes[k] = seen_till_here[k]
-                        continue
-                    seen_till_here[k] = _RecursiveDictRef()
-                    nodes[k] = expand(self.shapes[v["shape"]], seen_till_here)
-                    seen_till_here[k].set_reference(k, nodes[k])
-                nodes["type"] = "structure"
-                return nodes
-
-            elif dic["type"] == "list":
-                seen_till_here = dict(seen)
-                shape = dic["member"]["shape"]
-                if shape in seen_till_here:
-                    return seen_till_here[shape]
-                seen_till_here[shape] = _RecursiveDictRef()
-                expanded = expand(self.shapes[shape], seen_till_here)
-                seen_till_here[shape].set_reference(shape, expanded)
-                return {"type": "list", "member": expanded}
-
-            elif dic["type"] == "map":
-                seen_till_here = dict(seen)
-                node: Dict[str, Any] = {"type": "map"}
-
-                if "shape" in dic["key"]:
-                    shape = dic["key"]["shape"]
-                    seen_till_here[shape] = _RecursiveDictRef()
-                    node["key"] = expand(self.shapes[shape], seen_till_here)
-                    seen_till_here[shape].set_reference(shape, node["key"])
-                else:
-                    node["key"] = dic["key"]["type"]
-
-                if "shape" in dic["value"]:
-                    shape = dic["value"]["shape"]
-                    seen_till_here[shape] = _RecursiveDictRef()
-                    node["value"] = expand(self.shapes[shape], seen_till_here)
-                    seen_till_here[shape].set_reference(shape, node["value"])
-                else:
-                    node["value"] = dic["value"]["type"]
-
-                return node
-
-            else:
-                return {"type": dic["type"]}
-
-        return expand(shape)
-
-
-def to_str(value: Any, spec: Dict[str, Any]) -> str:
-    vtype = spec["type"]
-    if vtype == "boolean":
-        return "true" if value else "false"
-    elif vtype == "long":
-        return int(value)  # type: ignore[return-value]
-    elif vtype == "integer":
-        return str(value)
-    elif vtype == "float":
-        return str(value)
-    elif vtype == "double":
-        return str(value)
-    elif vtype == "timestamp":
-        return utcfromtimestamp(value).replace(tzinfo=datetime.timezone.utc).isoformat()
-    elif vtype == "string":
-        return str(value)
-    elif vtype == "structure":
-        return ""
-    elif value is None:
-        return "null"
-    else:
-        raise TypeError(f"Unknown type {vtype}")
-
-
-def from_str(value: str, spec: Dict[str, Any]) -> Any:
-    vtype = spec["type"]
-    if vtype == "boolean":
-        return True if value == "true" else False
-    elif vtype == "integer":
-        return int(value)
-    elif vtype == "float":
-        return float(value)
-    elif vtype == "double":
-        return float(value)
-    elif vtype == "timestamp":
-        return value
-    elif vtype == "string":
-        return value
-    raise TypeError(f"Unknown type {vtype}")
-
-
-def flatten_json_request_body(
-    prefix: str, dict_body: Dict[str, Any], spec: Dict[str, Any]
-) -> Dict[str, Any]:
-    """Convert a JSON request body into query params."""
-    if len(spec) == 1 and "type" in spec:
-        return {prefix: to_str(dict_body, spec)}
-
-    flat = {}
-    for key, value in dict_body.items():
-        node_type = spec[key]["type"]
-        if node_type == "list":
-            for idx, v in enumerate(value, 1):
-                pref = key + ".member." + str(idx)
-                flat.update(flatten_json_request_body(pref, v, spec[key]["member"]))
-        elif node_type == "map":
-            for idx, (k, v) in enumerate(value.items(), 1):
-                pref = key + ".entry." + str(idx)
-                flat.update(
-                    flatten_json_request_body(pref + ".key", k, spec[key]["key"])
-                )
-                flat.update(
-                    flatten_json_request_body(pref + ".value", v, spec[key]["value"])
-                )
-        else:
-            flat.update(flatten_json_request_body(key, value, spec[key]))
-
-    if prefix:
-        prefix = prefix + "."
-    return dict((prefix + k, v) for k, v in flat.items())

@@ -15,21 +15,6 @@ class TransitGateways(EC2BaseResponse):
             description=description, options=options, tags=tags
         )
 
-        # creating default route table
-        transit_gateway_route_table = (
-            self.ec2_backend.create_transit_gateway_route_table(
-                transit_gateway_id=transit_gateway.id,
-                tags={},
-                default_association_route_table=True,
-                default_propagation_route_table=True,
-            )
-        )
-        transit_gateway.options["AssociationDefaultRouteTableId"] = (
-            transit_gateway_route_table.id
-        )
-        transit_gateway.options["PropagationDefaultRouteTableId"] = (
-            transit_gateway_route_table.id
-        )
         return ActionResult({"TransitGateway": transit_gateway})
 
     def delete_transit_gateway(self) -> ActionResult:

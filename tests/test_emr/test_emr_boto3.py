@@ -81,8 +81,10 @@ def test_describe_cluster():
         {
             "Classification": "yarn-site",
             "Properties": {
-                "someproperty": "somevalue",
-                "someotherproperty": "someothervalue",
+                "camelCase": "somevalue",
+                "PascalCase": "someothervalue",
+                "kebab-case": "anothervalue",
+                "snake_case": "yetanothervalue",
             },
         },
         {
@@ -91,7 +93,10 @@ def test_describe_cluster():
             "Configurations": [
                 {
                     "Classification": "nested-config",
-                    "Properties": {"nested-property": "nested-value"},
+                    "Properties": {
+                        "nested-property": "nested-value",
+                        "NestedProperty": "another-nested-value",
+                    },
                 }
             ],
         },

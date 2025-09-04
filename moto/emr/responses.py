@@ -1,12 +1,11 @@
 import re
-from typing import Any, Dict, List, Pattern
+from typing import Any, List, Pattern
 
-from moto.core.responses import ActionResult, AWSServiceSpec, BaseResponse, EmptyResult
-from moto.core.utils import tags_from_query_string
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import ValidationException
 from .models import ElasticMapReduceBackend, emr_backends
-from .utils import ReleaseLabel, Unflattener, steps_from_query_string
+from .utils import ReleaseLabel
 
 
 class ElasticMapReduceResponse(BaseResponse):
@@ -17,10 +16,13 @@ class ElasticMapReduceResponse(BaseResponse):
         re.compile(r"(.+?)\.elasticmapreduce\.amazonaws\.com"),
     ]
 
-    aws_service_spec = AWSServiceSpec("data/emr/2009-03-31/service-2.json")
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "Properties": lambda x: x.original_dict() if hasattr(x, "original_dict") else x,
+    }
 
     def __init__(self) -> None:
         super().__init__(service_name="emr")
+        self.automated_parameter_parsing = True
 
     def get_region_from_url(self, request: Any, full_url: str) -> str:
         for regex in ElasticMapReduceResponse.emr_region_regex:
@@ -35,13 +37,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
     def add_instance_groups(self) -> ActionResult:
         jobflow_id = self._get_param("JobFlowId")
-        instance_groups = self._get_list_prefix("InstanceGroups.member")
-        for item in instance_groups:
-            item["instance_count"] = int(item["instance_count"])
-            # Adding support to EbsConfiguration
-            self._parse_ebs_configuration(item)
-            # Adding support for auto_scaling_policy
-            Unflattener.unflatten_complex_params(item, "auto_scaling_policy")
+        instance_groups = self._get_param("InstanceGroups", [])
         fake_groups = self.backend.add_instance_groups(jobflow_id, instance_groups)
         result = {"InstanceGroups": fake_groups}
         return ActionResult(result)
@@ -49,14 +45,15 @@ class ElasticMapReduceResponse(BaseResponse):
     def add_job_flow_steps(self) -> ActionResult:
         job_flow_id = self._get_param("JobFlowId")
         steps = self.backend.add_job_flow_steps(
-            job_flow_id, steps_from_query_string(self._get_list_prefix("Steps.member"))
+            job_flow_id, self._get_param("Steps", [])
         )
         result = {"StepIds": [step.id for step in steps]}
         return ActionResult(result)
 
     def add_tags(self) -> ActionResult:
         cluster_id = self._get_param("ResourceId")
-        tags = tags_from_query_string(self.querystring, prefix="Tags")
+        tags = self._get_param("Tags", [])
+        tags = {d["Key"]: d["Value"] for d in tags}
         self.backend.add_tags(cluster_id, tags)
         return EmptyResult()
 
@@ -87,8 +84,8 @@ class ElasticMapReduceResponse(BaseResponse):
     def describe_job_flows(self) -> ActionResult:
         created_after = self._get_param("CreatedAfter")
         created_before = self._get_param("CreatedBefore")
-        job_flow_ids = self._get_multi_param("JobFlowIds.member")
-        job_flow_states = self._get_multi_param("JobFlowStates.member")
+        job_flow_ids = self._get_param("JobFlowIds", [])
+        job_flow_states = self._get_param("JobFlowStates", [])
         clusters = self.backend.describe_job_flows(
             job_flow_ids, job_flow_states, created_after, created_before
         )
@@ -112,7 +109,7 @@ class ElasticMapReduceResponse(BaseResponse):
         return ActionResult(result)
 
     def list_clusters(self) -> ActionResult:
-        cluster_states = self._get_multi_param("ClusterStates.member")
+        cluster_states = self._get_param("ClusterStates", [])
         created_after = self._get_param("CreatedAfter")
         created_before = self._get_param("CreatedBefore")
         marker = self._get_param("Marker")
@@ -148,8 +145,8 @@ class ElasticMapReduceResponse(BaseResponse):
     def list_steps(self) -> ActionResult:
         cluster_id = self._get_param("ClusterId")
         marker = self._get_param("Marker")
-        step_ids = self._get_multi_param("StepIds.member")
-        step_states = self._get_multi_param("StepStates.member")
+        step_ids = self._get_param("StepIds", [])
+        step_states = self._get_param("StepStates", [])
         steps, marker = self.backend.list_steps(
             cluster_id, marker=marker, step_ids=step_ids, step_states=step_states
         )
@@ -164,15 +161,13 @@ class ElasticMapReduceResponse(BaseResponse):
         return ActionResult(result)
 
     def modify_instance_groups(self) -> ActionResult:
-        instance_groups = self._get_list_prefix("InstanceGroups.member")
-        for item in instance_groups:
-            item["instance_count"] = int(item["instance_count"])
+        instance_groups = self._get_param("InstanceGroups", [])
         self.backend.modify_instance_groups(instance_groups)
         return EmptyResult()
 
     def remove_tags(self) -> ActionResult:
         cluster_id = self._get_param("ResourceId")
-        tag_keys = self._get_multi_param("TagKeys.member")
+        tag_keys = self._get_param("TagKeys", [])
         self.backend.remove_tags(cluster_id, tag_keys)
         return EmptyResult()
 
@@ -202,11 +197,11 @@ class ElasticMapReduceResponse(BaseResponse):
             service_access_security_group=self._get_param(
                 "Instances.ServiceAccessSecurityGroup"
             ),
-            additional_master_security_groups=self._get_multi_param(
-                "Instances.AdditionalMasterSecurityGroups.member."
+            additional_master_security_groups=self._get_param(
+                "Instances.AdditionalMasterSecurityGroups", []
             ),
-            additional_slave_security_groups=self._get_multi_param(
-                "Instances.AdditionalSlaveSecurityGroups.member."
+            additional_slave_security_groups=self._get_param(
+                "Instances.AdditionalSlaveSecurityGroups", []
             ),
         )
 
@@ -216,41 +211,20 @@ class ElasticMapReduceResponse(BaseResponse):
             job_flow_role=self._get_param("JobFlowRole"),
             service_role=self._get_param("ServiceRole"),
             auto_scaling_role=self._get_param("AutoScalingRole"),
+            steps=self._get_param("Steps", []),
             ebs_root_volume_iops=self._get_param("EbsRootVolumeIops"),
             ebs_root_volume_size=self._get_param("EbsRootVolumeSize"),
             ebs_root_volume_throughput=self._get_param("EbsRootVolumeThroughput"),
-            steps=steps_from_query_string(self._get_list_prefix("Steps.member")),
             visible_to_all_users=self._get_bool_param("VisibleToAllUsers", False),
             instance_attrs=instance_attrs,
         )
 
-        bootstrap_actions = self._get_list_prefix("BootstrapActions.member")
+        bootstrap_actions = self._get_param("BootstrapActions", [])
         if bootstrap_actions:
-            for ba in bootstrap_actions:
-                args = []
-                idx = 1
-                keyfmt = "script_bootstrap_action._args.member.{0}"
-                key = keyfmt.format(idx)
-                while key in ba:
-                    args.append(ba.pop(key))
-                    idx += 1
-                    key = keyfmt.format(idx)
-                ba["args"] = args
-                ba["script_path"] = ba.pop("script_bootstrap_action._path")
             kwargs["bootstrap_actions"] = bootstrap_actions
 
-        configurations = self._get_list_prefix("Configurations.member")
+        configurations = self._get_param("Configurations", [])
         if configurations:
-            for idx, config in enumerate(configurations, 1):
-                for key in list(config.keys()):
-                    if key.startswith("properties."):
-                        config.pop(key)
-                config["properties"] = {}
-                map_items = self._get_map_prefix(
-                    f"Configurations.member.{idx}.Properties.entry"
-                )
-                config["properties"] = map_items
-
             kwargs["configurations"] = configurations
 
         release_label = self._get_param("ReleaseLabel")
@@ -290,38 +264,12 @@ class ElasticMapReduceResponse(BaseResponse):
         if security_configuration:
             kwargs["security_configuration"] = security_configuration
 
-        kerberos_attributes: Dict[str, Any] = {}
+        kerberos_attributes = self._get_param("KerberosAttributes", {})
         kwargs["kerberos_attributes"] = kerberos_attributes
-
-        realm = self._get_param("KerberosAttributes.Realm")
-        if realm:
-            kerberos_attributes["Realm"] = realm
-
-        kdc_admin_password = self._get_param("KerberosAttributes.KdcAdminPassword")
-        if kdc_admin_password:
-            kerberos_attributes["KdcAdminPassword"] = kdc_admin_password
-
-        cross_realm_principal_password = self._get_param(
-            "KerberosAttributes.CrossRealmTrustPrincipalPassword"
-        )
-        if cross_realm_principal_password:
-            kerberos_attributes["CrossRealmTrustPrincipalPassword"] = (
-                cross_realm_principal_password
-            )
-
-        ad_domain_join_user = self._get_param("KerberosAttributes.ADDomainJoinUser")
-        if ad_domain_join_user:
-            kerberos_attributes["ADDomainJoinUser"] = ad_domain_join_user
-
-        ad_domain_join_password = self._get_param(
-            "KerberosAttributes.ADDomainJoinPassword"
-        )
-        if ad_domain_join_password:
-            kerberos_attributes["ADDomainJoinPassword"] = ad_domain_join_password
 
         cluster = self.backend.run_job_flow(**kwargs)
 
-        applications = self._get_list_prefix("Applications.member")
+        applications = self._get_param("Applications", [])
         if applications:
             self.backend.add_applications(cluster.id, applications)
         else:
@@ -329,14 +277,8 @@ class ElasticMapReduceResponse(BaseResponse):
                 cluster.id, [{"Name": "Hadoop", "Version": "0.18"}]
             )
 
-        instance_groups = self._get_list_prefix("Instances.InstanceGroups.member")
+        instance_groups = self._get_param("Instances.InstanceGroups", [])
         if instance_groups:
-            for ig in instance_groups:
-                ig["instance_count"] = int(ig["instance_count"])
-                # Adding support to EbsConfiguration
-                self._parse_ebs_configuration(ig)
-                # Adding support for auto_scaling_policy
-                Unflattener.unflatten_complex_params(ig, "auto_scaling_policy")
             instance_group_result = self.backend.add_instance_groups(
                 cluster.id, instance_groups
             )
@@ -347,7 +289,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
         # TODO: Instances also must be created when `Instances.InstanceType` and `Instances.InstanceCount` are specified in the request.
 
-        tags = self._get_list_prefix("Tags.member")
+        tags = self._get_param("Tags", [])
         if tags:
             self.backend.add_tags(
                 cluster.id, dict((d["key"], d["value"]) for d in tags)
@@ -358,97 +300,20 @@ class ElasticMapReduceResponse(BaseResponse):
         }
         return ActionResult(result)
 
-    def _has_key_prefix(self, key_prefix: str, value: Dict[str, Any]) -> bool:
-        for key in value:  # iter on both keys and values
-            if key.startswith(key_prefix):
-                return True
-        return False
-
-    def _parse_ebs_configuration(self, instance_group: Dict[str, Any]) -> None:
-        key_ebs_config = "ebs_configuration"
-        ebs_configuration = dict()
-        # Filter only EBS config keys
-        for key in instance_group:
-            if key.startswith(key_ebs_config):
-                ebs_configuration[key] = instance_group[key]
-
-        if len(ebs_configuration) > 0:
-            # Key that should be extracted
-            ebs_optimized = "ebs_optimized"
-            ebs_block_device_configs = "ebs_block_device_configs"
-            volume_specification = "volume_specification"
-            size_in_gb = "size_in_gb"
-            volume_type = "volume_type"
-            iops = "iops"
-            volumes_per_instance = "volumes_per_instance"
-
-            key_ebs_optimized = f"{key_ebs_config}._{ebs_optimized}"
-            # EbsOptimized config
-            if key_ebs_optimized in ebs_configuration:
-                instance_group.pop(key_ebs_optimized)
-                ebs_configuration[ebs_optimized] = ebs_configuration.pop(
-                    key_ebs_optimized
-                )
-
-            # Ebs Blocks
-            ebs_blocks = []
-            idx = 1
-            keyfmt = f"{key_ebs_config}._{ebs_block_device_configs}.member.{{}}"
-            key = keyfmt.format(idx)
-            while self._has_key_prefix(key, ebs_configuration):
-                vlespc_keyfmt = f"{key}._{volume_specification}._{{}}"
-                vol_size = vlespc_keyfmt.format(size_in_gb)
-                vol_iops = vlespc_keyfmt.format(iops)
-                vol_type = vlespc_keyfmt.format(volume_type)
-
-                ebs_block: Dict[str, Any] = dict()
-                ebs_block[volume_specification] = dict()
-                if vol_size in ebs_configuration:
-                    instance_group.pop(vol_size)
-                    ebs_block[volume_specification][size_in_gb] = int(
-                        ebs_configuration.pop(vol_size)
-                    )
-                if vol_iops in ebs_configuration:
-                    instance_group.pop(vol_iops)
-                    ebs_block[volume_specification][iops] = ebs_configuration.pop(
-                        vol_iops
-                    )
-                if vol_type in ebs_configuration:
-                    instance_group.pop(vol_type)
-                    ebs_block[volume_specification][volume_type] = (
-                        ebs_configuration.pop(vol_type)
-                    )
-
-                per_instance = f"{key}._{volumes_per_instance}"
-                if per_instance in ebs_configuration:
-                    instance_group.pop(per_instance)
-                    ebs_block[volumes_per_instance] = int(
-                        ebs_configuration.pop(per_instance)
-                    )
-
-                if len(ebs_block) > 0:
-                    ebs_blocks.append(ebs_block)
-                idx += 1
-                key = keyfmt.format(idx)
-
-            if len(ebs_blocks) > 0:
-                ebs_configuration[ebs_block_device_configs] = ebs_blocks
-            instance_group[key_ebs_config] = ebs_configuration
-
     def set_termination_protection(self) -> ActionResult:
         termination_protection = self._get_bool_param("TerminationProtected")
-        job_ids = self._get_multi_param("JobFlowIds.member")
+        job_ids = self._get_param("JobFlowIds", [])
         self.backend.set_termination_protection(job_ids, termination_protection)
         return EmptyResult()
 
     def set_visible_to_all_users(self) -> ActionResult:
         visible_to_all_users = self._get_bool_param("VisibleToAllUsers", False)
-        job_ids = self._get_multi_param("JobFlowIds.member")
+        job_ids = self._get_param("JobFlowIds", [])
         self.backend.set_visible_to_all_users(job_ids, visible_to_all_users)
         return EmptyResult()
 
     def terminate_job_flows(self) -> ActionResult:
-        job_ids = self._get_multi_param("JobFlowIds.member.")
+        job_ids = self._get_param("JobFlowIds")
         self.backend.terminate_job_flows(job_ids)
         return EmptyResult()
 
