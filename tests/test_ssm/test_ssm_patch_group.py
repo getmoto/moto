@@ -159,7 +159,7 @@ def test_get_patch_baseline_for_patch_group():
 
 @mock_aws
 def test_get_patch_baseline_for_patch_group_default():
-    region_name = "us-east-2"
+    region = "us-east-2"
     client = boto3.client("ssm", region_name=region_name)
     patch_group_name = "test"
     default_baseline = load_resource(
