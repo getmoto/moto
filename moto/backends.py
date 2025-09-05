@@ -93,6 +93,7 @@ if TYPE_CHECKING:
     from moto.lakeformation.models import LakeFormationBackend
     from moto.lexv2models.models import LexModelsV2Backend
     from moto.logs.models import LogsBackend
+    from moto.macie2.models import MacieBackend
     from moto.managedblockchain.models import ManagedBlockchainBackend
     from moto.mediaconnect.models import MediaConnectBackend
     from moto.medialive.models import MediaLiveBackend
@@ -282,6 +283,7 @@ SERVICE_NAMES = Union[
     "Literal['lambda']",
     "Literal['lexv2models']",
     "Literal['logs']",
+    "Literal['macie2']",
     "Literal['managedblockchain']",
     "Literal['mediaconnect']",
     "Literal['medialive']",
@@ -589,6 +591,8 @@ def get_backend(
 ) -> "BackendDict[LexModelsV2Backend]": ...
 @overload
 def get_backend(name: "Literal['logs']") -> "BackendDict[LogsBackend]": ...
+@overload
+def get_backend(name: "Literal['macie2']") -> "BackendDict[MacieBackend]": ...
 @overload
 def get_backend(
     name: "Literal['managedblockchain']",
