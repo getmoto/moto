@@ -554,3 +554,42 @@ class SimpleSystemManagerResponse(BaseResponse):
             window_id, window_task_id
         )
         return "{}"
+
+    def get_patch_baseline_for_patch_group(self) -> str:
+        patch_group = self._get_param("PatchGroup")
+        operating_system = self._get_param("OperatingSystem")
+        baseline_id, patch_group, operating_system = (
+            self.ssm_backend.get_patch_baseline_for_patch_group(
+                patch_group=patch_group,
+                operating_system=operating_system,
+            )
+        )
+        return json.dumps(
+            {
+                "BaselineId": baseline_id,
+                "PatchGroup": patch_group,
+                "OperatingSystem": operating_system,
+            }
+        )
+
+    def deregister_patch_baseline_for_patch_group(self) -> str:
+        baseline_id = self._get_param("BaselineId")
+        patch_group = self._get_param("PatchGroup")
+        baseline_id, patch_group = (
+            self.ssm_backend.deregister_patch_baseline_for_patch_group(
+                baseline_id=baseline_id,
+                patch_group=patch_group,
+            )
+        )
+        return json.dumps({"BaselineId": baseline_id, "PatchGroup": patch_group})
+
+    def register_patch_baseline_for_patch_group(self) -> str:
+        baseline_id = self._get_param("BaselineId")
+        patch_group = self._get_param("PatchGroup")
+        baseline_id, patch_group = (
+            self.ssm_backend.register_patch_baseline_for_patch_group(
+                baseline_id=baseline_id,
+                patch_group=patch_group,
+            )
+        )
+        return json.dumps({"BaselineId": baseline_id, "PatchGroup": patch_group})

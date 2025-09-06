@@ -21,6 +21,8 @@ from moto.utilities.utils import load_resource
 
 from .exceptions import (
     AccessDeniedException,
+    AlreadyExistsException,
+    BaselineDoesNotExistException,
     DocumentAlreadyExists,
     DocumentPermissionLimit,
     DoesNotExistException,
@@ -1164,6 +1166,23 @@ class FakePatchBaseline:
         return "pb-" + "".join(str(random.choice(chars)) for _ in range(17))
 
 
+class FakePatchGroup:
+    def __init__(self, name: str, region_name: str):
+        self.name = name
+        self.region_name = region_name
+        self._load_latest_baselines()
+        self.associations = self.default_associations
+
+    def _load_latest_baselines(self) -> None:
+        try:
+            latest_patch_baselines = load_resource(
+                __name__, "resources/default_baselines.json"
+            )
+        except FileNotFoundError:
+            latest_patch_baselines = {}
+        self.default_associations = latest_patch_baselines[self.region_name]
+
+
 class SimpleSystemManagerBackend(BaseBackend):
     """
     Moto supports the following default parameters out of the box:
@@ -1189,6 +1208,7 @@ class SimpleSystemManagerBackend(BaseBackend):
 
         self.windows: Dict[str, FakeMaintenanceWindow] = dict()
         self.baselines: Dict[str, FakePatchBaseline] = dict()
+        self.patch_groups: Dict[str, FakePatchGroup] = dict()
         self.ssm_prefix = (
             f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
         )
@@ -2520,6 +2540,45 @@ class SimpleSystemManagerBackend(BaseBackend):
     ) -> None:
         window = self.get_maintenance_window(window_id)
         del window.tasks[window_task_id]
+
+    def register_patch_baseline_for_patch_group(
+        self, baseline_id: str, patch_group: str
+    ) -> Tuple[str, str]:
+        """register a patch group in ssm backend"""
+        if baseline_id not in self.baselines.keys():
+            raise DoesNotExistException(baseline_id)
+        baseline_os = self.baselines[baseline_id].operating_system
+        if patch_group in self.patch_groups.keys():
+            if self.patch_groups[patch_group].associations[baseline_os] != baseline_id:
+                raise AlreadyExistsException(baseline_os)
+            self.patch_groups[patch_group].associations[baseline_os] = baseline_id
+        else:
+            fake_patch_group = FakePatchGroup(patch_group, self.region_name)
+            fake_patch_group.associations[baseline_os] = baseline_id
+            self.patch_groups[patch_group] = fake_patch_group
+        return baseline_id, patch_group
+
+    def get_patch_baseline_for_patch_group(
+        self, patch_group: str, operating_system: str
+    ) -> Tuple[str, str, str]:
+        """get baselineid for patch group for operating system"""
+        if patch_group not in self.patch_groups.keys():
+            fake_patch_group = FakePatchGroup("Fake", self.region_name)
+            baseline_id = fake_patch_group.associations[operating_system]
+        else:
+            baseline_id = self.patch_groups[patch_group].associations[operating_system]
+        return baseline_id, patch_group, operating_system
+
+    def deregister_patch_baseline_for_patch_group(
+        self, baseline_id: str, patch_group: str
+    ) -> Tuple[str, str]:
+        """deregister a patch baseline for os on patch group, set default"""
+        if patch_group in self.patch_groups.keys():
+            if baseline_id not in self.baselines.keys():
+                raise BaselineDoesNotExistException
+            baseline_os = self.baselines[baseline_id].operating_system
+            self.patch_groups[patch_group].associations[baseline_os] = baseline_id
+        return baseline_id, patch_group
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")
