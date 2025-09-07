@@ -9096,6 +9096,9 @@
                   "Value": "observabilityadmin.ap-northeast-2.amazonaws.com"
                 }
               },
+              "omics": {
+                "Value": "omics"
+              },
               "opensearchserverless": {
                 "Value": "opensearchserverless",
                 "endpoint": {
@@ -24863,6 +24866,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -25008,6 +25020,15 @@
                 "Value": "networkmanager",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "notifications": {
+                "Value": "notifications",
+                "endpoint": {
+                  "Value": "notifications.ap-southeast-5.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25945,6 +25966,15 @@
                 "Value": "redshift",
                 "endpoint": {
                   "Value": "redshift.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "resource-groups": {
+                "Value": "resource-groups",
+                "endpoint": {
+                  "Value": "resource-groups.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -37392,6 +37422,15 @@
                 "Value": "firehose",
                 "endpoint": {
                   "Value": "firehose.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "fis": {
+                "Value": "fis",
+                "endpoint": {
+                  "Value": "fis.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -57027,6 +57066,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
