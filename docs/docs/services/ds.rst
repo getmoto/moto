@@ -52,6 +52,7 @@ ds
 - [ ] deregister_certificate
 - [ ] deregister_event_topic
 - [ ] describe_ad_assessment
+- [ ] describe_ca_enrollment_policy
 - [ ] describe_certificate
 - [ ] describe_client_authentication_settings
 - [ ] describe_conditional_forwarders
@@ -73,6 +74,7 @@ ds
 - [ ] describe_snapshots
 - [X] describe_trusts
 - [ ] describe_update_directory
+- [ ] disable_ca_enrollment_policy
 - [ ] disable_client_authentication
 - [ ] disable_directory_data_access
 - [X] disable_ldaps
@@ -82,6 +84,7 @@ ds
 - [X] disable_sso
   Disable single-sign on for a directory.
 
+- [ ] enable_ca_enrollment_policy
 - [ ] enable_client_authentication
 - [ ] enable_directory_data_access
 - [X] enable_ldaps

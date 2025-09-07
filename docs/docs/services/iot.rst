@@ -15,7 +15,7 @@ iot
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] accept_certificate_transfer
-- [ ] add_thing_to_billing_group
+- [X] add_thing_to_billing_group
 - [X] add_thing_to_thing_group
 - [ ] associate_sbom_with_package_version
 - [ ] associate_targets_with_job
@@ -37,7 +37,7 @@ iot
 - [ ] confirm_topic_rule_destination
 - [ ] create_audit_suppression
 - [ ] create_authorizer
-- [ ] create_billing_group
+- [X] create_billing_group
 - [X] create_certificate_from_csr
 - [ ] create_certificate_provider
 - [ ] create_command
@@ -74,7 +74,7 @@ iot
 - [ ] delete_account_audit_configuration
 - [ ] delete_audit_suppression
 - [ ] delete_authorizer
-- [ ] delete_billing_group
+- [X] delete_billing_group
 - [X] delete_ca_certificate
 - [X] delete_certificate
 - [ ] delete_certificate_provider
@@ -122,7 +122,7 @@ iot
 - [ ] describe_audit_suppression
 - [ ] describe_audit_task
 - [ ] describe_authorizer
-- [ ] describe_billing_group
+- [X] describe_billing_group
 - [X] describe_ca_certificate
 - [X] describe_certificate
 - [ ] describe_certificate_provider
@@ -192,7 +192,7 @@ iot
 - [ ] list_audit_suppressions
 - [ ] list_audit_tasks
 - [ ] list_authorizers
-- [ ] list_billing_groups
+- [X] list_billing_groups
 - [ ] list_ca_certificates
 - [ ] list_certificate_providers
 - [X] list_certificates
@@ -275,7 +275,7 @@ iot
 - [ ] list_thing_registration_tasks
 - [X] list_thing_types
 - [X] list_things
-- [ ] list_things_in_billing_group
+- [X] list_things_in_billing_group
 - [X] list_things_in_thing_group
   
         Pagination and the recursive-parameter is not yet implemented
@@ -295,7 +295,7 @@ iot
 - [X] register_certificate_without_ca
 - [ ] register_thing
 - [ ] reject_certificate_transfer
-- [ ] remove_thing_from_billing_group
+- [X] remove_thing_from_billing_group
 - [X] remove_thing_from_thing_group
 - [X] replace_topic_rule
 - [X] search_index
@@ -321,7 +321,7 @@ iot
 - [ ] update_account_audit_configuration
 - [ ] update_audit_suppression
 - [ ] update_authorizer
-- [ ] update_billing_group
+- [X] update_billing_group
 - [X] update_ca_certificate
   
         The newAutoRegistrationStatus and removeAutoRegistration-parameters are not yet implemented

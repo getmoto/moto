@@ -78,12 +78,12 @@ s3control
 - [ ] get_multi_region_access_point_routes
 - [X] get_public_access_block
 - [X] get_storage_lens_configuration
-- [ ] get_storage_lens_configuration_tagging
+- [X] get_storage_lens_configuration_tagging
 - [ ] get_storage_lens_group
 - [ ] list_access_grants
 - [ ] list_access_grants_instances
 - [ ] list_access_grants_locations
-- [ ] list_access_points
+- [X] list_access_points
 - [ ] list_access_points_for_directory_buckets
 - [ ] list_access_points_for_object_lambda
 - [ ] list_caller_access_grants
@@ -107,7 +107,7 @@ s3control
 - [ ] put_multi_region_access_point_policy
 - [X] put_public_access_block
 - [X] put_storage_lens_configuration
-- [ ] put_storage_lens_configuration_tagging
+- [X] put_storage_lens_configuration_tagging
 - [ ] submit_multi_region_access_point_routes
 - [ ] tag_resource
 - [ ] untag_resource

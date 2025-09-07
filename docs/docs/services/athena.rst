@@ -112,7 +112,7 @@ athena
 - [X] list_query_executions
 - [ ] list_sessions
 - [ ] list_table_metadata
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] list_work_groups
 - [ ] put_capacity_assignment_configuration
 - [ ] start_calculation_execution

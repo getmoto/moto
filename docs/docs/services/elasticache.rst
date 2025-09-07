@@ -41,7 +41,7 @@ elasticache
 - [ ] delete_cache_security_group
 - [ ] delete_cache_subnet_group
 - [ ] delete_global_replication_group
-- [ ] delete_replication_group
+- [X] delete_replication_group
 - [ ] delete_serverless_cache
 - [ ] delete_serverless_cache_snapshot
 - [ ] delete_snapshot
