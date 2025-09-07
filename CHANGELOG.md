@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.12
 -----
-Docker Digest for 5.1.12: <autopopulateddigest>
+Docker Digest for 5.1.12: _sha256:e1cf8b624019e6eba25cb5b37efdf95a463fc24691978540a1c7008b7d02fda0_
 
     General:
         * Removed support for OpsWorks, now that AWS has also deprecated this service.
