@@ -52,7 +52,9 @@ batch
 - [ ] list_consumable_resources
 - [X] list_jobs
   
-        Pagination is not yet implemented
+        TODO: Pagination is not yet implemented
+        TODO: Acording to Boto3 documentation, filters are not supported when filtering by batch array job id.
+            Current implementation does not differentiate between array job listing and normal job listing.
         
 
 - [ ] list_jobs_by_consumable_resource

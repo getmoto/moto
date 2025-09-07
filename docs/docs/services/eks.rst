@@ -42,6 +42,7 @@ eks
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
 - [ ] describe_insight
+- [ ] describe_insights_refresh
 - [X] describe_nodegroup
 - [ ] describe_pod_identity_association
 - [ ] describe_update
@@ -65,6 +66,7 @@ eks
 
 - [ ] list_updates
 - [ ] register_cluster
+- [ ] start_insights_refresh
 - [X] tag_resource
   
         This function currently will tag an EKS cluster only.  It does not tag a managed node group
@@ -77,7 +79,7 @@ eks
 
 - [ ] update_access_entry
 - [ ] update_addon
-- [ ] update_cluster_config
+- [X] update_cluster_config
 - [ ] update_cluster_version
 - [ ] update_eks_anywhere_subscription
 - [ ] update_nodegroup_config

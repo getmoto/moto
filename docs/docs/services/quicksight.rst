@@ -26,7 +26,7 @@ quicksight
 - [ ] create_custom_permissions
 - [X] create_dashboard
 - [X] create_data_set
-- [ ] create_data_source
+- [X] create_data_source
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
@@ -52,7 +52,7 @@ quicksight
 - [ ] delete_dashboard
 - [ ] delete_data_set
 - [ ] delete_data_set_refresh_properties
-- [ ] delete_data_source
+- [X] delete_data_source
 - [ ] delete_default_q_business_application
 - [ ] delete_folder
 - [ ] delete_folder_membership
@@ -95,7 +95,7 @@ quicksight
 - [ ] describe_data_set
 - [ ] describe_data_set_permissions
 - [ ] describe_data_set_refresh_properties
-- [ ] describe_data_source
+- [X] describe_data_source
 - [ ] describe_data_source_permissions
 - [ ] describe_default_q_business_application
 - [ ] describe_folder
@@ -138,7 +138,7 @@ quicksight
 - [ ] list_dashboard_versions
 - [X] list_dashboards
 - [ ] list_data_sets
-- [ ] list_data_sources
+- [X] list_data_sources
 - [ ] list_folder_members
 - [ ] list_folders
 - [ ] list_folders_for_resource
@@ -151,7 +151,7 @@ quicksight
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
 - [ ] list_templates
@@ -184,8 +184,8 @@ quicksight
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
 - [ ] start_dashboard_snapshot_job_schedule
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_account_customization
 - [X] update_account_settings
 - [ ] update_analysis
@@ -202,7 +202,7 @@ quicksight
 - [ ] update_dashboards_qa_configuration
 - [ ] update_data_set
 - [ ] update_data_set_permissions
-- [ ] update_data_source
+- [X] update_data_source
 - [ ] update_data_source_permissions
 - [ ] update_default_q_business_application
 - [ ] update_folder
