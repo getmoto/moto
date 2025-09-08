@@ -68,6 +68,7 @@ def test_list_invitations():
     assert len(response["invitations"]) == 1
     assert response["invitations"][0]["accountId"] == MEMBER_ACCOUNT_ID
 
+
 @mock_aws
 def test_decline_invitations():
     sts = boto3.client("sts", region_name=REGION)
