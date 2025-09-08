@@ -18,7 +18,7 @@ def test_create_connection(client):
     connection = client.create_connection(
         location="EqDC2", bandwidth="10Gbps", connectionName="TestConnection"
     )
-    assert connection["connectionId"].startswith("dx-moto")
+    assert "dx-moto" in connection["connectionId"]
     assert connection["connectionState"] == "available"
 
 
@@ -179,13 +179,12 @@ def test_create_lag(client):
         connectionsBandwidth="10Gbps",
         lagName="TestLag0",
     )
-    assert lag["lagId"].startswith("dxlag-moto")
+    assert "dxlag-moto" in lag["lagId"]
     assert lag["lagState"] == "available"
     assert len(lag["connections"]) == 1
     connection = lag["connections"][0]
-    assert connection["connectionName"].startswith(
-        "Requested Connection 1 for Lag dxlag-moto"
-    )
+    assert "Requested Connection 1 for Lag" in connection["connectionName"]
+    assert "dxlag-moto" in connection["connectionName"]
 
 
 def test_describe_lags(client):

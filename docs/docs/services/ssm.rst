@@ -58,7 +58,9 @@ ssm
 - [ ] delete_resource_data_sync
 - [ ] delete_resource_policy
 - [ ] deregister_managed_instance
-- [ ] deregister_patch_baseline_for_patch_group
+- [X] deregister_patch_baseline_for_patch_group
+  deregister a patch baseline for os on patch group, set default
+
 - [X] deregister_target_from_maintenance_window
   
         Deregisters a target from a maintenance window. No error handling has been implemented yet.
@@ -147,7 +149,9 @@ ssm
   Implement the get-parameters-by-path-API in the backend.
 
 - [ ] get_patch_baseline
-- [ ] get_patch_baseline_for_patch_group
+- [X] get_patch_baseline_for_patch_group
+  get baselineid for patch group for operating system
+
 - [ ] get_resource_policies
 - [ ] get_service_setting
 - [X] label_parameter_version
@@ -179,7 +183,9 @@ ssm
 - [X] put_parameter
 - [ ] put_resource_policy
 - [ ] register_default_patch_baseline
-- [ ] register_patch_baseline_for_patch_group
+- [X] register_patch_baseline_for_patch_group
+  register a patch group in ssm backend
+
 - [X] register_target_with_maintenance_window
   
         Registers a target with a maintenance window. No error handling has been implemented yet.
