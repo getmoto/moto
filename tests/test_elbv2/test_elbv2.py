@@ -1453,6 +1453,25 @@ def test_modify_load_balancer_attributes_routing_http_drop_invalid_header_fields
 
 
 @mock_aws
+def test_modify_load_balancer_attributes_secondary_ips_auto_assigned_per_subnet():
+    response, _, _, _, _, client = create_load_balancer("network")
+    arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    client.modify_load_balancer_attributes(
+        LoadBalancerArn=arn,
+        Attributes=[{"Key": "secondary_ips.auto_assigned.per_subnet", "Value": "3"}],
+    )
+    response = client.describe_load_balancer_attributes(LoadBalancerArn=arn)
+    routing_http_drop_invalid_header_fields_enabled = list(
+        filter(
+            lambda item: item["Key"] == "secondary_ips.auto_assigned.per_subnet",
+            response["Attributes"],
+        )
+    )[0]
+    assert routing_http_drop_invalid_header_fields_enabled["Value"] == "3"
+
+
+@mock_aws
 def test_describe_load_balancer_attributes_default():
     response, _, _, _, _, client = create_load_balancer()
     arn = response["LoadBalancers"][0]["LoadBalancerArn"]

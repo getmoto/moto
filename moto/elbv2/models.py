@@ -582,6 +582,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "routing.http2.enabled",
         "waf.fail_open.enabled",
         "zonal_shift.config.enabled",
+        "secondary_ips.auto_assigned.per_subnet",
     }
 
     def __init__(
