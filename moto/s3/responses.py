@@ -815,10 +815,15 @@ class S3Response(BaseResponse):
             else:
                 return 404, {}, ""
         elif "lifecycle" in querystring:
-            rules = xmltodict.parse(self.body)["LifecycleConfiguration"]["Rule"]
-            if not isinstance(rules, list):
-                # If there is only one rule, xmldict returns just the item
-                rules = [rules]
+            lifecycle_config = xmltodict.parse(self.body)["LifecycleConfiguration"]
+            # Handle empty lifecycle configuration (no rules)
+            if "Rule" not in lifecycle_config:
+                rules = []
+            else:
+                rules = lifecycle_config["Rule"]
+                if not isinstance(rules, list):
+                    # If there is only one rule, xmldict returns just the item
+                    rules = [rules]
             self.backend.put_bucket_lifecycle(bucket_name, rules)
             return ""
         elif "policy" in querystring:
