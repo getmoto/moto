@@ -69,7 +69,7 @@ glue
 - [X] create_trigger
 - [ ] create_usage_profile
 - [ ] create_user_defined_function
-- [ ] create_workflow
+- [X] create_workflow
 - [ ] delete_blueprint
 - [ ] delete_catalog
 - [ ] delete_classifier
@@ -81,7 +81,7 @@ glue
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
-- [ ] delete_dev_endpoint
+- [X] delete_dev_endpoint
 - [ ] delete_glue_identity_center_configuration
 - [ ] delete_integration
 - [ ] delete_integration_table_properties
@@ -101,7 +101,7 @@ glue
 - [X] delete_trigger
 - [ ] delete_usage_profile
 - [ ] delete_user_defined_function
-- [ ] delete_workflow
+- [X] delete_workflow
 - [ ] describe_connection_type
 - [ ] describe_entity
 - [ ] describe_inbound_integrations
@@ -192,16 +192,16 @@ glue
 - [ ] get_usage_profile
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
-- [ ] get_workflow
-- [ ] get_workflow_run
-- [ ] get_workflow_run_properties
-- [ ] get_workflow_runs
+- [X] get_workflow
+- [X] get_workflow_run
+- [X] get_workflow_run_properties
+- [X] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [ ] list_column_statistics_task_runs
 - [ ] list_connection_types
 - [X] list_crawlers
-- [ ] list_crawls
+- [X] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_data_quality_results
 - [ ] list_data_quality_rule_recommendation_runs
@@ -221,13 +221,13 @@ glue
 - [ ] list_table_optimizer_runs
 - [X] list_triggers
 - [ ] list_usage_profiles
-- [ ] list_workflows
+- [X] list_workflows
 - [ ] modify_integration
 - [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
 - [X] put_resource_policy
 - [X] put_schema_version_metadata
-- [ ] put_workflow_run_properties
+- [X] put_workflow_run_properties
 - [ ] query_schema_version_metadata
 - [X] register_schema_version
 - [ ] remove_schema_version_metadata
@@ -248,14 +248,14 @@ glue
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
-- [ ] start_workflow_run
+- [X] start_workflow_run
 - [ ] stop_column_statistics_task_run
 - [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
 - [X] stop_trigger
-- [ ] stop_workflow_run
+- [X] stop_workflow_run
 - [X] tag_resource
 - [ ] test_connection
 - [X] untag_resource
@@ -290,5 +290,5 @@ glue
 - [ ] update_trigger
 - [ ] update_usage_profile
 - [ ] update_user_defined_function
-- [ ] update_workflow
+- [X] update_workflow
 

@@ -158,3 +158,22 @@ class ParameterAlreadyExists(JsonRESTError):
             "ParameterAlreadyExists",
             "The parameter already exists. To overwrite this value, set the overwrite option in the request to true.",
         )
+
+
+class AlreadyExistsException(JsonRESTError):
+    code = 400
+
+    def __init__(self, operating_system: str) -> None:
+        super().__init__(
+            "AlreadyExistsException",
+            f"Patch Group baseline already has a baseline registered for OperatingSystem {operating_system}.",
+        )
+
+
+class BaselineDoesNotExistException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "DoesNotExistException", "Patch Baseline to be retrieved does not exist."
+        )

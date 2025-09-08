@@ -2072,6 +2072,10 @@
   "Location": "euc2-az2"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "euc2-az2"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "euc2-az2"
  },

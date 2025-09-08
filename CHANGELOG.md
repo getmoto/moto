@@ -1,6 +1,68 @@
 Moto Changelog
 ==============
 
+5.1.12
+-----
+Docker Digest for 5.1.12: _sha256:e1cf8b624019e6eba25cb5b37efdf95a463fc24691978540a1c7008b7d02fda0_
+
+    General:
+        * Removed support for OpsWorks, now that AWS has also deprecated this service.
+          https://docs.aws.amazon.com/opsworks/latest/userguide/stacks-eol-faqs.html
+
+    New Methods:
+        * Glue:
+            * batch_get_workflows()
+            * create_workflow()
+            * delete_workflow()
+            * get_workflow()
+            * get_workflow_run()
+            * get_workflow_runs()
+            * get_workflow_run_properties()
+            * list_workflows()
+            * put_workflow_run_properties()
+            * start_workflow_run()
+            * stop_workflow_run()
+            * update_workflow()
+
+        * IOT:
+            * add_thing_to_billing_group()
+            * create_billing_group()
+            * delete_billing_group()
+            * describe_billing_group()
+            * list_billing_groups()
+            * list_things_in_billing_group()
+            * remove_thing_from_billing_group()
+            * update_billing_group()
+
+        * SES:
+            * clone_receipt_rule_set()
+
+        * SSM:
+            * create_data_source()
+            * deregister_patch_baseline_for_patch_group()
+            * delete_data_source()
+            * describe_data_source()
+            * get_patch_baseline_for_patch_group()
+            * list_data_sources()
+            * list_tags_for_resource()
+            * register_patch_baseline_for_patch_group()
+            * update_data_source()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * EC2: describe_network_interfaces() now returns the attributes PublicIP, PublicDNSName and IpOwnerId
+        * IOT: search_index() now supports logical expression handling in the queryString-parameter, with NOT, AND, OR and parentheses for complex queries
+        * IOT: search_index() now supports thingGroupNames in the queryString-parameter
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now supports QuickSight resources
+        * ResourceGroupsTaggingAPI: tag_resource() now supports QuickSight resources
+        * ResourceGroupsTaggingAPI: untag_resource() now supports QuickSight resources
+        * SES: create_receipt_rule() now contains additional validation around the RuleSetName and the provided rule-actions
+        * SES: create_receipt_rule() now supports the After-parameter
+        * STS: assume_role() now validates that the length of the roleSessionName-parameter is max 64 characters long
+        * QuickSight: create_data_set() now supports the Tags-parameter
+
+
 5.1.11
 -----
 Docker Digest for 5.1.11: _sha256:8ca337023ebaa5c0b8b33503b178d4db3326fca184551d6f47b07b8dd8532644_
