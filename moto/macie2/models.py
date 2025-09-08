@@ -69,7 +69,7 @@ class MacieBackend(BaseBackend):
             "updatedAt": datetime.utcnow(),
         }
 
-    def create_invitations(self, account_ids: List[str]) -> List[Dict[str, Any]]:
+    def create_invitations(self, account_ids: List[str]) -> None:
         for account_id in account_ids:
             invitation = Invitation(
                 account_id=account_id,
@@ -77,21 +77,23 @@ class MacieBackend(BaseBackend):
                 admin_account_id=self.account_id,
             )
             self.invitations[account_id] = invitation
-        return []
 
     def list_invitations(self) -> List[Invitation]:
         return list(self.invitations.values())
 
-    def decline_invitations(self, account_ids: List[str]) -> List[Dict[str, Any]]:
-        for backend_dict in macie2_backends.values():
-            backend = backend_dict.get(self.region_name)
-            if backend and self.account_id in backend.invitations:
-                backend.invitations.pop(self.account_id)
-        return []
+    def decline_invitations(self, account_ids: List[str]) -> None:
+        for account_id in account_ids:
+            for backend_dict in macie2_backends.values():
+                backend = backend_dict.get(self.region_name)
+                if backend and account_id in backend.invitations:
+                    backend.invitations.pop(account_id)
 
     def accept_invitation(
         self, administrator_account_id: str, invitation_id: str
     ) -> None:
+        # Loop through every account backend to find the matching invitation
+        # Invitations can only be sent to the same region
+        # If the region does not exist, then the user hasn't used Macie in this account yet, and we can safely skip it
         for backend_dict in macie2_backends.values():
             backend = backend_dict.get(self.region_name)
             if not backend:

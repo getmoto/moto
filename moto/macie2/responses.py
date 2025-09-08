@@ -17,10 +17,8 @@ class MacieResponse(BaseResponse):
 
     def create_invitations(self) -> str:
         account_ids = self._get_param("accountIds", [])
-        unprocessed_accounts = self.macie_backend.create_invitations(
-            account_ids=account_ids
-        )
-        return json.dumps({"unprocessedAccounts": unprocessed_accounts})
+        self.macie_backend.create_invitations(account_ids=account_ids)
+        return json.dumps({"unprocessedAccounts": []})
 
     def list_invitations(self) -> str:
         invitations = self.macie_backend.list_invitations()
@@ -28,10 +26,8 @@ class MacieResponse(BaseResponse):
 
     def decline_invitations(self) -> str:
         account_ids = self._get_param("accountIds", [])
-        unprocessed_accounts = self.macie_backend.decline_invitations(
-            account_ids=account_ids
-        )
-        return json.dumps({"unprocessedAccounts": unprocessed_accounts})
+        self.macie_backend.decline_invitations(account_ids=account_ids)
+        return json.dumps({"unprocessedAccounts": []})
 
     def accept_invitation(self) -> str:
         administrator_account_id = self._get_param("administratorAccountId")

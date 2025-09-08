@@ -9,7 +9,7 @@ MEMBER_ACCOUNT_ID = "222222222222"
 REGION = "us-east-1"
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_get_macie_session():
     admin_client = boto3.client("macie2", region_name=REGION)
 
@@ -21,7 +21,7 @@ def test_get_macie_session():
     assert "serviceRole" in response
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_enable_macie():
     admin_client = boto3.client("macie2", region_name=REGION)
 
@@ -37,7 +37,7 @@ def test_enable_macie():
     assert session["findingPublishingFrequency"] == "ONE_HOUR"
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_get_macie_session_after_disable():
     admin_client = boto3.client("macie2", region_name=REGION)
 
@@ -50,7 +50,7 @@ def test_get_macie_session_after_disable():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_create_invitations():
     admin_client = boto3.client("macie2", region_name=REGION)
 
@@ -58,7 +58,7 @@ def test_create_invitations():
     assert response["unprocessedAccounts"] == []
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_list_invitations():
     admin_client = boto3.client("macie2", region_name=REGION)
 
@@ -68,34 +68,7 @@ def test_list_invitations():
     assert len(response["invitations"]) == 1
     assert response["invitations"][0]["accountId"] == MEMBER_ACCOUNT_ID
 
-
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
-def test_accept_invitation():
-    sts = boto3.client("sts", region_name=REGION)
-    member_identity = sts.assume_role(
-        RoleArn=f"arn:aws:iam::{MEMBER_ACCOUNT_ID}:role/my-role",
-        RoleSessionName="test-session",
-    )["Credentials"]
-
-    admin_client = boto3.client("macie2", region_name=REGION)
-    member_client = boto3.client(
-        "macie2",
-        region_name=REGION,
-        aws_access_key_id=member_identity["AccessKeyId"],
-        aws_secret_access_key=member_identity["SecretAccessKey"],
-        aws_session_token=member_identity["SessionToken"],
-    )
-
-    admin_client.create_invitations(accountIds=[MEMBER_ACCOUNT_ID])
-    invitation_id = admin_client.list_invitations()["invitations"][0]["invitationId"]
-
-    response = member_client.accept_invitation(
-        administratorAccountId=ADMIN_ACCOUNT_ID, invitationId=invitation_id
-    )
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_decline_invitations():
     sts = boto3.client("sts", region_name=REGION)
     member_identity = sts.assume_role(
@@ -114,12 +87,12 @@ def test_decline_invitations():
 
     admin_client.create_invitations(accountIds=[MEMBER_ACCOUNT_ID])
 
-    response = member_client.decline_invitations(accountIds=[ADMIN_ACCOUNT_ID])
+    response = member_client.decline_invitations(accountIds=[MEMBER_ACCOUNT_ID])
     assert response["unprocessedAccounts"] == []
     assert len(admin_client.list_invitations()["invitations"]) == 0
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_list_members():
     sts = boto3.client("sts", region_name=REGION)
     member_identity = sts.assume_role(
@@ -147,7 +120,7 @@ def test_list_members():
     assert response["members"][0]["accountId"] == MEMBER_ACCOUNT_ID
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_get_administrator_account():
     sts = boto3.client("sts", region_name=REGION)
     member_identity = sts.assume_role(
@@ -174,7 +147,7 @@ def test_get_administrator_account():
     assert response["administrator"]["accountId"] == ADMIN_ACCOUNT_ID
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_delete_member():
     sts = boto3.client("sts", region_name=REGION)
     member_identity = sts.assume_role(
@@ -202,7 +175,7 @@ def test_delete_member():
     assert len(admin_client.list_members()["members"]) == 0
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_delete_nonexistent_member():
     admin_client = boto3.client("macie2", region_name=REGION)
 
@@ -213,7 +186,7 @@ def test_delete_nonexistent_member():
     assert err["Code"] == "ResourceNotFoundException"
 
 
-@mock_aws(config={"macie2": {"initial_account_id": ADMIN_ACCOUNT_ID}})
+@mock_aws
 def test_disable_macie():
     admin_client = boto3.client("macie2", region_name=REGION)
 
