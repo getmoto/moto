@@ -613,6 +613,7 @@ class CognitoIdpUserPool(BaseModel):
         """
         extra_data: Dict[str, Any] = {
             "origin_jti": origin_jti,
+            "scope": "aws.cognito.signin.user.admin",
         }
         user = self._get_user(username)
         if len(user.groups) > 0:
