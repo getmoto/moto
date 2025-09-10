@@ -1942,11 +1942,15 @@ def test_get_metric_data_with_custom_label():
 
 
 @mock_aws
-def test_get_metric_data_queries():
-    """
-    verify that >= 10 queries can still be parsed
-    there was an error with the order of parsing items, leading to IndexError
-    """
+@pytest.mark.parametrize(
+    "return_data, expected_result_length",
+    [
+        pytest.param(True, 20, id="ReturnData=True"),
+        pytest.param(False, 0, id="ReturnData=False"),
+        pytest.param(None, 20, id="ReturnData=None"),
+    ],
+)
+def test_get_metric_data_queries(return_data, expected_result_length):
     now = utcnow().replace(microsecond=0)
     start_time = now - timedelta(minutes=10)
     end_time = now + timedelta(minutes=5)
@@ -1962,6 +1966,8 @@ def test_get_metric_data_queries():
             "Unit": "Percent",
         },
     }
+    if return_data is not None:
+        original_query["ReturnData"] = return_data
 
     queries = []
     for i in range(0, 20):
@@ -1974,9 +1980,7 @@ def test_get_metric_data_queries():
     response = boto3.client("cloudwatch", "eu-west-1").get_metric_data(
         StartTime=start_time, EndTime=end_time, MetricDataQueries=queries
     )
-
-    # we expect twenty results
-    assert len(response["MetricDataResults"]) == 20
+    assert len(response["MetricDataResults"]) == expected_result_length
 
 
 @mock_aws
