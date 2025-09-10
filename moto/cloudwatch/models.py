@@ -740,7 +740,7 @@ class CloudWatchBackend(BaseBackend):
                     "status_code": "Complete",
                 }
             )
-            if query.get("ReturnData", "true") == "true":
+            if query.get("ReturnData", True):
                 results_to_return.append(
                     {
                         "id": query["Id"],
