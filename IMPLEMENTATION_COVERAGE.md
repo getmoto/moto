@@ -8142,7 +8142,7 @@
 - [ ] get_access_point_policy_status_for_object_lambda
 - [ ] get_access_point_scope
 - [ ] get_bucket
-- [ ] get_bucket_lifecycle_configuration
+- [X] get_bucket_lifecycle_configuration
 - [ ] get_bucket_policy
 - [ ] get_bucket_replication
 - [ ] get_bucket_tagging
@@ -8175,7 +8175,7 @@
 - [X] put_access_point_policy
 - [ ] put_access_point_policy_for_object_lambda
 - [ ] put_access_point_scope
-- [ ] put_bucket_lifecycle_configuration
+- [X] put_bucket_lifecycle_configuration
 - [ ] put_bucket_policy
 - [ ] put_bucket_replication
 - [ ] put_bucket_tagging
