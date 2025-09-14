@@ -597,3 +597,36 @@ def test_lifecycle_delete_boto3():
     assert ex.value.response["Error"]["Message"] == (
         "The lifecycle configuration does not exist"
     )
+
+
+@mock_aws
+def test_lifecycle_empty_configuration():
+    """Test that empty lifecycle configuration (no rules) works correctly"""
+    client = boto3.client("s3", DEFAULT_REGION_NAME)
+    client.create_bucket(Bucket="foobar")
+
+    # Set lifecycle configuration with rules first
+    client.put_bucket_lifecycle_configuration(
+        Bucket="foobar",
+        LifecycleConfiguration={
+            "Rules": [{"ID": "myid", "Prefix": "", "Status": "Enabled"}]
+        },
+    )
+
+    # Verify it exists
+    result = client.get_bucket_lifecycle_configuration(Bucket="foobar")
+    assert len(result["Rules"]) == 1
+
+    # Set empty lifecycle configuration (should delete all rules)
+    client.put_bucket_lifecycle_configuration(
+        Bucket="foobar",
+        LifecycleConfiguration={"Rules": []},
+    )
+
+    # Verify it's deleted
+    with pytest.raises(ClientError) as ex:
+        client.get_bucket_lifecycle_configuration(Bucket="foobar")
+    assert ex.value.response["Error"]["Code"] == "NoSuchLifecycleConfiguration"
+    assert ex.value.response["Error"]["Message"] == (
+        "The lifecycle configuration does not exist"
+    )

@@ -130,6 +130,7 @@ backend_url_patterns = [
     ("lexv2models", re.compile("https?://lex\\.(.+)\\.amazonaws\\.com")),
     ("lexv2models", re.compile("https?://models-v2-lex\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
+    ("macie2", re.compile("https?://macie2\\.(.+)\\.amazonaws\\.com")),
     (
         "managedblockchain",
         re.compile("https?://managedblockchain\\.(.+)\\.amazonaws.com"),

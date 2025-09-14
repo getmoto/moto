@@ -2072,6 +2072,10 @@
   "Location": "eu-central-2b"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "eu-central-2b"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "eu-central-2b"
  },

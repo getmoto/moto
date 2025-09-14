@@ -69,7 +69,7 @@ redshift
 - [ ] describe_authentication_profiles
 - [ ] describe_cluster_db_revisions
 - [X] describe_cluster_parameter_groups
-- [ ] describe_cluster_parameters
+- [X] describe_cluster_parameters
 - [X] describe_cluster_security_groups
 - [X] describe_cluster_snapshots
 - [X] describe_cluster_subnet_groups
@@ -80,7 +80,7 @@ redshift
 - [ ] describe_data_shares
 - [ ] describe_data_shares_for_consumer
 - [ ] describe_data_shares_for_producer
-- [ ] describe_default_cluster_parameters
+- [X] describe_default_cluster_parameters
 - [ ] describe_endpoint_access
 - [ ] describe_endpoint_authorization
 - [ ] describe_event_categories

@@ -24,6 +24,13 @@ ses
 - [ ] create_receipt_filter
 - [X] create_receipt_rule
 - [X] create_receipt_rule_set
+  
+        We have to validate rule_set_name against the following conditions:
+            1. Must match a given regex pattern
+            2. Must start and end with a number or a character
+            3. Contain 64 characters or lesser
+        
+
 - [ ] create_template
 - [X] delete_configuration_set
 - [ ] delete_configuration_set_event_destination
