@@ -952,7 +952,6 @@ class ElastiCacheBackend(BaseBackend):
         if replication_group_id:
             if replication_group_id in self.replication_groups:
                 replication_group = self.replication_groups[replication_group_id]
-                return list([replication_group])
                 return [replication_group]
             else:
                 raise ReplicationGroupNotFound(replication_group_id)
