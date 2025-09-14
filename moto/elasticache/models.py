@@ -139,6 +139,7 @@ class CacheCluster(BaseModel):
         self.auto_minor_version_upgrade = auto_minor_version_upgrade
         self.snapshot_retention_limit = snapshot_retention_limit or 0
         self.auth_token = auth_token
+        self.auth_token_enabled = bool(auth_token)
         self.outpost_mode = outpost_mode
         self.preferred_outpost_arn = preferred_outpost_arn
         self.preferred_outpost_arns = preferred_outpost_arns or []
@@ -771,21 +772,17 @@ class ElastiCacheBackend(BaseBackend):
     @paginate(PAGINATION_MODEL)
     def describe_cache_clusters(
         self,
-        cache_cluster_id: str,
-        max_records: int,
-        marker: str,
+        cache_cluster_id: Optional[str] = None,
+        max_records: Optional[int] = None,
+        marker: Optional[str] = None,
     ) -> List[CacheCluster]:
-        if max_records is None:
-            max_records = 100
         if cache_cluster_id:
             if cache_cluster_id in self.cache_clusters:
                 cache_cluster = self.cache_clusters[cache_cluster_id]
-                return list([cache_cluster])
+                return [cache_cluster]
             else:
                 raise CacheClusterNotFound(cache_cluster_id)
-        cache_clusters = list(self.cache_clusters.values())[:max_records]
-
-        return cache_clusters
+        return list(self.cache_clusters.values())
 
     def delete_cache_cluster(self, cache_cluster_id: str) -> CacheCluster:
         if cache_cluster_id:
@@ -819,16 +816,17 @@ class ElastiCacheBackend(BaseBackend):
     @paginate(PAGINATION_MODEL)
     def describe_cache_subnet_groups(
         self,
-        cache_subnet_group_name: str,
+        cache_subnet_group_name: Optional[str] = None,
+        max_records: Optional[int] = None,
+        marker: Optional[str] = None,
     ) -> List[CacheSubnetGroup]:
         if cache_subnet_group_name:
             if cache_subnet_group_name in self.cache_subnet_groups:
                 cache_subnet_group = self.cache_subnet_groups[cache_subnet_group_name]
-                return list([cache_subnet_group])
+                return [cache_subnet_group]
             else:
                 raise CacheSubnetGroupNotFound(cache_subnet_group_name)
-        cache_subnet_groups = list(self.cache_subnet_groups.values())
-        return cache_subnet_groups
+        return list(self.cache_subnet_groups.values())
 
     def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
         if self.arn_regex.match(arn):
@@ -946,16 +944,19 @@ class ElastiCacheBackend(BaseBackend):
 
     @paginate(PAGINATION_MODEL)
     def describe_replication_groups(
-        self, replication_group_id: str
+        self,
+        replication_group_id: Optional[str] = None,
+        max_records: Optional[int] = None,
+        marker: Optional[str] = None,
     ) -> List[ReplicationGroup]:
         if replication_group_id:
             if replication_group_id in self.replication_groups:
                 replication_group = self.replication_groups[replication_group_id]
                 return list([replication_group])
+                return [replication_group]
             else:
                 raise ReplicationGroupNotFound(replication_group_id)
-        replication_groups = list(self.replication_groups.values())
-        return replication_groups
+        return list(self.replication_groups.values())
 
     def delete_replication_group(
         self, replication_group_id: str, retain_primary_cluster: Optional[bool]
