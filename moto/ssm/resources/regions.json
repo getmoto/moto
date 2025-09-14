@@ -1318,6 +1318,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -4476,6 +4485,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "transfer": {
+                "Value": "transfer",
+                "endpoint": {
+                  "Value": "transfer.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "transitgateway": {
                 "Value": "transitgateway",
                 "endpoint": {
@@ -4504,6 +4522,15 @@
                 "Value": "vpn",
                 "endpoint": {
                   "Value": "ec2.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "waf": {
+                "Value": "waf",
+                "endpoint": {
+                  "Value": "wafv2.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8071,6 +8098,15 @@
                 "Value": "datazone",
                 "endpoint": {
                   "Value": "datazone.ap-northeast-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "deadline-cloud": {
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24464,6 +24500,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "datazone": {
+                "Value": "datazone",
+                "endpoint": {
+                  "Value": "datazone.ap-southeast-5.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "directconnect": {
                 "Value": "directconnect",
                 "endpoint": {
@@ -26037,6 +26082,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "scheduler": {
+                "Value": "scheduler",
+                "endpoint": {
+                  "Value": "scheduler.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "secretsmanager": {
                 "Value": "secretsmanager",
                 "endpoint": {
@@ -26147,6 +26201,15 @@
               },
               "trustedadvisor": {
                 "Value": "trustedadvisor"
+              },
+              "verifiedpermissions": {
+                "Value": "verifiedpermissions",
+                "endpoint": {
+                  "Value": "verifiedpermissions.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "vpc": {
                 "Value": "vpc"
@@ -26900,6 +26963,15 @@
                 "Value": "pca-connector-ad",
                 "endpoint": {
                   "Value": "pca-connector-ad.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-scep": {
+                "Value": "pca-connector-scep",
+                "endpoint": {
+                  "Value": "pca-connector-scep.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -32687,12 +32759,6 @@
                 },
                 "protocols": {
                   "Value": "HTTPS"
-                }
-              },
-              "bcm-data-exports": {
-                "Value": "bcm-data-exports",
-                "endpoint": {
-                  "Value": "bcm-data-exports.cn-northwest-1.api.amazonwebservices.com.cn"
                 }
               },
               "budgets": {
@@ -41736,6 +41802,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resiliencehub": {
                 "Value": "resiliencehub",
                 "endpoint": {
@@ -47572,6 +47647,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "deadline-cloud": {
+                "Value": "deadline-cloud",
+                "endpoint": {
+                  "Value": "management.deadline.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "detective": {
@@ -65764,6 +65848,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "aps": {
+                "Value": "aps",
+                "endpoint": {
+                  "Value": "aps.us-gov-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "arc-zonal-shift": {
                 "Value": "arc-zonal-shift",
                 "endpoint": {
@@ -67404,6 +67497,15 @@
                 "Value": "appstream",
                 "endpoint": {
                   "Value": "appstream2.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "aps": {
+                "Value": "aps",
+                "endpoint": {
+                  "Value": "aps.us-gov-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
