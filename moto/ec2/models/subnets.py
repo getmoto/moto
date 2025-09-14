@@ -63,7 +63,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         # Theory is we assign ip's as we go (as 16,777,214 usable IPs in a /8)
         self._subnet_ip_generator = self.cidr.hosts()
         self.reserved_ips = [
-            next(self._subnet_ip_generator) for _ in range(0, 3)
+            next(iter(self._subnet_ip_generator)) for _ in range(0, 3)
         ]  # Reserved by AWS
         self._unused_ips: Set[str] = (
             set()
@@ -219,11 +219,11 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         try:
             new_ip = str(self._unused_ips.pop())
         except KeyError:
-            new_ip_v4 = next(self._subnet_ip_generator)
+            new_ip_v4 = next(iter(self._subnet_ip_generator))
 
             # Skips any IP's if they've been manually specified
             while str(new_ip_v4) in self._subnet_ips:
-                new_ip_v4 = next(self._subnet_ip_generator)
+                new_ip_v4 = next(iter(self._subnet_ip_generator))
 
             if new_ip_v4 == self.cidr.broadcast_address:
                 raise StopIteration()  # Broadcast address cant be used obviously
