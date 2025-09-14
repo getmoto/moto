@@ -10080,6 +10080,14 @@
   "Location": "usw2-az3"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
+  "Location": "usw2-az3"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "usw2-az3"
  },
@@ -13421,6 +13429,14 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
   "Location": "usw2-az4"
  },
  {

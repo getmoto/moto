@@ -2504,6 +2504,14 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "us-west-2"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "us-west-2"
  },
