@@ -1455,3 +1455,36 @@ def test_delete_replication_group():
     assert replication_group["ReplicationGroupId"] == replication_group_id
     # Now there are only 2 clusters left, because the primary one is deleted immediately
     assert len(replication_group["MemberClusters"]) == 2
+
+
+@mock_aws
+def test_create_cache_cluster_with_auth_token():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-with-token"
+
+    client.create_cache_cluster(
+        CacheClusterId=cluster_id,
+        Engine="redis",
+        NumCacheNodes=1,
+        AuthToken="a-very-secure-password-for-testing",
+    )
+
+    resp = client.describe_cache_clusters(CacheClusterId=cluster_id)
+    cluster = resp["CacheClusters"][0]
+    assert cluster["AuthTokenEnabled"] is True
+
+
+@mock_aws
+def test_create_cache_cluster_without_auth_token():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-without-token"
+
+    client.create_cache_cluster(
+        CacheClusterId=cluster_id,
+        Engine="redis",
+        NumCacheNodes=1,
+    )
+
+    resp = client.describe_cache_clusters(CacheClusterId=cluster_id)
+    cluster = resp["CacheClusters"][0]
+    assert cluster["AuthTokenEnabled"] is False
