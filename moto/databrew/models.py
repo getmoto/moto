@@ -617,7 +617,6 @@ class FakeDataset(BaseModel):
         }
 
 
-# This is the new, combined metaclass that resolves the conflict.
 class JobMetaclass(ABCMeta, InstanceTrackerMeta):
     pass
 
