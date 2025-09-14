@@ -123,7 +123,6 @@ class WorkSpaceDirectory(BaseModel):
         registration_code: str,
         security_group_id: str,
         subnet_ids: List[str],
-        enable_work_docs: bool,
         enable_self_service: bool,
         tenancy: str,
         tags: List[Dict[str, str]],
@@ -156,7 +155,6 @@ class WorkSpaceDirectory(BaseModel):
         self.state = "REGISTERED"
         # Default values for workspace_creation_properties
         workspace_creation_properties = {
-            "EnableWorkDocs": enable_work_docs,
             "EnableInternetAccess": False,
             "DefaultOu": "",
             "CustomSecurityGroupId": "",
@@ -434,7 +432,6 @@ class WorkSpacesBackend(BaseBackend):
         self,
         directory_id: str,
         subnet_ids: List[str],
-        enable_work_docs: bool,
         enable_self_service: bool,
         tenancy: str,
         tags: List[Dict[str, str]],
@@ -461,7 +458,6 @@ class WorkSpacesBackend(BaseBackend):
             registration_code=registration_code,
             security_group_id=security_group_id,
             subnet_ids=subnet_ids,
-            enable_work_docs=enable_work_docs,
             enable_self_service=enable_self_service,
             tenancy=tenancy,
             tags=tags,

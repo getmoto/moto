@@ -54,14 +54,12 @@ class WorkSpacesResponse(BaseResponse):
         params = json.loads(self.body)
         directory_id = params.get("DirectoryId")
         subnet_ids = params.get("SubnetIds")
-        enable_work_docs = params.get("EnableWorkDocs")
         enable_self_service = params.get("EnableSelfService")
         tenancy = params.get("Tenancy")
         tags = params.get("Tags")
         self.workspaces_backend.register_workspace_directory(
             directory_id=directory_id,
             subnet_ids=subnet_ids,
-            enable_work_docs=enable_work_docs,
             enable_self_service=enable_self_service,
             tenancy=tenancy,
             tags=tags,
