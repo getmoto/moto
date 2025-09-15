@@ -5,7 +5,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend, InstanceTrackerMeta
 from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_pascal, underscores_to_camelcase
 from moto.utilities.paginator import paginate
@@ -617,11 +617,11 @@ class FakeDataset(BaseModel):
         }
 
 
-class BaseModelABCMeta(ABCMeta, type(BaseModel)):  # type: ignore[misc]
+class JobMetaclass(ABCMeta, InstanceTrackerMeta):
     pass
 
 
-class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
+class FakeJob(BaseModel, metaclass=JobMetaclass):
     ENCRYPTION_MODES = ("SSE-S3", "SSE-KMS")
     LOG_SUBSCRIPTION_VALUES = ("ENABLE", "DISABLE")
 
@@ -696,12 +696,12 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
         return rtn_dict
 
 
-class FakeProfileJob(FakeJob):  # type: ignore[misc]
+class FakeProfileJob(FakeJob):
     job_type = "PROFILE"
     local_attrs = ["output_location", "configuration", "validation_configurations"]
 
 
-class FakeRecipeJob(FakeJob):  # type: ignore[misc]
+class FakeRecipeJob(FakeJob):
     local_attrs = [
         "database_outputs",
         "data_catalog_outputs",

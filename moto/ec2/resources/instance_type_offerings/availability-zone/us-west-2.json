@@ -10080,6 +10080,14 @@
   "Location": "us-west-2c"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
+  "Location": "us-west-2c"
+ },
+ {
   "InstanceType": "mac1.metal",
   "Location": "us-west-2c"
  },
@@ -13421,6 +13429,14 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
+  "Location": "us-west-2d"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
   "Location": "us-west-2d"
  },
  {
