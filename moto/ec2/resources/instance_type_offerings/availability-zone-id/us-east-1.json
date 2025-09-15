@@ -5928,6 +5928,14 @@
   "Location": "use1-az2"
  },
  {
+  "InstanceType": "mac-m4.metal",
+  "Location": "use1-az2"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
+  "Location": "use1-az2"
+ },
+ {
   "InstanceType": "mac2.metal",
   "Location": "use1-az2"
  },
@@ -16909,6 +16917,14 @@
  },
  {
   "InstanceType": "m8i.xlarge",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "mac-m4.metal",
+  "Location": "use1-az6"
+ },
+ {
+  "InstanceType": "mac-m4pro.metal",
   "Location": "use1-az6"
  },
  {
