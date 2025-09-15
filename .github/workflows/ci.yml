@@ -1,0 +1,195 @@
+# LocalStack specific workflow to implement a fully-integrated continuous integration pipeline for our fork
+# - Rebase this fork based on the latest commit on `main` of upstream
+# - Build a Python source and wheel distribution of moto-ext with deterministic versioning
+# - Publish the distributions to PyPi
+# - Tag the commit in this fork with the new version
+# - Create a GitHub release for the new version
+
+name: Sync / Release moto-ext
+
+on:
+  schedule:
+    - cron: 0 5 * * MON
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry Run?'
+        default: true
+        required: true
+        type: boolean
+
+# limit concurrency to 1
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  sync-build-release-moto-ext:
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/moto-ext/
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: localstack
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Configure Git
+        run: | 
+          # Configure git
+          git config --global user.name 'LocalStack Bot'
+          git config --global user.email 'localstack-bot@users.noreply.github.com'
+          git remote set-url origin https://git:${{ secrets.PRO_ACCESS_TOKEN }}@github.com/${{ github.repository }}
+          
+          # make sure to switch to the `localstack` branch (default / main branch of this fork)
+          git switch localstack
+          # add moto upstream as remote
+          git remote add upstream https://github.com/getmoto/moto.git
+          # rebase with latest changes
+          git pull
+          
+          # Create a custom merge driver which prefers everything from upstream _BUT_ the name and the URL
+          mkdir -p $HOME/.local/bin
+          cat > $HOME/.local/bin/git-prefer-theirs-name-url << EOF
+          #!/bin/bash
+          set -e
+          
+          base="\$1"
+          local="\$2"
+          remote="\$3"
+          
+          echo "Executing custom merge driver for base \$base, local \$local, remote \$remote."
+          
+          # Define keys to keep
+          KEYS=("name" "url")
+          
+          # Read files into arrays
+          mapfile -t REMOTE_LINES < "\$remote"
+          mapfile -t LOCAL_LINES < "\$local"
+          
+          echo "merging \$local + \$local + \$remote ..."
+          
+          # Function to check if a line should be kept (matches any key)
+          keep_line() {
+            local line="\$1"
+            for key in "\${KEYS[@]}"; do
+              [[ "\$line" == *"\$key"* ]] && return 0
+            done
+            return 1
+          }
+          
+          # keep key-matched lines from local, others from remote
+          for i in "\${!LOCAL_LINES[@]}"; do
+            if keep_line "\${REMOTE_LINES[i]}"; then
+              echo "\${REMOTE_LINES[i]}"
+            else
+              echo "\${LOCAL_LINES[i]}"
+            fi
+          done > "\$local"
+          
+          exit 0
+          EOF
+          
+          # make the script executable and add it to the PATH
+          chmod +x $HOME/.local/bin/git-prefer-theirs-name-url
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          
+          # add the merge driver to the git config
+          cat >> .git/config << EOF
+          
+          [merge "git-prefer-theirs-name-url"]
+                  name = A driver which resolves merge conflicts on a setup.cfg such that it always takes the local name and url, and everything else from upstream
+                  driver = git-prefer-theirs-name-url %O %A %B
+          EOF
+          
+          # define to use the custom merge driver for the setup.cfg
+          cat > .gitattributes << EOF
+          setup.cfg       merge=git-prefer-theirs-name-url
+          EOF
+
+      - name: Rebase localstack branch with latest master from upstream
+        run: |
+          git fetch upstream
+          git rebase upstream/master
+
+      - name: Determine new version
+        run: |
+          echo "Determining new version..."
+          cat > setuptools.cfg << EOF
+          [tool.setuptools_scm]
+          local_scheme = "no-local-version"
+          version_scheme = "post-release"
+          EOF
+          python3 -m venv .venv
+          source .venv/bin/activate
+          python3 -m pip install setuptools_scm
+          NEW_VERSION=$(python3 -m setuptools_scm -c setuptools.cfg)
+          NEW_VERSION="${NEW_VERSION//dev/post}"
+          echo "New version is: $NEW_VERSION"
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Build Python distributions
+        # FYI: Checks in this script only work because the -e flag is enabled by default in GitHub actions
+        run: |
+          python3 -m pip install build
+          
+          echo "Setting new version in setup.cfg":
+          # make sure setup.cfg is not dirty yet
+          git diff --exit-code setup.cfg
+          sed -i -E 's/^(version\s*=\s*)("?)[^"]+("?)/\1\2'"$NEW_VERSION"'\3/' setup.cfg
+          # make sure setup.cfg is dirty now
+          ! git diff --exit-code setup.cfg
+          
+          echo "Building new version and tagging commit..."
+          python3 -m build
+
+      - name: Tag successful build
+        run: |
+          git tag -a $NEW_VERSION -m $NEW_VERSION
+
+      - name: Clean up
+        run: |
+          git reset --hard
+          git clean -df
+
+      - name: Store built distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: moto-ext-dists
+          path: dist/*.*
+
+      # publish the package before pushing the tag (this might fail if the version already exists on PyPI)
+      - name: Publish package distributions to PyPI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Push
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          git push --force-with-lease
+          git push --atomic origin localstack $NEW_VERSION
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Add a retry to avoid issues where the GH CLI fails
+      # because it does not yet detect the pushed tag.
+      - name: Create Release
+        uses: nick-fields/retry@v3
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          max_attempts: 5
+          retry_wait_seconds: 120
+          timeout_minutes: 5
+          command: gh release create $NEW_VERSION --repo localstack/moto --notes "automatic rebase sync and release"
