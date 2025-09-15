@@ -1,4 +1,8 @@
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import RESTError, ServiceException
+
+
+class SQSException(ServiceException):
+    pass
 
 
 class ReceiptHandleIsInvalid(RESTError):
@@ -17,14 +21,11 @@ class MessageAttributesInvalid(RESTError):
         super().__init__("MessageAttributesInvalid", description)
 
 
-class QueueDoesNotExist(RESTError):
-    code = 404
-
+class QueueDoesNotExist(ServiceException):
     def __init__(self) -> None:
         super().__init__(
             "AWS.SimpleQueueService.NonExistentQueue",
             "The specified queue does not exist for this wsdl version.",
-            template="wrapped_single_error",
         )
 
 

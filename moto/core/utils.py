@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 from moto.core.model import ServiceModel
 
 from ..settings import get_s3_custom_endpoints
+from ..utilities.utils import load_resource
 from .common_types import TYPE_RESPONSE
 from .constants import MISSING
 from .loaders import create_loader
@@ -470,6 +471,16 @@ def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
 def get_service_model(service_name: str) -> ServiceModel:
     loader = create_loader()
     model = loader.load_service_model(service_name, "service-2")
+    if service_name == "sqs":
+        from moto import sqs
+
+        extra_model = load_resource(
+            sqs.__name__, "resources/service-2.moto-extras.json"
+        )
+        if "merge" in extra_model:
+            from botocore.utils import deep_merge
+
+            deep_merge(model, extra_model["merge"])
     service_model = ServiceModel(model, service_name)
     return service_model
 
