@@ -499,7 +499,11 @@ class BaseJSONSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        error_code = self._get_protocol_specific_error_code(shape)
+        error_code = shape.error_code
+        if "awsQueryCompatible" in self.service_model.metadata:
+            if shape.name != error_code:
+                error_code = shape.name
+        error_code = self._get_protocol_specific_error_code(error_code)
         serialized["__type"] = error_code
         message = getattr(error, "message", None) or str(error)
         if shape is not None:

@@ -1,0 +1,22 @@
+{
+  "version": 1.0,
+  "merge": {
+    "metadata": {
+      "protocols": [
+        "json",
+        "query"
+      ],
+      "targetPrefix": "com.amazonaws.sqs",
+      "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
+    },
+    "shapes": {
+      "QueueDoesNotExist": {
+        "error": {
+          "code": "AWS.SimpleQueueService.NonExistentQueue",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      }
+    }
+  }
+}
