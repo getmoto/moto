@@ -12,7 +12,6 @@ from xml.sax.saxutils import escape
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.core.utils import (
     camelcase_to_underscores,
     tags_from_cloudformation_tags_list,
@@ -36,6 +35,7 @@ from .exceptions import (
     QueueAlreadyExists,
     QueueDoesNotExist,
     ReceiptHandleIsInvalid,
+    SQSException,
     TooManyEntriesInBatchRequest,
 )
 from .utils import generate_receipt_handle
@@ -396,24 +396,24 @@ class Queue(CloudFormationModel):
             try:
                 self.redrive_policy = json.loads(policy)
             except ValueError:
-                raise RESTError(
+                raise SQSException(
                     "InvalidParameterValue",
                     "Redrive policy is not a dict or valid json",
                 )
         elif isinstance(policy, dict):
             self.redrive_policy = policy
         else:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue", "Redrive policy is not a dict or valid json"
             )
 
         if "deadLetterTargetArn" not in self.redrive_policy:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Redrive policy does not contain deadLetterTargetArn",
             )
         if "maxReceiveCount" not in self.redrive_policy:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Redrive policy does not contain maxReceiveCount",
             )
@@ -429,13 +429,13 @@ class Queue(CloudFormationModel):
                 self.dead_letter_queue = queue
 
                 if self.fifo_queue and not queue.fifo_queue:
-                    raise RESTError(
+                    raise SQSException(
                         "InvalidParameterCombination",
                         "Fifo queues cannot use non fifo dead letter queues",
                     )
                 break
         else:
-            raise RESTError(
+            raise SQSException(
                 "AWS.SimpleQueueService.NonExistentQueue",
                 f"Could not find DLQ for {self.redrive_policy['deadLetterTargetArn']}",
             )
@@ -1246,7 +1246,7 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not len(tag_keys):
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Tag keys must be between 1 and 128 characters in length.",
             )

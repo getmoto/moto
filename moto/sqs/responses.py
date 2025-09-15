@@ -1,7 +1,6 @@
 import json
 import re
-from functools import wraps
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
@@ -25,32 +24,13 @@ from .exceptions import (
     BatchEntryIdsNotDistinct,
     EmptyBatchRequest,
     InvalidAttributeName,
-    RESTError,
+    SQSException,
 )
 from .models import SQSBackend, sqs_backends
 from .utils import (
     extract_input_message_attributes,
     validate_message_attributes,
 )
-
-
-def jsonify_error(
-    method: Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]],
-) -> Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]]:
-    """
-    The decorator to convert an RESTError to JSON, if necessary
-    """
-
-    @wraps(method)
-    def f(self: "SQSResponse") -> Union[str, TYPE_RESPONSE]:
-        try:
-            return method(self)
-        except RESTError as e:
-            if self.is_json():
-                raise e.to_json()
-            raise e
-
-    return f
 
 
 class SQSResponse(BaseResponse):
@@ -168,7 +148,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(ERROR_TEMPLATE)
         return status, {"status": status}, template.render(code=code, message=message)
 
-    @jsonify_error
     def create_queue(self) -> str:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
@@ -181,7 +160,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(CREATE_QUEUE_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
 
-    @jsonify_error
     def get_queue_url(self) -> str:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
@@ -194,7 +172,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(GET_QUEUE_URL_RESPONSE)
         return template.render(queue_url=queue.url(request_url))
 
-    @jsonify_error
     def list_queues(self) -> str:
         request_url = urlparse(self.uri)
         queue_name_prefix = self._get_param("QueueNamePrefix")
@@ -211,7 +188,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(LIST_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
-    @jsonify_error
     def change_message_visibility(self) -> Union[str, TYPE_RESPONSE]:
         queue_name = self._get_queue_name()
         receipt_handle = self._get_param("ReceiptHandle")
@@ -233,7 +209,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
         return template.render()
 
-    @jsonify_error
     def change_message_visibility_batch(self) -> str:
         queue_name = self._get_queue_name()
         if self.is_json():
@@ -255,7 +230,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
         return template.render(success=success, errors=error)
 
-    @jsonify_error
     def get_queue_attributes(self) -> str:
         queue_name = self._get_queue_name()
 
@@ -290,7 +264,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(attributes=attributes)
 
-    @jsonify_error
     def set_queue_attributes(self) -> str:
         # TODO validate self.get_param('QueueUrl')
         attribute = self.attribute
@@ -313,7 +286,6 @@ class SQSResponse(BaseResponse):
             return "{}"
         return xml_response
 
-    @jsonify_error
     def delete_queue(self) -> str:
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
@@ -322,7 +294,6 @@ class SQSResponse(BaseResponse):
 
         return self._empty_response(DELETE_QUEUE_RESPONSE)
 
-    @jsonify_error
     def send_message(self) -> Union[str, TYPE_RESPONSE]:
         message = self._get_param("MessageBody")
         delay_seconds = self._get_param("DelaySeconds")
@@ -330,9 +301,9 @@ class SQSResponse(BaseResponse):
         message_dedupe_id = self._get_param("MessageDeduplicationId")
 
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
-            return self._error(
+            raise SQSException(
                 "InvalidParameterValue",
-                message="One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
+                "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
             )
 
         message_attributes = self._get_attrs("MessageAttributes")
@@ -343,18 +314,15 @@ class SQSResponse(BaseResponse):
 
         queue_name = self._get_queue_name()
 
-        try:
-            message = self.sqs_backend.send_message(
-                queue_name,
-                message,
-                message_attributes=message_attributes,
-                delay_seconds=delay_seconds,
-                deduplication_id=message_dedupe_id,
-                group_id=message_group_id,
-                system_attributes=system_message_attributes,
-            )
-        except RESTError as err:
-            return self._error(err.error_type, err.message)
+        message = self.sqs_backend.send_message(
+            queue_name,
+            message,
+            message_attributes=message_attributes,
+            delay_seconds=delay_seconds,
+            deduplication_id=message_dedupe_id,
+            group_id=message_group_id,
+            system_attributes=system_message_attributes,
+        )
 
         if self.is_json():
             resp = {
@@ -384,7 +352,6 @@ class SQSResponse(BaseResponse):
 
         validate_message_attributes(message_attributes)
 
-    @jsonify_error
     def send_message_batch(self) -> str:
         """
         The querystring comes like this
@@ -463,7 +430,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
         return template.render(messages=messages, errors=errors)
 
-    @jsonify_error
     def delete_message(self) -> str:
         queue_name = self._get_queue_name()
         if self.is_json():
@@ -478,7 +444,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(DELETE_MESSAGE_RESPONSE)
         return template.render()
 
-    @jsonify_error
     def delete_message_batch(self) -> str:
         """
         The querystring comes like this
@@ -521,13 +486,11 @@ class SQSResponse(BaseResponse):
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(success=success, errors=errors)
 
-    @jsonify_error
     def purge_queue(self) -> str:
         queue_name = self._get_queue_name()
         self.sqs_backend.purge_queue(queue_name)
         return self._empty_response(PURGE_QUEUE_RESPONSE)
 
-    @jsonify_error
     def receive_message(self) -> Union[str, TYPE_RESPONSE]:
         queue_name = self._get_queue_name()
         if self.is_json():
@@ -563,7 +526,7 @@ class SQSResponse(BaseResponse):
             message_count = DEFAULT_RECEIVED_MESSAGES
 
         if message_count < 1 or message_count > 10:
-            return self._error(
+            raise SQSException(
                 "InvalidParameterValue",
                 "An error occurred (InvalidParameterValue) when calling "
                 f"the ReceiveMessage operation: Value {message_count} for parameter "
@@ -580,7 +543,7 @@ class SQSResponse(BaseResponse):
             wait_time = int(queue.receive_message_wait_time_seconds)  # type: ignore
 
         if wait_time < 0 or wait_time > 20:
-            return self._error(
+            raise SQSException(
                 "InvalidParameterValue",
                 "An error occurred (InvalidParameterValue) when calling "
                 f"the ReceiveMessage operation: Value {wait_time} for parameter "
@@ -692,7 +655,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
         return template.render(messages=messages, attributes=attributes)
 
-    @jsonify_error
     def list_dead_letter_source_queues(self) -> str:
         request_url = urlparse(self.uri)
         queue_name = self._get_queue_name()
@@ -707,7 +669,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(LIST_DEAD_LETTER_SOURCE_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
-    @jsonify_error
     def add_permission(self) -> str:
         queue_name = self._get_queue_name()
         actions = (
@@ -732,7 +693,6 @@ class SQSResponse(BaseResponse):
 
         return self._empty_response(ADD_PERMISSION_RESPONSE)
 
-    @jsonify_error
     def remove_permission(self) -> str:
         queue_name = self._get_queue_name()
         label = self._get_param("Label")
@@ -741,7 +701,6 @@ class SQSResponse(BaseResponse):
 
         return self._empty_response(REMOVE_PERMISSION_RESPONSE)
 
-    @jsonify_error
     def tag_queue(self) -> str:
         queue_name = self._get_queue_name()
         if self.is_json():
@@ -757,7 +716,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(TAG_QUEUE_RESPONSE)
         return template.render()
 
-    @jsonify_error
     def untag_queue(self) -> str:
         queue_name = self._get_queue_name()
         tag_keys = (
@@ -774,7 +732,6 @@ class SQSResponse(BaseResponse):
         template = self.response_template(UNTAG_QUEUE_RESPONSE)
         return template.render()
 
-    @jsonify_error
     def list_queue_tags(self) -> str:
         queue_name = self._get_queue_name()
 

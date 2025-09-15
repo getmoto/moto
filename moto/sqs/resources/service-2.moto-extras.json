@@ -10,13 +10,34 @@
       "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
     },
     "shapes": {
+      "EmptyBatchRequest":{
+      "error":{
+        "code":"AWS.SimpleQueueService.EmptyBatchRequest",
+        "httpStatusCode":400,
+        "senderFault":true
+      }
+    },
+      "OverLimit":{
+      "error":{
+        "code":"OverLimit",
+        "httpStatusCode":403,
+        "senderFault":true
+      }
+    },
       "QueueDoesNotExist": {
         "error": {
           "code": "AWS.SimpleQueueService.NonExistentQueue",
           "httpStatusCode": 400,
           "senderFault": true
         }
+      },
+      "QueueNameExists":{
+      "error":{
+        "code":"QueueAlreadyExists",
+        "httpStatusCode":400,
+        "senderFault":true
       }
+    }
     }
   }
 }
