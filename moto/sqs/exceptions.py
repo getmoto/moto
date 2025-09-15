@@ -1,27 +1,23 @@
-from moto.core.exceptions import RESTError, ServiceException
+from moto.core.exceptions import ServiceException
 
 
 class SQSException(ServiceException):
     pass
 
 
-class ReceiptHandleIsInvalid(RESTError):
-    code = 400
-
+class ReceiptHandleIsInvalid(SQSException):
     def __init__(self) -> None:
         super().__init__(
             "ReceiptHandleIsInvalid", "The input receipt handle is invalid."
         )
 
 
-class MessageAttributesInvalid(RESTError):
-    code = 400
-
+class MessageAttributesInvalid(SQSException):
     def __init__(self, description: str):
         super().__init__("MessageAttributesInvalid", description)
 
 
-class QueueDoesNotExist(ServiceException):
+class QueueDoesNotExist(SQSException):
     def __init__(self) -> None:
         super().__init__(
             "AWS.SimpleQueueService.NonExistentQueue",
@@ -29,16 +25,12 @@ class QueueDoesNotExist(ServiceException):
         )
 
 
-class QueueAlreadyExists(RESTError):
-    code = 400
-
+class QueueAlreadyExists(SQSException):
     def __init__(self, message: str):
         super().__init__("QueueAlreadyExists", message)
 
 
-class EmptyBatchRequest(RESTError):
-    code = 400
-
+class EmptyBatchRequest(SQSException):
     def __init__(self, action: str = "Send") -> None:
         super().__init__(
             "AWS.SimpleQueueService.EmptyBatchRequest",
@@ -46,9 +38,7 @@ class EmptyBatchRequest(RESTError):
         )
 
 
-class InvalidBatchEntryId(RESTError):
-    code = 400
-
+class InvalidBatchEntryId(SQSException):
     def __init__(self) -> None:
         super().__init__(
             "InvalidBatchEntryId",
@@ -57,9 +47,7 @@ class InvalidBatchEntryId(RESTError):
         )
 
 
-class BatchRequestTooLong(RESTError):
-    code = 400
-
+class BatchRequestTooLong(SQSException):
     def __init__(self, length: int):
         # local import to avoid circular dependencies
         from .models import MAXIMUM_MESSAGE_LENGTH
@@ -71,16 +59,12 @@ class BatchRequestTooLong(RESTError):
         )
 
 
-class BatchEntryIdsNotDistinct(RESTError):
-    code = 400
-
+class BatchEntryIdsNotDistinct(SQSException):
     def __init__(self, entry_id: str):
         super().__init__("BatchEntryIdsNotDistinct", f"Id {entry_id} repeated.")
 
 
-class TooManyEntriesInBatchRequest(RESTError):
-    code = 400
-
+class TooManyEntriesInBatchRequest(SQSException):
     def __init__(self, number: int):
         super().__init__(
             "TooManyEntriesInBatchRequest",
@@ -88,16 +72,12 @@ class TooManyEntriesInBatchRequest(RESTError):
         )
 
 
-class InvalidAttributeName(RESTError):
-    code = 400
-
+class InvalidAttributeName(SQSException):
     def __init__(self, attribute_name: str):
         super().__init__("InvalidAttributeName", f"Unknown Attribute {attribute_name}.")
 
 
-class InvalidAttributeValue(RESTError):
-    code = 400
-
+class InvalidAttributeValue(SQSException):
     def __init__(self, attribute_name: str):
         super().__init__(
             "InvalidAttributeValue",
@@ -105,25 +85,19 @@ class InvalidAttributeValue(RESTError):
         )
 
 
-class InvalidParameterValue(RESTError):
-    code = 400
-
+class InvalidParameterValue(SQSException):
     def __init__(self, message: str):
         super().__init__("InvalidParameterValue", message)
 
 
-class MissingParameter(RESTError):
-    code = 400
-
+class MissingParameter(SQSException):
     def __init__(self, parameter: str):
         super().__init__(
             "MissingParameter", f"The request must contain the parameter {parameter}."
         )
 
 
-class OverLimit(RESTError):
-    code = 403
-
+class OverLimit(SQSException):
     def __init__(self, count: int):
         super().__init__(
             "OverLimit", f"{count} Actions were found, maximum allowed is 7."
