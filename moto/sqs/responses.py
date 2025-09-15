@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.exceptions import JsonRESTError
-from moto.core.responses import BaseResponse
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import (
     camelcase_to_pascal,
     camelcase_to_underscores,
@@ -264,7 +264,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
         return template.render(attributes=attributes)
 
-    def set_queue_attributes(self) -> str:
+    def set_queue_attributes(self) -> ActionResult:
         # TODO validate self.get_param('QueueUrl')
         attribute = self.attribute
 
@@ -278,21 +278,15 @@ class SQSResponse(BaseResponse):
         queue_name = self._get_queue_name()
         self.sqs_backend.set_queue_attributes(queue_name, attribute)
 
-        return self._empty_response(SET_QUEUE_ATTRIBUTE_RESPONSE)
+        return EmptyResult()
 
-    def _empty_response(self, xml_response: str) -> str:
-        # 'Empty' XML response always needs some fields
-        if self.is_json():
-            return "{}"
-        return xml_response
-
-    def delete_queue(self) -> str:
+    def delete_queue(self) -> ActionResult:
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
 
         self.sqs_backend.delete_queue(queue_name)
 
-        return self._empty_response(DELETE_QUEUE_RESPONSE)
+        return EmptyResult()
 
     def send_message(self) -> Union[str, TYPE_RESPONSE]:
         message = self._get_param("MessageBody")
@@ -486,10 +480,10 @@ class SQSResponse(BaseResponse):
         template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
         return template.render(success=success, errors=errors)
 
-    def purge_queue(self) -> str:
+    def purge_queue(self) -> ActionResult:
         queue_name = self._get_queue_name()
         self.sqs_backend.purge_queue(queue_name)
-        return self._empty_response(PURGE_QUEUE_RESPONSE)
+        return EmptyResult()
 
     def receive_message(self) -> Union[str, TYPE_RESPONSE]:
         queue_name = self._get_queue_name()
@@ -669,7 +663,7 @@ class SQSResponse(BaseResponse):
         template = self.response_template(LIST_DEAD_LETTER_SOURCE_QUEUES_RESPONSE)
         return template.render(queues=queues, request_url=request_url)
 
-    def add_permission(self) -> str:
+    def add_permission(self) -> ActionResult:
         queue_name = self._get_queue_name()
         actions = (
             self._get_param("Actions")
@@ -691,15 +685,15 @@ class SQSResponse(BaseResponse):
             label=label,
         )
 
-        return self._empty_response(ADD_PERMISSION_RESPONSE)
+        return EmptyResult()
 
-    def remove_permission(self) -> str:
+    def remove_permission(self) -> ActionResult:
         queue_name = self._get_queue_name()
         label = self._get_param("Label")
 
         self.sqs_backend.remove_permission(queue_name, label)
 
-        return self._empty_response(REMOVE_PERMISSION_RESPONSE)
+        return EmptyResult()
 
     def tag_queue(self) -> str:
         queue_name = self._get_queue_name()
