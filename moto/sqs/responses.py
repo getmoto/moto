@@ -15,6 +15,7 @@ from moto.core.utils import (
 from moto.utilities.aws_headers import amz_crc32
 from moto.utilities.constants import JSON_TYPES
 
+from ..core.parsers import XFormedDict
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
     MAXIMUM_MESSAGE_LENGTH,
@@ -29,7 +30,6 @@ from .exceptions import (
 from .models import SQSBackend, sqs_backends
 from .utils import (
     extract_input_message_attributes,
-    parse_message_attributes,
     validate_message_attributes,
 )
 
@@ -58,6 +58,7 @@ class SQSResponse(BaseResponse):
 
     def __init__(self) -> None:
         super().__init__(service_name="sqs")
+        self.automated_parameter_parsing = True
 
     def is_json(self) -> bool:
         """
@@ -78,6 +79,8 @@ class SQSResponse(BaseResponse):
 
     @property
     def attribute(self) -> Any:  # type: ignore[misc]
+        return self._get_attrs("Attributes")
+        # Original code
         try:
             assert self.is_json()
             return json.loads(self.body).get("Attributes", {})
@@ -90,6 +93,11 @@ class SQSResponse(BaseResponse):
 
     @property
     def tags(self) -> Dict[str, str]:
+        tags = self._get_param("Tags", XFormedDict())
+        tags = tags.original_dict()
+        self._tags = tags
+        return self._tags
+        # Original property code
         if not hasattr(self, "_tags"):
             if self.is_json():
                 self._tags = self._get_param("tags")
@@ -97,7 +105,7 @@ class SQSResponse(BaseResponse):
                 self._tags = self._get_map_prefix(
                     "Tag", key_end=".Key", value_end=".Value"
                 )
-        return self._tags
+        return self._tags.original_items()
 
     def _get_queue_name(self) -> str:
         try:
@@ -327,19 +335,11 @@ class SQSResponse(BaseResponse):
                 message="One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
             )
 
-        if self.is_json():
-            message_attributes = self._get_param("MessageAttributes")
-            self.normalize_json_msg_attributes(message_attributes)
-        else:
-            message_attributes = parse_message_attributes(self.querystring)
+        message_attributes = self._get_attrs("MessageAttributes")
+        self.normalize_json_msg_attributes(message_attributes)
 
-        if self.is_json():
-            system_message_attributes = self._get_param("MessageSystemAttributes")
-            self.normalize_json_msg_attributes(system_message_attributes)
-        else:
-            system_message_attributes = parse_message_attributes(
-                self.querystring, key="MessageSystemAttribute"
-            )
+        system_message_attributes = self._get_param("MessageSystemAttributes")
+        self.normalize_json_msg_attributes(system_message_attributes)
 
         queue_name = self._get_queue_name()
 
@@ -367,6 +367,11 @@ class SQSResponse(BaseResponse):
 
         template = self.response_template(SEND_MESSAGE_RESPONSE)
         return template.render(message=message, message_attributes=message_attributes)
+
+    def _get_attrs(self, param_name: str) -> Dict[str, Any]:
+        attrs = self._get_param(param_name, XFormedDict())
+        attrs = attrs.original_dict()
+        return attrs
 
     def normalize_json_msg_attributes(self, message_attributes: Dict[str, Any]) -> None:
         for key, value in (message_attributes or {}).items():
@@ -486,10 +491,8 @@ class SQSResponse(BaseResponse):
         """
         queue_name = self._get_queue_name()
 
-        if self.is_json():
-            receipts = self._get_param("Entries")
-        else:
-            receipts = self._get_multi_param("DeleteMessageBatchRequestEntry")
+        receipts = self._get_param("Entries", [])
+        receipts = [receipt.original_dict() for receipt in receipts]
 
         if not receipts:
             raise EmptyBatchRequest(action="Delete")
