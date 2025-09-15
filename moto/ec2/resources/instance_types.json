@@ -41004,7 +41004,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 18.75,
+     "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -41153,7 +41153,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 28.125,
+     "BaselineBandwidthInGbps": 45.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -41436,7 +41436,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 56.25,
+     "BaselineBandwidthInGbps": 90.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -41719,7 +41719,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 12.5,
+     "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
@@ -41963,7 +41963,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 28.125,
+     "BaselineBandwidthInGbps": 45.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -42067,7 +42067,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 56.25,
+     "BaselineBandwidthInGbps": 90.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -42842,7 +42842,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -43699,7 +43699,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 14.063,
+     "BaselineBandwidthInGbps": 22.5,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
@@ -43859,7 +43859,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 18.75,
+     "BaselineBandwidthInGbps": 30.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -44035,7 +44035,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 28.125,
+     "BaselineBandwidthInGbps": 45.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -44366,7 +44366,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 56.25,
+     "BaselineBandwidthInGbps": 90.0,
      "DefaultEnaQueueCountPerInterface": 16,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -44701,7 +44701,7 @@
    "MaximumNetworkInterfaces": 8,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 12.5,
+     "BaselineBandwidthInGbps": 15.0,
      "DefaultEnaQueueCountPerInterface": 8,
      "MaximumNetworkInterfaces": 8,
      "NetworkCardIndex": 0,
@@ -44958,7 +44958,7 @@
    "MaximumNetworkInterfaces": 15,
    "NetworkCards": [
     {
-     "BaselineBandwidthInGbps": 28.125,
+     "BaselineBandwidthInGbps": 45.0,
      "DefaultEnaQueueCountPerInterface": 32,
      "MaximumNetworkInterfaces": 15,
      "NetworkCardIndex": 0,
@@ -61262,7 +61262,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -61616,7 +61616,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -61755,7 +61755,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -61863,7 +61863,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -62080,7 +62080,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": true,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -62173,7 +62173,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -77465,6 +77465,204 @@
    ]
   }
  },
+ "mac-m4.metal": {
+  "AutoRecoverySupported": false,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "shared",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 8000,
+    "BaselineIops": 55000,
+    "BaselineThroughputInMBps": 1000.0,
+    "MaximumBandwidthInMbps": 8000,
+    "MaximumIops": 55000,
+    "MaximumThroughputInMBps": 1000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 31,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 1900,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 1900
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "mac-m4.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 24576
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 10.0,
+     "DefaultEnaQueueCountPerInterface": 8,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "10 Gigabit",
+     "PeakBandwidthInGbps": 10.0
+    }
+   ],
+   "NetworkPerformance": "10 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "supported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Apple",
+   "SupportedArchitectures": [
+    "arm64_mac"
+   ],
+   "SustainedClockSpeedInGhz": 3.5
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 10,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 10
+  }
+ },
+ "mac-m4pro.metal": {
+  "AutoRecoverySupported": false,
+  "BareMetal": true,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": true,
+  "EbsInfo": {
+   "AttachmentLimitType": "shared",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 8000,
+    "BaselineIops": 55000,
+    "BaselineThroughputInMBps": 1000.0,
+    "MaximumBandwidthInMbps": 8000,
+    "MaximumIops": 55000,
+    "MaximumThroughputInMBps": 1000.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 31,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "HibernationSupported": false,
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 1,
+     "SizeInGB": 1900,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 1900
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "mac-m4pro.metal",
+  "MemoryInfo": {
+   "SizeInMiB": 49152
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaSupported": false,
+   "EnaSrdSupported": false,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 30,
+   "Ipv6AddressesPerInterface": 30,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 1,
+   "MaximumNetworkInterfaces": 8,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 10.0,
+     "DefaultEnaQueueCountPerInterface": 8,
+     "MaximumNetworkInterfaces": 8,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "10 Gigabit",
+     "PeakBandwidthInGbps": 10.0
+    }
+   ],
+   "NetworkPerformance": "10 Gigabit"
+  },
+  "NitroEnclavesSupport": "unsupported",
+  "NitroTpmSupport": "unsupported",
+  "PhcSupport": "supported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Apple",
+   "SupportedArchitectures": [
+    "arm64_mac"
+   ],
+   "SustainedClockSpeedInGhz": 3.5
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "on-demand"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 14,
+   "DefaultThreadsPerCore": 1,
+   "DefaultVCpus": 14
+  }
+ },
  "mac1.metal": {
   "AutoRecoverySupported": false,
   "BareMetal": true,
@@ -91691,7 +91889,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -91807,7 +92005,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -91927,7 +92125,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -92055,7 +92253,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -92161,7 +92359,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -92300,7 +92498,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -92408,7 +92606,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -92520,7 +92718,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -92625,7 +92823,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": true,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
@@ -92718,7 +92916,7 @@
   "AutoRecoverySupported": true,
   "BareMetal": false,
   "BurstablePerformanceSupported": false,
-  "CurrentGeneration": true,
+  "CurrentGeneration": false,
   "DedicatedHostsSupported": true,
   "EbsInfo": {
    "AttachmentLimitType": "shared",
