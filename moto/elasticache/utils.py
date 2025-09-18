@@ -28,3 +28,18 @@ class AuthenticationTypes(str, Enum):
     NOPASSWORD = "no-password-required"
     PASSWORD = "password"
     IAM = "iam"
+
+def _normalize_tags(tags):
+    # Created to handle XFormedDict tags
+    if not tags:
+        return []
+
+    normalized = []
+    for t in tags:
+        if "Key" in t and "Value" in t:
+            normalized.append({"Key": t["Key"], "Value": t["Value"]})
+        elif "key" in t and "value" in t:
+            normalized.append({"Key": t["key"], "Value": t["value"]})
+        else:
+            raise ValueError(f"Unrecognized tag format: {t}")
+    return normalized

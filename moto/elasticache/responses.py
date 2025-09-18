@@ -184,7 +184,7 @@ class ElastiCacheResponse(BaseResponse):
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("ResourceName")
-        tags = self.elasticache_backend.list_tags_for_resource(arn)
+        tags = self.elasticache_backend.list_tags_for_resource(arn)["Tags"]
         return ActionResult({"TagList": tags})
 
     def create_cache_subnet_group(self) -> ActionResult:
