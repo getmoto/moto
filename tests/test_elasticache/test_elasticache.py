@@ -1488,3 +1488,172 @@ def test_create_cache_cluster_without_auth_token():
     resp = client.describe_cache_clusters(CacheClusterId=cluster_id)
     cluster = resp["CacheClusters"][0]
     assert cluster["AuthTokenEnabled"] is False
+
+
+@mock_aws
+def test_create_snapshot():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-to-snapshot"
+    snapshot_id = "my-snapshot"
+
+    client.create_cache_cluster(
+        CacheClusterId=cluster_id,
+        Engine="redis",
+        NumCacheNodes=1,
+    )
+
+    resp = client.create_snapshot(
+        CacheClusterId=cluster_id,
+        SnapshotName=snapshot_id,
+    )
+    snapshot = resp["Snapshot"]
+    assert snapshot["SnapshotName"] == snapshot_id
+    assert snapshot["CacheClusterId"] == cluster_id
+    assert snapshot["Engine"] == "redis"
+    assert "CacheClusterCreateTime" in snapshot
+    assert "ARN" in snapshot
+    assert (
+        snapshot["ARN"]
+        == f"arn:aws:elasticache:us-east-1:{ACCOUNT_ID}:snapshot:{snapshot_id}"
+    )
+
+
+@mock_aws
+def test_create_snapshot_already_exists():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-to-snapshot"
+    snapshot_id = "my-snapshot"
+
+    client.create_cache_cluster(
+        CacheClusterId=cluster_id,
+        Engine="redis",
+        NumCacheNodes=1,
+    )
+
+    client.create_snapshot(
+        CacheClusterId=cluster_id,
+        SnapshotName=snapshot_id,
+    )
+
+    with pytest.raises(ClientError) as exc:
+        client.create_snapshot(
+            CacheClusterId=cluster_id,
+            SnapshotName=snapshot_id,
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SnapshotAlreadyExistsFault"
+    assert err["Message"] == f"Snapshot {snapshot_id} already exists."
+
+
+@mock_aws
+def test_create_snapshot_cluster_not_found():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-to-snapshot"
+    snapshot_id = "my-snapshot"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_snapshot(
+            CacheClusterId=cluster_id,
+            SnapshotName=snapshot_id,
+        )
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "CacheClusterNotFound"
+    assert err["Message"] == f"Cache cluster {cluster_id} not found."
+
+
+@mock_aws
+def test_create_snapshot_replication_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    group_id = "replication-group-to-snapshot"
+    snapshot_id = "my-snapshot"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_snapshot(
+            ReplicationGroupId=group_id,
+            SnapshotName=snapshot_id,
+        )
+    err = exc.value.response["Error"]
+
+    assert err["Code"] == "ReplicationGroupNotFoundFault"
+    assert err["Message"] == f"Replication group {group_id} not found."
+
+
+@mock_aws
+def test_create_snapshot_invalid_param_combination():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    snapshot_id = "my-snapshot"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_snapshot(
+            CacheClusterId="some-cluster-id",
+            ReplicationGroupId="some-replication-group-id",
+            SnapshotName=snapshot_id,
+            KmsKeyId="some-kms-key-id",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+
+
+@mock_aws
+def test_describe_snapshots():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-to-snapshot"
+    snapshot_id = "my-snapshot"
+
+    client.create_cache_cluster(
+        CacheClusterId=cluster_id,
+        Engine="redis",
+        NumCacheNodes=1,
+    )
+
+    client.create_snapshot(
+        CacheClusterId=cluster_id,
+        SnapshotName=snapshot_id,
+    )
+
+    resp = client.describe_snapshots(SnapshotName=snapshot_id)
+    assert len(resp["Snapshots"]) == 1
+    snapshot = resp["Snapshots"][0]
+    assert snapshot["SnapshotName"] == snapshot_id
+    assert snapshot["CacheClusterId"] == cluster_id
+
+
+@mock_aws
+def test_describe_snapshots_not_found():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    snapshot_id = "my-snapshot"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_snapshots(SnapshotName=snapshot_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SnapshotNotFoundFault"
+    assert err["Message"] == f"Snapshot {snapshot_id} not found."
+
+
+@mock_aws
+def test_delete_snapshot():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-to-snapshot"
+    snapshot_id = "my-snapshot"
+
+    client.create_cache_cluster(
+        CacheClusterId=cluster_id,
+        Engine="redis",
+        NumCacheNodes=1,
+    )
+
+    client.create_snapshot(
+        CacheClusterId=cluster_id,
+        SnapshotName=snapshot_id,
+    )
+
+    resp = client.delete_snapshot(SnapshotName=snapshot_id)
+    snapshot = resp["Snapshot"]
+    assert snapshot["SnapshotName"] == snapshot_id
+    assert snapshot["CacheClusterId"] == cluster_id
+    assert snapshot["SnapshotStatus"] == "deleting"
+
+    snapshots = client.describe_snapshots()
+    assert len(snapshots["Snapshots"]) == 0

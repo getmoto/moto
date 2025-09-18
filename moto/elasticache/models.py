@@ -22,6 +22,8 @@ from .exceptions import (
     InvalidSubnet,
     ReplicationGroupAlreadyExists,
     ReplicationGroupNotFound,
+    SnapshotAlreadyExists,
+    SnapshotNotFound,
     UserAlreadyExists,
     UserNotFound,
 )
@@ -595,6 +597,76 @@ class ReplicationGroup(BaseModel):
             member_clusters.append(replica_node["cache_cluster_id"])
 
 
+class Snapshot(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        automatic_failover: Optional[bool],
+        auto_minor_version_upgrade: Optional[bool],
+        cache_cluster_create_time: Optional[str],
+        cache_cluster_id: Optional[str],
+        cache_node_type: Optional[str],
+        cache_parameter_group_name: Optional[str],
+        cache_subnet_group_name: Optional[str],
+        engine: Optional[str],
+        engine_version: Optional[str],
+        kms_key_id: Optional[str],
+        num_cache_nodes: Optional[int],
+        num_node_groups: Optional[int],
+        port: Optional[int],
+        preferred_availability_zone: Optional[str],
+        preferred_maintenance_window: Optional[str],
+        preferred_outpost_arn: Optional[str],
+        replication_group_description: Optional[str],
+        replication_group_id: Optional[str],
+        snapshot_name: Optional[str],
+        snapshot_retention_limit: Optional[int],
+        snapshot_source: Optional[str],
+        snapshot_status: Optional[str],
+        snapshot_window: Optional[str],
+        topic_arn: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
+    ):
+        self.arn = f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:snapshot:{snapshot_name}"
+        self.automatic_failover = automatic_failover
+        self.auto_minor_version_upgrade = auto_minor_version_upgrade
+        self.cache_cluster_create_time = cache_cluster_create_time
+        self.cache_cluster_id = cache_cluster_id
+        self.cache_node_type = cache_node_type
+        self.cache_parameter_group_name = cache_parameter_group_name
+        self.cache_subnet_group_name = cache_subnet_group_name
+        self.engine = engine
+        self.engine_version = engine_version
+        self.kms_key_id = kms_key_id
+        self.num_cache_nodes = num_cache_nodes
+        self.num_node_groups = num_node_groups
+        self.port = port
+        self.preferred_availability_zone = preferred_availability_zone
+        self.preferred_maintenance_window = preferred_maintenance_window
+        self.preferred_outpost_arn = preferred_outpost_arn
+        self.replication_group_description = replication_group_description
+        self.replication_group_id = replication_group_id
+        self.snapshot_name = snapshot_name
+        self.snapshot_retention_limit = snapshot_retention_limit
+        self.snapshot_source = snapshot_source or "manual"
+        self.snapshot_status = snapshot_status
+        self.snapshot_window = snapshot_window
+        self.topic_arn = topic_arn
+        self.vpc_id = self._get_vpc_id_from_subnet_group(
+            cache_subnet_group_name, self.cache_subnet_group_name
+        )
+
+        self.tags = tags or []
+
+    def _get_vpc_id_from_subnet_group(
+        self, subnet_group_name: str, cache_subnet_groups: Dict
+    ) -> Optional[str]:
+        if subnet_group_name and subnet_group_name in cache_subnet_groups:
+            return cache_subnet_groups[subnet_group_name].vpc_id
+        return None
+
+
 class ElastiCacheBackend(BaseBackend):
     """Implementation of ElastiCache APIs."""
 
@@ -617,6 +689,32 @@ class ElastiCacheBackend(BaseBackend):
         self.cache_clusters: Dict[str, Any] = dict()
         self.cache_subnet_groups: Dict[str, CacheSubnetGroup] = dict()
         self.replication_groups: Dict[str, ReplicationGroup] = dict()
+        self.snapshots: Dict[str, Snapshot] = dict()
+
+    def _get_snapshots_by_param(
+        self,
+        ref_id: Optional[str] = None,
+        source: Optional[str] = None,
+    ) -> List[Snapshot]:
+        source_map = {
+            "system": "automated",
+            "user": "manual",
+        }
+
+        snapshots = list(self.snapshots.values())
+
+        if ref_id:
+            snapshots = [
+                s
+                for s in snapshots
+                if s.cache_cluster_id == ref_id or s.replication_group_id == ref_id
+            ]
+
+        if source:
+            actual_source = source_map.get(source.lower(), source.lower())
+            snapshots = [s for s in snapshots if s.snapshot_source == actual_source]
+
+        return snapshots
 
     def create_user(
         self,
@@ -972,6 +1070,120 @@ class ElastiCacheBackend(BaseBackend):
                 replication_group.primary_cluster_id = ""
             return replication_group
         raise ReplicationGroupNotFound(replication_group_id)
+
+    def create_snapshot(
+        self,
+        snapshot_name: str,
+        replication_group_id: Optional[str],
+        cache_cluster_id: Optional[str],
+        kms_key_id: Optional[str],
+        tags: Optional[List[Dict[str, str]]],
+    ) -> Snapshot:
+        resource = None
+        num_node_groups = None
+
+        if snapshot_name in self.snapshots:
+            raise SnapshotAlreadyExists(snapshot_name)
+        if replication_group_id and cache_cluster_id:
+            raise InvalidParameterCombinationException(
+                "Only one of CacheClusterId or ReplicationGroupId can be provided."
+            )
+        if replication_group_id:
+            if replication_group_id not in self.replication_groups:
+                raise ReplicationGroupNotFound(replication_group_id)
+            resource = self.replication_groups[replication_group_id]
+            num_node_groups = len(resource.node_groups)
+        elif cache_cluster_id:
+            if cache_cluster_id not in self.cache_clusters:
+                raise CacheClusterNotFound(cache_cluster_id)
+            resource = self.cache_clusters[cache_cluster_id]
+        else:
+            raise InvalidParameterValueException(
+                "One of CacheClusterId or ReplicationGroupId must be provided."
+            )
+
+        snapshot = Snapshot(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            automatic_failover=getattr(resource, "automatic_failover", None),
+            auto_minor_version_upgrade=resource.auto_minor_version_upgrade,
+            cache_cluster_create_time=getattr(
+                resource, "cache_cluster_create_time", None
+            ),
+            cache_cluster_id=getattr(resource, "cache_cluster_id", None),
+            cache_node_type=resource.cache_node_type,
+            cache_parameter_group_name=resource.cache_parameter_group_name,
+            cache_subnet_group_name=resource.cache_subnet_group_name,
+            engine=resource.engine,
+            engine_version=resource.engine_version,
+            kms_key_id=kms_key_id,
+            num_cache_nodes=getattr(resource, "num_cache_nodes", None),
+            num_node_groups=num_node_groups,
+            port=resource.port,
+            preferred_availability_zone=getattr(
+                resource, "preferred_availability_zone", None
+            ),
+            preferred_maintenance_window=resource.preferred_maintenance_window,
+            preferred_outpost_arn=getattr(resource, "preferred_outpost_arn", None),
+            replication_group_description=getattr(resource, "description", None),
+            replication_group_id=getattr(resource, "replication_group_id", None),
+            snapshot_name=snapshot_name,
+            snapshot_retention_limit=getattr(
+                resource, "snapshot_retention_limit", None
+            ),
+            snapshot_status="available",
+            snapshot_source="manual",
+            snapshot_window=resource.snapshot_window,
+            topic_arn=resource.notification_topic_arn,
+            tags=tags or [],
+        )
+
+        self.snapshots[snapshot_name] = snapshot
+        return snapshot
+
+    def describe_snapshots(
+        self,
+        replication_group_id: Optional[str] = None,
+        cache_cluster_id: Optional[str] = None,
+        snapshot_name: Optional[str] = None,
+        snapshot_source: Optional[str] = None,
+        marker: Optional[str] = None,
+        max_records: Optional[int] = None,
+        show_node_group_config: Optional[bool] = None,
+    ) -> List[Snapshot]:
+        if snapshot_name:
+            try:
+                return [self.snapshots[snapshot_name]]
+            except KeyError:
+                raise SnapshotNotFound(snapshot_name)
+
+        if replication_group_id and cache_cluster_id:
+            raise InvalidParameterCombinationException(
+                "Only one of CacheClusterId or ReplicationGroupId can be provided."
+            )
+
+        if replication_group_id and replication_group_id not in self.replication_groups:
+            raise ReplicationGroupNotFound(replication_group_id)
+
+        if cache_cluster_id and cache_cluster_id not in self.cache_clusters:
+            raise CacheClusterNotFound(cache_cluster_id)
+
+        ref_id = replication_group_id or cache_cluster_id
+
+        if snapshot_source or ref_id:
+            return self._get_snapshots_by_param(ref_id=ref_id, source=snapshot_source)
+
+        return list(self.snapshots.values())
+
+    def delete_snapshot(self, snapshot_name: str) -> Snapshot:
+        if snapshot_name in self.snapshots:
+            snapshot = self.snapshots[snapshot_name]
+            snapshot.snapshot_status = "deleting"
+
+            self.snapshots.pop(snapshot_name)
+
+            return snapshot
+        raise SnapshotNotFound(snapshot_name)
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

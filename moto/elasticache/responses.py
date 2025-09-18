@@ -321,3 +321,48 @@ class ElastiCacheResponse(BaseResponse):
             retain_primary_cluster=retain_primary_cluster,
         )
         return ActionResult({"ReplicationGroup": replication_group})
+
+    def create_snapshot(self) -> ActionResult:
+        snapshot_name = self._get_param("SnapshotName")
+        replication_group_id = self._get_param("ReplicationGroupId")
+        cache_cluster_id = self._get_param("CacheClusterId")
+        kms_key_id = self._get_param("KmsKeyId")
+        tags = self._get_param("Tags", [])
+
+        snapshot = self.elasticache_backend.create_snapshot(
+            snapshot_name=snapshot_name,
+            replication_group_id=replication_group_id,
+            cache_cluster_id=cache_cluster_id,
+            kms_key_id=kms_key_id,
+            tags=tags,
+        )
+
+        return ActionResult({"Snapshot": snapshot})
+
+    def describe_snapshots(self) -> ActionResult:
+        snapshot_name = self._get_param("SnapshotName")
+        snapshot_source = self._get_param("SnapshotSource")
+        replication_group_id = self._get_param("ReplicationGroupId")
+        cache_cluster_id = self._get_param("CacheClusterId")
+        max_records = self._get_param("MaxRecords")
+        marker = self._get_param("Marker")
+
+        snapshots = self.elasticache_backend.describe_snapshots(
+            snapshot_name=snapshot_name,
+            snapshot_source=snapshot_source,
+            replication_group_id=replication_group_id,
+            cache_cluster_id=cache_cluster_id,
+            max_records=max_records,
+            marker=marker,
+        )
+
+        return ActionResult({"Snapshots": snapshots, "Marker": marker})
+
+    def delete_snapshot(self) -> ActionResult:
+        snapshot_name = self._get_param("SnapshotName")
+
+        snapshot = self.elasticache_backend.delete_snapshot(
+            snapshot_name=snapshot_name,
+        )
+
+        return ActionResult({"Snapshot": snapshot})
