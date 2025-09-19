@@ -1519,6 +1519,44 @@ def test_create_snapshot():
 
 
 @mock_aws
+def test_create_snapshot_with_vpc():
+    # Testing the _get_vpc_id_from_cluster helper
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    # Create a subnet group with two subnets
+    ec2_client = boto3.client("ec2", region_name="us-east-2")
+    vpc = ec2_client.create_vpc(CidrBlock="10.0.0.0/16").get("Vpc")
+    vpc_id = vpc.get("VpcId")
+    subnet_1 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24").get(
+        "Subnet"
+    )
+    subnet_2 = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24").get(
+        "Subnet"
+    )
+
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName="test-subnet-group",
+        CacheSubnetGroupDescription="Test subnet group",
+        SubnetIds=[subnet_1.get("SubnetId"), subnet_2.get("SubnetId")],
+    )
+
+    client.create_cache_cluster(
+        CacheClusterId="test-cluster",
+        Engine="redis",
+        NumCacheNodes=1,
+        CacheSubnetGroupName="test-subnet-group",
+    )
+
+    snapshot = client.create_snapshot(
+        CacheClusterId="test-cluster",
+        SnapshotName="test-snapshot",
+    )
+
+    assert snapshot["Snapshot"]["CacheSubnetGroupName"] == "test-subnet-group"
+    assert snapshot["Snapshot"]["VpcId"] == vpc_id
+
+
+@mock_aws
 def test_create_snapshot_already_exists():
     client = boto3.client("elasticache", region_name="us-east-1")
     cluster_id = "cluster-to-snapshot"
