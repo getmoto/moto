@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Dict, List
 
 PAGINATION_MODEL = {
     "describe_cache_clusters": {
@@ -30,7 +31,7 @@ class AuthenticationTypes(str, Enum):
     IAM = "iam"
 
 
-def _normalize_tags(tags):
+def _normalize_tags(tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
     # Created to handle XFormedDict tags
     if not tags:
         return []

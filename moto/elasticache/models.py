@@ -2,7 +2,7 @@ import copy
 import random
 import string
 from re import compile as re_compile
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -61,7 +61,7 @@ class User(BaseModel):
         self.tags = tags or []
 
     @property
-    def authentication(self) -> dict[str, Any]:
+    def authentication(self) -> Dict[str, Union[str, int, None]]:
         return {
             "Type": "no-password"
             if self.no_password_required
@@ -628,6 +628,7 @@ class Snapshot(BaseModel):
         snapshot_window: Optional[str],
         topic_arn: Optional[str],
         tags: Optional[List[Dict[str, str]]],
+        vpc_id: Optional[str] = None,
     ):
         self.arn = f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:snapshot:{snapshot_name}"
         self.automatic_failover = automatic_failover
@@ -654,18 +655,8 @@ class Snapshot(BaseModel):
         self.snapshot_status = snapshot_status
         self.snapshot_window = snapshot_window
         self.topic_arn = topic_arn
-        self.vpc_id = self._get_vpc_id_from_subnet_group(
-            cache_subnet_group_name, self.cache_subnet_group_name
-        )
-
         self.tags = tags or []
-
-    def _get_vpc_id_from_subnet_group(
-        self, subnet_group_name: str, cache_subnet_groups: Dict
-    ) -> Optional[str]:
-        if subnet_group_name and subnet_group_name in cache_subnet_groups:
-            return cache_subnet_groups[subnet_group_name].vpc_id
-        return None
+        self.vpc_id = vpc_id
 
     def get_tags(self) -> List[Dict[str, str]]:
         return _normalize_tags(self.tags)
@@ -720,6 +711,14 @@ class ElastiCacheBackend(BaseBackend):
             snapshots = [s for s in snapshots if s.snapshot_source == actual_source]
 
         return snapshots
+
+    def _get_vpc_id_from_cluster(self, cache_cluster_id: str) -> Optional[str]:
+        if cache_cluster_id and cache_cluster_id in self.cache_clusters:
+            cache_cluster = self.cache_clusters[cache_cluster_id]
+            subnet_group_name = cache_cluster.cache_subnet_group_name
+            if subnet_group_name and subnet_group_name in self.cache_subnet_groups:
+                return self.cache_subnet_groups[subnet_group_name].vpc_id
+        return None
 
     def create_user(
         self,
@@ -1092,6 +1091,7 @@ class ElastiCacheBackend(BaseBackend):
     ) -> Snapshot:
         resource = None
         num_node_groups = None
+        vpc_id = None
 
         if snapshot_name in self.snapshots:
             raise SnapshotAlreadyExists(snapshot_name)
@@ -1108,6 +1108,7 @@ class ElastiCacheBackend(BaseBackend):
             if cache_cluster_id not in self.cache_clusters:
                 raise CacheClusterNotFound(cache_cluster_id)
             resource = self.cache_clusters[cache_cluster_id]
+            vpc_id = self._get_vpc_id_from_cluster(cache_cluster_id)
         else:
             raise InvalidParameterValueException(
                 "One of CacheClusterId or ReplicationGroupId must be provided."
@@ -1117,24 +1118,30 @@ class ElastiCacheBackend(BaseBackend):
             account_id=self.account_id,
             region_name=self.region_name,
             automatic_failover=getattr(resource, "automatic_failover", None),
-            auto_minor_version_upgrade=resource.auto_minor_version_upgrade,
+            auto_minor_version_upgrade=getattr(
+                resource, "auto_minor_version_upgrade", None
+            ),
             cache_cluster_create_time=getattr(
                 resource, "cache_cluster_create_time", None
             ),
             cache_cluster_id=getattr(resource, "cache_cluster_id", None),
-            cache_node_type=resource.cache_node_type,
-            cache_parameter_group_name=resource.cache_parameter_group_name,
-            cache_subnet_group_name=resource.cache_subnet_group_name,
-            engine=resource.engine,
-            engine_version=resource.engine_version,
+            cache_node_type=getattr(resource, "cache_node_type", None),
+            cache_parameter_group_name=getattr(
+                resource, "cache_parameter_group_name", None
+            ),
+            cache_subnet_group_name=getattr(resource, "cache_subnet_group_name", None),
+            engine=getattr(resource, "engine", None),
+            engine_version=getattr(resource, "engine_version", None),
             kms_key_id=kms_key_id,
             num_cache_nodes=getattr(resource, "num_cache_nodes", None),
             num_node_groups=num_node_groups,
-            port=resource.port,
+            port=getattr(resource, "port", None),
             preferred_availability_zone=getattr(
                 resource, "preferred_availability_zone", None
             ),
-            preferred_maintenance_window=resource.preferred_maintenance_window,
+            preferred_maintenance_window=getattr(
+                resource, "preferred_maintenance_window", None
+            ),
             preferred_outpost_arn=getattr(resource, "preferred_outpost_arn", None),
             replication_group_description=getattr(resource, "description", None),
             replication_group_id=getattr(resource, "replication_group_id", None),
@@ -1144,9 +1151,10 @@ class ElastiCacheBackend(BaseBackend):
             ),
             snapshot_status="available",
             snapshot_source="manual",
-            snapshot_window=resource.snapshot_window,
-            topic_arn=resource.notification_topic_arn,
+            snapshot_window=getattr(resource, "snapshot_window", None),
+            topic_arn=getattr(resource, "notification_topic_arn", None),
             tags=tags or [],
+            vpc_id=vpc_id,
         )
 
         if tags:
