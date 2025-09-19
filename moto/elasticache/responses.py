@@ -184,8 +184,20 @@ class ElastiCacheResponse(BaseResponse):
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("ResourceName")
-        tags = self.elasticache_backend.list_tags_for_resource(arn)["Tags"]
-        return ActionResult({"TagList": tags})
+        result = self.elasticache_backend.list_tags_for_resource(arn)
+        return ActionResult({"TagList": result["Tags"]})
+
+    def add_tags_to_resource(self) -> ActionResult:
+        arn = self._get_param("ResourceName")
+        tags = self._get_param("Tags", [])
+        self.elasticache_backend.add_tags_to_resource(arn, tags)
+        return ActionResult({})
+
+    def remove_tags_from_resource(self) -> ActionResult:
+        arn = self._get_param("ResourceName")
+        tags = self._get_param("TagKeys", [])
+        self.elasticache_backend.remove_tags_from_resource(arn, tags)
+        return ActionResult({})
 
     def create_cache_subnet_group(self) -> ActionResult:
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")

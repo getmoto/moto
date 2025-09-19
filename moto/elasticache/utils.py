@@ -29,6 +29,7 @@ class AuthenticationTypes(str, Enum):
     PASSWORD = "password"
     IAM = "iam"
 
+
 def _normalize_tags(tags):
     # Created to handle XFormedDict tags
     if not tags:

@@ -1657,3 +1657,173 @@ def test_delete_snapshot():
 
     snapshots = client.describe_snapshots()
     assert len(snapshots["Snapshots"]) == 0
+
+
+@mock_aws
+def test_list_tags_snapshot():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "cluster-to-snapshot"
+    snapshot_id = "my-snapshot"
+
+    client.create_cache_cluster(
+        CacheClusterId=cluster_id,
+        Engine="redis",
+        NumCacheNodes=1,
+    )
+
+    client.create_snapshot(
+        CacheClusterId=cluster_id,
+        SnapshotName=snapshot_id,
+    )
+
+    arn = f"arn:aws:elasticache:us-east-1:{ACCOUNT_ID}:snapshot:{snapshot_id}"
+
+    resp = client.list_tags_for_resource(ResourceName=arn)
+    assert len(resp["TagList"]) == 0
+
+    client.add_tags_to_resource(
+        ResourceName=arn,
+        Tags=[{"Key": "cluster-key", "Value": "cluster-tag"}],
+    )
+
+    resp = client.list_tags_for_resource(ResourceName=arn)
+    assert len(resp["TagList"]) == 1
+
+
+@mock_aws
+def test_add_tags_to_resource():
+    client = boto3.client("elasticache", region_name="us-east-1")
+
+    resource_map = {
+        "cluster": "cluster1",
+        "user": "user1",
+        "replicationgroup": "replication-group-id",
+        "subnetgroup": "subnet1",
+        "snapshot": "snapshot1",
+    }
+
+    client.create_cache_cluster(
+        CacheClusterId=resource_map["cluster"],
+        Engine="redis",
+        CacheNodeType="cache.t3.micro",
+    )["CacheCluster"]
+
+    client.create_user(
+        UserId=resource_map["user"],
+        UserName="user1",
+        Engine="Redis",
+        AccessString="on ~* allcommands allkeys",
+        NoPasswordRequired=True,
+    )
+
+    client.create_replication_group(
+        ReplicationGroupId=resource_map["replicationgroup"],
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+    )["ReplicationGroup"]
+
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName=resource_map["subnetgroup"],
+        CacheSubnetGroupDescription="desc",
+        SubnetIds=["subnet-12345678", "subnet-87654321"],
+    )["CacheSubnetGroup"]
+
+    client.create_snapshot(
+        CacheClusterId=resource_map["cluster"],
+        SnapshotName=resource_map["snapshot"],
+    )["Snapshot"]
+
+    for resource_type, resource_id in resource_map.items():
+        arn = (
+            f"arn:aws:elasticache:us-east-1:{ACCOUNT_ID}:{resource_type}:{resource_id}"
+        )
+
+        client.add_tags_to_resource(
+            ResourceName=arn,
+            Tags=[
+                {"Key": f"{resource_type}-key", "Value": f"{resource_id}-tag"},
+                {"Key": "common-key", "Value": "common-tag"},
+            ],
+        )
+
+        resp = client.list_tags_for_resource(ResourceName=arn)
+        assert len(resp["TagList"]) == 2
+        assert resp["TagList"][0]["Key"] == f"{resource_type}-key"
+        assert resp["TagList"][0]["Value"] == f"{resource_id}-tag"
+        assert resp["TagList"][1]["Key"] == "common-key"
+        assert resp["TagList"][1]["Value"] == "common-tag"
+
+
+@mock_aws
+def test_remove_tags_from_resource():
+    client = boto3.client("elasticache", region_name="us-east-1")
+
+    resource_map = {
+        "cluster": "cluster1",
+        "user": "user1",
+        "replicationgroup": "replication-group-id",
+        "subnetgroup": "subnet1",
+        "snapshot": "snapshot1",
+    }
+
+    client.create_cache_cluster(
+        CacheClusterId=resource_map["cluster"],
+        Engine="redis",
+        CacheNodeType="cache.t3.micro",
+    )["CacheCluster"]
+
+    client.create_user(
+        UserId=resource_map["user"],
+        UserName="user1",
+        Engine="Redis",
+        AccessString="on ~* allcommands allkeys",
+        NoPasswordRequired=True,
+    )
+
+    client.create_replication_group(
+        ReplicationGroupId=resource_map["replicationgroup"],
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+    )["ReplicationGroup"]
+
+    client.create_cache_subnet_group(
+        CacheSubnetGroupName=resource_map["subnetgroup"],
+        CacheSubnetGroupDescription="desc",
+        SubnetIds=["subnet-12345678", "subnet-87654321"],
+    )["CacheSubnetGroup"]
+
+    client.create_snapshot(
+        CacheClusterId=resource_map["cluster"],
+        SnapshotName=resource_map["snapshot"],
+    )["Snapshot"]
+
+    for resource_type, resource_id in resource_map.items():
+        arn = (
+            f"arn:aws:elasticache:us-east-1:{ACCOUNT_ID}:{resource_type}:{resource_id}"
+        )
+
+        # Add tags first
+        client.add_tags_to_resource(
+            ResourceName=arn,
+            Tags=[
+                {"Key": f"{resource_type}-key", "Value": f"{resource_id}-tag"},
+                {"Key": "common-key", "Value": "common-tag"},
+            ],
+        )
+
+        resp = client.list_tags_for_resource(ResourceName=arn)
+        assert len(resp["TagList"]) == 2
+
+        client.remove_tags_from_resource(
+            ResourceName=arn,
+            TagKeys=[f"{resource_type}-key"],
+        )
+
+        resp = client.list_tags_for_resource(ResourceName=arn)
+        assert len(resp["TagList"]) == 1
+        assert resp["TagList"][0]["Key"] == "common-key"
+        assert resp["TagList"][0]["Value"] == "common-tag"

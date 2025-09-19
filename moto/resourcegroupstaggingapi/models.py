@@ -648,11 +648,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{fs.file_system_arn}", "Tags": tags}
 
-
         elasticache_resource_map: dict[str, dict[str, Any]] = {
-            "elasticache:cache_clusters": dict(
-                self.elasticache_backend.cache_clusters
-            ),
+            "elasticache:cache_clusters": dict(self.elasticache_backend.cache_clusters),
             "elasticache:replication-group": dict(
                 self.elasticache_backend.replication_groups
             ),
@@ -668,15 +665,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 or "elasticache" in resource_type_filters
                 or resource_type in resource_type_filters
             ):
-                import pdb
-                # pdb.set_trace()
                 for resource in resource_source.values():
-
-                    # tags = self.elasticache_backend.list_tags_for_resource(
-                    #     resource.arn
-                    # )
-                    tags = self.elasticache_backend.tagging_service.list_tags_for_resource(
-                        resource.arn)["Tags"]
+                    tags = (
+                        self.elasticache_backend.tagging_service.list_tags_for_resource(
+                            resource.arn
+                        )["Tags"]
+                    )
                 if not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{resource.arn}", "Tags": tags}

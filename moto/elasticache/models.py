@@ -164,7 +164,6 @@ class CacheCluster(BaseModel):
         return _normalize_tags(self.tags)
 
 
-
 class CacheSubnetGroup(BaseModel):
     def __init__(
         self,
@@ -667,7 +666,7 @@ class Snapshot(BaseModel):
         if subnet_group_name and subnet_group_name in cache_subnet_groups:
             return cache_subnet_groups[subnet_group_name].vpc_id
         return None
-    
+
     def get_tags(self) -> List[Dict[str, str]]:
         return _normalize_tags(self.tags)
 
@@ -771,10 +770,10 @@ class ElastiCacheBackend(BaseBackend):
             authentication_type=authentication_type,
             tags=tags,
         )
-        
+
         if tags:
             self.tagging_service.tag_resource(user.arn, tags)
-        
+
         self.users[user_id] = user
         return user
 
@@ -874,7 +873,7 @@ class ElastiCacheBackend(BaseBackend):
             cache_node_ids_to_remove=cache_node_ids_to_remove,
             cache_node_ids_to_reboot=cache_node_ids_to_reboot,
         )
-        
+
         if tags:
             self.tagging_service.tag_resource(cache_cluster.arn, tags)
 
@@ -944,45 +943,20 @@ class ElastiCacheBackend(BaseBackend):
                 raise CacheSubnetGroupNotFound(cache_subnet_group_name)
         return list(self.cache_subnet_groups.values())
 
-    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, arn: str) -> Dict[str, List[Dict[str, str]]]:
         if self.arn_regex.match(arn):
-            x = self.tagging_service.list_tags_for_resource(arn)
-
-            return x
-            # arn_breakdown = arn.split(":")
-            # resource_type = arn_breakdown[len(arn_breakdown) - 2]
-            # resource_name = arn_breakdown[len(arn_breakdown) - 1]
-            # if resource_type == "cluster":
-            #     if resource_name in self.cache_clusters:
-            #         return self.tagging_service.list_tags_for_resource(arn)
-            #         # return self.cache_clusters[resource_name].get_tags()
-            # elif resource_type == "subnetgroup":
-            #     if resource_name in self.cache_subnet_groups:
-            #         return self.cache_subnet_groups[resource_name].get_tags()
-            # elif resource_type == "replicationgroup":
-            #     if resource_name in self.replication_groups:
-            #         return self.replication_groups[resource_name].get_tags()
-            # elif resource_type == "user":
-            #     if resource_name in self.users:
-
-            #         return self.users[resource_name].get_tags()
-            # elif resource_type == "snapshot":
-            #     if resource_name in self.snapshots:
-            #         return self.snapshots[resource_name].get_tags()
-            # else:
-            #     return []
+            return self.tagging_service.list_tags_for_resource(arn)
         else:
             raise InvalidARNFault(arn)
-        return []
 
     def add_tags_to_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
         # Docs user "ResourceName" as input but the param is technically the ARN, will just use arn
         self.tagging_service.tag_resource(arn, tags)
 
-    def remove_tags_from_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def remove_tags_from_resource(self, arn: str, tags: List[str]) -> None:
         # Docs user "ResourceName" as input but the param is technically the ARN, will just use arn
         self.tagging_service.untag_resource_using_names(arn, tags)
-    
+
     def create_replication_group(
         self,
         replication_group_id: str,

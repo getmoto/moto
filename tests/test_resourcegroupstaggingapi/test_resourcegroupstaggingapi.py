@@ -1843,6 +1843,7 @@ def test_get_resources_secretsmanager(resource_type):
     assert_tagging_works("eu-central-1", set(response_keys))
     assert_tagging_works("eu-west-1", set(response_keys))
 
+
 @mock_aws
 def test_get_resources_elasticache():
     rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
@@ -1870,7 +1871,7 @@ def test_get_resources_elasticache():
         Engine="redis",
         CacheNodeType="cache.t4g.micro",
         NumNodeGroups=1,
-        Tags=[{"Key": "repgroup", "Value": "tagged"}]
+        Tags=[{"Key": "repgroup", "Value": "tagged"}],
     )["ReplicationGroup"]
 
     subnet = elc.create_cache_subnet_group(
@@ -1888,7 +1889,13 @@ def test_get_resources_elasticache():
 
     resp = rtapi.get_resources(ResourceTypeFilters=["elasticache"])
     resp_arns = [r["ResourceARN"] for r in resp["ResourceTagMappingList"]]
-    expected_arns = [cluster["ARN"], user["ARN"], group["ARN"], subnet["ARN"], snapshot["ARN"]]
+    expected_arns = [
+        cluster["ARN"],
+        user["ARN"],
+        group["ARN"],
+        subnet["ARN"],
+        snapshot["ARN"],
+    ]
 
     for arn in expected_arns:
         assert arn in resp_arns
@@ -1896,27 +1903,27 @@ def test_get_resources_elasticache():
     resp = rtapi.get_resources(ResourceTypeFilters=["elasticache:cache_clusters"])
 
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "cluster", "Value": "tagged"} in resp[
-        "ResourceTagMappingList"
-    ][0]["Tags"]
+    assert {"Key": "cluster", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
 
     resp = rtapi.get_resources(TagFilters=[{"Key": "repgroup", "Values": ["tagged"]}])
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "repgroup", "Value": "tagged"} in resp[
-        "ResourceTagMappingList"
-    ][0]["Tags"]
+    assert {"Key": "repgroup", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
 
     resp = rtapi.get_resources(TagFilters=[{"Key": "snapshot", "Values": ["tagged"]}])
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "snapshot", "Value": "tagged"} in resp[
-        "ResourceTagMappingList"
-    ][0]["Tags"]
+    assert {"Key": "snapshot", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
 
     resp = rtapi.get_resources(TagFilters=[{"Key": "user", "Values": ["tagged"]}])
     assert len(resp["ResourceTagMappingList"]) == 1
-    assert {"Key": "user", "Value": "tagged"} in resp[
-        "ResourceTagMappingList"
-    ][0]["Tags"]
+    assert {"Key": "user", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
 
 
 @mock_aws
@@ -2029,7 +2036,7 @@ def test_untag_resources_elasticache():
         ResourceARNList=arns,
         TagKeys=["owner"],
     )
-    
+
     resp = elc.list_tags_for_resource(ResourceName=group["ARN"])
     assert len(resp["TagList"]) == 1
     assert {"Key": "env", "Value": "dev"} in resp["TagList"]
@@ -2050,7 +2057,7 @@ def test_untag_resources_elasticache():
     rtapi.untag_resources(
         ResourceARNList=[cluster["ARN"]],
         TagKeys=["env", "owner"],
-    )    
-    
+    )
+
     resp = elc.list_tags_for_resource(ResourceName=cluster["ARN"])
     assert len(resp["TagList"]) == 0
