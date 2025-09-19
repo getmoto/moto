@@ -659,6 +659,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             ),
             "elasticache:users": dict(self.elasticache_backend.users),
         }
+
         for resource_type, resource_source in elasticache_resource_map.items():
             if (
                 not resource_type_filters
@@ -666,14 +667,20 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 or resource_type in resource_type_filters
             ):
                 for resource in resource_source.values():
+                    if (
+                        resource_type == "elasticache:users"
+                        and resource.id == "default"
+                    ):
+                        continue
+
                     tags = (
                         self.elasticache_backend.tagging_service.list_tags_for_resource(
                             resource.arn
                         )["Tags"]
                     )
-                if not tag_filter(tags):
-                    continue
-                yield {"ResourceARN": f"{resource.arn}", "Tags": tags}
+                    if not tag_filter(tags):
+                        continue
+                    yield {"ResourceARN": f"{resource.arn}", "Tags": tags}
 
         # ELB (Classic Load Balancers)
         if (
