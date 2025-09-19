@@ -2,6 +2,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from moto.athena.exceptions import InvalidArgumentException
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -406,6 +407,18 @@ class AthenaBackend(BaseBackend):
 
     def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
         return self.capacity_reservations.get(name)
+
+    def list_capacity_reservation(self) -> List[Dict[str, Any]]:
+        return [
+            {"Name": cr.name, "TargetDpus": cr.target_dpus, "CreationTime": time.time()}
+            for cr in self.capacity_reservations.values()
+        ]
+
+    def update_capacity_reservation(self, name: str, target_dpus: int) -> None:
+        if name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+
+        self.capacity_reservations[name].target_dpus = target_dpus
 
     def create_named_query(
         self,
