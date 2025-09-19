@@ -948,7 +948,6 @@ class ElastiCacheBackend(BaseBackend):
         if self.arn_regex.match(arn):
             x = self.tagging_service.list_tags_for_resource(arn)
 
-            import pdb; pdb.set_trace()
             return x
             # arn_breakdown = arn.split(":")
             # resource_type = arn_breakdown[len(arn_breakdown) - 2]
@@ -982,8 +981,7 @@ class ElastiCacheBackend(BaseBackend):
 
     def remove_tags_from_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
         # Docs user "ResourceName" as input but the param is technically the ARN, will just use arn
-        tag_keys = [tag["Key"] for tag in tags if "Key" in tag]
-        self.tagging_service.untag_resource_using_names(arn, tag_keys)
+        self.tagging_service.untag_resource_using_names(arn, tags)
     
     def create_replication_group(
         self,
