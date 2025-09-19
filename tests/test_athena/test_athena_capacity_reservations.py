@@ -45,3 +45,61 @@ def test_get_capacity_reservation(client):
     result = capacity_reservation["CapacityReservation"]
     assert result["Name"] == "athena_workgroup"
     assert result["TargetDpus"] == 123
+
+
+@mock_aws
+def test_list_capacity_reservations(client):
+    client.create_capacity_reservation(
+        TargetDpus=123,
+        Name="athena_capacity_reservation_1",
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+    )
+
+    client.create_capacity_reservation(
+        TargetDpus=123,
+        Name="athena_capacity_reservation_2",
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+    )
+
+    capacity_reservation = client.list_capacity_reservations()
+    result = capacity_reservation["CapacityReservations"]
+    assert result[0]["Name"] == "athena_capacity_reservation_1"
+    assert result[1]["Name"] == "athena_capacity_reservation_2"
+
+
+@mock_aws
+def test_update_capacity_reservation(client):
+    client.create_capacity_reservation(
+        TargetDpus=123,
+        Name="athena_capacity_reservation",
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+    )
+
+    capacity_reservation = client.get_capacity_reservation(
+        Name="athena_capacity_reservation"
+    )
+    result = capacity_reservation["CapacityReservation"]
+    assert result["Name"] == "athena_capacity_reservation"
+    assert result["TargetDpus"] == 123
+
+    client.update_capacity_reservation(
+        TargetDpus=234,
+        Name="athena_capacity_reservation",
+    )
+
+    capacity_reservation = client.get_capacity_reservation(
+        Name="athena_capacity_reservation"
+    )
+    result = capacity_reservation["CapacityReservation"]
+    assert result["Name"] == "athena_capacity_reservation"
+    assert result["TargetDpus"] == 234
+
+    with pytest.raises(ClientError) as ex:
+        client.update_capacity_reservation(
+            TargetDpus=234,
+            Name="nonexistent_capacity_reservation",
+        )
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidArgumentException"
+    assert err["Message"] == "Capacity Reservation does not exist"
