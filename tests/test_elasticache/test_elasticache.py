@@ -1671,6 +1671,44 @@ def test_describe_snapshots_not_found():
 
 
 @mock_aws
+def test_describe_snapshots_replication_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    group_id = "non-existent-group"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_snapshots(ReplicationGroupId=group_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ReplicationGroupNotFoundFault"
+    assert err["Message"] == f"Replication group {group_id} not found."
+
+
+@mock_aws
+def test_describe_snapshots_cache_cluster_not_found():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "non-existent-cluster"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_snapshots(CacheClusterId=cluster_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "CacheClusterNotFound"
+    assert err["Message"] == f"Cache cluster {cluster_id} not found."
+
+
+@mock_aws
+def test_describe_snapshots_invalid_param_combo():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    cluster_id = "non-existent-cluster"
+    group_id = "non-existent-group"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_snapshots(
+            CacheClusterId=cluster_id, ReplicationGroupId=group_id
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+
+
+@mock_aws
 def test_delete_snapshot():
     client = boto3.client("elasticache", region_name="us-east-1")
     cluster_id = "cluster-to-snapshot"
@@ -1695,6 +1733,18 @@ def test_delete_snapshot():
 
     snapshots = client.describe_snapshots()
     assert len(snapshots["Snapshots"]) == 0
+
+
+@mock_aws
+def test_delete_snapshot_not_found():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    snapshot_id = "my-snapshot"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_snapshot(SnapshotName=snapshot_id)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "SnapshotNotFoundFault"
+    assert err["Message"] == f"Snapshot {snapshot_id} not found."
 
 
 @mock_aws
