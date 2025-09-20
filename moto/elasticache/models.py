@@ -817,8 +817,6 @@ class ElastiCacheBackend(BaseBackend):
     def describe_cache_subnet_groups(
         self,
         cache_subnet_group_name: Optional[str] = None,
-        max_records: Optional[int] = None,
-        marker: Optional[str] = None,
     ) -> List[CacheSubnetGroup]:
         if cache_subnet_group_name:
             if cache_subnet_group_name in self.cache_subnet_groups:
@@ -946,8 +944,6 @@ class ElastiCacheBackend(BaseBackend):
     def describe_replication_groups(
         self,
         replication_group_id: Optional[str] = None,
-        max_records: Optional[int] = None,
-        marker: Optional[str] = None,
     ) -> List[ReplicationGroup]:
         if replication_group_id:
             if replication_group_id in self.replication_groups:
@@ -964,13 +960,12 @@ class ElastiCacheBackend(BaseBackend):
             if replication_group_id in self.replication_groups:
                 replication_group = self.replication_groups[replication_group_id]
                 replication_group.status = "deleting"
-            if not retain_primary_cluster:
-                replication_group = self.replication_groups[replication_group_id]
-                primary_id = replication_group.primary_cluster_id
-                if primary_id and primary_id in replication_group.member_clusters:
-                    replication_group.member_clusters.remove(primary_id)
-                replication_group.primary_cluster_id = ""
-            return replication_group
+                if not retain_primary_cluster:
+                    primary_id = replication_group.primary_cluster_id
+                    if primary_id and primary_id in replication_group.member_clusters:
+                        replication_group.member_clusters.remove(primary_id)
+                    replication_group.primary_cluster_id = ""
+                return replication_group
         raise ReplicationGroupNotFound(replication_group_id)
 
 

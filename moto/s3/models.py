@@ -2166,6 +2166,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_lifecycle(
         self, bucket_name: str, rules: List[Dict[str, Any]]
     ) -> None:
+        # Equivalent operation, just a different name. Holdover from the boto2->boto3 switch
+        return self.put_bucket_lifecycle_configuration(bucket_name, rules)
+
+    def put_bucket_lifecycle_configuration(
+        self, bucket_name: str, rules: List[Dict[str, Any]]
+    ) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
 
@@ -3043,6 +3049,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return bucket.cors
 
     def get_bucket_lifecycle(self, bucket_name: str) -> List[LifecycleRule]:
+        # Equivalent operation, just a different name. Holdover from the boto2->boto3 switch
+        return self.get_bucket_lifecycle_configuration(bucket_name)
+
+    def get_bucket_lifecycle_configuration(
+        self, bucket_name: str
+    ) -> list[LifecycleRule]:
         bucket = self.get_bucket(bucket_name)
         return bucket.rules
 

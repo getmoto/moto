@@ -794,6 +794,28 @@ def test_describe_cache_subnet_groups():
 
 
 @mock_aws
+def test_describe_cache_subnet_groups_pagination():
+    client = boto3.client("elasticache", region_name="us-east-2")
+    for idx in range(10):
+        client.create_cache_subnet_group(
+            CacheSubnetGroupName=f"test-subnet-group-{idx}",
+            CacheSubnetGroupDescription="Test subnet group",
+            SubnetIds=["subnet-0123456789abcdef0", "subnet-abcdef0123456789"],
+        )
+    resp = client.describe_cache_subnet_groups()
+    assert len(resp["CacheSubnetGroups"]) == 10
+
+    page1 = client.describe_cache_subnet_groups(MaxRecords=5)
+    assert len(page1["CacheSubnetGroups"]) == 5
+
+    page2 = client.describe_cache_subnet_groups(MaxRecords=2, Marker=page1["Marker"])
+    assert len(page2["CacheSubnetGroups"]) == 2
+
+    page3 = client.describe_cache_subnet_groups(Marker=page2["Marker"])
+    assert len(page3["CacheSubnetGroups"]) == 3
+
+
+@mock_aws
 def test_describe_cache_subnet_group_specific():
     client = boto3.client("elasticache", region_name="us-east-2")
     client.create_cache_subnet_group(
@@ -1196,43 +1218,34 @@ def test_create_replication_groups_single_enabled():
 
 
 @mock_aws
-def test_describe_replication_groups():
+def test_describe_replication_groups_pagination():
     client = boto3.client("elasticache", region_name="us-east-2")
 
-    replication_group_id_disabled = "test-cluster-disabled"
-    replication_group_id_enabled = "test-cluster-enabled"
-
-    client.create_replication_group(
-        ReplicationGroupId=replication_group_id_disabled,
-        ReplicationGroupDescription="test replication group",
-        Engine="redis",
-        CacheNodeType="cache.t4g.micro",
-        NumNodeGroups=1,
-        ReplicasPerNodeGroup=2,
-        AutomaticFailoverEnabled=True,
-        MultiAZEnabled=True,
-        CacheSubnetGroupName="test-elasticache-subnet-group",
-        SnapshotRetentionLimit=1,
-        SnapshotWindow="06:00-07:00",
-    )
-
-    client.create_replication_group(
-        ReplicationGroupId=replication_group_id_enabled,
-        ReplicationGroupDescription="test replication group",
-        Engine="redis",
-        CacheNodeType="cache.t4g.micro",
-        ReplicasPerNodeGroup=2,
-        NumNodeGroups=3,
-        AutomaticFailoverEnabled=True,
-        MultiAZEnabled=True,
-        CacheSubnetGroupName="test-elasticache-subnet-group",
-        SnapshotRetentionLimit=1,
-        SnapshotWindow="06:00-07:00",
-        ClusterMode="enabled",
-    )
+    for idx in range(10):
+        client.create_replication_group(
+            ReplicationGroupId=f"group id {idx}",
+            ReplicationGroupDescription="test replication group",
+        )
 
     describe_resp = client.describe_replication_groups()
-    assert len(describe_resp["ReplicationGroups"]) == 2
+    assert len(describe_resp["ReplicationGroups"]) == 10
+
+    page1 = client.describe_replication_groups(MaxRecords=5)
+    assert len(page1["ReplicationGroups"]) == 5
+
+    page2 = client.describe_replication_groups(MaxRecords=2, Marker=page1["Marker"])
+    assert len(page2["ReplicationGroups"]) == 2
+
+    page3 = client.describe_replication_groups(Marker=page2["Marker"])
+    assert len(page3["ReplicationGroups"]) == 3
+
+    # Verify that we did not receive duplicate results
+    whole_book = (
+        page1["ReplicationGroups"]
+        + page2["ReplicationGroups"]
+        + page3["ReplicationGroups"]
+    )
+    assert len(set([group["ReplicationGroupId"] for group in whole_book])) == 10
 
 
 @mock_aws

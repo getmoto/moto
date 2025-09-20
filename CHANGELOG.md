@@ -1,6 +1,37 @@
 Moto Changelog
 ==============
 
+5.1.13
+-----
+Docker Digest for 5.1.13: <autopopulateddigest>
+
+    New Services:
+        * Macie2:
+            * accept_invitation()
+            * create_invitations()
+            * decline_invitations()
+            * delete_member()
+            * disable_macie()
+            * enable_macie()
+            * get_administrator_account()
+            * get_macie_session()
+            * list_invitations()
+            * list_members()
+
+    New Methods:
+        * Athena:
+            * list_capacity_reservation()
+            * update_capacity_reservation()
+
+    Miscellaneous:
+        * CloudWatch: get_metric_data() now supports the ReturnData-parameter again (broken in 5.1.12)
+        * CognitoIDP: admin_respond_to_auth_challenge() now returns the scope=aws.cognito.signin.user.admin in the AccessToken
+        * ELB: modify_load_balancer_attributes() now supports the `secondary_ips.auto_assigned.per_subnet` attribute
+        * IAM: get_server_certificate() now returns the CertificateChain-parameter
+        * S3: put_bucket_lifecycle_configuration() now correctly processes a LifeCycleConfiguration with 0 Rules
+        * SNS: publish_batch() now returns the original MessageAttributes provided by the user again (broken in 5.1.12)
+
+
 5.1.12
 -----
 Docker Digest for 5.1.12: _sha256:e1cf8b624019e6eba25cb5b37efdf95a463fc24691978540a1c7008b7d02fda0_

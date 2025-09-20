@@ -51,7 +51,7 @@ s3
 - [ ] get_bucket_intelligent_tiering_configuration
 - [X] get_bucket_inventory_configuration
 - [X] get_bucket_lifecycle
-- [ ] get_bucket_lifecycle_configuration
+- [X] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
 - [X] get_bucket_logging
 - [ ] get_bucket_metadata_configuration
@@ -129,7 +129,7 @@ s3
 - [ ] put_bucket_intelligent_tiering_configuration
 - [X] put_bucket_inventory_configuration
 - [X] put_bucket_lifecycle
-- [ ] put_bucket_lifecycle_configuration
+- [X] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification

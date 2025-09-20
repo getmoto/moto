@@ -12,13 +12,9 @@
 macie2
 ======
 
-.. autoclass:: moto.macie2.models.MacieBackend
-
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] accept_invitation
-  Accept an invitation from an administrator account.
-
 - [ ] batch_get_custom_data_identifiers
 - [ ] batch_update_automated_discovery_accounts
 - [ ] create_allow_list
@@ -26,37 +22,25 @@ macie2
 - [ ] create_custom_data_identifier
 - [ ] create_findings_filter
 - [X] create_invitations
-  Create invitations for specified account IDs.
-
 - [ ] create_member
 - [ ] create_sample_findings
 - [X] decline_invitations
-  Decline invitations from administrator accounts.
-
 - [ ] delete_allow_list
 - [ ] delete_custom_data_identifier
 - [ ] delete_findings_filter
 - [ ] delete_invitations
 - [X] delete_member
-  Delete a member from this administrator account.
-
 - [ ] describe_buckets
 - [ ] describe_classification_job
 - [ ] describe_organization_configuration
 - [X] disable_macie
-  Disable Macie for the account.
-
 - [ ] disable_organization_admin_account
 - [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_member
 - [X] enable_macie
-  Enable Macie for the account.
-
 - [ ] enable_organization_admin_account
 - [X] get_administrator_account
-  Get the administrator account for this member.
-
 - [ ] get_allow_list
 - [ ] get_automated_discovery_configuration
 - [ ] get_bucket_statistics
@@ -69,8 +53,6 @@ macie2
 - [ ] get_findings_publication_configuration
 - [ ] get_invitations_count
 - [X] get_macie_session
-  Get the Macie session configuration.
-
 - [ ] get_master_account
 - [ ] get_member
 - [ ] get_resource_profile
@@ -88,12 +70,8 @@ macie2
 - [ ] list_findings
 - [ ] list_findings_filters
 - [X] list_invitations
-  List all pending invitations.
-
 - [ ] list_managed_data_identifiers
 - [X] list_members
-  List all members of this administrator account.
-
 - [ ] list_organization_admin_accounts
 - [ ] list_resource_profile_artifacts
 - [ ] list_resource_profile_detections

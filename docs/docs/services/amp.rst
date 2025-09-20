@@ -40,6 +40,7 @@ amp
         
 
 - [ ] delete_scraper
+- [ ] delete_scraper_logging_configuration
 - [X] delete_workspace
   
         The ClientToken-parameter is not yet implemented
@@ -51,6 +52,7 @@ amp
 - [ ] describe_resource_policy
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
+- [ ] describe_scraper_logging_configuration
 - [X] describe_workspace
 - [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
@@ -70,6 +72,7 @@ amp
 - [X] update_logging_configuration
 - [ ] update_query_logging_configuration
 - [ ] update_scraper
+- [ ] update_scraper_logging_configuration
 - [X] update_workspace_alias
   
         The ClientToken-parameter is not yet implemented
