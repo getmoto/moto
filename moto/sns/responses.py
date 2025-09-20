@@ -241,8 +241,9 @@ class SNSResponse(BaseResponse):
 
     def publish_batch(self) -> ActionResult:
         topic_arn = self._get_param("TopicArn")
+        # Attribute contains user-provided data - use the original dict, do not normalize it to snake-case
         publish_batch_request_entries = self._get_param(
-            "PublishBatchRequestEntries", []
+            "PublishBatchRequestEntries", [], use_original_dict=True
         )
         for entry in publish_batch_request_entries:
             if "MessageAttributes" in entry:

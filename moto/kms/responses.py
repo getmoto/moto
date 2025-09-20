@@ -22,7 +22,9 @@ class KmsResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="kms")
 
-    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
+    def _get_param(
+        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
+    ) -> Any:
         params = json.loads(self.body)
 
         for key in ("Plaintext", "CiphertextBlob", "Message"):
