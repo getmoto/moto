@@ -465,7 +465,7 @@ class IamResponse(BaseResponse):
         cert_body = self._get_param("CertificateBody")
         path = self._get_param("Path")
         private_key = self._get_param("PrivateKey")
-        cert_chain = self._get_param("CertificateName")
+        cert_chain = self._get_param("CertificateChain")
 
         cert = self.backend.upload_server_certificate(
             cert_name, cert_body, private_key, cert_chain=cert_chain, path=path
@@ -503,19 +503,20 @@ class IamResponse(BaseResponse):
     def get_server_certificate(self) -> ActionResult:
         cert_name = self._get_param("ServerCertificateName")
         cert = self.backend.get_server_certificate(cert_name)
-        result = {
-            "ServerCertificate": {
-                "ServerCertificateMetadata": {
-                    "ServerCertificateName": cert.cert_name,
-                    "Path": cert.path,
-                    "Arn": cert.arn,
-                    "UploadDate": "2010-05-08T01:02:03.004Z",
-                    "ServerCertificateId": "ASCACKCEVSQ6C2EXAMPLE",
-                    "Expiration": "2012-05-08T01:02:03.004Z",
-                },
-                "CertificateBody": cert.cert_body,
-            }
+        server_cert = {
+            "ServerCertificateMetadata": {
+                "ServerCertificateName": cert.cert_name,
+                "Path": cert.path,
+                "Arn": cert.arn,
+                "UploadDate": "2010-05-08T01:02:03.004Z",
+                "ServerCertificateId": "ASCACKCEVSQ6C2EXAMPLE",
+                "Expiration": "2012-05-08T01:02:03.004Z",
+            },
+            "CertificateBody": cert.cert_body,
         }
+        if cert.cert_chain:
+            server_cert["CertificateChain"] = cert.cert_chain
+        result = {"ServerCertificate": server_cert}
         return ActionResult(result)
 
     def delete_server_certificate(self) -> ActionResult:
