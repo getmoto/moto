@@ -43,6 +43,7 @@ quicksight
 - [ ] create_topic
 - [ ] create_topic_refresh_schedule
 - [ ] create_vpc_connection
+- [ ] delete_account_custom_permission
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
 - [ ] delete_analysis
@@ -74,6 +75,7 @@ quicksight
 - [ ] delete_user_by_principal_id
 - [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
+- [ ] describe_account_custom_permission
 - [ ] describe_account_customization
 - [X] describe_account_settings
 - [ ] describe_account_subscription
@@ -186,6 +188,7 @@ quicksight
 - [ ] start_dashboard_snapshot_job_schedule
 - [X] tag_resource
 - [X] untag_resource
+- [ ] update_account_custom_permission
 - [ ] update_account_customization
 - [X] update_account_settings
 - [ ] update_analysis
