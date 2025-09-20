@@ -28,7 +28,7 @@ from .exceptions import (
     UserAlreadyExists,
     UserNotFound,
 )
-from .utils import PAGINATION_MODEL, AuthenticationTypes, _normalize_tags
+from .utils import PAGINATION_MODEL, AuthenticationTypes
 
 
 class User(BaseModel):
@@ -68,9 +68,6 @@ class User(BaseModel):
             else self.authentication_type,
             "PasswordCount": len(self.passwords) if self.passwords else None,
         }
-
-    def get_tags(self) -> List[Dict[str, str]]:
-        return _normalize_tags(self.tags)
 
 
 class CacheCluster(BaseModel):
@@ -160,9 +157,6 @@ class CacheCluster(BaseModel):
         self.cache_node_id = str(mock_random.uuid4())
         self.status = "available"
 
-    def get_tags(self) -> List[Dict[str, str]]:
-        return _normalize_tags(self.tags)
-
 
 class CacheSubnetGroup(BaseModel):
     def __init__(
@@ -237,9 +231,6 @@ class CacheSubnetGroup(BaseModel):
 
         self.arn = f"arn:aws:elasticache:{region_name}:{account_id}:subnetgroup:{cache_subnet_group_name}"
         self.vpc_id = vpcs[0] if vpcs else None
-
-    def get_tags(self) -> List[Dict[str, str]]:
-        return _normalize_tags(self.tags)
 
 
 class ReplicationGroup(BaseModel):
@@ -434,9 +425,6 @@ class ReplicationGroup(BaseModel):
             "GlobalReplicationGroupId": self.global_replication_group_id,
             "GlobalReplicationGroupMemberRole": self.global_replication_group_member_role,
         }
-
-    def get_tags(self) -> List[Dict[str, str]]:
-        return _normalize_tags(self.tags)
 
     def _get_log_delivery_configurations(
         self, log_delivery_configurations: List[Dict[str, Any]]
@@ -657,9 +645,6 @@ class Snapshot(BaseModel):
         self.topic_arn = topic_arn
         self.tags = tags or []
         self.vpc_id = vpc_id
-
-    def get_tags(self) -> List[Dict[str, str]]:
-        return _normalize_tags(self.tags)
 
 
 class ElastiCacheBackend(BaseBackend):
