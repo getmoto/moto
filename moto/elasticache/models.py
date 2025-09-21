@@ -916,8 +916,6 @@ class ElastiCacheBackend(BaseBackend):
     def describe_cache_subnet_groups(
         self,
         cache_subnet_group_name: Optional[str] = None,
-        max_records: Optional[int] = None,
-        marker: Optional[str] = None,
     ) -> List[CacheSubnetGroup]:
         if cache_subnet_group_name:
             if cache_subnet_group_name in self.cache_subnet_groups:
@@ -1039,8 +1037,6 @@ class ElastiCacheBackend(BaseBackend):
     def describe_replication_groups(
         self,
         replication_group_id: Optional[str] = None,
-        max_records: Optional[int] = None,
-        marker: Optional[str] = None,
     ) -> List[ReplicationGroup]:
         if replication_group_id:
             if replication_group_id in self.replication_groups:
