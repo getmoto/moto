@@ -1054,6 +1054,8 @@ class ElastiCacheBackend(BaseBackend):
         self, replication_group_id: str, retain_primary_cluster: Optional[bool]
     ) -> ReplicationGroup:
         if replication_group_id:
+            if replication_group_id not in self.replication_groups:
+                raise ReplicationGroupNotFound(replication_group_id)
             if replication_group_id in self.replication_groups:
                 replication_group = self.replication_groups[replication_group_id]
                 replication_group.status = "deleting"
@@ -1064,7 +1066,7 @@ class ElastiCacheBackend(BaseBackend):
                     replication_group.member_clusters.remove(primary_id)
                 replication_group.primary_cluster_id = ""
             return replication_group
-        raise ReplicationGroupNotFound(replication_group_id)
+        raise InvalidParameterValueException()
 
     def create_snapshot(
         self,

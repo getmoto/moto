@@ -1458,6 +1458,23 @@ def test_delete_replication_group():
 
 
 @mock_aws
+def test_delete_replication_group_not_found():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_replication_group(
+            ReplicationGroupId=replication_group_id,
+            RetainPrimaryCluster=False,
+        )
+        err = exc.value.response["Error"]
+
+        assert err["Code"] == "ReplicationGroupNotFoundFault"
+        assert err["Message"] == f"Replication group {replication_group_id} not found."
+
+
+@mock_aws
 def test_create_cache_cluster_with_auth_token():
     client = boto3.client("elasticache", region_name="us-east-1")
     cluster_id = "cluster-with-token"
@@ -1494,6 +1511,7 @@ def test_create_cache_cluster_without_auth_token():
 def test_create_snapshot():
     client = boto3.client("elasticache", region_name="us-east-1")
     cluster_id = "cluster-to-snapshot"
+    replication_group_id = "replication-group-to-snapshot"
     snapshot_id = "my-snapshot"
 
     client.create_cache_cluster(
@@ -1502,10 +1520,22 @@ def test_create_snapshot():
         NumCacheNodes=1,
     )
 
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+    )
+
     resp = client.create_snapshot(
         CacheClusterId=cluster_id,
         SnapshotName=snapshot_id,
     )
+
     snapshot = resp["Snapshot"]
     assert snapshot["SnapshotName"] == snapshot_id
     assert snapshot["CacheClusterId"] == cluster_id
@@ -1516,6 +1546,17 @@ def test_create_snapshot():
         snapshot["ARN"]
         == f"arn:aws:elasticache:us-east-1:{ACCOUNT_ID}:snapshot:{snapshot_id}"
     )
+
+    resp = client.create_snapshot(
+        ReplicationGroupId=replication_group_id,
+        SnapshotName=f"{snapshot_id}-from-replication-group",
+    )
+
+    snapshot = resp["Snapshot"]
+    assert snapshot["SnapshotName"] == f"{snapshot_id}-from-replication-group"
+    assert snapshot["ReplicationGroupId"] == replication_group_id
+    assert snapshot["ReplicationGroupDescription"] == "test replication group"
+    assert snapshot["Engine"] == "redis"
 
 
 @mock_aws
@@ -1635,6 +1676,17 @@ def test_create_snapshot_invalid_param_combination():
 
 
 @mock_aws
+def test_describe_snapshots_invalid_param_value():
+    client = boto3.client("elasticache", region_name="us-east-1")
+    snapshot_name = "new_snapshot"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_snapshot(SnapshotName=snapshot_name)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+
+
+@mock_aws
 def test_describe_snapshots():
     client = boto3.client("elasticache", region_name="us-east-1")
     cluster_id = "cluster-to-snapshot"
@@ -1651,11 +1703,19 @@ def test_describe_snapshots():
         SnapshotName=snapshot_id,
     )
 
+    client.create_snapshot(
+        CacheClusterId=cluster_id,
+        SnapshotName="backup-snapshot",
+    )
+
     resp = client.describe_snapshots(SnapshotName=snapshot_id)
     assert len(resp["Snapshots"]) == 1
     snapshot = resp["Snapshots"][0]
     assert snapshot["SnapshotName"] == snapshot_id
     assert snapshot["CacheClusterId"] == cluster_id
+
+    resp = client.describe_snapshots(CacheClusterId=cluster_id, SnapshotSource="manual")
+    assert len(resp["Snapshots"]) == 2
 
 
 @mock_aws
@@ -1762,20 +1822,21 @@ def test_list_tags_snapshot():
     client.create_snapshot(
         CacheClusterId=cluster_id,
         SnapshotName=snapshot_id,
+        Tags=[{"Key": "initial-key", "Value": "initial-tag"}],
     )
 
     arn = f"arn:aws:elasticache:us-east-1:{ACCOUNT_ID}:snapshot:{snapshot_id}"
 
     resp = client.list_tags_for_resource(ResourceName=arn)
-    assert len(resp["TagList"]) == 0
+    assert len(resp["TagList"]) == 1
 
     client.add_tags_to_resource(
         ResourceName=arn,
-        Tags=[{"Key": "cluster-key", "Value": "cluster-tag"}],
+        Tags=[{"Key": "new-key", "Value": "new-tag"}],
     )
 
     resp = client.list_tags_for_resource(ResourceName=arn)
-    assert len(resp["TagList"]) == 1
+    assert len(resp["TagList"]) == 2
 
 
 @mock_aws
