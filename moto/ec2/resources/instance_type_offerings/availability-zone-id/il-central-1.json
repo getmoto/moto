@@ -2096,6 +2096,14 @@
   "Location": "ilc1-az2"
  },
  {
+  "InstanceType": "u-6tb1.112xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
+  "InstanceType": "u-6tb1.56xlarge",
+  "Location": "ilc1-az2"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "ilc1-az3"
  },
