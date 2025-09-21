@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.13
 -----
-Docker Digest for 5.1.13: <autopopulateddigest>
+Docker Digest for 5.1.13: _sha256:0503bdc569e122966fc5fceef43d4a9562ed21e4091cf865801dba90cbb62ea5_
 
     New Services:
         * Macie2:
