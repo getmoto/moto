@@ -408,7 +408,7 @@ class AthenaBackend(BaseBackend):
     def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
         return self.capacity_reservations.get(name)
 
-    def list_capacity_reservation(self) -> List[Dict[str, Any]]:
+    def list_capacity_reservations(self) -> List[Dict[str, Any]]:
         return [
             {"Name": cr.name, "TargetDpus": cr.target_dpus, "CreationTime": time.time()}
             for cr in self.capacity_reservations.values()

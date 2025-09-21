@@ -127,7 +127,7 @@ class AthenaResponse(BaseResponse):
         )
 
     def list_capacity_reservations(self) -> str:
-        capacity_reservations = self.athena_backend.list_capacity_reservation()
+        capacity_reservations = self.athena_backend.list_capacity_reservations()
         return json.dumps({"CapacityReservations": capacity_reservations})
 
     def update_capacity_reservation(self) -> str:
