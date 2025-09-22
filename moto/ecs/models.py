@@ -1,4 +1,3 @@
-import platform
 import re
 from copy import copy
 from datetime import datetime, timezone

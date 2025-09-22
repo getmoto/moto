@@ -1,5 +1,4 @@
 import json
-import platform
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
