@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Set up Ruby ${{ matrix.ruby-version }}
-        uses: ruby/setup-ruby@44511735964dcb71245e7e55f72539531f7bc0eb
+        uses: ruby/setup-ruby@0481980f17b760ef6bca5e8c55809102a0af1e5a
         with:
           ruby-version: ${{ matrix.ruby-version }}
       - name: Set up Python 3.12
