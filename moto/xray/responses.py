@@ -28,7 +28,9 @@ class XRayResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
+    def _get_param(
+        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
+    ) -> Any:
         return self.request_params.get(param_name, if_none)
 
     def _get_action(self) -> str:

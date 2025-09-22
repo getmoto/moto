@@ -126,6 +126,16 @@ class AthenaResponse(BaseResponse):
             }
         )
 
+    def list_capacity_reservations(self) -> str:
+        capacity_reservations = self.athena_backend.list_capacity_reservations()
+        return json.dumps({"CapacityReservations": capacity_reservations})
+
+    def update_capacity_reservation(self) -> str:
+        name = self._get_param("Name")
+        target_dpus = self._get_param("TargetDpus")
+        self.athena_backend.update_capacity_reservation(name, target_dpus)
+        return "{}"
+
     def get_query_results(self) -> str:
         exec_id = self._get_param("QueryExecutionId")
         result = self.athena_backend.get_query_results(exec_id)

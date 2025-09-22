@@ -19,6 +19,7 @@ cloudwatch
 - [X] delete_dashboards
 - [X] delete_insight_rules
 - [ ] delete_metric_stream
+- [ ] describe_alarm_contributors
 - [ ] describe_alarm_history
 - [X] describe_alarms
 - [ ] describe_alarms_for_metric
