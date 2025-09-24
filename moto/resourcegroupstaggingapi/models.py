@@ -325,29 +325,29 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             # Capacity Reservations
             for capacity_reservation in athena_backend.capacity_reservations.values():
                 tags = athena_backend.tagger.list_tags_for_resource(
-                    capacity_reservation.name
+                    capacity_reservation.arn
                 )["Tags"]
                 if not tags or not tag_filter(tags):
                     continue
-                yield {"ResourceARN": f"{capacity_reservation.name}", "Tags": tags}
+                yield {"ResourceARN": f"{capacity_reservation.arn}", "Tags": tags}
 
             # Workgroups
             for work_group in athena_backend.work_groups.values():
-                tags = athena_backend.tagger.list_tags_for_resource(work_group.name)[
+                tags = athena_backend.tagger.list_tags_for_resource(work_group.arn)[
                     "Tags"
                 ]
                 if not tags or not tag_filter(tags):
                     continue
-                yield {"ResourceARN": f"{work_group.name}", "Tags": tags}
+                yield {"ResourceARN": f"{work_group.arn}", "Tags": tags}
 
             # Data Catalogs
             for data_catalog in athena_backend.data_catalogs.values():
-                tags = athena_backend.tagger.list_tags_for_resource(data_catalog.name)[
+                tags = athena_backend.tagger.list_tags_for_resource(data_catalog.arn)[
                     "Tags"
                 ]
                 if not tags or not tag_filter(tags):
                     continue
-                yield {"ResourceARN": f"{data_catalog.name}", "Tags": tags}
+                yield {"ResourceARN": f"{data_catalog.arn}", "Tags": tags}
 
         # Backup
         if not resource_type_filters or "backup" in resource_type_filters:
