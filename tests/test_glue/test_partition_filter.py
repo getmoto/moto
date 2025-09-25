@@ -32,7 +32,7 @@ def test_get_partitions_expression_unknown_column():
         )
 
     assert exc.value.response["Error"]["Code"] == "InvalidInputException"
-    assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
+    assert exc.value.response["Error"]["Message"] == "Invalid partition expression!"
 
 
 @mock_aws
@@ -200,7 +200,7 @@ def test_get_partitions_expression_string_column():
         client.get_partitions(**kwargs, Expression="unknown_col LIKE 'two'")
 
     assert exc.value.response["Error"]["Code"] == "InvalidInputException"
-    assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
+    assert exc.value.response["Error"]["Message"] == "Invalid partition expression!"
 
 
 @mock_aws
@@ -371,7 +371,7 @@ def test_get_partition_expression_warnings_and_exceptions():
         client.get_partitions(**kwargs, Expression="unknown_col = 'test'")
 
     assert exc.value.response["Error"]["Code"] == "InvalidInputException"
-    assert "Unknown column 'unknown_col'" in exc.value.response["Error"]["Message"]
+    assert exc.value.response["Error"]["Message"] == "Invalid partition expression!"
 
     with pytest.raises(ClientError) as exc:
         client.get_partitions(

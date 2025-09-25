@@ -329,7 +329,8 @@ class _Ident(_Expr):
             if self.ident == key["Name"]:
                 return key["Type"]
 
-        raise InvalidInputException("GetPartitions", f"Unknown column '{self.ident}'")
+        # not a partition column
+        raise InvalidInputException("GetPartitions", "Invalid partition expression!")
 
     def _eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
         for key, value in zip(part_keys, part_input["Values"]):
@@ -337,7 +338,7 @@ class _Ident(_Expr):
                 return _cast(key["Type"], value)
 
         # also raised for unpartitioned tables
-        raise InvalidInputException("GetPartitions", f"Unknown column '{self.ident}'")
+        raise InvalidInputException("GetPartitions", "Invalid partition expression!")
 
 
 class _IsNull(_Expr):
