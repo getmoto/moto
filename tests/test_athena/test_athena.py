@@ -363,7 +363,9 @@ def test_list_tags_for_resource():
         Parameters={"catalog-id": "AWS Test account ID"},
         Tags=tags,
     )
-    resource_arn = "arn:aws:athena:us-east-1:123456789012:datacatalog/athena_datacatalog"
+    resource_arn = (
+        "arn:aws:athena:us-east-1:123456789012:datacatalog/athena_datacatalog"
+    )
     returned_tags = client.list_tags_for_resource(ResourceARN=resource_arn)
     assert returned_tags["Tags"] == tags
 
