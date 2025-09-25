@@ -194,6 +194,13 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
                 continue
             yield param_name
 
+    @staticmethod
+    def normalize_name(name: str) -> str:
+        stripped = name.removeprefix("/")
+        if "/" in stripped:
+            return name
+        return stripped
+
 
 PARAMETER_VERSION_LIMIT = 100
 PARAMETER_HISTORY_MAX_RESULTS = 50
