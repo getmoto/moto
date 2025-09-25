@@ -2424,7 +2424,8 @@ def test_parameter_lifecycle_with_leading_slash(param_name, stripped):
     client.put_parameter(Name=param_name, Value="value", Type="String")
 
     # Cleanup resources
-    response = client.delete_parameters(Names=[access_param_name])
+    client.delete_parameters(Names=[access_param_name])
+    response = client.get_parameters(Names=[access_param_name])
     assert len(response["Parameters"]) == 0
 
 
