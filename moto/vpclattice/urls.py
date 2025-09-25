@@ -1,4 +1,5 @@
 """vpclattice base URL and path."""
+
 from .responses import VPCLatticeResponse
 
 url_bases = [

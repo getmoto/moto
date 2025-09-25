@@ -1,7 +1,7 @@
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
 template = {
-    "Description": "AWS CloudFormation Sample Template Gollum_Single_Instance_With_EBS_Volume: Gollum is a simple wiki system built on top of Git that powers GitHub Wikis. This template installs a Gollum Wiki stack on a single EC2 instance with an EBS volume for storage and demonstrates using the AWS CloudFormation bootstrap scripts to install the packages and files necessary at instance launch time. **WARNING** This template creates an Amazon EC2 instance and an EBS volume. You will be billed for the AWS resources used if you create a stack from this template.",
+    "Description": "AWS CloudFormation Sample Template Gollum_Single_Instance_With_EBS_Volume: Gollum is a simple wiki system built on top of Git that powers GitHub Wikis. This template installs a Gollum Wiki stack on a single EC2 instance with an EBS volume for storage and demonstrates using the AWS CloudFormation bootstrap scripts to install the packages and files necessary at instance launch time. **** This template creates an Amazon EC2 instance and an EBS volume. You will be billed for the AWS resources used if you create a stack from this template.",
     "Parameters": {
         "SSHLocation": {
             "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x.",
