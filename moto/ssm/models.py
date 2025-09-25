@@ -196,6 +196,9 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
 
     @staticmethod
     def normalize_name(name: str) -> str:
+        if not name:
+            return name
+
         stripped = name.removeprefix("/")
         if "/" in stripped:
             return name
