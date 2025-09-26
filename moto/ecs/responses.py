@@ -184,6 +184,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         launch_type = self._get_param("launchType")
         network_configuration = self._get_param("networkConfiguration")
         group = self._get_param("group")
+        platform_version = self._get_param("platformVersion")
         tasks = self.ecs_backend.run_task(
             cluster_str,
             task_definition_str,
@@ -194,6 +195,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             launch_type,
             network_configuration,
             group,
+            platform_version,
         )
         return json.dumps(
             {"tasks": [task.response_object() for task in tasks], "failures": []}

@@ -740,6 +740,8 @@ def test_create_service():
     assert svc["schedulingStrategy"] == "REPLICA"
     assert svc["launchType"] == "EC2"
     assert svc["platformVersion"] == "2"
+    assert svc["deployments"][0]["platformVersion"] == "2"
+    assert svc["deployments"][0]["platformFamily"] == "EC2"
 
     assert "networkConfiguration" in svc
     nc = svc["networkConfiguration"]["awsvpcConfiguration"]
