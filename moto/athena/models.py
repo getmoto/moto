@@ -59,6 +59,7 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
             f"workgroup/{name}",
             tags,
         )
+        self.arn = f"arn:{get_partition(self.region_name)}:athena:{self.region_name}:{athena_backend.account_id}:workgroup/{name}"
         self.athena_backend = athena_backend
         self.name = name
         self.description = description
@@ -96,6 +97,7 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
             f"datacatalog/{name}",
             tags,
         )
+        self.arn = f"arn:{get_partition(self.region_name)}:athena:{self.region_name}:{athena_backend.account_id}:datacatalog/{name}"
         self.athena_backend = athena_backend
         self.name = name
         self.type = catalog_type
@@ -157,6 +159,7 @@ class CapacityReservation(TaggableResourceMixin, BaseModel):
             f"capacityreservation/{name}",
             tags,
         )
+        self.arn = f"arn:{get_partition(self.region_name)}:athena:{self.region_name}:{athena_backend.account_id}:capacity-reservation/{name}"
         self.athena_backend = athena_backend
         self.name = name
         self.target_dpus = target_dpus
@@ -240,7 +243,7 @@ class AthenaBackend(BaseBackend):
             return None
         work_group = WorkGroup(self, name, configuration, description, tags)
         self.work_groups[name] = work_group
-        self.tagger.tag_resource(work_group.name, tags)
+        self.tagger.tag_resource(work_group.arn, tags)
         return work_group
 
     def list_work_groups(self) -> List[Dict[str, Any]]:
@@ -402,7 +405,7 @@ class AthenaBackend(BaseBackend):
     ) -> None:
         cr = CapacityReservation(self, name, target_dpus, tags)
         self.capacity_reservations[cr.name] = cr
-        self.tagger.tag_resource(cr.name, tags)
+        self.tagger.tag_resource(cr.arn, tags)
         return None
 
     def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
@@ -472,7 +475,7 @@ class AthenaBackend(BaseBackend):
             self, name, catalog_type, description, parameters, tags
         )
         self.data_catalogs[name] = data_catalog
-        self.tagger.tag_resource(data_catalog.name, tags)
+        self.tagger.tag_resource(data_catalog.arn, tags)
         return data_catalog
 
     @paginate(pagination_model=PAGINATION_MODEL)

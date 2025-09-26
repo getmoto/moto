@@ -33,7 +33,7 @@ def test_athena_capacity_reservation_group_tagging_api(client, resource_groups_c
         ResourceARNList=[capacity_reservation_name],
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
-    assert resource_group_tags[0]["ResourceARN"] == capacity_reservation_name
+    assert capacity_reservation_name in resource_group_tags[0]["ResourceARN"]
     assert resource_group_tags[0]["Tags"] == tags
 
 
@@ -64,7 +64,7 @@ def test_create_work_group_group_tagging_api(client, resource_groups_client):
         ResourceARNList=[work_group_name],
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
-    assert resource_group_tags[0]["ResourceARN"] == work_group_name
+    assert work_group_name in resource_group_tags[0]["ResourceARN"]
     assert resource_group_tags[0]["Tags"] == tags
 
 
@@ -88,5 +88,5 @@ def test_create_data_catalog_group_tagging_api(client, resource_groups_client):
         ResourceARNList=[data_catalog_name],
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
-    assert resource_group_tags[0]["ResourceARN"] == data_catalog_name
+    assert data_catalog_name in resource_group_tags[0]["ResourceARN"]
     assert resource_group_tags[0]["Tags"] == tags
