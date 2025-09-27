@@ -1055,5 +1055,14 @@ class KinesisBackend(BaseBackend):
             return "{}"
         return self.resource_policies[resource_arn]
 
+    def describe_limits(self) -> dict[str, int]:
+        """Return fixed Kinesis limits."""
+        return {
+            "ShardLimit": 6000,
+            "OpenShardCount": 0,
+            "OnDemandStreamCount": 0,
+            "OnDemandStreamCountLimit": 50,
+        }
+
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

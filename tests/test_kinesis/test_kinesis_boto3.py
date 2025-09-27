@@ -345,3 +345,15 @@ def test_update_shard_count(initial, target, expected_total):
     stream = resp["StreamDescriptionSummary"]
 
     assert stream["OpenShardCount"] == target
+
+
+@mock_aws
+def test_describe_limits():
+    """Test the describe_limits implementation."""
+    client = boto3.client("kinesis", region_name="us-west-2")
+    resp = client.describe_limits()
+
+    assert resp["ShardLimit"] == 6000
+    assert resp["OpenShardCount"] == 0
+    assert resp["OnDemandStreamCount"] == 0
+    assert resp["OnDemandStreamCountLimit"] == 50
