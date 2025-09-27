@@ -171,7 +171,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
         if item.startswith("/aws/reference/secretsmanager/"):
             return self._get_secretsmanager_parameter("/".join(item.split("/")[4:]))
         self._check_loading_status(item)
-        return super().__getitem__(item)
+        return super().__getitem__(self.normalize_name(item))
 
     def __contains__(self, k: str) -> bool:  # type: ignore[override]
         if k and k.startswith("/aws/reference/secretsmanager/"):
@@ -183,7 +183,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
                     f"An error occurred (ParameterNotFound) when referencing Secrets Manager: Secret {k} not found."
                 )
         self._check_loading_status(k)
-        return super().__contains__(k)
+        return super().__contains__(self.normalize_name(k))
 
     def get_keys_beginning_with(self, path: str, recursive: bool) -> Iterator[str]:
         self._check_loading_status(path)
@@ -193,6 +193,16 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
             if "/" in param_name[len(path) + 1 :] and not recursive:
                 continue
             yield param_name
+
+    @staticmethod
+    def normalize_name(name: str) -> str:
+        if not name:
+            return name
+
+        stripped = name.removeprefix("/")
+        if "/" in stripped:
+            return name
+        return stripped
 
 
 PARAMETER_VERSION_LIMIT = 100
@@ -1561,16 +1571,20 @@ class SimpleSystemManagerBackend(BaseBackend):
         )
 
     def delete_parameter(self, name: str) -> Optional[Parameter]:
-        self._resource_tags.get("Parameter", {}).pop(name, None)  # type: ignore
-        return self._parameters.pop(name, None)  # type: ignore
+        normalized_parameter_name = self._parameters.normalize_name(name)
+        self._resource_tags.get("Parameter", {}).pop(normalized_parameter_name, None)  # type: ignore
+        return self._parameters.pop(normalized_parameter_name, None)  # type: ignore
 
     def delete_parameters(self, names: List[str]) -> List[str]:
         result = []
         for name in names:
             try:
-                del self._parameters[name]
+                normalized_parameter_name = self._parameters.normalize_name(name)
+                del self._parameters[normalized_parameter_name]
                 result.append(name)
-                self._resource_tags.get("Parameter", {}).pop(name, None)  # type: ignore
+                self._resource_tags.get("Parameter", {}).pop(
+                    normalized_parameter_name, None
+                )  # type: ignore
             except KeyError:
                 pass
         return result
@@ -2190,14 +2204,14 @@ class SimpleSystemManagerBackend(BaseBackend):
     def add_tags_to_resource(
         self, resource_type: str, resource_id: str, tags: Dict[str, str]
     ) -> None:
-        self._validate_resource_type_and_id(resource_type, resource_id)
+        resource_id = self._validate_resource_type_and_id(resource_type, resource_id)
         for key, value in tags.items():
             self._resource_tags[resource_type][resource_id][key] = value
 
     def remove_tags_from_resource(
         self, resource_type: str, resource_id: str, keys: List[str]
     ) -> None:
-        self._validate_resource_type_and_id(resource_type, resource_id)
+        resource_id = self._validate_resource_type_and_id(resource_type, resource_id)
         tags = self._resource_tags[resource_type][resource_id]
         for key in keys:
             if key in tags:
@@ -2206,22 +2220,20 @@ class SimpleSystemManagerBackend(BaseBackend):
     def list_tags_for_resource(
         self, resource_type: str, resource_id: str
     ) -> Dict[str, str]:
-        self._validate_resource_type_and_id(resource_type, resource_id)
+        resource_id = self._validate_resource_type_and_id(resource_type, resource_id)
         return self._resource_tags[resource_type][resource_id]
 
     def _validate_resource_type_and_id(
         self, resource_type: str, resource_id: str
-    ) -> None:
+    ) -> str:
         if resource_type == "Parameter":
-            if resource_id not in self._parameters:
+            if not (parameter := self.get_parameter(resource_id)):
                 raise InvalidResourceId()
             else:
-                return
+                return parameter.name
         elif resource_type == "Document":
             if resource_id not in self._documents:
                 raise InvalidResourceId()
-            else:
-                return
         elif resource_type == "MaintenanceWindow":
             if resource_id not in self.windows:
                 raise InvalidResourceId()
@@ -2236,6 +2248,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             raise InvalidResourceType()
         else:
             raise InvalidResourceId()
+
+        return resource_id
 
     def send_command(
         self,
