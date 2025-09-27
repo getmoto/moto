@@ -537,19 +537,16 @@ def test_create_duplicate_cache_cluster():
 
     cache_cluster_id = "test-cache-cluster"
     cache_cluster_engine = "memcached"
-    cache_cluster_num_cache_nodes = 5
 
     client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
-        NumCacheNodes=cache_cluster_num_cache_nodes,
     )
 
     with pytest.raises(ClientError) as exc:
         client.create_cache_cluster(
             CacheClusterId=cache_cluster_id,
             Engine=cache_cluster_engine,
-            NumCacheNodes=cache_cluster_num_cache_nodes,
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "CacheClusterAlreadyExists"
@@ -1096,6 +1093,33 @@ def test_create_replication_group_cluster_disabled():
 
 
 @mock_aws
+def test_create_replication_group_cluster_disabled_one_az():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-disabled"
+
+    resp = client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        ReplicasPerNodeGroup=2,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=False,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        PreferredCacheClusterAZs=["us-east-2a"],
+    )
+
+    assert (
+        resp["ReplicationGroup"]["NodeGroups"][0]["NodeGroupMembers"][1][
+            "PreferredAvailabilityZone"
+        ]
+        == "us-east-2a"
+    )
+
+
+@mock_aws
 def test_create_replication_group_cluster_enabled():
     client = boto3.client("elasticache", region_name="us-east-2")
 
@@ -1175,6 +1199,48 @@ def test_create_replication_group_cluster_enabled():
         assert True
     else:
         assert False
+
+
+@mock_aws
+def test_create_replication_group_cluster_enabled_fallback():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    replication_group_id = "test-cluster-enabled-fallback"
+
+    client.create_replication_group(
+        ReplicationGroupId=replication_group_id,
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        ReplicasPerNodeGroup=2,
+        NumNodeGroups=1,
+        AutomaticFailoverEnabled=True,
+        MultiAZEnabled=True,
+        CacheSubnetGroupName="test-elasticache-subnet-group",
+        ClusterMode="enabled",
+        NodeGroupConfiguration=[
+            {
+                "NodeGroupId": "0001",
+                "PrimaryAvailabilityZone": "us-east-2a",
+                "ReplicaAvailabilityZones": ["us-east-2b"],
+                "PrimaryOutpostArn": f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef0",
+                "ReplicaOutpostArns": [
+                    f"arn:aws:outposts:us-east-2:{ACCOUNT_ID}:outpost/op-1234567890abcdef1"
+                ],
+            }
+        ],
+    )
+
+    group = client.describe_replication_groups(ReplicationGroupId=replication_group_id)[
+        "ReplicationGroups"
+    ][0]
+    members = group["NodeGroups"][0]["NodeGroupMembers"]
+
+    assert len(members) == 3
+
+    replica2 = members[2]
+    assert replica2["PreferredAvailabilityZone"] == "us-east-2b"
+    assert replica2["PreferredOutpostArn"].endswith("abcdef1")
 
 
 @mock_aws

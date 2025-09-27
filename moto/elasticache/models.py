@@ -108,8 +108,6 @@ class CacheCluster(BaseModel):
         cache_node_ids_to_remove: Optional[List[str]],
         cache_node_ids_to_reboot: Optional[List[str]],
     ):
-        if tags is None:
-            tags = []
         self.cache_cluster_id = cache_cluster_id
         self.az_mode = az_mode
         self.preferred_availability_zone = preferred_availability_zone
@@ -132,7 +130,7 @@ class CacheCluster(BaseModel):
         self.cache_subnet_group_name = cache_subnet_group_name
         self.cache_security_group_names = cache_security_group_names or []
         self.security_group_ids = security_group_ids or []
-        self.tags = tags
+        self.tags = tags or []
         self.preferred_maintenance_window = preferred_maintenance_window
         self.port = port or 6379
         self.notification_topic_arn = notification_topic_arn
@@ -168,12 +166,10 @@ class CacheSubnetGroup(BaseModel):
         subnet_ids: List[str],
         tags: Optional[List[Dict[str, str]]],
     ):
-        if tags is None:
-            tags = []
         self.cache_subnet_group_name = cache_subnet_group_name
         self.cache_subnet_group_description = cache_subnet_group_description
         self.subnet_ids = subnet_ids
-        self.tags = tags
+        self.tags = tags or []
 
         # Only import ec2_backends if necessary
         from moto.ec2.models import ec2_backends
@@ -507,7 +503,7 @@ class ReplicationGroup(BaseModel):
                     if len(replica_az) >= r:
                         replica_node["preferred_availability_zone"] = replica_az[r - 1]
                     elif len(replica_az) >= 1:
-                        replica_node["preferred_availability_zone"] = replica_az[1]
+                        replica_node["preferred_availability_zone"] = replica_az[0]
                 replica_outpost_arns = node_config.get("ReplicaOutpostArns", [])
                 if replica_outpost_arns:
                     if len(replica_outpost_arns) >= r:
@@ -515,7 +511,7 @@ class ReplicationGroup(BaseModel):
                             r - 1
                         ]
                     elif len(replica_outpost_arns) >= 1:
-                        replica_node["preferred_outpost_arn"] = replica_outpost_arns[1]
+                        replica_node["preferred_outpost_arn"] = replica_outpost_arns[0]
 
                     member_clusters_outpost_arns.append(
                         replica_node["preferred_outpost_arn"]
