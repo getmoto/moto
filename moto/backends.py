@@ -158,6 +158,7 @@ if TYPE_CHECKING:
     from moto.timestreamwrite.models import TimestreamWriteBackend
     from moto.transcribe.models import TranscribeBackend
     from moto.transfer.models import TransferBackend
+    from moto.vpclattice.models import VPCLatticeBackend
     from moto.wafv2.models import WAFV2Backend
     from moto.workspaces.models import WorkSpacesBackend
     from moto.workspacesweb.models import WorkSpacesWebBackend
@@ -350,6 +351,7 @@ SERVICE_NAMES = Union[
     "Literal['timestream-write']",
     "Literal['transcribe']",
     "Literal['transfer']",
+    "Literal['vpc-lattice']",
     "Literal['wafv2']",
     "Literal['workspaces']",
     "Literal['workspaces-web']",
@@ -791,6 +793,10 @@ def get_backend(
 def get_backend(name: "Literal['transcribe']") -> "BackendDict[TranscribeBackend]": ...
 @overload
 def get_backend(name: "Literal['transfer']") -> "BackendDict[TransferBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['vpc-lattice']",
+) -> "BackendDict[VPCLatticeBackend]": ...
 @overload
 def get_backend(name: "Literal['wafv2']") -> "BackendDict[WAFV2Backend]": ...
 @overload
