@@ -4052,6 +4052,46 @@
   "Location": "eu-central-1b"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "eu-central-1b"
  },
@@ -6540,7 +6580,15 @@
   "Location": "eu-central-1b"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "eu-central-1b"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
   "Location": "eu-central-1b"
  },
  {
@@ -7437,6 +7485,46 @@
  },
  {
   "InstanceType": "c8gd.xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "eu-central-1c"
  },
  {
@@ -9773,6 +9861,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "eu-central-1c"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "eu-central-1c"
  },
  {

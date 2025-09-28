@@ -464,6 +464,10 @@
   "Location": "ap-southeast-3"
  },
  {
+  "InstanceType": "g5g.metal",
+  "Location": "ap-southeast-3"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "ap-southeast-3"
  },

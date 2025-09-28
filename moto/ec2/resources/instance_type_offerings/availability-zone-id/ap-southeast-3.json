@@ -464,6 +464,10 @@
   "Location": "apse3-az1"
  },
  {
+  "InstanceType": "g5g.metal",
+  "Location": "apse3-az1"
+ },
+ {
   "InstanceType": "i3.16xlarge",
   "Location": "apse3-az1"
  },
