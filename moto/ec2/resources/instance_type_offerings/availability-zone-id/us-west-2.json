@@ -3300,6 +3300,42 @@
   "Location": "usw2-az1"
  },
  {
+  "InstanceType": "r8gb.12xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.16xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.24xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.2xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.4xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.8xlarge",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.large",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.medium",
+  "Location": "usw2-az1"
+ },
+ {
+  "InstanceType": "r8gb.xlarge",
+  "Location": "usw2-az1"
+ },
+ {
   "InstanceType": "r8gd.12xlarge",
   "Location": "usw2-az1"
  },
@@ -7184,6 +7220,42 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "r8gb.12xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.16xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.24xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.2xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.4xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.8xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.large",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.medium",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "r8gb.xlarge",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "r8gd.12xlarge",
   "Location": "usw2-az2"
  },
@@ -11045,6 +11117,42 @@
  },
  {
   "InstanceType": "r8g.xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.12xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.16xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.24xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.2xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.4xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.8xlarge",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.large",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.medium",
+  "Location": "usw2-az3"
+ },
+ {
+  "InstanceType": "r8gb.xlarge",
   "Location": "usw2-az3"
  },
  {

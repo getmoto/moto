@@ -740,6 +740,46 @@
   "Location": "euc1-az1"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "euc1-az1"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "euc1-az1"
  },
@@ -3073,6 +3113,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "euc1-az1"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "euc1-az1"
  },
  {
@@ -7288,6 +7332,46 @@
   "Location": "euc1-az3"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "euc1-az3"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "euc1-az3"
  },
@@ -9776,7 +9860,15 @@
   "Location": "euc1-az3"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "euc1-az3"
+ },
+ {
   "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "euc1-az3"
+ },
+ {
+  "InstanceType": "u7in-16tb.224xlarge",
   "Location": "euc1-az3"
  },
  {

@@ -3328,6 +3328,42 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "r8gb.12xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.16xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.24xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.2xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.4xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.8xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.large",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.medium",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "r8gb.xlarge",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "r8gd.12xlarge",
   "Location": "us-west-2a"
  },
@@ -7141,6 +7177,42 @@
  },
  {
   "InstanceType": "r8g.xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.12xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.16xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.24xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.2xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.4xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.8xlarge",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.large",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.medium",
+  "Location": "us-west-2b"
+ },
+ {
+  "InstanceType": "r8gb.xlarge",
   "Location": "us-west-2b"
  },
  {
@@ -11045,6 +11117,42 @@
  },
  {
   "InstanceType": "r8g.xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.12xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.16xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.24xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.2xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.4xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.8xlarge",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.large",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.medium",
+  "Location": "us-west-2c"
+ },
+ {
+  "InstanceType": "r8gb.xlarge",
   "Location": "us-west-2c"
  },
  {
