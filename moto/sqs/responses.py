@@ -1,6 +1,5 @@
-import json
 import re
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
@@ -12,7 +11,6 @@ from moto.core.utils import (
     underscores_to_camelcase,
 )
 from moto.utilities.aws_headers import amz_crc32
-from moto.utilities.constants import JSON_TYPES
 
 from ..core.parsers import XFormedDict
 from .constants import (
@@ -27,10 +25,7 @@ from .exceptions import (
     SQSException,
 )
 from .models import SQSBackend, sqs_backends
-from .utils import (
-    extract_input_message_attributes,
-    validate_message_attributes,
-)
+from .utils import validate_message_attributes
 
 
 class SQSResponse(BaseResponse):
@@ -39,19 +34,6 @@ class SQSResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="sqs")
         self.automated_parameter_parsing = True
-
-    def is_json(self) -> bool:
-        """
-        botocore 1.29.127 changed the wire-format to SQS
-        This means three things:
-         - The Content-Type is set to JSON
-         - The input-parameters are in different formats
-         - The output is in a different format
-
-         The change has been reverted for now, but it will be re-introduced later:
-         https://github.com/boto/botocore/pull/2931
-        """
-        return self.headers.get("Content-Type") in JSON_TYPES
 
     @property
     def sqs_backend(self) -> SQSBackend:
@@ -89,18 +71,20 @@ class SQSResponse(BaseResponse):
 
     def _get_queue_name(self) -> str:
         try:
-            if self.is_json():
-                queue_url = self._get_param("QueueUrl")
-            else:
-                queue_url = self.querystring.get("QueueUrl")[0]  # type: ignore
+            queue_url = self._get_param("QueueUrl")
+            # if self.is_json():
+            #     queue_url = self._get_param("QueueUrl")
+            # else:
+            #     queue_url = self.querystring.get("QueueUrl")[0]  # type: ignore
             if queue_url.startswith("http://") or queue_url.startswith("https://"):
                 return queue_url.split("/")[-1]
             else:
                 # The parameter could be the name itself, which AWS also accepts
                 return queue_url
-        except TypeError:
-            # Fallback to reading from the URL for botocore
-            return self.path.split("/")[-1]
+        except (AttributeError, TypeError):
+            pass
+        # Fallback to reading from the URL for botocore
+        return self.path.split("/")[-1]
 
     def _get_validated_visibility_timeout(self, timeout: Optional[str] = None) -> int:
         """
@@ -110,37 +94,32 @@ class SQSResponse(BaseResponse):
         if timeout is not None:
             visibility_timeout = int(timeout)
         else:
-            if self.is_json():
-                visibility_timeout = self._get_param("VisibilityTimeout")
-            else:
-                visibility_timeout = int(self.querystring.get("VisibilityTimeout")[0])  # type: ignore
-
+            visibility_timeout = self._get_param("VisibilityTimeout")
         if visibility_timeout > MAXIMUM_VISIBILITY_TIMEOUT:
             raise ValueError
-
         return visibility_timeout
 
     @amz_crc32  # crc last as request_id can edit XML
     def call_action(self) -> TYPE_RESPONSE:
-        status_code, headers, body = super().call_action()
-        if status_code == 404:
-            if self.is_json():
-                err = {
-                    "__type": "com.amazonaws.sqs#QueueDoesNotExist",
-                    "message": "The specified queue does not exist.",
-                }
-                headers["X-Amzn-ErrorType"] = "com.amazonaws.sqs#QueueDoesNotExist"
-                headers["x-amzn-query-error"] = (
-                    "AWS.SimpleQueueService.NonExistentQueue;Sender"
-                )
-                body = json.dumps(err)
-            else:
-                del headers["X-Amzn-ErrorType"]
-                body = self.response_template(ERROR_INEXISTENT_QUEUE).render()
-            status_code = 400
-        return status_code, headers, body
+        return super().call_action()
+        # status_code, headers, body = super().call_action()
+        # if status_code == 404:
+        #     if self.is_json():
+        #         err = {
+        #             "__type": "com.amazonaws.sqs#QueueDoesNotExist",
+        #             "message": "The specified queue does not exist.",
+        #         }
+        #         headers["x-amzn-query-error"] = (
+        #             "AWS.SimpleQueueService.NonExistentQueue;Sender"
+        #         )
+        #         body = json.dumps(err)
+        #     else:
+        #         body = self.response_template(ERROR_INEXISTENT_QUEUE).render()
+        #     status_code = 400
+        # return status_code, headers, body
 
     def _error(self, code: str, message: str, status: int = 400) -> TYPE_RESPONSE:
+        raise NotImplementedError()
         if self.is_json():
             err = JsonRESTError(error_type=code, message=message)
             err.code = status
@@ -148,132 +127,85 @@ class SQSResponse(BaseResponse):
         template = self.response_template(ERROR_TEMPLATE)
         return status, {"status": status}, template.render(code=code, message=message)
 
-    def create_queue(self) -> str:
+    def create_queue(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
-
         queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
+        result = {"QueueUrl": queue.url(request_url)}
+        return ActionResult(result)
 
-        if self.is_json():
-            return json.dumps({"QueueUrl": queue.url(request_url)})
-
-        template = self.response_template(CREATE_QUEUE_RESPONSE)
-        return template.render(queue_url=queue.url(request_url))
-
-    def get_queue_url(self) -> str:
+    def get_queue_url(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
-
         queue = self.sqs_backend.get_queue_url(queue_name)
+        result ={"QueueUrl": queue.url(request_url)}
+        return ActionResult(result)
 
-        if self.is_json():
-            return json.dumps({"QueueUrl": queue.url(request_url)})
-
-        template = self.response_template(GET_QUEUE_URL_RESPONSE)
-        return template.render(queue_url=queue.url(request_url))
-
-    def list_queues(self) -> str:
+    def list_queues(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name_prefix = self._get_param("QueueNamePrefix")
         queues = self.sqs_backend.list_queues(queue_name_prefix)
+        result = {}
+        if queues:
+            result = {"QueueUrls": [queue.url(request_url) for queue in queues]}
+        return ActionResult(result)
 
-        if self.is_json():
-            if queues:
-                return json.dumps(
-                    {"QueueUrls": [queue.url(request_url) for queue in queues]}
-                )
-            else:
-                return "{}"
-
-        template = self.response_template(LIST_QUEUES_RESPONSE)
-        return template.render(queues=queues, request_url=request_url)
-
-    def change_message_visibility(self) -> Union[str, TYPE_RESPONSE]:
+    def change_message_visibility(self) -> ActionResult:
         queue_name = self._get_queue_name()
         receipt_handle = self._get_param("ReceiptHandle")
-
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
         except ValueError:
             return 400, {}, ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE
-
         self.sqs_backend.change_message_visibility(
             queue_name=queue_name,
             receipt_handle=receipt_handle,
             visibility_timeout=visibility_timeout,
         )
+        return EmptyResult()
 
-        if self.is_json():
-            return "{}"
-
-        template = self.response_template(CHANGE_MESSAGE_VISIBILITY_RESPONSE)
-        return template.render()
-
-    def change_message_visibility_batch(self) -> str:
+    def change_message_visibility_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        if self.is_json():
-            entries = [
-                {camelcase_to_underscores(key): value for key, value in entr.items()}
-                for entr in self._get_param("Entries")
-            ]
-        else:
-            entries = self._get_list_prefix("ChangeMessageVisibilityBatchRequestEntry")
-
+        entries = [
+            {camelcase_to_underscores(key): value for key, value in entr.items()}
+            for entr in self._get_param("Entries")
+        ]
         success, error = self.sqs_backend.change_message_visibility_batch(
             queue_name, entries
         )
-        if self.is_json():
-            return json.dumps(
-                {"Successful": [{"Id": _id} for _id in success], "Failed": error}
-            )
+        result = {"Successful": [{"Id": _id} for _id in success], "Failed": error}
+        return ActionResult(result)
 
-        template = self.response_template(CHANGE_MESSAGE_VISIBILITY_BATCH_RESPONSE)
-        return template.render(success=success, errors=error)
-
-    def get_queue_attributes(self) -> str:
+    def get_queue_attributes(self) -> ActionResult:
         queue_name = self._get_queue_name()
-
-        if not self.is_json() and self.querystring.get("AttributeNames"):
+        # TODO: What was this checking and is it covered by a test?
+        # if not self.is_json() and self.querystring.get("AttributeNames"):
+        #     raise InvalidAttributeName("")
+        attribute_names = self._get_param("AttributeNames",)
+        if  attribute_names ==[] or (attribute_names and "" in attribute_names):
             raise InvalidAttributeName("")
-
-        if self.is_json():
-            attribute_names = self._get_param("AttributeNames")
-            if attribute_names == [] or (attribute_names and "" in attribute_names):
-                raise InvalidAttributeName("")
-        else:
-            # if connecting to AWS via boto, then 'AttributeName' is just a normal parameter
-            attribute_names = self._get_multi_param(
-                "AttributeName"
-            ) or self.querystring.get("AttributeName")
-
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
-
-        if self.is_json():
-            if len(attributes) == 0:
-                return "{}"
-            return json.dumps(
-                {
+        result = {
                     "Attributes": {
                         key: str(value)
                         for key, value in attributes.items()
                         if value is not None
                     }
                 }
-            )
-
-        template = self.response_template(GET_QUEUE_ATTRIBUTES_RESPONSE)
-        return template.render(attributes=attributes)
+        if not result["Attributes"]:
+            return EmptyResult()
+        return ActionResult(result)
 
     def set_queue_attributes(self) -> ActionResult:
         # TODO validate self.get_param('QueueUrl')
         attribute = self.attribute
 
         # Fixes issue with Policy set to empty str
-        attribute_names = self._get_multi_param("Attribute")
-        if attribute_names:
-            for attr in attribute_names:
-                if attr["Name"] == "Policy" and len(attr["Value"]) == 0:
-                    attribute = {attr["Name"]: None}
+        # attribute_names = self._get_multi_param("Attribute")
+        # if attribute_names:
+        #     for attr in attribute_names:
+        #         if attr["Name"] == "Policy" and len(attr["Value"]) == 0:
+        #             attribute = {attr["Name"]: None}
 
         queue_name = self._get_queue_name()
         self.sqs_backend.set_queue_attributes(queue_name, attribute)
@@ -283,31 +215,24 @@ class SQSResponse(BaseResponse):
     def delete_queue(self) -> ActionResult:
         # TODO validate self.get_param('QueueUrl')
         queue_name = self._get_queue_name()
-
         self.sqs_backend.delete_queue(queue_name)
-
         return EmptyResult()
 
-    def send_message(self) -> Union[str, TYPE_RESPONSE]:
+    def send_message(self) -> ActionResult:
         message = self._get_param("MessageBody")
         delay_seconds = self._get_param("DelaySeconds")
         message_group_id = self._get_param("MessageGroupId")
         message_dedupe_id = self._get_param("MessageDeduplicationId")
-
         if len(message) > MAXIMUM_MESSAGE_LENGTH:
             raise SQSException(
                 "InvalidParameterValue",
                 "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
             )
-
         message_attributes = self._get_attrs("MessageAttributes")
         self.normalize_json_msg_attributes(message_attributes)
-
         system_message_attributes = self._get_param("MessageSystemAttributes")
         self.normalize_json_msg_attributes(system_message_attributes)
-
         queue_name = self._get_queue_name()
-
         message = self.sqs_backend.send_message(
             queue_name,
             message,
@@ -317,18 +242,13 @@ class SQSResponse(BaseResponse):
             group_id=message_group_id,
             system_attributes=system_message_attributes,
         )
-
-        if self.is_json():
-            resp = {
-                "MD5OfMessageBody": message.body_md5,
-                "MessageId": message.id,
-            }
-            if len(message.message_attributes) > 0:
-                resp["MD5OfMessageAttributes"] = message.attribute_md5
-            return json.dumps(resp)
-
-        template = self.response_template(SEND_MESSAGE_RESPONSE)
-        return template.render(message=message, message_attributes=message_attributes)
+        resp = {
+            "MD5OfMessageBody": message.body_md5,
+            "MessageId": message.id,
+        }
+        if len(message.message_attributes) > 0:
+            resp["MD5OfMessageAttributes"] = message.attribute_md5
+        return ActionResult(resp)
 
     def _get_attrs(self, param_name: str) -> Dict[str, Any]:
         attrs = self._get_param(param_name, XFormedDict())
@@ -346,41 +266,22 @@ class SQSResponse(BaseResponse):
 
         validate_message_attributes(message_attributes)
 
-    def send_message_batch(self) -> str:
-        """
-        The querystring comes like this
-
-        'SendMessageBatchRequestEntry.1.DelaySeconds': ['0'],
-        'SendMessageBatchRequestEntry.1.MessageBody': ['test message 1'],
-        'SendMessageBatchRequestEntry.1.Id': ['6d0f122d-4b13-da2c-378f-e74244d8ad11']
-        'SendMessageBatchRequestEntry.2.Id': ['ff8cbf59-70a2-c1cb-44c7-b7469f1ba390'],
-        'SendMessageBatchRequestEntry.2.MessageBody': ['test message 2'],
-        'SendMessageBatchRequestEntry.2.DelaySeconds': ['0'],
-        """
-
+    def send_message_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
-
         self.sqs_backend.get_queue(queue_name)
-
-        if not self.is_json() and self.querystring.get("Entries"):
+        entries = self._get_param("Entries",[])
+        if not entries:
             raise EmptyBatchRequest()
-        if self.is_json():
-            entries = {
-                str(idx): entry for idx, entry in enumerate(self._get_param("Entries"))
+        entries = {
+                str(idx): entry for idx, entry in enumerate(entries)
             }
-        else:
-            entries = {
-                str(idx): entry
-                for idx, entry in enumerate(
-                    self._get_multi_param("SendMessageBatchRequestEntry")
-                )
-            }
-            for entry in entries.values():
-                if "MessageAttribute" in entry:
-                    entry["MessageAttributes"] = {
-                        val["Name"]: val["Value"]
-                        for val in entry.pop("MessageAttribute")
-                    }
+        # This was originally in query parsing - do we still need this?
+        for entry in entries.values():
+            if "MessageAttribute" in entry:
+                entry["MessageAttributes"] = {
+                    val["Name"]: val["Value"]
+                    for val in entry.pop("MessageAttribute")
+                }
 
         for entry in entries.values():
             if "MessageAttributes" in entry:
@@ -408,117 +309,58 @@ class SQSResponse(BaseResponse):
                 }
             )
 
-        if self.is_json():
-            resp: Dict[str, Any] = {"Successful": [], "Failed": errors}
-            for msg in messages:
-                msg_dict = {
-                    "Id": msg.user_id,  # type: ignore
-                    "MessageId": msg.id,
-                    "MD5OfMessageBody": msg.body_md5,
-                }
-                if len(msg.message_attributes) > 0:
-                    msg_dict["MD5OfMessageAttributes"] = msg.attribute_md5
-                resp["Successful"].append(msg_dict)
-            return json.dumps(resp)
+        resp: Dict[str, Any] = {"Successful": [], "Failed": errors}
+        for msg in messages:
+            msg_dict = {
+                "Id": msg.user_id,  # type: ignore
+                "MessageId": msg.id,
+                "MD5OfMessageBody": msg.body_md5,
+            }
+            if len(msg.message_attributes) > 0:
+                msg_dict["MD5OfMessageAttributes"] = msg.attribute_md5
+            resp["Successful"].append(msg_dict)
+        return ActionResult(resp)
 
-        template = self.response_template(SEND_MESSAGE_BATCH_RESPONSE)
-        return template.render(messages=messages, errors=errors)
-
-    def delete_message(self) -> str:
+    def delete_message(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        if self.is_json():
-            receipt_handle = self._get_param("ReceiptHandle")
-        else:
-            receipt_handle = self.querystring.get("ReceiptHandle")[0]  # type: ignore
+        receipt_handle = self._get_param("ReceiptHandle")
         self.sqs_backend.delete_message(queue_name, receipt_handle)
+        return EmptyResult()
 
-        if self.is_json():
-            return "{}"
-
-        template = self.response_template(DELETE_MESSAGE_RESPONSE)
-        return template.render()
-
-    def delete_message_batch(self) -> str:
-        """
-        The querystring comes like this
-
-        'DeleteMessageBatchRequestEntry.1.Id': ['message_1'],
-        'DeleteMessageBatchRequestEntry.1.ReceiptHandle': ['asdfsfs...'],
-        'DeleteMessageBatchRequestEntry.2.Id': ['message_2'],
-        'DeleteMessageBatchRequestEntry.2.ReceiptHandle': ['zxcvfda...'],
-        ...
-        """
+    def delete_message_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
-
         receipts = self._get_param("Entries", [])
         receipts = [receipt.original_dict() for receipt in receipts]
-
         if not receipts:
             raise EmptyBatchRequest(action="Delete")
-
         for r in receipts:
             for key in list(r.keys()):
                 if key == "Id":
                     r["msg_user_id"] = r.pop(key)
                 else:
                     r[camelcase_to_underscores(key)] = r.pop(key)
-
         receipt_seen = set()
         for receipt_and_id in receipts:
             receipt = receipt_and_id["receipt_handle"]
             if receipt in receipt_seen:
                 raise BatchEntryIdsNotDistinct(receipt_and_id["msg_user_id"])
             receipt_seen.add(receipt)
-
         success, errors = self.sqs_backend.delete_message_batch(queue_name, receipts)
-
-        if self.is_json():
-            return json.dumps(
-                {"Successful": [{"Id": _id} for _id in success], "Failed": errors}
-            )
-
-        template = self.response_template(DELETE_MESSAGE_BATCH_RESPONSE)
-        return template.render(success=success, errors=errors)
+        result = {"Successful": [{"Id": _id} for _id in success], "Failed": errors}
+        return ActionResult(result)
 
     def purge_queue(self) -> ActionResult:
         queue_name = self._get_queue_name()
         self.sqs_backend.purge_queue(queue_name)
         return EmptyResult()
 
-    def receive_message(self) -> Union[str, TYPE_RESPONSE]:
+    def receive_message(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        if self.is_json():
-            message_attributes = self._get_param("MessageAttributeNames")
-        else:
-            message_attributes = self._get_multi_param("message_attributes")
-        if not message_attributes:
-            message_attributes = extract_input_message_attributes(self.querystring)
-        if self.is_json():
-            message_system_attributes = self._get_param("MessageSystemAttributeNames")
-        else:
-            message_system_attributes = self._get_multi_param(
-                "message_system_attributes"
-            )
-        if not message_system_attributes:
-            message_system_attributes = set()
-
-        if self.is_json():
-            attribute_names = self._get_param("AttributeNames", [])
-        else:
-            attribute_names = self._get_multi_param("AttributeName")
-
+        message_attributes = self._get_param("MessageAttributeNames",[])
+        message_system_attributes = self._get_param("MessageSystemAttributeNames",{})
+        attribute_names = self._get_param("AttributeNames", [])
         queue = self.sqs_backend.get_queue(queue_name)
-
-        try:
-            if self.is_json():
-                message_count = self._get_param(
-                    "MaxNumberOfMessages", DEFAULT_RECEIVED_MESSAGES
-                )
-            else:
-                message_count = int(self.querystring.get("MaxNumberOfMessages")[0])  # type: ignore
-        except TypeError:
-            message_count = DEFAULT_RECEIVED_MESSAGES
-
+        message_count = self._get_param("MaxNumberOfMessages", DEFAULT_RECEIVED_MESSAGES)
         if message_count < 1 or message_count > 10:
             raise SQSException(
                 "InvalidParameterValue",
@@ -527,15 +369,8 @@ class SQSResponse(BaseResponse):
                 "MaxNumberOfMessages is invalid. Reason: must be between "
                 "1 and 10, if provided.",
             )
-
-        try:
-            if self.is_json():
-                wait_time = int(self._get_param("WaitTimeSeconds"))
-            else:
-                wait_time = int(self.querystring.get("WaitTimeSeconds")[0])  # type: ignore
-        except TypeError:
-            wait_time = int(queue.receive_message_wait_time_seconds)  # type: ignore
-
+        default_wait_time = int(queue.receive_message_wait_time_seconds)
+        wait_time = self._get_int_param("WaitTimeSeconds", default_wait_time)
         if wait_time < 0 or wait_time > 20:
             raise SQSException(
                 "InvalidParameterValue",
@@ -544,7 +379,6 @@ class SQSResponse(BaseResponse):
                 "WaitTimeSeconds is invalid. Reason: must be &lt;= 0 and "
                 "&gt;= 20 if provided.",
             )
-
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
         except TypeError:
@@ -585,98 +419,79 @@ class SQSResponse(BaseResponse):
             if any(x in ["All", pascalcase_name] for x in attribute_names):
                 attributes[attribute] = True
 
-        if self.is_json():
-            msgs = []
-            for message in messages:
-                msg: Dict[str, Any] = {
-                    "MessageId": message.id,
-                    "ReceiptHandle": message.receipt_handle,
-                    "MD5OfBody": message.body_md5,
-                    "Body": message.original_body,
-                    "Attributes": {},
-                    "MessageAttributes": {},
-                }
-                if len(message.message_attributes) > 0:
-                    msg["MD5OfMessageAttributes"] = message.attribute_md5
-                if attributes["sender_id"]:
-                    msg["Attributes"]["SenderId"] = message.sender_id
-                if attributes["sent_timestamp"]:
-                    msg["Attributes"]["SentTimestamp"] = str(message.sent_timestamp)
-                if attributes["approximate_receive_count"]:
-                    msg["Attributes"]["ApproximateReceiveCount"] = str(
-                        message.approximate_receive_count
-                    )
-                if attributes["approximate_first_receive_timestamp"]:
-                    msg["Attributes"]["ApproximateFirstReceiveTimestamp"] = str(
-                        message.approximate_first_receive_timestamp
-                    )
-                if attributes["message_deduplication_id"]:
-                    msg["Attributes"]["MessageDeduplicationId"] = (
-                        message.deduplication_id
-                    )
-                if attributes["message_group_id"] and message.group_id is not None:
-                    msg["Attributes"]["MessageGroupId"] = message.group_id
-                if message.system_attributes and message.system_attributes.get(
+        msgs = []
+        for message in messages:
+            msg: Dict[str, Any] = {
+                "MessageId": message.id,
+                "ReceiptHandle": message.receipt_handle,
+                "MD5OfBody": message.body_md5,
+                "Body": message.original_body,
+                "Attributes": {},
+                "MessageAttributes": {},
+            }
+            if len(message.message_attributes) > 0:
+                msg["MD5OfMessageAttributes"] = message.attribute_md5
+            if attributes["sender_id"]:
+                msg["Attributes"]["SenderId"] = message.sender_id
+            if attributes["sent_timestamp"]:
+                msg["Attributes"]["SentTimestamp"] = str(message.sent_timestamp)
+            if attributes["approximate_receive_count"]:
+                msg["Attributes"]["ApproximateReceiveCount"] = str(
+                    message.approximate_receive_count
+                )
+            if attributes["approximate_first_receive_timestamp"]:
+                msg["Attributes"]["ApproximateFirstReceiveTimestamp"] = str(
+                    message.approximate_first_receive_timestamp
+                )
+            if attributes["message_deduplication_id"]:
+                msg["Attributes"]["MessageDeduplicationId"] = (
+                    message.deduplication_id
+                )
+            if attributes["message_group_id"] and message.group_id is not None:
+                msg["Attributes"]["MessageGroupId"] = message.group_id
+            if message.system_attributes and message.system_attributes.get(
+                "AWSTraceHeader"
+            ):
+                msg["Attributes"]["AWSTraceHeader"] = message.system_attributes[
                     "AWSTraceHeader"
-                ):
-                    msg["Attributes"]["AWSTraceHeader"] = message.system_attributes[
-                        "AWSTraceHeader"
-                    ].get("string_value")
-                if (
-                    attributes["sequence_number"]
-                    and message.sequence_number is not None
-                ):
-                    msg["Attributes"]["SequenceNumber"] = message.sequence_number
-                for name, value in message.message_attributes.items():
-                    msg["MessageAttributes"][name] = {"DataType": value["data_type"]}
-                    if "Binary" in value["data_type"]:
-                        msg["MessageAttributes"][name]["BinaryValue"] = value[
-                            "binary_value"
-                        ]
-                    else:
-                        msg["MessageAttributes"][name]["StringValue"] = value[
-                            "string_value"
-                        ]
+                ].get("string_value")
+            if (
+                attributes["sequence_number"]
+                and message.sequence_number is not None
+            ):
+                msg["Attributes"]["SequenceNumber"] = message.sequence_number
+            for name, value in message.message_attributes.items():
+                msg["MessageAttributes"][name] = {"DataType": value["data_type"]}
+                if "Binary" in value["data_type"]:
+                    msg["MessageAttributes"][name]["BinaryValue"] = value[
+                        "binary_value"
+                    ]
+                else:
+                    msg["MessageAttributes"][name]["StringValue"] = value[
+                        "string_value"
+                    ]
 
-                if len(msg["Attributes"]) == 0:
-                    msg.pop("Attributes")
-                if len(msg["MessageAttributes"]) == 0:
-                    msg.pop("MessageAttributes")
-                msgs.append(msg)
+            if len(msg["Attributes"]) == 0:
+                msg.pop("Attributes")
+            if len(msg["MessageAttributes"]) == 0:
+                msg.pop("MessageAttributes")
+            msgs.append(msg)
 
-            return json.dumps({"Messages": msgs} if msgs else {})
+        result =  {"Messages": msgs} if msgs else {}
+        return ActionResult(result)
 
-        template = self.response_template(RECEIVE_MESSAGE_RESPONSE)
-        return template.render(messages=messages, attributes=attributes)
-
-    def list_dead_letter_source_queues(self) -> str:
+    def list_dead_letter_source_queues(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name = self._get_queue_name()
-
         queues = self.sqs_backend.list_dead_letter_source_queues(queue_name)
-
-        if self.is_json():
-            return json.dumps(
-                {"queueUrls": [queue.url(request_url) for queue in queues]}
-            )
-
-        template = self.response_template(LIST_DEAD_LETTER_SOURCE_QUEUES_RESPONSE)
-        return template.render(queues=queues, request_url=request_url)
+        result ={"queueUrls": [queue.url(request_url) for queue in queues]}
+        return ActionResult(result)
 
     def add_permission(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        actions = (
-            self._get_param("Actions")
-            if self.is_json()
-            else self._get_multi_param("ActionName")
-        )
-        account_ids = (
-            self._get_param("AWSAccountIds")
-            if self.is_json()
-            else self._get_multi_param("AWSAccountId")
-        )
+        actions = self._get_param("Actions",[])
+        account_ids = self._get_param("AWSAccountIds",[])
         label = self._get_param("Label")
-
         self.sqs_backend.add_permission(
             region_name=self.region,
             queue_name=queue_name,
@@ -684,58 +499,31 @@ class SQSResponse(BaseResponse):
             account_ids=account_ids,
             label=label,
         )
-
         return EmptyResult()
 
     def remove_permission(self) -> ActionResult:
         queue_name = self._get_queue_name()
         label = self._get_param("Label")
-
         self.sqs_backend.remove_permission(queue_name, label)
-
         return EmptyResult()
 
-    def tag_queue(self) -> str:
+    def tag_queue(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        if self.is_json():
-            tags = self._get_param("Tags")
-        else:
-            tags = self._get_map_prefix("Tag", key_end=".Key", value_end=".Value")
-
+        tags = self._get_param("Tags", [])
         self.sqs_backend.tag_queue(queue_name, tags)
+        return EmptyResult()
 
-        if self.is_json():
-            return "{}"
-
-        template = self.response_template(TAG_QUEUE_RESPONSE)
-        return template.render()
-
-    def untag_queue(self) -> str:
+    def untag_queue(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        tag_keys = (
-            self._get_param("TagKeys")
-            if self.is_json()
-            else self._get_multi_param("TagKey")
-        )
-
+        tag_keys = self._get_param("TagKeys", [])
         self.sqs_backend.untag_queue(queue_name, tag_keys)
+        return EmptyResult()
 
-        if self.is_json():
-            return "{}"
-
-        template = self.response_template(UNTAG_QUEUE_RESPONSE)
-        return template.render()
-
-    def list_queue_tags(self) -> str:
+    def list_queue_tags(self) -> ActionResult:
         queue_name = self._get_queue_name()
-
         queue = self.sqs_backend.list_queue_tags(queue_name)
-
-        if self.is_json():
-            return json.dumps({"Tags": queue.tags})
-
-        template = self.response_template(LIST_QUEUE_TAGS_RESPONSE)
-        return template.render(tags=queue.tags)
+        result = {"Tags": queue.tags}
+        return ActionResult(result)
 
 
 CREATE_QUEUE_RESPONSE = """<CreateQueueResponse>

@@ -47,7 +47,7 @@ from moto.core.utils import (
     get_value,
     gzip_decompress,
     method_names_from_class,
-    params_sort_function,
+    params_sort_function, query_compatible_service_model,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
 from moto.utilities.utils import get_partition
@@ -639,10 +639,16 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         assert isinstance(request, (AWSPreparedRequest, Request)), str(request)
         normalized_request = normalize_request(request)
         service_model = get_service_model(self.service_name)
-        operation_model = service_model.operation_model(self._get_action())
         protocol = determine_request_protocol(
             service_model, normalized_request.content_type
         )
+        try:
+            if protocol == "query" and service_model.is_query_compatible:
+                service_model =  query_compatible_service_model(service_model)
+        except AttributeError:
+            # Older botocore doesn't have is_query_compat
+            pass
+        operation_model = service_model.operation_model(self._get_action())
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(map_type=self.PROTOCOL_PARSER_MAP_TYPE)  # type: ignore[no-untyped-call]
         parsed = parser.parse(
@@ -664,6 +670,13 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
+        protocol = self.determine_response_protocol(service_model)
+        try:
+            if protocol == "query" and service_model.is_query_compatible:
+                service_model =  query_compatible_service_model(service_model)
+        except AttributeError:
+            # Older botocore doesn't have is_query_compat
+            pass
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)

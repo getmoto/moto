@@ -2,6 +2,30 @@
   "version": 1.0,
   "merge": {
     "metadata": {
+      "awsQueryCompatible":{
+        "operations": {
+          "CreateQueue": {
+            "output": {
+              "resultWrapper": "CreateQueueResult"
+            }
+          }
+        },
+        "shapes": {
+          "TagMap": {
+            "type": "map",
+            "key": {
+              "shape": "TagKey",
+              "locationName": "Key"
+            },
+            "value": {
+              "shape": "TagValue",
+              "locationName": "Value"
+            },
+            "flattened": true,
+            "locationName": "Tag"
+          }
+        }
+      },
       "protocols": [
         "json",
         "query"
@@ -10,20 +34,20 @@
       "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
     },
     "shapes": {
-      "EmptyBatchRequest":{
-      "error":{
-        "code":"AWS.SimpleQueueService.EmptyBatchRequest",
-        "httpStatusCode":400,
-        "senderFault":true
-      }
-    },
-      "OverLimit":{
-      "error":{
-        "code":"OverLimit",
-        "httpStatusCode":403,
-        "senderFault":true
-      }
-    },
+      "EmptyBatchRequest": {
+        "error": {
+          "code": "AWS.SimpleQueueService.EmptyBatchRequest",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "OverLimit": {
+        "error": {
+          "code": "OverLimit",
+          "httpStatusCode": 403,
+          "senderFault": true
+        }
+      },
       "QueueDoesNotExist": {
         "error": {
           "code": "AWS.SimpleQueueService.NonExistentQueue",
@@ -31,13 +55,32 @@
           "senderFault": true
         }
       },
-      "QueueNameExists":{
-      "error":{
-        "code":"QueueAlreadyExists",
-        "httpStatusCode":400,
-        "senderFault":true
+      "QueueNameExists": {
+        "error": {
+          "code": "QueueAlreadyExists",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
       }
     }
+  },
+  "merge_for_protocols": {
+    "query": {
+      "shapes": {
+        "TagMap": {
+          "type": "map",
+          "key": {
+            "shape": "TagKey",
+            "locationName": "Key"
+          },
+          "value": {
+            "shape": "TagValue",
+            "locationName": "Value"
+          },
+          "flattened": true,
+          "locationName": "Tag"
+        }
+      }
     }
   }
 }
