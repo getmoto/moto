@@ -179,11 +179,7 @@ class MacieBackend(BaseBackend):
 
     def enable_organization_admin_account(
         self, admin_account_id: str
-    ) -> None:  # <-- NEW
-        """
-        Designates a member account as the delegated Amazon Macie
-        administrator account for an organization.
-        """
+    ) -> None: 
         self.organization_admin_account_id = admin_account_id
 
     def list_organization_admin_accounts(self) -> list[dict[str, str]]:
