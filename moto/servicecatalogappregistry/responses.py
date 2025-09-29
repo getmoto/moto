@@ -1,7 +1,6 @@
 """Handles incoming servicecatalogappregistry requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -91,4 +90,6 @@ class AppRegistryResponse(BaseResponse):
         )
 
     def get_configuration(self) -> str:
-        return json.dumps({'configuration': self.servicecatalogappregistry_backend.configuration})
+        return json.dumps(
+            {"configuration": self.servicecatalogappregistry_backend.configuration}
+        )
