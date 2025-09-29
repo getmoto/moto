@@ -59,7 +59,6 @@ class WorkGroup(TaggableResourceMixin, BaseModel):
             f"workgroup/{name}",
             tags,
         )
-        self.arn = f"arn:{get_partition(self.region_name)}:athena:{self.region_name}:{athena_backend.account_id}:workgroup/{name}"
         self.athena_backend = athena_backend
         self.name = name
         self.description = description
@@ -97,7 +96,6 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
             f"datacatalog/{name}",
             tags,
         )
-        self.arn = f"arn:{get_partition(self.region_name)}:athena:{self.region_name}:{athena_backend.account_id}:datacatalog/{name}"
         self.athena_backend = athena_backend
         self.name = name
         self.type = catalog_type
@@ -156,10 +154,9 @@ class CapacityReservation(TaggableResourceMixin, BaseModel):
         super().__init__(
             athena_backend.account_id,
             self.region_name,
-            f"capacityreservation/{name}",
+            f"capacity-reservation/{name}",
             tags,
         )
-        self.arn = f"arn:{get_partition(self.region_name)}:athena:{self.region_name}:{athena_backend.account_id}:capacity-reservation/{name}"
         self.athena_backend = athena_backend
         self.name = name
         self.target_dpus = target_dpus
