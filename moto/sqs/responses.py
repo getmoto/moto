@@ -2,8 +2,6 @@ import re
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
-from moto.core.common_types import TYPE_RESPONSE
-from moto.core.exceptions import JsonRESTError
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import (
     camelcase_to_pascal,
@@ -11,6 +9,7 @@ from moto.core.utils import (
     underscores_to_camelcase,
 )
 from moto.utilities.aws_headers import amz_crc32
+from ..core.common_types import TYPE_RESPONSE
 
 from ..core.parsers import XFormedDict
 from .constants import (
@@ -23,6 +22,7 @@ from .exceptions import (
     EmptyBatchRequest,
     InvalidAttributeName,
     SQSException,
+MaxVisibilityTimeout,
 )
 from .models import SQSBackend, sqs_backends
 from .utils import validate_message_attributes
@@ -102,30 +102,6 @@ class SQSResponse(BaseResponse):
     @amz_crc32  # crc last as request_id can edit XML
     def call_action(self) -> TYPE_RESPONSE:
         return super().call_action()
-        # status_code, headers, body = super().call_action()
-        # if status_code == 404:
-        #     if self.is_json():
-        #         err = {
-        #             "__type": "com.amazonaws.sqs#QueueDoesNotExist",
-        #             "message": "The specified queue does not exist.",
-        #         }
-        #         headers["x-amzn-query-error"] = (
-        #             "AWS.SimpleQueueService.NonExistentQueue;Sender"
-        #         )
-        #         body = json.dumps(err)
-        #     else:
-        #         body = self.response_template(ERROR_INEXISTENT_QUEUE).render()
-        #     status_code = 400
-        # return status_code, headers, body
-
-    def _error(self, code: str, message: str, status: int = 400) -> TYPE_RESPONSE:
-        raise NotImplementedError()
-        if self.is_json():
-            err = JsonRESTError(error_type=code, message=message)
-            err.code = status
-            raise err
-        template = self.response_template(ERROR_TEMPLATE)
-        return status, {"status": status}, template.render(code=code, message=message)
 
     def create_queue(self) -> ActionResult:
         request_url = urlparse(self.uri)
@@ -156,7 +132,7 @@ class SQSResponse(BaseResponse):
         try:
             visibility_timeout = self._get_validated_visibility_timeout()
         except ValueError:
-            return 400, {}, ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE
+            raise MaxVisibilityTimeout()
         self.sqs_backend.change_message_visibility(
             queue_name=queue_name,
             receipt_handle=receipt_handle,
@@ -384,7 +360,7 @@ class SQSResponse(BaseResponse):
         except TypeError:
             visibility_timeout = queue.visibility_timeout  # type: ignore
         except ValueError:
-            return 400, {}, ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE
+            raise MaxVisibilityTimeout()
 
         messages = self.sqs_backend.receive_message(
             queue_name, message_count, wait_time, visibility_timeout, message_attributes
@@ -817,9 +793,6 @@ LIST_QUEUE_TAGS_RESPONSE = """<ListQueueTagsResponse>
    </ResponseMetadata>
 </ListQueueTagsResponse>"""
 
-ERROR_MAX_VISIBILITY_TIMEOUT_RESPONSE = (
-    f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILITY_TIMEOUT}"
-)
 
 ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
     <Error>
@@ -833,14 +806,4 @@ ERROR_INEXISTENT_QUEUE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc
         <Detail/>
     </Error>
     <RequestId>b8bc806b-fa6b-53b5-8be8-cfa2f9836bc3</RequestId>
-</ErrorResponse>"""
-
-ERROR_TEMPLATE = """<ErrorResponse xmlns="http://queue.amazonaws.com/doc/2012-11-05/">
-    <Error>
-        <Type>Sender</Type>
-        <Code>{{ code }}</Code>
-        <Message>{{ message }}</Message>
-        <Detail/>
-    </Error>
-    <RequestId>6fde8d1e-52cd-4581-8cd9-c512f4c64223</RequestId>
 </ErrorResponse>"""
