@@ -488,7 +488,7 @@ def get_service_model(service_name: str) -> ServiceModel:
 def query_compatible_service_model(service_model: ServiceModel) -> ServiceModel:
     # We have to deepcopy here or we'll stomp all over the original json data
     # This matters if, say, we're running in server mode and handling both json and query requests for SQS
-    model = copy.deepcopy(getattr(service_model,"_service_description",{}))
+    model = copy.deepcopy(getattr(service_model, "_service_description", {}))
     metadata = model.get("metadata", {})
     query_shapes = metadata.get("awsQueryCompatible", {}).get("shapes", {})
     deep_merge(model["shapes"], query_shapes)

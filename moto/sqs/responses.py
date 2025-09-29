@@ -322,8 +322,10 @@ class SQSResponse(BaseResponse):
                 "MaxNumberOfMessages is invalid. Reason: must be between "
                 "1 and 10, if provided.",
             )
-        default_wait_time = int(queue.receive_message_wait_time_seconds)
-        wait_time = self._get_int_param("WaitTimeSeconds", default_wait_time)
+        try:
+            wait_time = int(self._get_param("WaitTimeSeconds"))
+        except TypeError:
+            wait_time = int(queue.receive_message_wait_time_seconds)  # type: ignore
         if wait_time < 0 or wait_time > 20:
             raise SQSException(
                 "InvalidParameterValue",
