@@ -2,7 +2,7 @@
 Response handlers for AWS CloudWatch Synthetics API emulation in Moto.
 """
 
-from typing import Any
+import json
 
 from moto.core.responses import BaseResponse
 from moto.synthetics.models import SyntheticsBackend, synthetics_backends
@@ -24,15 +24,13 @@ class SyntheticsResponse(BaseResponse):
         """
         Returns the backend instance for the current region.
         """
-        return synthetics_backends[self.region]  # type: ignore
+        return synthetics_backends[self.current_account][self.region]
 
-    def create_canary(self) -> dict[str, Any]:
+    def create_canary(self) -> str:
         """
         Create a new canary using the provided parameters.
         """
-        params: dict[str, Any] = (
-            self.request_json if isinstance(self.request_json, dict) else {}
-        )
+        params = json.loads(self.body)
         canary = self.synthetics_backend.create_canary(
             name=params["Name"],
             code=params.get("Code", {}),
@@ -56,29 +54,50 @@ class SyntheticsResponse(BaseResponse):
             tags=params.get("Tags", {}),
             artifact_config=params.get("ArtifactConfig"),
         )
-        return {"Canary": canary.to_dict()}
+        return json.dumps({"Canary": canary.to_dict()})
 
-    def get_canary(self) -> dict[str, object]:
+    def get_canary(self) -> str:
         """
         Retrieve details for a specific canary by name.
         """
-        params = self._get_params()  # from URL path regex
-        name = params["name"]
+        # Extract name from the URL path /canary/MyCanary
+        path_parts = self.path.split("/")
+        name = path_parts[-1] if len(path_parts) > 1 else None
+        if not name:
+            raise ValueError("Canary name not found in URL")
         canary = self.synthetics_backend.get_canary(name)
-        return {"Canary": canary.to_dict()}
+        return json.dumps({"Canary": canary.to_dict()})
 
-    def describe_canaries(self) -> dict[str, object]:
+    def describe_canaries(self) -> str:
         """
         List all canaries in the backend.
         """
         canaries, _ = self.synthetics_backend.describe_canaries(None, None, None)
-        return {"Canaries": [c.to_dict() for c in canaries]}
+        return json.dumps({"Canaries": [c.to_dict() for c in canaries]})
 
-    def list_tags_for_resource(self) -> dict[str, object]:
+    def list_tags_for_resource(self) -> str:
         """
         List tags for a given resource ARN.
         """
-        params = self._get_params()  # from URL path regex
-        arn = params["resourceArn"]
+        # Extract ARN from the URL path /tags/{resourceArn}
+        path_parts = self.path.split("/")
+        arn = path_parts[-1] if len(path_parts) > 1 else None
+        if not arn:
+            raise ValueError("Resource ARN not found in URL")
         tags = self.synthetics_backend.list_tags_for_resource(arn)
-        return {"Tags": tags}
+        return json.dumps({"Tags": tags})
+
+    def _get_action(self) -> str:
+        """
+        Override to provide default action for root endpoint.
+        """
+        action = super()._get_action()
+        if action is None and self.path == "/":
+            return "GetHealthCheck"  # Default action for root endpoint
+        return action or "Unknown"
+
+    def get_health_check(self) -> str:
+        """
+        Handle root endpoint requests.
+        """
+        return "What would you like to do?"

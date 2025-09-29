@@ -7,6 +7,7 @@ url_bases = [
 ]
 
 url_paths = {
+    "{0}/$": SyntheticsResponse.dispatch,
     "{0}/canary$": SyntheticsResponse.dispatch,
     "{0}/canary/(?P<name>[^/]+)$": SyntheticsResponse.dispatch,
     "{0}/canaries$": SyntheticsResponse.dispatch,
