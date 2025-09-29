@@ -17,7 +17,7 @@ class SecurityHubResponse(BaseResponse):
 
     def enable_security_hub(self) -> str:
         params = json.loads(self.body) if self.body else {}
-        enable_default_standards = (params.get("EnableDefaultStandards", True),)
+        enable_default_standards = params.get("EnableDefaultStandards", True)
         tags = params.get("Tags", {})
 
         self.securityhub_backend.enable_security_hub(

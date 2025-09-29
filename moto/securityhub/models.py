@@ -41,8 +41,8 @@ class SecurityHubBackend(BaseBackend):
         self.findings: List[Finding] = []
         self.region_name = region_name
         self.org_backend = organizations_backends[self.account_id]["aws"]
+        self.enabled_at: Optional[str] = None
         self.enabled = False
-        self.enabled_at = None
 
     def _get_org_config(self) -> Dict[str, Any]:
         """Get organization config for the current account."""
