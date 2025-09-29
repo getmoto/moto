@@ -69,7 +69,7 @@ class SecurityHubBackend(BaseBackend):
         self,
         enable_default_standards: bool = True,
         tags: Optional[Dict[str, str]] = None,
-    ):
+    ) -> Dict[str, Any]:
         if self.enabled:
             return {}
 
