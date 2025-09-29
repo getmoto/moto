@@ -9,8 +9,8 @@ from moto.core.utils import (
     underscores_to_camelcase,
 )
 from moto.utilities.aws_headers import amz_crc32
-from ..core.common_types import TYPE_RESPONSE
 
+from ..core.common_types import TYPE_RESPONSE
 from ..core.parsers import XFormedDict
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
@@ -21,8 +21,8 @@ from .exceptions import (
     BatchEntryIdsNotDistinct,
     EmptyBatchRequest,
     InvalidAttributeName,
+    MaxVisibilityTimeout,
     SQSException,
-MaxVisibilityTimeout,
 )
 from .models import SQSBackend, sqs_backends
 from .utils import validate_message_attributes
@@ -42,40 +42,16 @@ class SQSResponse(BaseResponse):
     @property
     def attribute(self) -> Any:  # type: ignore[misc]
         return self._get_attrs("Attributes")
-        # Original code
-        try:
-            assert self.is_json()
-            return json.loads(self.body).get("Attributes", {})
-        except:  # noqa: E722 Do not use bare except
-            if not hasattr(self, "_attribute"):
-                self._attribute = self._get_map_prefix(
-                    "Attribute", key_end=".Name", value_end=".Value"
-                )
-            return self._attribute
 
     @property
     def tags(self) -> Dict[str, str]:
         tags = self._get_param("Tags", XFormedDict())
         tags = tags.original_dict()
-        self._tags = tags
-        return self._tags
-        # Original property code
-        if not hasattr(self, "_tags"):
-            if self.is_json():
-                self._tags = self._get_param("tags")
-            else:
-                self._tags = self._get_map_prefix(
-                    "Tag", key_end=".Key", value_end=".Value"
-                )
-        return self._tags.original_items()
+        return tags
 
     def _get_queue_name(self) -> str:
         try:
             queue_url = self._get_param("QueueUrl")
-            # if self.is_json():
-            #     queue_url = self._get_param("QueueUrl")
-            # else:
-            #     queue_url = self.querystring.get("QueueUrl")[0]  # type: ignore
             if queue_url.startswith("http://") or queue_url.startswith("https://"):
                 return queue_url.split("/")[-1]
             else:
@@ -114,7 +90,7 @@ class SQSResponse(BaseResponse):
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
         queue = self.sqs_backend.get_queue_url(queue_name)
-        result ={"QueueUrl": queue.url(request_url)}
+        result = {"QueueUrl": queue.url(request_url)}
         return ActionResult(result)
 
     def list_queues(self) -> ActionResult:
@@ -157,17 +133,19 @@ class SQSResponse(BaseResponse):
         # TODO: What was this checking and is it covered by a test?
         # if not self.is_json() and self.querystring.get("AttributeNames"):
         #     raise InvalidAttributeName("")
-        attribute_names = self._get_param("AttributeNames",)
-        if  attribute_names ==[] or (attribute_names and "" in attribute_names):
+        attribute_names = self._get_param(
+            "AttributeNames",
+        )
+        if attribute_names == [] or (attribute_names and "" in attribute_names):
             raise InvalidAttributeName("")
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
         result = {
-                    "Attributes": {
-                        key: str(value)
-                        for key, value in attributes.items()
-                        if value is not None
-                    }
-                }
+            "Attributes": {
+                key: str(value)
+                for key, value in attributes.items()
+                if value is not None
+            }
+        }
         if not result["Attributes"]:
             return EmptyResult()
         return ActionResult(result)
@@ -245,18 +223,15 @@ class SQSResponse(BaseResponse):
     def send_message_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
         self.sqs_backend.get_queue(queue_name)
-        entries = self._get_param("Entries",[])
+        entries = self._get_param("Entries", [])
         if not entries:
             raise EmptyBatchRequest()
-        entries = {
-                str(idx): entry for idx, entry in enumerate(entries)
-            }
+        entries = {str(idx): entry for idx, entry in enumerate(entries)}
         # This was originally in query parsing - do we still need this?
         for entry in entries.values():
             if "MessageAttribute" in entry:
                 entry["MessageAttributes"] = {
-                    val["Name"]: val["Value"]
-                    for val in entry.pop("MessageAttribute")
+                    val["Name"]: val["Value"] for val in entry.pop("MessageAttribute")
                 }
 
         for entry in entries.values():
@@ -332,11 +307,13 @@ class SQSResponse(BaseResponse):
 
     def receive_message(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        message_attributes = self._get_param("MessageAttributeNames",[])
-        message_system_attributes = self._get_param("MessageSystemAttributeNames",{})
+        message_attributes = self._get_param("MessageAttributeNames", [])
+        message_system_attributes = self._get_param("MessageSystemAttributeNames", {})
         attribute_names = self._get_param("AttributeNames", [])
         queue = self.sqs_backend.get_queue(queue_name)
-        message_count = self._get_param("MaxNumberOfMessages", DEFAULT_RECEIVED_MESSAGES)
+        message_count = self._get_param(
+            "MaxNumberOfMessages", DEFAULT_RECEIVED_MESSAGES
+        )
         if message_count < 1 or message_count > 10:
             raise SQSException(
                 "InvalidParameterValue",
@@ -420,9 +397,7 @@ class SQSResponse(BaseResponse):
                     message.approximate_first_receive_timestamp
                 )
             if attributes["message_deduplication_id"]:
-                msg["Attributes"]["MessageDeduplicationId"] = (
-                    message.deduplication_id
-                )
+                msg["Attributes"]["MessageDeduplicationId"] = message.deduplication_id
             if attributes["message_group_id"] and message.group_id is not None:
                 msg["Attributes"]["MessageGroupId"] = message.group_id
             if message.system_attributes and message.system_attributes.get(
@@ -431,10 +406,7 @@ class SQSResponse(BaseResponse):
                 msg["Attributes"]["AWSTraceHeader"] = message.system_attributes[
                     "AWSTraceHeader"
                 ].get("string_value")
-            if (
-                attributes["sequence_number"]
-                and message.sequence_number is not None
-            ):
+            if attributes["sequence_number"] and message.sequence_number is not None:
                 msg["Attributes"]["SequenceNumber"] = message.sequence_number
             for name, value in message.message_attributes.items():
                 msg["MessageAttributes"][name] = {"DataType": value["data_type"]}
@@ -453,20 +425,20 @@ class SQSResponse(BaseResponse):
                 msg.pop("MessageAttributes")
             msgs.append(msg)
 
-        result =  {"Messages": msgs} if msgs else {}
+        result = {"Messages": msgs} if msgs else {}
         return ActionResult(result)
 
     def list_dead_letter_source_queues(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name = self._get_queue_name()
         queues = self.sqs_backend.list_dead_letter_source_queues(queue_name)
-        result ={"queueUrls": [queue.url(request_url) for queue in queues]}
+        result = {"queueUrls": [queue.url(request_url) for queue in queues]}
         return ActionResult(result)
 
     def add_permission(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        actions = self._get_param("Actions",[])
-        account_ids = self._get_param("AWSAccountIds",[])
+        actions = self._get_param("Actions", [])
+        account_ids = self._get_param("AWSAccountIds", [])
         label = self._get_param("Label")
         self.sqs_backend.add_permission(
             region_name=self.region,

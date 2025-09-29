@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import copy
 import datetime
 import inspect
@@ -468,7 +469,7 @@ def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
 
 
 @cache
-def get_service_model(service_name: str) -> Any: #ServiceModel:
+def get_service_model(service_name: str) -> ServiceModel:
     loader = create_loader()
     model = loader.load_service_model(service_name, "service-2")
     # Generalize extra loading for any/all services
@@ -483,16 +484,18 @@ def get_service_model(service_name: str) -> Any: #ServiceModel:
     service_model = ServiceModel(model, service_name)
     return service_model
 
+
 def query_compatible_service_model(service_model: ServiceModel) -> ServiceModel:
     # We have to deepcopy here or we'll stomp all over the original json data
     # This matters if, say, we're running in server mode and handling both json and query requests for SQS
-    model = copy.deepcopy(service_model._service_description)
+    model = copy.deepcopy(getattr(service_model,"_service_description",{}))
     metadata = model.get("metadata", {})
-    query_shapes = metadata.get("awsQueryCompatible",{}).get("shapes",{})
-    deep_merge(model["shapes"],query_shapes)
-    query_operations = metadata.get("awsQueryCompatible",{}).get("operations",{})
-    deep_merge(model["operations"],query_operations)
+    query_shapes = metadata.get("awsQueryCompatible", {}).get("shapes", {})
+    deep_merge(model["shapes"], query_shapes)
+    query_operations = metadata.get("awsQueryCompatible", {}).get("operations", {})
+    deep_merge(model["operations"], query_operations)
     return ServiceModel(model, service_model.service_name)
+
 
 def get_value(obj: Any, key: int | str, default: Any = MISSING) -> Any:
     """Helper for pulling a keyed value off various types of objects.

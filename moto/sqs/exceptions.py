@@ -1,6 +1,8 @@
 from moto.core.exceptions import ServiceException
 
 from .constants import MAXIMUM_VISIBILITY_TIMEOUT
+
+
 class SQSException(ServiceException):
     pass
 
@@ -89,9 +91,13 @@ class InvalidParameterValue(SQSException):
     def __init__(self, message: str):
         super().__init__("InvalidParameterValue", message)
 
+
 class MaxVisibilityTimeout(SQSException):
-    code ="InvalidParameterValue"
-    message = f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILITY_TIMEOUT}"
+    code = "InvalidParameterValue"
+    message = (
+        f"Invalid request, maximum visibility timeout is {MAXIMUM_VISIBILITY_TIMEOUT}"
+    )
+
 
 class MissingParameter(SQSException):
     def __init__(self, parameter: str):
