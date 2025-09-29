@@ -1,4 +1,5 @@
 """synthetics base URL and path."""
+
 from .responses import SyntheticsResponse
 
 url_bases = [

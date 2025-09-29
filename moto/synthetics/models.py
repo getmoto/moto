@@ -1,4 +1,5 @@
 """SyntheticsBackend class with methods for supported APIs."""
+
 import datetime
 import uuid
 from typing import Dict, List, Optional
@@ -12,6 +13,7 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
     """
     Represents a CloudWatch Synthetics Canary resource.
     """
+
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
         name: str,
@@ -82,7 +84,9 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
                 "StateReasonCode": "CREATE_COMPLETE",
             },
             "Timeline": {
-                "Created": iso_8601_datetime_with_milliseconds(self.timeline["Created"]),
+                "Created": iso_8601_datetime_with_milliseconds(
+                    self.timeline["Created"]
+                ),
                 "LastModified": iso_8601_datetime_with_milliseconds(
                     self.timeline["LastModified"]
                 ),
@@ -146,7 +150,7 @@ class SyntheticsBackend(BaseBackend):
     def get_canary(self, name: str, dry_run_id: Optional[str] = None) -> Canary:  # pylint: disable=unused-argument
         """
         Retrieve a Canary by name.
-        
+
         Args:
             name (str): The name of the canary.
             dry_run_id (Optional[str]): Unused argument for compatibility.
@@ -156,13 +160,13 @@ class SyntheticsBackend(BaseBackend):
 
     def describe_canaries(
         self,
-    next_token: Optional[str],  # pylint: disable=unused-argument
-    max_results: Optional[int],  # pylint: disable=unused-argument
+        next_token: Optional[str],  # pylint: disable=unused-argument
+        max_results: Optional[int],  # pylint: disable=unused-argument
         names: Optional[List[str]],
     ):
         """
         Return a list of canaries, optionally filtered by names.
-        
+
         Args:
             next_token (Optional[str]): Unused pagination token.
             max_results (Optional[int]): Unused max results.
@@ -186,45 +190,3 @@ class SyntheticsBackend(BaseBackend):
 
 # Exported backend dict for Moto Synthetics
 synthetics_backends = {}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,4 +1,5 @@
 """Unit tests for synthetics-supported APIs."""
+
 import boto3
 
 from moto import mock_aws
