@@ -266,6 +266,45 @@ def test_describe_workspaces_only_user_name_used():
 
 
 @mock_aws
+def test_terminate_workspaces():
+    client = boto3.client("workspaces", region_name="eu-west-1")
+    directory_id = create_directory()
+    client.register_workspace_directory(DirectoryId=directory_id)
+
+    resp = client.create_workspaces(
+        Workspaces=[
+            {
+                "DirectoryId": directory_id,
+                "UserName": "Administrator",
+                "BundleId": "wsb-bh8rsxt14",
+            },
+        ]
+    )
+    workspace_id = resp["PendingRequests"][0]["WorkspaceId"]
+
+    desc = client.describe_workspaces(WorkspaceIds=[workspace_id])
+    assert desc["Workspaces"][0]["WorkspaceId"] == workspace_id
+
+    resp = client.terminate_workspaces(
+        TerminateWorkspaceRequests=[{"WorkspaceId": workspace_id}]
+    )
+    desc = client.describe_workspaces()
+
+    assert resp["FailedRequests"] == []
+    assert len(desc["Workspaces"]) == 0
+
+    resp = client.terminate_workspaces(
+        TerminateWorkspaceRequests=[{"WorkspaceId": "ws-unknown"}]
+    )
+    assert len(resp["FailedRequests"]) == 1
+
+    failed = resp["FailedRequests"][0]
+    assert failed["WorkspaceId"] == "ws-unknown"
+    assert failed["ErrorCode"] == "400"
+    assert "could not be found" in failed["ErrorMessage"]
+
+
+@mock_aws
 def test_register_workspace_directory():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()

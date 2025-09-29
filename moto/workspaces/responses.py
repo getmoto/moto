@@ -50,6 +50,16 @@ class WorkSpacesResponse(BaseResponse):
         )
         return json.dumps(dict(Directories=[d.to_dict() for d in directories]))
 
+    def terminate_workspaces(self) -> str:
+        params = json.loads(self.body)
+        terminate_requests = params.get("TerminateWorkspaceRequests")
+
+        failed_requests = self.workspaces_backend.terminate_workspaces(
+            terminate_workspace_requests=terminate_requests,
+        )
+
+        return json.dumps(failed_requests)
+
     def register_workspace_directory(self) -> str:
         params = json.loads(self.body)
         directory_id = params.get("DirectoryId")

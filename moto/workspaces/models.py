@@ -428,6 +428,32 @@ class WorkSpacesBackend(BaseBackend):
         # workspaces = [w.to_dict_pending() for w in workspaces]
         return workspaces
 
+    def terminate_workspaces(
+        self, terminate_workspace_requests: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        failed_requests = []
+        terminated_workspaces = []
+
+        for ws in terminate_workspace_requests:
+            workspace_id = ws["WorkspaceId"]
+            if workspace_id not in self.workspaces:
+                failed_requests.append(
+                    {
+                        "WorkspaceId": workspace_id,
+                        "ErrorCode": "400",
+                        "ErrorMessage": f"WorkSpace {workspace_id} could not be found.",
+                    }
+                )
+                continue
+
+            terminated_workspaces.append({"WorkspaceId": workspace_id})
+
+            self.workspaces.pop(workspace_id)
+
+        return {
+            "FailedRequests": failed_requests,
+        }
+
     def register_workspace_directory(
         self,
         directory_id: str,
