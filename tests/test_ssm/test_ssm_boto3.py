@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ssm.models import PARAMETER_HISTORY_MAX_RESULTS, PARAMETER_VERSION_LIMIT
-from tests import EXAMPLE_AMI_ID
+from tests import EXAMPLE_AMI_ID, aws_verified
 
 SSM_REGION = "us-east-1"
 
@@ -2389,3 +2389,83 @@ def test_get_parameter_history_exception_when_requesting_invalid_parameter():
     error = ex.value.response["Error"]
     assert error["Code"] == "ParameterNotFound"
     assert error["Message"] == "Parameter invalid_parameter_name not found."
+
+
+@aws_verified
+@pytest.mark.parametrize("param_name", ("/with-slash", "without-slash"))
+@pytest.mark.parametrize("stripped", (True, False))
+def test_parameter_lifecycle_with_leading_slash(param_name, stripped):
+    client = boto3.client("ssm", region_name=SSM_REGION)
+
+    client.put_parameter(Name=param_name, Value="value", Type="String")
+
+    access_param_name = param_name.lstrip("/")
+    if not stripped:
+        access_param_name = f"/{access_param_name}"
+
+    # get with the "at create" name
+    param = client.get_parameter(Name=param_name)["Parameter"]
+    param_arn = param["ARN"]
+
+    # get with the access name
+    response = client.get_parameter(Name=access_param_name)
+    assert response["Parameter"]["ARN"] == param_arn
+
+    # get parameters with the access name
+    response = client.get_parameters(Names=[access_param_name])
+    assert len(response["Parameters"]) == 1
+
+    # delete with the access name
+    client.delete_parameter(Name=access_param_name)
+    response = client.get_parameters(Names=[access_param_name])
+    assert len(response["Parameters"]) == 0
+
+    # recreate the parameter with original name
+    client.put_parameter(Name=param_name, Value="value", Type="String")
+
+    # Cleanup resources
+    client.delete_parameters(Names=[access_param_name])
+    response = client.get_parameters(Names=[access_param_name])
+    assert len(response["Parameters"]) == 0
+
+
+@aws_verified
+@pytest.mark.parametrize("param_name", ("/with-slash", "without-slash"))
+def test_list_parameter_tags_created_with_leading_slash(param_name):
+    client = boto3.client("ssm", region_name=SSM_REGION)
+
+    client.put_parameter(Name=param_name, Value="value", Type="String")
+
+    stripped_param_name = param_name.lstrip("/")
+    slash_param_name = f"/{stripped_param_name}"
+
+    client.add_tags_to_resource(
+        ResourceId=stripped_param_name,
+        ResourceType="Parameter",
+        Tags=[{"Key": "stripped", "Value": stripped_param_name}],
+    )
+
+    client.add_tags_to_resource(
+        ResourceId=slash_param_name,
+        ResourceType="Parameter",
+        Tags=[{"Key": "leading-slash", "Value": slash_param_name}],
+    )
+
+    for param_id in (stripped_param_name, slash_param_name):
+        tags = client.list_tags_for_resource(
+            ResourceId=param_id, ResourceType="Parameter"
+        )
+        assert len(tags["TagList"]) == 2
+
+    client.remove_tags_from_resource(
+        ResourceId=stripped_param_name,
+        ResourceType="Parameter",
+        TagKeys=["leading-slashed"],
+    )
+
+    client.remove_tags_from_resource(
+        ResourceId=slash_param_name, ResourceType="Parameter", TagKeys=["stripped"]
+    )
+
+    # Cleanup resources
+    client.delete_parameters(Names=[param_name])

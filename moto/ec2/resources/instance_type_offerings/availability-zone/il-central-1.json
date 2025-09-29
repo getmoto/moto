@@ -2096,6 +2096,14 @@
   "Location": "il-central-1b"
  },
  {
+  "InstanceType": "u-6tb1.112xlarge",
+  "Location": "il-central-1b"
+ },
+ {
+  "InstanceType": "u-6tb1.56xlarge",
+  "Location": "il-central-1b"
+ },
+ {
   "InstanceType": "c5.12xlarge",
   "Location": "il-central-1c"
  },

@@ -748,9 +748,21 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             pass
         return headers, body
 
-    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
+    def _get_param(
+        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
+    ) -> Any:
+        """
+        Get parameter from body/query/headers
+
+        :param use_original_dict Whether to return the data that was originally provided, or return the normalized (snake-case) dict
+        """
         if self.automated_parameter_parsing:
-            return get_value(self.params, param_name, default=if_none)
+            params_to_use = (
+                self.params.original_dict()
+                if use_original_dict and isinstance(self.params, XFormedDict)
+                else self.params
+            )
+            return get_value(params_to_use, param_name, default=if_none)
 
         val = self.querystring.get(param_name)
         if val is not None:

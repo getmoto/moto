@@ -310,6 +310,11 @@ class XFormedDict(MutableMapping):
             value = keyval[1]
             if isinstance(value, XFormedDict):
                 value = value.original_dict()
+            if isinstance(value, list):
+                value = [
+                    v.original_dict() if isinstance(v, XFormedDict) else v
+                    for v in value
+                ]
             original_dict[key] = value
         return original_dict
 
