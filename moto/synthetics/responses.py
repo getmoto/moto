@@ -2,8 +2,10 @@
 Response handlers for AWS CloudWatch Synthetics API emulation in Moto.
 """
 
+from typing import Any
+
 from moto.core.responses import BaseResponse
-from moto.synthetics.models import synthetics_backends
+from moto.synthetics.models import SyntheticsBackend, synthetics_backends
 
 
 class SyntheticsResponse(BaseResponse):
@@ -11,24 +13,26 @@ class SyntheticsResponse(BaseResponse):
     Handles API responses for AWS CloudWatch Synthetics operations.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the SyntheticsResponse with the synthetics service name.
         """
         super().__init__(service_name="synthetics")
 
     @property
-    def synthetics_backend(self):
+    def synthetics_backend(self) -> SyntheticsBackend:
         """
         Returns the backend instance for the current region.
         """
-        return synthetics_backends[self.region]
+        return synthetics_backends[self.region]  # type: ignore
 
-    def create_canary(self):
+    def create_canary(self) -> dict[str, Any]:
         """
         Create a new canary using the provided parameters.
         """
-        params = self.request_json or {}  # ✅ correct way
+        params: dict[str, Any] = (
+            self.request_json if isinstance(self.request_json, dict) else {}
+        )
         canary = self.synthetics_backend.create_canary(
             name=params["Name"],
             code=params.get("Code", {}),
@@ -54,7 +58,7 @@ class SyntheticsResponse(BaseResponse):
         )
         return {"Canary": canary.to_dict()}
 
-    def get_canary(self):
+    def get_canary(self) -> dict[str, object]:
         """
         Retrieve details for a specific canary by name.
         """
@@ -63,14 +67,14 @@ class SyntheticsResponse(BaseResponse):
         canary = self.synthetics_backend.get_canary(name)
         return {"Canary": canary.to_dict()}
 
-    def describe_canaries(self):
+    def describe_canaries(self) -> dict[str, object]:
         """
         List all canaries in the backend.
         """
-        canaries = self.synthetics_backend.describe_canaries()
+        canaries, _ = self.synthetics_backend.describe_canaries(None, None, None)
         return {"Canaries": [c.to_dict() for c in canaries]}
 
-    def list_tags_for_resource(self):
+    def list_tags_for_resource(self) -> dict[str, object]:
         """
         List tags for a given resource ARN.
         """

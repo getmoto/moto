@@ -4,7 +4,7 @@ import datetime
 import uuid
 from typing import Dict, List, Optional
 
-from moto.core.base_backend import BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
@@ -17,20 +17,20 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
         name: str,
-        code: Dict,
+        code: Dict[str, object],
         artifact_s3_location: str,
         execution_role_arn: str,
-        schedule: Dict,
-        run_config: Dict,
+        schedule: Dict[str, object],
+        run_config: Dict[str, object],
         success_retention_period_in_days: int,
         failure_retention_period_in_days: int,
         runtime_version: str,
-        vpc_config: Optional[Dict],
+        vpc_config: Optional[Dict[str, object]],
         resources_to_replicate_tags: Optional[List[str]],
         provisioned_resource_cleanup: Optional[str],
-        browser_configs: Optional[List[Dict]],
+        browser_configs: Optional[List[Dict[str, object]]],
         tags: Optional[Dict[str, str]],
-        artifact_config: Optional[Dict],
+        artifact_config: Optional[Dict[str, object]],
     ):
         self.name = name
         self.id = str(uuid.uuid4())
@@ -58,7 +58,7 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
             "LastStopped": None,
         }
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> Dict[str, object]:
         """
         Convert the Canary object to a dictionary representation.
         """
@@ -108,22 +108,22 @@ class SyntheticsBackend(BaseBackend):
 
     def create_canary(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
-        name,
-        code,
-        artifact_s3_location,
-        execution_role_arn,
-        schedule,
-        run_config,
-        success_retention_period_in_days,
-        failure_retention_period_in_days,
-        runtime_version,
-        vpc_config,
-        resources_to_replicate_tags,
-        provisioned_resource_cleanup,
-        browser_configs,
-        tags,
-        artifact_config,
-    ):
+        name: str,
+        code: Dict[str, object],
+        artifact_s3_location: str,
+        execution_role_arn: str,
+        schedule: Dict[str, object],
+        run_config: Dict[str, object],
+        success_retention_period_in_days: int,
+        failure_retention_period_in_days: int,
+        runtime_version: str,
+        vpc_config: Optional[Dict[str, object]],
+        resources_to_replicate_tags: Optional[List[str]],
+        provisioned_resource_cleanup: Optional[str],
+        browser_configs: Optional[List[Dict[str, object]]],
+        tags: Optional[Dict[str, str]],
+        artifact_config: Optional[Dict[str, object]],
+    ) -> Canary:
         """
         Create a new Canary resource and store it in the backend.
         """
@@ -163,7 +163,7 @@ class SyntheticsBackend(BaseBackend):
         next_token: Optional[str],  # pylint: disable=unused-argument
         max_results: Optional[int],  # pylint: disable=unused-argument
         names: Optional[List[str]],
-    ):
+    ) -> tuple[list[Canary], None]:
         """
         Return a list of canaries, optionally filtered by names.
 
@@ -189,4 +189,4 @@ class SyntheticsBackend(BaseBackend):
 
 
 # Exported backend dict for Moto Synthetics
-synthetics_backends = {}
+synthetics_backends = BackendDict(SyntheticsBackend, "synthetics")
