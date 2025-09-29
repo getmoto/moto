@@ -177,9 +177,7 @@ class MacieBackend(BaseBackend):
             "updatedAt": now,
         }
 
-    def enable_organization_admin_account(
-        self, admin_account_id: str
-    ) -> None: 
+    def enable_organization_admin_account(self, admin_account_id: str) -> None:
         self.organization_admin_account_id = admin_account_id
 
     def list_organization_admin_accounts(self) -> list[dict[str, str]]:
