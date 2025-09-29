@@ -1133,7 +1133,7 @@ class SQSBackend(BaseBackend):
                         "Id": entry["id"],
                         "SenderFault": "true",
                         "Code": "ReceiptHandleIsInvalid",
-                        "Message": e.description,
+                        "Message": getattr(e, "message", ""),
                     }
                 )
         return success, error

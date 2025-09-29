@@ -47,7 +47,8 @@ from moto.core.utils import (
     get_value,
     gzip_decompress,
     method_names_from_class,
-    params_sort_function, query_compatible_service_model,
+    params_sort_function,
+    query_compatible_service_model,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
 from moto.utilities.utils import get_partition
@@ -642,7 +643,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         )
         try:
             if protocol == "query" and service_model.is_query_compatible:
-                service_model =  query_compatible_service_model(service_model)
+                service_model = query_compatible_service_model(service_model)
         except AttributeError:
             # Older botocore doesn't have is_query_compat
             pass
@@ -671,7 +672,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         protocol = self.determine_response_protocol(service_model)
         try:
             if protocol == "query" and service_model.is_query_compatible:
-                service_model =  query_compatible_service_model(service_model)
+                service_model = query_compatible_service_model(service_model)
         except AttributeError:
             # Older botocore doesn't have is_query_compat
             pass
