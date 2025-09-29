@@ -41,6 +41,8 @@ class SecurityHubBackend(BaseBackend):
         self.findings: List[Finding] = []
         self.region_name = region_name
         self.org_backend = organizations_backends[self.account_id]["aws"]
+        self.enabled = False
+        self.enabled_at = None
 
     def _get_org_config(self) -> Dict[str, Any]:
         """Get organization config for the current account."""
@@ -62,6 +64,60 @@ class SecurityHubBackend(BaseBackend):
                 },
             }
         return SecurityHubBackend._org_configs[org_id]
+
+    def enable_security_hub(
+        self,
+        enable_default_standards: bool = True,
+        tags: Optional[Dict[str, str]] = None,
+    ):
+        if self.enabled:
+            return {}
+
+        self.enabled = True
+        self.enabled_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        self.tags = tags or {}
+
+        if enable_default_standards:
+            pass
+
+        return {}
+
+    def disable_security_hub(self) -> Dict[str, Any]:
+        if not self.enabled:
+            raise RESTError(
+                "InvalidAccessException",
+                "Account is not subscribed to AWS Security Hub",
+            )
+
+        self.enabled = False
+        self.enabled_at = None
+        self.findings = []
+
+        return {}
+
+    def describe_hub(self, hub_arn: Optional[str] = None) -> Dict[str, Any]:
+        if not self.enabled:
+            raise RESTError(
+                "InvalidAccessException",
+                "Account is not subscribed to AWS Security Hub",
+            )
+
+        expected_arn = (
+            f"arn:aws:securityhub:{self.region_name}:{self.account_id}:hub/default"
+        )
+        if hub_arn and hub_arn != expected_arn:
+            raise RESTError(
+                "ResourceNotFoundException",
+                f"The request was rejected because no hub was found with ARN {hub_arn}.",
+            )
+
+        return {
+            "HubArn": expected_arn,
+            "SubscribedAt": self.enabled_at,
+            "AutoEnableControls": True,
+            "ControlFindingGenerator": "SECURITY_CONTROL",
+            "Tags": self.tags or {},
+        }
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_findings(
