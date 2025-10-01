@@ -12,7 +12,7 @@ def test_create_service():
     assert resp["status"] == "ACTIVE"
     assert resp["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
     assert resp["dnsEntry"]["hostedZoneId"].startswith("Z")
-    assert resp["id"].startswith("srv-")
+    assert resp["id"].startswith("svc-")
     assert resp["authType"] == "NONE"
     assert resp["certificateArn"] == ""
     assert resp["customDomainName"] == ""
@@ -30,7 +30,7 @@ def test_create_service_network():
 
     assert resp["name"] == "my-sn"
     assert resp["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
-    assert resp["id"].startswith("snet-")
+    assert resp["id"].startswith("sn-")
     assert resp["authType"] == "NONE"
     assert resp["sharingConfig"] == {"enabled": False}
 

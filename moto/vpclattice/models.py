@@ -20,7 +20,7 @@ class VPCLatticeService(BaseModel):
         name: str,
         tags: Optional[Dict[str, str]],
     ) -> None:
-        self.id: str = f"srv-{str(uuid.uuid4())[:18]}"
+        self.id: str = f"svc-{str(uuid.uuid4())[:17]}"
         self.auth_type: str = auth_type
         self.certificate_arn: str = certificate_arn or ""
         self.client_token: str = client_token
@@ -62,7 +62,7 @@ class VPCLatticeServiceNetwork(BaseModel):
         )
         self.auth_type: str = auth_type
         self.client_token: str = client_token
-        self.id: str = f"snet-{name[:8]}"
+        self.id: str = f"sn-{str(uuid.uuid4())[:17]}"
         self.name: str = name
         self.sharing_config: Dict[str, Any] = sharing_config or {}
         self.tags: Dict[str, str] = tags or {}
@@ -128,7 +128,7 @@ class VPCLatticeRule(BaseModel):
             f"arn:aws:vpc-lattice:{region}:{account_id}:service/{service_identifier}"
             f"/listener/{listener_identifier}/rule/{name}"
         )
-        self.id: str = f"rule-{str(uuid.uuid4())[:8]}"
+        self.id: str = f"rule-[0-9a-z]{17}"
         self.client_token: str = client_token
         self.listener_identifier: str = listener_identifier
         self.match: Dict[str, Any] = match or {}
