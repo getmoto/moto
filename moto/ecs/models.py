@@ -374,6 +374,7 @@ class Task(BaseObject, ManagedState):
         started_by: str = "",
         tags: Optional[List[Dict[str, str]]] = None,
         networking_configuration: Optional[Dict[str, Any]] = None,
+        platform_version: Optional[str] = None,
     ):
         # Configure ManagedState
         # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-lifecycle.html
@@ -404,6 +405,7 @@ class Task(BaseObject, ManagedState):
         self.started_by = started_by
         self.tags = tags or []
         self.launch_type = launch_type
+        self.platform_version = platform_version
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
         self.region_name = cluster.region_name
@@ -466,6 +468,7 @@ class Task(BaseObject, ManagedState):
             response_object.pop("tags", None)
         response_object["taskArn"] = self.task_arn
         response_object["lastStatus"] = self.last_status
+        response_object["platformVersion"] = self.platform_version
         response_object["containers"] = [self.containers[0].response_object]
         return response_object
 
@@ -602,6 +605,9 @@ class Service(BaseObject, CloudFormationModel):
                     "launchType": self.launch_type,
                     "pendingCount": self.pending_count,
                     "runningCount": ecs_running_count,
+                    "platformVersion": self.platform_version,
+                    "networkConfiguration": network_configuration,
+                    "platformFamily": "EC2" if self.launch_type == "EC2" else "FARGATE",
                     "status": "PRIMARY",
                     "taskDefinition": self.task_definition,
                     "updatedAt": datetime.now(timezone.utc),
@@ -1386,6 +1392,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         launch_type: Optional[str],
         networking_configuration: Optional[Dict[str, Any]] = None,
         group: Optional[str] = None,
+        platform_version: Optional[str] = None,
     ) -> List[Task]:
         if launch_type and launch_type not in ["EC2", "FARGATE", "EXTERNAL"]:
             raise InvalidParameterException(
@@ -1419,6 +1426,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     tags=tags or [],
                     launch_type=launch_type or "",
                     networking_configuration=networking_configuration,
+                    platform_version=platform_version,
                 )
                 tasks.append(task)
                 self.tasks[cluster.name][task.task_arn] = task

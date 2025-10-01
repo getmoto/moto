@@ -556,6 +556,46 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "eun1-az1"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "d2.2xlarge",
   "Location": "eun1-az1"
  },
@@ -2561,6 +2601,46 @@
  },
  {
   "InstanceType": "c8g.xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "eun1-az2"
  },
  {
@@ -4625,6 +4705,46 @@
  },
  {
   "InstanceType": "c7i.xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "eun1-az3"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
   "Location": "eun1-az3"
  },
  {
