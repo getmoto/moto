@@ -39,12 +39,6 @@ def test_firehose_no_tags_or_filters():
         },
         Tags=[{"Key": "key1", "Value": "val1"}],
     )
-    # resp = rtapi.get_resources(ResourceTypeFilters=["firehose"])
-    # assert len(resp["ResourceTagMappingList"]) == 1
-    # assert resp["ResourceTagMappingList"][0]["ResourceARN"].startswith(
-    #     "arn:aws:firehose:us-east-2:"
-    # )
-    # assert resp["ResourceTagMappingList"][0].get("Tags") is None
 
     resp = rtapi.get_resources()
     assert len(resp["ResourceTagMappingList"]) == 1
