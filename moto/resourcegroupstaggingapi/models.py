@@ -26,6 +26,7 @@ from moto.elb.models import ELBBackend, elb_backends
 from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.events.models import EventsBackend, events_backends
+from moto.firehose.models import FirehoseBackend, firehose_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
@@ -148,6 +149,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def ecs_backend(self) -> EC2ContainerServiceBackend:
         return ecs_backends[self.account_id][self.region_name]
+
+    @property
+    def firehose_backend(self) -> FirehoseBackend:
+        return firehose_backends[self.account_id][self.region_name]
 
     @property
     def acm_backend(self) -> AWSCertificateManagerBackend:
@@ -419,6 +424,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     if not tags or not tag_filter(tags):
                         continue
                     yield {"ResourceARN": f"{directory.directory_arn}", "Tags": tags}
+
+        # Firehose
+        if self.firehose_backend:
+            if not resource_type_filters or "firehose" in resource_type_filters:
+                firehose_backend = firehose_backends[self.account_id][self.region_name]
+                for delivery_stream in firehose_backend.delivery_streams.values():
+                    tags = firehose_backend.tagger.list_tags_for_resource(
+                        delivery_stream.delivery_stream_arn
+                    )["Tags"]
+                    if not tags or not tag_filter(tags):
+                        continue
+                    yield {
+                        "ResourceARN": f"{delivery_stream.delivery_stream_arn}",
+                        "Tags": tags,
+                    }
 
         # CloudFormation
         if not resource_type_filters or "cloudformation:stack" in resource_type_filters:
