@@ -154,7 +154,7 @@ class CapacityReservation(TaggableResourceMixin, BaseModel):
         super().__init__(
             athena_backend.account_id,
             self.region_name,
-            f"capacityreservation/{name}",
+            f"capacity-reservation/{name}",
             tags,
         )
         self.athena_backend = athena_backend
@@ -240,7 +240,7 @@ class AthenaBackend(BaseBackend):
             return None
         work_group = WorkGroup(self, name, configuration, description, tags)
         self.work_groups[name] = work_group
-        self.tagger.tag_resource(work_group.name, tags)
+        self.tagger.tag_resource(work_group.arn, tags)
         return work_group
 
     def list_work_groups(self) -> List[Dict[str, Any]]:
@@ -402,7 +402,7 @@ class AthenaBackend(BaseBackend):
     ) -> None:
         cr = CapacityReservation(self, name, target_dpus, tags)
         self.capacity_reservations[cr.name] = cr
-        self.tagger.tag_resource(cr.name, tags)
+        self.tagger.tag_resource(cr.arn, tags)
         return None
 
     def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
@@ -472,7 +472,7 @@ class AthenaBackend(BaseBackend):
             self, name, catalog_type, description, parameters, tags
         )
         self.data_catalogs[name] = data_catalog
-        self.tagger.tag_resource(data_catalog.name, tags)
+        self.tagger.tag_resource(data_catalog.arn, tags)
         return data_catalog
 
     @paginate(pagination_model=PAGINATION_MODEL)
