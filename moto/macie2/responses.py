@@ -58,6 +58,11 @@ class MacieResponse(BaseResponse):
         self.macie_backend.delete_member(member_account_id)
         return "{}"
 
+    def disassociate_member(self) -> str:
+        member_account_id = self.path.split("/")[-1]
+        self.macie_backend.disassociate_member(member_account_id)
+        return "{}"
+
     def get_macie_session(self) -> str:
         session = self.macie_backend.get_macie_session()
         return json.dumps(session)
@@ -73,3 +78,14 @@ class MacieResponse(BaseResponse):
     def disable_macie(self) -> str:
         self.macie_backend.disable_macie()
         return json.dumps(dict())
+
+    def enable_organization_admin_account(self) -> str:
+        admin_account_id = self._get_param("adminAccountId")
+        self.macie_backend.enable_organization_admin_account(
+            admin_account_id=admin_account_id
+        )
+        return json.dumps({})
+
+    def list_organization_admin_accounts(self) -> str:
+        admin_accounts = self.macie_backend.list_organization_admin_accounts()
+        return json.dumps({"adminAccounts": admin_accounts})

@@ -196,3 +196,54 @@ def test_disable_macie():
     response = admin_client.disable_macie()
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
     assert len(admin_client.list_invitations()["invitations"]) == 0
+
+
+@mock_aws
+def test_enable_and_list_organization_admin_account():
+    client = boto3.client("macie2", region_name=REGION)
+    admin_to_set = "999988887777"
+
+    response = client.list_organization_admin_accounts()
+    assert response["adminAccounts"] == []
+
+    client.enable_organization_admin_account(adminAccountId=admin_to_set)
+
+    response = client.list_organization_admin_accounts()
+    assert len(response["adminAccounts"]) == 1
+    assert response["adminAccounts"][0]["accountId"] == admin_to_set
+    assert response["adminAccounts"][0]["status"] == "ENABLED"
+
+
+@mock_aws
+def test_disassociate_member():
+    sts = boto3.client("sts", region_name=REGION)
+    member_identity = sts.assume_role(
+        RoleArn=f"arn:aws:iam::{MEMBER_ACCOUNT_ID}:role/my-role",
+        RoleSessionName="test-session",
+    )["Credentials"]
+
+    admin_client = boto3.client("macie2", region_name=REGION)
+    member_client = boto3.client(
+        "macie2",
+        region_name=REGION,
+        aws_access_key_id=member_identity["AccessKeyId"],
+        aws_secret_access_key=member_identity["SecretAccessKey"],
+        aws_session_token=member_identity["SessionToken"],
+    )
+
+    admin_client.create_invitations(accountIds=[MEMBER_ACCOUNT_ID])
+    invitation_id = admin_client.list_invitations()["invitations"][0]["invitationId"]
+
+    member_client.accept_invitation(
+        administratorAccountId=ADMIN_ACCOUNT_ID, invitationId=invitation_id
+    )
+
+    assert len(admin_client.list_members()["members"]) == 1
+
+    response = admin_client.disassociate_member(id=MEMBER_ACCOUNT_ID)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    assert len(admin_client.list_members()["members"]) == 0
+
+    admin_response = member_client.get_administrator_account()
+    assert "administrator" not in admin_response
