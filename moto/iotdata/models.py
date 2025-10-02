@@ -60,6 +60,9 @@ class FakeShadow(BaseModel):
             shadow = FakeShadow(None, None, None, version, deleted=True)
             return shadow
 
+        if "state" in payload and payload["state"] is None:
+            return FakeShadow(None, None, payload, version)
+
         desired_payload = payload.get("state", {}).get("desired")
         reported_payload = payload.get("state", {}).get("reported")
 
@@ -132,24 +135,26 @@ class FakeShadow(BaseModel):
         return _f(state, ts)
 
     def to_response_dict(self) -> Dict[str, Any]:
-        desired = self.requested_payload["state"].get("desired", None)  # type: ignore
-        reported = self.requested_payload["state"].get("reported", None)  # type: ignore
-
-        payload = {}
-        if desired is not None:
-            payload["desired"] = desired
-        if reported is not None:
-            payload["reported"] = reported
-
         metadata = {}
-        if desired is not None:
-            metadata["desired"] = self._create_metadata_from_state(
-                desired, self.timestamp
-            )
-        if reported is not None:
-            metadata["reported"] = self._create_metadata_from_state(
-                reported, self.timestamp
-            )
+
+        if self.requested_payload["state"] is None:  # type: ignore
+            payload = None
+            metadata["timestamp"] = self.timestamp
+        else:
+            payload = {}
+            desired = self.requested_payload["state"].get("desired", None)  # type: ignore
+            reported = self.requested_payload["state"].get("reported", None)  # type: ignore
+            if desired is not None:
+                payload["desired"] = desired
+                metadata["desired"] = self._create_metadata_from_state(
+                    desired, self.timestamp
+                )
+            if reported is not None:
+                payload["reported"] = reported
+                metadata["reported"] = self._create_metadata_from_state(
+                    reported, self.timestamp
+                )
+
         return {
             "state": payload,
             "metadata": metadata,
@@ -211,10 +216,12 @@ class IoTDataPlaneBackend(BaseBackend):
             raise InvalidRequestException("invalid json")
         if "state" not in _payload:
             raise InvalidRequestException("need node `state`")
-        if not isinstance(_payload["state"], dict):
-            raise InvalidRequestException("state node must be an Object")
-        if any(_ for _ in _payload["state"].keys() if _ not in ["desired", "reported"]):
-            raise InvalidRequestException("State contains an invalid node")
+        if _payload["state"] is not None:
+            if not isinstance(_payload["state"], dict):
+                raise InvalidRequestException("state node must be an Object")
+            acceptable = ["reported", "desired"]
+            if any(map(lambda v: v not in acceptable, _payload["state"].keys())):
+                raise InvalidRequestException("State contains an invalid node")
 
         thing_shadow = thing.thing_shadows.get(shadow_name)
         if "version" in _payload and thing_shadow.version != _payload["version"]:  # type: ignore
