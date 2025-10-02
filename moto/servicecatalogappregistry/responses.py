@@ -82,3 +82,14 @@ class AppRegistryResponse(BaseResponse):
         if app is None:
             raise ValidationException
         return app
+
+    def put_configuration(self) -> None:
+        configuration = self._get_param("configuration")
+        self.servicecatalogappregistry_backend.put_configuration(
+            configuration=configuration,
+        )
+
+    def get_configuration(self) -> str:
+        return json.dumps(
+            {"configuration": self.servicecatalogappregistry_backend.configuration}
+        )
