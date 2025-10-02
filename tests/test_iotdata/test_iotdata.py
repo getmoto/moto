@@ -387,3 +387,49 @@ def test_update_desired(
 
     assert result_payload["state"]["delta"] == updated_state
     assert result_payload["state"]["desired"] == updated_state
+
+
+@iot_aws_verified()
+@pytest.mark.aws_verified
+def test_update_empty_state(name: Optional[str] = None) -> None:
+    client = boto3.client("iot-data", region_name="ap-northeast-1")
+
+    # CREATE
+    none_payload = json.dumps({"state": None}).encode()
+    first_update = client.update_thing_shadow(thingName=name, payload=none_payload)
+    result_payload = json.loads(first_update["payload"].read())
+    assert result_payload["state"] is None
+    assert result_payload["version"] == 1
+    assert result_payload["metadata"] == {"timestamp": result_payload["timestamp"]}
+
+    # GET --> Verify the updated state is returned as a dict
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {}
+    assert result_payload["metadata"] == {}
+    assert result_payload["version"] == 1
+
+    # UPDATE
+    payload = json.dumps({"state": {"desired": {"a": "b"}}}).encode()
+    second_update = client.update_thing_shadow(thingName=name, payload=payload)
+    result_payload = json.loads(second_update["payload"].read())
+    assert result_payload["state"] == {"desired": {"a": "b"}}
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {"desired": {"a": "b"}, "delta": {"a": "b"}}
+
+    # REVERT TO NONE
+    first_update = client.update_thing_shadow(thingName=name, payload=none_payload)
+    result_payload = json.loads(first_update["payload"].read())
+    assert result_payload["state"] is None
+    assert result_payload["version"] == 3
+    assert result_payload["metadata"] == {"timestamp": result_payload["timestamp"]}
+
+    # GET --> Verify the updated state is returned as-is
+    res = client.get_thing_shadow(thingName=name)
+    result_payload = json.loads(res["payload"].read())
+    assert result_payload["state"] == {}
+    assert result_payload["metadata"] == {}
+    assert result_payload["version"] == 3
