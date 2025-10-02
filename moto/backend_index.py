@@ -234,6 +234,7 @@ backend_url_patterns = [
     ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
+    ("synthetics", re.compile("https?://synthetics\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
         "timestreaminfluxdb",

@@ -1,7 +1,6 @@
 """Unit tests for workspaces-supported APIs."""
 
 import sys
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -9,7 +8,6 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.utilities.distutils_version import LooseVersion
 from tests.test_ds.test_ds_simple_ad_directory import create_test_directory
 
 botocore_version = sys.modules["botocore"].__version__
@@ -268,26 +266,42 @@ def test_describe_workspaces_only_user_name_used():
 
 
 @mock_aws
-@pytest.mark.parametrize("enable_work_docs", [True, False])
-def test_register_workspace_directory_with_workdocs(enable_work_docs):
-    # The WorkDocs-service has been deprecated:
-    # https://www.reddit.com/r/aws/comments/1cd1iqb/workdocsamazon_has_decided_to_end_support_for_the/
-    # Botocore 1.38.13 has removed support for the EnableWorkdocs-parameter,
-    # so we can only test this on older versions of botocore
-    if LooseVersion(botocore_version) >= LooseVersion("1.38.13"):
-        raise SkipTest("Parameter EnableWorkdocs is only available in older versions")
-
+def test_terminate_workspaces():
     client = boto3.client("workspaces", region_name="eu-west-1")
     directory_id = create_directory()
-    client.register_workspace_directory(
-        DirectoryId=directory_id, EnableWorkDocs=enable_work_docs
-    )
+    client.register_workspace_directory(DirectoryId=directory_id)
 
-    resp = client.describe_workspace_directories(DirectoryIds=[directory_id])
-    assert (
-        resp["Directories"][0]["WorkspaceCreationProperties"]["EnableWorkDocs"]
-        is enable_work_docs
+    resp = client.create_workspaces(
+        Workspaces=[
+            {
+                "DirectoryId": directory_id,
+                "UserName": "Administrator",
+                "BundleId": "wsb-bh8rsxt14",
+            },
+        ]
     )
+    workspace_id = resp["PendingRequests"][0]["WorkspaceId"]
+
+    desc = client.describe_workspaces(WorkspaceIds=[workspace_id])
+    assert desc["Workspaces"][0]["WorkspaceId"] == workspace_id
+
+    resp = client.terminate_workspaces(
+        TerminateWorkspaceRequests=[{"WorkspaceId": workspace_id}]
+    )
+    desc = client.describe_workspaces()
+
+    assert resp["FailedRequests"] == []
+    assert len(desc["Workspaces"]) == 0
+
+    resp = client.terminate_workspaces(
+        TerminateWorkspaceRequests=[{"WorkspaceId": "ws-unknown"}]
+    )
+    assert len(resp["FailedRequests"]) == 1
+
+    failed = resp["FailedRequests"][0]
+    assert failed["WorkspaceId"] == "ws-unknown"
+    assert failed["ErrorCode"] == "400"
+    assert "could not be found" in failed["ErrorMessage"]
 
 
 @mock_aws

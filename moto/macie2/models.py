@@ -61,6 +61,7 @@ class MacieBackend(BaseBackend):
         self.invitations: Dict[str, Invitation] = {}
         self.members: Dict[str, Member] = {}
         self.administrator_account: Optional[Member] = None
+        self.organization_admin_account_id: Optional[str] = None
         self.macie_session: Optional[Dict[str, Any]] = {
             "createdAt": datetime.utcnow(),
             "findingPublishingFrequency": "FIFTEEN_MINUTES",
@@ -133,6 +134,20 @@ class MacieBackend(BaseBackend):
                 backend.administrator_account = None
                 break
 
+    def disassociate_member(self, member_account_id: str) -> None:
+        if member_account_id not in self.members:
+            raise ResourceNotFoundException(
+                "The request failed because the resource doesn't exist."
+            )
+
+        self.members.pop(member_account_id)
+
+        for backend_dict in macie2_backends.values():
+            backend = backend_dict.get(self.region_name)
+            if backend and backend.account_id == member_account_id:
+                backend.administrator_account = None
+                break
+
     def get_macie_session(self) -> Dict[str, Any]:
         if not self.macie_session:
             raise ResourceNotFoundException(
@@ -161,6 +176,19 @@ class MacieBackend(BaseBackend):
             "status": status,
             "updatedAt": now,
         }
+
+    def enable_organization_admin_account(self, admin_account_id: str) -> None:
+        self.organization_admin_account_id = admin_account_id
+
+    def list_organization_admin_accounts(self) -> list[dict[str, str]]:
+        if self.organization_admin_account_id:
+            return [
+                {
+                    "accountId": self.organization_admin_account_id,
+                    "status": "ENABLED",
+                }
+            ]
+        return []
 
     def disable_macie(self) -> None:
         self.invitations.clear()

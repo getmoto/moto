@@ -152,6 +152,7 @@ if TYPE_CHECKING:
     from moto.sts.models import STSBackend
     from moto.support.models import SupportBackend
     from moto.swf.models import SWFBackend
+    from moto.synthetics.models import SyntheticsBackend
     from moto.textract.models import TextractBackend
     from moto.timestreaminfluxdb.models import TimestreamInfluxDBBackend
     from moto.timestreamquery.models import TimestreamQueryBackend
@@ -344,6 +345,7 @@ SERVICE_NAMES = Union[
     "Literal['stepfunctions']",
     "Literal['sts']",
     "Literal['support']",
+    "Literal['synthetics']",
     "Literal['swf']",
     "Literal['textract']",
     "Literal['timestream-influxdb']",
@@ -773,6 +775,8 @@ def get_backend(
 def get_backend(name: "Literal['sts']") -> "BackendDict[STSBackend]": ...
 @overload
 def get_backend(name: "Literal['support']") -> "BackendDict[SupportBackend]": ...
+@overload
+def get_backend(name: "Literal['synthetics']") -> "BackendDict[SyntheticsBackend]": ...
 @overload
 def get_backend(name: "Literal['swf']") -> "BackendDict[SWFBackend]": ...
 @overload
