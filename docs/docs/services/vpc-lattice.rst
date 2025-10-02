@@ -22,6 +22,10 @@ vpc-lattice
 - [X] create_rule
 - [X] create_service
 - [X] create_service_network
+  
+WARNING: This method currently does NOT fail if there is a disassociation in progress.
+
+
 - [ ] create_service_network_resource_association
 - [ ] create_service_network_service_association
 - [X] create_service_network_vpc_association

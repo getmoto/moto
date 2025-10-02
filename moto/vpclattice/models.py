@@ -1,6 +1,5 @@
 import random
 import uuid
-import warnings
 from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -205,10 +204,9 @@ class VPCLatticeBackend(BaseBackend):
         sharing_config: Optional[Dict[str, Any]],
         tags: Optional[Dict[str, str]],
     ) -> VPCLatticeServiceNetwork:
-        warnings.warn(
-            "The create_service_network method still needs to fail if there is a disassociation in progress.",
-            category=UserWarning,
-        )
+        """
+        WARNING: This method currently does NOT fail if there is a disassociation in progress.
+        """
         sn = VPCLatticeServiceNetwork(
             self.region_name,
             self.account_id,

@@ -5402,7 +5402,7 @@
 
 ## kinesis
 <details>
-<summary>85% implemented</summary>
+<summary>88% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -5410,7 +5410,7 @@
 - [X] delete_resource_policy
 - [X] delete_stream
 - [X] deregister_stream_consumer
-- [ ] describe_limits
+- [X] describe_limits
 - [X] describe_stream
 - [X] describe_stream_consumer
 - [X] describe_stream_summary
