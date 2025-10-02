@@ -707,3 +707,62 @@ def test_get_administrator_account():
         assert "Administrator" in response
         assert response["Administrator"]["AccountId"] == admin_account_id
         assert response["Administrator"]["MemberStatus"] == "ENABLED"
+
+
+@mock_aws
+def test_enable_security_hub():
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_hub()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidAccessException"
+    assert "not subscribed" in err["Message"]
+
+    response = client.enable_security_hub()
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    hub_info = client.describe_hub()
+    assert "HubArn" in hub_info
+    assert (
+        hub_info["HubArn"]
+        == f"arn:aws:securityhub:us-east-1:{DEFAULT_ACCOUNT_ID}:hub/default"
+    )
+    assert "SubscribedAt" in hub_info
+
+    response = client.enable_security_hub()
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+
+@mock_aws
+def test_disable_security_hub():
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        client.disable_security_hub()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidAccessException"
+
+    client.enable_security_hub()
+    response = client.disable_security_hub()
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_hub()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidAccessException"
+
+
+@mock_aws
+def test_enable_security_hub_with_parameters():
+    client = boto3.client("securityhub", region_name="us-east-1")
+
+    response = client.enable_security_hub(EnableDefaultStandards=False)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    hub_info = client.describe_hub()
+    assert "HubArn" in hub_info
+
+    client.disable_security_hub()
+    response = client.enable_security_hub(EnableDefaultStandards=True)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200

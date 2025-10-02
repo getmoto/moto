@@ -15,6 +15,28 @@ class SecurityHubResponse(BaseResponse):
     def securityhub_backend(self) -> SecurityHubBackend:
         return securityhub_backends[self.current_account][self.region]
 
+    def enable_security_hub(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        enable_default_standards = params.get("EnableDefaultStandards", True)
+        tags = params.get("Tags", {})
+
+        self.securityhub_backend.enable_security_hub(
+            enable_default_standards=enable_default_standards,
+            tags=tags,
+        )
+        return json.dumps({})
+
+    def disable_security_hub(self) -> str:
+        self.securityhub_backend.disable_security_hub()
+        return json.dumps({})
+
+    def describe_hub(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        hub_arn = params.get("HubArn")
+
+        hub_info = self.securityhub_backend.describe_hub(hub_arn=hub_arn)
+        return json.dumps(hub_info)
+
     def get_findings(self) -> str:
         filters = self._get_param("Filters")
         sort_criteria = self._get_param("SortCriteria")
