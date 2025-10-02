@@ -122,6 +122,7 @@ class AppRegistryBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.applications: Dict[str, Application] = dict()
         self.tagger = TaggingService()
+        self.configuration: Dict[str, Any] = {"tagQueryConfiguration": {}}
 
     def create_application(
         self, name: str, description: str, tags: Dict[str, str], client_token: str
@@ -157,6 +158,14 @@ class AppRegistryBackend(BaseBackend):
 
     def _untag_resource(self, arn: str, tag_keys: List[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
+
+    def put_configuration(self, configuration: Dict[str, Any]) -> None:
+        self.configuration = configuration
+
+    def get_configuration(
+        self,
+    ) -> Dict[str, Any]:
+        return self.configuration
 
 
 servicecatalogappregistry_backends = BackendDict(
