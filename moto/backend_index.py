@@ -254,6 +254,7 @@ backend_url_patterns = [
     ),
     ("transcribe", re.compile("https?://transcribe\\.(.+)\\.amazonaws\\.com")),
     ("transfer", re.compile("https?://transfer\\.(.+)\\.amazonaws\\.com")),
+    ("vpclattice", re.compile("https?://vpc-lattice\\.(.+)\\.amazonaws\\.com")),
     ("wafv2", re.compile("https?://wafv2\\.(.+)\\.amazonaws.com")),
     ("workspaces", re.compile("https?://workspaces\\.(.+)\\.amazonaws\\.com")),
     ("workspacesweb", re.compile("https?://workspaces-web\\.(.+)\\.amazonaws\\.com")),
