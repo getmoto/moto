@@ -56,3 +56,14 @@ class VPCLatticeResponse(BaseResponse):
             tags=self._get_param("tags"),
         )
         return json.dumps(rule.to_dict())
+
+    def create_access_log_subscription(self) -> str:
+        sub = self.backend.create_access_log_subscription(
+            resourceIdentifier=self._get_param("resourceIdentifier"),
+            destinationArn=self._get_param("destinationArn"),
+            client_token=self._get_param("clientToken"),
+            serviceNetworkLogType=self._get_param("serviceNetworkLogType"),
+            tags=self._get_param("tags"),
+        )
+
+        return json.dumps(sub.to_dict())

@@ -1,4 +1,6 @@
 import boto3
+import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -99,3 +101,70 @@ def test_create_rule():
         == "tg-1234567890abcdef"
     )
     assert resp["match"]["httpMatch"]["pathMatch"]["match"]["exact"] == "/my-path"
+
+
+@mock_aws
+def test_create_access_log_subscription():
+    client = boto3.client("vpc-lattice", region_name="us-west-2")
+
+    resp_sn = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+        clientToken="token123",
+        sharingConfig={"enabled": False},
+    )
+
+    resp = client.create_access_log_subscription(
+        resourceIdentifier=resp_sn["id"],
+        destinationArn="arn:aws:s3:::my-log-bucket",
+        clientToken="token456",
+        serviceNetworkLogType="RESOURCE",
+    )
+
+    assert resp["arn"].startswith("arn:aws:vpc-lattice:us-west-2:")
+    assert resp["destinationArn"] == "arn:aws:s3:::my-log-bucket"
+    assert resp["id"].startswith("als-")
+    assert resp["resourceArn"] == resp_sn["arn"]
+    assert resp["resourceId"] == resp_sn["id"]
+    assert resp["serviceNetworkLogType"] == "RESOURCE"
+
+
+@mock_aws
+def test_create_access_log_subscription_resources_not_found():
+    client = boto3.client("vpc-lattice", region_name="us-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_access_log_subscription(
+            resourceIdentifier="sn-invalid-sn-id14",
+            destinationArn="arn:aws:s3:::my-log-bucket",
+            serviceNetworkLogType="SERVICE",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Resource sn-invalid-sn-id14 not found"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_access_log_subscription(
+            resourceIdentifier="svc-invalid-svc-id14",
+            destinationArn="arn:aws:s3:::my-log-bucket",
+            serviceNetworkLogType="SERVICE",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Resource svc-invalid-svc-id14 not found"
+
+
+@mock_aws
+def test_create_access_log_subscription_invalid_resourceIdentifier():
+    client = boto3.client("vpc-lattice", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_access_log_subscription(
+            resourceIdentifier="invalid-sn-id1234",
+            destinationArn="arn:aws:s3:::my-log-bucket",
+            serviceNetworkLogType="SERVICE",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == "Invalid parameter resourceIdentifier, must start with 'sn-' or 'svc-'"
+    )

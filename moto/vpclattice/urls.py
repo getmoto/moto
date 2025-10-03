@@ -7,6 +7,7 @@ url_bases = [
 ]
 
 url_paths = {
+    "{0}/accesslogsubscriptions$": VPCLatticeResponse.dispatch,
     "{0}/services$": VPCLatticeResponse.dispatch,
     "{0}/servicenetworks$": VPCLatticeResponse.dispatch,
     "{0}/servicenetworkvpcassociations$": VPCLatticeResponse.dispatch,
