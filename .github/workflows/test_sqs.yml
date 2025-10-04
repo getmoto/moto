@@ -1,9 +1,7 @@
 name: "SQS Wire Protocol Tests"
 
 on:
-  # pull_request:
-  #  types: [ labeled ]
-  push: # TODO: change to pull request once working on my fork
+  pull_request:
     paths:
       - ".github/workflows/test_sqs.yml"
       - "moto/core/**"
@@ -13,7 +11,6 @@ on:
 
 jobs:
   test-sqs-protocols:
-    # if: ${{ github.event.label.name == 'service-sqs' }}
     name: ${{ matrix.aws-sdk == 'botocore==1.29.126 boto3==1.26.126' && 'Query Protocol' || 'JSON Protocol' }}
     runs-on: ubuntu-latest
     strategy:
