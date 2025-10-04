@@ -1,39 +1,45 @@
-# Run separate test cases to verify SQS works with multiple botocore versions (/multiple response-types, QUERY and JSON)
-#
-name: "SQS Tests"
+name: "SQS Wire Protocol Tests"
 
 on:
-  pull_request:
-    types: [ labeled ]
+  # pull_request:
+  #  types: [ labeled ]
+  push: # TODO: change to pull request once working on my fork
+    paths:
+      - ".github/workflows/test_sqs.yml"
+      - "moto/core/**"
+      - "moto/sqs/**"
+      - "tests/test_sqs/**"
+  workflow_dispatch:
 
 jobs:
-  test:
-    if: ${{ github.event.label.name == 'service-sqs' }}
+  test-sqs-protocols:
+    # if: ${{ github.event.label.name == 'service-sqs' }}
+    name: ${{ matrix.aws-sdk == 'botocore==1.29.126 boto3==1.26.126' && 'Query Protocol' || 'JSON Protocol' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.11" ]
-        botocore-version: ["1.29.126", "1.29.127", "1.29.128"]
+        python-version: [ "3.12" ]
+        aws-sdk: [ "--upgrade boto3 botocore", "botocore==1.29.126 boto3==1.26.126" ]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
 
-    - name: Update pip
-      run: |
-        python -m pip install --upgrade pip
+      - name: Update pip
+        run: |
+          python -m pip install --upgrade pip
 
-    - name: Install project dependencies
-      run: |
-        pip install -r requirements-dev.txt
-        pip install botocore==${{ matrix.botocore-version }}
+      - name: Install project dependencies
+        run: |
+          pip install -r requirements-dev.txt
+          pip install ${{ matrix.aws-sdk }}
 
-    - name: Run tests
-      run: |
-        pytest -sv tests/test_sqs
+      - name: Run tests
+        run: |
+          pytest -sv tests/test_sqs
