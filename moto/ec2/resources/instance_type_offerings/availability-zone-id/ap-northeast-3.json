@@ -3758,5 +3758,21 @@
  {
   "InstanceType": "x1e.xlarge",
   "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "x2idn.16xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "x2idn.24xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "x2idn.32xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "x2idn.metal",
+  "Location": "apne3-az3"
  }
 ]
