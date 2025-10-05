@@ -2,14 +2,13 @@ package moto.tests;
 
 import org.junit.Test;
 
+import software.amazon.awssdk.core.ResponseBytes;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
-import software.amazon.awssdk.services.s3.model.DeleteBucketRequest;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import moto.tests.DependencyFactory;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Unit test for simple App.
@@ -34,8 +33,20 @@ public class S3Test
 
 
         // Upload Object with static data
+        String initialString = "Testing with the {sdk-java}";
         PutObjectRequest put_request = PutObjectRequest.builder().bucket(bucketName).key(keyName).build();
-        s3Client.putObject(put_request, RequestBody.fromString("Testing with the {sdk-java}"));
+        s3Client.putObject(put_request, RequestBody.fromString(initialString));
+
+        GetObjectRequest objectRequest = GetObjectRequest
+                .builder()
+                .key(keyName)
+                .bucket(bucketName)
+                .build();
+
+        ResponseBytes<GetObjectResponse> objectBytes = s3Client.getObject(objectRequest, ResponseTransformer.toBytes());
+        String receivedString = objectBytes.asUtf8String();
+
+        assertEquals(initialString, receivedString);
     }
 
     @Test
