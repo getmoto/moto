@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.14
 -----
-Docker Digest for 5.1.14: <autopopulateddigest>
+Docker Digest for 5.1.14: _sha256:800719627036dc38dc699e9f314f624f2c98ac3d8bb754db078cb2698f08ee77_
 
     New Services:
         * CloudWatch-Synthetics:
