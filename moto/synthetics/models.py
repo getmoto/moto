@@ -124,9 +124,6 @@ class SyntheticsBackend(BaseBackend):
         tags: Optional[Dict[str, str]],
         artifact_config: Optional[Dict[str, object]],
     ) -> Canary:
-        """
-        Create a new Canary resource and store it in the backend.
-        """
         canary = Canary(
             name,
             code,
@@ -149,11 +146,7 @@ class SyntheticsBackend(BaseBackend):
 
     def get_canary(self, name: str, dry_run_id: Optional[str] = None) -> Canary:  # pylint: disable=unused-argument
         """
-        Retrieve a Canary by name.
-
-        Args:
-            name (str): The name of the canary.
-            dry_run_id (Optional[str]): Unused argument for compatibility.
+        The dry-run_id-parameter is not yet supported
         """
         # dry_run_id is unused, included for API compatibility
         return self.canaries[name]
@@ -165,14 +158,8 @@ class SyntheticsBackend(BaseBackend):
         names: Optional[List[str]],
     ) -> tuple[list[Canary], None]:
         """
-        Return a list of canaries, optionally filtered by names.
-
-        Args:
-            next_token (Optional[str]): Unused pagination token.
-            max_results (Optional[int]): Unused max results.
-            names (Optional[List[str]]): List of canary names to filter.
+        Pagination is not yet supported
         """
-        # next_token and max_results are unused, included for API compatibility
         canaries = list(self.canaries.values())
         if names:
             canaries = [c for c in canaries if c.name in names]
@@ -180,9 +167,6 @@ class SyntheticsBackend(BaseBackend):
         return canaries, None
 
     def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
-        """
-        List tags for a given resource ARN (canary name).
-        """
         # Simplified: assume resource_arn is actually the canary name
         canary = self.canaries.get(resource_arn)
         return canary.tags if canary else {}
