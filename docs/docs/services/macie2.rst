@@ -37,9 +37,9 @@ macie2
 - [ ] disable_organization_admin_account
 - [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
-- [ ] disassociate_member
+- [X] disassociate_member
 - [X] enable_macie
-- [ ] enable_organization_admin_account
+- [X] enable_organization_admin_account
 - [X] get_administrator_account
 - [ ] get_allow_list
 - [ ] get_automated_discovery_configuration
@@ -72,7 +72,7 @@ macie2
 - [X] list_invitations
 - [ ] list_managed_data_identifiers
 - [X] list_members
-- [ ] list_organization_admin_accounts
+- [X] list_organization_admin_accounts
 - [ ] list_resource_profile_artifacts
 - [ ] list_resource_profile_detections
 - [ ] list_sensitivity_inspection_templates
