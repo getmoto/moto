@@ -216,15 +216,17 @@ def retrieve_all_transit_gateways(ec2):
 def test_create_transit_gateway_vpn_attachment():
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
-    vpn_gateway = ec2.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})
+    transit_gateway_id = ec2.create_transit_gateway(Description="my first gatway")[
+        "TransitGateway"
+    ]["TransitGatewayId"]
+
     customer_gateway = ec2.create_customer_gateway(
         Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
-    ).get("CustomerGateway", {})
+    )["CustomerGateway"]
     vpn_connection = ec2.create_vpn_connection(
         Type="ipsec.1",
-        VpnGatewayId=vpn_gateway["VpnGatewayId"],
         CustomerGatewayId=customer_gateway["CustomerGatewayId"],
-        TransitGatewayId="gateway_id",
+        TransitGatewayId=transit_gateway_id,
     )["VpnConnection"]
     vpn_conn_id = vpn_connection["VpnConnectionId"]
 
