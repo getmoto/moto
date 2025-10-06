@@ -342,6 +342,56 @@ class VPCLatticeBackend(BaseBackend):
         self.access_log_subscriptions[sub.id] = sub
         return sub
 
+    def get_access_log_subscription(
+        self, accessLogSubscriptionIdentifier: str
+    ) -> VPCLatticeAccessLogSubscription:
+        import pdb
+        pdb.set_trace()
+        sub = self.access_log_subscriptions.get(accessLogSubscriptionIdentifier)
+        if not sub:
+            raise ResourceNotFoundException(
+                f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
+            )
+        return sub
+
+    def list_access_log_subscriptions(
+        self,
+        resourceIdentifier: str,
+        maxResults: Optional[int] = None,
+        nextToken: Optional[str] = None,
+    ) -> List[VPCLatticeAccessLogSubscription]:
+        return [
+            sub
+            for sub in self.access_log_subscriptions.values()
+            if sub.resourceId == resourceIdentifier
+        ][:maxResults]
+
+    def update_access_log_subscription(
+        self,
+        accessLogSubscriptionIdentifier: str,
+        destinationArn: str,
+    ) -> VPCLatticeAccessLogSubscription:
+        sub = self.access_log_subscriptions.get(accessLogSubscriptionIdentifier)
+        if not sub:
+            raise ResourceNotFoundException(
+                f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
+            )
+
+        sub.destinationArn = destinationArn
+        sub.last_updated_at = datetime.now(timezone.utc).isoformat()
+
+        return sub
+
+    def delete_access_log_subscription(
+        self, accessLogSubscriptionIdentifier: str
+    ) -> None:
+        sub = self.access_log_subscriptions.get(accessLogSubscriptionIdentifier)
+        if not sub:
+            raise ResourceNotFoundException(
+                f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
+            )
+        del self.access_log_subscriptions[accessLogSubscriptionIdentifier]
+
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(
     VPCLatticeBackend, "vpc-lattice"
