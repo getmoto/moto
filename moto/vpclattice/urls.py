@@ -12,4 +12,7 @@ url_paths = {
     "{0}/servicenetworkvpcassociations$": VPCLatticeResponse.dispatch,
     "{0}/services/(?P<serviceIdentifier>[^/]+)/listeners/(?P<listenerIdentifier>[^/]+)/rules$": VPCLatticeResponse.dispatch,
     "{0}/tags/(?P<resourceArn>[^/]+)$": VPCLatticeResponse.dispatch,
+    "{0}/services/(?P<serviceIdentifier>[^/]+)$": VPCLatticeResponse.dispatch,
+    "{0}/servicenetworks/(?P<serviceNetworkIdentifier>[^/]+)$": VPCLatticeResponse.dispatch,
+    "{0}/tags/(?P<resourceArn>[^/]+)?tagKeys=(?P<tagKeys>[^/]+)$": VPCLatticeResponse.dispatch,
 }
