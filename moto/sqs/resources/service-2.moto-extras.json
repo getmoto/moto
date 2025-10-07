@@ -63,24 +63,5 @@
         }
       }
     }
-  },
-  "merge_for_protocols": {
-    "query": {
-      "shapes": {
-        "TagMap": {
-          "type": "map",
-          "key": {
-            "shape": "TagKey",
-            "locationName": "Key"
-          },
-          "value": {
-            "shape": "TagValue",
-            "locationName": "Value"
-          },
-          "flattened": true,
-          "locationName": "Tag"
-        }
-      }
-    }
   }
 }
