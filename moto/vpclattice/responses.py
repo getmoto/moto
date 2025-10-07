@@ -75,8 +75,7 @@ class VPCLatticeResponse(BaseResponse):
         sub = self.backend.get_access_log_subscription(
             accessLogSubscriptionIdentifier=path.split("/")[-1]
         )
-        import pdb
-        pdb.set_trace()
+
         return json.dumps(sub.to_dict())
 
     def list_access_log_subscriptions(self) -> str:

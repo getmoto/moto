@@ -316,7 +316,7 @@ class VPCLatticeBackend(BaseBackend):
         serviceNetworkLogType: Optional[str],
         tags: Optional[Dict[str, str]],
     ) -> VPCLatticeAccessLogSubscription:
-        resource = None
+        resource: Any = None
         if resourceIdentifier.startswith("sn-"):
             resource = self.service_networks.get(resourceIdentifier)
         elif resourceIdentifier.startswith("svc-"):
@@ -345,8 +345,6 @@ class VPCLatticeBackend(BaseBackend):
     def get_access_log_subscription(
         self, accessLogSubscriptionIdentifier: str
     ) -> VPCLatticeAccessLogSubscription:
-        import pdb
-        pdb.set_trace()
         sub = self.access_log_subscriptions.get(accessLogSubscriptionIdentifier)
         if not sub:
             raise ResourceNotFoundException(
