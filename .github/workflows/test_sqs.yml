@@ -7,6 +7,8 @@ on:
       - "moto/core/**"
       - "moto/sqs/**"
       - "tests/test_sqs/**"
+  schedule:
+    - cron: '00 12 * * 0'
   workflow_dispatch:
 
 jobs:
