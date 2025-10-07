@@ -3720,6 +3720,10 @@
   "Location": "us-east-1a"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "us-east-1a"
+ },
+ {
   "InstanceType": "vt1.24xlarge",
   "Location": "us-east-1a"
  },
@@ -7653,6 +7657,10 @@
  },
  {
   "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "us-east-1b"
+ },
+ {
+  "InstanceType": "u7i-8tb.112xlarge",
   "Location": "us-east-1b"
  },
  {

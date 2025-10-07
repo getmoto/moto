@@ -3618,9 +3618,9 @@
 
 ## elasticache
 <details>
-<summary>16% implemented</summary>
+<summary>22% implemented</summary>
 
-- [ ] add_tags_to_resource
+- [X] add_tags_to_resource
 - [ ] authorize_cache_security_group_ingress
 - [ ] batch_apply_update_action
 - [ ] batch_stop_update_action
@@ -3635,7 +3635,7 @@
 - [X] create_replication_group
 - [ ] create_serverless_cache
 - [ ] create_serverless_cache_snapshot
-- [ ] create_snapshot
+- [X] create_snapshot
 - [X] create_user
 - [ ] create_user_group
 - [ ] decrease_node_groups_in_global_replication_group
@@ -3648,7 +3648,7 @@
 - [X] delete_replication_group
 - [ ] delete_serverless_cache
 - [ ] delete_serverless_cache_snapshot
-- [ ] delete_snapshot
+- [X] delete_snapshot
 - [X] delete_user
 - [ ] delete_user_group
 - [X] describe_cache_clusters
@@ -3666,7 +3666,7 @@
 - [ ] describe_serverless_cache_snapshots
 - [ ] describe_serverless_caches
 - [ ] describe_service_updates
-- [ ] describe_snapshots
+- [X] describe_snapshots
 - [ ] describe_update_actions
 - [ ] describe_user_groups
 - [X] describe_users
@@ -3689,7 +3689,7 @@
 - [ ] purchase_reserved_cache_nodes_offering
 - [ ] rebalance_slots_in_global_replication_group
 - [ ] reboot_cache_cluster
-- [ ] remove_tags_from_resource
+- [X] remove_tags_from_resource
 - [ ] reset_cache_parameter_group
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
@@ -5934,7 +5934,7 @@
 
 ## macie2
 <details>
-<summary>12% implemented</summary>
+<summary>16% implemented</summary>
 
 - [X] accept_invitation
 - [ ] batch_get_custom_data_identifiers
@@ -5959,9 +5959,9 @@
 - [ ] disable_organization_admin_account
 - [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
-- [ ] disassociate_member
+- [X] disassociate_member
 - [X] enable_macie
-- [ ] enable_organization_admin_account
+- [X] enable_organization_admin_account
 - [X] get_administrator_account
 - [ ] get_allow_list
 - [ ] get_automated_discovery_configuration
@@ -5994,7 +5994,7 @@
 - [X] list_invitations
 - [ ] list_managed_data_identifiers
 - [X] list_members
-- [ ] list_organization_admin_accounts
+- [X] list_organization_admin_accounts
 - [ ] list_resource_profile_artifacts
 - [ ] list_resource_profile_detections
 - [ ] list_sensitivity_inspection_templates
@@ -6259,6 +6259,42 @@
 - [ ] untag_resource
 - [ ] update_channel
 - [X] update_origin_endpoint
+</details>
+
+## mediapackagev2
+<details>
+<summary>23% implemented</summary>
+
+- [ ] cancel_harvest_job
+- [X] create_channel
+- [X] create_channel_group
+- [ ] create_harvest_job
+- [ ] create_origin_endpoint
+- [X] delete_channel
+- [X] delete_channel_group
+- [ ] delete_channel_policy
+- [ ] delete_origin_endpoint
+- [ ] delete_origin_endpoint_policy
+- [X] get_channel
+- [X] get_channel_group
+- [ ] get_channel_policy
+- [ ] get_harvest_job
+- [ ] get_origin_endpoint
+- [ ] get_origin_endpoint_policy
+- [X] list_channel_groups
+- [ ] list_channels
+- [ ] list_harvest_jobs
+- [ ] list_origin_endpoints
+- [ ] list_tags_for_resource
+- [ ] put_channel_policy
+- [ ] put_origin_endpoint_policy
+- [ ] reset_channel_state
+- [ ] reset_origin_endpoint_state
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_channel
+- [ ] update_channel_group
+- [ ] update_origin_endpoint
 </details>
 
 ## mediastore
@@ -8886,7 +8922,7 @@
 
 ## securityhub
 <details>
-<summary>5% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -8924,7 +8960,7 @@
 - [ ] delete_invitations
 - [ ] delete_members
 - [ ] describe_action_targets
-- [ ] describe_hub
+- [X] describe_hub
 - [X] describe_organization_configuration
 - [ ] describe_products
 - [ ] describe_products_v2
@@ -8933,14 +8969,14 @@
 - [ ] describe_standards_controls
 - [ ] disable_import_findings_for_product
 - [ ] disable_organization_admin_account
-- [ ] disable_security_hub
+- [X] disable_security_hub
 - [ ] disable_security_hub_v2
 - [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [ ] enable_import_findings_for_product
 - [X] enable_organization_admin_account
-- [ ] enable_security_hub
+- [X] enable_security_hub
 - [ ] enable_security_hub_v2
 - [X] get_administrator_account
 - [ ] get_aggregator_v2
@@ -9119,7 +9155,7 @@
 
 ## servicecatalog-appregistry
 <details>
-<summary>12% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] associate_attribute_group
 - [X] associate_resource
@@ -9132,14 +9168,14 @@
 - [ ] get_application
 - [ ] get_associated_resource
 - [ ] get_attribute_group
-- [ ] get_configuration
+- [X] get_configuration
 - [X] list_applications
 - [ ] list_associated_attribute_groups
 - [ ] list_associated_resources
 - [ ] list_attribute_groups
 - [ ] list_attribute_groups_for_application
 - [ ] list_tags_for_resource
-- [ ] put_configuration
+- [X] put_configuration
 - [ ] sync_resource
 - [ ] tag_resource
 - [ ] untag_resource
@@ -9877,6 +9913,34 @@
 - [ ] untag_resource
 </details>
 
+## synthetics
+<details>
+<summary>18% implemented</summary>
+
+- [ ] associate_resource
+- [X] create_canary
+- [ ] create_group
+- [ ] delete_canary
+- [ ] delete_group
+- [X] describe_canaries
+- [ ] describe_canaries_last_run
+- [ ] describe_runtime_versions
+- [ ] disassociate_resource
+- [X] get_canary
+- [ ] get_canary_runs
+- [ ] get_group
+- [ ] list_associated_groups
+- [ ] list_group_resources
+- [ ] list_groups
+- [X] list_tags_for_resource
+- [ ] start_canary
+- [ ] start_canary_dry_run
+- [ ] stop_canary
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_canary
+</details>
+
 ## textract
 <details>
 <summary>20% implemented</summary>
@@ -10240,7 +10304,7 @@
 
 ## workspaces
 <details>
-<summary>16% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] accept_account_link_invitation
 - [ ] associate_connection_alias
@@ -10324,7 +10388,7 @@
 - [ ] start_workspaces_pool
 - [ ] stop_workspaces
 - [ ] stop_workspaces_pool
-- [ ] terminate_workspaces
+- [X] terminate_workspaces
 - [ ] terminate_workspaces_pool
 - [ ] terminate_workspaces_pool_session
 - [ ] update_connect_client_add_in
@@ -10582,7 +10646,6 @@
 - marketplacecommerceanalytics
 - mediaconvert
 - mediapackage-vod
-- mediapackagev2
 - mediatailor
 - medical-imaging
 - mgh
@@ -10660,7 +10723,6 @@
 - storagegateway
 - supplychain
 - support-app
-- synthetics
 - taxsettings
 - tnb
 - translate

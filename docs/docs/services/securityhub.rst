@@ -62,7 +62,7 @@ securityhub
 - [ ] delete_invitations
 - [ ] delete_members
 - [ ] describe_action_targets
-- [ ] describe_hub
+- [X] describe_hub
 - [X] describe_organization_configuration
 - [ ] describe_products
 - [ ] describe_products_v2
@@ -71,14 +71,14 @@ securityhub
 - [ ] describe_standards_controls
 - [ ] disable_import_findings_for_product
 - [ ] disable_organization_admin_account
-- [ ] disable_security_hub
+- [X] disable_security_hub
 - [ ] disable_security_hub_v2
 - [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [ ] enable_import_findings_for_product
 - [X] enable_organization_admin_account
-- [ ] enable_security_hub
+- [X] enable_security_hub
 - [ ] enable_security_hub_v2
 - [X] get_administrator_account
 - [ ] get_aggregator_v2

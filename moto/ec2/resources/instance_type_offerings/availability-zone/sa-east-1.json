@@ -2168,6 +2168,10 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "sa-east-1a"
  },
@@ -6021,6 +6025,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "sa-east-1c"
  },
  {
