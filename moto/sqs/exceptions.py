@@ -23,7 +23,7 @@ class QueueDoesNotExist(SQSException):
     def __init__(self) -> None:
         super().__init__(
             "AWS.SimpleQueueService.NonExistentQueue",
-            "The specified queue does not exist for this wsdl version.",
+            "The specified queue does not exist.",
         )
 
 
