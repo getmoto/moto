@@ -254,6 +254,14 @@ class InvalidPermissionDuplicateError(EC2ClientError):
         )
 
 
+class DuplicateTransitGatewayAttachmentError(EC2ClientError):
+    def __init__(self, transit_gateway_id: str):
+        super().__init__(
+            "DuplicateTransitGatewayAttachment",
+            f"{transit_gateway_id} has non-deleted Transit Gateway Attachments with same VPC ID.",
+        )
+
+
 class InvalidRouteTableIdError(EC2ClientError):
     def __init__(self, route_table_id: str):
         super().__init__(
@@ -861,10 +869,10 @@ class InvalidCarrierGatewayID(EC2ClientError):
 
 
 class InvalidTransitGatewayID(EC2ClientError):
-    def __init__(self, transit_gateway_id: str):
+    def __init__(self, transit_gateway_id: str, msg: Optional[str] = None):
         super().__init__(
             "InvalidTransitGatewayID.NotFound",
-            f"The transitGateway ID '{transit_gateway_id}' does not exist",
+            msg or f"The transitGateway ID '{transit_gateway_id}' does not exist",
         )
 
 
