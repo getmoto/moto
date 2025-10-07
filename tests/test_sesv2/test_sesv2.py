@@ -42,7 +42,7 @@ def test_send_email(ses_v1):
         conn.send_email(**kwargs)
     assert e.value.response["Error"]["Code"] == "MessageRejected"
 
-    ses_v1.verify_domain_identity(Domain="example.com")
+    conn.create_email_identity(EmailIdentity="test@example.com")
     resp = conn.send_email(**kwargs)
     assert resp["MessageId"] is not None
 
@@ -63,7 +63,7 @@ def test_send_email(ses_v1):
 def test_send_html_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
-    ses_v1.verify_domain_identity(Domain="example.com")
+    conn.create_email_identity(EmailIdentity="example.com")
     kwargs = dict(
         FromEmailAddress="test@example.com",
         Destination={

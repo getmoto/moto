@@ -7,11 +7,11 @@ from email.encoders import encode_7or8bit
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr, getaddresses, parseaddr
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.utils import utcnow
+from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.sns.models import sns_backends
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
@@ -28,6 +28,7 @@ from .exceptions import (
     InvalidS3ConfigurationException,
     InvalidSnsTopicException,
     MessageRejectedError,
+    NotFoundException,
     RuleDoesNotExist,
     RuleSetDoesNotExist,
     TemplateDoesNotExist,
@@ -197,6 +198,163 @@ class ConfigurationSet(BaseModel):
         }
 
 
+class Contact(BaseModel):
+    def __init__(
+        self,
+        contact_list_name: str,
+        email_address: str,
+        topic_preferences: List[Dict[str, str]],
+        unsubscribe_all: bool,
+    ) -> None:
+        self.contact_list_name = contact_list_name
+        self.email_address = email_address
+        self.topic_default_preferences: List[Dict[str, str]] = []
+        self.topic_preferences = topic_preferences
+        self.unsubscribe_all = unsubscribe_all
+        self.created_timestamp = iso_8601_datetime_with_milliseconds()
+        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
+
+    @property
+    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "ContactListName": self.contact_list_name,
+            "EmailAddress": self.email_address,
+            "TopicDefaultPreferences": self.topic_default_preferences,
+            "TopicPreferences": self.topic_preferences,
+            "UnsubscribeAll": self.unsubscribe_all,
+            "CreatedTimestamp": self.created_timestamp,
+            "LastUpdatedTimestamp": self.last_updated_timestamp,
+        }
+
+
+class ContactList(BaseModel):
+    def __init__(
+        self,
+        contact_list_name: str,
+        description: str,
+        topics: List[Dict[str, str]],
+    ) -> None:
+        self.contact_list_name = contact_list_name
+        self.description = description
+        self.topics = topics
+        self.created_timestamp = iso_8601_datetime_with_milliseconds()
+        self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
+        self.contacts: Dict[str, Contact] = {}
+
+    def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:
+        email_address = params["EmailAddress"]
+        topic_preferences = (
+            [] if "TopicPreferences" not in params else params["TopicPreferences"]
+        )
+        unsubscribe_all = (
+            False if "UnsubscribeAll" not in params else params["UnsubscribeAll"]
+        )
+        new_contact = Contact(
+            contact_list_name, email_address, topic_preferences, unsubscribe_all
+        )
+        self.contacts[email_address] = new_contact
+
+    def list_contacts(self) -> List[Contact]:
+        return self.contacts.values()  # type: ignore[return-value]
+
+    def get_contact(self, email: str) -> Contact:
+        if email in self.contacts:
+            return self.contacts[email]
+        else:
+            raise NotFoundException(f"{email} doesn't exist in List.")
+
+    def delete_contact(self, email: str) -> None:
+        # delete if contact exists, otherwise get_contact will throw appropriate exception
+        if self.get_contact(email):
+            del self.contacts[email]
+
+    @property
+    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "ContactListName": self.contact_list_name,
+            "Description": self.description,
+            "Topics": self.topics,
+            "CreatedTimestamp": self.created_timestamp,
+            "LastUpdatedTimestamp": self.last_updated_timestamp,
+        }
+
+
+class EmailIdentity(BaseModel):
+    def __init__(
+        self,
+        email_identity: str,
+        tags: Optional[Dict[str, str]],
+        dkim_signing_attributes: Optional[object],
+        configuration_set_name: Optional[str],
+    ) -> None:
+        self.email_identity = email_identity
+        self.tags = tags
+        self.dkim_signing_attributes = dkim_signing_attributes
+        self.configuration_set_name = configuration_set_name
+        self.identity_type = "EMAIL_ADDRESS" if "@" in email_identity else "DOMAIN"
+        self.verified_for_sending_status = False
+        self.feedback_forwarding_status = False
+        self.verification_status = "SUCCESS"
+        self.sending_enabled = True
+        self.dkim_attributes: Dict[str, Any] = {}
+        if not self.dkim_signing_attributes or not isinstance(
+            self.dkim_signing_attributes, dict
+        ):
+            self.dkim_attributes["SigningEnabled"] = False
+            self.dkim_attributes["Status"] = "NOT_STARTED"
+        else:
+            self.dkim_attributes["SigningEnabled"] = True
+            self.dkim_attributes["Status"] = "SUCCESS"
+            self.dkim_attributes["NextSigningKeyLength"] = (
+                self.dkim_signing_attributes.get("NextSigningKeyLength", "RSA_1024_BIT")
+            )
+            self.dkim_attributes["SigningAttributesOrigin"] = (
+                self.dkim_signing_attributes.get("SigningAttributesOrigin", "AWS_SES")
+            )
+            self.dkim_attributes["LastKeyGenerationTimestamp"] = (
+                iso_8601_datetime_with_milliseconds()
+            )
+        self.policies: Dict[str, Any] = {}
+
+    @property
+    def get_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "IdentityType": self.identity_type,
+            "FeedbackForwardingStatus": self.feedback_forwarding_status,
+            "VerifiedForSendingStatus": self.verified_for_sending_status,
+            "DkimAttributes": self.dkim_attributes,
+            "Policies": self.policies,
+            "Tags": self.tags,
+            "ConfigurationSetName": self.configuration_set_name,
+            "VerificationStatus": self.verification_status,
+        }
+
+    @property
+    def list_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+        return {
+            "IdentityType": self.identity_type,
+            "IdentityName": self.email_identity,
+            "SendingEnabled": self.sending_enabled,
+            "VerificationStatus": self.verification_status,
+        }
+
+
+class DedicatedIpPool(BaseModel):
+    def __init__(
+        self, pool_name: str, scaling_mode: str, tags: List[Dict[str, str]]
+    ) -> None:
+        self.pool_name = pool_name
+        self.scaling_mode = scaling_mode
+        self.tags = tags
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "PoolName": self.pool_name,
+            "Tags": self.tags,
+            "ScalingMode": self.scaling_mode,
+        }
+
+
 class SESBackend(BaseBackend):
     """
     Responsible for mocking calls to SES.
@@ -219,9 +377,9 @@ class SESBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.addresses: List[str] = []
-        self.email_addresses: List[str] = []
-        self.domains: List[str] = []
+        # self.addresses: List[str] = []
+        # self.email_addresses: List[str] = []
+        # self.domains: List[str] = []
         self.sent_messages: List[Any] = []
         self.sent_message_count = 0
         self.rejected_messages_count = 0
@@ -234,43 +392,72 @@ class SESBackend(BaseBackend):
         self.receipt_rule_set: Dict[str, ReceiptRuleSet] = {}
         self.dkim_tokens: Dict[str, List[str]] = {}
 
+        # SES v2 variables
+        self.contacts: Dict[str, Contact] = {}
+        self.contacts_lists: Dict[str, ContactList] = {}
+        self.email_identities: Dict[str, EmailIdentity] = {}
+        self.dedicated_ip_pools: Dict[str, DedicatedIpPool] = {}
+
     def _is_verified_address(self, source: str) -> bool:
         _, address = parseaddr(source)
-        if address in self.addresses:
-            return True
-        if address in self.email_addresses:
+        if address in self.email_identities:
             return True
         host = address.split("@", 1)[-1]
-        return host in self.domains
+        return host in self.email_identities
 
     def verify_email_identity(self, address: str) -> None:
         _, address = parseaddr(address)
-        if address not in self.addresses:
-            self.addresses.append(address)
+        if address not in self.email_identities:
+            self.create_email_identity_v2(address, None, None, None)
 
     def verify_email_address(self, address: str) -> None:
         _, address = parseaddr(address)
-        self.email_addresses.append(address)
+        if address not in self.email_identities:
+            self.create_email_identity_v2(address, None, None, None)
 
     def verify_domain(self, domain: str) -> None:
-        if domain.lower() not in self.domains:
-            self.domains.append(domain.lower())
+        if domain.lower() not in self.email_identities:
+            self.create_email_identity_v2(domain.lower(), None, None, None)
 
-    def list_identities(self, identity_type: str) -> List[str]:
-        if identity_type == "Domain":
-            return self.domains
-        if identity_type == "EmailAddress":
-            return self.addresses
-        return self.domains + self.addresses
+    def create_email_identity_v2(
+        self,
+        email_identity: str,
+        tags: Optional[Dict[str, str]],
+        dkim_signing_attributes: Optional[object],
+        configuration_set_name: Optional[str],
+    ) -> EmailIdentity:
+        identity = EmailIdentity(
+            email_identity=email_identity,
+            tags=tags,
+            dkim_signing_attributes=dkim_signing_attributes,
+            configuration_set_name=configuration_set_name,
+        )
+        self.email_identities[email_identity] = identity
+        return identity
+
+    def list_identities(
+        self, identity_type: Optional[Literal["EmailAddress", "Domain"]]
+    ) -> List[str]:
+        if identity_type is not None:
+            return [
+                (value.email_identity)
+                for _, value in self.email_identities.items()
+                if value.identity_type
+                == ("EMAIL_ADDRESS" if identity_type == "EmailAddress" else "DOMAIN")
+            ]
+        return [(value.email_identity) for _, value in self.email_identities.items()]
 
     def list_verified_email_addresses(self) -> List[str]:
-        return self.email_addresses
+        x = [
+            (value)
+            for _, value in self.email_identities.items()
+            if value.identity_type == "EMAIL_ADDRESS"
+        ]
+        y = [(identity.email_identity) for identity in x]
+        return y
 
     def delete_identity(self, identity: str) -> None:
-        if "@" in identity:
-            self.addresses.remove(identity)
-        else:
-            self.domains.remove(identity)
+        self.email_identities.pop(identity)
 
     def send_email(
         self, source: str, subject: str, body: str, destinations: Dict[str, List[str]]
@@ -924,7 +1111,7 @@ class SESBackend(BaseBackend):
             identities = []
         attributes_by_identity = {}
         for identity in identities:
-            if identity in (self.domains + self.addresses):
+            if identity in (self.list_identities(None)):
                 value = self.identity_mail_from_domains.get(identity, {})
                 mail_from_domain = value.get("mail_from_domain")
                 attributes_by_identity[identity] = {
@@ -943,7 +1130,7 @@ class SESBackend(BaseBackend):
             identities = []
         attributes_by_identity = {}
         for identity in identities:
-            if identity in (self.domains + self.addresses):
+            if identity in (self.list_identities(None)):
                 attributes_by_identity[identity] = {
                     "VerificationStatus": "Success",
                     "VerificationToken": "ILQMESfEW0p6i6gIJcEWvO65TP5hg6B99hGFZ2lxrIs=",
@@ -970,9 +1157,7 @@ class SESBackend(BaseBackend):
             is_domain = "@" not in identity
             dkim_enabled = True
             verification_status = (
-                "Success"
-                if identity in (self.domains + self.addresses)
-                else "NotStarted"
+                "Success" if identity in (self.list_identities(None)) else "NotStarted"
             )
 
             dkim_data = {

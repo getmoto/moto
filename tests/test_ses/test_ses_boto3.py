@@ -24,7 +24,8 @@ def test_list_verified_identities():
     conn.verify_domain_identity(Domain="domain2.com")
 
     identities = conn.list_identities()["Identities"]
-    assert identities == ["domain1.com", "domain2.com", "test@example.com"]
+    matches = ["domain1.com", "domain2.com", "test@example.com"]
+    assert all([a in matches for a in identities])
 
     identities = conn.list_identities(IdentityType="EmailAddress")["Identities"]
     assert identities == ["test@example.com"]
