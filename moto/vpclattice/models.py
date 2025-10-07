@@ -23,7 +23,7 @@ class VPCLatticeService(BaseModel):
         name: str,
         tags: Optional[Dict[str, str]],
     ) -> None:
-        self.id: str = f"svc-{str(uuid.uuid4())[:17]}"
+        self.id: str = f"srv-{str(uuid.uuid4())[:18]}"
         self.auth_type: str = auth_type
         self.certificate_arn: str = certificate_arn or ""
         self.client_token: str = client_token
@@ -32,7 +32,7 @@ class VPCLatticeService(BaseModel):
             region, self.id, self.custom_domain_name
         )
         self.name: str = name
-        self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:service/{self.id}"
+        self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:service/{name}"
         self.status: str = "ACTIVE"
         self.tags: Dict[str, str] = tags or {}
 
@@ -60,13 +60,13 @@ class VPCLatticeServiceNetwork(BaseModel):
         sharing_config: Optional[Dict[str, Any]],
         tags: Optional[Dict[str, str]],
     ) -> None:
+        self.arn: str = (
+            f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetwork/{name}"
+        )
         self.auth_type: str = auth_type
         self.client_token: str = client_token
-        self.id: str = f"sn-{str(uuid.uuid4())[:17]}"
+        self.id: str = f"snet-{name[:8]}"
         self.name: str = name
-        self.arn: str = (
-            f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetwork/{self.id}"
-        )
         self.sharing_config: Dict[str, Any] = sharing_config or {}
         self.tags: Dict[str, str] = tags or {}
 
@@ -91,9 +91,12 @@ class VPCLatticeServiceNetworkVpcAssociation(BaseModel):
         tags: Optional[Dict[str, str]],
         vpc_identifier: str,
     ) -> None:
-        self.id: str = f"snva-{service_network_identifier[:4]}-{vpc_identifier[:4]}"
-        self.arn: str = f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetworkvpcassociation/{self.id}"
+        self.arn: str = (
+            f"arn:aws:vpc-lattice:{region}:{account_id}:servicenetworkvpcassociation/"
+            f"{service_network_identifier}/{vpc_identifier}"
+        )
         self.created_by: str = "user"
+        self.id: str = f"snva-{service_network_identifier[:4]}-{vpc_identifier[:4]}"
         self.security_group_ids: List[str] = security_group_ids or []
         self.status: str = "ACTIVE"
         self.tags: Dict[str, str] = tags or {}
@@ -124,11 +127,11 @@ class VPCLatticeRule(BaseModel):
         tags: Dict[str, str],
     ) -> None:
         self.action: Dict[str, Any] = action or {}
-        self.id: str = f"rule-[0-9a-z]{17}"
         self.arn: str = (
             f"arn:aws:vpc-lattice:{region}:{account_id}:service/{service_identifier}"
-            f"/listener/listener-{listener_identifier}/rule/{self.id}"
+            f"/listener/{listener_identifier}/rule/{name}"
         )
+        self.id: str = f"rule-{str(uuid.uuid4())[:8]}"
         self.client_token: str = client_token
         self.listener_identifier: str = listener_identifier
         self.match: Dict[str, Any] = match or {}

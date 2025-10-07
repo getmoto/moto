@@ -83,7 +83,6 @@ class VPCLatticeResponse(BaseResponse):
         )
         return json.dumps(rule.to_dict())
 
-
     def list_tags_for_resource(self) -> Dict[str, str]:
         resource_arn = unquote(self._get_param("resourceArn"))
         tags = self.backend.list_tags_for_resource(resource_arn)
