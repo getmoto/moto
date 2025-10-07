@@ -2,7 +2,7 @@
   "version": 1.0,
   "merge": {
     "metadata": {
-      "awsQueryCompatible":{
+      "awsQueryCompatible": {
         "operations": {
           "CreateQueue": {
             "output": {
@@ -11,6 +11,11 @@
           }
         },
         "shapes": {
+          "QueueDoesNotExist": {
+            "error": {
+              "message": "The specified queue does not exist for this wsdl version."
+            }
+          },
           "TagMap": {
             "type": "map",
             "key": {
