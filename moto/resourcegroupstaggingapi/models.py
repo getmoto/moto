@@ -52,7 +52,7 @@ from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
 from moto.stepfunctions.models import StepFunctionBackend, stepfunctions_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
-from moto.vpclattice.models import VPCLatticeBackend,vpclattice_backends
+from moto.vpclattice.models import VPCLatticeBackend, vpclattice_backends
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
@@ -252,7 +252,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def elasticache_backend(self) -> ElastiCacheBackend:
         return elasticache_backends[self.account_id][self.region_name]
-    
+
     @property
     def vpclattice_backend(self) -> VPCLatticeBackend:
         return vpclattice_backends[self.account_id][self.region_name]
@@ -1001,13 +1001,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": state_machine.arn, "Tags": tags}
 
-        #VPC Lattice
+        # VPC Lattice
         if not resource_type_filters or "vpc-lattice" in resource_type_filters:
             # Service
             for service in self.vpclattice_backend.services.values():
-                tags = self.vpclattice_backend.list_tags_for_resource(
-                    service.arn
-                )
+                tags = self.vpclattice_backend.list_tags_for_resource(service.arn)
                 tags = format_tags(tags)
                 if not tags or not tag_filter(tags):
                     continue

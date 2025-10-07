@@ -30,7 +30,11 @@ def test_vpc_lattice_service_tagging_api(client, resource_groups_client):
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
     assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
-    assert resource_group_tags[0]["Tags"] == [{'Key': 'tag1', 'Value': 'value1'}, {'Key': 'tag2', 'Value': 'value2'}]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]
+
 
 @mock_aws
 def test_vpc_lattice_service_network_tagging_api(client, resource_groups_client):
@@ -40,7 +44,7 @@ def test_vpc_lattice_service_network_tagging_api(client, resource_groups_client)
         authType="NONE",
         clientToken="token123",
         sharingConfig={"enabled": False},
-        tags=tags
+        tags=tags,
     )
     metadata = resp["ResponseMetadata"]
     assert metadata["HTTPStatusCode"] == 200
@@ -51,4 +55,7 @@ def test_vpc_lattice_service_network_tagging_api(client, resource_groups_client)
     )["ResourceTagMappingList"]
     assert len(resource_group_tags) == 1
     assert resource_group_tags[0]["ResourceARN"] == resp["arn"]
-    assert resource_group_tags[0]["Tags"] == [{'Key': 'tag1', 'Value': 'value1'}, {'Key': 'tag2', 'Value': 'value2'}]
+    assert resource_group_tags[0]["Tags"] == [
+        {"Key": "tag1", "Value": "value1"},
+        {"Key": "tag2", "Value": "value2"},
+    ]

@@ -1,10 +1,11 @@
 import json
-
-from moto.core.responses import BaseResponse
+from typing import Dict
 from urllib.parse import unquote
 
+from moto.core.responses import BaseResponse
+
 from .models import VPCLatticeBackend, vpclattice_backends
-from typing import Dict, Tuple, Union
+
 
 class VPCLatticeResponse(BaseResponse):
     def __init__(self) -> None:
@@ -27,16 +28,22 @@ class VPCLatticeResponse(BaseResponse):
 
     def get_service(self) -> str:
         service = self.backend.get_service(
-        service_identifier=unquote(self._get_param("serviceIdentifier"))
+            service_identifier=unquote(self._get_param("serviceIdentifier"))
         )
         return json.dumps(service.to_dict())
-    
+
     def list_services(self) -> str:
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
-        services, next_token = self.backend.list_services(max_results=max_results, next_token=next_token)
-        return json.dumps({"items": services, "nextToken": next_token})
-        
+        services, next_token = self.backend.list_services(
+            max_results=max_results, next_token=next_token
+        )
+        response = {
+            "items": [service.to_dict() for service in services],
+            "nextToken": next_token,
+        }
+        return json.dumps(response)
+
     def create_service_network(self) -> str:
         sn = self.backend.create_service_network(
             auth_type=self._get_param("authType"),
@@ -49,16 +56,25 @@ class VPCLatticeResponse(BaseResponse):
 
     def get_service_network(self) -> str:
         service = self.backend.get_service_network(
-        service_network_identifier=unquote(self._get_param("serviceNetworkIdentifier"))
+            service_network_identifier=unquote(
+                self._get_param("serviceNetworkIdentifier")
+            )
         )
         return json.dumps(service.to_dict())
 
     def list_service_networks(self) -> str:
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
-        service_networks, next_token = self.backend.list_service_networks(max_results=max_results, next_token=next_token)
-        return json.dumps({"items": service_networks, "nextToken": next_token})
-
+        service_networks, next_token = self.backend.list_service_networks(
+            max_results=max_results, next_token=next_token
+        )
+        response = {
+            "items": [
+                service_network.to_dict() for service_network in service_networks
+            ],
+            "nextToken": next_token,
+        }
+        return json.dumps(response)
 
     def create_service_network_vpc_association(self) -> str:
         assoc = self.backend.create_service_network_vpc_association(
@@ -87,13 +103,13 @@ class VPCLatticeResponse(BaseResponse):
         resource_arn = unquote(self._get_param("resourceArn"))
         tags = self.backend.list_tags_for_resource(resource_arn)
         return json.dumps({"tags": tags})
-    
+
     def tag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
         tags = self._get_param("tags")
         self.backend.tag_resource(resource_arn, tags)
         return json.dumps({})
-    
+
     def untag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
         tag_keys = self._get_param("tagKeys")

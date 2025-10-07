@@ -18,6 +18,7 @@ def test_create_service():
     assert resp["certificateArn"] == ""
     assert resp["customDomainName"] == ""
 
+
 @mock_aws
 def test_get_service():
     client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
@@ -29,7 +30,8 @@ def test_get_service():
     assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
 
     service_by_id = client.get_service(serviceIdentifier=service_id)
-    assert service_by_id["id"].startswith("svc-")
+    assert service_by_id["id"].startswith("srv-")
+
 
 @mock_aws
 def test_get_nonexistent_service():
@@ -49,6 +51,7 @@ def test_list_services():
     assert services["items"][0]["name"] == "my-service1"
     assert services["items"][1]["name"] == "my-service2"
 
+
 @mock_aws
 def test_create_service_network():
     client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
@@ -64,6 +67,7 @@ def test_create_service_network():
     assert resp["id"].startswith("snet-")
     assert resp["authType"] == "NONE"
     assert resp["sharingConfig"] == {"enabled": False}
+
 
 @mock_aws
 def test_get_service_network():
@@ -81,13 +85,17 @@ def test_get_service_network():
     assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
 
     service_by_id = client.get_service_network(serviceNetworkIdentifier=service_id)
-    assert service_by_id["id"].startswith("sn-")
+    assert service_by_id["id"].startswith("snet-")
+
 
 @mock_aws
-def test_get_nonexistent_service():
+def test_get_nonexistent_service_network():
     client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
     with pytest.raises(client.exceptions.ResourceNotFoundException):
-        client.get_service_network(serviceNetworkIdentifier="NONEXISTENTSERVICENETWORKID")
+        client.get_service_network(
+            serviceNetworkIdentifier="NONEXISTENTSERVICENETWORKID"
+        )
+
 
 @mock_aws
 def test_list_service_networks():
@@ -109,6 +117,7 @@ def test_list_service_networks():
     assert len(service_networks["items"]) == 2
     assert service_networks["items"][0]["name"] == "my-sn1"
     assert service_networks["items"][1]["name"] == "my-sn2"
+
 
 @mock_aws
 def test_create_service_network_vpc_association():
@@ -205,7 +214,6 @@ def test_untag_resource():
 
     tags = {"tag1": "value1", "tag2": "value2"}
     resp = client.create_service(name="my-service", authType="NONE", tags=tags)
-    
 
     returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
     assert returned_tags["tags"] == tags

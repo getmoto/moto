@@ -2,7 +2,7 @@
 
 from moto.core.exceptions import JsonRESTError
 
- 
+
 class ValidationException(JsonRESTError):
     code = 400
 
