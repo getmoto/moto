@@ -196,7 +196,7 @@ class InvalidCustomerGatewayIdError(EC2ClientError):
     def __init__(self, customer_gateway_id: str):
         super().__init__(
             "InvalidCustomerGatewayID.NotFound",
-            f"The customer gateway ID '{customer_gateway_id}' does not exist",
+            f"The customerGateway ID '{customer_gateway_id}' does not exist",
         )
 
 
@@ -857,6 +857,14 @@ class InvalidCarrierGatewayID(EC2ClientError):
         super().__init__(
             "InvalidCarrierGatewayID.NotFound",
             f"The CarrierGateway ID '{carrier_gateway_id}' does not exist",
+        )
+
+
+class InvalidTransitGatewayID(EC2ClientError):
+    def __init__(self, transit_gateway_id: str):
+        super().__init__(
+            "InvalidTransitGatewayID.NotFound",
+            f"The transitGateway ID '{transit_gateway_id}' does not exist",
         )
 
 
