@@ -3,10 +3,15 @@ from unittest import SkipTest
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from tests.test_ec2 import ec2_aws_verified
+from tests.test_ec2 import (
+    delete_tg_attachments,
+    ec2_aws_verified,
+    wait_for_transit_gateway_attachments,
+)
 
 
 @mock_aws
@@ -688,7 +693,7 @@ def test_delete_transit_gateway_vpc_attachment():
         TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
     )["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
     a2 = ec2.create_transit_gateway_vpc_attachment(
-        TransitGatewayId=gateway_id, VpcId="vpc-id", SubnetIds=["sub1"]
+        TransitGatewayId=gateway_id, VpcId="vpc-id2", SubnetIds=["sub1"]
     )["TransitGatewayVpcAttachment"]["TransitGatewayAttachmentId"]
 
     available = ec2.describe_transit_gateway_vpc_attachments(
@@ -710,6 +715,155 @@ def test_delete_transit_gateway_vpc_attachment():
     assert [a["TransitGatewayAttachmentId"] for a in all_attchmnts] == [a2]
 
 
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=False, create_subnet=False, create_transit_gateway=True)
+def test_default_route_table(account_id, ec2_client=None, tg_id=None):
+    existing_tables = ec2_client.describe_transit_gateway_route_tables(
+        Filters=[{"Name": "transit-gateway-id", "Values": [tg_id]}]
+    )["TransitGatewayRouteTables"]
+    assert len(existing_tables) == 1
+    assert existing_tables[0]["TransitGatewayId"] == tg_id
+    assert existing_tables[0]["DefaultAssociationRouteTable"] is True
+    assert existing_tables[0]["DefaultPropagationRouteTable"] is True
+
+    initial = ec2_client.get_transit_gateway_route_table_associations(
+        TransitGatewayRouteTableId=existing_tables[0]["TransitGatewayRouteTableId"]
+    )
+    assert initial["Associations"] == []
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True, create_subnet=True, create_transit_gateway=True)
+def test_new_attachment_is_immediately_associated_to_default_route_table(
+    account_id, ec2_client=None, vpc_id=None, subnet_id=None, tg_id=None
+):
+    # Get default RouteTableID
+    default_route_table_id = ec2_client.describe_transit_gateway_route_tables(
+        Filters=[{"Name": "transit-gateway-id", "Values": [tg_id]}]
+    )["TransitGatewayRouteTables"][0]["TransitGatewayRouteTableId"]
+
+    # Create VPC Attachment
+    attchmnt = ec2_client.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=tg_id, VpcId=vpc_id, SubnetIds=[subnet_id]
+    )["TransitGatewayVpcAttachment"]
+    tg_attachment_id = attchmnt["TransitGatewayAttachmentId"]
+    wait_for_transit_gateway_attachments(ec2_client, tg_attachment_id=tg_attachment_id)
+
+    # Verify Attachment is associated to default RouteTable
+    assocs = ec2_client.get_transit_gateway_route_table_associations(
+        TransitGatewayRouteTableId=default_route_table_id
+    )["Associations"]
+    assert len(assocs) == 1
+    assert assocs[0] == {
+        "TransitGatewayAttachmentId": tg_attachment_id,
+        "ResourceId": vpc_id,
+        "ResourceType": "vpc",
+        "State": "associated",
+    }
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True, create_subnet=True)
+def test_create_vpc_attachment_to_unknown_transit_gateway(
+    account_id, ec2_client=None, vpc_id=None, subnet_id=None
+):
+    # Create VPC Attachment to unknown TransitGateway
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_transit_gateway_vpc_attachment(
+            TransitGatewayId="tgw-fb63e95d22999bf27",
+            VpcId=vpc_id,
+            SubnetIds=[subnet_id],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidTransitGatewayID.NotFound"
+    assert (
+        err["Message"]
+        == "Transit Gateway tgw-fb63e95d22999bf27 was deleted or does not exist."
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True, create_subnet=True, create_transit_gateway=True)
+def test_create_vpc_attachment_twice(
+    account_id, ec2_client=None, vpc_id=None, subnet_id=None, tg_id=None
+):
+    # Create VPC Attachment one
+    attchmnt1 = ec2_client.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=tg_id, VpcId=vpc_id, SubnetIds=[subnet_id]
+    )["TransitGatewayVpcAttachment"]
+    tg_attachment_id1 = attchmnt1["TransitGatewayAttachmentId"]
+    wait_for_transit_gateway_attachments(ec2_client, tg_attachment_id=tg_attachment_id1)
+
+    # Create VPC Attachment two
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_transit_gateway_vpc_attachment(
+            TransitGatewayId=tg_id, VpcId=vpc_id, SubnetIds=[subnet_id]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "DuplicateTransitGatewayAttachment"
+    assert (
+        err["Message"]
+        == f"{tg_id} has non-deleted Transit Gateway Attachments with same VPC ID."
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True, create_subnet=True, create_transit_gateway=True)
+def test_create_vpc_attachment_for_different_vpcs(
+    account_id, ec2_client=None, vpc_id=None, subnet_id=None, tg_id=None
+):
+    vpc_id1 = vpc_id
+    # Get default RouteTableID
+    default_route_table_id = ec2_client.describe_transit_gateway_route_tables(
+        Filters=[{"Name": "transit-gateway-id", "Values": [tg_id]}]
+    )["TransitGatewayRouteTables"][0]["TransitGatewayRouteTableId"]
+
+    # Create VPC Attachment one
+    attchmnt1 = ec2_client.create_transit_gateway_vpc_attachment(
+        TransitGatewayId=tg_id, VpcId=vpc_id, SubnetIds=[subnet_id]
+    )["TransitGatewayVpcAttachment"]
+    tg_attachment_id1 = attchmnt1["TransitGatewayAttachmentId"]
+    wait_for_transit_gateway_attachments(ec2_client, tg_attachment_id=tg_attachment_id1)
+
+    def _create_second_attachment(ec2_client=None, vpc_id=None, subnet_id=None):
+        vpc_id2 = vpc_id
+        try:
+            # Create VPC Attachment one
+            attchmnt2 = ec2_client.create_transit_gateway_vpc_attachment(
+                TransitGatewayId=tg_id, VpcId=vpc_id, SubnetIds=[subnet_id]
+            )["TransitGatewayVpcAttachment"]
+            tg_attachment_id2 = attchmnt2["TransitGatewayAttachmentId"]
+            wait_for_transit_gateway_attachments(
+                ec2_client, tg_attachment_id=tg_attachment_id2
+            )
+
+            assocs = ec2_client.get_transit_gateway_route_table_associations(
+                TransitGatewayRouteTableId=default_route_table_id
+            )["Associations"]
+            assert len(assocs) == 2
+            assert {
+                "TransitGatewayAttachmentId": tg_attachment_id1,
+                "ResourceId": vpc_id1,
+                "ResourceType": "vpc",
+                "State": "associated",
+            } in assocs
+            assert {
+                "TransitGatewayAttachmentId": tg_attachment_id2,
+                "ResourceId": vpc_id2,
+                "ResourceType": "vpc",
+                "State": "associated",
+            } in assocs
+        finally:
+            # The Attachment is deleted automatically, but only outside the scope of this function
+            # Deleting the VPC inside this function is therefore impossible
+            # That's why we delete the Attachment here manually
+            delete_tg_attachments(ec2_client, tg_id=tg_id)
+
+    # Create the second attachment inside the `ec2_aws_verified` function
+    # This will automatically create (and destroy!) the VPC/subnet resources that we need
+    ec2_aws_verified(create_vpc=True, create_subnet=True)(_create_second_attachment)()
+
+
 @mock_aws
 def test_associate_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
@@ -721,18 +875,6 @@ def test_associate_transit_gateway_route_table():
     )["TransitGatewayVpcAttachment"]
     table = ec2.create_transit_gateway_route_table(TransitGatewayId=gateway_id)[
         "TransitGatewayRouteTable"
-    ]
-
-    initial = ec2.get_transit_gateway_route_table_associations(
-        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )
-    assert initial["Associations"] == [
-        {
-            "TransitGatewayAttachmentId": "",
-            "ResourceId": "",
-            "ResourceType": "",
-            "State": "",
-        }
     ]
 
     ec2.associate_transit_gateway_route_table(
@@ -766,11 +908,6 @@ def test_disassociate_transit_gateway_route_table():
         "TransitGatewayRouteTable"
     ]
 
-    initial = ec2.get_transit_gateway_route_table_associations(
-        TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )["Associations"][0]
-    assert initial["TransitGatewayAttachmentId"] == ""
-
     ec2.associate_transit_gateway_route_table(
         TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
@@ -792,9 +929,8 @@ def test_disassociate_transit_gateway_route_table():
 
     updated = ec2.get_transit_gateway_route_table_associations(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-    )["Associations"][0]
-    assert updated["TransitGatewayAttachmentId"] == ""
-    assert updated["State"] == ""
+    )["Associations"]
+    assert len(updated) == 0
 
 
 @mock_aws

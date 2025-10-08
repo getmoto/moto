@@ -5,7 +5,11 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
 
-from ..exceptions import InvalidParameterValueErrorPeeringAttachment
+from ..exceptions import (
+    DuplicateTransitGatewayAttachmentError,
+    InvalidParameterValueErrorPeeringAttachment,
+    InvalidTransitGatewayID,
+)
 from ..utils import describe_tag_filter, random_transit_gateway_attachment_id
 from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
@@ -148,6 +152,15 @@ class TransitGatewayAttachmentBackend:
         tags: Optional[Dict[str, str]] = None,
         options: Optional[Dict[str, str]] = None,
     ) -> TransitGatewayVpcAttachment:
+        # Validate that the TransitGateway exists
+        if not (transit_gateway := self.transit_gateways.get(transit_gateway_id)):  # type: ignore[attr-defined]
+            msg = f"Transit Gateway {transit_gateway_id} was deleted or does not exist."
+            raise InvalidTransitGatewayID(transit_gateway_id, msg)
+        # Validate that no other Attachment exists
+        if self.describe_transit_gateway_vpc_attachments(
+            filters={"transit-gateway-id": transit_gateway_id, "vpc-id": [vpc_id]}
+        ):
+            raise DuplicateTransitGatewayAttachmentError(transit_gateway_id)
         transit_gateway_vpc_attachment = TransitGatewayVpcAttachment(
             self,
             transit_gateway_id=transit_gateway_id,
@@ -158,6 +171,12 @@ class TransitGatewayAttachmentBackend:
         )
         self.transit_gateway_attachments[transit_gateway_vpc_attachment.id] = (
             transit_gateway_vpc_attachment
+        )
+        # Attachments are attached to the default RouteTable by default
+        default_transit_gateway_route_table = transit_gateway.default_route_table
+        self.set_route_table_association(  # type: ignore[attr-defined]
+            transit_gateway_attachment_id=transit_gateway_vpc_attachment.id,
+            transit_gateway_route_table_id=default_transit_gateway_route_table.id,
         )
         return transit_gateway_vpc_attachment
 
