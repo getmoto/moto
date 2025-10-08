@@ -39,6 +39,13 @@
       "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
     },
     "shapes": {
+      "BatchEntryIdsNotDistinct": {
+        "error": {
+          "code": "AWS.SimpleQueueService.BatchEntryIdsNotDistinct",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
       "EmptyBatchRequest": {
         "error": {
           "code": "AWS.SimpleQueueService.EmptyBatchRequest",

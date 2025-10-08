@@ -1898,7 +1898,10 @@ def test_delete_message_batch_with_duplicates():
     with pytest.raises(ClientError) as e:
         client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
     ex = e.value
-    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+    assert (
+        ex.response["Error"]["Code"]
+        == "AWS.SimpleQueueService.BatchEntryIdsNotDistinct"
+    )
 
     # no messages are deleted
     messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
