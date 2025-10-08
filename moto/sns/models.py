@@ -1307,17 +1307,19 @@ class SNSBackend(BaseBackend):
             "tags": topic._tags,
             "configurationItemMD5Hash": "",
         }
+        configuration: Dict[str, Any] = config_item["configuration"]
 
         if topic.kms_master_key_id:
-            config_item["configuration"]["kmsMasterKeyId"] = topic.kms_master_key_id
+            configuration["kmsMasterKeyId"] = topic.kms_master_key_id
 
         if topic.fifo_topic == "true":
-            config_item["configuration"]["fifoTopic"] = True
-            config_item["configuration"]["contentBasedDeduplication"] = (
+            configuration["fifoTopic"] = True
+            configuration["contentBasedDeduplication"] = (
                 topic.content_based_deduplication == "true"
             )
 
         return config_item
+
 
     def select_resource_config(
         self, query: str, limit: int = 100
@@ -1328,13 +1330,13 @@ class SNSBackend(BaseBackend):
         """
         query_lower = query.lower()
 
-        results = []
+        results: List[Dict[str, Any]] = []
 
         if "aws::sns::topic" not in query_lower:
             return results
 
         for topic in self.topics.values():
-            config = {
+            config: Dict[str, Any] = {
                 "resourceType": "AWS::SNS::Topic",
                 "resourceId": topic.arn,
                 "resourceName": topic.name,
