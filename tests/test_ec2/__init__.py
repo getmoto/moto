@@ -136,7 +136,52 @@ def wait_for_transit_gateway_attachments(ec2_client, tg_attachment_id):
         sleep(5 * idx)
 
 
+def wait_for_transit_gateway_association(
+    ec2_client, tg_rt_id, tg_attachment_id, expected_state
+):
+    for idx in range(10):
+        associations = ec2_client.get_transit_gateway_route_table_associations(
+            TransitGatewayRouteTableId=tg_rt_id,
+            Filters=[
+                {"Name": "transit-gateway-attachment-id", "Values": [tg_attachment_id]}
+            ],
+        )["Associations"]
+
+        if not associations or associations[0]["State"] == expected_state:
+            # If we're disassociating, AWS will never return anything after it has finished
+            # Initial calls will return State=disassociating - after it has successfully disassociated, it is no longer returned
+            return
+
+        sleep(5 * idx)
+
+
 def delete_transit_gateway_dependencies(ec2_client, tg_id):
+    delete_tg_attachments(ec2_client, tg_id)
+
+    for idx in range(10):
+        route_tables = ec2_client.describe_transit_gateway_route_tables(
+            Filters=[
+                {"Name": "transit-gateway-id", "Values": [tg_id]},
+                {"Name": "default-association-route-table", "Values": ["false"]},
+            ]
+        )["TransitGatewayRouteTables"]
+
+        if not route_tables:
+            return
+
+        for table in route_tables:
+            if table["State"] == "available":
+                ec2_client.delete_transit_gateway_route_table(
+                    TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
+                )
+
+        if set(rt["State"] for rt in route_tables) == {"deleted"}:
+            return
+
+        sleep(5 * idx)
+
+
+def delete_tg_attachments(ec2_client, tg_id):
     for idx in range(10):
         attachments = ec2_client.describe_transit_gateway_attachments(
             Filters=[{"Name": "transit-gateway-id", "Values": [tg_id]}]
@@ -152,25 +197,6 @@ def delete_transit_gateway_dependencies(ec2_client, tg_id):
                 )
 
         if set(a["State"] for a in attachments) == {"deleted"}:
-            return
-
-        sleep(5 * idx)
-
-    for idx in range(10):
-        route_tables = ec2_client.describe_transit_gateway_route_tables(
-            Filters=[{"Name": "transit-gateway-id", "Values": [tg_id]}]
-        )["TransitGatewayRouteTables"]
-
-        if not route_tables:
-            return
-
-        for table in route_tables:
-            if table["State"] == "available":
-                ec2_client.delete_transit_gateway_route_table(
-                    TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
-                )
-
-        if set(rt["State"] for rt in route_tables) == {"deleted"}:
             return
 
         sleep(5 * idx)
