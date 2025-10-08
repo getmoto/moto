@@ -377,9 +377,6 @@ class SESBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        # self.addresses: List[str] = []
-        # self.email_addresses: List[str] = []
-        # self.domains: List[str] = []
         self.sent_messages: List[Any] = []
         self.sent_message_count = 0
         self.rejected_messages_count = 0
@@ -391,8 +388,6 @@ class SESBackend(BaseBackend):
         self.templates: Dict[str, Dict[str, str]] = {}
         self.receipt_rule_set: Dict[str, ReceiptRuleSet] = {}
         self.dkim_tokens: Dict[str, List[str]] = {}
-
-        # SES v2 variables
         self.contacts: Dict[str, Contact] = {}
         self.contacts_lists: Dict[str, ContactList] = {}
         self.email_identities: Dict[str, EmailIdentity] = {}
@@ -457,7 +452,8 @@ class SESBackend(BaseBackend):
         return y
 
     def delete_identity(self, identity: str) -> None:
-        self.email_identities.pop(identity)
+        if self._is_verified_address(identity):
+            del self.email_identities[identity]
 
     def send_email(
         self, source: str, subject: str, body: str, destinations: Dict[str, List[str]]
@@ -1108,33 +1104,43 @@ class SESBackend(BaseBackend):
         self, identities: Optional[List[str]] = None
     ) -> Dict[str, Dict[str, str]]:
         if identities is None:
-            identities = []
+            actual_identities = []
+        else:
+            actual_identities = [
+                ident
+                for ident in self.email_identities.values()
+                if ident.email_identity in identities
+            ]
         attributes_by_identity = {}
-        for identity in identities:
-            if identity in (self.list_identities(None)):
-                value = self.identity_mail_from_domains.get(identity, {})
-                mail_from_domain = value.get("mail_from_domain")
-                attributes_by_identity[identity] = {
-                    "MailFromDomain": mail_from_domain,
-                    "MailFromDomainStatus": "Success" if mail_from_domain else None,
-                    "BehaviorOnMXFailure": value.get(
-                        "behavior_on_mx_failure", "UseDefaultValue"
-                    ),
-                }
+        for identity in actual_identities:
+            value = self.identity_mail_from_domains.get(identity.email_identity, {})
+            mail_from_domain = value.get("mail_from_domain")
+            attributes_by_identity[identity.email_identity] = {
+                "MailFromDomain": mail_from_domain,
+                "MailFromDomainStatus": "Success" if mail_from_domain else None,
+                "BehaviorOnMXFailure": value.get(
+                    "behavior_on_mx_failure", "UseDefaultValue"
+                ),
+            }
         return attributes_by_identity
 
     def get_identity_verification_attributes(
         self, identities: Optional[List[str]] = None
     ) -> Dict[str, Dict[str, str]]:
         if identities is None:
-            identities = []
+            actual_identities = []
+        else:
+            actual_identities = [
+                ident
+                for ident in self.email_identities.values()
+                if ident.email_identity in identities
+            ]
         attributes_by_identity = {}
-        for identity in identities:
-            if identity in (self.list_identities(None)):
-                attributes_by_identity[identity] = {
-                    "VerificationStatus": "Success",
-                    "VerificationToken": "ILQMESfEW0p6i6gIJcEWvO65TP5hg6B99hGFZ2lxrIs=",
-                }
+        for identity in actual_identities:
+            attributes_by_identity[identity.email_identity] = {
+                "VerificationStatus": "Success",
+                "VerificationToken": "ILQMESfEW0p6i6gIJcEWvO65TP5hg6B99hGFZ2lxrIs=",
+            }
         return attributes_by_identity
 
     def update_configuration_set_reputation_metrics_enabled(
@@ -1153,11 +1159,27 @@ class SESBackend(BaseBackend):
         self, identities: List[str]
     ) -> Dict[str, Dict[str, Any]]:
         result = {}
-        for identity in identities:
-            is_domain = "@" not in identity
+        actual_identities: List[EmailIdentity] = []
+        for ident in identities:
+            if ident in self.email_identities.keys():
+                actual_identities.append(self.email_identities[ident])
+            else:
+                actual_identities.append(
+                    EmailIdentity(
+                        email_identity=ident,
+                        tags=None,
+                        dkim_signing_attributes=None,
+                        configuration_set_name=None,
+                    )
+                )
+
+        for identity in actual_identities:
+            is_domain = identity.identity_type == "DOMAIN"
             dkim_enabled = True
             verification_status = (
-                "Success" if identity in (self.list_identities(None)) else "NotStarted"
+                "Success"
+                if identity.email_identity in self.email_identities.keys()
+                else "NotStarted"
             )
 
             dkim_data = {
@@ -1167,16 +1189,16 @@ class SESBackend(BaseBackend):
 
             # Only include tokens for domain identities
             if is_domain and verification_status == "Success":
-                if identity not in self.dkim_tokens:
+                if identity.email_identity not in self.dkim_tokens:
                     # Generate new DKIM tokens for the domain
-                    self.dkim_tokens[identity] = [
+                    self.dkim_tokens[identity.email_identity] = [
                         "vvjuipp74whm76gqoni7qmwwn4w4qusjiainivf6sf",
                         "3frqe7jn4obpuxjpwpolz6ipb3k5nvt2nhjpik2oy",
                         "wrqplteh7oodxnad7hsl4mixg2uavzneazxv5sxi2",
                     ]
-                dkim_data["DkimTokens"] = self.dkim_tokens[identity]
+                dkim_data["DkimTokens"] = self.dkim_tokens[identity.email_identity]
 
-            result[identity] = dkim_data
+            result[identity.email_identity] = dkim_data
 
         return result
 

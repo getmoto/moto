@@ -46,29 +46,29 @@ class SESV2Backend(BaseBackend):
         super().__init__(region_name, account_id)
 
         # Store local variables in v1 backend for interoperability
-        self.v1_backend = ses_backends[self.account_id][self.region_name]
+        self.core_backend = ses_backends[self.account_id][self.region_name]
 
     def create_contact_list(self, params: Dict[str, Any]) -> None:
         name = params["ContactListName"]
         description = params.get("Description")
         topics = [] if "Topics" not in params else params["Topics"]
         new_list = ContactList(name, str(description), topics)
-        self.v1_backend.contacts_lists[name] = new_list
+        self.core_backend.contacts_lists[name] = new_list
 
     def get_contact_list(self, contact_list_name: str) -> ContactList:
-        if contact_list_name in self.v1_backend.contacts_lists:
-            return self.v1_backend.contacts_lists[contact_list_name]
+        if contact_list_name in self.core_backend.contacts_lists:
+            return self.core_backend.contacts_lists[contact_list_name]
         else:
             raise NotFoundException(
                 f"List with name: {contact_list_name} doesn't exist."
             )
 
     def list_contact_lists(self) -> List[ContactList]:
-        return self.v1_backend.contacts_lists.values()  # type: ignore[return-value]
+        return self.core_backend.contacts_lists.values()  # type: ignore[return-value]
 
     def delete_contact_list(self, name: str) -> None:
-        if name in self.v1_backend.contacts_lists:
-            del self.v1_backend.contacts_lists[name]
+        if name in self.core_backend.contacts_lists:
+            del self.core_backend.contacts_lists[name]
         else:
             raise NotFoundException(f"List with name: {name} doesn't exist")
 
@@ -95,7 +95,7 @@ class SESV2Backend(BaseBackend):
     def send_email(
         self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
     ) -> Message:
-        message = self.v1_backend.send_email(
+        message = self.core_backend.send_email(
             source=source,
             destinations=destinations,
             subject=subject,
@@ -106,7 +106,7 @@ class SESV2Backend(BaseBackend):
     def send_raw_email(
         self, source: str, destinations: List[str], raw_data: str
     ) -> RawMessage:
-        message = self.v1_backend.send_raw_email(
+        message = self.core_backend.send_raw_email(
             source=source, destinations=destinations, raw_data=raw_data
         )
         return message
@@ -118,7 +118,7 @@ class SESV2Backend(BaseBackend):
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
-        return self.v1_backend.create_email_identity_v2(
+        return self.core_backend.create_email_identity_v2(
             email_identity, tags, dkim_signing_attributes, configuration_set_name
         )
 
@@ -126,12 +126,11 @@ class SESV2Backend(BaseBackend):
         self,
         email_identity: str,
     ) -> None:
-        self.v1_backend.email_identities.pop(email_identity)
-        self.v1_backend.delete_identity(email_identity)
+        self.core_backend.delete_identity(email_identity)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_email_identities(self) -> List[EmailIdentity]:
-        identities = list(self.v1_backend.email_identities.values())
+        identities = list(self.core_backend.email_identities.values())
         return identities
 
     def create_configuration_set(
@@ -145,7 +144,7 @@ class SESV2Backend(BaseBackend):
         suppression_options: Dict[str, List[str]],
         vdm_options: Dict[str, Dict[str, str]],
     ) -> None:
-        self.v1_backend.create_configuration_set_v2(
+        self.core_backend.create_configuration_set_v2(
             configuration_set_name=configuration_set_name,
             tracking_options=tracking_options,
             delivery_options=delivery_options,
@@ -157,43 +156,43 @@ class SESV2Backend(BaseBackend):
         )
 
     def delete_configuration_set(self, configuration_set_name: str) -> None:
-        self.v1_backend.delete_configuration_set(configuration_set_name)
+        self.core_backend.delete_configuration_set(configuration_set_name)
 
     def get_configuration_set(self, configuration_set_name: str) -> ConfigurationSet:
-        config_set = self.v1_backend.describe_configuration_set(
+        config_set = self.core_backend.describe_configuration_set(
             configuration_set_name=configuration_set_name
         )
         return config_set
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_configuration_sets(self) -> List[ConfigurationSet]:
-        return self.v1_backend._list_all_configuration_sets()
+        return self.core_backend._list_all_configuration_sets()
 
     def create_dedicated_ip_pool(
         self, pool_name: str, tags: List[Dict[str, str]], scaling_mode: str
     ) -> None:
-        if pool_name not in self.v1_backend.dedicated_ip_pools:
+        if pool_name not in self.core_backend.dedicated_ip_pools:
             new_pool = DedicatedIpPool(
                 pool_name=pool_name, tags=tags, scaling_mode=scaling_mode
             )
-            self.v1_backend.dedicated_ip_pools[pool_name] = new_pool
+            self.core_backend.dedicated_ip_pools[pool_name] = new_pool
 
     def delete_dedicated_ip_pool(self, pool_name: str) -> None:
-        self.v1_backend.dedicated_ip_pools.pop(pool_name)
+        self.core_backend.dedicated_ip_pools.pop(pool_name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_dedicated_ip_pools(self) -> List[str]:
-        return list(self.v1_backend.dedicated_ip_pools.keys())
+        return list(self.core_backend.dedicated_ip_pools.keys())
 
     def get_dedicated_ip_pool(self, pool_name: str) -> DedicatedIpPool:
-        if not self.v1_backend.dedicated_ip_pools.get(pool_name, None):
+        if not self.core_backend.dedicated_ip_pools.get(pool_name, None):
             raise NotFoundException(pool_name)
-        return self.v1_backend.dedicated_ip_pools[pool_name]
+        return self.core_backend.dedicated_ip_pools[pool_name]
 
     def get_email_identity(self, email_identity: str) -> EmailIdentity:
-        if email_identity not in self.v1_backend.email_identities:
+        if email_identity not in self.core_backend.email_identities:
             raise NotFoundException(email_identity)
-        return self.v1_backend.email_identities[email_identity]
+        return self.core_backend.email_identities[email_identity]
 
     def create_email_identity_policy(
         self, email_identity: str, policy_name: str, policy: str
@@ -207,10 +206,10 @@ class SESV2Backend(BaseBackend):
     def delete_email_identity_policy(
         self, email_identity: str, policy_name: str
     ) -> None:
-        if email_identity not in self.v1_backend.email_identities:
+        if email_identity not in self.core_backend.email_identities:
             raise NotFoundException(email_identity)
 
-        email_id = self.v1_backend.email_identities[email_identity]
+        email_id = self.core_backend.email_identities[email_identity]
 
         if policy_name in email_id.policies:
             del email_id.policies[policy_name]
@@ -220,10 +219,10 @@ class SESV2Backend(BaseBackend):
     def update_email_identity_policy(
         self, email_identity: str, policy_name: str, policy: str
     ) -> None:
-        if email_identity not in self.v1_backend.email_identities:
+        if email_identity not in self.core_backend.email_identities:
             raise NotFoundException(email_identity)
 
-        email_id = self.v1_backend.email_identities[email_identity]
+        email_id = self.core_backend.email_identities[email_identity]
 
         email_id.policies[policy_name] = policy
 

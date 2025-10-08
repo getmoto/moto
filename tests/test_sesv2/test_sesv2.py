@@ -475,6 +475,41 @@ def test_create_email_identity():
 
 
 @mock_aws
+def test_delete_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    test_email_domain = "example.com"
+    client.create_email_identity(EmailIdentity=test_email_domain)
+    identities = client.list_email_identities()
+
+    assert len(identities["EmailIdentities"]) == 1
+
+    # Execute
+    client.delete_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    identities = client.list_email_identities()
+    assert len(identities["EmailIdentities"]) == 0
+
+
+@mock_aws
+def test_delete_no_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    test_email_domain = "example.com"
+    identities = client.list_email_identities()
+
+    assert len(identities["EmailIdentities"]) == 0
+
+    # Execute
+    client.delete_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    identities = client.list_email_identities()
+    assert len(identities["EmailIdentities"]) == 0
+
+
+@mock_aws
 def test_get_email_identity():
     # Setup
     client = boto3.client("sesv2", region_name="us-east-2")

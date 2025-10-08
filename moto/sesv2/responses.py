@@ -119,6 +119,11 @@ class SESV2Response(BaseResponse):
             )
         )
 
+    def delete_email_identity(self) -> str:
+        email_identity_name = self._get_param("EmailIdentity")
+        self.sesv2_backend.delete_email_identity(email_identity=email_identity_name)
+        return json.dumps({})
+
     def get_email_identity(self) -> str:
         email_identity_name = self._get_param("EmailIdentity")
         email_identity = self.sesv2_backend.get_email_identity(

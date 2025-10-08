@@ -1542,9 +1542,8 @@ def test_update_receipt_rule_actions():
     assert "S3Action" in updated_rule_description["Rule"]["Actions"][0]
 
     assert (
-        (updated_rule_description["Rule"]["Actions"][0]["S3Action"]["BucketName"])
-        == "updatedTestBucketName"
-    )
+        updated_rule_description["Rule"]["Actions"][0]["S3Action"]["BucketName"]
+    ) == "updatedTestBucketName"
     assert updated_rule_description["Rule"]["Actions"][0]["S3Action"][
         "ObjectKeyPrefix"
     ] == ("updatedTestObjectKeyPrefix")
@@ -1552,17 +1551,11 @@ def test_update_receipt_rule_actions():
     assert "BounceAction" in updated_rule_description["Rule"]["Actions"][0]
 
     assert (
-        (
-            updated_rule_description["Rule"]["Actions"][0]["BounceAction"][
-                "SmtpReplyCode"
-            ]
-        )
-        == "newString"
-    )
+        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["SmtpReplyCode"]
+    ) == "newString"
     assert (
-        (updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["StatusCode"])
-        == "newString"
-    )
+        updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["StatusCode"]
+    ) == "newString"
     assert (
         updated_rule_description["Rule"]["Actions"][0]["BounceAction"]["Message"]
         == "newString"
@@ -1904,9 +1897,8 @@ def test_get_identity_mail_from_domain_attributes():
     assert len(attributes["MailFromDomainAttributes"]) == 1
     assert len(attributes["MailFromDomainAttributes"]["bar@foo.com"]) == 1
     assert (
-        (attributes["MailFromDomainAttributes"]["bar@foo.com"]["BehaviorOnMXFailure"])
-        == "UseDefaultValue"
-    )
+        attributes["MailFromDomainAttributes"]["bar@foo.com"]["BehaviorOnMXFailure"]
+    ) == "UseDefaultValue"
 
     # Must return multiple configured identities
     conn.verify_domain_identity(Domain="lorem.com")
