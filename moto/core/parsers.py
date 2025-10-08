@@ -210,6 +210,13 @@ class JSONParser(RequestParser):
     def _default_handle(self, _, value):
         return value
 
+    def _handle_blob(self, shape, value):
+        # Blob args must be base64 encoded.
+        value = self._default_handle(shape, value)
+        if value is UNDEFINED:
+            return value
+        return self._blob_parser(value)
+
     def _handle_float(self, _, value):
         return float(value) if value is not UNDEFINED else value
 

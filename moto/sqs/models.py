@@ -119,7 +119,7 @@ class Message(BaseModel):
                 )
             elif attrValue.get("binary_value"):
                 md5.update(bytearray([BINARY_TYPE_FIELD_INDEX]))
-                decoded_binary_value = base64.b64decode(attrValue.get("binary_value"))
+                decoded_binary_value = attrValue.get("binary_value")
                 self.update_binary_length_and_value(md5, decoded_binary_value)
             # string_list_value type is not implemented, reserved for the future use.
             # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
