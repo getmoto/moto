@@ -212,7 +212,7 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.services[service.id] = service
-        self.tag_resource(service.arn, tags)
+        self.tag_resource(service.arn, tags or {})
         return service
 
     def get_service(self, service_identifier: str) -> VPCLatticeService:
@@ -260,7 +260,7 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.service_networks[sn.id] = sn
-        self.tag_resource(sn.arn, tags)
+        self.tag_resource(sn.arn, tags or {})
         return sn
 
     def get_service_network(
@@ -311,7 +311,7 @@ class VPCLatticeBackend(BaseBackend):
             vpc_identifier,
         )
         self.service_network_vpc_associations[assoc.id] = assoc
-        self.tag_resource(assoc.arn, tags)
+        self.tag_resource(assoc.arn, tags or {})
         return assoc
 
     def create_rule(
@@ -338,7 +338,7 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.rules[rule.id] = rule
-        self.tag_resource(rule.arn, tags)
+        self.tag_resource(rule.arn, tags or {})
         return rule
 
     def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:

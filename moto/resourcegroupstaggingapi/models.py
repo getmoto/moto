@@ -1004,19 +1004,19 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         # VPC Lattice
         if not resource_type_filters or "vpc-lattice" in resource_type_filters:
             # Service
-            for service in self.vpclattice_backend.services.values():
-                tags = self.vpclattice_backend.list_tags_for_resource(service.arn)
-                tags = format_tags(tags)
+            for service in self.vpclattice_backend.services.values():  # type: ignore[assignment]
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
+                    service.arn
+                )["Tags"]
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{service.arn}", "Tags": tags}
 
             # Service Networks
             for service_network in self.vpclattice_backend.service_networks.values():
-                tags = self.vpclattice_backend.list_tags_for_resource(
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
                     service_network.arn
-                )
-                tags = format_tags(tags)
+                )["Tags"]
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": f"{service_network.arn}", "Tags": tags}
