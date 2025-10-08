@@ -68,7 +68,6 @@ class VPCLatticeServiceNetwork(BaseModel):
         )
         self.sharing_config: Dict[str, Any] = sharing_config or {}
         self.tags: Dict[str, str] = tags or {}
-        
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -342,14 +341,12 @@ class VPCLatticeBackend(BaseBackend):
         self.tag_resource(rule.arn, tags)
         return rule
 
-    def tag_resource(self, resource_arn: str, tags: Optional[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
         tags_input = self.tagger.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tags_input)
 
-    def list_tags_for_resource(self, resource_arn: str) -> Optional[Dict[str, Any]]:
-        if self.tagger.has_tags(resource_arn):
-            return self.tagger.get_tag_dict_for_resource(resource_arn)
-        return None
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
 
     def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
         if not isinstance(tag_keys, list):

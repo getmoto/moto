@@ -1,5 +1,4 @@
 import json
-from typing import Dict
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -99,10 +98,10 @@ class VPCLatticeResponse(BaseResponse):
         )
         return json.dumps(rule.to_dict())
 
-    def list_tags_for_resource(self) -> Dict[str, str]:
+    def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
         tags = self.backend.list_tags_for_resource(resource_arn)
-        return json.dumps({"tags": tags})
+        return json.dumps(dict(tags=tags))
 
     def tag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))

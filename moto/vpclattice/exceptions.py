@@ -2,6 +2,7 @@
 
 from moto.core.exceptions import JsonRESTError
 
+
 class ResourceNotFoundException(JsonRESTError):
     code = 400
 
