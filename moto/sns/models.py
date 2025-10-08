@@ -20,6 +20,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
+    unix_time,
     utcnow,
 )
 from moto.moto_api._internal import mock_random
@@ -1237,6 +1238,177 @@ class SNSBackend(BaseBackend):
             self.opt_out_numbers.remove(number)
         except ValueError:
             pass
+
+    def list_config_service_resources(
+        self,
+        resource_ids: Optional[List[str]] = None,
+        resource_name: Optional[str] = None,
+        limit: int = 100,
+        next_token: Optional[str] = None,
+    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        """List SNS topics for AWS Config."""
+        topics = list(self.topics.values())
+
+        if resource_ids:
+            topics = [t for t in topics if t.arn in resource_ids]
+
+        if resource_name:
+            topics = [t for t in topics if t.name == resource_name]
+
+        start = int(next_token) if next_token else 0
+        end = start + limit
+        topics_page = topics[start:end]
+
+        new_next_token = str(end) if end < len(topics) else None
+
+        config_resources = []
+        for topic in topics_page:
+            config_resources.append(
+                {
+                    "type": "AWS::SNS::Topic",
+                    "id": topic.arn,
+                    "name": topic.name,
+                    "region": self.region_name,
+                }
+            )
+
+        return config_resources, new_next_token
+
+    def get_config_resource(self, resource_id: str) -> Optional[Dict[str, Any]]:
+        """Get a specific SNS topic configuration for AWS Config."""
+        if resource_id not in self.topics:
+            return None
+
+        topic = self.topics[resource_id]
+
+        config_item = {
+            "version": "1.3",
+            "accountId": self.account_id,
+            "configurationItemCaptureTime": unix_time(),
+            "configurationItemStatus": "ResourceDiscovered",
+            "configurationStateId": "1",
+            "resourceType": "AWS::SNS::Topic",
+            "resourceId": topic.arn,
+            "resourceName": topic.name,
+            "arn": topic.arn,
+            "awsRegion": self.region_name,
+            "availabilityZone": "Not Applicable",
+            "configuration": {
+                "topicArn": topic.arn,
+                "displayName": topic.display_name,
+                "policy": topic._policy_json,
+                "deliveryPolicy": topic.delivery_policy,
+                "effectiveDeliveryPolicy": json.loads(topic.effective_delivery_policy),
+                "subscriptionsConfirmed": topic.subscriptions_confimed,
+                "subscriptionsPending": topic.subscriptions_pending,
+                "subscriptionsDeleted": topic.subscriptions_deleted,
+            },
+            "supplementaryConfiguration": {},
+            "tags": topic._tags,
+            "configurationItemMD5Hash": "",
+        }
+
+        if topic.kms_master_key_id:
+            config_item["configuration"]["kmsMasterKeyId"] = topic.kms_master_key_id
+
+        if topic.fifo_topic == "true":
+            config_item["configuration"]["fifoTopic"] = True
+            config_item["configuration"]["contentBasedDeduplication"] = (
+                topic.content_based_deduplication == "true"
+            )
+
+        return config_item
+
+    def select_resource_config(
+        self, query: str, limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        """
+        Execute a SQL query against SNS topic configurations for AWS Config.
+        Returns topic configurations that match the query criteria.
+        """
+        query_lower = query.lower()
+
+        results = []
+
+        if "aws::sns::topic" not in query_lower:
+            return results
+
+        for topic in self.topics.values():
+            config = {
+                "resourceType": "AWS::SNS::Topic",
+                "resourceId": topic.arn,
+                "resourceName": topic.name,
+                "accountId": self.account_id,
+                "region": self.region_name,
+                "arn": topic.arn,
+                "tags": json.dumps(topic._tags),
+                "configuration": json.dumps(
+                    {
+                        "topicArn": topic.arn,
+                        "displayName": topic.display_name,
+                        "policy": topic._policy_json,
+                        "deliveryPolicy": topic.delivery_policy,
+                        "effectiveDeliveryPolicy": json.loads(
+                            topic.effective_delivery_policy
+                        ),
+                        "subscriptionsConfirmed": topic.subscriptions_confimed,
+                        "subscriptionsPending": topic.subscriptions_pending,
+                        "subscriptionsDeleted": topic.subscriptions_deleted,
+                        "kmsMasterKeyId": topic.kms_master_key_id
+                        if topic.kms_master_key_id
+                        else None,
+                        "fifoTopic": topic.fifo_topic == "true",
+                        "contentBasedDeduplication": topic.content_based_deduplication
+                        == "true",
+                    }
+                ),
+            }
+
+            policy = topic._policy_json
+
+            has_wildcard_principal = False
+            has_conditional_access = False
+
+            for statement in policy.get("Statement", []):
+                principal = statement.get("Principal", {})
+                conditions = statement.get("Condition", {})
+
+                if isinstance(principal, str) and principal == "*":
+                    has_wildcard_principal = True
+                    if conditions:
+                        has_conditional_access = True
+                elif isinstance(principal, dict) and principal.get("AWS") == "*":
+                    has_wildcard_principal = True
+                    if conditions:
+                        has_conditional_access = True
+
+            config["hasWildcardPrincipal"] = has_wildcard_principal
+            config["hasConditionalAccess"] = has_conditional_access
+
+            if "where" in query_lower:
+                include_record = False
+
+                if "configuration.policy" in query_lower:
+                    include_record = True
+                elif "haswildcardprincipal" in query_lower:
+                    if "true" in query_lower and has_wildcard_principal:
+                        include_record = True
+                    elif "false" in query_lower and not has_wildcard_principal:
+                        include_record = True
+                elif "hasconditionalaccess" in query_lower:
+                    if "true" in query_lower and has_conditional_access:
+                        include_record = True
+                    elif "false" in query_lower and not has_conditional_access:
+                        include_record = True
+                else:
+                    include_record = True
+
+                if include_record:
+                    results.append(config)
+            else:
+                results.append(config)
+
+        return results[:limit]
 
     def confirm_subscription(self) -> None:
         pass

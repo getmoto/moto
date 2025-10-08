@@ -629,3 +629,131 @@ def test_topic_get_attributes_with_fifo_false():
 
     assert "FifoTopic" not in attributes
     assert "ContentBasedDeduplication" not in attributes
+
+
+@mock_aws
+def test_list_config_service_resources():
+    conn = boto3.client("sns", region_name="us-east-1")
+
+    topic_arns = []
+    for i in range(3):
+        response = conn.create_topic(Name=f"test-topic-{i}")
+        topic_arns.append(response["TopicArn"])
+
+    from moto.sns import sns_backends
+
+    backend = sns_backends[ACCOUNT_ID]["us-east-1"]
+
+    resources, next_token = backend.list_config_service_resources()
+    assert len(resources) == 3
+    assert all(r["type"] == "AWS::SNS::Topic" for r in resources)
+
+    resources, _ = backend.list_config_service_resources(resource_ids=[topic_arns[0]])
+    assert len(resources) == 1
+    assert resources[0]["id"] == topic_arns[0]
+
+    resources, _ = backend.list_config_service_resources(resource_name="test-topic-1")
+    assert len(resources) == 1
+    assert resources[0]["name"] == "test-topic-1"
+
+    resources, next_token = backend.list_config_service_resources(limit=2)
+    assert len(resources) == 2
+    assert next_token == "2"
+
+    resources, next_token = backend.list_config_service_resources(
+        limit=2, next_token="2"
+    )
+    assert len(resources) == 1
+    assert next_token is None
+
+
+@mock_aws
+def test_get_config_resource():
+    conn = boto3.client("sns", region_name="us-east-1")
+
+    response = conn.create_topic(
+        Name="config-test.fifo",
+        Attributes={
+            "FifoTopic": "true",
+            "ContentBasedDeduplication": "true",
+            "DisplayName": "Test Topic",
+            "KmsMasterKeyId": "test-key",
+        },
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+    )
+    topic_arn = response["TopicArn"]
+
+    from moto.sns import sns_backends
+
+    backend = sns_backends[ACCOUNT_ID]["us-east-1"]
+
+    config_item = backend.get_config_resource(topic_arn)
+
+    assert config_item["resourceType"] == "AWS::SNS::Topic"
+    assert config_item["resourceId"] == topic_arn
+    assert config_item["configuration"]["displayName"] == "Test Topic"
+    assert config_item["configuration"]["kmsMasterKeyId"] == "test-key"
+    assert config_item["configuration"]["fifoTopic"] is True
+    assert config_item["configuration"]["contentBasedDeduplication"] is True
+    assert config_item["tags"] == {"Environment": "Test"}
+
+    assert (
+        backend.get_config_resource("arn:aws:sns:us-east-1:123456789012:fake") is None
+    )
+
+
+@mock_aws
+def test_select_resource_config():
+    conn = boto3.client("sns", region_name="us-east-1")
+
+    conn.create_topic(Name="default-policy-topic")
+
+    response2 = conn.create_topic(Name="wildcard-topic")
+    wildcard_arn = response2["TopicArn"]
+
+    wildcard_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": "SNS:*",
+                "Resource": wildcard_arn,
+            }
+        ],
+    }
+    conn.set_topic_attributes(
+        TopicArn=wildcard_arn,
+        AttributeName="Policy",
+        AttributeValue=json.dumps(wildcard_policy),
+    )
+
+    from moto.sns import sns_backends
+
+    backend = sns_backends[ACCOUNT_ID]["us-east-1"]
+
+    results = backend.select_resource_config(
+        "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic'"
+    )
+    assert len(results) == 2
+
+    results = backend.select_resource_config(
+        "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic' AND hasWildcardPrincipal = true"
+    )
+    assert len(results) == 2
+
+    results = backend.select_resource_config(
+        "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic' AND hasConditionalAccess = false"
+    )
+    assert len(results) == 1
+    assert results[0]["resourceName"] == "wildcard-topic"
+
+    results = backend.select_resource_config(
+        "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic'", limit=1
+    )
+    assert len(results) == 1
+
+    results = backend.select_resource_config(
+        "SELECT * FROM resources WHERE resourceType = 'AWS::EC2::Instance'"
+    )
+    assert results == []
