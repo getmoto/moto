@@ -13,7 +13,7 @@ def test_create_service():
     assert resp["status"] == "ACTIVE"
     assert resp["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
     assert resp["dnsEntry"]["hostedZoneId"].startswith("Z")
-    assert resp["id"].startswith("srv-")
+    assert resp["id"].startswith("svc-")
     assert resp["authType"] == "NONE"
     assert resp["certificateArn"] == ""
     assert resp["customDomainName"] == ""
@@ -30,7 +30,7 @@ def test_get_service():
     assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
 
     service_by_id = client.get_service(serviceIdentifier=service_id)
-    assert service_by_id["id"].startswith("srv-")
+    assert service_by_id["id"].startswith("svc-")
 
 
 @mock_aws
@@ -64,7 +64,7 @@ def test_create_service_network():
 
     assert resp["name"] == "my-sn"
     assert resp["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
-    assert resp["id"].startswith("snet-")
+    assert resp["id"].startswith("sn-")
     assert resp["authType"] == "NONE"
     assert resp["sharingConfig"] == {"enabled": False}
 
@@ -85,7 +85,7 @@ def test_get_service_network():
     assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
 
     service_by_id = client.get_service_network(serviceNetworkIdentifier=service_id)
-    assert service_by_id["id"].startswith("snet-")
+    assert service_by_id["id"].startswith("sn-")
 
 
 @mock_aws
