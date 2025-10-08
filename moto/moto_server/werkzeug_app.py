@@ -20,7 +20,7 @@ import moto.backends as backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.utils import convert_to_flask_response
-from moto.settings import DISABLE_GLOBAL_CORS
+from moto.settings import DISABLE_GLOBAL_CORS, MAX_FORM_MEMORY_SIZE
 
 from .utilities import AWSTestHelper, RegexConverter, decompress_request_body
 
@@ -276,6 +276,7 @@ def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
     backend_app.debug = True
     backend_app.service = service  # type: ignore[attr-defined]
     backend_app.before_request(decompress_request_body)
+    backend_app.config["MAX_FORM_MEMORY_SIZE"] = MAX_FORM_MEMORY_SIZE
 
     if not DISABLE_GLOBAL_CORS:
         CORS(backend_app)

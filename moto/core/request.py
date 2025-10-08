@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from werkzeug.wrappers import Request
 
 from moto.core.utils import gzip_decompress
+from moto.settings import MAX_FORM_MEMORY_SIZE
 from moto.utilities.constants import APPLICATION_JSON, JSON_TYPES
 
 if TYPE_CHECKING:
@@ -22,6 +23,7 @@ def normalize_request(request: AWSPreparedRequest | Request) -> Request:
     if request.headers.get("Content-Encoding") == "gzip":
         body = gzip_decompress(body)  # type: ignore[arg-type]
     parsed_url = urlparse(request.url)
+    Request.max_form_memory_size = MAX_FORM_MEMORY_SIZE
     normalized_request = Request.from_values(
         method=request.method,
         base_url=f"{parsed_url.scheme}://{parsed_url.netloc}",
