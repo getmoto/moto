@@ -5,7 +5,7 @@ import re
 from collections import OrderedDict
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, cast
 
 import cryptography
 import requests
@@ -1307,7 +1307,7 @@ class SNSBackend(BaseBackend):
             "tags": topic._tags,
             "configurationItemMD5Hash": "",
         }
-        configuration: Dict[str, Any] = config_item["configuration"]
+        configuration = cast(Dict[str, Any], config_item["configuration"])
 
         if topic.kms_master_key_id:
             configuration["kmsMasterKeyId"] = topic.kms_master_key_id
