@@ -677,6 +677,26 @@ class BaseXMLSerializer(ResponseSerializer):
 
     _serialize_type_long = _serialize_type_integer
 
+    def _serialize_type_map(
+        self, serialized: Serialized, value: Any, shape: MapShape, key: str
+    ) -> None:
+        key_shape = shape.key
+        assert isinstance(key_shape, Shape)
+        value_shape = shape.value
+        assert isinstance(value_shape, Shape)
+        map_list = []
+        for k, v in value.items():
+            if v is None:
+                continue  # Query protocol does not serialize null values
+            wrapper = {"__current__": {}}
+            self._serialize(wrapper["__current__"], k, key_shape, "key")
+            self._serialize(wrapper["__current__"], v, value_shape, "value")
+            map_list.append(wrapper["__current__"])
+        if self.is_flattened(shape):
+            self._default_serialize(serialized, map_list, shape, key)
+        else:
+            self._default_serialize(serialized, {"entry": map_list}, shape, key)
+
     def _serialize_type_string(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
