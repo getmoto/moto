@@ -4,6 +4,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
+
 @mock_aws
 def test_create_service():
     client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
