@@ -646,7 +646,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         operation_model = service_model.operation_model(self._get_action())
         parser_cls = PROTOCOL_PARSERS[protocol]
         parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
-        parsed = parser.parse(
+        parsed = parser.parse(  # type: ignore[attr-defined]
             {
                 "query_params": normalized_request.values,
                 "headers": normalized_request.headers,
