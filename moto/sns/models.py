@@ -1320,7 +1320,6 @@ class SNSBackend(BaseBackend):
 
         return config_item
 
-
     def select_resource_config(
         self, query: str, limit: int = 100
     ) -> List[Dict[str, Any]]:
