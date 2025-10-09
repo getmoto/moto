@@ -4,9 +4,59 @@
     "metadata": {
       "awsQueryCompatible": {
         "operations": {
+          "ChangeMessageVisibilityBatch": {
+            "output": {
+              "resultWrapper": "ChangeMessageVisibilityBatchResult"
+            }
+          },
           "CreateQueue": {
             "output": {
               "resultWrapper": "CreateQueueResult"
+            }
+          },
+          "DeleteMessageBatch": {
+            "output": {
+              "resultWrapper": "DeleteMessageBatchResult"
+            }
+          },
+          "GetQueueAttributes": {
+            "output": {
+              "resultWrapper": "GetQueueAttributesResult"
+            }
+          },
+          "GetQueueUrl": {
+            "output": {
+              "resultWrapper": "GetQueueUrlResult"
+            }
+          },
+          "ListDeadLetterSourceQueues": {
+            "output": {
+              "resultWrapper": "ListDeadLetterSourceQueuesResult"
+            }
+          },
+          "ListQueueTags": {
+            "output": {
+              "resultWrapper": "ListQueueTagsResult"
+            }
+          },
+          "ListQueues": {
+            "output": {
+              "resultWrapper": "ListQueuesResult"
+            }
+          },
+          "ReceiveMessage": {
+            "output": {
+              "resultWrapper": "ReceiveMessageResult"
+            }
+          },
+          "SendMessage": {
+            "output": {
+              "resultWrapper": "SendMessageResult"
+            }
+          },
+          "SendMessageBatch": {
+            "output": {
+              "resultWrapper": "SendMessageBatchResult"
             }
           }
         },
