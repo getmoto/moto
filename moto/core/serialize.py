@@ -211,10 +211,6 @@ class HeaderSerializer:
             value = value.encode(self.DEFAULT_ENCODING)
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
 
-    @staticmethod
-    def get_serialized_name(shape: Shape, default_name: str) -> str:
-        return shape.serialization.get("name", default_name)
-
 
 class ResponseSerializer:
     CONTENT_TYPE = "text"
@@ -429,9 +425,6 @@ class ResponseSerializer:
 
     _serialize_type_double = _serialize_type_float
 
-    def get_serialized_name(self, shape: Shape, default_name: str) -> str:
-        return shape.serialization.get("name", default_name)
-
 
 class BaseJSONSerializer(ResponseSerializer):
     APPLICATION_AMZ_JSON = "application/x-amz-json-{version}"
@@ -618,13 +611,11 @@ class BaseXMLSerializer(ResponseSerializer):
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
         if "awsQueryCompatible" in self.service_model.metadata:
-            overrides = self.service_model.metadata["awsQueryCompatible"]
-            if shape.name in overrides["shapes"]:
-                message_override = (
-                    overrides["shapes"][shape.name].get("error", {}).get("message")
-                )
-                if message_override:
-                    message = message_override
+            message_override = (
+                getattr(shape, "_shape_model", {}).get("error", {}).get("message", None)
+            )
+            if message_override:
+                message = message_override
         if message is not None:
             serialized["Message"] = message
         # Serialize any error model attributes.
@@ -840,9 +831,7 @@ class QuerySerializer(BaseXMLSerializer):
         response_key = f"{self.operation_model.name}Response"
         response_wrapper = {response_key: {}}
         if shape is not None:
-            result_key = self.get_result_key(
-                shape
-            )  # shape.serialization.get("resultWrapper", f"{shape.name}Result")
+            result_key = shape.serialization.get("resultWrapper", f"{shape.name}Result")
             response_wrapper[response_key][result_key] = serialized_result
         response_wrapper[response_key]["ResponseMetadata"] = {
             "RequestId": self.context.request_id
@@ -884,14 +873,12 @@ class QuerySerializer(BaseXMLSerializer):
                 return operation["output"]["resultWrapper"]
         return shape.serialization.get("resultWrapper", f"{shape.name}Result")
 
-    def get_serialized_name(self, shape: Shape, default_name: str) -> str:
-        query_compatible_data = self.query_compatible_model_data()
-        if shape.name in query_compatible_data.get("shapes", {}):
-            query_shape = query_compatible_data["shapes"][shape.name]
-            if "locationName" in query_shape:
-                return query_shape["locationName"]
-            if "locationName" in query_shape.get("member", {}):
-                return query_shape["member"]["locationName"]
+    @staticmethod
+    def get_serialized_name(shape: Shape, default_name: str) -> str:
+        shape_data = getattr(shape, "_shape_model", {})
+        query_compatible_name = shape_data.get("locationNameForQueryCompatibility")
+        if query_compatible_name:
+            return query_compatible_name
         return shape.serialization.get("name", default_name)
 
 
