@@ -874,7 +874,7 @@ class QuerySerializer(BaseXMLSerializer):
             self._default_serialize(serialized, {"entry": map_list}, shape, key)
 
     def query_compatible_model_data(self) -> dict[str, Any]:
-        return self.service_model._service_description.get("awsQueryCompatible", {})  # type: ignore[attr-defined]
+        return self.service_model.metadata.get("awsQueryCompatible", {})  # type: ignore[attr-defined]
 
     def get_result_key(self, shape: StructureShape) -> str:
         query_compatible_data = self.query_compatible_model_data()
@@ -888,6 +888,8 @@ class QuerySerializer(BaseXMLSerializer):
         query_compatible_data = self.query_compatible_model_data()
         if shape.name in query_compatible_data.get("shapes", {}):
             query_shape = query_compatible_data["shapes"][shape.name]
+            if "locationName" in query_shape:
+                return query_shape["locationName"]
             if "locationName" in query_shape.get("member", {}):
                 return query_shape["member"]["locationName"]
         return shape.serialization.get("name", default_name)

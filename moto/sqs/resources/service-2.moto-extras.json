@@ -261,6 +261,9 @@
               "locationName": "TagKey"
             }
           },
+          "TagKey": {
+            "locationName": "Key"
+          },
           "TagMap": {
             "key": {
               "locationName": "Key"
@@ -269,6 +272,9 @@
               "locationName": "Value"
             },
             "locationName": "Tag"
+          },
+          "TagValue": {
+            "locationName": "Value"
           }
         }
       },

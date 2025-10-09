@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import datetime
 import inspect
 import re
@@ -483,19 +482,6 @@ def get_service_model(service_name: str) -> ServiceModel:
             deep_merge(model, extra_model["merge"])
     service_model = ServiceModel(model, service_name)
     return service_model
-
-
-def query_compatible_service_model(service_model: ServiceModel) -> ServiceModel:
-    return service_model
-    # We have to deepcopy here or we'll stomp all over the original json data
-    # This matters if, say, we're running in server mode and handling both json and query requests for SQS
-    model = copy.deepcopy(getattr(service_model, "_service_description", {}))
-    metadata = model.get("metadata", {})
-    query_shapes = metadata.get("awsQueryCompatible", {}).get("shapes", {})
-    deep_merge(model["shapes"], query_shapes)
-    query_operations = metadata.get("awsQueryCompatible", {}).get("operations", {})
-    deep_merge(model["operations"], query_operations)
-    return ServiceModel(model, service_model.service_name)
 
 
 def get_value(obj: Any, key: int | str, default: Any = MISSING) -> Any:
