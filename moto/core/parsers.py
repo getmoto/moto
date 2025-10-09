@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from botocore import xform_name
+from botocore.model import OperationModel
 from botocore.utils import parse_timestamp as botocore_parse_timestamp
 
 from moto.core.model import OperationModel
@@ -171,6 +172,15 @@ class QueryParser(RequestParser):
         return value.get(prefix, default_value)
 
     def _get_serialized_name(self, shape, default_name):
+        query_compatible_data = self.service_model.metadata.get(
+            "awsQueryCompatible", {}
+        )
+        if shape.name in query_compatible_data.get("shapes", {}):
+            query_shape = query_compatible_data["shapes"][shape.name]
+            if "locationName" in query_shape:
+                return query_shape["locationName"]
+            if "locationName" in query_shape.get("member", {}):
+                return query_shape["member"]["locationName"]
         return shape.serialization.get("name", default_name)
 
     def _parsed_key_name(self, member_name):
