@@ -2,282 +2,6 @@
   "version": 1.0,
   "merge": {
     "metadata": {
-      "awsQueryCompatible": {
-        "operations": {
-          "ChangeMessageVisibilityBatch": {
-            "output": {
-              "resultWrapper": "ChangeMessageVisibilityBatchResult"
-            }
-          },
-          "CreateQueue": {
-            "output": {
-              "resultWrapper": "CreateQueueResult"
-            }
-          },
-          "DeleteMessageBatch": {
-            "output": {
-              "resultWrapper": "DeleteMessageBatchResult"
-            }
-          },
-          "GetQueueAttributes": {
-            "output": {
-              "resultWrapper": "GetQueueAttributesResult"
-            }
-          },
-          "GetQueueUrl": {
-            "output": {
-              "resultWrapper": "GetQueueUrlResult"
-            }
-          },
-          "ListDeadLetterSourceQueues": {
-            "output": {
-              "resultWrapper": "ListDeadLetterSourceQueuesResult"
-            }
-          },
-          "ListQueueTags": {
-            "output": {
-              "resultWrapper": "ListQueueTagsResult"
-            }
-          },
-          "ListQueues": {
-            "output": {
-              "resultWrapper": "ListQueuesResult"
-            }
-          },
-          "ReceiveMessage": {
-            "output": {
-              "resultWrapper": "ReceiveMessageResult"
-            }
-          },
-          "SendMessage": {
-            "output": {
-              "resultWrapper": "SendMessageResult"
-            }
-          },
-          "SendMessageBatch": {
-            "output": {
-              "resultWrapper": "SendMessageBatchResult"
-            }
-          }
-        },
-        "shapes": {
-          "AWSAccountIdList": {
-            "member": {
-              "locationName": "AWSAccountId"
-            }
-          },
-          "ActionNameList": {
-            "member": {
-              "locationName": "ActionName"
-            }
-          },
-          "AttributeNameList": {
-            "member": {
-              "locationName": "AttributeName"
-            }
-          },
-          "BatchResultErrorEntryList": {
-            "member": {
-              "locationName": "BatchResultErrorEntry"
-            }
-          },
-          "BinaryList": {
-            "member": {
-              "locationName": "BinaryListValue"
-            }
-          },
-          "ChangeMessageVisibilityBatchRequestEntryList": {
-            "member": {
-              "locationName": "ChangeMessageVisibilityBatchRequestEntry"
-            }
-          },
-          "ChangeMessageVisibilityBatchResultEntryList": {
-            "member": {
-              "locationName": "ChangeMessageVisibilityBatchResultEntry"
-            }
-          },
-          "CreateQueueRequest": {
-            "members": {
-              "Attributes": {
-                "locationName": "Attribute"
-              },
-              "tags": {
-                "locationName": "Tag"
-              }
-            }
-          },
-          "DeleteMessageBatchRequestEntryList": {
-            "member": {
-              "locationName": "DeleteMessageBatchRequestEntry"
-            }
-          },
-          "DeleteMessageBatchResultEntryList": {
-            "member": {
-              "locationName": "DeleteMessageBatchResultEntry"
-            }
-          },
-          "GetQueueAttributesResult": {
-            "members": {
-              "Attributes": {
-                "locationName": "Attribute"
-              }
-            }
-          },
-          "ListQueueTagsResult": {
-            "members": {
-              "Tags": {
-                "locationName": "Tag"
-              }
-            }
-          },
-          "Message": {
-            "members": {
-              "Attributes": {
-                "locationName": "Attribute"
-              },
-              "MessageAttributes": {
-                "locationName": "MessageAttribute"
-              }
-            }
-          },
-          "MessageAttributeNameList": {
-            "member": {
-              "locationName": "MessageAttributeName"
-            }
-          },
-          "MessageAttributeValue": {
-            "members": {
-              "StringListValues": {
-                "locationName": "StringListValue"
-              },
-              "BinaryListValues": {
-                "locationName": "BinaryListValue"
-              }
-            }
-          },
-          "MessageBodyAttributeMap": {
-            "key": {
-              "locationName": "Name"
-            },
-            "value": {
-              "locationName": "Value"
-            }
-          },
-          "MessageBodySystemAttributeMap": {
-            "key": {
-              "locationName": "Name"
-            },
-            "value": {
-              "locationName": "Value"
-            }
-          },
-          "MessageList": {
-            "member": {
-              "locationName": "Message"
-            }
-          },
-          "MessageSystemAttributeMap": {
-            "key": {
-              "locationName": "Name"
-            },
-            "value": {
-              "locationName": "Value"
-            },
-            "locationName": "Attribute"
-          },
-          "MessageSystemAttributeValue": {
-            "members": {
-              "StringListValues": {
-                "locationName": "StringListValue"
-              },
-              "BinaryListValues": {
-                "locationName": "BinaryListValue"
-              }
-            }
-          },
-          "QueueAttributeMap": {
-            "key": {
-              "locationName": "Name"
-            },
-            "value": {
-              "locationName": "Value"
-            },
-            "locationName": "Attribute"
-          },
-          "QueueDoesNotExist": {
-            "error": {
-              "message": "The specified queue does not exist for this wsdl version."
-            }
-          },
-          "QueueUrlList": {
-            "member": {
-              "locationName": "QueueUrl"
-            }
-          },
-          "SendMessageBatchRequestEntry": {
-            "members": {
-              "MessageAttributes": {
-                "locationName": "MessageAttribute"
-              },
-              "MessageSystemAttributes": {
-                "locationName": "MessageSystemAttribute"
-              }
-            }
-          },
-          "SendMessageBatchRequestEntryList": {
-            "member": {
-              "locationName": "SendMessageBatchRequestEntry"
-            }
-          },
-          "SendMessageBatchResultEntryList": {
-            "member": {
-              "locationName": "SendMessageBatchResultEntry"
-            }
-          },
-          "SendMessageRequest": {
-            "members": {
-              "MessageAttributes": {
-                "locationName": "MessageAttribute"
-              },
-              "MessageSystemAttributes": {
-                "locationName": "MessageSystemAttribute"
-              }
-            }
-          },
-          "SetQueueAttributesRequest": {
-            "members": {
-              "Attributes": {
-                "locationName": "Attribute"
-              }
-            }
-          },
-          "StringList": {
-            "member": {
-              "locationName": "StringListValue"
-            }
-          },
-          "TagKeyList": {
-            "member": {
-              "locationName": "TagKey"
-            }
-          },
-          "TagKey": {
-            "locationName": "Key"
-          },
-          "TagMap": {
-            "key": {
-              "locationName": "Key"
-            },
-            "value": {
-              "locationName": "Value"
-            },
-            "locationName": "Tag"
-          },
-          "TagValue": {
-            "locationName": "Value"
-          }
-        }
-      },
       "protocols": [
         "json",
         "query"
@@ -285,7 +9,268 @@
       "targetPrefix": "com.amazonaws.sqs",
       "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
     },
+    "operations": {
+      "ChangeMessageVisibilityBatch": {
+        "output": {
+          "resultWrapper": "ChangeMessageVisibilityBatchResult"
+        }
+      },
+      "CreateQueue": {
+        "output": {
+          "resultWrapper": "CreateQueueResult"
+        }
+      },
+      "DeleteMessageBatch": {
+        "output": {
+          "resultWrapper": "DeleteMessageBatchResult"
+        }
+      },
+      "GetQueueAttributes": {
+        "output": {
+          "resultWrapper": "GetQueueAttributesResult"
+        }
+      },
+      "GetQueueUrl": {
+        "output": {
+          "resultWrapper": "GetQueueUrlResult"
+        }
+      },
+      "ListDeadLetterSourceQueues": {
+        "output": {
+          "resultWrapper": "ListDeadLetterSourceQueuesResult"
+        }
+      },
+      "ListQueueTags": {
+        "output": {
+          "resultWrapper": "ListQueueTagsResult"
+        }
+      },
+      "ListQueues": {
+        "output": {
+          "resultWrapper": "ListQueuesResult"
+        }
+      },
+      "ReceiveMessage": {
+        "output": {
+          "resultWrapper": "ReceiveMessageResult"
+        }
+      },
+      "SendMessage": {
+        "output": {
+          "resultWrapper": "SendMessageResult"
+        }
+      },
+      "SendMessageBatch": {
+        "output": {
+          "resultWrapper": "SendMessageBatchResult"
+        }
+      }
+    },
     "shapes": {
+      "AWSAccountIdList": {
+        "member": {
+          "locationNameForQueryCompatibility": "AWSAccountId"
+        }
+      },
+      "ActionNameList": {
+        "member": {
+          "locationNameForQueryCompatibility": "ActionName"
+        }
+      },
+      "AttributeNameList": {
+        "member": {
+          "locationNameForQueryCompatibility": "AttributeName"
+        }
+      },
+      "BatchResultErrorEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "BatchResultErrorEntry"
+        }
+      },
+      "BinaryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "BinaryListValue"
+        }
+      },
+      "ChangeMessageVisibilityBatchRequestEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "ChangeMessageVisibilityBatchRequestEntry"
+        }
+      },
+      "ChangeMessageVisibilityBatchResultEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "ChangeMessageVisibilityBatchResultEntry"
+        }
+      },
+      "CreateQueueRequest": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          },
+          "tags": {
+            "locationNameForQueryCompatibility": "Tag"
+          }
+        }
+      },
+      "DeleteMessageBatchRequestEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "DeleteMessageBatchRequestEntry"
+        }
+      },
+      "DeleteMessageBatchResultEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "DeleteMessageBatchResultEntry"
+        }
+      },
+      "GetQueueAttributesResult": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          }
+        }
+      },
+      "ListQueueTagsResult": {
+        "members": {
+          "Tags": {
+            "locationNameForQueryCompatibility": "Tag"
+          }
+        }
+      },
+      "Message": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          },
+          "MessageAttributes": {
+            "locationNameForQueryCompatibility": "MessageAttribute"
+          }
+        }
+      },
+      "MessageAttributeNameList": {
+        "member": {
+          "locationNameForQueryCompatibility": "MessageAttributeName"
+        }
+      },
+      "MessageAttributeValue": {
+        "members": {
+          "StringListValues": {
+            "locationNameForQueryCompatibility": "StringListValue"
+          },
+          "BinaryListValues": {
+            "locationNameForQueryCompatibility": "BinaryListValue"
+          }
+        }
+      },
+      "MessageBodyAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        }
+      },
+      "MessageBodySystemAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        }
+      },
+      "MessageList": {
+        "member": {
+          "locationNameForQueryCompatibility": "Message"
+        }
+      },
+      "MessageSystemAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        },
+        "locationNameForQueryCompatibility": "Attribute"
+      },
+      "MessageSystemAttributeValue": {
+        "members": {
+          "StringListValues": {
+            "locationNameForQueryCompatibility": "StringListValue"
+          },
+          "BinaryListValues": {
+            "locationNameForQueryCompatibility": "BinaryListValue"
+          }
+        }
+      },
+      "QueueAttributeMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Name"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        },
+        "locationNameForQueryCompatibility": "Attribute"
+      },
+      "QueueUrlList": {
+        "member": {
+          "locationNameForQueryCompatibility": "QueueUrl"
+        }
+      },
+      "SendMessageBatchRequestEntry": {
+        "members": {
+          "MessageAttributes": {
+            "locationNameForQueryCompatibility": "MessageAttribute"
+          },
+          "MessageSystemAttributes": {
+            "locationNameForQueryCompatibility": "MessageSystemAttribute"
+          }
+        }
+      },
+      "SendMessageBatchRequestEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "SendMessageBatchRequestEntry"
+        }
+      },
+      "SendMessageBatchResultEntryList": {
+        "member": {
+          "locationNameForQueryCompatibility": "SendMessageBatchResultEntry"
+        }
+      },
+      "SendMessageRequest": {
+        "members": {
+          "MessageAttributes": {
+            "locationNameForQueryCompatibility": "MessageAttribute"
+          },
+          "MessageSystemAttributes": {
+            "locationNameForQueryCompatibility": "MessageSystemAttribute"
+          }
+        }
+      },
+      "SetQueueAttributesRequest": {
+        "members": {
+          "Attributes": {
+            "locationNameForQueryCompatibility": "Attribute"
+          }
+        }
+      },
+      "StringList": {
+        "member": {
+          "locationNameForQueryCompatibility": "StringListValue"
+        }
+      },
+      "TagKeyList": {
+        "member": {
+          "locationNameForQueryCompatibility": "TagKey"
+        }
+      },
+      "TagMap": {
+        "key": {
+          "locationNameForQueryCompatibility": "Key"
+        },
+        "value": {
+          "locationNameForQueryCompatibility": "Value"
+        },
+        "locationNameForQueryCompatibility": "Tag"
+      },
       "BatchEntryIdsNotDistinct": {
         "error": {
           "code": "AWS.SimpleQueueService.BatchEntryIdsNotDistinct",
@@ -310,6 +295,7 @@
       "QueueDoesNotExist": {
         "error": {
           "code": "AWS.SimpleQueueService.NonExistentQueue",
+          "messageForQueryCompatibility": "The specified queue does not exist for this wsdl version.",
           "httpStatusCode": 400,
           "senderFault": true
         }
