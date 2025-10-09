@@ -63,7 +63,7 @@
         "shapes": {
           "AWSAccountIdList": {
             "member": {
-              "locationName": "AwsAccountId"
+              "locationName": "AWSAccountId"
             }
           },
           "ActionNameList": {
