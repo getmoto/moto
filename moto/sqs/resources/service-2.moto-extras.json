@@ -61,22 +61,213 @@
           }
         },
         "shapes": {
+          "AWSAccountIdList": {
+            "member": {
+              "locationName": "AwsAccountId"
+            }
+          },
+          "ActionNameList": {
+            "member": {
+              "locationName": "ActionName"
+            }
+          },
+          "AttributeNameList": {
+            "member": {
+              "locationName": "AttributeName"
+            }
+          },
+          "BatchResultErrorEntryList": {
+            "member": {
+              "locationName": "BatchResultErrorEntry"
+            }
+          },
+          "BinaryList": {
+            "member": {
+              "locationName": "BinaryListValue"
+            }
+          },
+          "ChangeMessageVisibilityBatchRequestEntryList": {
+            "member": {
+              "locationName": "ChangeMessageVisibilityBatchRequestEntry"
+            }
+          },
+          "ChangeMessageVisibilityBatchResultEntryList": {
+            "member": {
+              "locationName": "ChangeMessageVisibilityBatchResultEntry"
+            }
+          },
+          "CreateQueueRequest": {
+            "members": {
+              "Attributes": {
+                "locationName": "Attribute"
+              },
+              "tags": {
+                "locationName": "Tag"
+              }
+            }
+          },
+          "DeleteMessageBatchRequestEntryList": {
+            "member": {
+              "locationName": "DeleteMessageBatchRequestEntry"
+            }
+          },
+          "DeleteMessageBatchResultEntryList": {
+            "member": {
+              "locationName": "DeleteMessageBatchResultEntry"
+            }
+          },
+          "GetQueueAttributesResult": {
+            "members": {
+              "Attributes": {
+                "locationName": "Attribute"
+              }
+            }
+          },
+          "ListQueueTagsResult": {
+            "members": {
+              "Tags": {
+                "locationName": "Tag"
+              }
+            }
+          },
+          "Message": {
+            "members": {
+              "Attributes": {
+                "locationName": "Attribute"
+              },
+              "MessageAttributes": {
+                "locationName": "MessageAttribute"
+              }
+            }
+          },
+          "MessageAttributeNameList": {
+            "member": {
+              "locationName": "MessageAttributeName"
+            }
+          },
+          "MessageAttributeValue": {
+            "members": {
+              "StringListValues": {
+                "locationName": "StringListValue"
+              },
+              "BinaryListValues": {
+                "locationName": "BinaryListValue"
+              }
+            }
+          },
+          "MessageBodyAttributeMap": {
+            "key": {
+              "locationName": "Name"
+            },
+            "value": {
+              "locationName": "Value"
+            }
+          },
+          "MessageBodySystemAttributeMap": {
+            "key": {
+              "locationName": "Name"
+            },
+            "value": {
+              "locationName": "Value"
+            }
+          },
+          "MessageList": {
+            "member": {
+              "locationName": "Message"
+            }
+          },
+          "MessageSystemAttributeMap": {
+            "key": {
+              "locationName": "Name"
+            },
+            "value": {
+              "locationName": "Value"
+            },
+            "locationName": "Attribute"
+          },
+          "MessageSystemAttributeValue": {
+            "members": {
+              "StringListValues": {
+                "locationName": "StringListValue"
+              },
+              "BinaryListValues": {
+                "locationName": "BinaryListValue"
+              }
+            }
+          },
+          "QueueAttributeMap": {
+            "key": {
+              "locationName": "Name"
+            },
+            "value": {
+              "locationName": "Value"
+            },
+            "locationName": "Attribute"
+          },
           "QueueDoesNotExist": {
             "error": {
               "message": "The specified queue does not exist for this wsdl version."
             }
           },
+          "QueueUrlList": {
+            "member": {
+              "locationName": "QueueUrl"
+            }
+          },
+          "SendMessageBatchRequestEntry": {
+            "members": {
+              "MessageAttributes": {
+                "locationName": "MessageAttribute"
+              },
+              "MessageSystemAttributes": {
+                "locationName": "MessageSystemAttribute"
+              }
+            }
+          },
+          "SendMessageBatchRequestEntryList": {
+            "member": {
+              "locationName": "SendMessageBatchRequestEntry"
+            }
+          },
+          "SendMessageBatchResultEntryList": {
+            "member": {
+              "locationName": "SendMessageBatchResultEntry"
+            }
+          },
+          "SendMessageRequest": {
+            "members": {
+              "MessageAttributes": {
+                "locationName": "MessageAttribute"
+              },
+              "MessageSystemAttributes": {
+                "locationName": "MessageSystemAttribute"
+              }
+            }
+          },
+          "SetQueueAttributesRequest": {
+            "members": {
+              "Attributes": {
+                "locationName": "Attribute"
+              }
+            }
+          },
+          "StringList": {
+            "member": {
+              "locationName": "StringListValue"
+            }
+          },
+          "TagKeyList": {
+            "member": {
+              "locationName": "TagKey"
+            }
+          },
           "TagMap": {
-            "type": "map",
             "key": {
-              "shape": "TagKey",
               "locationName": "Key"
             },
             "value": {
-              "shape": "TagValue",
               "locationName": "Value"
             },
-            "flattened": true,
             "locationName": "Tag"
           }
         }
