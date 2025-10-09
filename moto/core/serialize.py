@@ -875,10 +875,10 @@ class QuerySerializer(BaseXMLSerializer):
 
     def get_result_key(self, shape: StructureShape) -> str:
         query_compatible_data = self.query_compatible_model_data()
-        if shape.name in query_compatible_data.get("shapes", {}):
-            query_shape = query_compatible_data["shapes"][shape.name]
-            if "resultWrapper" in query_shape.get("structure", {}):
-                return query_shape["structure"]["resultWrapper"]
+        if self.operation_name in query_compatible_data.get("operations", {}):
+            operation = query_compatible_data["operations"][self.operation_name]
+            if "resultWrapper" in operation.get("output", {}):
+                return operation["output"]["resultWrapper"]
         return shape.serialization.get("resultWrapper", f"{shape.name}Result")
 
     def get_serialized_name(self, shape: Shape, default_name: str) -> str:
