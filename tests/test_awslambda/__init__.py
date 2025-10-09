@@ -114,3 +114,12 @@ def lambda_aws_verified(func):
         )
 
     return pagination_wrapper
+
+
+def delete_all_layer_versions(client, layer_name: str):
+    versions = client.list_layer_versions(LayerName=layer_name)["LayerVersions"]
+    for version in versions:
+        client.delete_layer_version(
+            LayerName=layer_name,
+            VersionNumber=version["Version"],
+        )
