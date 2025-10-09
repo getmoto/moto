@@ -14,6 +14,7 @@ def ec2_aws_verified(
     create_sg: bool = False,
     create_subnet: bool = False,
     create_transit_gateway: bool = False,
+    create_customer_gateway: bool = False,
 ):
     """
     Function that is verified to work against AWS.
@@ -35,6 +36,7 @@ def ec2_aws_verified(
                     create_sg=create_sg,
                     create_subnet=create_subnet,
                     create_transit_gateway=create_transit_gateway,
+                    create_customer_gateway=create_customer_gateway,
                     func=func,
                     kwargs=kwargs,
                 )
@@ -49,13 +51,14 @@ def _invoke_func(
     create_sg: bool,
     create_subnet: bool,
     create_transit_gateway: bool,
+    create_customer_gateway: bool,
     func,
     kwargs,
 ):
     ec2_client = boto3.client("ec2", "us-east-1")
     kwargs["ec2_client"] = ec2_client
 
-    vpc_id = sg_id = subnet_id = tg_id = None
+    vpc_id = sg_id = subnet_id = tg_id = cg_id = None
     if create_vpc:
         vpc = ec2_client.create_vpc(
             CidrBlock="10.0.0.0/16",
@@ -86,9 +89,18 @@ def _invoke_func(
         wait_for_transit_gateway(ec2_client, tg_id=tg_id)
         kwargs["tg_id"] = tg_id
 
+    if create_customer_gateway:
+        customer_gateway = ec2_client.create_customer_gateway(
+            Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
+        )
+        cg_id = customer_gateway["CustomerGateway"]["CustomerGatewayId"]
+        kwargs["cg_id"] = cg_id
+
     try:
         func(**kwargs)
     finally:
+        if cg_id:
+            ec2_client.delete_customer_gateway(CustomerGatewayId=cg_id)
         if tg_id:
             delete_transit_gateway_dependencies(ec2_client, tg_id=tg_id)
             ec2_client.delete_transit_gateway(TransitGatewayId=tg_id)
@@ -109,7 +121,7 @@ def wait_for_transit_gateway(ec2_client, tg_id):
         if gateway["State"] == "available":
             return
 
-        sleep(5 * idx)
+        sleep(10 * idx)
 
 
 def wait_for_transit_gateway_route_table(ec2_client, tg_rt_id):
@@ -152,6 +164,16 @@ def wait_for_transit_gateway_association(
             # Initial calls will return State=disassociating - after it has successfully disassociated, it is no longer returned
             return
 
+        sleep(5 * idx)
+
+
+def wait_for_vpn_connections(ec2_client, vpn_connection_id):
+    for idx in range(10):
+        connections = ec2_client.describe_vpn_connections(
+            VpnConnectionIds=[vpn_connection_id]
+        )["VpnConnections"]
+        if not connections or connections[0]["State"] == "available":
+            return
         sleep(5 * idx)
 
 
