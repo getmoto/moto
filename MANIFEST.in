@@ -15,7 +15,7 @@ include moto/moto_proxy/*
 include moto/moto_proxy/certs/__init__.py
 include moto/moto_proxy/certs/req.conf.tmpl
 include moto/rds/resources/cluster_options/*.json
-include moto/sqs/resources/*.json
+include moto/sqs/resources/sqs/2012-11-05/*.json
 include moto/ssm/resources/*.json
 include moto/ssm/resources/ami-amazon-linux-latest/*.json
 include moto/ssm/resources/ecs/optimized_amis/*.json
