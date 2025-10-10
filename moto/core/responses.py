@@ -650,7 +650,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 "query_params": normalized_request.values,
                 "headers": normalized_request.headers,
                 "body": normalized_request.data,
-            }
+            },
+            operation_model,
         )  # type: ignore[no-untyped-call]
         self.params = cast(Any, parsed)
 
