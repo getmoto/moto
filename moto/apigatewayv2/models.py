@@ -1092,17 +1092,20 @@ class DomainName(BaseModel):
         domain_name_configurations: List[Dict[str, str]],
         mutual_tls_authentication: Dict[str, str],
         tags: Dict[str, str],
+        backend: "ApiGatewayV2Backend",
     ):
         self.api_mapping_selection_expression = "$request.basepath"
         self.domain_name = domain_name
         self.domain_name_configurations = domain_name_configurations
         self.mutual_tls_authentication = mutual_tls_authentication
         self.tags = tags
+        self.domain_name_arn = f"arn:{get_partition(backend.region_name)}:apigateway:{backend.region_name}::/domainnames/{domain_name}"
 
     def to_json(self) -> Dict[str, Any]:
         return {
             "apiMappingSelectionExpression": self.api_mapping_selection_expression,
             "domainName": self.domain_name,
+            "domainNameArn": self.domain_name_arn,
             "domainNameConfigurations": self.domain_name_configurations,
             "mutualTlsAuthentication": self.mutual_tls_authentication,
             "tags": self.tags,
@@ -1677,6 +1680,7 @@ class ApiGatewayV2Backend(BaseBackend):
             domain_name_configurations=domain_name_configurations,
             mutual_tls_authentication=mutual_tls_authentication,
             tags=tags,
+            backend=self,
         )
         self.domain_names[domain.domain_name] = domain
         return domain
