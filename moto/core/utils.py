@@ -13,6 +13,7 @@ from botocore.exceptions import ClientError
 
 from moto.core.model import ServiceModel
 
+from .. import MOTO_ROOT
 from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
 from .constants import MISSING
@@ -473,7 +474,7 @@ def get_service_model(service_name: str) -> ServiceModel:
         Loader.BUILTIN_EXTRAS_TYPES.append("moto")
     search_paths = []
     if service_name == "sqs":
-        search_paths.append("moto/sqs/resources")
+        search_paths.append(os.path.join(MOTO_ROOT, "sqs/resources"))
     search_path_string = os.pathsep.join(search_paths) if search_paths else None
     loader = create_loader(search_path_string)
     model = loader.load_service_model(service_name, "service-2")
