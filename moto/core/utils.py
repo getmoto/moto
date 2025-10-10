@@ -470,9 +470,11 @@ def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
 @cache
 def get_service_model(service_name: str) -> ServiceModel:
     if "moto" not in Loader.BUILTIN_EXTRAS_TYPES:
-        Loader.BUILTIN_EXTRAS_TYPES += ["moto"]
-    search_paths = ["moto/sqs/resources"]
-    search_path_string = os.pathsep.join(search_paths)
+        Loader.BUILTIN_EXTRAS_TYPES.append("moto")
+    search_paths = []
+    if service_name == "sqs":
+        search_paths.append("moto/sqs/resources")
+    search_path_string = os.pathsep.join(search_paths) if search_paths else None
     loader = create_loader(search_path_string)
     model = loader.load_service_model(service_name, "service-2")
     service_model = ServiceModel(model, service_name)
