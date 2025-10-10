@@ -1650,7 +1650,7 @@ class AutoScalingBackend(BaseBackend):
 
         for target_group in target_groups:
             asg_targets = [
-                {"id": x, "port": target_group.port} for x in group_instance_ids
+                {"Id": x, "Port": target_group.port} for x in group_instance_ids
             ]
             self.elbv2_backend.register_targets(target_group.arn, (asg_targets))
 
@@ -1726,7 +1726,7 @@ class AutoScalingBackend(BaseBackend):
             x for x in group.target_group_arns if x not in target_group_arns
         ]
         for target_group in target_group_arns:
-            asg_targets = [{"id": x.instance.id} for x in group.instance_states]
+            asg_targets = [{"Id": x.instance.id} for x in group.instance_states]
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
 
     def suspend_processes(self, group_name: str, scaling_processes: List[str]) -> None:
