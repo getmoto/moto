@@ -607,12 +607,13 @@ class BaseXMLSerializer(ResponseSerializer):
         serialized["Type"] = "Sender" if shape.is_sender_fault else "Receiver"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
-        if "awsQueryCompatible" in self.service_model.metadata:
-            message_override = (
-                getattr(shape, "_shape_model", {}).get("error", {}).get("message", None)
-            )
-            if message_override:
-                message = message_override
+        message_override = (
+            getattr(shape, "_shape_model", {})
+            .get("error", {})
+            .get("messageForQueryCompatibility", None)
+        )
+        if message_override:
+            message = message_override
         if message is not None:
             serialized["Message"] = message
         # Serialize any error model attributes.
