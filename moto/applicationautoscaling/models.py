@@ -503,7 +503,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=42.0,
             statistic="Sum",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm1)
@@ -518,7 +518,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=30.0,
             statistic="Sum",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm2)
@@ -533,7 +533,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=1.0,
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm3)
@@ -548,7 +548,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             threshold=1.0,
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
-            dimensions=[{"name": "TableName", "value": table_name}],
+            dimensions=[{"Name": "TableName", "Value": table_name}],
             alarm_actions=[alarm_action],
         )
         alarms.append(alarm4)
@@ -582,8 +582,8 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
             dimensions=[
-                {"name": "ClusterName", "value": cluster_name},
-                {"name": "ServiceName", "value": service_name},
+                {"Name": "ClusterName", "Value": cluster_name},
+                {"Name": "ServiceName", "Value": service_name},
             ],
             alarm_actions=[alarm_action],
         )
@@ -601,8 +601,8 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             statistic="Average",
             description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
             dimensions=[
-                {"name": "ClusterName", "value": cluster_name},
-                {"name": "ServiceName", "value": service_name},
+                {"Name": "ClusterName", "Value": cluster_name},
+                {"Name": "ServiceName", "Value": service_name},
             ],
             alarm_actions=[alarm_action],
         )
