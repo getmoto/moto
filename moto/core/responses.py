@@ -662,8 +662,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     def serialized(self, action_result: ActionResult) -> TYPE_RESPONSE:
         service_model = get_service_model(self.service_name)
         protocol = self.determine_response_protocol(service_model)
-        # if protocol == "query" and "awsQueryCompatible" in service_model.metadata:
-        #     service_model = query_compatible_service_model(service_model)
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
         serializer_cls = get_serializer_class(service_model.service_name, protocol)
