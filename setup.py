@@ -21,6 +21,8 @@ class CompressJsonCommand(Command):
             build_dir = self.get_finalized_command("build_py").build_lib
             json_files = glob.glob(f"{build_dir}/**/*.json", recursive=True)
             for file in json_files:
+                if "moto-extras" in file:
+                    continue
                 target_filename = f"{file}.gz"
                 print(f"Compressing {file} into {target_filename}...")  # noqa
                 with open(file, "rb") as source:
