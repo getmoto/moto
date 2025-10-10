@@ -435,9 +435,12 @@ class LayerVersion(CloudFormationModel):
         self.license_info = spec.get("LicenseInfo", "")
         self.policy = Policy(self)  # type: ignore[no-untyped-call]
 
-        # auto-generated
-        self.created_date = utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        self.version: Optional[int] = None
+        # For `list_layer_versions`, AWS sends back a hardcoded string over the wire, with timezone info automatically set to UTC (+0000)
+        # This despite the fact that the layer exists in the US (us-east-1), and my local timezone was set to UTC+2
+        # So it seems like the date is automatically set to UTC on creation, that's why we can just return this hardcoded
+        # Also add microseconds to be compatible with AWS (milliseconds '%f' adds six, we only want three chars)
+        self.created_date = utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+0000"
+        self.version: int = 1
         self._attached = False
         self._layer: Optional["Layer"] = None
 
@@ -480,7 +483,7 @@ class LayerVersion(CloudFormationModel):
         self.version = version
 
     def get_layer_version(self) -> Dict[str, Any]:
-        return {
+        version = {
             "Content": {
                 "Location": "s3://",
                 "CodeSha256": self.code_sha_256,
@@ -490,11 +493,15 @@ class LayerVersion(CloudFormationModel):
             "LayerArn": self._layer.layer_arn,  # type: ignore[union-attr]
             "LayerVersionArn": self.arn,
             "CreatedDate": self.created_date,
-            "CompatibleArchitectures": self.compatible_architectures,
-            "CompatibleRuntimes": self.compatible_runtimes,
-            "Description": self.description,
             "LicenseInfo": self.license_info,
         }
+        if self.description:
+            version["Description"] = self.description
+        if self.compatible_architectures:
+            version["CompatibleArchitectures"] = self.compatible_architectures
+        if self.compatible_runtimes:
+            version["CompatibleRuntimes"] = self.compatible_runtimes
+        return version
 
     @staticmethod
     def cloudformation_name_type() -> str:

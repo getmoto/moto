@@ -817,7 +817,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 }
 
         # KMS
-        if not resource_type_filters or "kms" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "kms" in resource_type_filters
+            or "kms:key" in resource_type_filters
+        ):
             for kms_key in self.kms_backend.list_keys():
                 tags = format_tag_keys(
                     self.kms_backend.list_resource_tags(kms_key.id).get("Tags", []),

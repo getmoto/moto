@@ -1,6 +1,58 @@
 Moto Changelog
 ==============
 
+5.1.14
+-----
+Docker Digest for 5.1.14: _sha256:800719627036dc38dc699e9f314f624f2c98ac3d8bb754db078cb2698f08ee77_
+
+    New Services:
+        * CloudWatch-Synthetics:
+            * create_canary()
+            * get_canary()
+            * describe_canaries()
+            * list_tags_for_resource()
+
+        * MediaPackageV2:
+            * create_channel()
+            * create_channel_group()
+            * delete_channel()
+            * delete_channel_group()
+            * get_channel()
+            * get_channel_group()
+            * list_channel_groups()
+
+        * VPCLattice:
+            * create_service()
+            * create_service_network()
+            * create_service_network_vpc_association()
+            * create_rule()
+
+    New Methods:
+        * Kinesis:
+            * describe_limits()
+
+        * Macie2:
+            * disassociate_member()
+            * enable_organization_admin_account()
+            * list_organization_admin_accounts()
+
+        * SecurityHub:
+            * describe_hub()
+            * disable_security_hub()
+            * enable_security_hub()
+
+        * ServiceHub-AppRegistry:
+            * get_configuration()
+            * put_configuration()
+
+    Miscellaneous:
+        * IOTData: update_thing_shadow() now supports state=None
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now returns ARN's for Athena resources, instead of names
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now supports Kinesis Firehose resources
+        * S3: put_object() now stores the correct (actual) content when using the Java SDK, and no longer include the checksum headers in the body
+        * Shield: create_protection() now only allows ARN's of Elastic IP Addresses, instead of all EC2 resources
+
+
 5.1.13
 -----
 Docker Digest for 5.1.13: _sha256:0503bdc569e122966fc5fceef43d4a9562ed21e4091cf865801dba90cbb62ea5_

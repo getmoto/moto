@@ -8012,6 +8012,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "backup.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-7": {
                 "Value": "ap-southeast-7",
                 "endpoint": {
@@ -34460,6 +34469,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
+                "endpoint": {
+                  "Value": "sso.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ca-central-1": {
                 "Value": "ca-central-1",
                 "endpoint": {
@@ -34590,6 +34608,15 @@
                 "Value": "me-south-1",
                 "endpoint": {
                   "Value": "sso.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
+                "endpoint": {
+                  "Value": "sso.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -56587,6 +56614,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "redshift-data.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-southeast-7": {
                 "Value": "ap-southeast-7",
                 "endpoint": {
@@ -58519,89 +58555,6 @@
                 "Value": "us-west-2",
                 "endpoint": {
                   "Value": "tagging.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              }
-            }
-          },
-          "robomaker": {
-            "Value": "robomaker",
-            "longName": {
-              "Value": "AWS RoboMaker"
-            },
-            "marketingHomeURL": {
-              "Value": "https://aws.amazon.com/robomaker/"
-            },
-            "regions": {
-              "ap-northeast-1": {
-                "Value": "ap-northeast-1",
-                "endpoint": {
-                  "Value": "robomaker.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "ap-southeast-1": {
-                "Value": "ap-southeast-1",
-                "endpoint": {
-                  "Value": "robomaker.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-central-1": {
-                "Value": "eu-central-1",
-                "endpoint": {
-                  "Value": "robomaker.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "eu-west-1": {
-                "Value": "eu-west-1",
-                "endpoint": {
-                  "Value": "robomaker.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-east-1": {
-                "Value": "us-east-1",
-                "endpoint": {
-                  "Value": "robomaker.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-east-2": {
-                "Value": "us-east-2",
-                "endpoint": {
-                  "Value": "robomaker.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-gov-west-1": {
-                "Value": "us-gov-west-1",
-                "endpoint": {
-                  "Value": "robomaker.us-gov-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "us-west-2": {
-                "Value": "us-west-2",
-                "endpoint": {
-                  "Value": "robomaker.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
