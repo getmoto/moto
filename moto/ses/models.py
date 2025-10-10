@@ -851,16 +851,16 @@ class SESBackend(BaseBackend):
         # Validate ruleSetName
         self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
         # Validate the name of the rule
-        self._validate_name_param(self.__RULE_PARAM, rule["name"])
+        self._validate_name_param(self.__RULE_PARAM, rule["Name"])
         # Start operating on the rule set, if it exists
         rule_set = self.receipt_rule_set.get(rule_set_name)
         if rule_set is None:
             raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
         # If "after" is specified, then verify if a rule exists by that name under the rule set
-        if after and not any(r["name"] == after for r in rule_set.rules):
+        if after and not any(r["Name"] == after for r in rule_set.rules):
             raise RuleDoesNotExist(f"Rule does not exist: {after}")
         if rule in rule_set.rules:
-            raise AlreadyExists(f"Rule already exists: {rule['name']}")
+            raise AlreadyExists(f"Rule already exists: {rule['Name']}")
         # Validate the actions as part of the receipt_rule
         self._validate_receipt_rule_actions(rule)
         if not after:
@@ -869,7 +869,7 @@ class SESBackend(BaseBackend):
         else:
             # Find the position of the rule specified by after parameter
             for rule_idx, _ in enumerate(rule_set.rules):
-                if rule_set.rules[rule_idx]["name"] == after:
+                if rule_set.rules[rule_idx]["Name"] == after:
                     rule_set.rules.insert(rule_idx + 1, rule)
                     break
         self.receipt_rule_set[rule_set_name] = rule_set
@@ -953,14 +953,14 @@ class SESBackend(BaseBackend):
 
     def _validate_receipt_rule_actions(self, rule: Dict[str, Any]) -> None:
         # Allowed to be empty
-        actions = rule.get("actions", [])
+        actions = rule.get("Actions", [])
         for action in actions:
             if "S3Action" in action:
                 self._validate_s3_action(action["S3Action"])
             if "BounceAction" in action:
-                self._validate_sns_topic(action["BounceAction"].get("topic_arn"))
+                self._validate_sns_topic(action["BounceAction"].get("TopicArn"))
             if "WorkmailAction" in action:
-                self._validate_sns_topic(action["WorkmailAction"].get("topic_arn"))
+                self._validate_sns_topic(action["WorkmailAction"].get("TopicArn"))
             if "LambdaAction" in action:
                 self._validate_lambda_action(action["LambdaAction"])
 
@@ -970,20 +970,20 @@ class SESBackend(BaseBackend):
         # Raise an exception if the bucket does not exist
         try:
             partition = get_partition(self.region_name)
-            s3_backends[self.account_id][partition].get_bucket(s3_action["bucket_name"])
+            s3_backends[self.account_id][partition].get_bucket(s3_action["BucketName"])
         except Exception:
             raise InvalidS3ConfigurationException(
-                f"Could not write to bucket: {s3_action['bucket_name']}"
+                f"Could not write to bucket: {s3_action['BucketName']}"
             )
 
-        if s3_action.get("kms_key_arn"):
-            self._validate_kms_key(s3_action["kms_key_arn"])
+        if s3_action.get("KmsKeyArn"):
+            self._validate_kms_key(s3_action["KmsKeyArn"])
 
-        if s3_action.get("topic_arn"):
-            self._validate_sns_topic(s3_action["topic_arn"])
+        if s3_action.get("TopicArn"):
+            self._validate_sns_topic(s3_action["TopicArn"])
 
-        if s3_action.get("iam_role_arn"):
-            self._validate_iam_role(s3_action["iam_role_arn"])
+        if s3_action.get("IamRoleArn"):
+            self._validate_iam_role(s3_action["IamRoleArn"])
 
     def _validate_lambda_action(self, lambda_action: Dict[str, str]) -> None:
         from moto.awslambda.models import lambda_backends
@@ -991,14 +991,14 @@ class SESBackend(BaseBackend):
         # Raise an exception if the Lambda function does not exist
         try:
             _ = lambda_backends[self.account_id][self.region_name].get_function(
-                lambda_action["function_arn"]
+                lambda_action["FunctionArn"]
             )
         except Exception:
             raise InvalidLambdaFunctionException(
-                f"Invalid Lambda function: {lambda_action['function_arn']}"
+                f"Invalid Lambda function: {lambda_action['FunctionArn']}"
             )
 
-        self._validate_sns_topic(lambda_action.get("topic_arn"))
+        self._validate_sns_topic(lambda_action.get("TopicArn"))
 
     def _validate_kms_key(self, kms_key_arn: str) -> None:
         from moto.kms.models import kms_backends
@@ -1050,7 +1050,7 @@ class SESBackend(BaseBackend):
             raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
 
         for receipt_rule in rule_set.rules:
-            if receipt_rule["name"] == rule_name:
+            if receipt_rule["Name"] == rule_name:
                 return receipt_rule
 
         raise RuleDoesNotExist(f"Rule does not exist: {rule_name}")
@@ -1062,11 +1062,11 @@ class SESBackend(BaseBackend):
             raise RuleSetDoesNotExist(f"Rule set does not exist: {rule_set_name}")
 
         for i, receipt_rule in enumerate(rule_set.rules):
-            if receipt_rule["name"] == rule["name"]:
+            if receipt_rule["Name"] == rule["Name"]:
                 rule_set.rules[i] = rule
                 break
         else:
-            raise RuleDoesNotExist(f"Rule does not exist: {rule['name']}")
+            raise RuleDoesNotExist(f"Rule does not exist: {rule['Name']}")
 
     def set_identity_mail_from_domain(
         self,

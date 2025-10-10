@@ -484,7 +484,7 @@ class ELBV2Response(BaseResponse):
         ssl_policy = self._get_param("SslPolicy", "ELBSecurityPolicy-2016-08")
         certificates = self._get_param("Certificates", [])
         if certificates:
-            certificate = certificates[0].get("certificate_arn")
+            certificate = certificates[0].get("CertificateArn")
         else:
             certificate = None
         default_actions = params.get("DefaultActions", [])
@@ -611,7 +611,7 @@ class ELBV2Response(BaseResponse):
     def modify_target_group_attributes(self) -> ActionResult:
         target_group_arn = self._get_param("TargetGroupArn")
         attrs = self._get_param("Attributes", [])
-        attributes = {attr["key"]: attr["value"] for attr in attrs}
+        attributes = {attr["Key"]: attr["Value"] for attr in attrs}
         self.elbv2_backend.modify_target_group_attributes(target_group_arn, attributes)
         result = {"Attributes": attributes}
         return ActionResult(result)

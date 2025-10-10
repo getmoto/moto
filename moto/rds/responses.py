@@ -5,9 +5,12 @@ from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError
 from .models import RDSBackend, rds_backends
+from .utils import XFormedDict
 
 
 class RDSResponse(BaseResponse):
+    PROTOCOL_PARSER_MAP_TYPE = XFormedDict
+
     def __init__(self) -> None:
         super().__init__(service_name="rds")
         self.automated_parameter_parsing = True

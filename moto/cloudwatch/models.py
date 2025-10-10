@@ -152,7 +152,7 @@ class Alarm(BaseModel):
         self.extended_statistic = extended_statistic
         self.description = description
         self.dimensions = [
-            Dimension(dimension["name"], dimension["value"]) for dimension in dimensions
+            Dimension(dimension["Name"], dimension["Value"]) for dimension in dimensions
         ]
         self.actions_enabled = True if actions_enabled is None else actions_enabled
         self.alarm_actions = alarm_actions
