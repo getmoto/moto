@@ -1,11 +1,11 @@
 from typing import Any, List, Optional, Tuple
 
+from moto.core.parsers import XFormedDict
 from moto.core.responses import ActionResult, BaseResponse
 from moto.ec2.models import ec2_backends
 
 from .exceptions import DBParameterGroupNotFoundError
 from .models import RDSBackend, rds_backends
-from .utils import XFormedDict
 
 
 class RDSResponse(BaseResponse):

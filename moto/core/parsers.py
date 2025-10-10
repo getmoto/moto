@@ -1,8 +1,12 @@
 # mypy: ignore-errors
 import base64
 import json
+from collections import OrderedDict
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
+from typing import Any, Optional
 
+from botocore import xform_name
 from botocore.utils import parse_timestamp as botocore_parse_timestamp
 
 from moto.core.model import OperationModel
@@ -249,3 +253,56 @@ PROTOCOL_PARSERS = {
     "json": JSONParser,
     "query": QueryParser,
 }
+
+
+class XFormedDict(MutableMapping[str, Any]):
+    """
+    A Pascal/Snake case-insensitive  ``dict``-like object.
+
+        xfd = XFormedDict()
+        xfd['DBInstanceIdentifier'] = 'identifier'
+        xfd['DBInstanceIdentifier'] == 'identifier'  # True
+        xfd['db_instance_identifier'] == 'identifier'  # True
+        list(xfd) == ['db_instance_identifier']  # True
+
+    ***Do Not Import*** This class is deprecated and will be removed in a future release.
+    """
+
+    def __init__(
+        self, data: Optional[dict[str, Any]] = None, **kwargs: dict[str, Any]
+    ) -> None:
+        self._xform_cache: dict[str, Any] = {}
+        self._store: MutableMapping[str, Any] = OrderedDict()
+        if data is None:
+            data = {}
+        self.update(data, **kwargs)
+
+    def _xformed(self, key: str) -> str:
+        return xform_name(key, _xform_cache=self._xform_cache)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        # Use the xformed key for lookups, but store the actual key alongside the value.
+        self._store[self._xformed(key)] = (key, value)
+
+    def __getitem__(self, key: str) -> Any:
+        return self._store[self._xformed(key)][1]
+
+    def __delitem__(self, key: str) -> None:
+        del self._store[self._xformed(key)]
+
+    def __iter__(self) -> Any:
+        return (key for key in self._store.keys())
+
+    def __len__(self) -> int:
+        return len(self._store)
+
+    def original_items(self) -> Any:
+        """Like iteritems(), but with all PascalCase keys."""
+        return ((keyval[0], keyval[1]) for (_, keyval) in self._store.items())
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, dict):
+            other = XFormedDict(other)
+        else:
+            return NotImplemented
+        return dict(self.items()) == dict(other.items())
