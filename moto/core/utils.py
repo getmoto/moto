@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import inspect
+import os
 import re
 from functools import cache
 from gzip import compress, decompress
@@ -13,7 +14,6 @@ from botocore.exceptions import ClientError
 from moto.core.model import ServiceModel
 
 from ..settings import get_s3_custom_endpoints
-from ..utilities.utils import load_resource
 from .common_types import TYPE_RESPONSE
 from .constants import MISSING
 from .loaders import create_loader
@@ -469,17 +469,12 @@ def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
 
 @cache
 def get_service_model(service_name: str) -> ServiceModel:
-    loader = create_loader()
+    if "moto" not in Loader.BUILTIN_EXTRAS_TYPES:
+        Loader.BUILTIN_EXTRAS_TYPES += ["moto"]
+    search_paths = ["moto/sqs/resources"]
+    search_path_string = os.pathsep.join(search_paths)
+    loader = create_loader(search_path_string)
     model = loader.load_service_model(service_name, "service-2")
-    # Generalize extra loading for any/all services
-    if service_name == "sqs":
-        from moto import sqs
-
-        extra_model = load_resource(
-            sqs.__name__, "resources/service-2.moto-extras.json"
-        )
-        if "merge" in extra_model:
-            deep_merge(model, extra_model["merge"])
     service_model = ServiceModel(model, service_name)
     return service_model
 
