@@ -42,7 +42,7 @@ def test_send_email(ses_v1):
         conn.send_email(**kwargs)
     assert e.value.response["Error"]["Code"] == "MessageRejected"
 
-    ses_v1.verify_domain_identity(Domain="example.com")
+    conn.create_email_identity(EmailIdentity="test@example.com")
     resp = conn.send_email(**kwargs)
     assert resp["MessageId"] is not None
 
@@ -63,7 +63,7 @@ def test_send_email(ses_v1):
 def test_send_html_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
-    ses_v1.verify_domain_identity(Domain="example.com")
+    conn.create_email_identity(EmailIdentity="example.com")
     kwargs = dict(
         FromEmailAddress="test@example.com",
         Destination={
@@ -472,6 +472,41 @@ def test_create_email_identity():
     # Verify
     assert resp["IdentityType"] == "DOMAIN"
     assert resp["VerifiedForSendingStatus"] is False
+
+
+@mock_aws
+def test_delete_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    test_email_domain = "example.com"
+    client.create_email_identity(EmailIdentity=test_email_domain)
+    identities = client.list_email_identities()
+
+    assert len(identities["EmailIdentities"]) == 1
+
+    # Execute
+    client.delete_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    identities = client.list_email_identities()
+    assert len(identities["EmailIdentities"]) == 0
+
+
+@mock_aws
+def test_delete_no_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    test_email_domain = "example.com"
+    identities = client.list_email_identities()
+
+    assert len(identities["EmailIdentities"]) == 0
+
+    # Execute
+    client.delete_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    identities = client.list_email_identities()
+    assert len(identities["EmailIdentities"]) == 0
 
 
 @mock_aws
