@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import inspect
-import os
 import re
 from functools import cache
 from gzip import compress, decompress
@@ -472,11 +471,7 @@ def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
 def get_service_model(service_name: str) -> ServiceModel:
     if "moto" not in Loader.BUILTIN_EXTRAS_TYPES:
         Loader.BUILTIN_EXTRAS_TYPES.append("moto")
-    search_paths = []
-    if service_name == "sqs":
-        search_paths.append(os.path.join(MOTO_ROOT, "sqs/resources"))
-    search_path_string = os.pathsep.join(search_paths) if search_paths else None
-    loader = create_loader(search_path_string)
+    loader = create_loader(search_path_string=MOTO_ROOT)
     model = loader.load_service_model(service_name, "service-2")
     service_model = ServiceModel(model, service_name)
     return service_model
