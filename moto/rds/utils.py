@@ -7,7 +7,7 @@ from collections import OrderedDict
 from collections.abc import MutableMapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, no_type_check
+from typing import Any, Dict, List, Optional, Tuple
 
 from botocore import xform_name
 from botocore.utils import merge_dicts
@@ -400,7 +400,6 @@ def decode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-@no_type_check
 class XFormedDict(MutableMapping[str, Any]):
     """
     A Pascal/Snake case-insensitive  ``dict``-like object.
