@@ -1056,30 +1056,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             param_index += 1
         return results
 
-    def _get_map_prefix(
-        self, param_prefix: str, key_end: str = ".key", value_end: str = ".value"
-    ) -> Dict[str, Any]:
-        results = {}
-        param_index = 1
-        while 1:
-            index_prefix = f"{param_prefix}.{param_index}."
-
-            k, v = None, None
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    if key.endswith(key_end):
-                        k = value[0]
-                    elif key.endswith(value_end):
-                        v = value[0]
-
-            if not (k and v is not None):
-                break
-
-            results[k] = v
-            param_index += 1
-
-        return results
-
     @property
     def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
