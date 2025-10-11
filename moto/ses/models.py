@@ -711,7 +711,7 @@ class SESBackend(BaseBackend):
     ) -> ConfigurationSet:
         if configuration_set_name not in self.config_sets:
             raise ConfigurationSetDoesNotExist(
-                f"Configuration set <{configuration_set_name}> does not exist"
+                f"Configuration set <{configuration_set_name}> does not exist."
             )
         return self.config_sets[configuration_set_name]
 

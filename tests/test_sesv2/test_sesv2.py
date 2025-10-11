@@ -691,11 +691,14 @@ def test_get_configuration_set():
     assert config_setv2["Tags"] == tags
     assert config_setv2["DeliveryOptions"] == delivery_options
 
-    # Check for a non-existant config set
+    # Check for a non-existent config set
     with pytest.raises(ClientError) as ex:
         client_v2.get_configuration_set(ConfigurationSetName="invalid")
     err = ex.value.response["Error"]
-    assert err["Code"] == "ConfigurationSetDoesNotExist"
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Configuration set <invalid> does not exist."
+    resp_meta = ex.value.response["ResponseMetadata"]
+    assert resp_meta["HTTPStatusCode"] == 404
 
 
 @mock_aws
@@ -798,7 +801,10 @@ def test_delete_configuration_set():
     with pytest.raises(ClientError) as ex:
         client.get_configuration_set(ConfigurationSetName=name)
     err = ex.value.response["Error"]
-    assert err["Code"] == "ConfigurationSetDoesNotExist"
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == f"Configuration set <{name}> does not exist."
+    resp_meta = ex.value.response["ResponseMetadata"]
+    assert resp_meta["HTTPStatusCode"] == 404
 
 
 @mock_aws
