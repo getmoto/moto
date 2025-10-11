@@ -83,4 +83,8 @@ class TestSimpleInstance(unittest.TestCase):
                 client.create_stack(StackName=EC2_STACK_NAME, TemplateBody=EC2_TEMPLATE)
             self.assertIn("Error", e.exception.response)
             self.assertIn("Code", e.exception.response["Error"])
-            self.assertEqual("ExportNotFound", e.exception.response["Error"]["Code"])
+            self.assertEqual("ValidationError", e.exception.response["Error"]["Code"])
+            expected_error_message = "No export named SimpleSecurityGroup found."
+            self.assertEqual(
+                expected_error_message, e.exception.response["Error"]["Message"]
+            )
