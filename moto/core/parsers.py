@@ -216,7 +216,6 @@ class JSONParser(RequestParser):
         return value
 
     def _handle_blob(self, shape, value):
-        # Blob args must be base64 encoded.
         value = self._default_handle(shape, value)
         if value is UNDEFINED:
             return value
