@@ -2,6 +2,7 @@ from moto.core.responses import ActionResult, EmptyResult
 from moto.core.utils import camelcase_to_underscores
 from moto.moto_api._internal import mock_random as random
 
+from ..exceptions import InvalidParameterCombination, MissingParameter
 from ._base_response import EC2BaseResponse
 
 
@@ -9,10 +10,23 @@ class Subnets(EC2BaseResponse):
     def create_subnet(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
         cidr_block = self._get_param("CidrBlock")
+        ipv4_ipam_pool_id = self._get_param("Ipv4IpamPoolId")
         ipv6_cidr_block = self._get_param("Ipv6CidrBlock")
+        ipv6_ipam_pool_id = self._get_param("Ipv6IpamPoolId")
         availability_zone = self._get_param("AvailabilityZone")
         availability_zone_id = self._get_param("AvailabilityZoneId")
         tags = self._parse_tag_specification("subnet")
+        ipv6_native = self._get_bool_param("Ipv6Native", False)
+
+        if ipv6_native and not ipv6_cidr_block and not ipv6_ipam_pool_id:
+            raise MissingParameter(
+                "Either 'ipv6CidrBlock' or 'ipv6IpamPoolId' should be provided."
+            )
+
+        if ipv6_native and (cidr_block or ipv4_ipam_pool_id):
+            raise InvalidParameterCombination(
+                "When specifying ipv4 parameters, cidrBlock or ipv4IpamPoolId, you cannot set ipv6Native to true."
+            )
 
         if not availability_zone and not availability_zone_id:
             availability_zone = random.choice(
@@ -24,6 +38,7 @@ class Subnets(EC2BaseResponse):
             ipv6_cidr_block,
             availability_zone,
             availability_zone_id,
+            ipv6_native=ipv6_native,
             tags=tags,
         )
         result = {"Subnet": subnet}

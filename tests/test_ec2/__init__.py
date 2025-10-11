@@ -177,6 +177,17 @@ def wait_for_vpn_connections(ec2_client, vpn_connection_id):
         sleep(5 * idx)
 
 
+def wait_for_ipv6_cidr_block_associations(ec2_client, vpc_id):
+    for idx in range(10):
+        vpcs = ec2_client.describe_vpcs(VpcIds=[vpc_id])["Vpcs"]
+        if (
+            vpcs[0]["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlockState"]["State"]
+            == "associated"
+        ):
+            return vpcs[0]["Ipv6CidrBlockAssociationSet"][0]
+        sleep(5 * idx)
+
+
 def delete_transit_gateway_dependencies(ec2_client, tg_id):
     delete_tg_attachments(ec2_client, tg_id)
 
