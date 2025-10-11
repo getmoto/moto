@@ -487,6 +487,7 @@ class CloudFormationResponse(BaseResponse):
         except (ValueError, KeyError):
             pass
         try:
+            yaml.add_multi_constructor("", yaml_tag_constructor)
             description = yaml.load(template_body, Loader=yaml.Loader)["Description"]
         except (ParserError, ScannerError, KeyError):
             pass
