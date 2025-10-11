@@ -8,7 +8,6 @@ from copy import deepcopy
 from threading import Condition
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import ParseResult
-from xml.sax.saxutils import escape
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -160,7 +159,8 @@ class Message(BaseModel):
 
     @property
     def body(self) -> str:
-        return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
+        # return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
+        return self.original_body
 
     @property
     def original_body(self) -> str:
