@@ -29,7 +29,7 @@ class ValidationError(CloudFormationError):
 
 
 class MissingParameterError(CloudFormationError):
-    code = "Missing Parameter"
+    code = "ValidationError"
 
     def __init__(self, parameter_name: str):
         message = f"Missing parameter {parameter_name}"
@@ -37,7 +37,7 @@ class MissingParameterError(CloudFormationError):
 
 
 class ExportNotFound(CloudFormationError):
-    code = "ExportNotFound"
+    code = "ValidationError"
 
     def __init__(self, export_name: str):
         message = f"No export named {export_name} found."

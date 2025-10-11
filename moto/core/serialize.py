@@ -95,6 +95,7 @@ Serialized = MutableMapping[str, Any]
 # TODO: Augment the service definitions with shape models for these errors.
 COMMON_ERROR_CODES = [
     "InvalidParameterCombination",
+    "InvalidParameterException",
     "InvalidParameterValue",
     "ValidationError",
     "ValidationException",

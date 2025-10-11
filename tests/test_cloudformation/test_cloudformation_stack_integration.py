@@ -25,7 +25,7 @@ def test_create_template_without_required_param_boto3():
     with pytest.raises(ClientError) as ex:
         cf.create_stack(StackName="test_stack", TemplateBody=template_json)
     err = ex.value.response["Error"]
-    assert err["Code"] == "Missing Parameter"
+    assert err["Code"] == "ValidationError"
     assert err["Message"] == "Missing parameter KeyName"
 
 
