@@ -16,6 +16,8 @@ def main():
     regions.extend(Session().get_available_regions("ec2"))
     regions.extend(Session().get_available_regions("ec2", partition_name="aws-us-gov"))
     regions.extend(Session().get_available_regions("ec2", partition_name="aws-cn"))
+    # Malaysia is a new region, and not yet exposed by get_available_regions
+    regions.append("ap-southeast-5")
     print("Found " + str(len(regions)) + " regions")
 
     instances = []

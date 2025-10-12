@@ -1,4 +1,5 @@
 """Exceptions raised by the Directory Service service."""
+
 from typing import List, Tuple
 
 from moto.core.exceptions import JsonRESTError
@@ -105,3 +106,12 @@ class ValidationException(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("ValidationException", message)
+
+
+class UnsupportedOperationException(JsonRESTError):
+    """Unsupported Operation"""
+
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("UnsupportedOperationException", message)

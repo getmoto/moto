@@ -180,3 +180,98 @@ def test_publish_batch_to_sqs_raw():
 
     assert ("foo", None) in messages
     assert ("bar", {"a": {"StringValue": "v", "DataType": "String"}}) in messages
+
+
+@mock_aws
+def test_publish_with_with_message_structure_json():
+    sns = boto3.client("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    sns.subscribe(
+        TopicArn=topic["TopicArn"],
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    entries = [
+        {
+            "Id": "no-message-structure",
+            "Message": "no-message-structure",
+        },
+        {
+            "Id": "json-message-structure",
+            "Message": json.dumps(
+                {
+                    "default": "default-message",
+                    "sqs": "queue-message",
+                }
+            ),
+            "MessageStructure": "json",
+        },
+        {
+            "Id": "json-message-structure-fallback-to-default",
+            "Message": json.dumps(
+                {
+                    "default": "default-message",
+                    "email": "email-message",
+                }
+            ),
+            "MessageStructure": "json",
+        },
+    ]
+
+    sns.publish_batch(
+        TopicArn=topic["TopicArn"],
+        PublishBatchRequestEntries=entries,
+    )
+
+    queue_messages = queue.receive_messages(MaxNumberOfMessages=10)
+
+    assert len(queue_messages) == 3
+
+    first_queue_message = json.loads(queue_messages[0].body)
+    assert first_queue_message["Message"] == "no-message-structure"
+
+    second_queue_message = json.loads(queue_messages[1].body)
+    assert second_queue_message["Message"] == "queue-message"
+
+    third_queue_message = json.loads(queue_messages[2].body)
+    assert third_queue_message["Message"] == "default-message"
+
+
+@mock_aws
+def test_publish_with_upper_cased_message_attributes():
+    sns = boto3.client("sns", "us-east-1")
+    sqs = boto3.resource("sqs", "us-east-1")
+
+    topic_arn = sns.create_topic(Name="topic")["TopicArn"]
+    queue = sqs.create_queue(QueueName="queue")
+    queue_arn = sqs.meta.client.get_queue_attributes(
+        QueueUrl=queue.url, AttributeNames=["QueueArn"]
+    )["Attributes"]["QueueArn"]
+
+    sns.subscribe(TopicArn=topic_arn, Protocol="sqs", Endpoint=queue_arn)
+
+    sns.publish_batch(
+        TopicArn=topic_arn,
+        PublishBatchRequestEntries=[
+            {
+                "Id": "some id",
+                "Message": json.dumps({"type": "test"}),
+                "MessageAttributes": {
+                    "SomeCamelCaseAttr": {"DataType": "String", "StringValue": "value"}
+                },
+            }
+        ],
+    )
+
+    msg = queue.receive_messages()[0]
+    body = json.loads(msg.body)
+
+    assert body["MessageAttributes"] == {
+        "SomeCamelCaseAttr": {"Type": "String", "Value": "value"}
+    }

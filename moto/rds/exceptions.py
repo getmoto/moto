@@ -1,23 +1,10 @@
-from jinja2 import Template
+from typing import Optional
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import ServiceException
 
 
-class RDSClientError(RESTError):
-    def __init__(self, code: str, message: str):
-        super().__init__(error_type=code, message=message)
-        template = Template(
-            """
-        <ErrorResponse>
-            <Error>
-              <Code>{{ code }}</Code>
-              <Message>{{ message }}</Message>
-              <Type>Sender</Type>
-            </Error>
-            <RequestId>6876f774-7273-11e4-85dc-39e55ca848d1</RequestId>
-        </ErrorResponse>"""
-        )
-        self.description = template.render(code=code, message=message)
+class RDSClientError(ServiceException):
+    pass
 
 
 class DBInstanceNotFoundError(RDSClientError):
@@ -27,10 +14,15 @@ class DBInstanceNotFoundError(RDSClientError):
         )
 
 
-class DBSnapshotNotFoundError(RDSClientError):
+class DBInstanceAlreadyExists(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__("DBInstanceAlreadyExists", "DB instance already exists")
+
+
+class DBSnapshotNotFoundFault(RDSClientError):
     def __init__(self, snapshot_identifier: str):
         super().__init__(
-            "DBSnapshotNotFound", f"DBSnapshot {snapshot_identifier} not found."
+            "DBSnapshotNotFoundFault", f"DBSnapshot {snapshot_identifier} not found."
         )
 
 
@@ -42,9 +34,15 @@ class DBSecurityGroupNotFoundError(RDSClientError):
         )
 
 
-class DBSubnetGroupNotFoundError(RDSClientError):
-    code = 404
+class DBShardGroupAlreadyExistsError(RDSClientError):
+    def __init__(self, shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupAlreadyExists",
+            f"DB Shard Group {shard_group_identifier} already exists.",
+        )
 
+
+class DBSubnetGroupNotFoundError(RDSClientError):
     def __init__(self, subnet_group_name: str):
         super().__init__(
             "DBSubnetGroupNotFoundFault", f"Subnet Group {subnet_group_name} not found."
@@ -56,6 +54,14 @@ class DBParameterGroupNotFoundError(RDSClientError):
         super().__init__(
             "DBParameterGroupNotFound",
             f"DB Parameter Group {db_parameter_group_name} not found.",
+        )
+
+
+class DBParameterGroupAlreadyExistsError(RDSClientError):
+    def __init__(self, db_parameter_group_name: str):
+        super().__init__(
+            "DBParameterGroupAlreadyExists",
+            f"DB Parameter Group {db_parameter_group_name} already exists.",
         )
 
 
@@ -103,7 +109,13 @@ class InvalidDBInstanceStateError(RDSClientError):
         )
 
 
-class SnapshotQuotaExceededError(RDSClientError):
+class InvalidDBInstanceStateFault(RDSClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidDBInstanceStateFault", message)
+
+
+class SnapshotQuotaExceededFault(RDSClientError):
+    # This is used for both DBSnapshots and DBClusterSnapshots
     def __init__(self) -> None:
         super().__init__(
             "SnapshotQuotaExceeded",
@@ -111,11 +123,42 @@ class SnapshotQuotaExceededError(RDSClientError):
         )
 
 
+class SharedSnapshotQuotaExceeded(RDSClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "SharedSnapshotQuotaExceeded",
+            "The request cannot be processed because it would exceed the maximum number of snapshots.",
+        )
+
+
+class KMSKeyNotAccessibleFault(RDSClientError):
+    fmt = "Specified KMS key [{key_id}] does not exist, is not enabled or you do not have permissions to access it."
+
+    def __init__(self, key_id: str) -> None:
+        super().__init__(
+            "KMSKeyNotAccessibleFault",
+            f"Specified KMS key [{key_id}] does not exist, is not enabled or you do not have permissions to access it.",
+        )
+
+
+class InvalidDBClusterSnapshotStateFault(RDSClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidDBClusterSnapshotStateFault", message)
+
+
 class DBSnapshotAlreadyExistsError(RDSClientError):
     def __init__(self, database_snapshot_identifier: str):
         super().__init__(
             "DBSnapshotAlreadyExists",
             f"Cannot create the snapshot because a snapshot with the identifier {database_snapshot_identifier} already exists.",
+        )
+
+
+class DBShardGroupNotFoundFault(RDSClientError):
+    def __init__(self, db_shard_group_identifier: str):
+        super().__init__(
+            "DBShardGroupNotFoundFault",
+            f"DBShardGroup {db_shard_group_identifier} not found.",
         )
 
 
@@ -135,10 +178,10 @@ class InvalidDBClusterStateFault(RDSClientError):
 
 
 class DBClusterNotFoundError(RDSClientError):
-    def __init__(self, cluster_identifier: str):
-        super().__init__(
-            "DBClusterNotFoundFault", f"DBCluster {cluster_identifier} not found."
-        )
+    def __init__(self, cluster_identifier: str, message: Optional[str] = None):
+        if message is None:
+            message = f"DBCluster {cluster_identifier} not found."
+        super().__init__("DBClusterNotFoundFault", message)
 
 
 class DBClusterSnapshotNotFoundError(RDSClientError):
@@ -160,7 +203,7 @@ class DBClusterSnapshotAlreadyExistsError(RDSClientError):
 class ExportTaskAlreadyExistsError(RDSClientError):
     def __init__(self, export_task_identifier: str):
         super().__init__(
-            "ExportTaskAlreadyExistsFault",
+            "ExportTaskAlreadyExists",
             f"Cannot start export task because a task with the identifier {export_task_identifier} already exists.",
         )
 
@@ -168,7 +211,7 @@ class ExportTaskAlreadyExistsError(RDSClientError):
 class ExportTaskNotFoundError(RDSClientError):
     def __init__(self, export_task_identifier: str):
         super().__init__(
-            "ExportTaskNotFoundFault",
+            "ExportTaskNotFound",
             f"Cannot cancel export task because a task with the identifier {export_task_identifier} is not exist.",
         )
 
@@ -184,7 +227,7 @@ class InvalidExportSourceStateError(RDSClientError):
 class SubscriptionAlreadyExistError(RDSClientError):
     def __init__(self, subscription_name: str):
         super().__init__(
-            "SubscriptionAlreadyExistFault",
+            "SubscriptionAlreadyExist",
             f"Subscription {subscription_name} already exists.",
         )
 
@@ -192,7 +235,7 @@ class SubscriptionAlreadyExistError(RDSClientError):
 class SubscriptionNotFoundError(RDSClientError):
     def __init__(self, subscription_name: str):
         super().__init__(
-            "SubscriptionNotFoundFault", f"Subscription {subscription_name} not found."
+            "SubscriptionNotFound", f"Subscription {subscription_name} not found."
         )
 
 
@@ -210,6 +253,23 @@ class InvalidDBInstanceIdentifier(InvalidParameterValue):
             "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
             "and must not end with a hyphen or contain two consecutive hyphens."
         )
+
+
+class InvalidDBSnapshotIdentifier(InvalidParameterValue):
+    def __init__(self, snapshot_identifier: str, parameter_name: str) -> None:
+        if snapshot_identifier == "":
+            exception_text = f"The parameter {parameter_name} must be provided and must not be blank."
+        elif not snapshot_identifier[0].isalpha():
+            # On AWS, this error message seems to be triggered when the first character is invalid.
+            # The two spaces before the snapshot_identifier are what AWS produces!
+            exception_text = f"Invalid snapshot identifier:  {snapshot_identifier}"
+        else:
+            exception_text = (
+                f"The parameter {parameter_name} is not a valid identifier. "
+                "Identifiers must begin with a letter; must contain only ASCII letters, digits, and hyphens; "
+                "and must not end with a hyphen or contain two consecutive hyphens."
+            )
+        super().__init__(exception_text)
 
 
 class InvalidDBInstanceEngine(InvalidParameterCombination):
@@ -249,4 +309,44 @@ class DBProxyNotFoundFault(RDSClientError):
         super().__init__(
             "DBProxyNotFoundFault",
             f"The specified proxy name {db_proxy_identifier} doesn't correspond to a proxy owned by your Amazon Web Services account in the specified Amazon Web Services Region.",
+        )
+
+
+class BlueGreenDeploymentAlreadyExistsFault(RDSClientError):
+    def __init__(self, bg_name: str):
+        super().__init__(
+            "BlueGreenDeploymentAlreadyExistsFault",
+            f"A blue/green deployment with the specified name {bg_name} already exists.",
+        )
+
+
+class BlueGreenDeploymentNotFoundFault(RDSClientError):
+    def __init__(self, bg_identifier: str):
+        super().__init__(
+            "BlueGreenDeploymentNotFoundFault",
+            f"BlueGreenDeploymentIdentifier {bg_identifier} doesn't refer to an existing blue/green deployment.",
+        )
+
+
+class InvalidBlueGreenDeploymentStateFault(RDSClientError):
+    def __init__(self, bg_identifier: str):
+        super().__init__(
+            "InvalidBlueGreenDeploymentStateFault",
+            f"The blue/green deployment {bg_identifier} can't be switched over or deleted because there is an invalid configuration in the green environment.",
+        )
+
+
+class SourceDatabaseNotSupportedFault(RDSClientError):
+    def __init__(self, source_arn: str):
+        super().__init__(
+            "SourceDatabaseNotSupportedFault",
+            f"The source DB instance {source_arn} isn't supported for a blue/green deployment.",
+        )
+
+
+class SourceClusterNotSupportedFault(RDSClientError):
+    def __init__(self, source_arn: str):
+        super().__init__(
+            "SourceClusterNotSupportedFault",
+            f"The source DB cluster {source_arn} isn't supported for a blue/green deployment.",
         )

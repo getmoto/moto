@@ -1,15 +1,15 @@
 import re
 from io import BytesIO
 from typing import Any, Optional, Union
-from urllib.parse import urlparse
 
 from botocore.awsrequest import AWSResponse
 
 import moto.backend_index as backend_index
-from moto import settings
 from moto.core.base_backend import BackendDict
 from moto.core.common_types import TYPE_RESPONSE
-from moto.core.config import passthrough_service, passthrough_url
+from moto.core.config import passthrough_service, passthrough_url, service_whitelisted
+from moto.core.exceptions import ServiceNotWhitelisted
+from moto.core.utils import get_equivalent_url_in_aws_domain
 
 
 class MockRawResponse(BytesIO):
@@ -18,7 +18,7 @@ class MockRawResponse(BytesIO):
             response_input = response_input.encode("utf-8")
         super().__init__(response_input)
 
-    def stream(self, **kwargs: Any) -> Any:  # pylint: disable=unused-argument
+    def stream(self, **kwargs: Any) -> Any:
         contents = self.read()
         while contents:
             yield contents
@@ -43,39 +43,22 @@ class BotocoreStubber:
             return response
 
     def process_request(self, request: Any) -> Optional[TYPE_RESPONSE]:
+        # Handle non-standard AWS endpoint hostnames from ISO regions or custom
+        # S3 endpoints.
+        parsed_url, _ = get_equivalent_url_in_aws_domain(request.url)
         # Remove the querystring from the URL, as we'll never match on that
-        x = urlparse(request.url)
-        host = x.netloc
-
-        # https://github.com/getmoto/moto/pull/6412
-        # Support ISO regions
-        iso_region_domains = [
-            "amazonaws.com.cn",
-            "c2s.ic.gov",
-            "sc2s.sgov.gov",
-            "cloud.adc-e.uk",
-            "csp.hci.ic.gov",
-        ]
-        for domain in iso_region_domains:
-            if host.endswith(domain):
-                host = host.replace(domain, "amazonaws.com")
-
-        # https://github.com/getmoto/moto/issues/2993
-        # Support S3-compatible tools (Ceph, Digital Ocean, etc)
-        for custom_endpoint in settings.get_s3_custom_endpoints():
-            if host == custom_endpoint or host == custom_endpoint.split("://")[-1]:
-                host = "s3.amazonaws.com"
-
-        clean_url = f"{x.scheme}://{host}{x.path}"
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
 
         if passthrough_url(clean_url):
             return None
 
         for service, pattern in backend_index.backend_url_patterns:
             if pattern.match(clean_url):
-
                 if passthrough_service(service):
                     return None
+
+                if not service_whitelisted(service):
+                    raise ServiceNotWhitelisted(service)
 
                 import moto.backends as backends
                 from moto.core import DEFAULT_ACCOUNT_ID
@@ -88,7 +71,7 @@ class BotocoreStubber:
                     if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
                         backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
                     else:
-                        backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+                        backend = backend_dict[DEFAULT_ACCOUNT_ID]["aws"]
                 else:
                     backend = backend_dict["global"]
 

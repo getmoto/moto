@@ -4,6 +4,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AppNotFoundException,
@@ -56,7 +57,7 @@ class ConfigurationProfile(BaseModel):
         _type: str,
     ):
         self.id = mock_random.get_random_hex(7)
-        self.arn = f"arn:aws:appconfig:{region}:{account_id}:application/{application_id}/configurationprofile/{self.id}"
+        self.arn = f"arn:{get_partition(region)}:appconfig:{region}:{account_id}:application/{application_id}/configurationprofile/{self.id}"
         self.application_id = application_id
         self.name = name
         self.description = description
@@ -116,7 +117,7 @@ class Application(BaseModel):
         self, name: str, description: Optional[str], region: str, account_id: str
     ):
         self.id = mock_random.get_random_hex(7)
-        self.arn = f"arn:aws:appconfig:{region}:{account_id}:application/{self.id}"
+        self.arn = f"arn:{get_partition(region)}:appconfig:{region}:{account_id}:application/{self.id}"
         self.name = name
         self.description = description
 
@@ -189,9 +190,9 @@ class AppConfigBackend(BaseBackend):
             _type=_type,
         )
         self.tag_resource(config_profile.arn, tags)
-        self.get_application(application_id).config_profiles[
-            config_profile.id
-        ] = config_profile
+        self.get_application(application_id).config_profiles[config_profile.id] = (
+            config_profile
+        )
         return config_profile
 
     def delete_configuration_profile(self, app_id: str, config_profile_id: str) -> None:

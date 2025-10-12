@@ -16,12 +16,15 @@ If you are using the decorators, some options are configurable within the decora
         "core": {
             "mock_credentials": True,
             "passthrough": {
-                "urls": ["s3.amazonaws.com/bucket*"],
+                "urls": [r"s3.amazonaws.com/bucket*"],
                 "services": ["dynamodb"]
             },
             "reset_boto3_session": True,
+            "service_whitelist": None,
         },
         "iam": {"load_aws_managed_policies": False},
+        "stepfunctions": {"execute_state_machine": True},
+        "iot": {"use_valid_cert": False},
     })
 
 
@@ -37,7 +40,7 @@ Passthrough Requests
 
 Configure `mock_credentials: False` and `passthrough` if you want to only mock some services, but allow other requests to connect to AWS.
 
-You can either passthrough all requests to a specific service, or all URL's that match a specific pattern.
+You can either passthrough all requests to a specific service, or all URL's that match a specific regex.
 
 Reset Boto Session
 ------------------
@@ -50,11 +53,36 @@ That is why Moto resets the `boto3-Session`, to make sure that it is recreated w
 
 If all of your tests use Moto, and you never want to reach out to AWS, you can choose to _not_ reset the `boto3-session`. New boto3-clients that are created will reuse the `boto3-Session` (with fake credentials), making Moto much more performant.
 
+Whitelist Services
+-------------------
+The `mock_aws` decorator will allow requests to all supported services. If you want to restrict this to only specific services, you can configure a service whitelist.
+For example, if you only want your application to use DynamoDB and S3:
+
+.. sourcecode:: python
+
+    @mock_aws(config={"core": {"service_whitelist": ["dynamodb", "s3"]}})
+
+
+If the application under test tries to access any other services, Moto will throw a `ServiceNotWhitelisted`-exception.
+
 AWS Managed Policies
 --------------------
 Moto comes bundled with all Managed Policies that AWS exposes, which are updated regularly. However, they are not loaded unless specifically requested for performance reasons.
 
 Set `"iam": {"load_aws_managed_policies": True}` to load these policies for a single test.
+
+IoT Certificates Validity and Certificate ID computation
+-------------------------
+The IoT Client implementation for certificates, by default,
+computes the certificate ID incorrectly based on the
+sha256 hash of the certificate in PEM encoding and does not require a
+valid certificate.
+
+We now support proper certificate ID generation using 
+the sha256 of the DER certificate to ensure correct behavior for tests that
+use valid certificates.  To enable the correct
+certificate ID generation algorithm, set `"iot": {"use_valid_cert": True}`
+
 
 Configuring MotoServer
 ----------------------
@@ -64,7 +92,8 @@ The following options can also be configured when running the MotoServer:
 
     options = {
         "batch": {"use_docker": True},
-        "lambda": {"use_docker": True}
+        "lambda": {"use_docker": True},
+        "stepfunctions": {"execute_state_machine": True}
     }
     requests.post(f"http://localhost:5000/moto-api/config", json=options)
 

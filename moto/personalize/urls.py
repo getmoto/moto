@@ -1,4 +1,5 @@
 """personalize base URL and path."""
+
 from .responses import PersonalizeResponse
 
 url_bases = [

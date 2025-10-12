@@ -21,6 +21,7 @@ sts
 
 - [X] assume_role_with_saml
 - [X] assume_role_with_web_identity
+- [ ] assume_root
 - [ ] decode_authorization_message
 - [ ] get_access_key_info
 - [X] get_caller_identity

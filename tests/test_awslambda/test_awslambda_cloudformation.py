@@ -1,4 +1,5 @@
 import io
+import json
 import re
 import zipfile
 from string import Template
@@ -53,6 +54,26 @@ template = Template(
     }
 }"""
 )
+
+
+code_image_template = {
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "LambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "FunctionName": "ContainerLambdaFunction",
+                "Role": "dummy-role-arn",
+                "Code": {
+                    "ImageUri": "123456789012.dkr.ecr.us-west-2.amazonaws.com/my-lambda-container:latest"
+                },
+                "PackageType": "Image",
+                "MemorySize": 128,
+                "Timeout": 30,
+            },
+        }
+    },
+}
 
 event_source_mapping_template = Template(
     """{
@@ -112,6 +133,25 @@ def test_lambda_can_be_deleted_by_cloudformation():
     with pytest.raises(ClientError) as e:
         lmbda.get_function(FunctionName=created_fn_name)
     assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_lambda_with_code_image_can_be_created():
+    our_template = code_image_template.copy()
+    our_template["Resources"]["LambdaFunction"]["Properties"]["Role"] = get_role_arn()
+    stack_name = f"stack{str(uuid4())[0:6]}"
+    cf = boto3.client("cloudformation", region_name="us-east-1")
+    cf.create_stack(StackName=stack_name, TemplateBody=json.dumps(code_image_template))
+
+    lmbda = boto3.client("lambda", region_name="us-east-1")
+    functions = lmbda.list_functions()["Functions"]
+    function_names = [f["FunctionName"] for f in functions]
+    assert "ContainerLambdaFunction" in function_names
+
+    cf.delete_stack(StackName=stack_name)
+    functions = lmbda.list_functions()["Functions"]
+    function_names = [f["FunctionName"] for f in functions]
+    assert "ContainerLambdaFunction" not in function_names
 
 
 @mock_aws

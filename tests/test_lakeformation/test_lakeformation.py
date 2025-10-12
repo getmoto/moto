@@ -1,4 +1,5 @@
 """Unit tests for lakeformation-supported APIs."""
+
 from typing import Dict, Optional
 
 import boto3

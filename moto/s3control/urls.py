@@ -1,4 +1,5 @@
 """s3control base URL and path."""
+
 from .responses import S3ControlResponse
 
 url_bases = [
@@ -7,16 +8,12 @@ url_bases = [
 
 
 url_paths = {
-    r"{0}/v20180820/configuration/publicAccessBlock$": S3ControlResponse.method_dispatch(
-        S3ControlResponse.public_access_block
-    ),
-    r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)$": S3ControlResponse.method_dispatch(
-        S3ControlResponse.access_point
-    ),
-    r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/policy$": S3ControlResponse.method_dispatch(
-        S3ControlResponse.access_point_policy
-    ),
-    r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/policyStatus$": S3ControlResponse.method_dispatch(
-        S3ControlResponse.access_point_policy_status
-    ),
+    r"{0}/v20180820/accesspoint$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/configuration/publicAccessBlock$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/policy$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/policyStatus$": S3ControlResponse.dispatch,
+    "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)$": S3ControlResponse.dispatch,
+    "{0}/v20180820/storagelens/(?P<storagelensid>[^/]+)/tagging$": S3ControlResponse.dispatch,
+    "{0}/v20180820/storagelens$": S3ControlResponse.dispatch,
 }

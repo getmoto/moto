@@ -1,11 +1,12 @@
 """Unit tests for glue-supported APIs."""
+
+import json
 from random import randint
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.client import ClientError
-from botocore.exceptions import ParamValidationError
 
 from moto import mock_aws
 
@@ -33,15 +34,6 @@ def test_delete_job():
         client.get_job(JobName=job_name)
 
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
-
-
-@mock_aws
-def test_create_job_default_argument_not_provided():
-    client = create_glue_client()
-    with pytest.raises(ParamValidationError) as exc:
-        client.create_job(Role="test_role", Command=dict(Name="test_command"))
-
-    assert exc.value.kwargs["report"] == 'Missing required parameter in input: "Name"'
 
 
 @mock_aws
@@ -511,6 +503,251 @@ def test_create_trigger():
 
 
 @mock_aws
+def test_create_trigger_with_action_with_job_name_and_crawler_name():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    with pytest.raises(ClientError) as exc:
+        client.create_trigger(
+            Name=trigger_name,
+            Type="ON_DEMAND",
+            Actions=[
+                {
+                    "JobName": "test_job_name",
+                    "CrawlerName": "test_crawler_name",
+                }
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Both JobName and CrawlerName cannot be set together in an action"
+    )
+
+
+@mock_aws
+def test_create_conditional_trigger_with_no_predicates():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    with pytest.raises(ClientError) as exc:
+        client.create_trigger(
+            Name=trigger_name,
+            Type="CONDITIONAL",
+            Actions=[
+                {
+                    "JobName": "test_job_name",
+                }
+            ],
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert exc.value.response["Error"]["Message"] == "Predicate cannot be null or empty"
+
+
+@mock_aws
+def test_create_predicate_without_logical_operator():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    with pytest.raises(ClientError) as exc:
+        client.create_trigger(
+            Name=trigger_name,
+            Type="CONDITIONAL",
+            Actions=[
+                {
+                    "JobName": "test_job_name",
+                }
+            ],
+            Predicate={
+                "Logical": "ANY",
+                "Conditions": [
+                    {
+                        "CrawlerName": "test_crawler_name",
+                        "CrawlState": "SUCCEEDED",
+                    }
+                ],
+            },
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "Logical operator cannot be null or empty"
+    )
+
+
+@mock_aws
+def test_create_predicate_with_invalid_logical_operator():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    bad_logical_operator = "INVALID_OPERATOR"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_trigger(
+            Name=trigger_name,
+            Type="CONDITIONAL",
+            Actions=[
+                {
+                    "JobName": "test_job_name",
+                }
+            ],
+            Predicate={
+                "Logical": "ANY",
+                "Conditions": [
+                    {
+                        "CrawlerName": "test_crawler_name",
+                        "CrawlState": "SUCCEEDED",
+                        "LogicalOperator": bad_logical_operator,
+                    }
+                ],
+            },
+        )
+
+    assert exc.value.response["Error"]["Code"] == "ValidationException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"Value '{bad_logical_operator}' at 'predicate.conditions.1.member.logicalOperator' failed to satisfy constraint: Member must satisfy enum value set: [Equals]"
+    )
+
+
+@mock_aws
+def test_create_predicate_with_no_job_state():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    with pytest.raises(ClientError) as exc:
+        client.create_trigger(
+            Name=trigger_name,
+            Type="CONDITIONAL",
+            Actions=[
+                {
+                    "JobName": "test_job_name",
+                }
+            ],
+            Predicate={
+                "Logical": "ANY",
+                "Conditions": [
+                    {
+                        "JobName": "test_job_name",
+                        "LogicalOperator": "EQUALS",
+                    }
+                ],
+            },
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "State cannot be null or empty, choose from one of the following job state: [SUCCEEDED, STOPPED, FAILED, TIMEOUT]"
+    )
+
+
+@mock_aws
+def test_create_predicate_with_no_crawler_state():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    with pytest.raises(ClientError) as exc:
+        client.create_trigger(
+            Name=trigger_name,
+            Type="CONDITIONAL",
+            Actions=[
+                {
+                    "JobName": "test_job_name",
+                }
+            ],
+            Predicate={
+                "Logical": "ANY",
+                "Conditions": [
+                    {
+                        "CrawlerName": "test_job_name",
+                        "LogicalOperator": "EQUALS",
+                    }
+                ],
+            },
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "State cannot be null or empty, choose from one of the following crawler state: [SUCCEEDED, FAILED, CANCELLED]"
+    )
+
+
+@mock_aws
+def test_create_predicate_with_no_crawler_name_or_job_name():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    with pytest.raises(ClientError) as exc:
+        client.create_trigger(
+            Name=trigger_name,
+            Type="CONDITIONAL",
+            Actions=[
+                {
+                    "JobName": "test_job_name",
+                }
+            ],
+            Predicate={
+                "Logical": "ANY",
+                "Conditions": [
+                    {
+                        "LogicalOperator": "EQUALS",
+                    }
+                ],
+            },
+        )
+
+    assert exc.value.response["Error"]["Code"] == "InvalidInputException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "JobName or CrawlerName in condition cannot be null or empty"
+    )
+
+
+@mock_aws
+def test_create_crawler_args_not_included_if_job_args_present():
+    client = create_glue_client()
+    trigger_name = str(uuid4())
+
+    client.create_trigger(
+        Name=trigger_name,
+        Type="CONDITIONAL",
+        Actions=[
+            {
+                "JobName": "test_job_name",
+            }
+        ],
+        Predicate={
+            "Logical": "ANY",
+            "Conditions": [
+                {
+                    "CrawlerName": "test_crawler_name",
+                    "CrawlState": "SUCCEEDED",
+                    "JobName": "test_job_name",
+                    "State": "SUCCEEDED",
+                    "LogicalOperator": "EQUALS",
+                }
+            ],
+        },
+    )
+
+    trigger_response = client.get_trigger(Name=trigger_name)
+
+    assert (
+        trigger_response["Trigger"]["Predicate"]["Conditions"][0].get("CrawlerName")
+        is None
+    )
+    assert (
+        trigger_response["Trigger"]["Predicate"]["Conditions"][0].get("CrawlState")
+        is None
+    )
+
+
+@mock_aws
 def test_get_trigger_on_demand():
     client = create_glue_client()
     job_name = create_test_job(client)
@@ -866,3 +1103,525 @@ def test_stop_session():
 
     resp = client.get_session(Id=session_id)
     assert resp["Session"]["Status"] == "STOPPING"
+
+
+@mock_aws
+def test_get_dev_endpoints():
+    client = create_glue_client()
+
+    response = client.get_dev_endpoints()
+    assert response["DevEndpoints"] == []
+    assert "NextToken" not in response
+
+    client.create_dev_endpoint(
+        EndpointName="dev-endpoint-1",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+    client.create_dev_endpoint(
+        EndpointName="dev-endpoint-2",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    response = client.get_dev_endpoints()
+    assert len(response["DevEndpoints"]) == 2
+    assert {ep["EndpointName"] for ep in response["DevEndpoints"]} == {
+        "dev-endpoint-1",
+        "dev-endpoint-2",
+    }
+    assert "NextToken" not in response
+
+    response = client.get_dev_endpoints(MaxResults=1)
+    assert len(response["DevEndpoints"]) == 1
+    assert "NextToken" in response
+
+    next_token = response["NextToken"]
+    response = client.get_dev_endpoints(NextToken=next_token)
+    assert len(response["DevEndpoints"]) == 1
+    assert "NextToken" not in response
+
+
+@mock_aws
+def test_create_dev_endpoint():
+    client = create_glue_client()
+
+    response = client.create_dev_endpoint(
+        EndpointName="test-endpoint",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    assert response["EndpointName"] == "test-endpoint"
+    assert response["Status"] == "READY"
+    assert response["RoleArn"] == "arn:aws:iam::123456789012:role/GlueDevEndpoint"
+
+
+@mock_aws
+def test_get_dev_endpoint():
+    client = create_glue_client()
+
+    client.create_dev_endpoint(
+        EndpointName="test-endpoint",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    response = client.get_dev_endpoint(EndpointName="test-endpoint")
+    assert response["DevEndpoint"]["EndpointName"] == "test-endpoint"
+    assert response["DevEndpoint"]["Status"] == "READY"
+    assert "PublicAddress" in response["DevEndpoint"]
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.get_dev_endpoint(EndpointName="nonexistent")
+
+    client.create_dev_endpoint(
+        EndpointName="test-endpoint-private",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+        SubnetId="subnet-1234567890abcdef0",
+    )
+
+    response = client.get_dev_endpoint(EndpointName="test-endpoint-private")
+    assert response["DevEndpoint"]["EndpointName"] == "test-endpoint-private"
+    assert "PublicAddress" not in response["DevEndpoint"]
+
+
+@mock_aws
+def test_delete_dev_endpoint():
+    client = create_glue_client()
+
+    client.create_dev_endpoint(
+        EndpointName="test-endpoint",
+        RoleArn="arn:aws:iam::123456789012:role/GlueDevEndpoint",
+    )
+
+    client.delete_dev_endpoint(EndpointName="test-endpoint")
+
+    assert client.get_dev_endpoints()["DevEndpoints"] == []
+
+
+@mock_aws
+def test_delete_dev_endpoint_not_found():
+    client = create_glue_client()
+
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.delete_dev_endpoint(EndpointName="test-endpoint")
+
+
+@mock_aws
+def test_create_connection():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection",
+        "Description": "Test Connection",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {"key": "value"},
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    resp = client.create_connection(ConnectionInput=connection_input)
+    assert resp["CreateConnectionStatus"] == "READY"
+
+    # Test duplicate name
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.create_connection(ConnectionInput=connection_input)
+
+
+@mock_aws
+def test_get_connection():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection",
+        "Description": "Test Connection",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {"key": "value"},
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    client.create_connection(ConnectionInput=connection_input)
+    connection = client.get_connection(Name="test-connection")["Connection"]
+    assert connection["Name"] == "test-connection"
+    assert connection["Status"] == "READY"
+    assert "PhysicalConnectionRequirements" in connection_input
+    assert connection["PhysicalConnectionRequirements"]["SubnetId"] == subnet_id
+
+    # Test not found
+    with pytest.raises(client.exceptions.EntityNotFoundException):
+        client.get_connection(Name="nonexistent")
+
+
+@mock_aws
+def test_get_connections():
+    client = boto3.client("glue", region_name="ap-southeast-1")
+    for i in range(3):
+        subnet_id = f"subnet-1234567890abcdef{i}"
+        connection_input = {
+            "Name": f"test-connection-{i}",
+            "Description": "Test Connection",
+            "ConnectionType": "JDBC",
+            "ConnectionProperties": {"key": "value"},
+            "PhysicalConnectionRequirements": {
+                "SubnetId": subnet_id,
+                "SecurityGroupIdList": [],
+                "AvailabilityZone": "us-east-1a",
+            },
+        }
+        client.create_connection(ConnectionInput=connection_input)
+
+    connections = client.get_connections()["ConnectionList"]
+    assert len(connections) == 3
+    assert connections[0]["Name"] == "test-connection-0"
+    assert connections[1]["Name"] == "test-connection-1"
+    assert connections[2]["Name"] == "test-connection-2"
+
+
+@mock_aws
+def test_put_data_catalog_encryption_settings():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    encryption_settings = {
+        "EncryptionAtRest": {
+            "CatalogEncryptionMode": "SSE-KMS",
+            "SseAwsKmsKeyId": "test-key-id",
+            "CatalogEncryptionServiceRole": "arn:aws:iam::123456789012:role/GlueServiceRole",
+        },
+        "ConnectionPasswordEncryption": {
+            "ReturnConnectionPasswordEncrypted": True,
+            "AwsKmsKeyId": "test-password-key-id",
+        },
+    }
+
+    response = client.put_data_catalog_encryption_settings(
+        DataCatalogEncryptionSettings=encryption_settings
+    )
+
+    assert "ResponseMetadata" in response
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    get_response = client.get_data_catalog_encryption_settings()
+    assert get_response["DataCatalogEncryptionSettings"] == encryption_settings
+
+    # Testing a Specific Catalog ID
+    catalog_id = "123456789012"
+    catalog_settings = {
+        "EncryptionAtRest": {
+            "CatalogEncryptionMode": "SSE-KMS-WITH-SERVICE-ROLE",
+            "SseAwsKmsKeyId": "catalog-specific-key-id",
+            "CatalogEncryptionServiceRole": "arn:aws:iam::123456789012:role/GlueServiceRole",
+        },
+        "ConnectionPasswordEncryption": {
+            "ReturnConnectionPasswordEncrypted": True,
+            "AwsKmsKeyId": "catalog-specific-password-key-id",
+        },
+    }
+
+    catalog_response = client.put_data_catalog_encryption_settings(
+        CatalogId=catalog_id, DataCatalogEncryptionSettings=catalog_settings
+    )
+
+    assert "ResponseMetadata" in catalog_response
+    assert catalog_response["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    catalog_get_response = client.get_data_catalog_encryption_settings(
+        CatalogId=catalog_id
+    )
+
+    assert catalog_get_response["DataCatalogEncryptionSettings"] == catalog_settings
+
+
+@mock_aws
+def test_put_resource_policy():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+
+    response = client.put_resource_policy(PolicyInJson=policy_json)
+
+    assert "PolicyHash" in response
+    policy_hash = response["PolicyHash"]
+
+    get_response = client.get_resource_policy()
+    assert "PolicyInJson" in get_response
+    assert get_response["PolicyInJson"] == policy_json
+    assert "PolicyHash" in get_response
+    assert get_response["PolicyHash"] == policy_hash
+    assert "CreateTime" in get_response
+    assert "UpdateTime" in get_response
+
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json,
+        PolicyHashCondition=policy_hash,
+    )
+
+    assert "PolicyHash" in response
+
+    resource_arn = "arn:aws:glue:us-east-2:123456789012:catalog"
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json, ResourceArn=resource_arn
+    )
+
+    assert "PolicyHash" in response
+
+    get_resource_response = client.get_resource_policy(ResourceArn=resource_arn)
+    assert "PolicyInJson" in get_resource_response
+    assert get_resource_response["PolicyInJson"] == policy_json
+
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json,
+        ResourceArn=resource_arn,
+        PolicyExistsCondition="MUST_EXIST",
+    )
+    assert "PolicyHash" in response
+
+    unique_arn = "arn:aws:glue:us-east-2:123456789012:unique-resource"
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json, ResourceArn=unique_arn, PolicyExistsCondition="NONE"
+    )
+    assert "PolicyHash" in response
+
+    response = client.put_resource_policy(PolicyInJson=policy_json, EnableHybrid="TRUE")
+    assert "PolicyHash" in response
+
+
+@mock_aws
+def test_get_resource_policy():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    response = client.get_resource_policy()
+    assert "PolicyInJson" not in response
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+
+    put_response = client.put_resource_policy(PolicyInJson=policy_json)
+
+    response = client.get_resource_policy()
+
+    assert "PolicyInJson" in response
+    assert response["PolicyInJson"] == policy_json
+    assert "PolicyHash" in response
+
+    if (
+        isinstance(put_response["PolicyHash"], dict)
+        and "PolicyHash" in put_response["PolicyHash"]
+    ):
+        assert response["PolicyHash"] == put_response["PolicyHash"]["PolicyHash"]
+    else:
+        assert response["PolicyHash"] == put_response["PolicyHash"]
+
+    assert "CreateTime" in response
+    assert "UpdateTime" in response
+
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+    database_arn = "arn:aws:glue:us-east-1:123456789012:database/mydb"
+    table_arn = "arn:aws:glue:us-east-1:123456789012:table/mydb/mytable"
+
+    catalog_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                    "Action": ["glue:*"],
+                    "Resource": [catalog_arn],
+                }
+            ],
+        }
+    )
+    client.put_resource_policy(PolicyInJson=catalog_policy, ResourceArn=catalog_arn)
+
+    database_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::123456789012:role/GlueRole"},
+                    "Action": ["glue:GetDatabase", "glue:UpdateDatabase"],
+                    "Resource": [database_arn],
+                }
+            ],
+        }
+    )
+    client.put_resource_policy(PolicyInJson=database_policy, ResourceArn=database_arn)
+
+    table_policy = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::987654321098:root"},
+                    "Action": ["glue:GetTable"],
+                    "Resource": [table_arn],
+                }
+            ],
+        }
+    )
+    client.put_resource_policy(PolicyInJson=table_policy, ResourceArn=table_arn)
+
+    catalog_response = client.get_resource_policy(ResourceArn=catalog_arn)
+    assert catalog_response["PolicyInJson"] == catalog_policy
+
+    database_response = client.get_resource_policy(ResourceArn=database_arn)
+    assert database_response["PolicyInJson"] == database_policy
+
+    table_response = client.get_resource_policy(ResourceArn=table_arn)
+    assert table_response["PolicyInJson"] == table_policy
+
+    nonexistent_response = client.get_resource_policy(
+        ResourceArn="arn:aws:glue:us-east-1:123456789012:nonexistent"
+    )
+    assert "PolicyInJson" not in nonexistent_response
+
+
+@mock_aws
+def test_put_resource_policy_error_conditions():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+
+    resource_arn = "arn:aws:glue:us-west-2:123456789012:catalog"
+
+    response = client.put_resource_policy(
+        PolicyInJson=policy_json,
+        ResourceArn=resource_arn,
+        PolicyExistsCondition="NOT_EXIST",
+    )
+    assert "PolicyHash" in response
+
+    with pytest.raises(ClientError) as excinfo:
+        client.put_resource_policy(
+            PolicyInJson=policy_json,
+            ResourceArn=resource_arn,
+            PolicyExistsCondition="NOT_EXIST",
+        )
+    assert "ResourceNumberLimitExceededException" in str(excinfo.value)
+
+    with pytest.raises(ClientError) as excinfo:
+        client.put_resource_policy(
+            PolicyInJson=policy_json,
+            ResourceArn=resource_arn,
+            PolicyHashCondition="incorrect-hash",
+        )
+    assert "ConcurrentModificationException" in str(excinfo.value)
+
+    nonexistent_arn = "arn:aws:glue:us-west-2:123456789012:nonexistent-resource"
+    with pytest.raises(ClientError) as excinfo:
+        client.put_resource_policy(
+            PolicyInJson=policy_json,
+            ResourceArn=nonexistent_arn,
+            PolicyExistsCondition="MUST_EXIST",
+        )
+    assert "ResourceNumberLimitExceededException" in str(excinfo.value)
+
+
+@mock_aws
+def test_delete_resource_policy():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+    client.put_resource_policy(PolicyInJson=policy_json, ResourceArn=catalog_arn)
+    catalog_response = client.get_resource_policy(ResourceArn=catalog_arn)
+
+    assert "PolicyInJson" in catalog_response
+    assert "PolicyHash" in catalog_response
+
+    # Delete resource policy
+    client.delete_resource_policy(ResourceArn=catalog_arn)
+
+    catalog_response = client.get_resource_policy(ResourceArn=catalog_arn)
+    assert "PolicyInJson" not in catalog_response
+    assert "PolicyHash" not in catalog_response
+
+
+@mock_aws
+def test_delete_resource_policy_error_conditions():
+    client = boto3.client("glue", region_name="us-east-1")
+
+    policy_json = json.dumps(
+        {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {"Service": "glue.amazonaws.com"},
+                    "Action": ["glue:*"],
+                    "Resource": ["*"],
+                }
+            ],
+        }
+    )
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+
+    # Delete resource policy that does not exist.
+    with pytest.raises(ClientError) as error_info:
+        client.delete_resource_policy(ResourceArn=catalog_arn)
+
+    assert error_info.value.response["Error"]["Code"] == "EntityNotFoundException"
+
+    # Create resource policy
+    catalog_arn = "arn:aws:glue:us-east-1:123456789012:catalog"
+    client.put_resource_policy(PolicyInJson=policy_json, ResourceArn=catalog_arn)
+
+    with pytest.raises(ClientError) as error_info:
+        client.delete_resource_policy(
+            ResourceArn=catalog_arn,
+            PolicyHashCondition="incorrect-hash",
+        )
+    assert (
+        error_info.value.response["Error"]["Code"] == "ConcurrentModificationException"
+    )

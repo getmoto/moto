@@ -1,33 +1,12 @@
-import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
 
-def _create_user_table():
-    client = boto3.client("dynamodb", region_name="us-east-1")
-    client.create_table(
-        TableName="users",
-        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
-    client.put_item(
-        TableName="users", Item={"username": {"S": "user1"}, "binaryfoo": {"B": b"bar"}}
-    )
-    client.put_item(
-        TableName="users", Item={"username": {"S": "user2"}, "foo": {"S": "bar"}}
-    )
-    client.put_item(
-        TableName="users", Item={"username": {"S": "user3"}, "foo": {"S": "bar"}}
-    )
-    return client
-
-
 @mock_aws
-def test_batch_items_returns_all():
-    dynamodb = _create_user_table()
+def test_batch_items_returns_all(create_user_table):
+    dynamodb = create_user_table
     returned_items = dynamodb.batch_get_item(
         RequestItems={
             "users": {
@@ -48,8 +27,10 @@ def test_batch_items_returns_all():
 
 
 @mock_aws
-def test_batch_items_throws_exception_when_requesting_100_items_for_single_table():
-    dynamodb = _create_user_table()
+def test_batch_items_throws_exception_when_requesting_100_items_for_single_table(
+    create_user_table,
+):
+    dynamodb = create_user_table
     with pytest.raises(ClientError) as ex:
         dynamodb.batch_get_item(
             RequestItems={
@@ -70,8 +51,10 @@ def test_batch_items_throws_exception_when_requesting_100_items_for_single_table
 
 
 @mock_aws
-def test_batch_items_throws_exception_when_requesting_100_items_across_all_tables():
-    dynamodb = _create_user_table()
+def test_batch_items_throws_exception_when_requesting_100_items_across_all_tables(
+    create_user_table,
+):
+    dynamodb = create_user_table
     with pytest.raises(ClientError) as ex:
         dynamodb.batch_get_item(
             RequestItems={
@@ -95,8 +78,8 @@ def test_batch_items_throws_exception_when_requesting_100_items_across_all_table
 
 
 @mock_aws
-def test_batch_items_with_basic_projection_expression():
-    dynamodb = _create_user_table()
+def test_batch_items_with_basic_projection_expression(create_user_table):
+    dynamodb = create_user_table
     returned_items = dynamodb.batch_get_item(
         RequestItems={
             "users": {
@@ -142,8 +125,10 @@ def test_batch_items_with_basic_projection_expression():
 
 
 @mock_aws
-def test_batch_items_with_basic_projection_expression_and_attr_expression_names():
-    dynamodb = _create_user_table()
+def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
+    create_user_table,
+):
+    dynamodb = create_user_table
     returned_items = dynamodb.batch_get_item(
         RequestItems={
             "users": {
@@ -167,8 +152,8 @@ def test_batch_items_with_basic_projection_expression_and_attr_expression_names(
 
 
 @mock_aws
-def test_batch_items_should_throw_exception_for_duplicate_request():
-    client = _create_user_table()
+def test_batch_items_should_throw_exception_for_duplicate_request(create_user_table):
+    client = create_user_table
     with pytest.raises(ClientError) as ex:
         client.batch_get_item(
             RequestItems={
@@ -187,7 +172,7 @@ def test_batch_items_should_throw_exception_for_duplicate_request():
 
 
 @mock_aws
-def test_batch_items_should_return_16mb_max():
+def test_batch_items_should_return_16mb_max(create_user_table):
     """
     A single operation can retrieve up to 16 MB of data [...]. BatchGetItem returns a partial result if the response size limit is exceeded [..].
 
@@ -197,7 +182,7 @@ def test_batch_items_should_return_16mb_max():
     It also returns an appropriate UnprocessedKeys value so you can get the next page of results.
     If desired, your application can include its own logic to assemble the pages of results into one dataset.
     """
-    client = _create_user_table()
+    client = create_user_table
     # Fill table with all the data
     for i in range(100):
         client.put_item(

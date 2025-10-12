@@ -7,7 +7,7 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 run_job_flow_args = dict(
@@ -81,8 +81,10 @@ def test_describe_cluster():
         {
             "Classification": "yarn-site",
             "Properties": {
-                "someproperty": "somevalue",
-                "someotherproperty": "someothervalue",
+                "camelCase": "somevalue",
+                "PascalCase": "someothervalue",
+                "kebab-case": "anothervalue",
+                "snake_case": "yetanothervalue",
             },
         },
         {
@@ -91,7 +93,10 @@ def test_describe_cluster():
             "Configurations": [
                 {
                     "Classification": "nested-config",
-                    "Properties": {"nested-property": "nested-value"},
+                    "Properties": {
+                        "nested-property": "nested-value",
+                        "NestedProperty": "another-nested-value",
+                    },
                 }
             ],
         },
@@ -190,12 +195,59 @@ def test_describe_cluster():
 
 
 @mock_aws
+def test_describe_cluster_master_public_dns():
+    region_name = "us-east-1" if settings.TEST_SERVER_MODE else "ap-south-1"
+
+    client = boto3.client("emr", region_name=region_name)
+
+    args = deepcopy(run_job_flow_args)
+    args["Instances"] = {"InstanceGroups": input_instance_groups}
+
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+
+    response = client.describe_cluster(ClusterId=cluster_id)
+    master_public_dns_name = response["Cluster"]["MasterPublicDnsName"]
+    assert master_public_dns_name.startswith("ec2-")
+    assert region_name in master_public_dns_name
+    assert master_public_dns_name.endswith(".amazonaws.com")
+
+
+@mock_aws
+def test_describe_cluster_ebs_volume_fields():
+    client = boto3.client("emr", region_name="ap-south-1")
+
+    args = deepcopy(run_job_flow_args)
+
+    # Must return empty if not set in request
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    response = client.describe_cluster(ClusterId=cluster_id)
+    assert "EbsRootVolumeSize" not in response["Cluster"]
+    assert "EbsRootVolumeIops" not in response["Cluster"]
+    assert "EbsRootVolumeThroughput" not in response["Cluster"]
+
+    # Must return proper values when set
+    args.update(
+        {
+            "EbsRootVolumeSize": 10,
+            "EbsRootVolumeIops": 3000,
+            "EbsRootVolumeThroughput": 125,
+        }
+    )
+    cluster_id = client.run_job_flow(**args)["JobFlowId"]
+    response = client.describe_cluster(ClusterId=cluster_id)
+    assert response["Cluster"]["EbsRootVolumeSize"] == 10
+    assert response["Cluster"]["EbsRootVolumeIops"] == 3000
+    assert response["Cluster"]["EbsRootVolumeThroughput"] == 125
+
+
+@mock_aws
 def test_describe_cluster_not_found():
     conn = boto3.client("emr", region_name="us-east-1")
     with pytest.raises(ClientError) as e:
         conn.describe_cluster(ClusterId="DummyId")
-
-    assert e.value.response["Error"]["Code"] == "ResourceNotFoundException"
+    resp = e.value.response
+    assert resp["Error"]["Code"] == "InvalidRequestException"
+    assert resp["ErrorCode"] == "NoSuchCluster"
 
 
 @mock_aws
@@ -272,7 +324,7 @@ def test_describe_job_flow():
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
 
     assert jf["AmiVersion"] == args["AmiVersion"]
-    assert "BootstrapActions" not in jf
+    assert jf["BootstrapActions"] == []
     esd = jf["ExecutionStatusDetail"]
     assert isinstance(esd["CreationDateTime"], datetime)
     # assert isinstance(esd['EndDateTime'], 'datetime.datetime')
@@ -737,7 +789,7 @@ def test_set_visible_to_all_users():
     assert resp["Cluster"]["VisibleToAllUsers"] is False
 
     for expected in (True, False):
-        resp = client.set_visible_to_all_users(
+        client.set_visible_to_all_users(
             JobFlowIds=[cluster_id], VisibleToAllUsers=expected
         )
         resp = client.describe_cluster(ClusterId=cluster_id)
@@ -1091,7 +1143,6 @@ def test_tags():
 
 @mock_aws
 def test_security_configurations():
-
     client = boto3.client("emr", region_name="us-east-1")
 
     security_configuration_name = "MySecurityConfiguration"
@@ -1126,19 +1177,21 @@ def test_security_configurations():
 
     with pytest.raises(ClientError) as ex:
         client.describe_security_configuration(Name=security_configuration_name)
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidRequestException"
+    resp = ex.value.response
+    assert resp["Error"]["Code"] == "InvalidRequestException"
+    assert resp["ErrorCode"] == "ResourceNotFound"
     assert (
-        err["Message"]
+        resp["Error"]["Message"]
         == "Security configuration with name 'MySecurityConfiguration' does not exist."
     )
 
     with pytest.raises(ClientError) as ex:
         client.delete_security_configuration(Name=security_configuration_name)
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidRequestException"
+    resp = ex.value.response
+    assert resp["Error"]["Code"] == "InvalidRequestException"
+    assert resp["ErrorCode"] == "ResourceNotFound"
     assert (
-        err["Message"]
+        resp["Error"]["Message"]
         == "Security configuration with name 'MySecurityConfiguration' does not exist."
     )
 

@@ -5,7 +5,7 @@ import pytest
 from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import DEFAULT_ACCOUNT_ID
 
@@ -19,6 +19,7 @@ def test_create_and_get_rest_api():
         name="my_api", description="this is my api", disableExecuteApiEndpoint=True
     )
     api_id = response["id"]
+    root_resource_id = response["rootResourceId"]
 
     response = client.get_rest_api(restApiId=api_id)
 
@@ -34,6 +35,7 @@ def test_create_and_get_rest_api():
         "endpointConfiguration": {"types": ["EDGE"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
+        "rootResourceId": root_resource_id,
     }
 
 
@@ -42,6 +44,7 @@ def test_update_rest_api():
     client = boto3.client("apigateway", region_name="us-west-2")
     response = client.create_rest_api(name="my_api", description="this is my api")
     api_id = response["id"]
+    root_resource_id = response["rootResourceId"]
     patchOperations = [
         {"op": "replace", "path": "/name", "value": "new-name"},
         {"op": "replace", "path": "/description", "value": "new-description"},
@@ -71,6 +74,7 @@ def test_update_rest_api():
         "endpointConfiguration": {"types": ["EDGE"]},
         "tags": {},
         "disableExecuteApiEndpoint": True,
+        "rootResourceId": root_resource_id,
     }
     # should fail with wrong apikeysoruce
     patchOperations = [
@@ -857,16 +861,14 @@ def test_update_authorizer_configuration():
 
     # TODO: implement mult-update tests
 
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(ClientError) as exc:
         client.update_authorizer(
             restApiId=api_id,
             authorizerId=authorizer_id,
-            patchOperations=[
-                {"op": "add", "path": "/notasetting", "value": "eu-west-1"}
-            ],
+            patchOperations=[{"op": "add", "path": "/notasetting", "value": "v"}],
         )
-    if settings.TEST_DECORATOR_MODE:
-        assert 'Patch operation "add" not implemented' in str(exc.value)
+    err = exc.value.response["Error"]
+    assert err["Message"] == 'Patch operation "add" not implemented'
 
 
 @mock_aws
@@ -1520,35 +1522,49 @@ def test_get_api_key_include_value():
 
 
 @mock_aws
-def test_get_api_keys_include_values():
+def test_get_api_keys():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    apikey_value = "01234567890123456789"
-    apikey_name = "TESTKEY1"
-    payload = {"value": apikey_value, "name": apikey_name}
+    payload = {"value": "aaaaaaaaaaaaaaaaaaaa", "name": "TESTKEY1"}
 
-    apikey_value2 = "01234567890123456789123"
-    apikey_name2 = "TESTKEY1"
-    payload2 = {"value": apikey_value2, "name": apikey_name2}
+    payload2 = {"value": "aaaaaaaacccaaaaaaaaa", "name": "TESTKEY2"}
 
     client.create_api_key(**payload)
     client.create_api_key(**payload2)
 
-    response = client.get_api_keys()
-    assert len(response["items"]) == 2
-    for api_key in response["items"]:
+    keys = client.get_api_keys()["items"]
+    assert len(keys) == 2
+    for api_key in keys:
         assert "value" not in api_key
 
-    response = client.get_api_keys(includeValues=True)
-    assert len(response["items"]) == 2
-    for api_key in response["items"]:
-        assert "value" in api_key
+    keys = client.get_api_keys(includeValues=True)["items"]
+    short_keys = [{"name": key["name"], "value": key["value"]} for key in keys]
+    assert payload in short_keys
+    assert payload2 in short_keys
 
-    response = client.get_api_keys(includeValues=False)
-    assert len(response["items"]) == 2
-    for api_key in response["items"]:
+    keys = client.get_api_keys(includeValues=False)["items"]
+    assert len(keys) == 2
+    for api_key in keys:
         assert "value" not in api_key
+
+    # Query By Name
+    keys = client.get_api_keys(nameQuery="TESTKEY1")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY1"]
+
+    keys = client.get_api_keys(nameQuery="TESTKEY2")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY2"]
+
+    # assert that passing only a prefix works
+    keys = client.get_api_keys(nameQuery="TESTKEY")["items"]
+    assert [key["name"] for key in keys] == ["TESTKEY1", "TESTKEY2"]
+
+    keys = client.get_api_keys(nameQuery="TESTKEY3")["items"]
+    assert keys == []
+
+    # assert that suffix of a name does not work
+    keys = client.get_api_keys(nameQuery="KEY2")["items"]
+    assert keys == []
 
 
 @mock_aws
@@ -1698,11 +1714,7 @@ def test_update_usage_plan():
     region_name = "us-west-2"
     client = boto3.client("apigateway", region_name=region_name)
 
-    payload = {
-        "name": "TEST-PLAN-2",
-        "description": "Description",
-        "tags": {"tag_key": "tag_value"},
-    }
+    payload = {"name": "TEST-PLAN-2", "description": "Description"}
     response = client.create_usage_plan(**payload)
     usage_plan_id = response["id"]
 
@@ -1741,6 +1753,21 @@ def test_update_usage_plan():
     assert response["description"] == "new-description"
     assert response["productCode"] == "new-productionCode"
 
+    remove = client.update_usage_plan(
+        usagePlanId=usage_plan_id,
+        patchOperations=[
+            {"op": "remove", "path": "/apiStages", "value": "foo:bar"},
+            {"op": "remove", "path": "/productCode"},
+            {"op": "remove", "path": "/quota"},
+            {"op": "remove", "path": "/throttle"},
+        ],
+    )
+    assert remove["apiStages"] == []
+    assert "productCode" not in remove
+    assert remove["description"] == "new-description"
+    assert "quota" not in remove
+    assert "throttle" not in remove
+
 
 @mock_aws
 def test_usage_plan_keys():
@@ -1768,6 +1795,15 @@ def test_usage_plan_keys():
     # Get current plan keys (expect 1)
     response = client.get_usage_plan_keys(usagePlanId=usage_plan_id)
     assert len(response["items"]) == 1
+
+    # Query By Name
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery=key_name)
+    assert len(plans["items"]) == 1
+    # test using only a prefix
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="test-")
+    assert len(plans["items"]) == 1
+    plans = client.get_usage_plan_keys(usagePlanId=usage_plan_id, nameQuery="unknown")
+    assert len(plans["items"]) == 0
 
     # Get a single usage plan key and check it matches the created one
     usage_plan_key = client.get_usage_plan_key(
@@ -1915,6 +1951,38 @@ def test_get_api_key_unknown_apikey():
     err = ex.value.response["Error"]
     assert err["Message"] == "Invalid API Key identifier specified"
     assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_update_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    patch_operations = [{"op": "replace", "path": "/name", "value": "test"}]
+    with pytest.raises(ClientError) as ex:
+        client.update_api_key(apiKey="unknown", patchOperations=patch_operations)
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid API Key identifier specified"
+    assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_delete_api_key_unknown_apikey():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    with pytest.raises(ClientError) as ex:
+        client.delete_api_key(apiKey="unknown")
+    err = ex.value.response["Error"]
+    assert err["Message"] == "Invalid API Key identifier specified"
+    assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_get_rest_api_without_id():
+    client = boto3.client("apigateway", region_name="us-east-1")
+    resp = client.get_rest_api(restApiId="")
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    del resp["ResponseMetadata"]
+    assert resp == {}
 
 
 @mock_aws
@@ -2466,3 +2534,80 @@ def test_update_path_mapping_with_unknown_stage():
     assert ex.value.response["Error"]["Message"] == "Invalid stage identifier specified"
     assert ex.value.response["Error"]["Code"] == "BadRequestException"
     assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+def test_update_account():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+
+    patch_operations = [
+        {
+            "op": "replace",
+            "path": "/cloudwatchRoleArn",
+            "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-1",
+        },
+        {"op": "add", "path": "/features", "value": "UsagePlans"},
+        {"op": "add", "path": "/features", "value": "TestFeature"},
+    ]
+
+    account = client.update_account(patchOperations=patch_operations)
+
+    assert (
+        account["cloudwatchRoleArn"]
+        == "arn:aws:iam:123456789012:role/moto-test-apigw-role-1"
+    )
+    assert account["features"] == ["UsagePlans", "TestFeature"]
+
+    patch_operations = [
+        {
+            "op": "replace",
+            "path": "/cloudwatchRoleArn",
+            "value": "arn:aws:iam:123456789012:role/moto-test-apigw-role-2",
+        },
+        {"op": "remove", "path": "/features", "value": "TestFeature"},
+    ]
+
+    account = client.update_account(patchOperations=patch_operations)
+
+    assert (
+        account["cloudwatchRoleArn"]
+        == "arn:aws:iam:123456789012:role/moto-test-apigw-role-2"
+    )
+    assert account["throttleSettings"]["burstLimit"] == 5000
+    assert account["throttleSettings"]["rateLimit"] == 10000.0
+    assert account["apiKeyVersion"] == "1"
+    assert account["features"] == ["UsagePlans"]
+
+
+@mock_aws
+def test_update_account_error():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+    patch_operations = [
+        {
+            "op": "remove",
+            "path": "/features",
+            "value": "UsagePlans",
+        },
+    ]
+
+    with pytest.raises(ClientError) as ex:
+        client.update_account(patchOperations=patch_operations)
+
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Usage Plans cannot be disabled once enabled"
+    )
+    assert ex.value.response["Error"]["Code"] == "BadRequestException"
+    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+
+
+@mock_aws
+def test_get_account():
+    client = boto3.client("apigateway", region_name="eu-west-1")
+    account = client.get_account()
+
+    assert account["throttleSettings"]["burstLimit"] == 5000
+    assert account["throttleSettings"]["rateLimit"] == 10000.0
+    assert account["apiKeyVersion"] == "1"
+    assert "features" not in account
+    assert "cloudwatchRoleArn" not in account

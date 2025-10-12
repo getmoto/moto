@@ -33,7 +33,7 @@ def test_encrypt_key_arn(backend, key):
 
 
 def test_encrypt_alias_name(backend, key):
-    backend.add_alias(key.id, "alias/test/test")
+    backend.create_alias(key.id, "alias/test/test")
 
     ciphertext, arn = backend.encrypt("alias/test/test", PLAINTEXT, {})
 
@@ -42,7 +42,7 @@ def test_encrypt_alias_name(backend, key):
 
 
 def test_encrypt_alias_arn(backend, key):
-    backend.add_alias(key.id, "alias/test/test")
+    backend.create_alias(key.id, "alias/test/test")
 
     ciphertext, arn = backend.encrypt(
         f"arn:aws:kms:{REGION}:{key.account_id}:alias/test/test", PLAINTEXT, {}

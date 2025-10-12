@@ -12,7 +12,7 @@ class OrganizationsResponse(BaseResponse):
 
     @property
     def organizations_backend(self) -> OrganizationsBackend:
-        return organizations_backends[self.current_account]["global"]
+        return organizations_backends[self.current_account][self.partition]
 
     @property
     def request_params(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -21,12 +21,16 @@ class OrganizationsResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
+    def _get_param(
+        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
+    ) -> Any:
         return self.request_params.get(param_name, if_none)
 
     def create_organization(self) -> str:
         return json.dumps(
-            self.organizations_backend.create_organization(**self.request_params)
+            self.organizations_backend.create_organization(
+                region=self.region, **self.request_params
+            )
         )
 
     def describe_organization(self) -> str:
@@ -70,9 +74,12 @@ class OrganizationsResponse(BaseResponse):
         ) = self.organizations_backend.list_organizational_units_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"OrganizationalUnits": ous}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "OrganizationalUnits": [
+                {"Id": ou.id, "Arn": ou.arn, "Name": ou.name} for ou in ous
+            ],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def list_parents(self) -> str:
@@ -112,9 +119,7 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts(
             max_results=max_results, next_token=next_token
         )
-        response = {"Accounts": accounts}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {"Accounts": accounts, "NextToken": next_token}
         return json.dumps(response)
 
     def list_accounts_for_parent(self) -> str:
@@ -124,9 +129,10 @@ class OrganizationsResponse(BaseResponse):
         accounts, next_token = self.organizations_backend.list_accounts_for_parent(
             max_results=max_results, next_token=next_token, parent_id=parent_id
         )
-        response = {"Accounts": accounts}
-        if next_token:
-            response["NextToken"] = next_token
+        response = {
+            "Accounts": [a.describe() for a in accounts],
+            "NextToken": next_token,
+        }
         return json.dumps(response)
 
     def move_account(self) -> str:

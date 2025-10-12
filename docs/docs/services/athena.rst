@@ -18,7 +18,7 @@ athena
 - [ ] batch_get_prepared_statement
 - [ ] batch_get_query_execution
 - [ ] cancel_capacity_reservation
-- [ ] create_capacity_reservation
+- [X] create_capacity_reservation
 - [X] create_data_catalog
 - [X] create_named_query
 - [ ] create_notebook
@@ -30,13 +30,13 @@ athena
 - [ ] delete_named_query
 - [ ] delete_notebook
 - [ ] delete_prepared_statement
-- [ ] delete_work_group
+- [X] delete_work_group
 - [ ] export_notebook
 - [ ] get_calculation_execution
 - [ ] get_calculation_execution_code
 - [ ] get_calculation_execution_status
 - [ ] get_capacity_assignment_configuration
-- [ ] get_capacity_reservation
+- [X] get_capacity_reservation
 - [X] get_data_catalog
 - [ ] get_database
 - [X] get_named_query
@@ -78,7 +78,7 @@ athena
                 ],
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/athena/query-results",
+                "http://motoapi.amazonaws.com/moto-api/static/athena/query-results",
                 json=expected_results,
             )
             assert resp.status_code == 201
@@ -88,9 +88,11 @@ athena
 
         .. note:: The exact QueryExecutionId is not relevant here, but will likely be whatever value is returned by start_query_execution
 
+        Query results will also be stored in the S3 output location (in CSV format).
+
         
 
-- [ ] get_query_runtime_statistics
+- [X] get_query_runtime_statistics
 - [ ] get_session
 - [ ] get_session_status
 - [ ] get_table_metadata
@@ -98,7 +100,7 @@ athena
 - [ ] import_notebook
 - [ ] list_application_dpu_sizes
 - [ ] list_calculation_executions
-- [ ] list_capacity_reservations
+- [X] list_capacity_reservations
 - [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
@@ -110,7 +112,7 @@ athena
 - [X] list_query_executions
 - [ ] list_sessions
 - [ ] list_table_metadata
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] list_work_groups
 - [ ] put_capacity_assignment_configuration
 - [ ] start_calculation_execution
@@ -121,7 +123,7 @@ athena
 - [ ] tag_resource
 - [ ] terminate_session
 - [ ] untag_resource
-- [ ] update_capacity_reservation
+- [X] update_capacity_reservation
 - [ ] update_data_catalog
 - [ ] update_named_query
 - [ ] update_notebook

@@ -12,7 +12,7 @@ class Route53DomainsResponse(BaseResponse):
 
     @property
     def route53domains_backend(self) -> Route53DomainsBackend:
-        return route53domains_backends[self.current_account]["global"]
+        return route53domains_backends[self.current_account][self.partition]
 
     def register_domain(self) -> str:
         domain_name = self._get_param("DomainName")
@@ -73,11 +73,8 @@ class Route53DomainsResponse(BaseResponse):
         )
         res = {
             "Domains": list(map(self.__map_domains_to_info, domains)),
+            "NextPageMarker": marker,
         }
-
-        if marker:
-            res["NextPageMarker"] = marker
-
         return json.dumps(res)
 
     @staticmethod
@@ -110,11 +107,8 @@ class Route53DomainsResponse(BaseResponse):
 
         res = {
             "Operations": [operation.to_json() for operation in operations],
+            "NextPageMarker": marker,
         }
-
-        if marker:
-            res["NextPageMarker"] = marker
-
         return json.dumps(res)
 
     def get_operation_detail(self) -> str:

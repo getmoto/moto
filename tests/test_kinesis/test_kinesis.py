@@ -138,6 +138,26 @@ def test_describe_stream_summary():
 
 
 @mock_aws
+def test_list_streams_stream_discription():
+    conn = boto3.client("kinesis", region_name="us-west-2")
+
+    for i in range(3):
+        conn.create_stream(StreamName=f"stream{i}", ShardCount=i + 1)
+
+    resp = conn.list_streams()
+    assert len(resp["StreamSummaries"]) == 3
+    for i, stream in enumerate(resp["StreamSummaries"]):
+        stream_name = f"stream{i}"
+        assert stream["StreamName"] == stream_name
+        assert (
+            stream["StreamARN"]
+            == f"arn:aws:kinesis:us-west-2:{ACCOUNT_ID}:stream/{stream_name}"
+        )
+        assert stream["StreamStatus"] == "ACTIVE"
+        assert stream.get("StreamCreationTimestamp")
+
+
+@mock_aws
 def test_basic_shard_iterator():
     client = boto3.client("kinesis", region_name="us-west-1")
 

@@ -116,6 +116,18 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
                 for route in self.routes.values()
                 if route.vpc_pcx is not None
             ]
+        elif filter_name == "route.nat-gateway-id":
+            return [
+                route.nat_gateway.id
+                for route in self.routes.values()
+                if route.nat_gateway is not None
+            ]
+        elif filter_name == "route.transit-gateway-id":
+            return [
+                route.transit_gateway.id
+                for route in self.routes.values()
+                if route.transit_gateway is not None
+            ]
         else:
             return super().get_filter_value(filter_name, "DescribeRouteTables")
 
@@ -376,7 +388,7 @@ class RouteBackend:
 
         if vpc_endpoint_id:
             vpce = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_endpoint_id])  # type: ignore[attr-defined]
-            if not vpce[0].endpoint_type == "GatewayLoadBalancer":
+            if not vpce[0].vpc_endpoint_type == "GatewayLoadBalancer":
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/create_route.html
                 # VpcEndpointId (string) – The ID of a VPC endpoint. Supported for Gateway Load Balancer endpoints only.
                 raise RouteNotSupportedError(vpc_endpoint_id)
@@ -455,9 +467,7 @@ class RouteBackend:
         if destination_prefix_list_id:
             cidr = destination_prefix_list_id
         route_table = self.get_route_table(route_table_id)
-        route_id = generate_route_id(
-            route_table.id, destination_cidr_block, destination_ipv6_cidr_block
-        )
+        route_id = generate_route_id(route_table.id, cidr, destination_ipv6_cidr_block)
         try:
             route = route_table.routes[route_id]
         except KeyError:
@@ -488,7 +498,9 @@ class RouteBackend:
             )
 
         route.instance = self.get_instance(instance_id) if instance_id else None  # type: ignore[attr-defined]
-        route.interface = self.get_network_interface(interface_id) if interface_id else None  # type: ignore[attr-defined]
+        route.interface = (
+            self.get_network_interface(interface_id) if interface_id else None  # type: ignore[attr-defined]
+        )
         route.vpc_pcx = (
             self.get_vpc_peering_connection(vpc_peering_connection_id)  # type: ignore[attr-defined]
             if vpc_peering_connection_id

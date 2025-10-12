@@ -74,3 +74,12 @@ class NoSuchOriginAccessControl(CloudFrontException):
             "NoSuchOriginAccessControl",
             message="The specified origin access control does not exist.",
         )
+
+
+class NoSuchInvalidation(CloudFrontException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchInvalidation", message="The specified invalidation does not exist."
+        )

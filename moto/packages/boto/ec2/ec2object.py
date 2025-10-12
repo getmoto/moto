@@ -23,6 +23,7 @@
 """
 Represents an EC2 Object
 """
+
 from typing import Any
 
 from moto.packages.boto.ec2.tag import TagSet

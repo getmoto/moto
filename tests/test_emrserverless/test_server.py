@@ -1,4 +1,5 @@
 """Test different server responses."""
+
 import moto.server as server
 
 

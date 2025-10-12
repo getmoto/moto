@@ -1,4 +1,5 @@
 """DAXBackend class with methods for supported APIs."""
+
 from typing import Any, Dict, Iterable, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -8,6 +9,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ClusterNotFoundFault
 from .utils import PAGINATION_MODEL
@@ -28,7 +30,7 @@ class DaxParameterGroup(BaseModel):
 
 class DaxNode:
     def __init__(self, endpoint: "DaxEndpoint", name: str, index: int):
-        self.node_id = f"{name}-{chr(ord('a')+index)}"  # name-a, name-b, etc
+        self.node_id = f"{name}-{chr(ord('a') + index)}"  # name-a, name-b, etc
         self.node_endpoint = {
             "Address": f"{self.node_id}.{endpoint.cluster_hex}.nodes.dax-clusters.{endpoint.region}.amazonaws.com",
             "Port": endpoint.port,
@@ -61,9 +63,9 @@ class DaxEndpoint:
     def to_json(self, full: bool = False) -> Dict[str, Any]:
         dct: Dict[str, Any] = {"Port": self.port}
         if full:
-            dct[
-                "Address"
-            ] = f"{self.name}.{self.cluster_hex}.dax-clusters.{self.region}.amazonaws.com"
+            dct["Address"] = (
+                f"{self.name}.{self.cluster_hex}.dax-clusters.{self.region}.amazonaws.com"
+            )
             dct["URL"] = f"dax://{dct['Address']}"
         return dct
 
@@ -89,7 +91,9 @@ class DaxCluster(BaseModel, ManagedState):
         # Set internal properties
         self.name = name
         self.description = description
-        self.arn = f"arn:aws:dax:{region}:{account_id}:cache/{self.name}"
+        self.arn = (
+            f"arn:{get_partition(region)}:dax:{region}:{account_id}:cache/{self.name}"
+        )
         self.node_type = node_type
         self.replication_factor = replication_factor
         self.cluster_hex = random.get_random_hex(6)

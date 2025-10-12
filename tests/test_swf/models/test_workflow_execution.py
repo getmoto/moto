@@ -596,7 +596,6 @@ def test_start_timer():
     wfe = make_workflow_execution()
     START_TIMER_EVENT_ATTRIBUTES = {"startToFireTimeout": "10", "timerId": "abc123"}
     with patch("moto.swf.models.workflow_execution.ThreadingTimer"):
-
         wfe.start_timer(123, START_TIMER_EVENT_ATTRIBUTES)
 
         last_event = wfe.events()[-1]

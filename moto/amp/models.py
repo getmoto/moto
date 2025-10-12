@@ -8,6 +8,7 @@ from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import RuleGroupNamespaceNotFound, WorkspaceNotFound
 from .utils import PAGINATION_MODEL
@@ -26,7 +27,7 @@ class RuleGroupNamespace(BaseModel):
         self.name = name
         self.data = data
         self.tag_fn = tag_fn
-        self.arn = f"arn:aws:aps:{region}:{account_id}:rulegroupsnamespace/{workspace_id}/{self.name}"
+        self.arn = f"arn:{get_partition(region)}:aps:{region}:{account_id}:rulegroupsnamespace/{workspace_id}/{self.name}"
         self.created_at = unix_time()
         self.modified_at = self.created_at
 
@@ -56,7 +57,7 @@ class Workspace(BaseModel):
     ):
         self.alias = alias
         self.workspace_id = f"ws-{mock_random.uuid4()}"
-        self.arn = f"arn:aws:aps:{region}:{account_id}:workspace/{self.workspace_id}"
+        self.arn = f"arn:{get_partition(region)}:aps:{region}:{account_id}:workspace/{self.workspace_id}"
         self.endpoint = f"https://aps-workspaces.{region}.amazonaws.com/workspaces/{self.workspace_id}/"
         self.status = {"statusCode": "ACTIVE"}
         self.created_at = unix_time()

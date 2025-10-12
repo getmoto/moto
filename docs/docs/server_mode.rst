@@ -62,6 +62,27 @@ By default, this server will start on port 5000, but this is configurable.
     ...
     server.stop()
 
+
+If you're using pytest, you can create this as a fixture:
+
+.. code-block:: python
+
+    # Note: pick an appropriate fixture "scope" for your use case
+    @pytest.fixture(scope="module")
+    def moto_server():
+        """Fixture to run a mocked AWS server for testing."""
+        # Note: pass `port=0` to get a random free port.
+        server = ThreadedMotoServer(port=0)
+        server.start()
+        host, port = server.get_host_and_port()
+        yield f"http://{host}:{port}"
+        server.stop()
+
+    def test_s3_using_moto_fixture(moto_server):
+        client = boto3.client("s3", endpoint_url=moto_server)
+        client.list_buckets()
+
+
 Note that the ThreadedMotoServer and the decorators act on the same state, making it possible to combine the two approaches.  :raw-html:`<br />`
 See the following example:
 
@@ -176,6 +197,10 @@ Other languages:
 * `Ruby`_
 * `Javascript`_
 
+
+.. warning::
+
+    Note that we use `localhost` everywhere here - 127.0.0.1 is not an adequate replacement, and may not work.
 
 Use ServerMode using the decorators
 -------------------------------------

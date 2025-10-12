@@ -16,6 +16,7 @@ from moto.backends import get_backend
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.exceptions import RESTError
+from moto.core.utils import get_equivalent_url_in_aws_domain
 from moto.moto_api._internal.models import moto_api_backend
 
 from . import debug, error, info, with_color
@@ -34,8 +35,13 @@ class MotoRequestHandler:
         if host == f"http://localhost:{self.port}":
             return "moto_api"
 
+        # Handle non-standard AWS endpoint hostnames from ISO regions or custom S3 endpoints.
+        parsed_url, _ = get_equivalent_url_in_aws_domain(host)
+        # Remove the querystring from the URL, as we'll never match on that
+        clean_url = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+
         for backend, pattern in backend_url_patterns:
-            if pattern.match(host):
+            if pattern.match(clean_url):
                 return backend
 
     def get_handler_for_host(self, host: str, path: str) -> Any:
@@ -52,7 +58,7 @@ class MotoRequestHandler:
             if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
                 backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
             else:
-                backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+                backend = backend_dict[DEFAULT_ACCOUNT_ID]["aws"]
         else:
             backend = backend_dict["global"]
 
@@ -108,7 +114,7 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
     def do_CONNECT(self) -> None:
         address = self.path.split(":")
-        port = int(address[1]) or 443  # type: ignore
+        port = int(address[1]) or 443
         if address[0] in moto_api_backend.proxy_hosts_to_passthrough:
             self.connect_relay((address[0], port))
             return
@@ -145,21 +151,24 @@ class ProxyRequestHandler(BaseHTTPRequestHandler):
 
         if f"{host}{path}" in moto_api_backend.proxy_urls_to_passthrough:
             parsed = urlparse(host)
-            self.passthrough_http((parsed.netloc, 80))
+            target_host, target_port = parsed.netloc, "80"
+            if ":" in target_host:
+                target_host, target_port = target_host.split(":")
+            self.passthrough_http((target_host, int(target_port)))
             return
 
         req_body = b""
-        if "Content-Length" in req.headers:
-            content_length = int(req.headers["Content-Length"])
-            req_body = self.rfile.read(content_length)
-        elif "chunked" in self.headers.get("Transfer-Encoding", ""):
+        if "chunked" in self.headers.get("Transfer-Encoding", ""):
             # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
             req_body = self.read_chunked_body(self.rfile)
+        elif "Content-Length" in req.headers:
+            content_length = int(req.headers["Content-Length"])
+            req_body = self.rfile.read(content_length)
         if self.headers.get("Content-Type", "").startswith("multipart/form-data"):
             boundary = self.headers["Content-Type"].split("boundary=")[-1]
             req_body, form_data = get_body_from_form_data(req_body, boundary)  # type: ignore
             for key, val in form_data.items():
-                self.headers[key] = [val]  # type: ignore[assignment]
+                self.headers[key] = [val]  # type: ignore
         else:
             form_data = {}
 

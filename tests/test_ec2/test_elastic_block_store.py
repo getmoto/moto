@@ -526,6 +526,14 @@ def test_snapshot_filters():
     assert snapshot1.id in [s["SnapshotId"] for s in snapshots]
     assert snapshot2.id in [s["SnapshotId"] for s in snapshots]
     assert snapshot3.id in [s["SnapshotId"] for s in snapshots]
+    #
+    # Create a copy with a KMS key, and filter on that
+    snapshot4 = client.copy_snapshot(
+        SourceSnapshotId=snapshot1.id,
+        SourceRegion="us-east-1",
+        KmsKeyId="newkmskey",
+    )["SnapshotId"]
+    verify_filter("kms-key-id", "newkmskey", expected=[snapshot4])
 
 
 @mock_aws
@@ -539,9 +547,9 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "Snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "Snapshot should have no permissions."
+    )
 
     ADD_GROUP_ARGS = {
         "SnapshotId": snapshot.id,
@@ -570,15 +578,15 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert attributes["CreateVolumePermissions"] == [
-        {"Group": "all"}
-    ], "This snapshot should have public group permissions."
+    assert attributes["CreateVolumePermissions"] == [{"Group": "all"}], (
+        "This snapshot should have public group permissions."
+    )
 
     # Add is idempotent
     ec2_client.modify_snapshot_attribute(**ADD_GROUP_ARGS)
-    assert attributes["CreateVolumePermissions"] == [
-        {"Group": "all"}
-    ], "This snapshot should have public group permissions."
+    assert attributes["CreateVolumePermissions"] == [{"Group": "all"}], (
+        "This snapshot should have public group permissions."
+    )
 
     # Remove 'all' group and confirm
     with pytest.raises(ClientError):
@@ -594,15 +602,15 @@ def test_modify_snapshot_attribute():
     attributes = ec2_client.describe_snapshot_attribute(
         SnapshotId=snapshot.id, Attribute="createVolumePermission"
     )
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "This snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "This snapshot should have no permissions."
+    )
 
     # Remove is idempotent
     ec2_client.modify_snapshot_attribute(**REMOVE_GROUP_ARGS)
-    assert not attributes[
-        "CreateVolumePermissions"
-    ], "This snapshot should have no permissions."
+    assert not attributes["CreateVolumePermissions"], (
+        "This snapshot should have no permissions."
+    )
 
     # Error: Add with group != 'all'
     with pytest.raises(ClientError) as cm:
@@ -1137,3 +1145,70 @@ def test_create_volume_with_throughput_fails():
         )
     assert ex.value.response["Error"]["Code"] == "InvalidParameterDependency"
     assert "Throughput" in ex.value.response["Error"]["Message"]
+
+
+@mock_aws
+def test_modify_ebs_default_kms_key_id():
+    new_default_alias = "alias/my-new-ebs-default"
+    kms = boto3.client("kms", region_name="us-east-1")
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    # Get the original default key
+    original_default_ebs_key_arn = kms.describe_key(KeyId="alias/aws/ebs")[
+        "KeyMetadata"
+    ]["Arn"]
+
+    # Create a new default key
+    new_default_key = kms.create_key(Description="test ebs key")["KeyMetadata"]
+    kms.create_alias(AliasName=new_default_alias, TargetKeyId=new_default_key["KeyId"])
+
+    # Modify the default ebs key using the KeyId
+    new_default_ebs_key_arn = ec2.modify_ebs_default_kms_key_id(
+        KmsKeyId=new_default_key["KeyId"]
+    )["KmsKeyId"]
+
+    assert new_default_ebs_key_arn != original_default_ebs_key_arn
+
+    # Creating an encrypted volume should create (and use) the new default key.
+    resource = boto3.resource("ec2", region_name="us-east-1")
+    volume = resource.create_volume(
+        AvailabilityZone="us-east-1a", Encrypted=True, Size=10
+    )
+
+    assert volume.kms_key_id == new_default_ebs_key_arn
+    assert volume.encrypted is True
+
+    # Revert to the original default key by passing empty string
+    ec2.modify_ebs_default_kms_key_id(KmsKeyId="")
+    # Creating an encrypted volume should create (and use) the original default key.
+    volume = resource.create_volume(
+        AvailabilityZone="us-east-1a", Encrypted=True, Size=10
+    )
+    assert volume.kms_key_id == original_default_ebs_key_arn
+
+    # Modify the default ebs key using a key alias
+    new_default_ebs_key_arn = ec2.modify_ebs_default_kms_key_id(
+        KmsKeyId=new_default_alias
+    )["KmsKeyId"]
+    assert new_default_ebs_key_arn != original_default_ebs_key_arn
+    ec2.modify_ebs_default_kms_key_id(KmsKeyId="")
+
+    # Modify the default ebs key using a key arn
+    new_default_ebs_key_arn = ec2.modify_ebs_default_kms_key_id(
+        KmsKeyId=new_default_key["Arn"]
+    )["KmsKeyId"]
+    assert new_default_ebs_key_arn != original_default_ebs_key_arn
+
+
+@mock_aws
+def test_create_volume_without_size():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        ec2.create_volume(AvailabilityZone="us-east-1a")
+
+    assert ex.value.response["Error"]["Code"] == "MissingParameter"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The request must contain the parameter size/snapshot"
+    )

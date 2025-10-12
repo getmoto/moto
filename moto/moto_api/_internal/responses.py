@@ -13,8 +13,8 @@ class MotoAPIResponse(BaseResponse):
     def reset_response(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
+        full_url: str,
+        headers: Any,
     ) -> TYPE_RESPONSE:
         if request.method == "POST":
             from .models import moto_api_backend
@@ -26,8 +26,8 @@ class MotoAPIResponse(BaseResponse):
     def reset_auth_response(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
+        full_url: str,
+        headers: Any,
     ) -> TYPE_RESPONSE:
         if request.method == "POST":
             previous_initial_no_auth_action_count = (
@@ -51,9 +51,9 @@ class MotoAPIResponse(BaseResponse):
 
     def model_data(
         self,
-        request: Any,  # pylint: disable=unused-argument
-        full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
+        request: Any,
+        full_url: str,
+        headers: Any,
     ) -> TYPE_RESPONSE:
         from moto.core.model_instances import model_data
 
@@ -64,7 +64,7 @@ class MotoAPIResponse(BaseResponse):
             for name in sorted(models):
                 model = models[name]
                 results[service][name] = []
-                for instance in model.instances:  # type: ignore[attr-defined]
+                for instance in model.instances_tracked:  # type: ignore[attr-defined]
                     inst_result = {}
                     for attr in dir(instance):
                         if not attr.startswith("_"):
@@ -79,9 +79,9 @@ class MotoAPIResponse(BaseResponse):
 
     def dashboard(
         self,
-        request: Any,  # pylint: disable=unused-argument
-        full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
+        request: Any,
+        full_url: str,
+        headers: Any,
     ) -> str:
         from flask import render_template
 
@@ -90,8 +90,8 @@ class MotoAPIResponse(BaseResponse):
     def get_transition(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
-        headers: Any,  # pylint: disable=unused-argument
+        full_url: str,
+        headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
 
@@ -107,7 +107,7 @@ class MotoAPIResponse(BaseResponse):
     def set_transition(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -122,7 +122,7 @@ class MotoAPIResponse(BaseResponse):
     def unset_transition(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -144,7 +144,7 @@ class MotoAPIResponse(BaseResponse):
     def set_athena_result(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -167,7 +167,7 @@ class MotoAPIResponse(BaseResponse):
     def set_ce_cost_usage_result(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -179,10 +179,69 @@ class MotoAPIResponse(BaseResponse):
             moto_api_backend.set_ce_cost_usage(result=result, account_id=account_id)
         return 201, {}, ""
 
+    def set_lambda_simple_result(
+        self,
+        request: Any,
+        full_url: str,
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+
+        for result in body.get("results", []):
+            moto_api_backend.set_lambda_simple_result(
+                result=result, account_id=account_id, region=region
+            )
+        return 201, {}, ""
+
+    def set_resilience_result(
+        self,
+        request: Any,
+        full_url: str,
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+
+        for result in body.get("results", []):
+            moto_api_backend.set_resilience_result(
+                result=result, account_id=account_id, region=region
+            )
+        return 201, {}, ""
+
+    def set_sagemaker_async_result(
+        self,
+        request: Any,
+        full_url: str,
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+
+        for result in body.get("results", []):
+            data = result["data"]
+            is_failure = result.get("is_failure", False)
+            moto_api_backend.set_sagemaker_async_result(
+                data=data,
+                is_failure=is_failure,
+                account_id=account_id,
+                region=region,
+            )
+        return 201, {}, ""
+
     def set_sagemaker_result(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -209,7 +268,7 @@ class MotoAPIResponse(BaseResponse):
     def set_rds_data_result(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -235,10 +294,30 @@ class MotoAPIResponse(BaseResponse):
             )
         return 201, {}, ""
 
+    def set_ecr_scan_finding_results(
+        self,
+        request: Any,
+        full_url: str,
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+
+        for result in body.get("results", []):
+            moto_api_backend.set_ecr_scan_finding_result(
+                results=result,
+                account_id=account_id,
+                region=region,
+            )
+        return 201, {}, ""
+
     def set_inspector2_findings_result(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -255,10 +334,32 @@ class MotoAPIResponse(BaseResponse):
             )
         return 201, {}, ""
 
+    def set_timestream_result(
+        self,
+        request: Any,
+        full_url: str,
+        headers: Any,
+    ) -> TYPE_RESPONSE:
+        from .models import moto_api_backend
+
+        body = self._get_body(headers, request)
+        account_id = body.get("account_id", DEFAULT_ACCOUNT_ID)
+        region = body.get("region", "us-east-1")
+        results = body.get("results", {})
+
+        for query in results:
+            moto_api_backend.set_timestream_result(
+                query=None if query == "null" else query,
+                query_results=results[query],
+                account_id=account_id,
+                region=region,
+            )
+        return 201, {}, ""
+
     def set_proxy_passthrough(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend
@@ -280,7 +381,7 @@ class MotoAPIResponse(BaseResponse):
     def config(
         self,
         request: Any,
-        full_url: str,  # pylint: disable=unused-argument
+        full_url: str,
         headers: Any,
     ) -> TYPE_RESPONSE:
         from .models import moto_api_backend

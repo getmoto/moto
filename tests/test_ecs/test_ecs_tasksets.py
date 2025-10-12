@@ -1,8 +1,12 @@
+import json
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.ec2 import utils as ec2_utils
+from tests import EXAMPLE_AMI_ID
 
 cluster_name = "test_ecs_cluster"
 service_name = "test_ecs_service"
@@ -374,6 +378,70 @@ def test_create_task_sets_with_tags():
     assert len(resp["tags"]) == 2
     assert {"key": "k1", "value": "v1"} in resp["tags"]
     assert {"key": "k3", "value": "v3"} in resp["tags"]
+
+
+@mock_aws
+def test_create_task_set_and_list_tasks():
+    tags = [{"key": "key-1", "value": "value-1"}, {"key": "key-2", "value": "value-1"}]
+
+    ec2 = boto3.resource("ec2", "us-east-1")
+    ecs = boto3.client("ecs", "us-east-1")
+
+    cluster_a = ecs.create_cluster(clusterName="test-cluster-a")["cluster"]
+
+    test_instance = ec2.create_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
+    )[0]
+    instance_id_document = json.dumps(
+        ec2_utils.generate_instance_identity_document(test_instance)
+    )
+    ecs.register_container_instance(
+        cluster="test-cluster-a", instanceIdentityDocument=instance_id_document
+    )
+
+    response = ecs.register_task_definition(
+        family="test-family",
+        containerDefinitions=[
+            {"name": "test-container-def", "image": "foo", "memory": 256}
+        ],
+        tags=tags,
+    )
+
+    task_def = response["taskDefinition"]
+
+    service_response = ecs.create_service(
+        cluster=cluster_a["clusterArn"],
+        serviceName="test-service",
+        taskDefinition=task_def["taskDefinitionArn"],
+        desiredCount=1,
+        deploymentController={"type": "EXTERNAL"},
+        propagateTags="TASK_DEFINITION",
+    )
+    service = service_response["service"]
+
+    ecs.create_task_set(
+        service=service["serviceName"],
+        cluster=cluster_a["clusterName"],
+        externalId="test-ext-id",
+        taskDefinition=task_def["taskDefinitionArn"],
+        scale={"unit": "PERCENT", "value": 100},
+    )
+
+    list_tasks = ecs.list_tasks(
+        cluster=cluster_a["clusterName"], serviceName=service["serviceName"]
+    )
+
+    task_arns = list_tasks["taskArns"]
+    assert len(task_arns) == 1
+
+    describe_tasks = ecs.describe_tasks(
+        cluster=cluster_a["clusterName"], tasks=task_arns, include=["TAGS"]
+    )
+
+    tasks = describe_tasks["tasks"]
+
+    assert len(tasks) == 1
+    assert tasks[0]["tags"] == tags
 
 
 def create_task_def(client):

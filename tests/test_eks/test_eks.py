@@ -1,14 +1,16 @@
+import datetime
 from copy import deepcopy
 from unittest import SkipTest, mock
+from unittest.mock import PropertyMock
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
+from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.core.utils import iso_8601_datetime_without_milliseconds
 from moto.eks.exceptions import (
     InvalidParameterException,
     InvalidRequestException,
@@ -36,7 +38,6 @@ from moto.moto_api._internal import mock_random
 from .test_eks_constants import (
     DEFAULT_NAMESPACE,
     DISK_SIZE,
-    FROZEN_TIME,
     INSTANCE_TYPES,
     LAUNCH_TEMPLATE,
     MAX_FARGATE_LABELS,
@@ -297,7 +298,7 @@ def test_create_cluster_throws_exception_when_cluster_exists(ClusterBuilder):
     with pytest.raises(ClientError) as raised_exception:
         client.create_cluster(
             name=generated_test_data.existing_cluster_name,
-            **dict(ClusterInputs.REQUIRED)
+            **dict(ClusterInputs.REQUIRED),
         )
     count_clusters_after_test = len(client.list_clusters()[ResponseAttributes.CLUSTERS])
 
@@ -324,19 +325,16 @@ def test_create_cluster_generates_valid_cluster_arn(ClusterBuilder):
     )
 
 
-@freeze_time(FROZEN_TIME)
 @mock_aws
 def test_create_cluster_generates_valid_cluster_created_timestamp(ClusterBuilder):
-    _, generated_test_data = ClusterBuilder()
-
-    result_time = iso_8601_datetime_without_milliseconds(
-        generated_test_data.cluster_describe_output[ClusterAttributes.CREATED_AT]
-    )
-
-    if settings.TEST_SERVER_MODE:
-        assert RegExTemplates.ISO8601_FORMAT.match(result_time)
-    else:
-        assert result_time == FROZEN_TIME
+    cluster_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    with freeze_time(cluster_create_time):
+        _, generated_test_data = ClusterBuilder()
+    result_time = generated_test_data.cluster_describe_output[
+        ClusterAttributes.CREATED_AT
+    ]
+    if not settings.TEST_SERVER_MODE:
+        assert result_time == cluster_create_time
 
 
 @mock_aws
@@ -522,7 +520,7 @@ def test_create_nodegroup_throws_exception_when_cluster_not_found():
         client.create_nodegroup(
             clusterName=non_existent_cluster_name,
             nodegroupName=mock_random.get_random_string(),
-            **dict(NodegroupInputs.REQUIRED)
+            **dict(NodegroupInputs.REQUIRED),
         )
 
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
@@ -543,7 +541,7 @@ def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
         client.create_nodegroup(
             clusterName=generated_test_data.cluster_name,
             nodegroupName=generated_test_data.existing_nodegroup_name,
-            **dict(NodegroupInputs.REQUIRED)
+            **dict(NodegroupInputs.REQUIRED),
         )
     count_nodegroups_after_test = len(
         client.list_nodegroups(clusterName=generated_test_data.cluster_name)[
@@ -565,12 +563,16 @@ def test_create_nodegroup_throws_exception_when_cluster_not_active(NodegroupBuil
         clusterName=generated_test_data.cluster_name
     )
 
-    with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
+    with mock.patch(
+        "moto.eks.models.Cluster.is_active",
+        new_callable=PropertyMock,
+        return_value=False,
+    ):
         with pytest.raises(ClientError) as raised_exception:
             client.create_nodegroup(
                 clusterName=generated_test_data.cluster_name,
                 nodegroupName=mock_random.get_random_string(),
-                **dict(NodegroupInputs.REQUIRED)
+                **dict(NodegroupInputs.REQUIRED),
             )
     count_nodegroups_after_test = len(
         client.list_nodegroups(clusterName=generated_test_data.cluster_name)[
@@ -603,36 +605,31 @@ def test_create_nodegroup_generates_valid_nodegroup_arn(NodegroupBuilder):
     )
 
 
-@freeze_time(FROZEN_TIME)
 @mock_aws
 def test_create_nodegroup_generates_valid_nodegroup_created_timestamp(NodegroupBuilder):
-    _, generated_test_data = NodegroupBuilder()
+    ng_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    with freeze_time(ng_create_time):
+        _, generated_test_data = NodegroupBuilder()
 
-    result_time = iso_8601_datetime_without_milliseconds(
-        generated_test_data.nodegroup_describe_output[NodegroupAttributes.CREATED_AT]
-    )
-
-    if settings.TEST_SERVER_MODE:
-        assert RegExTemplates.ISO8601_FORMAT.match(result_time)
-    else:
-        assert result_time == FROZEN_TIME
+    result_time = generated_test_data.nodegroup_describe_output[
+        NodegroupAttributes.CREATED_AT
+    ]
+    if not settings.TEST_SERVER_MODE:
+        assert result_time == ng_create_time
 
 
-@freeze_time(FROZEN_TIME)
 @mock_aws
 def test_create_nodegroup_generates_valid_nodegroup_modified_timestamp(
     NodegroupBuilder,
 ):
-    _, generated_test_data = NodegroupBuilder()
-
-    result_time = iso_8601_datetime_without_milliseconds(
-        generated_test_data.nodegroup_describe_output[NodegroupAttributes.MODIFIED_AT]
-    )
-
-    if settings.TEST_SERVER_MODE:
-        assert RegExTemplates.ISO8601_FORMAT.match(result_time)
-    else:
-        assert result_time == FROZEN_TIME
+    ng_mod_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    with freeze_time(ng_mod_time):
+        _, generated_test_data = NodegroupBuilder()
+    result_time = generated_test_data.nodegroup_describe_output[
+        NodegroupAttributes.MODIFIED_AT
+    ]
+    if not settings.TEST_SERVER_MODE:
+        assert result_time == ng_mod_time
 
 
 @mock_aws
@@ -972,7 +969,7 @@ def test_create_fargate_profile_throws_exception_when_cluster_not_found():
         client.create_fargate_profile(
             clusterName=non_existent_cluster_name,
             fargateProfileName=mock_random.get_random_string(),
-            **dict(FargateProfileInputs.REQUIRED)
+            **dict(FargateProfileInputs.REQUIRED),
         )
 
     assert_expected_exception(raised_exception, expected_exception, expected_msg)
@@ -990,7 +987,7 @@ def test_create_fargate_profile_throws_exception_when_fargate_profile_already_ex
         client.create_fargate_profile(
             clusterName=generated_test_data.cluster_name,
             fargateProfileName=generated_test_data.existing_fargate_profile_name,
-            **dict(FargateProfileInputs.REQUIRED)
+            **dict(FargateProfileInputs.REQUIRED),
         )
     count_profiles_after_test = len(
         client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[
@@ -1014,12 +1011,16 @@ def test_create_fargate_profile_throws_exception_when_cluster_not_active(
         clusterName=generated_test_data.cluster_name
     )
 
-    with mock.patch("moto.eks.models.Cluster.isActive", return_value=False):
+    with mock.patch(
+        "moto.eks.models.Cluster.is_active",
+        new_callable=PropertyMock,
+        return_value=False,
+    ):
         with pytest.raises(ClientError) as raised_exception:
             client.create_fargate_profile(
                 clusterName=generated_test_data.cluster_name,
                 fargateProfileName=mock_random.get_random_string(),
-                **dict(FargateProfileInputs.REQUIRED)
+                **dict(FargateProfileInputs.REQUIRED),
             )
     count_fargate_profiles_after_test = len(
         client.list_fargate_profiles(clusterName=generated_test_data.cluster_name)[
@@ -1052,21 +1053,18 @@ def test_create_fargate_profile_generates_valid_profile_arn(FargateProfileBuilde
     )
 
 
-@freeze_time(FROZEN_TIME)
 @mock_aws
 def test_create_fargate_profile_generates_valid_created_timestamp(
     FargateProfileBuilder,
 ):
-    _, generated_test_data = FargateProfileBuilder()
-
-    result_time = iso_8601_datetime_without_milliseconds(
-        generated_test_data.fargate_describe_output[FargateProfileAttributes.CREATED_AT]
-    )
-
-    if settings.TEST_SERVER_MODE:
-        assert RegExTemplates.ISO8601_FORMAT.match(result_time)
-    else:
-        assert result_time == FROZEN_TIME
+    fp_create_time = datetime.datetime(2013, 11, 27, 1, 42, tzinfo=tzutc())
+    with freeze_time(fp_create_time):
+        _, generated_test_data = FargateProfileBuilder()
+    result_time = generated_test_data.fargate_describe_output[
+        FargateProfileAttributes.CREATED_AT
+    ]
+    if not settings.TEST_SERVER_MODE:
+        assert result_time == fp_create_time
 
 
 @mock_aws
@@ -1417,3 +1415,59 @@ def assert_valid_selectors(ClusterBuilder, expected_msg, expected_result, select
         with pytest.raises(ClientError) as raised_exception:
             client.create_fargate_profile(**test_inputs)
         assert_expected_exception(raised_exception, expected_exception, expected_msg)
+
+
+@mock_aws
+def test_update_cluster_config(ClusterBuilder):
+    client, generated_cluster = ClusterBuilder(BatchCountSize.SINGLE)
+    cluster_name = generated_cluster.existing_cluster_name
+
+    new_vpc_config = {
+        "subnetIds": ["test-new-subnet"],
+        "endpointPublicAccess": False,
+    }
+
+    new_logging = {"clusterLogging": [{"types": ["api", "audit"], "enabled": True}]}
+
+    client_request_token = "test-new-client-request-token"
+
+    new_kubernetes_network_config = {"serviceIpv4Cidr": "0.0.0.0"}
+    new_remote_network_config = {
+        "remoteNodeNetworks": [
+            {"cidrs": ["test-new-cidrs"]},
+        ],
+    }
+
+    client.update_cluster_config(
+        name=cluster_name,
+        resourcesVpcConfig=new_vpc_config,
+        logging=new_logging,
+        clientRequestToken=client_request_token,
+        kubernetesNetworkConfig=new_kubernetes_network_config,
+        remoteNetworkConfig=new_remote_network_config,
+    )
+
+    updated = client.describe_cluster(name=cluster_name)[ResponseAttributes.CLUSTER]
+    assert updated[ClusterAttributes.RESOURCES_VPC_CONFIG] == new_vpc_config
+    assert updated[ClusterAttributes.LOGGING] == new_logging
+    assert (
+        updated[ClusterAttributes.KUBERNETES_NETWORK_CONFIG]
+        == new_kubernetes_network_config
+    )
+    assert updated[ClusterAttributes.REMOTE_NETWORK_CONFIG] == new_remote_network_config
+    assert updated[ClusterAttributes.CLIENT_REQUEST_TOKEN] == client_request_token
+
+
+@mock_aws
+def test_update_cluster_config_not_found(ClusterBuilder):
+    client, generated_cluster = ClusterBuilder(BatchCountSize.SINGLE)
+    generated_cluster.existing_cluster_name
+
+    expected_exception = ResourceNotFoundException
+    expected_msg = CLUSTER_NOT_FOUND_MSG.format(
+        clusterName=generated_cluster.nonexistent_cluster_name
+    )
+    with pytest.raises(ClientError) as raised_exception:
+        client.update_cluster_config(name=generated_cluster.nonexistent_cluster_name)
+
+    assert_expected_exception(raised_exception, expected_exception, expected_msg)

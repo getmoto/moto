@@ -2,6 +2,7 @@
 Ensure that the responses module plays nice with our mocks
 """
 
+from http.server import BaseHTTPRequestHandler
 from unittest import SkipTest, TestCase
 
 import boto3
@@ -12,6 +13,8 @@ from moto import mock_aws, settings
 from moto.core.models import override_responses_real_send
 from moto.core.versions import RESPONSES_VERSION
 from moto.utilities.distutils_version import LooseVersion
+
+from .utilities import SimpleServer
 
 
 class TestResponsesModule(TestCase):
@@ -67,6 +70,14 @@ class TestResponsesModule(TestCase):
             assert r.json() == {"a": "4"}
 
 
+class WebRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(b"real response")
+
+
 @mock_aws
 class TestResponsesMockWithPassThru(TestCase):
     """
@@ -77,22 +88,29 @@ class TestResponsesMockWithPassThru(TestCase):
         if RESPONSES_VERSION < LooseVersion("0.24.0"):
             raise SkipTest("Can only test this with responses >= 0.24.0")
 
+        self.server = SimpleServer(WebRequestHandler)
+        self.server.start()
+        host, port = self.server.get_host_and_port()
+        self.server_url = f"http://{host}:{port}"
+
         self.r_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         override_responses_real_send(self.r_mock)
         self.r_mock.start()
-        self.r_mock.add_passthru("http://ip.jsontest.com")
+        self.r_mock.add_passthru(self.server_url)
 
     def tearDown(self) -> None:
-        self.r_mock.stop()
-        self.r_mock.reset()
+        self.r_mock.stop()  # type: ignore
+        self.r_mock.reset()  # type: ignore
         override_responses_real_send(None)
+
+        self.server.stop()
 
     def http_requests(self) -> str:
         # Mock this website
         requests.post("https://example.org")
 
         # Passthrough this website
-        assert requests.get("http://ip.jsontest.com").status_code == 200
+        assert requests.get(self.server_url).content == b"real response"
 
         return "OK"
 
@@ -103,9 +121,9 @@ class TestResponsesMockWithPassThru(TestCase):
         return "OK"
 
     def test_http_requests(self) -> None:
-        self.r_mock.add(responses.POST, "https://example.org", status=200)
+        self.r_mock.add(responses.POST, "https://example.org", status=200)  # type: ignore
         self.assertEqual("OK", self.http_requests())
 
     def test_aws_and_http_requests(self) -> None:
-        self.r_mock.add(responses.POST, "https://example.org", status=200)
+        self.r_mock.add(responses.POST, "https://example.org", status=200)  # type: ignore
         self.assertEqual("OK", self.aws_and_http_requests())

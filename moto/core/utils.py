@@ -1,13 +1,20 @@
+from __future__ import annotations
+
 import datetime
 import inspect
 import re
-from gzip import decompress
+from functools import cache
+from gzip import compress, decompress
 from typing import Any, Callable, Dict, List, Optional, Tuple
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
+from botocore.model import ServiceModel
 
+from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE
+from .constants import MISSING
+from .loaders import create_loader
 from .versions import PYTHON_311
 
 
@@ -169,6 +176,14 @@ def iso_8601_datetime_without_milliseconds_s3(
     return value.strftime("%Y-%m-%dT%H:%M:%S.000Z") if value else None
 
 
+RFC3339_DATETIME_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}"  # YYYY-MM-DD
+    r"[Tt]"  # 'T' or 't' separator
+    r"\d{2}:\d{2}:\d{2}"  # HH:MM:SS
+    r"(?:\.\d+)?"  # Optional fractional seconds (e.g., .123)
+    r"(?:[Zz]|(?:\+|-)\d{2}:\d{2})$"  # 'Z' or 'z' for UTC, or +/-HH:MM offset
+)
+
 RFC1123 = "%a, %d %b %Y %H:%M:%S GMT"
 EN_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 EN_MONTHS = [
@@ -280,7 +295,7 @@ def tags_from_query_string(
 
 
 def tags_from_cloudformation_tags_list(
-    tags_list: List[Dict[str, str]]
+    tags_list: List[Dict[str, str]],
 ) -> Dict[str, str]:
     """Return tags in dict form from cloudformation resource tags form (list of dicts)"""
     tags = {}
@@ -327,21 +342,29 @@ def merge_dicts(
     :param dict dict1: the dictionary to be updated.
     :param dict dict2: a dictionary of keys/values to be merged into dict1.
 
-    :param bool remove_nulls: If true, updated values equal to None or an empty dictionary
+    :param bool remove_nulls: If true, updated values equal to None
         will be removed from dict1.
     """
     for key in dict2:
         if isinstance(dict2[key], dict):
-            if key in dict1 and key in dict2:
+            if key in dict1 and isinstance(dict1[key], dict):
                 merge_dicts(dict1[key], dict2[key], remove_nulls)
             else:
                 dict1[key] = dict2[key]
-            if dict1[key] == {} and remove_nulls:
-                dict1.pop(key)
+                if isinstance(dict1[key], dict):
+                    remove_null_from_dict(dict1)
         else:
             dict1[key] = dict2[key]
             if dict1[key] is None and remove_nulls:
                 dict1.pop(key)
+
+
+def remove_null_from_dict(dct: Dict[str, Any]) -> None:
+    for key in list(dct.keys()):
+        if dct[key] is None:
+            dct.pop(key)
+        elif isinstance(dct[key], dict):
+            remove_null_from_dict(dct[key])
 
 
 def aws_api_matches(pattern: str, string: Any) -> bool:
@@ -392,9 +415,88 @@ def gzip_decompress(body: bytes) -> bytes:
     return decompress(body)
 
 
-def get_partition_from_region(region_name: str) -> str:
-    # Very rough implementation
-    # In an ideal world we check `boto3.Session.get_partition_for_region`, but that is quite computationally heavy
-    if region_name.startswith("cn-"):
-        return "aws-cn"
-    return "aws"
+def gzip_compress(body: bytes) -> bytes:
+    return compress(body)
+
+
+ISO_REGION_DOMAINS = {
+    "iso": "c2s.ic.gov",
+    "isob": "sc2s.sgov.gov",
+    "isoe": "cloud.adc-e.uk",
+    "isof": "csp.hci.ic.gov",
+}
+ALT_DOMAIN_SUFFIXES = list(ISO_REGION_DOMAINS.values()) + ["amazonaws.com.cn"]
+
+
+def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
+    """Parses a URL and converts non-standard AWS endpoint hostnames (from ISO
+    regions or custom S3 endpoints) to the equivalent standard AWS domain.
+
+    Returns a tuple: (parsed URL, was URL modified).
+    """
+
+    parsed = urlparse(url)
+    original_host = parsed.netloc
+    host = original_host
+
+    # https://github.com/getmoto/moto/pull/6412
+    # Support ISO regions
+    for domain in ALT_DOMAIN_SUFFIXES:
+        if host.endswith(domain):
+            host = host.replace(domain, "amazonaws.com")
+
+    # https://github.com/getmoto/moto/issues/2993
+    # Support S3-compatible tools (Ceph, Digital Ocean, etc)
+    for custom_endpoint in get_s3_custom_endpoints():
+        if host == custom_endpoint or host == custom_endpoint.split("://")[-1]:
+            host = "s3.amazonaws.com"
+
+    if host == original_host:
+        return (parsed, False)
+    else:
+        result = ParseResult(
+            scheme=parsed.scheme,
+            netloc=host,
+            path=parsed.path,
+            params=parsed.params,
+            query=parsed.query,
+            fragment=parsed.fragment,
+        )
+        return (result, True)
+
+
+@cache
+def get_service_model(service_name: str) -> ServiceModel:
+    loader = create_loader()
+    model = loader.load_service_model(service_name, "service-2")
+    service_model = ServiceModel(model, service_name)
+    return service_model
+
+
+def get_value(obj: Any, key: int | str, default: Any = MISSING) -> Any:
+    """Helper for pulling a keyed value off various types of objects.
+
+    A key containing a dot (e.g. `parent.child`) will be treated as a
+    path to traverse to get to the desired value.
+    """
+    if not isinstance(key, int) and "." in key:
+        return _get_value_for_keys(obj, key.split("."), default)
+    return _get_value_for_key(obj, key, default)
+
+
+def _get_value_for_keys(obj: Any, keys: list[str], default: Any) -> Any:
+    if len(keys) == 1:
+        return _get_value_for_key(obj, keys[0], default)
+    return _get_value_for_keys(
+        _get_value_for_key(obj, keys[0], default), keys[1:], default
+    )
+
+
+def _get_value_for_key(obj: Any, key: int | str, default: Any) -> Any:
+    if not hasattr(obj, "__getitem__"):
+        return getattr(obj, str(key), default)
+
+    try:
+        return obj[key]
+    except (KeyError, IndexError, TypeError, AttributeError):
+        return default

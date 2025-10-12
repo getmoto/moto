@@ -1,5 +1,6 @@
 from xml.sax.saxutils import escape
 
+from moto.core.responses import ActionResult, EmptyResult
 from moto.ec2.utils import add_tag_specification
 
 from ._base_response import EC2BaseResponse
@@ -11,14 +12,12 @@ class VPNConnections(EC2BaseResponse):
         cgw_id = self._get_param("CustomerGatewayId")
         vgw_id = self._get_param("VpnGatewayId")
         tgw_id = self._get_param("TransitGatewayId")
-        static_routes = self._get_param("StaticRoutesOnly")
         tags = add_tag_specification(self._get_multi_param("TagSpecification"))
         vpn_connection = self.ec2_backend.create_vpn_connection(
             vpn_conn_type,
             cgw_id,
             vpn_gateway_id=vgw_id,
             transit_gateway_id=tgw_id,
-            static_routes_only=static_routes,
             tags=tags,
         )
         if vpn_connection.transit_gateway_id:
@@ -28,7 +27,7 @@ class VPNConnections(EC2BaseResponse):
         template = self.response_template(CREATE_VPN_CONNECTION_RESPONSE)
         return template.render(vpn_connection=vpn_connection)
 
-    def delete_vpn_connection(self) -> str:
+    def delete_vpn_connection(self) -> ActionResult:
         vpn_connection_id = self._get_param("VpnConnectionId")
         vpn_connection = self.ec2_backend.delete_vpn_connection(vpn_connection_id)
         if vpn_connection.transit_gateway_id:
@@ -38,8 +37,7 @@ class VPNConnections(EC2BaseResponse):
             for attachment in transit_gateway_attachments:
                 if attachment.resource_id == vpn_connection.id:
                     attachment.state = "deleted"
-        template = self.response_template(DELETE_VPN_CONNECTION_RESPONSE)
-        return template.render(vpn_connection=vpn_connection)
+        return EmptyResult()
 
     def describe_vpn_connections(self) -> str:
         vpn_connection_ids = self._get_multi_param("VpnConnectionId")
@@ -194,27 +192,6 @@ CREATE_VPN_CONNECTION_RESPONSE = (
   </vpnConnection>
 </CreateVpnConnectionResponse>"""
 )
-
-
-CREATE_VPN_CONNECTION_ROUTE_RESPONSE = """
-<CreateVpnConnectionRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10- 15/">
-    <requestId>4f35a1b2-c2c3-4093-b51f-abb9d7311990</requestId>
-    <return>true</return>
-</CreateVpnConnectionRouteResponse>"""
-
-
-DELETE_VPN_CONNECTION_RESPONSE = """
-<DeleteVpnConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
-   <return>true</return>
-</DeleteVpnConnectionResponse>"""
-
-
-DELETE_VPN_CONNECTION_ROUTE_RESPONSE = """
-<DeleteVpnConnectionRouteResponse xmlns="http://ec2.amazonaws.com/doc/2013-10- 15/">
-    <requestId>4f35a1b2-c2c3-4093-b51f-abb9d7311990</requestId>
-    <return>true</return>
-</DeleteVpnConnectionRouteResponse>"""
 
 
 DESCRIBE_VPN_CONNECTION_RESPONSE = (

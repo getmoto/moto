@@ -1,36 +1,17 @@
 import base64
 import json
-import re
 from unittest import SkipTest
 
 import boto3
 import pytest
+import requests
 from botocore.exceptions import ClientError
-from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.models import responses_mock
 from moto.sns import sns_backends
-
-MESSAGE_FROM_SQS_TEMPLATE = (
-    '{\n  "Message": "%s",\n  '
-    '"MessageId": "%s",\n  '
-    '"Signature": "EXAMPLElDMXvB8r9R83tGoNn0ecwd5UjllzsvSvbItzfaMpN2nk5HVS'
-    "w7XnOn/49IkxDKz8YrlH2qJXj2iZB0Zo2O71c4qQk1fMUDi3LGpij7RCW7AW9vYYsSqIK"
-    'RnFS94ilu7NFhUzLiieYr4BKHpdTmdD6c0esKEYBpabxDSc=",\n  '
-    '"SignatureVersion": "1",\n  '
-    '"SigningCertURL": "https://sns.us-east-1.amazonaws.com'
-    '/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",\n  '
-    '"Subject": "my subject",\n  '
-    '"Timestamp": "2015-01-01T12:00:00.000Z",\n  '
-    '"TopicArn": "arn:aws:sns:%s:' + ACCOUNT_ID + ':some-topic",\n  '
-    '"Type": "Notification",\n  '
-    '"UnsubscribeURL": "https://sns.us-east-1.amazonaws.com'
-    "/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:"
-    + ACCOUNT_ID
-    + ':some-topic:2bcfbf39-05c3-41de-beaa-fcfcc21c8f55"\n}'
-)
+from tests.test_sns import sns_sqs_aws_verified
 
 
 def to_comparable_dicts(list_entry: list):
@@ -41,38 +22,30 @@ def to_comparable_dicts(list_entry: list):
     return set(list_entry)
 
 
-@mock_aws
-def test_publish_to_sqs():
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified()
+def test_publish_to_sqs(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
     conn = boto3.client("sns", region_name="us-east-1")
-    conn.create_topic(Name="some-topic")
-    response = conn.list_topics()
-    topic_arn = response["Topics"][0]["TopicArn"]
 
     sqs_conn = boto3.resource("sqs", region_name="us-east-1")
-    sqs_conn.create_queue(QueueName="test-queue")
 
-    conn.subscribe(
-        TopicArn=topic_arn,
-        Protocol="sqs",
-        Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
-    )
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(
-            TopicArn=topic_arn, Message=message, Subject="my subject"
-        )
+    published_message = conn.publish(
+        TopicArn=topic_arn, Message=message, Subject="my subject"
+    )
     published_message_id = published_message["MessageId"]
 
-    queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, "us-east-1")
-    acquired_message = re.sub(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
-        "2015-01-01T12:00:00.000Z",
-        messages[0].body,
-    )
-    assert acquired_message == expected
+    queue = sqs_conn.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    acquired_message = json.loads(messages[0].body)
+
+    assert acquired_message["Message"] == "my message"
+    assert acquired_message["MessageId"] == published_message_id
+    assert acquired_message["TopicArn"] == topic_arn
+    assert acquired_message["SigningCertURL"]
+    assert acquired_message["Subject"] == "my subject"
 
 
 @mock_aws
@@ -92,30 +65,60 @@ def test_publish_to_sqs_raw():
     )
 
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        topic.publish(Message=message)
+    topic.publish(Message=message)
 
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
     assert messages[0].body == message
 
 
-@mock_aws
-def test_publish_to_sqs_fifo():
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified(fifo_topic=True, fifo_queue=True)
+def test_publish_to_sqs_fifo(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
     sns = boto3.resource("sns", region_name="us-east-1")
-    topic = sns.create_topic(
-        Name="topic.fifo",
-        Attributes={"FifoTopic": "true", "ContentBasedDeduplication": "true"},
-    )
-
     sqs = boto3.resource("sqs", region_name="us-east-1")
-    queue = sqs.create_queue(
-        QueueName="queue.fifo",
-        Attributes={"FifoQueue": "true", "ContentBasedDeduplication": "true"},
-    )
-    topic.subscribe(Protocol="sqs", Endpoint=queue.attributes["QueueArn"])
+    topic = sns.Topic(topic_arn)
 
     topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    queue = sqs.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=20)
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["Message"] == "message"
+
+
+@pytest.mark.aws_verified
+@sns_sqs_aws_verified(fifo_topic=True, fifo_queue=False)
+def test_publish_from_sns_fifo_to_standard_sqs(
+    topic_name=None, topic_arn=None, queue_name=None, queue_arn=None
+):
+    sns = boto3.resource("sns", region_name="us-east-1")
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    topic = sns.Topic(topic_arn)
+
+    topic.publish(Message="message", MessageGroupId="message_group_id")
+
+    queue = sqs.get_queue_by_name(QueueName=queue_name)
+    messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=20)
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["Message"] == "message"
+
+
+@pytest.mark.aws_verified
+def test_publish_from_standard_sns_to_fifo_sqs():
+    def x(topic_arn="", topic_name="", queue_arn="", queue_name=""):
+        pass
+
+    with pytest.raises(ClientError) as exc:
+        func = sns_sqs_aws_verified(fifo_topic=False, fifo_queue=True)
+        func(x)()
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameter"
+    assert (
+        err["Message"]
+        == "Invalid parameter: Invalid parameter: Endpoint Reason: FIFO SQS Queues can not be subscribed to standard SNS topics"
+    )
 
 
 @mock_aws
@@ -139,18 +142,16 @@ def test_publish_to_sqs_fifo_with_deduplication_id():
     )
 
     message = '{"msg": "hello"}'
-    with freeze_time("2015-01-01 12:00:00"):
-        topic.publish(
-            Message=message,
-            MessageGroupId="message_group_id",
-            MessageDeduplicationId="message_deduplication_id",
-        )
+    topic.publish(
+        Message=message,
+        MessageGroupId="message_group_id",
+        MessageDeduplicationId="message_deduplication_id",
+    )
 
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(
-            MaxNumberOfMessages=1,
-            AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
-        )
+    messages = queue.receive_messages(
+        MaxNumberOfMessages=1,
+        AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
+    )
     assert messages[0].attributes["MessageGroupId"] == "message_group_id"
     assert (
         messages[0].attributes["MessageDeduplicationId"] == "message_deduplication_id"
@@ -179,18 +180,16 @@ def test_publish_to_sqs_fifo_raw_with_deduplication_id():
     )
 
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        topic.publish(
-            Message=message,
-            MessageGroupId="message_group_id",
-            MessageDeduplicationId="message_deduplication_id",
-        )
+    topic.publish(
+        Message=message,
+        MessageGroupId="message_group_id",
+        MessageDeduplicationId="message_deduplication_id",
+    )
 
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(
-            MaxNumberOfMessages=1,
-            AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
-        )
+    messages = queue.receive_messages(
+        MaxNumberOfMessages=1,
+        AttributeNames=["MessageDeduplicationId", "MessageGroupId"],
+    )
     assert messages[0].attributes["MessageGroupId"] == "message_group_id"
     assert (
         messages[0].attributes["MessageDeduplicationId"] == "message_deduplication_id"
@@ -221,7 +220,7 @@ def test_publish_to_sqs_bad():
             MessageAttributes={"store": {"DataType": "String"}},
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
     try:
         # Test empty DataType (if the DataType field is missing entirely
         # botocore throws an exception during validation)
@@ -233,7 +232,7 @@ def test_publish_to_sqs_bad():
             },
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
     try:
         # Test empty Value
         conn.publish(
@@ -242,7 +241,7 @@ def test_publish_to_sqs_bad():
             MessageAttributes={"store": {"DataType": "String", "StringValue": ""}},
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
     try:
         # Test Number DataType, with a non numeric value
         conn.publish(
@@ -251,7 +250,7 @@ def test_publish_to_sqs_bad():
             MessageAttributes={"price": {"DataType": "Number", "StringValue": "error"}},
         )
     except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameterValue"
+        assert err.response["Error"]["Code"] == "InvalidParameter"
         assert err.response["Error"]["Message"] == (
             "An error occurred (ParameterValueInvalid) when calling the "
             "Publish operation: Could not cast message attribute 'price' "
@@ -368,17 +367,22 @@ def test_publish_to_sqs_msg_attr_different_formats():
 
 @mock_aws
 def test_publish_sms():
+    nr = "+15551234567"
+    msg = "my message"
     client = boto3.client("sns", region_name="us-east-1")
 
-    result = client.publish(PhoneNumber="+15551234567", Message="my message")
+    result = client.publish(PhoneNumber=nr, Message=msg)
 
     assert "MessageId" in result
     if not settings.TEST_SERVER_MODE:
         sns_backend = sns_backends[ACCOUNT_ID]["us-east-1"]
-        assert sns_backend.sms_messages[result["MessageId"]] == (
-            "+15551234567",
-            "my message",
-        )
+        assert sns_backend.sms_messages[result["MessageId"]] == (nr, msg)
+
+        resp = requests.get("http://motoapi.amazonaws.com/moto-api/data.json")
+        sms = resp.json()["sns"]["SMS"]
+        assert sms == [
+            {"message": msg, "message_id": result["MessageId"], "phone_number": nr}
+        ]
 
 
 @mock_aws
@@ -426,24 +430,20 @@ def test_publish_to_sqs_dump_json():
         },
         sort_keys=True,
     )
-    with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(
-            TopicArn=topic_arn, Message=message, Subject="my subject"
-        )
+    published_message = conn.publish(
+        TopicArn=topic_arn, Message=message, Subject="my subject"
+    )
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
 
-    escaped = message.replace('"', '\\"')
-    expected = MESSAGE_FROM_SQS_TEMPLATE % (escaped, published_message_id, "us-east-1")
-    acquired_message = re.sub(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
-        "2015-01-01T12:00:00.000Z",
-        messages[0].body,
-    )
-    assert acquired_message == expected
+    acquired_message = json.loads(messages[0].body)
+    assert json.loads(acquired_message["Message"]) == json.loads(message)
+    assert acquired_message["MessageId"] == published_message_id
+    assert acquired_message["TopicArn"] == topic_arn
+    assert acquired_message["SigningCertURL"]
+    assert acquired_message["Subject"] == "my subject"
 
 
 @mock_aws
@@ -463,25 +463,22 @@ def test_publish_to_sqs_in_different_region():
     )
 
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        published_message = conn.publish(
-            TopicArn=topic_arn, Message=message, Subject="my subject"
-        )
+    published_message = conn.publish(
+        TopicArn=topic_arn, Message=message, Subject="my subject"
+    )
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
-    expected = MESSAGE_FROM_SQS_TEMPLATE % (message, published_message_id, "us-west-1")
-    acquired_message = re.sub(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z",
-        "2015-01-01T12:00:00.000Z",
-        messages[0].body,
-    )
-    assert acquired_message == expected
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
+
+    acquired_message = json.loads(messages[0].body)
+    assert acquired_message["MessageId"] == published_message_id
+    assert acquired_message["Message"] == "my message"
+    assert acquired_message["TopicArn"] == topic_arn
+    assert acquired_message["SigningCertURL"]
+    assert acquired_message["Subject"] == "my subject"
 
 
-@freeze_time("2013-01-01")
 @mock_aws
 def test_publish_to_http():
     if settings.TEST_SERVER_MODE:
@@ -535,18 +532,23 @@ def test_publish_subject():
     )
     message = "my message"
     subject1 = "test subject"
-    subject2 = "test subject" * 20
-    with freeze_time("2015-01-01 12:00:00"):
-        conn.publish(TopicArn=topic_arn, Message=message, Subject=subject1)
+    conn.publish(TopicArn=topic_arn, Message=message, Subject=subject1)
 
-    # Just that it doesnt error is a pass
-    try:
-        with freeze_time("2015-01-01 12:00:00"):
-            conn.publish(TopicArn=topic_arn, Message=message, Subject=subject2)
-    except ClientError as err:
-        assert err.response["Error"]["Code"] == "InvalidParameter"
-    else:
-        raise RuntimeError("Should have raised an InvalidParameter exception")
+
+@mock_aws
+def test_publish_large_subject():
+    conn = boto3.client("sns", region_name="us-east-1")
+    conn.create_topic(Name="some-topic")
+    response = conn.list_topics()
+    topic_arn = response["Topics"][0]["TopicArn"]
+
+    large_subject = "test subject" * 20
+
+    with pytest.raises(ClientError) as exc:
+        conn.publish(TopicArn=topic_arn, Message="message", Subject=large_subject)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameter"
+    assert err["Message"] == "Subject must be less than 100 characters"
 
 
 @mock_aws
@@ -565,12 +567,10 @@ def test_publish_null_subject():
         Endpoint=f"arn:aws:sqs:us-east-1:{ACCOUNT_ID}:test-queue",
     )
     message = "my message"
-    with freeze_time("2015-01-01 12:00:00"):
-        conn.publish(TopicArn=topic_arn, Message=message)
+    conn.publish(TopicArn=topic_arn, Message=message)
 
     queue = sqs_conn.get_queue_by_name(QueueName="test-queue")
-    with freeze_time("2015-01-01 12:00:01"):
-        messages = queue.receive_messages(MaxNumberOfMessages=1)
+    messages = queue.receive_messages(MaxNumberOfMessages=1)
 
     acquired_message = json.loads(messages[0].body)
     assert acquired_message["Message"] == message
@@ -2522,3 +2522,114 @@ def test_filtering_message_body_nested_multiple_records_match():
     assert message_attributes == [{"match": {"Type": "String", "Value": "body"}}]
     message_bodies = [json.loads(json.loads(m.body)["Message"]) for m in messages]
     assert message_bodies == [payload]
+
+
+@mock_aws
+def test_publish_with_message_structure_json():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "default": "message",
+                "sqs": "queue-message",
+            }
+        ),
+        MessageStructure="json",
+    )
+
+    queue_message = json.loads(queue.receive_messages()[0].body)
+    assert queue_message["Message"] == "queue-message"
+
+
+@mock_aws
+def test_publish_with_message_structure_json_fallback_to_default():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    topic.publish(
+        Message=json.dumps(
+            {
+                "default": "message",
+                "email": "email-message",
+            }
+        ),
+        MessageStructure="json",
+    )
+
+    queue_message = json.loads(queue.receive_messages()[0].body)
+    assert queue_message["Message"] == "message"
+
+
+@mock_aws
+def test_publish_with_message_structure_errors():
+    sns = boto3.resource("sns", region_name="us-east-1")
+
+    topic = sns.create_topic(Name="some-topic")
+
+    sqs = boto3.resource("sqs", region_name="us-east-1")
+    queue = sqs.create_queue(QueueName="test-queue")
+
+    topic.subscribe(
+        TopicArn=topic.arn,
+        Protocol="sqs",
+        Endpoint=queue.attributes["QueueArn"],
+    )
+
+    try:
+        topic.publish(
+            Message="invalid-json",
+            MessageStructure="json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameter"
+        assert err.response["Error"]["Message"] == "Message is not valid JSON."
+
+    try:
+        topic.publish(
+            Message=json.dumps(
+                {
+                    "email": "email-message",
+                }
+            ),
+            MessageStructure="json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameter"
+        assert (
+            err.response["Error"]["Message"]
+            == "Message does not contain sqs or default keys."
+        )
+
+    try:
+        topic.publish(
+            Message="no-json-structure",
+            MessageStructure="no-json",
+        )
+    except ClientError as err:
+        assert err.response["Error"]["Code"] == "InvalidParameter"
+        assert (
+            err.response["Error"]["Message"]
+            == "MessageStructure must be 'json' if provided"
+        )

@@ -1,4 +1,5 @@
 """dax base URL and path."""
+
 from .responses import DAXResponse
 
 url_bases = [

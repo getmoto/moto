@@ -227,7 +227,7 @@ def test_condition_expressions():
             Key={"client": {"S": "client1"}, "app": {"S": "app1"}},
             ConditionExpression="attribute_not_exists(#existing)",
             ExpressionAttributeValues={":match": {"S": "match"}},
-            ExpressionAttributeNames={"#existing": "existing", "#match": "match"},
+            ExpressionAttributeNames={"#existing": "existing"},
         )
 
 
@@ -297,7 +297,7 @@ def test_condition_expression__attr_doesnt_exist():
         # Test nonexistent top-level attribute.
         client.update_item(
             TableName="test",
-            Key={"forum_name": {"S": "the-key"}, "subject": {"S": "the-subject"}},
+            Key={"forum_name": {"S": "the-key"}},
             UpdateExpression="set #new_state=:new_state, #ttl=:ttl",
             ConditionExpression="attribute_not_exists(#new_state)",
             ExpressionAttributeNames={"#new_state": "foobar", "#ttl": "ttl"},

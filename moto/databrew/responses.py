@@ -29,7 +29,10 @@ class DataBrewResponse(BaseResponse):
         tags = self.parameters.get("Tags")
         return json.dumps(
             self.databrew_backend.create_recipe(
-                recipe_name, recipe_description, recipe_steps, tags  # type: ignore[arg-type]
+                recipe_name,  # type: ignore[arg-type]
+                recipe_description,  # type: ignore[arg-type]
+                recipe_steps,  # type: ignore[arg-type]
+                tags,  # type: ignore[arg-type]
             ).as_dict()
         )
 
@@ -54,7 +57,6 @@ class DataBrewResponse(BaseResponse):
             "RecipeVersion", self._get_param("recipeVersion")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         recipe_list, next_token = self.databrew_backend.list_recipes(
             next_token=next_token,
             max_results=max_results,
@@ -75,7 +77,6 @@ class DataBrewResponse(BaseResponse):
             "MaxResults", self._get_int_param("maxResults")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         recipe_list, next_token = self.databrew_backend.list_recipe_versions(
             recipe_name=recipe_name, next_token=next_token, max_results=max_results
         )
@@ -98,7 +99,9 @@ class DataBrewResponse(BaseResponse):
         recipe_steps = self.parameters.get("Steps")
 
         self.databrew_backend.update_recipe(
-            recipe_name, recipe_description, recipe_steps  # type: ignore[arg-type]
+            recipe_name,
+            recipe_description,  # type: ignore[arg-type]
+            recipe_steps,  # type: ignore[arg-type]
         )
         return json.dumps({"Name": recipe_name})
 
@@ -141,7 +144,10 @@ class DataBrewResponse(BaseResponse):
         tags = self.parameters.get("Tags")
 
         ruleset = self.databrew_backend.update_ruleset(
-            ruleset_name, ruleset_description, ruleset_rules, tags  # type: ignore[arg-type]
+            ruleset_name,
+            ruleset_description,  # type: ignore[arg-type]
+            ruleset_rules,  # type: ignore[arg-type]
+            tags,  # type: ignore[arg-type]
         )
         return json.dumps(ruleset.as_dict())
 
@@ -162,7 +168,6 @@ class DataBrewResponse(BaseResponse):
             "MaxResults", self._get_int_param("maxResults")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         ruleset_list, next_token = self.databrew_backend.list_rulesets(
             next_token=next_token, max_results=max_results
         )
@@ -202,7 +207,6 @@ class DataBrewResponse(BaseResponse):
             "MaxResults", self._get_int_param("maxResults")
         )
 
-        # pylint: disable=unexpected-keyword-arg, unbalanced-tuple-unpacking
         dataset_list, next_token = self.databrew_backend.list_datasets(
             next_token=next_token, max_results=max_results
         )

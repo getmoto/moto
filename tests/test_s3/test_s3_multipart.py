@@ -19,7 +19,7 @@ from moto.settings import (
 )
 from tests import DEFAULT_ACCOUNT_ID
 
-from .test_s3 import add_proxy_details
+from .test_s3 import add_proxy_details, s3_aws_verified
 
 if settings.TEST_DECORATOR_MODE:
     REDUCED_PART_SIZE = 256
@@ -53,12 +53,16 @@ def test_default_key_buffer_size():
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "2"  # 2 bytes
     assert get_s3_default_key_buffer_size() == 2
-    fake_key = s3model.FakeKey("a", os.urandom(1), account_id=DEFAULT_ACCOUNT_ID)
+    fake_key = s3model.FakeKey(
+        "a", os.urandom(1), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+    )
     assert fake_key._value_buffer._rolled is False
 
     os.environ["MOTO_S3_DEFAULT_KEY_BUFFER_SIZE"] = "1"  # 1 byte
     assert get_s3_default_key_buffer_size() == 1
-    fake_key = s3model.FakeKey("a", os.urandom(3), account_id=DEFAULT_ACCOUNT_ID)
+    fake_key = s3model.FakeKey(
+        "a", os.urandom(3), account_id=DEFAULT_ACCOUNT_ID, region_name="us-east-1"
+    )
     assert fake_key._value_buffer._rolled is True
 
     # if no MOTO_S3_DEFAULT_KEY_BUFFER_SIZE env variable is present the
@@ -152,6 +156,44 @@ def test_multipart_upload(key: str):
     # we should get both parts as the key contents
     response = client.get_object(Bucket="foobar", Key=key)
     assert response["Body"].read() == part1 + part2
+
+
+@pytest.mark.aws_verified
+@s3_aws_verified
+def test_idempotent_multipart_upload(bucket_name=None):
+    client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+
+    part1 = b"0" * S3_UPLOAD_PART_MIN_SIZE
+    part2 = b"1"
+    multipart = client.create_multipart_upload(Bucket=bucket_name, Key="key.txt")
+    kwargs = {
+        "Bucket": bucket_name,
+        "Key": "key.txt",
+        "UploadId": multipart["UploadId"],
+    }
+
+    up1 = client.upload_part(Body=BytesIO(part1), PartNumber=1, **kwargs)
+    up2 = client.upload_part(Body=BytesIO(part2), PartNumber=2, **kwargs)
+
+    parts = {
+        "Parts": [
+            {"ETag": up1["ETag"], "PartNumber": 1},
+            {"ETag": up2["ETag"], "PartNumber": 2},
+        ]
+    }
+
+    resp1 = client.complete_multipart_upload(MultipartUpload=parts, **kwargs)
+    assert resp1["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    # We can call this method again
+    resp2 = client.complete_multipart_upload(
+        MultipartUpload=parts,
+        # Even with this parameter supplied
+        IfNoneMatch="*",
+        **kwargs,
+    )
+    assert resp2["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert resp1["ETag"] == resp2["ETag"]
 
 
 @mock_aws
@@ -1061,3 +1103,55 @@ def test_generate_presigned_url_for_multipart_upload():
 
     resp = requests.put(url, data=data)
     assert resp.status_code == 200
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified()
+def test_multipart_upload_overwrites(bucket_name=None):
+    s3_client = boto3.client("s3", "us-east-1")
+    key = "mykey.txt"
+
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key)[
+        "UploadId"
+    ]
+
+    part_data = b"First part data"
+    response = s3_client.upload_part(
+        Bucket=bucket_name,
+        Key=key,
+        PartNumber=1,
+        UploadId=upload_id,
+        Body=part_data,
+    )
+
+    s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": [{"PartNumber": 1, "ETag": response["ETag"]}]},
+    )
+
+    upload_id = s3_client.create_multipart_upload(Bucket=bucket_name, Key=key)[
+        "UploadId"
+    ]
+
+    new_data = b"New data that should overwrite"
+    response = s3_client.upload_part(
+        Bucket=bucket_name,
+        Key=key,
+        PartNumber=1,
+        UploadId=upload_id,
+        Body=new_data,
+    )
+
+    s3_client.complete_multipart_upload(
+        Bucket=bucket_name,
+        Key=key,
+        UploadId=upload_id,
+        MultipartUpload={"Parts": [{"PartNumber": 1, "ETag": response["ETag"]}]},
+    )
+
+    result = s3_client.get_object(Bucket=bucket_name, Key=key)
+    content = result["Body"].read()
+
+    assert content == new_data

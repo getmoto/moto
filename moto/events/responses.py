@@ -159,9 +159,10 @@ class EventsHandler(BaseResponse):
             return self.error("ValidationException", "Parameter Rule is required.")
 
         try:
-            targets = self.events_backend.list_targets_by_rule(
-                rule_name, event_bus_arn, next_token, limit
+            target_page, token = self.events_backend.list_targets_by_rule(
+                rule_name, event_bus_arn, next_token=next_token, limit=limit
             )
+            targets = {"Targets": target_page, "NextToken": token}
         except KeyError:
             return self.error(
                 "ResourceNotFoundException", "Rule " + rule_name + " does not exist."
@@ -238,7 +239,21 @@ class EventsHandler(BaseResponse):
         name = self._get_param("Name")
 
         event_bus = self.events_backend.describe_event_bus(name)
-        response = {"Name": event_bus.name, "Arn": event_bus.arn}
+        response = {
+            "Arn": event_bus.arn,
+            "CreationTime": event_bus.creation_time,
+            "Name": event_bus.name,
+            "LastModifiedTime": event_bus.last_modified_time,
+        }
+
+        if event_bus.dead_letter_config:
+            response["DeadLetterConfig"] = event_bus.dead_letter_config
+
+        if event_bus.description:
+            response["Description"] = event_bus.description
+
+        if event_bus.kms_key_identifier:
+            response["KmsKeyIdentifier"] = event_bus.kms_key_identifier
 
         if event_bus.policy:
             response["Policy"] = event_bus.policy
@@ -248,9 +263,19 @@ class EventsHandler(BaseResponse):
     def create_event_bus(self) -> Tuple[str, Dict[str, Any]]:
         name = self._get_param("Name")
         event_source_name = self._get_param("EventSourceName")
+        description = self._get_param("Description")
+        kms_key_identifier = self._get_param("KmsKeyIdentifier")
+        dead_letter_config = self._get_param("DeadLetterConfig")
         tags = self._get_param("Tags")
 
-        event_bus = self.events_backend.create_event_bus(name, event_source_name, tags)
+        event_bus = self.events_backend.create_event_bus(
+            name=name,
+            event_source_name=event_source_name,
+            description=description,
+            kms_key_identifier=kms_key_identifier,
+            dead_letter_config=dead_letter_config,
+            tags=tags,
+        )
         return json.dumps({"EventBusArn": event_bus.arn}), self.response_headers
 
     def list_event_buses(self) -> Tuple[str, Dict[str, Any]]:
@@ -423,6 +448,7 @@ class EventsHandler(BaseResponse):
                     "ConnectionArn": connection.arn,
                     "ConnectionState": "AUTHORIZED",
                     "CreationTime": connection.creation_time,
+                    "Name": connection.name,
                     "LastModifiedTime": connection.creation_time,
                     "AuthorizationType": connection.authorization_type,
                 }

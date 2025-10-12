@@ -1,0 +1,17 @@
+{
+  "version": 1.0,
+  "merge": {
+    "shapes": {
+      "ConfigurationSetDoesNotExist": {
+        "type": "structure",
+        "members": {},
+        "documentation": "Maps the old v1 error code to the new v2 code and status code.",
+        "error": {
+          "code": "NotFoundException",
+          "httpStatusCode": 404
+        },
+        "exception": true
+      }
+    }
+  }
+}

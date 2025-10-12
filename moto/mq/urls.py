@@ -1,4 +1,5 @@
 """mq base URL and path."""
+
 from .responses import MQResponse
 
 url_bases = [

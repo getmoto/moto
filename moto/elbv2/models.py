@@ -3,17 +3,18 @@ from collections import OrderedDict
 from typing import Any, Dict, Iterable, List, Optional
 
 from botocore.exceptions import ParamValidationError
-from jinja2 import Template
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import RESTError
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from moto.ec2.models import ec2_backends
+from moto.ec2.models import EC2Backend, ec2_backends
 from moto.ec2.models.subnets import Subnet
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 
+from ..elb.models import register_certificate
+from ..utilities.utils import ARN_PARTITION_REGEX
 from .exceptions import (
     ActionTargetGroupNotFoundError,
     DuplicateListenerError,
@@ -27,6 +28,8 @@ from .exceptions import (
     InvalidDescribeRulesRequest,
     InvalidLoadBalancerActionException,
     InvalidModifyRuleArgumentsError,
+    InvalidProtocol,
+    InvalidProtocolValue,
     InvalidStatusCodeActionTypeError,
     InvalidTargetError,
     InvalidTargetGroupNameError,
@@ -37,6 +40,8 @@ from .exceptions import (
     RuleNotFoundError,
     SubnetNotFoundError,
     TargetGroupNotFoundError,
+    TargetNotRunning,
+    TooManyCertificatesError,
     TooManyTagsError,
     ValidationError,
 )
@@ -63,10 +68,25 @@ class FakeHealthStatus(BaseModel):
     ):
         self.instance_id = instance_id
         self.port = port
-        self.health_port = health_port
+        self.health_check_port = health_port
         self.status = status
         self.reason = reason
         self.description = description
+
+    @property
+    def target(self) -> dict[str, str]:
+        return {
+            "Id": self.instance_id,
+            "Port": self.port,
+        }
+
+    @property
+    def target_health(self) -> dict[str, Optional[str]]:
+        return {
+            "State": self.status,
+            "Reason": self.reason,
+            "Description": self.description,
+        }
 
 
 class FakeTargetGroup(CloudFormationModel):
@@ -75,7 +95,8 @@ class FakeTargetGroup(CloudFormationModel):
     def __init__(
         self,
         name: str,
-        arn: str,
+        account_id: str,
+        region_name: str,
         vpc_id: str,
         protocol: str,
         port: str,
@@ -83,8 +104,8 @@ class FakeTargetGroup(CloudFormationModel):
         healthcheck_protocol: Optional[str] = None,
         healthcheck_port: Optional[str] = None,
         healthcheck_path: Optional[str] = None,
-        healthcheck_interval_seconds: Optional[str] = None,
-        healthcheck_timeout_seconds: Optional[str] = None,
+        healthcheck_interval_seconds: Optional[int] = None,
+        healthcheck_timeout_seconds: Optional[int] = None,
         healthcheck_enabled: Optional[str] = None,
         healthy_threshold_count: Optional[str] = None,
         unhealthy_threshold_count: Optional[str] = None,
@@ -94,7 +115,15 @@ class FakeTargetGroup(CloudFormationModel):
     ):
         # TODO: default values differs when you add Network Load balancer
         self.name = name
-        self.arn = arn
+        self.account_id = account_id
+        self.region_name = region_name
+        tg_id = mock_random.get_random_hex(length=16)
+        self.arn = make_arn_for_target_group(
+            account_id=self.account_id,
+            tg_id=tg_id,
+            name=name,
+            region_name=self.region_name,
+        )
         self.vpc_id = vpc_id
         if target_type == "lambda":
             self.protocol = None
@@ -106,15 +135,17 @@ class FakeTargetGroup(CloudFormationModel):
             self.protocol = protocol
             self.protocol_version = protocol_version
         self.port = port
-        self.healthcheck_protocol = healthcheck_protocol or self.protocol
-        self.healthcheck_port = healthcheck_port or "traffic-port"
-        self.healthcheck_path = healthcheck_path
-        self.healthcheck_interval_seconds = healthcheck_interval_seconds or "30"
-        self.healthcheck_timeout_seconds = healthcheck_timeout_seconds or "10"
+        self.health_check_protocol = healthcheck_protocol or self.protocol
+        self.health_check_port = None
+        if target_type != "lambda":
+            self.health_check_port = healthcheck_port or "traffic-port"
+        self.health_check_path = healthcheck_path
+        self.health_check_interval_seconds = healthcheck_interval_seconds or 30
+        self.health_check_timeout_seconds = healthcheck_timeout_seconds or 10
         self.ip_address_type = (
             ip_address_type or "ipv4" if self.protocol != "GENEVE" else None
         )
-        self.healthcheck_enabled = (
+        self.health_check_enabled = (
             healthcheck_enabled.lower() == "true"
             if healthcheck_enabled in ["true", "false"]
             else True
@@ -122,10 +153,11 @@ class FakeTargetGroup(CloudFormationModel):
         self.healthy_threshold_count = healthy_threshold_count or "5"
         self.unhealthy_threshold_count = unhealthy_threshold_count or "2"
         self.load_balancer_arns: List[str] = []
-        if self.healthcheck_protocol != "TCP":
+        if self.health_check_protocol != "TCP":
             self.matcher: Dict[str, Any] = matcher or {"HttpCode": "200"}
-            self.healthcheck_path = self.healthcheck_path
-            self.healthcheck_port = self.healthcheck_port or str(self.port)
+            self.health_check_path = self.health_check_path
+            if target_type != "lambda":
+                self.health_check_port = self.health_check_port or str(self.port)
         self.target_type = target_type or "instance"
 
         self.attributes = {
@@ -144,6 +176,8 @@ class FakeTargetGroup(CloudFormationModel):
             self.attributes["stickiness.type"] = "source_ip"
 
         self.targets: Dict[str, Dict[str, Any]] = OrderedDict()
+        self.deregistered_targets: Dict[str, Dict[str, Any]] = OrderedDict()
+        self.terminated_targets: Dict[str, Dict[str, Any]] = OrderedDict()
 
     @property
     def physical_resource_id(self) -> str:
@@ -151,48 +185,86 @@ class FakeTargetGroup(CloudFormationModel):
 
     def register(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
+            if instance := self.ec2_backend.get_instance_by_id(target["id"]):
+                if instance.state != "running":
+                    raise TargetNotRunning(instance_id=target["id"])
+
             self.targets[target["id"]] = {
                 "id": target["id"],
                 "port": target.get("port", self.port),
             }
+            self.deregistered_targets.pop(target["id"], None)
 
     def deregister(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
             t = self.targets.pop(target["id"], None)
             if not t:
                 raise InvalidTargetError()
+            self.deregistered_targets[target["id"]] = t
 
     def deregister_terminated_instances(self, instance_ids: List[str]) -> None:
         for target_id in list(self.targets.keys()):
             if target_id in instance_ids:
-                del self.targets[target_id]
+                t = self.targets.pop(target_id)
+                self.terminated_targets[target_id] = t
 
-    def health_for(self, target: Dict[str, Any], ec2_backend: Any) -> FakeHealthStatus:
+    def health_for(
+        self, target: Dict[str, Any], ec2_backend: EC2Backend
+    ) -> FakeHealthStatus:
         t = self.targets.get(target["id"])
         if t is None:
             port = self.port
             if "port" in target:
                 port = target["port"]
+            if target["id"] in self.deregistered_targets:
+                return FakeHealthStatus(
+                    target["id"],
+                    port,
+                    self.health_check_port,
+                    "unused",
+                    "Target.NotRegistered",
+                    "Target is not registered to the target group",
+                )
+            if target["id"] in self.terminated_targets:
+                return FakeHealthStatus(
+                    target["id"],
+                    port,
+                    self.health_check_port,
+                    "draining",
+                    "Target.DeregistrationInProgress",
+                    "Target deregistration is in progress",
+                )
+
+            if target["id"].startswith("i-"):  # EC2 instance ID
+                return FakeHealthStatus(
+                    target["id"],
+                    target.get("Port", 80),
+                    self.health_check_port,
+                    "unused",
+                    "Target.NotRegistered",
+                    "Target is not registered to the target group",
+                )
+
             return FakeHealthStatus(
                 target["id"],
                 port,
-                self.healthcheck_port,
+                self.health_check_port,
                 "unavailable",
                 "Target.NotRegistered",
                 "Target is not registered",
             )
         if t["id"].startswith("i-"):  # EC2 instance ID
             instance = ec2_backend.get_instance_by_id(t["id"])
-            if instance.state == "stopped":
+            if instance and instance.state == "stopped":
                 return FakeHealthStatus(
                     t["id"],
                     t["port"],
-                    self.healthcheck_port,
+                    self.health_check_port,
                     "unused",
                     "Target.InvalidState",
                     "Target is in the stopped state",
                 )
-        return FakeHealthStatus(t["id"], t["port"], self.healthcheck_port, "healthy")
+        return FakeHealthStatus(t["id"], t["port"], self.health_check_port, "healthy")
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -246,6 +318,10 @@ class FakeTargetGroup(CloudFormationModel):
         )
         return target_group
 
+    @property
+    def ec2_backend(self) -> EC2Backend:
+        return ec2_backends[self.account_id][self.region_name]
+
 
 class FakeListener(CloudFormationModel):
     def __init__(
@@ -277,6 +353,8 @@ class FakeListener(CloudFormationModel):
             actions=default_actions,
             is_default=True,
         )
+
+        self.attributes = {"tcp.idle_timeout.seconds": "350"}
 
     @property
     def physical_resource_id(self) -> str:
@@ -324,8 +402,12 @@ class FakeListener(CloudFormationModel):
 
         default_actions = elbv2_backend.convert_and_validate_properties(properties)
         certificates = elbv2_backend.convert_and_validate_certificates(certificates)
+        if certificates:
+            certificate = certificates[0].get("certificate_arn")
+        else:
+            certificate = None
         listener = elbv2_backend.create_listener(
-            load_balancer_arn, protocol, port, ssl_policy, certificates, default_actions
+            load_balancer_arn, protocol, port, ssl_policy, certificate, default_actions
         )
         return listener
 
@@ -373,6 +455,7 @@ class FakeListenerRule(CloudFormationModel):
         self.conditions = conditions
         self.actions = actions
         self.priority = priority
+        self.is_default = False
 
     @property
     def physical_resource_id(self) -> str:
@@ -452,115 +535,13 @@ class FakeAction(BaseModel):
         if "ForwardConfig" in self.data:
             if "TargetGroupStickinessConfig" not in self.data["ForwardConfig"]:
                 self.data["ForwardConfig"]["TargetGroupStickinessConfig"] = {
-                    "Enabled": "false"
+                    "Enabled": False
                 }
 
-    def to_xml(self) -> str:
-        template = Template(
-            """<Type>{{ action.type }}</Type>
-            {% if "Order" in action.data %}
-            <Order>{{ action.data["Order"] }}</Order>
-            {% endif %}
-            {% if action.type == "forward" and "ForwardConfig" in action.data %}
-            <ForwardConfig>
-              <TargetGroups>
-                {% for target_group in action.data["ForwardConfig"]["TargetGroups"] %}
-                <member>
-                  <TargetGroupArn>{{ target_group["TargetGroupArn"] }}</TargetGroupArn>
-                  <Weight>{{ target_group["Weight"] }}</Weight>
-                </member>
-                {% endfor %}
-              </TargetGroups>
-              <TargetGroupStickinessConfig>
-                  <Enabled>{{ action.data["ForwardConfig"]["TargetGroupStickinessConfig"]["Enabled"] }}</Enabled>
-                  {% if "DurationSeconds" in action.data["ForwardConfig"]["TargetGroupStickinessConfig"] %}
-                  <DurationSeconds>{{ action.data["ForwardConfig"]["TargetGroupStickinessConfig"]["DurationSeconds"] }}</DurationSeconds>
-                  {% endif %}
-              </TargetGroupStickinessConfig>
-            </ForwardConfig>
-            {% endif %}
-            {% if action.type == "forward" and "ForwardConfig" not in action.data %}
-            <TargetGroupArn>{{ action.data["TargetGroupArn"] }}</TargetGroupArn>
-            {% elif action.type == "redirect" %}
-            <RedirectConfig>
-                <Protocol>{{ action.data["RedirectConfig"]["Protocol"] }}</Protocol>
-                <Port>{{ action.data["RedirectConfig"]["Port"] }}</Port>
-                <StatusCode>{{ action.data["RedirectConfig"]["StatusCode"] }}</StatusCode>
-                {% if action.data["RedirectConfig"]["Host"] %}<Host>{{ action.data["RedirectConfig"]["Host"] }}</Host>{% endif %}
-                {% if action.data["RedirectConfig"]["Path"] %}<Path>{{ action.data["RedirectConfig"]["Path"] }}</Path>{% endif %}
-                {% if action.data["RedirectConfig"]["Query"] %}<Query>{{ action.data["RedirectConfig"]["Query"] }}</Query>{% endif %}
-            </RedirectConfig>
-            {% elif action.type == "authenticate-cognito" %}
-            <AuthenticateCognitoConfig>
-                <UserPoolArn>{{ action.data["AuthenticateCognitoConfig"]["UserPoolArn"] }}</UserPoolArn>
-                <UserPoolClientId>{{ action.data["AuthenticateCognitoConfig"]["UserPoolClientId"] }}</UserPoolClientId>
-                <UserPoolDomain>{{ action.data["AuthenticateCognitoConfig"]["UserPoolDomain"] }}</UserPoolDomain>
-                {% if "SessionCookieName" in action.data["AuthenticateCognitoConfig"] %}
-                <SessionCookieName>{{ action.data["AuthenticateCognitoConfig"]["SessionCookieName"] }}</SessionCookieName>
-                {% endif %}
-                {% if "Scope" in action.data["AuthenticateCognitoConfig"] %}
-                <Scope>{{ action.data["AuthenticateCognitoConfig"]["Scope"] }}</Scope>
-                {% endif %}
-                {% if "SessionTimeout" in action.data["AuthenticateCognitoConfig"] %}
-                <SessionTimeout>{{ action.data["AuthenticateCognitoConfig"]["SessionTimeout"] }}</SessionTimeout>
-                {% endif %}
-                {% if action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams") %}
-                <AuthenticationRequestExtraParams>
-                    {% for entry in action.data["AuthenticateCognitoConfig"].get("AuthenticationRequestExtraParams", {}).get("entry", {}).values() %}
-                    <member>
-                        <key>{{ entry["key"] }}</key>
-                        <value>{{ entry["value"] }}</value>
-                    </member>
-                    {% endfor %}
-                </AuthenticationRequestExtraParams>
-                {% endif %}
-                {% if "OnUnauthenticatedRequest" in action.data["AuthenticateCognitoConfig"] %}
-                <OnUnauthenticatedRequest>{{ action.data["AuthenticateCognitoConfig"]["OnUnauthenticatedRequest"] }}</OnUnauthenticatedRequest>
-                {% endif %}
-            </AuthenticateCognitoConfig>
-            {% elif action.type == "authenticate-oidc" %}
-            <AuthenticateOidcConfig>
-              <AuthorizationEndpoint>{{ action.data["AuthenticateOidcConfig"]["AuthorizationEndpoint"] }}</AuthorizationEndpoint>
-              <ClientId>{{ action.data["AuthenticateOidcConfig"]["ClientId"] }}</ClientId>
-              {% if "ClientSecret" in action.data["AuthenticateOidcConfig"] %}
-              <ClientSecret>{{ action.data["AuthenticateOidcConfig"]["ClientSecret"] }}</ClientSecret>
-              {% endif %}
-              <Issuer>{{ action.data["AuthenticateOidcConfig"]["Issuer"] }}</Issuer>
-              <TokenEndpoint>{{ action.data["AuthenticateOidcConfig"]["TokenEndpoint"] }}</TokenEndpoint>
-              <UserInfoEndpoint>{{ action.data["AuthenticateOidcConfig"]["UserInfoEndpoint"] }}</UserInfoEndpoint>
-              {% if "OnUnauthenticatedRequest" in action.data["AuthenticateOidcConfig"] %}
-              <OnUnauthenticatedRequest>{{ action.data["AuthenticateOidcConfig"]["OnUnauthenticatedRequest"] }}</OnUnauthenticatedRequest>
-              {% endif %}
-              {% if "UseExistingClientSecret" in action.data["AuthenticateOidcConfig"] %}
-              <UseExistingClientSecret>{{ action.data["AuthenticateOidcConfig"]["UseExistingClientSecret"] }}</UseExistingClientSecret>
-              {% endif %}
-              {% if "SessionTimeout" in action.data["AuthenticateOidcConfig"] %}
-              <SessionTimeout>{{ action.data["AuthenticateOidcConfig"]["SessionTimeout"] }}</SessionTimeout>
-              {% endif %}
-              {% if "SessionCookieName" in action.data["AuthenticateOidcConfig"] %}
-              <SessionCookieName>{{ action.data["AuthenticateOidcConfig"]["SessionCookieName"] }}</SessionCookieName>
-              {% endif %}
-              {% if "Scope" in action.data["AuthenticateOidcConfig"] %}
-              <Scope>{{ action.data["AuthenticateOidcConfig"]["Scope"] }}</Scope>
-              {% endif %}
-              {% if action.data["AuthenticateOidcConfig"].get("AuthenticationRequestExtraParams") %}
-              <AuthenticationRequestExtraParams>
-                  {% for entry in action.data["AuthenticateOidcConfig"].get("AuthenticationRequestExtraParams", {}).get("entry", {}).values() %}
-                  <member><key>{{ entry["key"] }}</key><value>{{ entry["value"] }}</value></member>
-                  {% endfor %}
-              </AuthenticationRequestExtraParams>
-              {% endif %}
-            </AuthenticateOidcConfig>
-            {% elif action.type == "fixed-response" %}
-             <FixedResponseConfig>
-                <ContentType>{{ action.data["FixedResponseConfig"]["ContentType"] }}</ContentType>
-                <MessageBody>{{ action.data["FixedResponseConfig"]["MessageBody"] }}</MessageBody>
-                <StatusCode>{{ action.data["FixedResponseConfig"]["StatusCode"] }}</StatusCode>
-            </FixedResponseConfig>
-            {% endif %}
-            """
-        )
-        return template.render(action=self)
+            for target_group in self.data["ForwardConfig"].get("TargetGroups", []):
+                target_group.setdefault("Weight", 1)
+        # Dynamically give our Action class all properties of the source data.
+        self.__dict__.update(self.data)
 
 
 class FakeBackend(BaseModel):
@@ -572,6 +553,12 @@ class FakeBackend(BaseModel):
         return f"FakeBackend(inp: {self.instance_port}, policies: {self.policy_names})"
 
 
+class AvailabilityZone:
+    def __init__(self, subnet: Subnet) -> None:
+        self.subnet_id = subnet.id
+        self.zone_name = subnet.availability_zone
+
+
 class FakeLoadBalancer(CloudFormationModel):
     VALID_ATTRS = {
         "access_logs.s3.enabled",
@@ -580,6 +567,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "connection_logs.s3.bucket",
         "connection_logs.s3.enabled",
         "connection_logs.s3.prefix",
+        "client_keep_alive.seconds",
         "deletion_protection.enabled",
         "dns_record.client_routing_policy",
         "idle_timeout.timeout_seconds",
@@ -593,6 +581,8 @@ class FakeLoadBalancer(CloudFormationModel):
         "routing.http.xff_header_processing.mode",
         "routing.http2.enabled",
         "waf.fail_open.enabled",
+        "zonal_shift.config.enabled",
+        "secondary_ips.auto_assigned.per_subnet",
     }
 
     def __init__(
@@ -618,17 +608,27 @@ class FakeLoadBalancer(CloudFormationModel):
         self.arn = arn
         self.dns_name = dns_name
         self.state = state
-        self.loadbalancer_type = loadbalancer_type or "application"
+        self.type = loadbalancer_type or "application"
 
-        self.stack = "ipv4"
+        self.ip_address_type = "ipv4"
         self.attrs = {
             # "access_logs.s3.enabled": "false",  # commented out for TF compatibility
-            "access_logs.s3.bucket": None,
-            "access_logs.s3.prefix": None,
+            "access_logs.s3.bucket": "",
+            "access_logs.s3.prefix": "",
             "deletion_protection.enabled": "false",
             # "idle_timeout.timeout_seconds": "60",  # commented out for TF compatibility
             "load_balancing.cross_zone.enabled": "false",
         }
+        # TODO: This was hardcoded in the original XML template and still needs to be implemented.
+        self.canonical_hosted_zone_id = "Z2P70J7EXAMPLE"
+
+    @property
+    def load_balancer_state(self) -> dict[str, str]:
+        return {"Code": self.state}
+
+    @property
+    def availability_zones(self) -> list[AvailabilityZone]:
+        return [AvailabilityZone(subnet) for subnet in self.subnets]
 
     @property
     def physical_resource_id(self) -> str:
@@ -722,23 +722,8 @@ class ELBv2Backend(BaseBackend):
         self.load_balancers: Dict[str, FakeLoadBalancer] = OrderedDict()
         self.tagging_service = TaggingService()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "elasticloadbalancing"
-        )
-
     @property
-    def ec2_backend(self) -> Any:  # type: ignore[misc]
-        """
-        EC2 backend
-
-        :return: EC2 Backend
-        :rtype: moto.ec2.models.EC2Backend
-        """
+    def ec2_backend(self) -> EC2Backend:
         return ec2_backends[self.account_id][self.region_name]
 
     def create_load_balancer(
@@ -762,16 +747,20 @@ class ELBv2Backend(BaseBackend):
             if subnet is None:
                 raise SubnetNotFoundError()
             subnets.append(subnet)
-        for subnet in subnet_mappings or []:
-            subnet_id = subnet["SubnetId"]
+        for subnet_mapping in subnet_mappings or []:
+            subnet_id = subnet_mapping["SubnetId"]
             subnet = self.ec2_backend.get_subnet(subnet_id)
             if subnet is None:
                 raise SubnetNotFoundError()
             subnets.append(subnet)
 
         vpc_id = subnets[0].vpc_id
+        lb_id = mock_random.get_random_hex(length=16)
         arn = make_arn_for_load_balancer(
-            account_id=self.account_id, name=name, region_name=self.region_name
+            account_id=self.account_id,
+            lb_id=lb_id,
+            name=name,
+            region_name=self.region_name,
         )
         dns_name = f"{name}-1.{self.region_name}.elb.amazonaws.com"
 
@@ -1031,6 +1020,42 @@ class ELBv2Backend(BaseBackend):
             else:
                 raise InvalidActionTypeError(action_type, index)
 
+    def _validate_port_and_protocol(
+        self, loadbalancer_type: str, port: Optional[str], protocol: Optional[str]
+    ) -> None:
+        if loadbalancer_type in {"application", "network"}:
+            if port is None:
+                raise ValidationError("A listener port must be specified")
+            if protocol is None:
+                raise ValidationError("A listener protocol must be specified")
+
+            valid_application_protocols = ["HTTP", "HTTPS"]
+            valid_network_protocols = ["UDP", "TCP", "TLS", "TCP_UDP"]
+            all_valid_protocols = (
+                valid_application_protocols + valid_network_protocols + ["GENEVE"]
+            )
+
+            if protocol not in all_valid_protocols:
+                raise InvalidProtocolValue(
+                    protocol, valid_application_protocols + valid_network_protocols
+                )
+
+            if loadbalancer_type == "application":
+                if protocol not in valid_application_protocols:
+                    raise InvalidProtocol(protocol, valid_application_protocols)
+            else:
+                if protocol not in valid_network_protocols:
+                    raise InvalidProtocol(protocol, valid_network_protocols)
+        else:
+            if port is not None:
+                raise ValidationError(
+                    "A port cannot be specified for gateway listeners"
+                )
+            if protocol is not None:
+                raise ValidationError(
+                    "A protocol cannot be specified for gateway listeners"
+                )
+
     def _validate_fixed_response_action(
         self, action: FakeAction, i: int, index: int
     ) -> None:
@@ -1130,7 +1155,7 @@ Member must satisfy regular expression pattern: {expression}"
             from moto.ec2.exceptions import InvalidVPCIdError
 
             try:
-                self.ec2_backend.get_vpc(kwargs.get("vpc_id"))
+                self.ec2_backend.get_vpc(kwargs.get("vpc_id") or "")
             except InvalidVPCIdError:
                 raise ValidationError(
                     f"The VPC ID '{kwargs.get('vpc_id')}' is not found"
@@ -1218,18 +1243,13 @@ Member must satisfy regular expression pattern: {expression}"
         original_kwargs = dict(kwargs)
         kwargs.update(kwargs_patch)
 
-        healthcheck_timeout_seconds = int(
-            str(kwargs.get("healthcheck_timeout_seconds") or "10")
-        )
-        healthcheck_interval_seconds = int(
-            str(kwargs.get("healthcheck_interval_seconds") or "30")
-        )
+        healthcheck_timeout_seconds = kwargs.get("healthcheck_timeout_seconds", 10)
+        healthcheck_interval_seconds = kwargs.get("healthcheck_interval_seconds", 30)
 
         if (
             healthcheck_timeout_seconds is not None
             and healthcheck_interval_seconds is not None
         ):
-
             if healthcheck_interval_seconds < healthcheck_timeout_seconds:
                 message = f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than or equal to the interval '{healthcheck_interval_seconds}'"
                 if protocol in ("HTTP", "HTTPS"):
@@ -1248,11 +1268,13 @@ Member must satisfy regular expression pattern: {expression}"
                     f"Health check timeout '{healthcheck_timeout_seconds}' must be smaller than the interval '{healthcheck_interval_seconds}'"
                 )
 
-        arn = make_arn_for_target_group(
-            account_id=self.account_id, name=name, region_name=self.region_name
-        )
         tags = kwargs.pop("tags", None)
-        target_group = FakeTargetGroup(name, arn, **kwargs)
+        target_group = FakeTargetGroup(
+            name=name,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            **kwargs,
+        )
         self.target_groups[target_group.arn] = target_group
         if tags:
             self.add_tags(resource_arns=[target_group.arn], tags=tags)
@@ -1378,12 +1400,12 @@ Member must satisfy regular expression pattern: {expression}"
         if port in balancer.listeners:
             raise DuplicateListenerError()
 
+        self._validate_port_and_protocol(balancer.type, port, protocol)
         self._validate_actions(default_actions)
 
-        arn = (
-            load_balancer_arn.replace(":loadbalancer/", ":listener/")
-            + f"/{port}{id(self)}"
-        )
+        arn = load_balancer_arn.replace(":loadbalancer/", ":listener/")
+        arn += f"/{mock_random.get_random_hex(16)}"
+
         listener = FakeListener(
             load_balancer_arn,
             arn,
@@ -1394,6 +1416,14 @@ Member must satisfy regular expression pattern: {expression}"
             default_actions,
             alpn_policy,
         )
+        if certificate and not re.search(f"{ARN_PARTITION_REGEX}:iam:", certificate):
+            register_certificate(
+                account_id=self.account_id,
+                region=self.region_name,
+                arn_certificate=certificate,
+                arn_user=arn,
+            )
+
         balancer.listeners[listener.arn] = listener
         for action in default_actions:
             if action.type == "forward":
@@ -1475,7 +1505,6 @@ Member must satisfy regular expression pattern: {expression}"
         target_group_arns: List[str],
         names: Optional[List[str]],
     ) -> Iterable[FakeTargetGroup]:
-
         args = sum(bool(arg) for arg in [load_balancer_arn, target_group_arns, names])
 
         if args > 1:
@@ -1682,7 +1711,7 @@ Member must satisfy regular expression pattern: {expression}"
                 "Internal load balancers cannot be dualstack",
             )
 
-        balancer.stack = ip_type
+        balancer.ip_address_type = ip_type
 
     def set_security_groups(self, arn: str, sec_groups: List[str]) -> None:
         balancer = self.load_balancers.get(arn)
@@ -1701,7 +1730,7 @@ Member must satisfy regular expression pattern: {expression}"
 
     def set_subnets(
         self, arn: str, subnets: List[str], subnet_mappings: List[Dict[str, Any]]
-    ) -> Dict[str, str]:
+    ) -> list[AvailabilityZone]:
         balancer = self.load_balancers.get(arn)
         if balancer is None:
             raise LoadBalancerNotFoundError()
@@ -1732,7 +1761,7 @@ Member must satisfy regular expression pattern: {expression}"
 
         balancer.subnets = subnet_objects
 
-        return sub_zone_list
+        return [AvailabilityZone(subnet) for subnet in subnet_objects]
 
     def _get_subnet(self, sub_zone_list: Dict[str, str], subnet_id: str) -> Subnet:
         subnet = self.ec2_backend.get_subnet(subnet_id)
@@ -1770,8 +1799,8 @@ Member must satisfy regular expression pattern: {expression}"
         health_check_proto: Optional[str] = None,
         health_check_port: Optional[str] = None,
         health_check_path: Optional[str] = None,
-        health_check_interval: Optional[str] = None,
-        health_check_timeout: Optional[str] = None,
+        health_check_interval: Optional[int] = None,
+        health_check_timeout: Optional[int] = None,
         healthy_threshold_count: Optional[str] = None,
         unhealthy_threshold_count: Optional[str] = None,
         http_codes: Optional[str] = None,
@@ -1793,17 +1822,17 @@ Member must satisfy regular expression pattern: {expression}"
         if http_codes is not None and target_group.protocol in ["HTTP", "HTTPS"]:
             target_group.matcher["HttpCode"] = http_codes
         if health_check_interval is not None:
-            target_group.healthcheck_interval_seconds = health_check_interval
+            target_group.health_check_interval_seconds = health_check_interval
         if health_check_path is not None:
-            target_group.healthcheck_path = health_check_path
+            target_group.health_check_path = health_check_path
         if health_check_port is not None:
-            target_group.healthcheck_port = health_check_port
+            target_group.health_check_port = health_check_port
         if health_check_proto is not None:
-            target_group.healthcheck_protocol = health_check_proto
+            target_group.health_check_protocol = health_check_proto
         if health_check_timeout is not None:
-            target_group.healthcheck_timeout_seconds = health_check_timeout
+            target_group.health_check_timeout_seconds = health_check_timeout
         if health_check_enabled is not None:
-            target_group.healthcheck_enabled = health_check_enabled
+            target_group.health_check_enabled = health_check_enabled
         if healthy_threshold_count is not None:
             target_group.healthy_threshold_count = healthy_threshold_count
         if unhealthy_threshold_count is not None:
@@ -1848,7 +1877,7 @@ Member must satisfy regular expression pattern: {expression}"
                     )
                 listener.certificate = default_cert_arn
                 # TODO: Calling describe_listener_certificates after this operation returns a wrong result
-                listener.certificates = certificates  # type: ignore[assignment]
+                listener.certificates = [c["certificate_arn"] for c in certificates]
             elif len(certificates) == 0 and len(listener.certificates) == 0:  # type: ignore[arg-type]
                 raise RESTError(
                     "CertificateWereNotPassed",
@@ -1886,7 +1915,7 @@ Member must satisfy regular expression pattern: {expression}"
 
         from moto.iam import iam_backends
 
-        cert = iam_backends[self.account_id]["global"].get_certificate_by_arn(
+        cert = iam_backends[self.account_id][self.partition].get_certificate_by_arn(
             certificate_arn
         )
         if cert is not None:
@@ -1918,6 +1947,9 @@ Member must satisfy regular expression pattern: {expression}"
         listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[
             0
         ]
+        # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html
+        if len(certificates) + len(listener.certificates) > 25:
+            raise TooManyCertificatesError()
         listener.certificates.extend([c["certificate_arn"] for c in certificates])
         return listener.certificates
 
@@ -1948,6 +1980,7 @@ Member must satisfy regular expression pattern: {expression}"
 
     def remove_tags(self, resource_arns: List[str], tag_keys: List[str]) -> None:
         for arn in resource_arns:
+            self._get_resource_by_arn(arn)
             self.tagging_service.untag_resource_using_names(arn, tag_keys)
 
     def describe_tags(self, resource_arns: List[str]) -> Dict[str, Dict[str, str]]:
@@ -1955,6 +1988,21 @@ Member must satisfy regular expression pattern: {expression}"
             arn: self.tagging_service.get_tag_dict_for_resource(arn)
             for arn in resource_arns
         }
+
+    def describe_listener_attributes(self, listener_arn: str) -> Dict[str, str]:
+        listener = self.describe_listeners(
+            load_balancer_arn=None, listener_arns=[listener_arn]
+        )[0]
+        return listener.attributes
+
+    def modify_listener_attributes(
+        self, listener_arn: str, attrs: List[Dict[str, str]]
+    ) -> Dict[str, str]:
+        listener = self.describe_listeners(
+            load_balancer_arn=None, listener_arns=[listener_arn]
+        )[0]
+        listener.attributes.update({a["Key"]: a["Value"] for a in attrs})
+        return listener.attributes
 
     def _get_resource_by_arn(self, arn: str) -> Any:
         if ":targetgroup" in arn:
@@ -1990,4 +2038,4 @@ Member must satisfy regular expression pattern: {expression}"
         return resource
 
 
-elbv2_backends = BackendDict(ELBv2Backend, "ec2")
+elbv2_backends = BackendDict(ELBv2Backend, "elbv2")

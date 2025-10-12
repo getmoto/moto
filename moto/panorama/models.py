@@ -1,5 +1,6 @@
 import base64
 import json
+import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
@@ -8,7 +9,12 @@ from dateutil.tz import tzutc
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal.managed_state_model import ManagedState
-from moto.panorama.utils import deep_convert_datetime_to_isoformat, hash_device_name
+from moto.panorama.utils import (
+    arn_formatter,
+    deep_convert_datetime_to_isoformat,
+    generate_package_id,
+    hash_name,
+)
 from moto.utilities.paginator import paginate
 
 from .exceptions import (
@@ -21,6 +27,18 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 123,
         "unique_attribute": "device_id",
+    },
+    "list_nodes": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 123,
+        "unique_attribute": "package_id",
+    },
+    "list_application_instances": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 123,
+        "unique_attribute": "application_instance_id",
     },
 }
 
@@ -91,10 +109,8 @@ class Device(BaseObject):
         self.certificates = base64.b64encode("certificate".encode("utf-8")).decode(
             "utf-8"
         )
-        self.arn = (
-            f"arn:aws:panorama:{self.region_name}:{self.account_id}:device/{self.name}"
-        )
-        self.device_id = f"device-{hash_device_name(name)}"
+        self.arn = arn_formatter("device", self.name, self.account_id, self.region_name)
+        self.device_id = f"device-{hash_name(name)}"
         self.iot_thing_name = ""
 
         self.alternate_softwares = [
@@ -221,10 +237,171 @@ class Device(BaseObject):
         return {"DeviceId": self.device_id}
 
 
+class Package(BaseObject):
+    def __init__(
+        self,
+        category: str,
+        description: str,
+        name: str,
+        account_id: str,
+        region_name: str,
+        package_name: str,
+        package_version: str,
+    ):
+        self.category = category
+        self.description = description
+        self.name = name
+        now = datetime.now(tzutc())
+        self.created_time = now
+        self.last_updated_time = now
+        self.package_name = package_name
+        self.patch_version = generate_package_id(self.package_name)
+        self.package_version = package_version
+        self.output_package_name = f"{self.package_name}-{self.package_version}-{self.patch_version[:8]}-{self.name}"
+        self.owner_account = account_id
+        self.package_id = f"package-{hash_name(package_name)}"
+        self.package_arn = arn_formatter(
+            "package", self.package_id, account_id, region_name
+        )
+
+    def response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        response_object = deep_convert_datetime_to_isoformat(response_object)
+        return response_object
+
+    def response_listed(self) -> Dict[str, Any]:
+        package_response = self.response_object()
+        return package_response
+
+
+class ApplicationInstance(BaseObject):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        default_runtime_context_device: str,
+        default_runtime_context_device_name: str,
+        description: str,
+        manifest_overrides_payload: Dict[str, str],
+        manifest_payload: Dict[str, str],
+        name: str,
+        runtime_role_arn: str,
+        tags: Dict[str, str],
+    ) -> None:
+        self.default_runtime_context_device = default_runtime_context_device
+        self.default_runtime_context_device_name = default_runtime_context_device_name
+        self.description = description
+        self.manifest_overrides_payload = manifest_overrides_payload
+        self.manifest_payload = manifest_payload
+        self.name = name
+        self.runtime_role_arn = runtime_role_arn
+        self.tags = tags
+        now = datetime.now(tzutc())
+        self.created_time = now
+        self.last_updated_time = now
+        name = f"{self.name}-{self.created_time}"
+        self.application_instance_id = f"applicationInstance-{hash_name(name).lower()}"
+        self.arn = arn_formatter(
+            "application-instance",
+            self.application_instance_id,
+            account_id=account_id,
+            region_name=region_name,
+        )
+        self.health_status = "RUNNING"
+        self.status = "DEPLOYMENT_SUCCEEDED"
+        self.status_description = "string"
+        self.runtime_context_states = [
+            {
+                "DesiredState": "RUNNING",
+                "DeviceReportedStatus": "RUNNING",
+                "DeviceReportedTime": now,
+                "RuntimeContextName": "string",
+            },
+        ]
+
+    def add_new_runtime_context_states(
+        self, desired_state: str, device_reported_status: str
+    ) -> None:
+        now = datetime.now(tzutc())
+        self.runtime_context_states.append(
+            {
+                "DesiredState": desired_state,
+                "DeviceReportedStatus": device_reported_status,
+                "DeviceReportedTime": now,
+                "RuntimeContextName": "string",
+            }
+        )
+
+    def response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        response_object = deep_convert_datetime_to_isoformat(response_object)
+        return response_object
+
+    def response_listed(self) -> Dict[str, Any]:
+        package_response = self.response_object()
+        return package_response
+
+    def response_created(self) -> Dict[str, str]:
+        return {"ApplicationInstanceId": self.application_instance_id}
+
+    def response_describe(self) -> Dict[str, str]:
+        response_object = self.response_object()
+        return response_object
+
+
+class Node(BaseObject):
+    def __init__(
+        self,
+        job_id: str,
+        job_tags: List[Dict[str, Union[str, Dict[str, str]]]],
+        node_description: str,
+        node_name: str,
+        output_package_name: str,
+        output_package_version: str,
+        template_parameters: Dict[str, str],
+        template_type: str,
+    ) -> None:
+        self.job_id = job_id
+        now = datetime.now(tzutc())
+        self.created_time = now
+        self.last_updated_time = now
+        self.job_tags = job_tags
+        self.node_description = node_name
+        self.status = "PENDING"
+        self.node_name = node_name
+        self.output_package_name = output_package_name
+        self.output_package_version = output_package_version
+        self.template_parameters = self.protect_secrets(template_parameters)
+        self.template_type = template_type
+
+    def response_object(self) -> Dict[str, Any]:
+        response_object = super().gen_response_object()
+        response_object = deep_convert_datetime_to_isoformat(response_object)
+        return response_object
+
+    def response_created(self) -> Dict[str, str]:
+        return {"JobId": self.job_id}
+
+    def response_described(self) -> Dict[str, Any]:
+        return self.response_object()
+
+    @staticmethod
+    def protect_secrets(template_parameters: Dict[str, str]) -> Dict[str, str]:
+        for key in template_parameters.keys():
+            if key.lower() == "password":
+                template_parameters[key] = "SAVED_AS_SECRET"
+            if key.lower() == "username":
+                template_parameters[key] = "SAVED_AS_SECRET"
+        return template_parameters
+
+
 class PanoramaBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.devices_memory: Dict[str, Device] = {}
+        self.node_from_template_memory: Dict[str, Node] = {}
+        self.nodes_memory: Dict[str, Package] = {}
+        self.application_instances_memory: Dict[str, ApplicationInstance] = {}
 
     def provision_device(
         self,
@@ -290,6 +467,122 @@ class PanoramaBackend(BaseBackend):
 
     def delete_device(self, device_id: str) -> Device:
         return self.devices_memory.pop(device_id)
+
+    def create_node_from_template_job(
+        self,
+        job_tags: List[Dict[str, Union[str, Dict[str, str]]]],
+        node_description: str,
+        node_name: str,
+        output_package_name: str,
+        output_package_version: str,
+        template_parameters: Dict[str, str],
+        template_type: str,
+    ) -> Node:
+        job_id = str(uuid.uuid4()).lower()
+        self.node_from_template_memory[job_id] = Node(
+            job_id=job_id,
+            job_tags=job_tags,
+            node_description=node_description,
+            node_name=node_name,
+            output_package_name=output_package_name,
+            output_package_version=output_package_version,
+            template_parameters=template_parameters,
+            template_type=template_type,
+        )
+        if template_type == "RTSP_CAMERA_STREAM":
+            package = Package(
+                category="MEDIA_SOURCE",
+                description=node_description,
+                name=node_name,
+                account_id=self.account_id,
+                region_name=self.region_name,
+                package_name=output_package_name,
+                package_version=output_package_version,
+            )
+            self.nodes_memory[package.package_id] = package
+
+        return self.node_from_template_memory[job_id]
+
+    def describe_node_from_template_job(self, job_id: str) -> Node:
+        return self.node_from_template_memory[job_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_nodes(self, category: str) -> List[Package]:
+        category_nodes = list(
+            filter(
+                lambda x: x.category == category,
+                self.nodes_memory.values(),
+            )
+        )
+        return category_nodes
+
+    def create_application_instance(
+        self,
+        application_instance_id_to_replace: Optional[str],
+        default_runtime_context_device: str,
+        description: str,
+        manifest_overrides_payload: Dict[str, str],
+        manifest_payload: Dict[str, str],
+        name: str,
+        runtime_role_arn: str,
+        tags: Dict[str, str],
+    ) -> ApplicationInstance:
+        device = self.devices_memory.get(default_runtime_context_device)
+        if device is None:
+            raise ValidationError(f"Device {default_runtime_context_device} not found")
+        if (
+            application_instance_id_to_replace
+            and application_instance_id_to_replace in self.application_instances_memory
+        ):
+            removed_application_instance = self.application_instances_memory[
+                application_instance_id_to_replace
+            ]
+            removed_application_instance.status = "REMOVAL_SUCCEEDED"
+            removed_application_instance.add_new_runtime_context_states(
+                desired_state="REMOVED", device_reported_status="REMOVAL_IN_PROGRESS"
+            )
+
+        application_instance = ApplicationInstance(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            default_runtime_context_device=default_runtime_context_device,
+            default_runtime_context_device_name=device.name,
+            description=description,
+            manifest_overrides_payload=manifest_overrides_payload,
+            manifest_payload=manifest_payload,
+            name=name,
+            runtime_role_arn=runtime_role_arn,
+            tags=tags,
+        )
+        self.application_instances_memory[
+            application_instance.application_instance_id
+        ] = application_instance
+        return application_instance
+
+    def describe_application_instance(
+        self, application_instance_id: str
+    ) -> ApplicationInstance:
+        application_instance = self.application_instances_memory[
+            application_instance_id
+        ]
+        return application_instance
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_instances(
+        self,
+        device_id: Optional[str],
+        status_filter: Optional[str],
+    ) -> List[ApplicationInstance]:
+        filtered_application_instances = filter(
+            lambda x: x.status == status_filter if status_filter else True,
+            filter(
+                lambda x: x.default_runtime_context_device == device_id
+                if device_id
+                else True,
+                self.application_instances_memory.values(),
+            ),
+        )
+        return list(filtered_application_instances)
 
 
 panorama_backends = BackendDict(

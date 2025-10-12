@@ -7,7 +7,6 @@ class ResourceNotFoundError(JsonRESTError):
 
 
 class InvalidNameException(JsonRESTError):
-
     message = "1 validation error detected: Value '{}' at 'identityPoolName' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w\\s+=,.@-]+"
 
     def __init__(self, name: str):

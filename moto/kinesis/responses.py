@@ -53,7 +53,14 @@ class KinesisResponse(BaseResponse):
             has_more_streams = True
 
         return json.dumps(
-            {"HasMoreStreams": has_more_streams, "StreamNames": streams_resp}
+            {
+                "HasMoreStreams": has_more_streams,
+                "StreamNames": streams_resp,
+                "StreamSummaries": [
+                    stream.to_json_summary()["StreamDescriptionSummary"]
+                    for stream in streams
+                ],
+            }
         )
 
     def delete_stream(self) -> str:
@@ -157,7 +164,7 @@ class KinesisResponse(BaseResponse):
             limit=max_results,
             next_token=next_token,
         )
-        res = {"Shards": shards, "NextToken": token}
+        res = {"Shards": [s.to_json() for s in shards], "NextToken": token}
         return json.dumps(res)
 
     def update_shard_count(self) -> str:
@@ -318,3 +325,28 @@ class KinesisResponse(BaseResponse):
         stream_mode = self._get_param("StreamModeDetails")
         self.kinesis_backend.update_stream_mode(stream_arn, stream_mode)
         return "{}"
+
+    def put_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceARN")
+        policy = self._get_param("Policy")
+        self.kinesis_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            policy_doc=policy,
+        )
+        return json.dumps(dict())
+
+    def get_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceARN")
+        policy = self.kinesis_backend.get_resource_policy(resource_arn=resource_arn)
+        return json.dumps({"Policy": policy})
+
+    def delete_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceARN")
+        self.kinesis_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(dict())
+
+    def describe_limits(self) -> str:
+        limits = self.kinesis_backend.describe_limits()
+        return json.dumps(limits)

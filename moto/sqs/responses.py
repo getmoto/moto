@@ -35,7 +35,7 @@ from .utils import (
 
 
 def jsonify_error(
-    method: Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]]
+    method: Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]],
 ) -> Callable[["SQSResponse"], Union[str, TYPE_RESPONSE]]:
     """
     The decorator to convert an RESTError to JSON, if necessary
@@ -54,7 +54,6 @@ def jsonify_error(
 
 
 class SQSResponse(BaseResponse):
-
     region_regex = re.compile(r"://(.+?)\.queue\.amazonaws\.com")
 
     def __init__(self) -> None:
@@ -137,10 +136,18 @@ class SQSResponse(BaseResponse):
     def call_action(self) -> TYPE_RESPONSE:
         status_code, headers, body = super().call_action()
         if status_code == 404:
-            queue_name = self.querystring.get("QueueName", [""])[0]
-            template = self.response_template(ERROR_INEXISTENT_QUEUE)
-            response = template.render(queue_name=queue_name)
-            return 404, headers, response
+            if self.is_json():
+                err = {
+                    "__type": "com.amazonaws.sqs#QueueDoesNotExist",
+                    "message": "The specified queue does not exist.",
+                }
+                headers["x-amzn-query-error"] = (
+                    "AWS.SimpleQueueService.NonExistentQueue;Sender"
+                )
+                body = json.dumps(err)
+            else:
+                body = self.response_template(ERROR_INEXISTENT_QUEUE).render()
+            status_code = 400
         return status_code, headers, body
 
     def _error(self, code: str, message: str, status: int = 400) -> TYPE_RESPONSE:
@@ -482,6 +489,9 @@ class SQSResponse(BaseResponse):
         else:
             receipts = self._get_multi_param("DeleteMessageBatchRequestEntry")
 
+        if not receipts:
+            raise EmptyBatchRequest(action="Delete")
+
         for r in receipts:
             for key in list(r.keys()):
                 if key == "Id":
@@ -521,6 +531,14 @@ class SQSResponse(BaseResponse):
             message_attributes = self._get_multi_param("message_attributes")
         if not message_attributes:
             message_attributes = extract_input_message_attributes(self.querystring)
+        if self.is_json():
+            message_system_attributes = self._get_param("MessageSystemAttributeNames")
+        else:
+            message_system_attributes = self._get_multi_param(
+                "message_system_attributes"
+            )
+        if not message_system_attributes:
+            message_system_attributes = set()
 
         if self.is_json():
             attribute_names = self._get_param("AttributeNames", [])
@@ -577,14 +595,28 @@ class SQSResponse(BaseResponse):
         )
 
         attributes = {
-            "approximate_first_receive_timestamp": False,
-            "approximate_receive_count": False,
-            "message_deduplication_id": False,
-            "message_group_id": False,
-            "sender_id": False,
-            "sent_timestamp": False,
-            "sequence_number": False,
+            "approximate_first_receive_timestamp": "ApproximateFirstReceiveTimestamp"
+            in message_system_attributes,
+            "approximate_receive_count": "ApproximateReceiveCount"
+            in message_system_attributes,
+            "message_deduplication_id": "MessageDeduplicationId"
+            in message_system_attributes,
+            "message_group_id": "MessageGroupId" in message_system_attributes,
+            "sender_id": "SenderId" in message_system_attributes,
+            "sent_timestamp": "SentTimestamp" in message_system_attributes,
+            "sequence_number": "SequenceNumber" in message_system_attributes,
         }
+
+        if "All" in message_system_attributes:
+            attributes = {
+                "approximate_first_receive_timestamp": True,
+                "approximate_receive_count": True,
+                "message_deduplication_id": True,
+                "message_group_id": True,
+                "sender_id": True,
+                "sent_timestamp": True,
+                "sequence_number": True,
+            }
 
         for attribute in attributes:
             pascalcase_name = camelcase_to_pascal(underscores_to_camelcase(attribute))
@@ -617,9 +649,9 @@ class SQSResponse(BaseResponse):
                         message.approximate_first_receive_timestamp
                     )
                 if attributes["message_deduplication_id"]:
-                    msg["Attributes"][
-                        "MessageDeduplicationId"
-                    ] = message.deduplication_id
+                    msg["Attributes"]["MessageDeduplicationId"] = (
+                        message.deduplication_id
+                    )
                 if attributes["message_group_id"] and message.group_id is not None:
                     msg["Attributes"]["MessageGroupId"] = message.group_id
                 if message.system_attributes and message.system_attributes.get(
@@ -685,7 +717,13 @@ class SQSResponse(BaseResponse):
         )
         label = self._get_param("Label")
 
-        self.sqs_backend.add_permission(queue_name, actions, account_ids, label)
+        self.sqs_backend.add_permission(
+            region_name=self.region,
+            queue_name=queue_name,
+            actions=actions,
+            account_ids=account_ids,
+            label=label,
+        )
 
         return self._empty_response(ADD_PERMISSION_RESPONSE)
 

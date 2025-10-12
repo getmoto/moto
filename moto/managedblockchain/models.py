@@ -415,9 +415,9 @@ class ManagedBlockchainMember(BaseModel):
         self.status = "DELETED"
 
     def update(self, logpublishingconfiguration: Dict[str, Any]) -> None:
-        self.member_configuration[
-            "LogPublishingConfiguration"
-        ] = logpublishingconfiguration
+        self.member_configuration["LogPublishingConfiguration"] = (
+            logpublishingconfiguration
+        )
 
 
 class ManagedBlockchainNode(BaseModel):

@@ -1,3 +1,5 @@
+import uuid
+
 import boto3
 import botocore
 import pytest
@@ -5,6 +7,7 @@ import requests
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
+from moto.route53.models import HostedZoneIdentifier
 
 
 @mock_aws
@@ -212,6 +215,67 @@ def test_list_resource_record_set_unknown_type():
 
 
 @mock_aws
+@pytest.mark.parametrize("invalid_char", [" ", "\t"])
+def test_list_resource_record_set_invalid_start_record_name(invalid_char):
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone_name = f"{str(uuid.uuid4())[0:6]}.getmoto.com."
+    record_name = f"i{invalid_char}d.e.com."
+    zone = conn.create_hosted_zone(
+        Name=zone_name, CallerReference=f"creation of {zone_name}"
+    )["HostedZone"]
+
+    with pytest.raises(ClientError) as ex:
+        conn.list_resource_record_sets(
+            HostedZoneId=zone["Id"], StartRecordName=record_name
+        )
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidInput"
+    assert (
+        err["Message"]
+        == f"FATAL problem: UnsupportedCharacter (Value contains unsupported characters) encountered with '{invalid_char}'"
+    )
+
+    with pytest.raises(ClientError) as exc:
+        conn.change_resource_record_sets(
+            HostedZoneId=zone["Id"],
+            ChangeBatch={
+                "Changes": [
+                    {
+                        "Action": "CREATE",
+                        "ResourceRecordSet": {"Name": record_name, "Type": "TXT"},
+                    }
+                ]
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidChangeBatch"
+    assert (
+        err["Message"]
+        == f"FATAL problem: UnsupportedCharacter (Value contains unsupported characters) encountered with '{invalid_char}'"
+    )
+
+
+@mock_aws
+@pytest.mark.parametrize("valid_char", ["*", ".", "\\t", "\\ ", "国", "}", "\\ç"])
+def test_list_resource_record_set_valid_characters(valid_char):
+    """
+    Validation that we can use odd characters as part of the domain name
+    Moto does not have parity in domain name validation, but at least we are not _too_ strict
+    """
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone_name = f"{str(uuid.uuid4())[0:6]}.getmoto.com."
+    record_name = f"i{valid_char}d.e.com."
+    zone = conn.create_hosted_zone(
+        Name=zone_name, CallerReference=f"creation of {zone_name}"
+    )["HostedZone"]
+
+    conn.list_resource_record_sets(HostedZoneId=zone["Id"], StartRecordName=record_name)
+
+
+@mock_aws
 def test_use_health_check_in_resource_record_set():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -333,6 +397,63 @@ def test_deleting_weighted_route():
 
 
 @mock_aws
+def test_create_delete_create():
+    """
+    Validation that we can create and delete a record set multiple times
+    """
+    conn = boto3.client("route53", region_name="us-east-1")
+
+    zone = conn.create_hosted_zone(
+        Name="testdns.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone_id = zone["HostedZone"]["Id"]
+
+    def _build_change_payload(action):
+        return [
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "record.testdns.aws.com",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "192.168.1.1"}],
+                },
+            },
+            {
+                "Action": action.upper(),
+                "ResourceRecordSet": {
+                    "Name": "cname.testdns.aws.com",
+                    "Type": "CNAME",
+                    "ResourceRecords": [{"Value": "example.com"}],
+                },
+            },
+        ]
+
+    for i in range(10):
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("create")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 1
+
+        conn.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch={"Changes": _build_change_payload("delete")},
+        )
+
+        response = conn.list_resource_record_sets(
+            HostedZoneId=zone_id,
+            StartRecordName="record.testdns.aws.com",
+        )["ResourceRecordSets"]
+        assert len(response) == 0
+
+
+@mock_aws
 def test_deleting_latency_route():
     conn = boto3.client("route53", region_name="us-east-1")
 
@@ -414,7 +535,7 @@ def test_list_or_change_tags_for_resource_request():
             "HealthThreshold": 123,
         },
     )
-    healthcheck_id = health_check["HealthCheck"]["Id"]
+    healthcheck_id = health_check["HealthCheck"]["Id"].replace("/hostedzone/", "")
 
     # confirm this works for resources with zero tags
     response = conn.list_tags_for_resource(
@@ -485,6 +606,135 @@ def test_list_or_change_tags_for_resource_request():
         ResourceType="healthcheck", ResourceId=healthcheck_id
     )
     assert response["ResourceTagSet"]["Tags"] == []
+
+
+@mock_aws
+def test_list_tags_for_resources():
+    conn = boto3.client("route53", region_name="us-east-1")
+    # Create two hosted zones
+    zone1 = conn.create_hosted_zone(
+        Name="testdns1.aws.com", CallerReference=str(hash("foo"))
+    )
+    zone1_id = zone1["HostedZone"]["Id"].replace("/hostedzone/", "")
+    zone2 = conn.create_hosted_zone(
+        Name="testdns2.aws.com", CallerReference=str(hash("bar"))
+    )
+    zone2_id = zone2["HostedZone"]["Id"].replace("/hostedzone/", "")
+
+    # Create two healthchecks
+    health_check1 = conn.create_health_check(
+        CallerReference="foo",
+        HealthCheckConfig={
+            "IPAddress": "192.0.2.44",
+            "Port": 123,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "RequestInterval": 30,
+            "FailureThreshold": 123,
+            "HealthThreshold": 123,
+        },
+    )
+    healthcheck1_id = health_check1["HealthCheck"]["Id"]
+
+    health_check2 = conn.create_health_check(
+        CallerReference="bar",
+        HealthCheckConfig={
+            "IPAddress": "192.0.2.44",
+            "Port": 123,
+            "Type": "HTTP",
+            "ResourcePath": "/",
+            "RequestInterval": 30,
+            "FailureThreshold": 123,
+            "HealthThreshold": 123,
+        },
+    )
+    healthcheck2_id = health_check2["HealthCheck"]["Id"]
+
+    # confirm this works for resources with zero tags for hostedzone
+    response = conn.list_tags_for_resources(
+        ResourceIds=[zone1_id, zone2_id], ResourceType="hostedzone"
+    )
+
+    for set in response["ResourceTagSets"]:
+        assert set["Tags"] == []
+
+    # confirm this works for resources with zero tags for healthchecks
+    response = conn.list_tags_for_resources(
+        ResourceIds=[healthcheck1_id, healthcheck2_id], ResourceType="healthcheck"
+    )
+
+    for set in response["ResourceTagSets"]:
+        assert set["Tags"] == []
+
+    tag1 = {"Key": "Deploy", "Value": "True"}
+    tag2 = {"Key": "Name", "Value": "UnitTest"}
+    tag3 = {"Key": "Owner", "Value": "Alice"}
+    tag4 = {"Key": "License", "Value": "MIT"}
+
+    conn.change_tags_for_resource(
+        ResourceType="hostedzone", ResourceId=zone1_id, AddTags=[tag1, tag2]
+    )
+    conn.change_tags_for_resource(
+        ResourceType="hostedzone", ResourceId=zone2_id, AddTags=[tag3, tag4]
+    )
+
+    conn.change_tags_for_resource(
+        ResourceType="healthcheck", ResourceId=healthcheck1_id, AddTags=[tag1, tag2]
+    )
+    conn.change_tags_for_resource(
+        ResourceType="healthcheck", ResourceId=healthcheck2_id, AddTags=[tag3, tag4]
+    )
+
+    # Test hostedzone
+    response = conn.list_tags_for_resources(
+        ResourceIds=[zone1_id, zone2_id], ResourceType="hostedzone"
+    )
+    assert len(response["ResourceTagSets"]) == 2
+    for set in response["ResourceTagSets"]:
+        assert set["ResourceId"] in (zone1_id, zone2_id)
+        assert set["ResourceType"] == "hostedzone"
+        if set["ResourceId"] == zone1_id:
+            assert tag1 in set["Tags"]
+            assert tag2 in set["Tags"]
+            assert tag3 not in set["Tags"]
+            assert tag4 not in set["Tags"]
+        elif set["ResourceId"] == zone2_id:
+            assert tag1 not in set["Tags"]
+            assert tag2 not in set["Tags"]
+            assert tag3 in set["Tags"]
+            assert tag4 in set["Tags"]
+
+    # Test hostedzone with single resource
+    response = conn.list_tags_for_resources(
+        ResourceIds=[zone1_id], ResourceType="hostedzone"
+    )
+    assert len(response["ResourceTagSets"]) == 1
+    for set in response["ResourceTagSets"]:
+        assert set["ResourceId"] == zone1_id
+        assert set["ResourceType"] == "hostedzone"
+        assert tag1 in set["Tags"]
+        assert tag2 in set["Tags"]
+        assert tag3 not in set["Tags"]
+        assert tag4 not in set["Tags"]
+
+    # Test healthcheck
+    response = conn.list_tags_for_resources(
+        ResourceIds=[healthcheck1_id, healthcheck2_id], ResourceType="healthcheck"
+    )
+    assert len(response["ResourceTagSets"]) == 2
+    for set in response["ResourceTagSets"]:
+        assert set["ResourceId"] in (healthcheck1_id, healthcheck2_id)
+        assert set["ResourceType"] == "healthcheck"
+        if set["ResourceId"] == healthcheck1_id:
+            assert tag1 in set["Tags"]
+            assert tag2 in set["Tags"]
+            assert tag3 not in set["Tags"]
+            assert tag4 not in set["Tags"]
+        elif set["ResourceId"] == healthcheck2_id:
+            assert tag1 not in set["Tags"]
+            assert tag2 not in set["Tags"]
+            assert tag3 in set["Tags"]
+            assert tag4 in set["Tags"]
 
 
 @mock_aws
@@ -905,7 +1155,7 @@ def test_change_resource_record_set__delete_should_match_create():
                         "Action": "DELETE",
                         "ResourceRecordSet": {
                             "Name": name,
-                            "Type": "A"
+                            "Type": "A",
                             # Missing TTL and ResourceRecords
                         },
                     }
@@ -1604,3 +1854,31 @@ def test_conflicting_domain_exists(domain1, domain2):
         CallerReference=str(hash("bar")),
         DelegationSetId="2",
     )
+
+
+@mock_aws
+@pytest.mark.skipif(
+    not settings.TEST_DECORATOR_MODE, reason="Can't access the id manager in proxy mode"
+)
+@pytest.mark.parametrize("delegation_set_id", ["delegation_identifier", None])
+def test_create_hosted_zone_with_custom_id(
+    delegation_set_id, set_custom_id, account_id
+):
+    static_hosted_zone_id = "JP7YCKDZ51I4XA8"
+    hosted_zone_name = f"{str(uuid.uuid4())[0:6]}.getmoto.com."
+    region_name = "us-east-1"
+    set_custom_id(
+        HostedZoneIdentifier(account_id, hosted_zone_name, delegation_set_id),
+        static_hosted_zone_id,
+    )
+
+    conn = boto3.client("route53", region_name)
+    payload = {
+        "Name": hosted_zone_name,
+        "CallerReference": str(hash("foo")),
+    }
+    if delegation_set_id:
+        payload["DelegationSetId"] = delegation_set_id
+    hosted_zone = conn.create_hosted_zone(**payload)
+
+    assert hosted_zone["HostedZone"]["Id"] == f"/hostedzone/{static_hosted_zone_id}"

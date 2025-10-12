@@ -20,18 +20,13 @@ init:
 lint:
 	@echo "Running ruff..."
 	ruff check moto tests
-	@echo "Running black... "
-	$(eval black_version := $(shell grep "^black==" requirements-dev.txt | sed "s/black==//"))
-	@echo "(Make sure you have black-$(black_version) installed, as other versions will produce different results)"
-	black --check moto/ tests/
-	@echo "Running pylint..."
-	pylint -j 0 moto tests
+	ruff format --check moto tests
 	@echo "Running MyPy..."
 	mypy --install-types --non-interactive
 
 format:
-	black moto/ tests/
-	ruff --fix moto/ tests/
+	ruff format moto/ tests/
+	ruff check --fix moto/ tests/
 
 test-only:
 	rm -f .coverage
@@ -42,12 +37,6 @@ test-only:
 	MOTO_CALL_RESET_API=false pytest -sv --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS) --dist loadscope
 
 test: lint test-only
-
-terraformtests:
-	@echo "Make sure that the MotoServer is already running on port 4566 (moto_server -p 4566)"
-	@echo "USAGE: make terraformtests SERVICE_NAME=acm TEST_NAMES=TestAccACMCertificate"
-	@echo ""
-	cd tests/terraformtests && bin/run_go_test $(SERVICE_NAME) "$(TEST_NAMES)"
 
 test_server:
 	@TEST_SERVER_MODE=true pytest -sv --cov=moto --cov-report xml ./tests/

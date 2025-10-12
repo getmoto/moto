@@ -1,6 +1,5 @@
 import copy
 import json
-import os
 import re
 import sys
 import warnings
@@ -8,7 +7,7 @@ from collections import OrderedDict
 from enum import Enum, unique
 from json import JSONDecodeError
 from operator import eq, ge, gt, le, lt
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 import requests
 
@@ -33,11 +32,32 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.arns import parse_arn
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import (
+    ARN_PARTITION_REGEX,
+    CamelToUnderscoresWalker,
+    get_partition,
+)
 
-from .utils import _BASE_EVENT_MESSAGE, PAGINATION_MODEL, EventMessageType
+from .utils import (
+    _BASE_EVENT_MESSAGE,
+    PAGINATION_MODEL,
+    EventMessageType,
+    EventTemplateParser,
+)
+
+if TYPE_CHECKING:
+    from moto.secretsmanager.models import SecretsManagerBackend
 
 # Sentinel to signal the absence of a field for `Exists` pattern matching
 UNDEFINED = object()
+
+
+def get_secrets_manager_backend(
+    account_id: str, region: str
+) -> "SecretsManagerBackend":
+    from moto.secretsmanager import secretsmanager_backends
+
+    return secretsmanager_backends[account_id][region]
 
 
 class Rule(CloudFormationModel):
@@ -74,7 +94,7 @@ class Rule(CloudFormationModel):
             "" if self.event_bus_name == "default" else f"{self.event_bus_name}/"
         )
 
-        return f"arn:aws:events:{self.region_name}:{self.account_id}:rule/{event_bus_name}{self.name}"
+        return f"arn:{get_partition(self.region_name)}:events:{self.region_name}:{self.account_id}:rule/{event_bus_name}{self.name}"
 
     @property
     def physical_resource_id(self) -> str:
@@ -95,7 +115,8 @@ class Rule(CloudFormationModel):
         self.state = "DISABLED"
 
     def delete(self, account_id: str, region_name: str) -> None:
-        event_backend = events_backends[account_id][region_name]
+        event_backend: EventsBackend = events_backends[account_id][region_name]
+        self.remove_targets([t["Id"] for t in self.targets])
         event_backend.delete_rule(name=self.name, event_bus_arn=self.event_bus_name)
 
     def put_targets(self, targets: List[Dict[str, Any]]) -> None:
@@ -113,8 +134,10 @@ class Rule(CloudFormationModel):
             if index is not None:
                 self.targets.pop(index)
 
-    def send_to_targets(self, event: EventMessageType) -> None:
-        if not self.event_pattern.matches_event(event):
+    def send_to_targets(
+        self, original_event: EventMessageType, transform_input: bool = True
+    ) -> None:
+        if not self.event_pattern.matches_event(original_event):
             return
 
         # supported targets
@@ -125,13 +148,22 @@ class Rule(CloudFormationModel):
         for target in self.targets:
             arn = parse_arn(target["Arn"])
 
+            if transform_input:
+                input_transformer = target.get("InputTransformer", {})
+                event = EventTemplateParser.parse(
+                    input_template=input_transformer.get("InputTemplate"),
+                    input_paths_map=input_transformer.get("InputPathsMap", {}),
+                    event=original_event,
+                )
+            else:
+                event = original_event.copy()  # type: ignore[assignment]
+
             if arn.service == "logs" and arn.resource_type == "log-group":
                 self._send_to_cw_log_group(arn.resource_id, event)
             elif arn.service == "events" and not arn.resource_type:
-                input_template = json.loads(target["InputTransformer"]["InputTemplate"])
-                archive_arn = parse_arn(input_template["archive-arn"])
+                archive_arn = parse_arn(event["archive-arn"])
 
-                self._send_to_events_archive(archive_arn.resource_id, event)
+                self._send_to_events_archive(archive_arn.resource_id, original_event)
             elif arn.service == "sqs":
                 group_id = target.get("SqsParameters", {}).get("MessageGroupId")
                 self._send_to_sqs_queue(arn.resource_id, event, group_id)
@@ -166,18 +198,16 @@ class Rule(CloudFormationModel):
             else:
                 raise NotImplementedError(f"Expr not defined for {type(self)}")
 
-    def _send_to_cw_log_group(self, name: str, event: EventMessageType) -> None:
+    def _send_to_cw_log_group(self, name: str, event: Dict[str, Any]) -> None:
         from moto.logs import logs_backends
 
-        event_copy = copy.deepcopy(event)
-        event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event_copy["time"])  # type: ignore[arg-type]
-        )
+        if "time" in event:
+            event["time"] = iso_8601_datetime_without_milliseconds(
+                utcfromtimestamp(event["time"])
+            )
 
         log_stream_name = str(random.uuid4())
-        log_events = [
-            {"timestamp": unix_time_millis(), "message": json.dumps(event_copy)}
-        ]
+        log_events = [{"timestamp": unix_time_millis(), "message": json.dumps(event)}]
 
         log_backend = logs_backends[self.account_id][self.region_name]
         log_backend.create_log_stream(name, log_stream_name)
@@ -199,13 +229,12 @@ class Rule(CloudFormationModel):
         return backend.destinations[destination_name]
 
     def _send_to_sqs_queue(
-        self, resource_id: str, event: EventMessageType, group_id: Optional[str] = None
+        self, resource_id: str, event: Dict[str, Any], group_id: Optional[str] = None
     ) -> None:
         from moto.sqs import sqs_backends
 
-        event_copy = copy.deepcopy(event)
-        event_copy["time"] = iso_8601_datetime_without_milliseconds(
-            utcfromtimestamp(event_copy["time"])  # type: ignore[arg-type]
+        event["time"] = iso_8601_datetime_without_milliseconds(
+            utcfromtimestamp(float(event["time"]))  # type: ignore[arg-type]
         )
 
         if group_id:
@@ -223,7 +252,7 @@ class Rule(CloudFormationModel):
 
         sqs_backends[self.account_id][self.region_name].send_message(
             queue_name=resource_id,
-            message_body=json.dumps(event_copy),
+            message_body=json.dumps(event),
             group_id=group_id,
         )
 
@@ -273,8 +302,8 @@ class Rule(CloudFormationModel):
         event_bus_arn = properties.get("EventBusName")
         tags = properties.get("Tags")
 
-        backend = events_backends[account_id][region_name]
-        return backend.put_rule(
+        backend: "EventsBackend" = events_backends[account_id][region_name]
+        rule = backend.put_rule(
             event_name,
             scheduled_expression=scheduled_expression,
             event_pattern=event_pattern,
@@ -284,6 +313,16 @@ class Rule(CloudFormationModel):
             event_bus_arn=event_bus_arn,
             tags=tags,
         )
+
+        targets = properties.get("Targets", [])
+        if targets:
+            backend.put_targets(
+                name=rule.name,
+                event_bus_arn=event_bus_arn,
+                targets=targets,
+            )
+
+        return rule
 
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
@@ -307,9 +346,10 @@ class Rule(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        event_backend = events_backends[account_id][region_name]
+        event_backend: EventsBackend = events_backends[account_id][region_name]
         properties = cloudformation_json["Properties"]
         event_bus_arn = properties.get("EventBusName")
+
         event_backend.delete_rule(resource_name, event_bus_arn)
 
     def describe(self) -> Dict[str, Any]:
@@ -337,13 +377,23 @@ class EventBus(CloudFormationModel):
         account_id: str,
         region_name: str,
         name: str,
+        description: Optional[str] = None,
+        kms_key_identifier: Optional[str] = None,
+        dead_letter_config: Optional[Dict[str, str]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
     ):
         self.account_id = account_id
         self.region = region_name
         self.name = name
-        self.arn = f"arn:aws:events:{self.region}:{account_id}:event-bus/{name}"
+        self.arn = f"arn:{get_partition(self.region)}:events:{self.region}:{account_id}:event-bus/{name}"
         self.tags = tags or []
+
+        self.description = description
+        self.kms_key_identifier = kms_key_identifier
+        self.dead_letter_config = dead_letter_config
+
+        self.creation_time = unix_time()
+        self.last_modified_time = self.creation_time
 
         self._statements: Dict[str, EventBusPolicyStatement] = {}
         self.rules: Dict[str, Rule] = OrderedDict()
@@ -363,6 +413,8 @@ class EventBus(CloudFormationModel):
 
     def delete(self, account_id: str, region_name: str) -> None:
         event_backend = events_backends[account_id][region_name]
+        for rule in self.rules.values():
+            rule.delete(account_id, region_name)
         event_backend.delete_event_bus(name=self.name)
 
     @classmethod
@@ -554,13 +606,14 @@ class Archive(CloudFormationModel):
         self.event_pattern = EventPattern.load(event_pattern)
         self.retention = retention if retention else 0
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:archive/{name}"
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:archive/{name}"
         self.creation_time = unix_time()
         self.state = "ENABLED"
         self.uuid = str(random.uuid4())
 
         self.events: List[EventMessageType] = []
         self.event_bus_name = source_arn.split("/")[-1]
+        self.rule: Optional[Rule] = None
 
     def describe_short(self) -> Dict[str, Any]:
         return {
@@ -597,7 +650,11 @@ class Archive(CloudFormationModel):
             self.retention = retention
 
     def delete(self, account_id: str, region_name: str) -> None:
-        event_backend = events_backends[account_id][region_name]
+        event_backend: EventsBackend = events_backends[account_id][region_name]
+
+        if self.rule:
+            self.rule.delete(account_id, region_name)
+
         event_backend.archives.pop(self.name)
 
     @classmethod
@@ -702,7 +759,7 @@ class Replay(BaseModel):
         self.event_end_time = end_time
         self.destination = destination
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:replay/{name}"
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:replay/{name}"
         self.state = ReplayState.STARTING
         self.start_time = unix_time()
         self.end_time: Optional[float] = None
@@ -738,8 +795,10 @@ class Replay(BaseModel):
             for rule in event_bus.rules.values():
                 rule.send_to_targets(
                     dict(
-                        event, **{"id": str(random.uuid4()), "replay-name": self.name}  # type: ignore
+                        event,
+                        **{"id": str(random.uuid4()), "replay-name": self.name},  # type: ignore
                     ),
+                    transform_input=False,
                 )
 
         self.state = ReplayState.COMPLETED
@@ -765,7 +824,24 @@ class Connection(BaseModel):
         self.creation_time = unix_time()
         self.state = "AUTHORIZED"
 
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:connection/{self.name}/{self.uuid}"
+        connection_id = f"{self.name}/{self.uuid}"
+        secretsmanager_backend = get_secrets_manager_backend(account_id, region_name)
+        secret_value = {}
+        for key, value in self.auth_parameters.items():
+            if key == "InvocationHttpParameters":
+                secret_value.update({"InvocationHttpParameters": value})
+            else:
+                secret_value.update(value)
+        secret_value = CamelToUnderscoresWalker.parse(secret_value)
+
+        secret = secretsmanager_backend.create_managed_secret(
+            service_name="events",
+            secret_id=f"events!connection/{connection_id}/auth",
+            secret_string=json.dumps(secret_value),
+            description=f"Auth parameters for Eventbridge connection {connection_id}",
+        )
+        self.secret_arn = secret.arn
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:connection/{connection_id}"
 
     def describe_short(self) -> Dict[str, Any]:
         """
@@ -801,7 +877,6 @@ class Connection(BaseModel):
             - The original response also has:
                 - LastAuthorizedTime (number)
                 - LastModifiedTime (number)
-                - SecretArn (string)
                 - StateReason (string)
             - At the time of implementing this, there was no place where to set/get
             those attributes. That is why they are not in the response.
@@ -817,6 +892,7 @@ class Connection(BaseModel):
             "CreationTime": self.creation_time,
             "Description": self.description,
             "Name": self.name,
+            "SecretArn": self.secret_arn,
         }
 
 
@@ -842,7 +918,7 @@ class Destination(BaseModel):
         self.creation_time = unix_time()
         self.http_method = http_method
         self.state = "ACTIVE"
-        self.arn = f"arn:aws:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
+        self.arn = f"arn:{get_partition(region_name)}:events:{region_name}:{account_id}:api-destination/{name}/{self.uuid}"
 
     def describe(self) -> Dict[str, Any]:
         return {
@@ -974,7 +1050,7 @@ class EventPatternParser:
 class PartnerEventSource(BaseModel):
     def __init__(self, region: str, name: str):
         self.name = name
-        self.arn = f"arn:aws:events:{region}::event-source/aws.partner/{name}"
+        self.arn = f"arn:{get_partition(region)}:events:{region}::event-source/aws.partner/{name}"
         self.created_on = unix_time()
         self.accounts: List[str] = []
         self.state = "ACTIVE"
@@ -1025,45 +1101,10 @@ class EventsBackend(BaseBackend):
         self.partner_event_sources: Dict[str, PartnerEventSource] = {}
         self.approved_parent_event_bus_names: List[str] = []
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "events"
-        )
-
     def _add_default_event_bus(self) -> None:
         self.event_buses["default"] = EventBus(
             self.account_id, self.region_name, "default"
         )
-
-    def _gen_next_token(self, index: int) -> str:
-        token = os.urandom(128).encode("base64")  # type: ignore
-        self.next_tokens[token] = index
-        return token
-
-    def _process_token_and_limits(
-        self,
-        array_len: int,
-        next_token: Optional[str] = None,
-        limit: Optional[str] = None,
-    ) -> Tuple[int, int, Optional[str]]:
-        start_index = 0
-        end_index = array_len
-        new_next_token: Optional[str] = None
-
-        if next_token:
-            start_index = self.next_tokens.pop(next_token, 0)
-
-        if limit is not None:
-            new_end_index = start_index + int(limit)
-            if new_end_index < end_index:
-                end_index = new_end_index
-                new_next_token = self._gen_next_token(end_index)
-
-        return start_index, end_index, new_next_token
 
     def _get_event_bus(self, name: str) -> EventBus:
         event_bus_name = name.split(f"{self.account_id}:event-bus/")[-1]
@@ -1145,7 +1186,11 @@ class EventsBackend(BaseBackend):
 
     def delete_rule(self, name: str, event_bus_arn: Optional[str]) -> None:
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
-        event_bus = self._get_event_bus(event_bus_name)
+        try:
+            event_bus = self._get_event_bus(event_bus_name)
+        except ResourceNotFoundException:
+            # If the EventBus is deleted, the Rule is also gone
+            return
         rule = event_bus.rules.get(name)
         if not rule:
             return
@@ -1218,34 +1263,16 @@ class EventsBackend(BaseBackend):
 
         return matching_rules
 
-    def list_targets_by_rule(
-        self,
-        rule_id: str,
-        event_bus_arn: Optional[str],
-        next_token: Optional[str] = None,
-        limit: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_targets_by_rule(  # type: ignore[misc]
+        self, rule_id: str, event_bus_arn: Optional[str]
+    ) -> List[Dict[str, Any]]:
         # We'll let a KeyError exception be thrown for response to handle if
         # rule doesn't exist.
         event_bus_name = self._normalize_event_bus_arn(event_bus_arn)
         event_bus = self._get_event_bus(event_bus_name)
         rule = event_bus.rules[rule_id]
-
-        start_index, end_index, new_next_token = self._process_token_and_limits(
-            len(rule.targets), next_token, limit
-        )
-
-        returned_targets: List[Dict[str, Any]] = []
-        return_obj: Dict[str, Any] = {}
-
-        for i in range(start_index, end_index):
-            returned_targets.append(rule.targets[i])
-
-        return_obj["Targets"] = returned_targets
-        if new_next_token is not None:
-            return_obj["NextToken"] = new_next_token
-
-        return return_obj
+        return rule.targets
 
     def put_targets(
         self, name: str, event_bus_arn: Optional[str], targets: List[Dict[str, Any]]
@@ -1309,21 +1336,21 @@ class EventsBackend(BaseBackend):
 
         entries = []
         for event in events:
-            if "Source" not in event:
+            if not event.get("Source"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
                         "ErrorMessage": "Parameter Source is not valid. Reason: Source is a required argument.",
                     }
                 )
-            elif "DetailType" not in event:
+            elif not event.get("DetailType"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
                         "ErrorMessage": "Parameter DetailType is not valid. Reason: DetailType is a required argument.",
                     }
                 )
-            elif "Detail" not in event:
+            elif not event.get("Detail"):
                 entries.append(
                     {
                         "ErrorCode": "InvalidArgument",
@@ -1365,6 +1392,7 @@ class EventsBackend(BaseBackend):
                     event_msg["region"] = self.region_name
                     event_msg["resources"] = event.get("Resources", [])
                     event_msg["detail"] = json.loads(event["Detail"])
+                    event_msg["ingestion-time"] = unix_time()
                     rule.send_to_targets(event_msg)
 
         return entries
@@ -1397,7 +1425,9 @@ class EventsBackend(BaseBackend):
             )
 
     @staticmethod
-    def _condition_param_to_stmt_condition(condition: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
+    def _condition_param_to_stmt_condition(  # type: ignore[misc]
+        condition: Optional[Dict[str, Any]],
+    ) -> Optional[Dict[str, Any]]:
         if condition:
             key = condition["Key"]
             value = condition["Value"]
@@ -1442,7 +1472,9 @@ class EventsBackend(BaseBackend):
                 "InvalidParameterValue", r"StatementId must match ^[a-zA-Z0-9-_]{1,64}$"
             )
 
-        principal_arn = {"AWS": f"arn:aws:iam::{principal}:root"}
+        principal_arn = {
+            "AWS": f"arn:{get_partition(self.region_name)}:iam::{principal}:root"
+        }
         stmt_condition = self._condition_param_to_stmt_condition(condition)
         event_bus.add_permission(statement_id, action, principal_arn, stmt_condition)
 
@@ -1505,6 +1537,9 @@ class EventsBackend(BaseBackend):
         self,
         name: str,
         event_source_name: Optional[str] = None,
+        description: Optional[str] = None,
+        kms_key_identifier: Optional[str] = None,
+        dead_letter_config: Optional[Dict[str, str]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
     ) -> EventBus:
         if name in self.event_buses:
@@ -1523,7 +1558,15 @@ class EventsBackend(BaseBackend):
                 f"Event source {event_source_name} does not exist.",
             )
 
-        event_bus = EventBus(self.account_id, self.region_name, name, tags=tags)
+        event_bus = EventBus(
+            self.account_id,
+            self.region_name,
+            name,
+            description=description,
+            kms_key_identifier=kms_key_identifier,
+            dead_letter_config=dead_letter_config,
+            tags=tags,
+        )
         self.event_buses[name] = event_bus
         if tags:
             self.tagger.tag_resource(event_bus.arn, tags)
@@ -1621,22 +1664,18 @@ class EventsBackend(BaseBackend):
             event_bus_arn=event_bus.name,
             managed_by="prod.vhs.events.aws.internal",
         )
+        archive.rule = rule
         self.put_targets(
             rule.name,
             rule.event_bus_name,
             [
                 {
                     "Id": rule.name,
-                    "Arn": f"arn:aws:events:{self.region_name}:::",
+                    "Arn": f"arn:{get_partition(self.region_name)}:events:{self.region_name}:::",
                     "InputTransformer": {
                         "InputPathsMap": {},
-                        "InputTemplate": json.dumps(
-                            {
-                                "archive-arn": f"{archive.arn}:{archive.uuid}",
-                                "event": "<aws.events.event.json>",
-                                "ingestion-time": "<aws.events.event.ingestion-time>",
-                            }
-                        ),
+                        # Template is not valid JSON, so we can't json.dump it
+                        "InputTemplate": f'{{"archive-arn": "{archive.arn}:{archive.uuid}", "event": <aws.events.event.json>, "ingestion-time": <aws.events.event.ingestion-time>}}',
                     },
                 }
             ],
@@ -1723,7 +1762,9 @@ class EventsBackend(BaseBackend):
         destination: Dict[str, Any],
     ) -> Dict[str, Any]:
         event_bus_arn = destination["Arn"]
-        event_bus_arn_pattern = r"^arn:aws:events:[a-zA-Z0-9-]+:\d{12}:event-bus/"
+        event_bus_arn_pattern = (
+            rf"{ARN_PARTITION_REGEX}:events:[a-zA-Z0-9-]+:\d{{12}}:event-bus/"
+        )
         if not re.match(event_bus_arn_pattern, event_bus_arn):
             raise ValidationException(
                 "Parameter Destination.Arn is not valid. Reason: Must contain an event bus ARN."
@@ -1871,6 +1912,16 @@ class EventsBackend(BaseBackend):
         connection = self.connections.pop(name, None)
         if not connection:
             raise ResourceNotFoundException(f"Connection '{name}' does not exist.")
+
+        # Delete Secret
+        secretsmanager_backend = get_secrets_manager_backend(
+            self.account_id, self.region_name
+        )
+        secretsmanager_backend.delete_secret(
+            secret_id=connection.secret_arn,
+            recovery_window_in_days=None,
+            force_delete_without_recovery=True,
+        )
 
         return connection.describe_short()
 

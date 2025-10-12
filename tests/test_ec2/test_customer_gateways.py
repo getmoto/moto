@@ -3,6 +3,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from tests.test_ec2 import ec2_aws_verified
 
 
 @mock_aws
@@ -66,9 +67,9 @@ def test_describe_customer_gateways():
     assert cgw["Type"] == "ipsec.1"
 
     all_cgws = ec2.describe_customer_gateways()["CustomerGateways"]
-    assert (
-        len(all_cgws) >= 1
-    ), "Should have at least the one CustomerGateway we just created"
+    assert len(all_cgws) >= 1, (
+        "Should have at least the one CustomerGateway we just created"
+    )
 
 
 @mock_aws
@@ -93,14 +94,19 @@ def test_delete_customer_gateways():
     assert cgws[0]["State"] == "deleted"
 
 
-@mock_aws
-def test_delete_customer_gateways_bad_id():
-    ec2 = boto3.client("ec2", region_name="us-east-1")
-    with pytest.raises(ClientError) as ex:
-        ec2.delete_customer_gateway(CustomerGatewayId="cgw-0123abcd")
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert "RequestId" in ex.value.response["ResponseMetadata"]
-    assert ex.value.response["Error"]["Code"] == "InvalidCustomerGatewayID.NotFound"
+@ec2_aws_verified()
+@pytest.mark.aws_verified
+def test_delete_customer_gateways_bad_id(ec2_client=None):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.delete_customer_gateway(CustomerGatewayId="cgw-0123abcd")
+    response = exc.value.response
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert "RequestId" in response["ResponseMetadata"]
+    assert response["Error"]["Code"] == "InvalidCustomerGatewayID.NotFound"
+    assert (
+        response["Error"]["Message"]
+        == "The customerGateway ID 'cgw-0123abcd' does not exist"
+    )
 
 
 def create_customer_gateway(ec2):

@@ -36,8 +36,11 @@ ENABLE_KEYPAIR_VALIDATION = bool(
 
 ENABLE_AMI_VALIDATION = bool(os.environ.get("MOTO_ENABLE_AMI_VALIDATION", False))
 
+MAX_FORM_MEMORY_SIZE = int(os.environ.get("MOTO_MAX_FORM_MEMORY_SIZE", 1024 * 1024 * 5))
 
 PRETTIFY_RESPONSES = bool(os.environ.get("MOTO_PRETTIFY_RESPONSES", False))
+
+DISABLE_GLOBAL_CORS = bool(os.environ.get("MOTO_DISABLE_GLOBAL_CORS", False))
 
 # Fully skip test that require docker
 SKIP_REQUIRES_DOCKER = bool(os.environ.get("TESTS_SKIP_REQUIRES_DOCKER", False))
@@ -70,6 +73,10 @@ def get_s3_default_key_buffer_size() -> int:
             "MOTO_S3_DEFAULT_KEY_BUFFER_SIZE", S3_UPLOAD_PART_MIN_SIZE - 1024
         )
     )
+
+
+def get_s3_default_max_keys() -> int:
+    return int(os.environ.get("MOTO_S3_DEFAULT_MAX_KEYS", 1000))
 
 
 def s3_allow_crossdomain_access() -> bool:
@@ -177,6 +184,10 @@ def get_cognito_idp_user_pool_id_strategy() -> Optional[str]:
     return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")
 
 
+def get_cognito_idp_user_pool_client_id_strategy() -> Optional[str]:
+    return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY")
+
+
 def enable_iso_regions() -> bool:
     return os.environ.get("MOTO_ENABLE_ISO_REGIONS", "false").lower() == "true"
 
@@ -187,3 +198,11 @@ def load_iam_aws_managed_policies() -> bool:
         is True
         or os.environ.get("MOTO_IAM_LOAD_MANAGED_POLICIES", "").lower() == "true"
     )
+
+
+#
+# NOTE:  Recommend the next major release to set this to True for proper
+# default behavior
+#
+def iot_use_valid_cert() -> bool:
+    return default_user_config.get("iot", {}).get("use_valid_cert", False)

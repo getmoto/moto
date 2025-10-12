@@ -1,6 +1,10 @@
 from typing import Any, Dict, List, Optional
 
-from ..exceptions import InvalidVpnConnectionIdError
+from ..exceptions import (
+    InvalidParameterValue,
+    InvalidTransitGatewayID,
+    InvalidVpnConnectionIdError,
+)
 from ..utils import generic_filter, random_vpn_connection_id
 from .core import TaggedEC2Resource
 
@@ -45,12 +49,20 @@ class VPNConnectionBackend:
         customer_gateway_id: str,
         vpn_gateway_id: Optional[str] = None,
         transit_gateway_id: Optional[str] = None,
-        static_routes_only: Optional[bool] = None,
         tags: Optional[Dict[str, str]] = None,
     ) -> VPNConnection:
+        if vpn_gateway_id and transit_gateway_id:
+            # From the docs (parentheses mine):
+            # Creates a VPN connection between an existing (virtual private gateway or transit gateway) and a customer gateway
+            raise InvalidParameterValue(
+                "The request must not contain both parameter vpnGatewayId and transitGatewayId"
+            )
+        # Validate Gateways exist
+        self.get_customer_gateway(customer_gateway_id=customer_gateway_id)  # type: ignore[attr-defined]
+        if transit_gateway_id and transit_gateway_id not in self.transit_gateways:  # type: ignore[attr-defined]
+            raise InvalidTransitGatewayID(transit_gateway_id)
+
         vpn_connection_id = random_vpn_connection_id()
-        if static_routes_only:
-            pass
         vpn_connection = VPNConnection(
             self,
             vpn_connection_id=vpn_connection_id,
@@ -64,7 +76,6 @@ class VPNConnectionBackend:
         return vpn_connection
 
     def delete_vpn_connection(self, vpn_connection_id: str) -> VPNConnection:
-
         if vpn_connection_id in self.vpn_connections:
             self.vpn_connections[vpn_connection_id].state = "deleted"
         else:

@@ -4,7 +4,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
-name = "my-rule"
+name = "myrule"
 payload = {
     "sql": "SELECT * FROM 'topic/*' WHERE something > 0",
     "actions": [
@@ -17,6 +17,17 @@ payload = {
     "ruleDisabled": False,
     "awsIotSqlVersion": "2016-03-23",
 }
+
+
+@mock_aws
+@pytest.mark.parametrize("invalid_name", ["t-r", "t.r", "t r"])
+def test_topic_rule_create_with_invalid_name(invalid_name):
+    client = boto3.client("iot", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_topic_rule(ruleName=invalid_name, topicRulePayload=payload)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidRequestException"
+    assert "Member must satisfy regular expression pattern" in err["Message"]
 
 
 @mock_aws
@@ -41,11 +52,11 @@ def test_topic_rule_list():
     assert len(res["rules"]) == 0
 
     client.create_topic_rule(ruleName=name, topicRulePayload=payload)
-    client.create_topic_rule(ruleName="my-rule-2", topicRulePayload=payload)
+    client.create_topic_rule(ruleName=f"{name}2", topicRulePayload=payload)
 
     res = client.list_topic_rules()
     assert len(res["rules"]) == 2
-    for rule, rule_name in zip(res["rules"], [name, "my-rule-2"]):
+    for rule, rule_name in zip(res["rules"], [name, f"{name}2"]):
         assert rule["ruleName"] == rule_name
         assert rule["createdAt"] is not None
         assert rule["ruleArn"] is not None

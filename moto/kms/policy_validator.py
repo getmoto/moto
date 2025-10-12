@@ -44,7 +44,8 @@ def action_matches(applicable_actions: List[str], action: str) -> bool:
 
 
 def resource_matches(
-    applicable_resources: str, resource: str  # pylint: disable=unused-argument
+    applicable_resources: str,
+    resource: str,
 ) -> bool:
     if applicable_resources == "*":
         return True

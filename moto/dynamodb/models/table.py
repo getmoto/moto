@@ -1,6 +1,6 @@
 import copy
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
@@ -19,6 +19,7 @@ from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
 from moto.dynamodb.models.dynamo_type import DynamoType, Item
 from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 RESULT_SIZE_LIMIT = 1000000  # DynamoDB has a 1MB size limit
 
@@ -76,7 +77,9 @@ class LocalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct: Dict[str, Any], table_key_attrs: List[str]) -> "LocalSecondaryIndex":  # type: ignore[misc]
+    def create(  # type: ignore[misc]
+        dct: Dict[str, Any], table_key_attrs: List[str]
+    ) -> "LocalSecondaryIndex":
         return LocalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
@@ -112,7 +115,9 @@ class GlobalSecondaryIndex(SecondaryIndex):
         }
 
     @staticmethod
-    def create(dct: Dict[str, Any], table_key_attrs: List[str]) -> "GlobalSecondaryIndex":  # type: ignore[misc]
+    def create(  # type: ignore[misc]
+        dct: Dict[str, Any], table_key_attrs: List[str]
+    ) -> "GlobalSecondaryIndex":
         return GlobalSecondaryIndex(
             index_name=dct["IndexName"],
             schema=dct["KeySchema"],
@@ -206,9 +211,7 @@ class StreamShard(BaseModel):
         from moto.awslambda.utils import get_backend
 
         for arn, esm in self.table.lambda_event_source_mappings.items():
-            region = arn[
-                len("arn:aws:lambda:") : arn.index(":", len("arn:aws:lambda:"))
-            ]
+            region = arn.split(":")[3]
 
             result = get_backend(self.account_id, region).send_dynamodb_items(
                 arn, self.items, esm.event_source_arn
@@ -239,6 +242,7 @@ class Table(CloudFormationModel):
         streams: Optional[Dict[str, Any]] = None,
         sse_specification: Optional[Dict[str, Any]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
+        deletion_protection_enabled: Optional[bool] = False,
     ):
         self.name = table_name
         self.account_id = account_id
@@ -302,6 +306,7 @@ class Table(CloudFormationModel):
             self.sse_specification["KMSMasterKeyId"] = self._get_default_encryption_key(
                 account_id, region
             )
+        self.deletion_protection_enabled = deletion_protection_enabled
 
     def _get_default_encryption_key(self, account_id: str, region: str) -> str:
         from moto.kms import kms_backends
@@ -319,7 +324,7 @@ class Table(CloudFormationModel):
                 description="Default master key that protects my DynamoDB table storage",
                 tags=None,
             )
-            kms.add_alias(key.id, ddb_alias)
+            kms.create_alias(key.id, ddb_alias)
         ebs_key = kms.describe_key(ddb_alias)
         return ebs_key.arn
 
@@ -380,14 +385,22 @@ class Table(CloudFormationModel):
             params["schema"] = properties["KeySchema"]
         if "AttributeDefinitions" in properties:
             params["attr"] = properties["AttributeDefinitions"]
-        if "GlobalSecondaryIndexes" in properties:
-            params["global_indexes"] = properties["GlobalSecondaryIndexes"]
-        if "ProvisionedThroughput" in properties:
-            params["throughput"] = properties["ProvisionedThroughput"]
-        if "LocalSecondaryIndexes" in properties:
-            params["indexes"] = properties["LocalSecondaryIndexes"]
-        if "StreamSpecification" in properties:
-            params["streams"] = properties["StreamSpecification"]
+        params["global_indexes"] = properties.get("GlobalSecondaryIndexes", [])
+        params["throughput"] = properties.get("ProvisionedThroughput")
+        params["indexes"] = properties.get("LocalSecondaryIndexes", [])
+        params["streams"] = properties.get("StreamSpecification")
+        params["tags"] = properties.get("Tags")
+        params["deletion_protection_enabled"] = properties.get(
+            "DeletionProtectionEnabled", False
+        )
+        params["sse_specification"] = properties.get("SSESpecification")
+
+        billing_mode = (
+            "PAY_PER_REQUEST"
+            if properties.get("BillingMode") == "PAY_PER_REQUEST"
+            else "PROVISIONED"
+        )
+        params["billing_mode"] = billing_mode
 
         table = dynamodb_backends[account_id][region_name].create_table(
             name=resource_name, **params
@@ -407,7 +420,7 @@ class Table(CloudFormationModel):
         dynamodb_backends[account_id][region_name].delete_table(name=resource_name)
 
     def _generate_arn(self, name: str) -> str:
-        return f"arn:aws:dynamodb:{self.region_name}:{self.account_id}:table/{name}"
+        return f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{name}"
 
     def set_stream_specification(self, streams: Optional[Dict[str, Any]]) -> None:
         self.stream_specification = streams
@@ -439,13 +452,14 @@ class Table(CloudFormationModel):
                     index.describe() for index in self.global_indexes
                 ],
                 "LocalSecondaryIndexes": [index.describe() for index in self.indexes],
+                "DeletionProtectionEnabled": self.deletion_protection_enabled,
             }
         }
         if self.latest_stream_label:
             results[base_key]["LatestStreamLabel"] = self.latest_stream_label
-            results[base_key][
-                "LatestStreamArn"
-            ] = f"{self.table_arn}/stream/{self.latest_stream_label}"
+            results[base_key]["LatestStreamArn"] = (
+                f"{self.table_arn}/stream/{self.latest_stream_label}"
+            )
         if self.stream_specification and self.stream_specification["StreamEnabled"]:
             results[base_key]["StreamSpecification"] = self.stream_specification
         if self.sse_specification and self.sse_specification.get("Enabled") is True:
@@ -653,10 +667,10 @@ class Table(CloudFormationModel):
         scan_index_forward: bool,
         projection_expressions: Optional[List[List[str]]],
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         filter_expression: Any = None,
         **filter_kwargs: Any,
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
-
         # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()
@@ -668,6 +682,12 @@ class Table(CloudFormationModel):
                 )
 
             index = indexes_by_name[index_name]
+
+            if consistent_read and index in self.global_indexes:
+                raise MockValidationException(
+                    "Consistent reads are not supported on global secondary indexes"
+                )
+
             try:
                 index_hash_key = [
                     key for key in index.schema if key["KeyType"] == "HASH"
@@ -682,43 +702,53 @@ class Table(CloudFormationModel):
                     key for key in index.schema if key["KeyType"] == "RANGE"
                 ][0]
             except IndexError:
-                index_range_key = None
+                if isinstance(index, GlobalSecondaryIndex) and self.range_key_attr:
+                    # If we're querying a GSI that does not have a range key, the main range key acts as a range key
+                    index_range_key = {"AttributeName": self.range_key_attr}
+                else:
+                    # If we don't have a range key on the main table either, the hash key acts as a range key
+                    index_range_key = {"AttributeName": self.hash_key_attr}
                 if range_comparison:
                     raise ValueError(
                         f"Range Key comparison but no range key found for index: {index_name}"
                     )
 
+            hash_attrs = [index_hash_key["AttributeName"], self.hash_key_attr]
+            if index_range_key:
+                range_attrs = [
+                    index_range_key["AttributeName"],
+                    self.range_key_attr,
+                ]
+            else:
+                range_attrs = [self.range_key_attr]
+
             possible_results = []
             for item in self.all_items():
                 if not isinstance(item, Item):
                     continue
-                item_hash_key = item.attrs.get(index_hash_key["AttributeName"])
-                if index_range_key is None:
+                item_hash_key = item.attrs.get(hash_attrs[0])
+                if len(range_attrs) == 1:
                     if item_hash_key and item_hash_key == hash_key:
                         possible_results.append(item)
                 else:
-                    item_range_key = item.attrs.get(index_range_key["AttributeName"])
+                    item_range_key = item.attrs.get(range_attrs[0])  # type: ignore
                     if item_hash_key and item_hash_key == hash_key and item_range_key:
                         possible_results.append(item)
         else:
+            hash_attrs = [self.hash_key_attr]
+            range_attrs = [self.range_key_attr]
+
             possible_results = [
                 item
-                for item in list(self.all_items())
+                for item in self.all_items()
                 if isinstance(item, Item) and item.hash_key == hash_key
             ]
 
         # SORT
         if index_name:
-            if index_range_key:
-                # Convert to float if necessary to ensure proper ordering
-                def conv(x: DynamoType) -> Any:
-                    return float(x.value) if x.type == "N" else x.value
-
-                possible_results.sort(
-                    key=lambda item: conv(item.attrs[index_range_key["AttributeName"]])  # type: ignore
-                    if item.attrs.get(index_range_key["AttributeName"])
-                    else None
-                )
+            possible_results = self.sorted_items(
+                hash_attrs, range_attrs, possible_results
+            )
         else:
             possible_results.sort(key=lambda item: item.range_key)  # type: ignore
 
@@ -735,9 +765,16 @@ class Table(CloudFormationModel):
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:
-                if self._item_equals_dct(result, exclusive_start_key):
+                if self._item_comes_before_dct(
+                    result,
+                    exclusive_start_key,
+                    hash_attrs,
+                    range_attrs,
+                    scan_index_forward,
+                ):
+                    continue
+                else:
                     processing_previous_page = False
-                continue
 
             # Check wether we've reached the limit of our result set
             # That can be either in number, or in size
@@ -756,7 +793,11 @@ class Table(CloudFormationModel):
                 scanned_count += 1
 
             if range_comparison:
-                if index_name:
+                if (
+                    index_name
+                    and index_range_key
+                    and result.attrs.get(index_range_key["AttributeName"])
+                ):
                     if result.attrs.get(index_range_key["AttributeName"]).compare(  # type: ignore
                         range_comparison, range_objs
                     ):
@@ -794,13 +835,18 @@ class Table(CloudFormationModel):
 
         return results, scanned_count, last_evaluated_key
 
-    def all_items(self) -> Iterator[Item]:
+    def all_items(self) -> List[Item]:
+        items: List[Item] = []
         for hash_set in self.items.values():
             if self.range_key_attr:
                 for item in hash_set.values():
-                    yield item
+                    items.append(item)
             else:
-                yield hash_set  # type: ignore
+                items.append(hash_set)  # type: ignore
+        return sorted(
+            items,
+            key=lambda x: (x.hash_key, x.range_key) if x.range_key else x.hash_key,
+        )
 
     def all_indexes(self) -> Sequence[SecondaryIndex]:
         return (self.global_indexes or []) + (self.indexes or [])  # type: ignore
@@ -814,18 +860,21 @@ class Table(CloudFormationModel):
             )
         return indexes_by_name[index_name]
 
-    def has_idx_items(self, index_name: str) -> Iterator[Item]:
+    def has_idx_items(self, index_name: str) -> List[Item]:
         idx = self.get_index(index_name)
         idx_col_set = set([i["AttributeName"] for i in idx.schema])
+
+        items: List[Item] = []
 
         for hash_set in self.items.values():
             if self.range_key_attr:
                 for item in hash_set.values():
                     if idx_col_set.issubset(set(item.attrs)):
-                        yield item
+                        items.append(item)
             else:
                 if idx_col_set.issubset(set(hash_set.attrs)):  # type: ignore
-                    yield hash_set  # type: ignore
+                    items.append(hash_set)  # type: ignore
+        return items
 
     def scan(
         self,
@@ -834,29 +883,73 @@ class Table(CloudFormationModel):
         exclusive_start_key: Dict[str, Any],
         filter_expression: Any = None,
         index_name: Optional[str] = None,
+        consistent_read: bool = False,
         projection_expression: Optional[List[List[str]]] = None,
+        segments: Union[Tuple[None, None], Tuple[int, int]] = (None, None),
     ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
         results: List[Item] = []
         result_size = 0
         scanned_count = 0
 
         if index_name:
-            self.get_index(index_name, error_if_not=True)
+            index = self.get_index(index_name, error_if_not=True)
+
+            if consistent_read and index in self.global_indexes:
+                raise MockValidationException(
+                    "Consistent reads are not supported on global secondary indexes"
+                )
+
+            try:
+                index_hash_key = [
+                    key for key in index.schema if key["KeyType"] == "HASH"
+                ][0]
+            except IndexError:
+                raise MockValidationException(
+                    f"Missing Hash Key. KeySchema: {index.name}"
+                )
+
+            try:
+                index_range_key = [
+                    key for key in index.schema if key["KeyType"] == "RANGE"
+                ][0]
+            except IndexError:
+                index_range_key = None
+
+            hash_attrs = [index_hash_key["AttributeName"], self.hash_key_attr]
+            if index_range_key:
+                range_attrs = [index_range_key["AttributeName"], self.range_key_attr]
+            else:
+                range_attrs = [self.range_key_attr]
+
             items = self.has_idx_items(index_name)
+            items = self.sorted_items(hash_attrs, range_attrs, items)
         else:
+            hash_attrs = [self.hash_key_attr]
+            range_attrs = [self.range_key_attr]
+
             items = self.all_items()
 
         last_evaluated_key = None
         processing_previous_page = exclusive_start_key is not None
         for item in items:
+            if not item.is_within_segment(segments):
+                continue
+
             # Cycle through the previous page of results
             # When we encounter our start key, we know we've reached the end of the previous page
             if processing_previous_page:
-                if self._item_equals_dct(item, exclusive_start_key):
+                if self._item_comes_before_dct(
+                    item,
+                    exclusive_start_key,
+                    hash_attrs,
+                    range_attrs,
+                    True,
+                ):
+                    continue
+                else:
                     processing_previous_page = False
-                continue
 
-            # Check wether we've reached the limit of our result set
+            # Check whether we've reached the limit of our result set
             # That can be either in number, or in size
             reached_length_limit = len(results) == limit
             reached_size_limit = (result_size + item.size()) > RESULT_SIZE_LIMIT
@@ -905,12 +998,74 @@ class Table(CloudFormationModel):
 
         return results, scanned_count, last_evaluated_key
 
-    def _item_equals_dct(self, item: Item, dct: Dict[str, Any]) -> bool:
-        hash_key = DynamoType(dct.get(self.hash_key_attr))  # type: ignore[arg-type]
-        range_key = dct.get(self.range_key_attr) if self.range_key_attr else None
-        if range_key is not None:
-            range_key = DynamoType(range_key)
-        return item.hash_key == hash_key and item.range_key == range_key
+    def _item_comes_before_dct(
+        self,
+        item: Item,
+        dct: Dict[str, Any],
+        hash_key_attrs: List[str],
+        range_key_attrs: List[Optional[str]],
+        scan_index_forward: bool,
+    ) -> bool:
+        """
+        Does item appear before or at dct relative to sort options?
+
+        hash_key_attrs: The list of hash keys.
+        Includes the key of the GSI (first, if it exists) and the key of the main table.
+
+        range_key_attrs: A list of range keys (RK).
+        Includes the RK-name of the GSI (first, if it exists) and the RK-name of the main table (second - can be None).
+        When sorting a GSI, we'll try to sort by the GSI RK first.
+        However, because GSI RK's are not unique (by design), item and dct can have the same RK-value
+        If that is the case, we compare by the RK of the main table instead
+        Related: https://github.com/getmoto/moto/issues/7761
+        """
+        attrs_to_sort_by = self._generate_attr_to_sort_by(
+            hash_key_attrs, range_key_attrs
+        )
+        for attr in attrs_to_sort_by:
+            if attr in item.attrs and item.attrs[attr] != DynamoType(dct.get(attr)):  # type: ignore
+                return (
+                    (item.attrs[attr] < DynamoType(dct.get(attr)))  # type: ignore
+                    == scan_index_forward
+                )
+        # Keys were equal, items are identical
+        return True
+
+    def sorted_items(
+        self,
+        hash_key_attrs: List[str],
+        range_key_attrs: List[Optional[str]],
+        items: List[Item],
+    ) -> List[Item]:
+        attrs_to_sort_by = self._generate_attr_to_sort_by(
+            hash_key_attrs, range_key_attrs
+        )
+        items.sort(
+            key=lambda x: tuple([x.attrs[key] for key in attrs_to_sort_by]),
+        )
+        return items
+
+    def _generate_attr_to_sort_by(
+        self, hash_key_attrs: List[str], range_key_attrs: List[Optional[str]]
+    ) -> List[str]:
+        gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
+        table_hash_key = str(
+            hash_key_attrs[0] if gsi_hash_key is None else hash_key_attrs[1]
+        )
+        gsi_range_key = range_key_attrs[0] if len(range_key_attrs) == 2 else None
+        table_range_key = str(
+            range_key_attrs[0] if gsi_range_key is None else range_key_attrs[1]
+        )
+        # Gets the GSI and table hash and range keys in the order to try sorting by
+        attrs_to_sort_by = [
+            gsi_hash_key,
+            gsi_range_key,
+            table_hash_key,
+            table_range_key,
+        ]
+        return [
+            attr for attr in attrs_to_sort_by if attr is not None and attr != "None"
+        ]
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]
@@ -959,7 +1114,7 @@ class Backup:
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:dynamodb:{self.region_name}:{self.account_id}:table/{self.table.name}/backup/{self.identifier}"
+        return f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{self.table.name}/backup/{self.identifier}"
 
     @property
     def details(self) -> Dict[str, Any]:  # type: ignore[misc]
@@ -1056,3 +1211,10 @@ class RestoredPITTable(Table):
             "RestoreInProgress": False,
         }
         return result
+
+
+class ResourcePolicy:
+    def __init__(self, resource_arn: str, policy_doc: str):
+        self.resource_arn = resource_arn
+        self.policy_doc = policy_doc
+        self.revision_id = str(int(unix_time_millis()))

@@ -57,7 +57,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                 dict(status=400),
             )
 
-        cert_bundle = self.acm_backend.get_certificate(arn)
+        cert_bundle = self.acm_backend.describe_certificate(arn)
 
         return json.dumps(cert_bundle.describe())
 
@@ -120,7 +120,7 @@ class AWSCertificateManagerResponse(BaseResponse):
                     "The certificate chain is not PEM-encoded or is not valid."
                 )
 
-        arn = self.acm_backend.import_cert(
+        arn = self.acm_backend.import_certificate(
             certificate, private_key, chain=chain, arn=current_arn, tags=tags
         )
 
@@ -129,8 +129,13 @@ class AWSCertificateManagerResponse(BaseResponse):
     def list_certificates(self) -> str:
         certs = []
         statuses = self._get_param("CertificateStatuses")
-        for cert_bundle in self.acm_backend.get_certificates_list(statuses):
-            certs.append(cert_bundle.describe()["Certificate"])
+        includes = self._get_param("Includes")
+        for cert_bundle in self.acm_backend.list_certificates(statuses, includes):
+            _cert = cert_bundle.describe()["Certificate"]
+            _in_use_by = _cert.pop("InUseBy", [])
+            _cert["InUse"] = bool(_in_use_by)
+            _cert["Exported"] = cert_bundle.cert_options["Export"] == "ENABLED"
+            certs.append(_cert)
 
         result = {"CertificateSummaryList": certs}
         return json.dumps(result)
@@ -176,6 +181,8 @@ class AWSCertificateManagerResponse(BaseResponse):
         idempotency_token = self._get_param("IdempotencyToken")
         subject_alt_names = self._get_param("SubjectAlternativeNames")
         tags = self._get_param("Tags")  # Optional
+        cert_authority_arn = self._get_param("CertificateAuthorityArn")  # Optional
+        cert_options = self._get_param("Options")
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -192,6 +199,8 @@ class AWSCertificateManagerResponse(BaseResponse):
             idempotency_token,
             subject_alt_names,
             tags,
+            cert_authority_arn,
+            cert_options,
         )
 
         return json.dumps({"CertificateArn": arn})
@@ -246,3 +255,31 @@ class AWSCertificateManagerResponse(BaseResponse):
                 PrivateKey=private_key,
             )
         )
+
+    def get_account_configuration(self) -> str:
+        config = self.acm_backend.get_account_configuration()
+        return json.dumps(config)
+
+    def put_account_configuration(self) -> str:
+        expiry_events = self._get_param("ExpiryEvents")
+        idempotency_token = self._get_param("IdempotencyToken")
+
+        if expiry_events is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (  # type: ignore
+                json.dumps({"__type": "MissingParameter", "message": msg}),
+                dict(status=400),
+            )
+
+        days_before_expiry = expiry_events.get("DaysBeforeExpiry")
+        if days_before_expiry is None:
+            msg = "DaysBeforeExpiry is required in ExpiryEvents."
+            return (  # type: ignore
+                json.dumps({"__type": "ValidationException", "message": msg}),
+                dict(status=400),
+            )
+
+        self.acm_backend.put_account_configuration(
+            days_before_expiry, idempotency_token
+        )
+        return "{}"

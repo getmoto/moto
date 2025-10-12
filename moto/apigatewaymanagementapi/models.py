@@ -1,4 +1,5 @@
 """ApiGatewayManagementApiBackend class with methods for supported APIs."""
+
 from collections import defaultdict
 from typing import Any, Dict
 

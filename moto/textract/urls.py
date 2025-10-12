@@ -1,4 +1,5 @@
 """textract base URL and path."""
+
 from .responses import TextractResponse
 
 url_bases = [

@@ -31,7 +31,7 @@ def test_initiate_job():
 
 
 @mock_aws
-def test_describe_job_boto3():
+def test_describe_job():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="myname")
 
@@ -102,7 +102,7 @@ def test_list_jobs():
 
 
 @mock_aws
-def test_get_job_output_boto3():
+def test_get_job_output():
     client = boto3.client("glacier", region_name="us-west-2")
     client.create_vault(vaultName="myname")
 

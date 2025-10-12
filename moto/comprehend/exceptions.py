@@ -1,4 +1,5 @@
 """Exceptions raised by the comprehend service."""
+
 from typing import List
 
 from moto.core.exceptions import JsonRESTError
@@ -29,3 +30,8 @@ class TextSizeLimitExceededException(JsonRESTError):
             "Input text size exceeds limit. Max length of request text allowed is 100000 bytes while in "
             f"this request the text size is {size} bytes",
         )
+
+
+class InvalidRequestException(JsonRESTError):
+    def __init__(self, message: str) -> None:
+        super().__init__("InvalidRequestException", message)

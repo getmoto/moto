@@ -6,7 +6,7 @@ from moto import mock_aws
 
 
 @mock_aws
-def test_boto3_describe_regions():
+def test_describe_regions():
     ec2 = boto3.client("ec2", "us-east-1")
     resp = ec2.describe_regions()
     assert len(resp["Regions"]) > 1
@@ -27,14 +27,15 @@ def test_boto3_describe_regions():
 
 
 @mock_aws
-def test_boto3_availability_zones():
+def test_availability_zones():
     ec2 = boto3.client("ec2", "us-east-1")
     resp = ec2.describe_regions()
     regions = [r["RegionName"] for r in resp["Regions"]]
     for region in regions:
         conn = boto3.client("ec2", region)
-        resp = conn.describe_availability_zones()
-        for rec in resp["AvailabilityZones"]:
+        zones = conn.describe_availability_zones()["AvailabilityZones"]
+        assert len(zones) > 0, f"Region {region} has no availability zones configured"
+        for rec in zones:
             assert region in rec["ZoneName"]
 
 
@@ -46,6 +47,7 @@ def test_availability_zones__parameters():
     ]
     assert len(zones) == 1
     assert zones[0]["ZoneId"] == "use1-az1"
+    assert zones[0]["Messages"] == []
 
     zones = us_east.describe_availability_zones(ZoneNames=["us-east-1a", "us-east-1b"])[
         "AvailabilityZones"
@@ -76,6 +78,17 @@ def test_availability_zones__parameters():
     assert len(zones) == 1
     assert zones[0]["ZoneId"] == "use1-az1"
 
+    # This shouldn't raise an unhandled exception
+    zones = us_east.describe_availability_zones(Filters=[{"Name": "state"}])[
+        "AvailabilityZones"
+    ]
+    assert len(zones) == 0
+
+    zones = us_east.describe_availability_zones(
+        Filters=[{"Name": "state", "Values": []}]
+    )["AvailabilityZones"]
+    assert len(zones) == 0
+
 
 @mock_aws
 def test_describe_availability_zones_dryrun():
@@ -92,12 +105,27 @@ def test_describe_availability_zones_dryrun():
 
 
 @mock_aws
-def test_boto3_zoneId_in_availability_zones():
-    conn = boto3.client("ec2", "us-east-1")
+@pytest.mark.parametrize(
+    "region,shorthand",
+    [
+        # Regular regions
+        ("eu-central-1", "euc1-az"),
+        ("sa-east-1", "sae1-az"),
+        ("us-east-1", "use1-az"),
+        ("us-west-1", "usw1-az"),
+        # Regions never explicitly specified
+        ("ap-southeast-5", "apse5-az"),
+        # Regions with multiple cardinal points
+        ("ap-northeast-1", "apne1-az"),
+        ("ap-southeast-3", "apse3-az"),
+        # Edge cases with different partitions
+        ("cn-northwest-1", "cnnw1-az"),
+        ("us-gov-east-1", "usge1-az"),
+        ("us-gov-west-1", "usgw1-az"),
+    ],
+)
+def test_zoneId_in_availability_zones(region, shorthand):
+    conn = boto3.client("ec2", region)
     resp = conn.describe_availability_zones()
     for rec in resp["AvailabilityZones"]:
-        assert "use1" in rec.get("ZoneId")
-    conn = boto3.client("ec2", "us-west-1")
-    resp = conn.describe_availability_zones()
-    for rec in resp["AvailabilityZones"]:
-        assert "usw1" in rec.get("ZoneId")
+        assert shorthand in rec.get("ZoneId")

@@ -1,0 +1,14 @@
+{
+  "StartAt": "ListTables",
+  "States": {
+    "ListTables": {
+      "Type": "Task",
+      "Parameters": {},
+      "Resource": "arn:aws:states:::aws-sdk:dynamodb:listTables",
+      "End": true,
+      "Credentials": {
+        "RoleArn": "arn:aws:iam::123456789012:role/role/role"
+      }
+    }
+  }
+}

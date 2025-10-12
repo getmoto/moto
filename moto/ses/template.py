@@ -45,11 +45,13 @@ class EachBlockProcessor(BlockProcessor):
                     self.tokenizer.skip_white_space()
 
                     _processor = get_processor(self.tokenizer)(
-                        self.template, template_data, self.tokenizer  # type: ignore
+                        self.template,
+                        template_data,  # type: ignore
+                        self.tokenizer,
                     )
                     # If we've reached the end, we should stop processing
                     # Our parent will continue with whatever comes after {{/each}}
-                    if type(_processor) == EachEndBlockProcessor:
+                    if type(_processor) is EachEndBlockProcessor:
                         break
                     # If we've encountered another processor, they can continue
                     parsed += _processor.parse()
@@ -95,9 +97,9 @@ class IfBlockProcessor(BlockProcessor):
                 _processor = get_processor(self.tokenizer)(
                     self.template, self.template_data, self.tokenizer
                 )
-                if type(_processor) == IfEndBlockProcessor:
+                if type(_processor) is IfEndBlockProcessor:
                     break
-                elif type(_processor) == ElseBlockProcessor:
+                elif type(_processor) is ElseBlockProcessor:
                     self.parse_contents = not self.parse_contents
                     continue
                 if self.parse_contents:

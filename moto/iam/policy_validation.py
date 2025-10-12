@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List
 
 from moto.iam.exceptions import MalformedPolicyDocument
+from moto.utilities.utils import PARTITION_NAMES
 
 VALID_TOP_ELEMENTS = ["Version", "Id", "Statement", "Conditions"]
 
@@ -222,7 +223,10 @@ class BaseIAMPolicyValidator:
         )
 
     @staticmethod
-    def _validate_string_or_list_of_strings_syntax(statement: Dict[str, Any], key: str) -> None:  # type: ignore[misc]
+    def _validate_string_or_list_of_strings_syntax(  # type: ignore[misc]
+        statement: Dict[str, Any],
+        key: str,
+    ) -> None:
         if key in statement:
             assert isinstance(statement[key], (str, list))
             if isinstance(statement[key], list):
@@ -346,7 +350,10 @@ class BaseIAMPolicyValidator:
                 return
 
             resource_partitions = resource_partitions[2].partition(":")
-            if resource_partitions[0] not in ["aws", "*"]:
+            if (
+                resource_partitions[0] != "*"
+                and resource_partitions[0] not in PARTITION_NAMES
+            ):
                 remaining_resource_parts = resource_partitions[2].split(":")
 
                 arn1 = (
@@ -454,7 +461,10 @@ class BaseIAMPolicyValidator:
                     assert resource[2] != ""
 
     @staticmethod
-    def _legacy_parse_condition(condition_key: str, condition_value: Dict[str, Any]) -> None:  # type: ignore[misc]
+    def _legacy_parse_condition(  # type: ignore[misc]
+        condition_key: str,
+        condition_value: Dict[str, Any],
+    ) -> None:
         stripped_condition_key = IAMPolicyDocumentValidator._strip_condition_key(
             condition_key
         )

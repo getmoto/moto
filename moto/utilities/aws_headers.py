@@ -12,8 +12,7 @@ TypeDec = TypeVar("TypeDec", bound=Callable[..., Any])
 
 
 class GenericFunction(Protocol):
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        ...
+    def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 def gen_amz_crc32(response: Any, headerdict: Optional[Dict[str, Any]] = None) -> int:

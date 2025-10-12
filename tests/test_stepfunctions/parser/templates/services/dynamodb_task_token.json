@@ -1,0 +1,18 @@
+{
+"StartAt": "WaitForTransferFinished",
+"States": {
+    "WaitForTransferFinished": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::aws-sdk:dynamodb:updateItem.waitForTaskToken",
+        "Parameters": {
+            "TableName.$": "$.TableName",
+            "Key": {"id": {"S": "1"}},
+            "UpdateExpression": "SET StepFunctionTaskToken = :taskToken",
+            "ExpressionAttributeValues": {
+                ":taskToken": {"S.$": "$$.Task.Token"}
+            }
+        },
+        "End": true
+    }
+}
+}

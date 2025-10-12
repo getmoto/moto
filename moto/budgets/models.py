@@ -6,6 +6,7 @@ from typing import Any, Dict, Iterable, List
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import BudgetMissingLimit, DuplicateRecordException, NotFoundException
 
@@ -144,5 +145,8 @@ class BudgetsBackend(BaseBackend):
 
 
 budgets_backends = BackendDict(
-    BudgetsBackend, "budgets", use_boto3_regions=False, additional_regions=["global"]
+    BudgetsBackend,
+    "budgets",
+    use_boto3_regions=False,
+    additional_regions=PARTITION_NAMES,
 )

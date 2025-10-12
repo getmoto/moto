@@ -1,10 +1,12 @@
 # This will only exist in responses >= 0.17
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
+from urllib.parse import urlunparse
 
 import responses
 
 from .custom_responses_mock import CallbackResponse, not_implemented_callback
+from .utils import get_equivalent_url_in_aws_domain
 
 
 class CustomRegistry(responses.registries.FirstMatchRegistry):
@@ -30,6 +32,23 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         self._registered[response.method].append(response)
         return response
 
+    def replace(self, response: responses.BaseResponse) -> responses.BaseResponse:
+        registered = self._registered[response.method]
+        try:
+            index = registered.index(response)
+        except ValueError:
+            raise ValueError(f"Response is not registered for URL {response.url}")
+        registered[index] = response
+        return response
+
+    def remove(self, response: responses.BaseResponse) -> List[responses.BaseResponse]:
+        removed_responses = []
+        registered = self._registered[response.method]
+        while response in registered:
+            registered.remove(response)
+            removed_responses.append(response)
+        return removed_responses
+
     def reset(self) -> None:
         self._registered.clear()
 
@@ -41,8 +60,20 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
         )
         found = []
         match_failed_reasons = []
+
+        # Handle non-standard AWS endpoint hostnames from ISO regions or custom S3 endpoints.
+        parsed_url, url_was_modified = get_equivalent_url_in_aws_domain(request.url)
+        if url_was_modified:
+            url_with_standard_aws_domain = urlunparse(parsed_url)
+            request_with_standard_aws_domain = request.copy()
+            request_with_standard_aws_domain.prepare_url(
+                url_with_standard_aws_domain, {}
+            )
+        else:
+            request_with_standard_aws_domain = request
+
         for response in all_possibles:
-            match_result, reason = response.matches(request)
+            match_result, reason = response.matches(request_with_standard_aws_domain)
             if match_result:
                 found.append(response)
             else:
@@ -61,7 +92,7 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
             #  - Callbacks created by APIGateway to intercept URL requests to *.execute-api.amazonaws.com
             #
             for match in implemented_matches:
-                if type(match) == responses.CallbackResponse:
+                if type(match) is responses.CallbackResponse:
                     return match, match_failed_reasons
             # Return moto.core.custom_responses_mock.CallbackResponse otherwise
             return implemented_matches[0], match_failed_reasons

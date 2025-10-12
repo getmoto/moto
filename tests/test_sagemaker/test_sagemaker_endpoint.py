@@ -40,6 +40,10 @@ TEST_SERVERLESS_PRODUCTION_VARIANTS = [
         },
     },
 ]
+TEST_ASYNC_INFERENCE_CONFIG = {
+    "ClientConfig": {"MaxConcurrentInvocationsPerInstance": 3},
+    "OutputConfig": {"S3OutputPath": "s3://output-bucket", "NotificationConfig": {}},
+}
 
 
 @pytest.fixture(name="sagemaker_client")
@@ -48,12 +52,25 @@ def fixture_sagemaker_client():
         yield boto3.client("sagemaker", region_name=TEST_REGION_NAME)
 
 
-def create_endpoint_config_helper(sagemaker_client, production_variants):
+def create_endpoint_config_helper(
+    sagemaker_client, production_variants, async_inference_config=None
+):
     _create_model(sagemaker_client, TEST_MODEL_NAME)
+
+    additional_configuration_parameters = {
+        "AsyncInferenceConfig": async_inference_config
+    }
+
+    additional_configuration_parameters = {
+        k: v
+        for k, v in additional_configuration_parameters.items()
+        if v is not None and v != {}
+    }
 
     resp = sagemaker_client.create_endpoint_config(
         EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
         ProductionVariants=production_variants,
+        **additional_configuration_parameters,
     )
     assert re.match(
         rf"^arn:aws:sagemaker:.*:.*:endpoint-config/{TEST_ENDPOINT_CONFIG_NAME}$",
@@ -69,6 +86,9 @@ def create_endpoint_config_helper(sagemaker_client, production_variants):
     )
     assert resp["EndpointConfigName"] == TEST_ENDPOINT_CONFIG_NAME
     assert resp["ProductionVariants"] == production_variants
+
+    for key in additional_configuration_parameters:
+        assert resp[key] == additional_configuration_parameters[key]
 
 
 def test_create_endpoint_config(sagemaker_client):
@@ -93,6 +113,23 @@ def test_create_endpoint_config_serverless(sagemaker_client):
 
     # Testing serverless endpoint configuration
     create_endpoint_config_helper(sagemaker_client, TEST_SERVERLESS_PRODUCTION_VARIANTS)
+
+
+def test_create_endpoint_config_async(sagemaker_client):
+    with pytest.raises(ClientError) as e:
+        sagemaker_client.create_endpoint_config(
+            EndpointConfigName=TEST_ENDPOINT_CONFIG_NAME,
+            ProductionVariants=TEST_PRODUCTION_VARIANTS,
+            AsyncInferenceConfig=TEST_ASYNC_INFERENCE_CONFIG,
+        )
+    assert e.value.response["Error"]["Message"].startswith("Could not find model")
+
+    # Testing async inference endpoint configuration
+    create_endpoint_config_helper(
+        sagemaker_client,
+        TEST_SERVERLESS_PRODUCTION_VARIANTS,
+        TEST_ASYNC_INFERENCE_CONFIG,
+    )
 
 
 def test_delete_endpoint_config(sagemaker_client):
@@ -538,6 +575,135 @@ def test_update_endpoint_weights_and_capacities_should_throw_clienterror_nonuniq
     resp = sagemaker_client.describe_endpoint(EndpointName=TEST_ENDPOINT_NAME)
     del resp["ResponseMetadata"]
     assert resp == old_resp
+
+
+def test_list_endpoints(sagemaker_client):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+    _set_up_sagemaker_resources(
+        sagemaker_client, "MyEndpoint2", "MyEndpointConfig2", "MyModel2"
+    )
+
+    response = sagemaker_client.list_endpoints()
+    assert len(response["Endpoints"]) == 2
+    assert response["Endpoints"][0]["EndpointName"] == TEST_ENDPOINT_NAME
+    assert (
+        response["Endpoints"][0]["EndpointArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint/MyEndpoint"
+    )
+    assert response["Endpoints"][0]["EndpointStatus"] == "InService"
+    assert response["Endpoints"][1]["EndpointName"] == "MyEndpoint2"
+    assert (
+        response["Endpoints"][1]["EndpointArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint/MyEndpoint2"
+    )
+    assert response["Endpoints"][1]["EndpointStatus"] == "InService"
+    assert isinstance(response["Endpoints"][0]["CreationTime"], datetime.datetime)
+    assert isinstance(response["Endpoints"][0]["LastModifiedTime"], datetime.datetime)
+
+
+def test_list_endpoints_filters(sagemaker_client):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+    _set_up_sagemaker_resources(
+        sagemaker_client, "OtherEndpoint", "MyOtherEndpointConfig", "MyOtherModel"
+    )
+    _set_up_sagemaker_resources(
+        sagemaker_client, "MyEndpoint2", "MyEndpointConfig2", "MyModel2"
+    )
+
+    response = sagemaker_client.list_endpoints(
+        SortBy="name",
+        SortOrder="Ascending",
+        NameContains="MyEndpoint",
+        CreationTimeBefore=datetime.datetime(2099, 1, 1),
+        CreationTimeAfter=datetime.datetime(2021, 1, 1),
+        LastModifiedTimeBefore=datetime.datetime(2099, 1, 1),
+        LastModifiedTimeAfter=datetime.datetime(2021, 1, 1),
+        StatusEquals="InService",
+    )
+    assert len(response["Endpoints"]) == 2
+    assert response["Endpoints"][0]["EndpointName"] == TEST_ENDPOINT_NAME
+    assert (
+        response["Endpoints"][0]["EndpointArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint/MyEndpoint"
+    )
+    assert response["Endpoints"][0]["EndpointStatus"] == "InService"
+    assert response["Endpoints"][1]["EndpointName"] == "MyEndpoint2"
+    assert (
+        response["Endpoints"][1]["EndpointArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint/MyEndpoint2"
+    )
+    assert response["Endpoints"][1]["EndpointStatus"] == "InService"
+    assert isinstance(response["Endpoints"][0]["CreationTime"], datetime.datetime)
+    assert isinstance(response["Endpoints"][0]["LastModifiedTime"], datetime.datetime)
+    assert isinstance(response["Endpoints"][1]["CreationTime"], datetime.datetime)
+    assert isinstance(response["Endpoints"][1]["LastModifiedTime"], datetime.datetime)
+
+
+def test_list_endpoint_configs(sagemaker_client):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+    _set_up_sagemaker_resources(
+        sagemaker_client, "MyEndpoint2", "MyEndpointConfig2", "MyModel2"
+    )
+
+    response = sagemaker_client.list_endpoint_configs()
+    assert len(response["EndpointConfigs"]) == 2
+    assert (
+        response["EndpointConfigs"][0]["EndpointConfigName"]
+        == TEST_ENDPOINT_CONFIG_NAME
+    )
+    assert (
+        response["EndpointConfigs"][0]["EndpointConfigArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint-config/MyEndpointConfig"
+    )
+    assert response["EndpointConfigs"][1]["EndpointConfigName"] == "MyEndpointConfig2"
+    assert (
+        response["EndpointConfigs"][1]["EndpointConfigArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint-config/MyEndpointConfig2"
+    )
+    assert isinstance(response["EndpointConfigs"][0]["CreationTime"], datetime.datetime)
+    assert isinstance(response["EndpointConfigs"][1]["CreationTime"], datetime.datetime)
+
+
+def test_list_endpoint_configs_filters(sagemaker_client):
+    _set_up_sagemaker_resources(
+        sagemaker_client, TEST_ENDPOINT_NAME, TEST_ENDPOINT_CONFIG_NAME, TEST_MODEL_NAME
+    )
+    _set_up_sagemaker_resources(
+        sagemaker_client, "OtherEndpoint", "MyOtherEndpointConfig", "MyOtherModel"
+    )
+    _set_up_sagemaker_resources(
+        sagemaker_client, "MyEndpoint2", "MyEndpointConfig2", "MyModel2"
+    )
+
+    response = sagemaker_client.list_endpoint_configs(
+        SortBy="name",
+        SortOrder="Ascending",
+        NameContains="MyEndpoint",
+        CreationTimeBefore=datetime.datetime(2099, 1, 1),
+        CreationTimeAfter=datetime.datetime(2021, 1, 1),
+    )
+    assert len(response["EndpointConfigs"]) == 2
+    assert (
+        response["EndpointConfigs"][0]["EndpointConfigName"]
+        == TEST_ENDPOINT_CONFIG_NAME
+    )
+    assert (
+        response["EndpointConfigs"][0]["EndpointConfigArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint-config/MyEndpointConfig"
+    )
+    assert response["EndpointConfigs"][1]["EndpointConfigName"] == "MyEndpointConfig2"
+    assert (
+        response["EndpointConfigs"][1]["EndpointConfigArn"]
+        == "arn:aws:sagemaker:us-east-1:123456789012:endpoint-config/MyEndpointConfig2"
+    )
+    assert isinstance(response["EndpointConfigs"][0]["CreationTime"], datetime.datetime)
+    assert isinstance(response["EndpointConfigs"][1]["CreationTime"], datetime.datetime)
 
 
 def _set_up_sagemaker_resources(

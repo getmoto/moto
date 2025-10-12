@@ -29,7 +29,6 @@ class RRValidationException(JsonRESTError):
 
 
 class InvalidNextTokenException(JsonRESTError):
-
     code = 400
 
     def __init__(self) -> None:
@@ -40,7 +39,6 @@ class InvalidNextTokenException(JsonRESTError):
 
 
 class InvalidParameterException(JsonRESTError):
-
     code = 400
 
     def __init__(self, message: str):
@@ -48,7 +46,6 @@ class InvalidParameterException(JsonRESTError):
 
 
 class InvalidRequestException(JsonRESTError):
-
     code = 400
 
     def __init__(self, message: str):
@@ -56,7 +53,6 @@ class InvalidRequestException(JsonRESTError):
 
 
 class LimitExceededException(JsonRESTError):
-
     code = 400
 
     def __init__(self, message: str):
@@ -64,7 +60,6 @@ class LimitExceededException(JsonRESTError):
 
 
 class ResourceExistsException(JsonRESTError):
-
     code = 400
 
     def __init__(self, message: str):
@@ -72,7 +67,6 @@ class ResourceExistsException(JsonRESTError):
 
 
 class ResourceInUseException(JsonRESTError):
-
     code = 400
 
     def __init__(self, message: str):
@@ -80,7 +74,6 @@ class ResourceInUseException(JsonRESTError):
 
 
 class ResourceNotFoundException(JsonRESTError):
-
     code = 400
 
     def __init__(self, message: str):
@@ -88,7 +81,6 @@ class ResourceNotFoundException(JsonRESTError):
 
 
 class TagValidationException(JsonRESTError):
-
     code = 400
 
     def __init__(self, message: str):

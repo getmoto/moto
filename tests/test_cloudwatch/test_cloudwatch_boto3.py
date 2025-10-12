@@ -2,16 +2,14 @@ import copy
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from operator import itemgetter
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
-from moto import mock_aws, settings
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import utcnow
 
@@ -34,8 +32,6 @@ def test_put_a_ton_of_metric_data():
     A sufficiently large call with metric data triggers request compression
     Moto should decompress the request if this is the case, and the request should succeed
     """
-    if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't test large requests in ServerMode")
     cloudwatch = boto3.client("cloudwatch", "us-east-1")
 
     metrics = []
@@ -62,7 +58,8 @@ def test_put_a_ton_of_metric_data():
             )
 
     cloudwatch.put_metric_data(Namespace="acme", MetricData=metrics)
-    # We don't really need any assertions - we just need to know that the call succeeds
+    resp = cloudwatch.list_metrics(MetricName="TestCWMetrics")
+    assert len(resp["Metrics"]) == 50
 
 
 @mock_aws
@@ -1527,8 +1524,8 @@ def test_cloudwatch_return_s3_metrics():
     cloudwatch = boto3.client("cloudwatch", "eu-west-3")
 
     # given
-    s3 = boto3.resource("s3")
-    s3_client = boto3.client("s3")
+    s3 = boto3.resource("s3", "eu-west-3")
+    s3_client = boto3.client("s3", "eu-west-3")
     bucket = s3.Bucket(bucket_name)
     bucket.create(CreateBucketConfiguration={"LocationConstraint": "eu-west-3"})
     bucket.put_object(Body=b"ABCD", Key="file.txt")
@@ -1648,14 +1645,14 @@ def test_put_metric_alarm():
         == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
     assert alarm["AlarmDescription"] == "test alarm"
-    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["AlarmConfigurationUpdatedTimestamp"], datetime)
     assert alarm["ActionsEnabled"] is True
     assert alarm["OKActions"] == [sns_topic_arn]
     assert alarm["AlarmActions"] == [sns_topic_arn]
     assert alarm["InsufficientDataActions"] == [sns_topic_arn]
     assert alarm["StateValue"] == "OK"
     assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
-    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["StateUpdatedTimestamp"], datetime)
     assert alarm["MetricName"] == "5XXError"
     assert alarm["Namespace"] == "AWS/ApiGateway"
     assert alarm["Statistic"] == "Sum"
@@ -1712,11 +1709,11 @@ def test_put_metric_alarm_with_percentile():
         == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
     assert alarm["AlarmDescription"] == "test alarm"
-    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["AlarmConfigurationUpdatedTimestamp"], datetime)
     assert alarm["ActionsEnabled"] is True
     assert alarm["StateValue"] == "OK"
     assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
-    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["StateUpdatedTimestamp"], datetime)
     assert alarm["MetricName"] == "5XXError"
     assert alarm["Namespace"] == "AWS/ApiGateway"
     assert alarm["ExtendedStatistic"] == "p90"
@@ -1783,10 +1780,10 @@ def test_put_metric_alarm_with_anomaly_detection():
         alarm["AlarmArn"]
         == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
-    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["AlarmConfigurationUpdatedTimestamp"], datetime)
     assert alarm["StateValue"] == "OK"
     assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
-    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["StateUpdatedTimestamp"], datetime)
     assert alarm["EvaluationPeriods"] == 2
     assert alarm["ComparisonOperator"] == "GreaterThanOrEqualToThreshold"
     assert alarm["Metrics"] == metrics
@@ -1945,11 +1942,15 @@ def test_get_metric_data_with_custom_label():
 
 
 @mock_aws
-def test_get_metric_data_queries():
-    """
-    verify that >= 10 queries can still be parsed
-    there was an error with the order of parsing items, leading to IndexError
-    """
+@pytest.mark.parametrize(
+    "return_data, expected_result_length",
+    [
+        pytest.param(True, 20, id="ReturnData=True"),
+        pytest.param(False, 0, id="ReturnData=False"),
+        pytest.param(None, 20, id="ReturnData=None"),
+    ],
+)
+def test_get_metric_data_queries(return_data, expected_result_length):
     now = utcnow().replace(microsecond=0)
     start_time = now - timedelta(minutes=10)
     end_time = now + timedelta(minutes=5)
@@ -1965,6 +1966,8 @@ def test_get_metric_data_queries():
             "Unit": "Percent",
         },
     }
+    if return_data is not None:
+        original_query["ReturnData"] = return_data
 
     queries = []
     for i in range(0, 20):
@@ -1977,6 +1980,22 @@ def test_get_metric_data_queries():
     response = boto3.client("cloudwatch", "eu-west-1").get_metric_data(
         StartTime=start_time, EndTime=end_time, MetricDataQueries=queries
     )
+    assert len(response["MetricDataResults"]) == expected_result_length
 
-    # we expect twenty results
-    assert len(response["MetricDataResults"]) == 20
+
+@mock_aws
+def test_put_dashboard_invalid_json_raises_error():
+    client = boto3.client("cloudwatch", "eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.put_dashboard(DashboardName="test", DashboardBody='{"InvalidJson": true')
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterInput"
+
+
+@mock_aws
+def test_delete_dashboard_with_empty_list_raises_error():
+    client = boto3.client("cloudwatch", "eu-west-1")
+    with pytest.raises(ClientError) as exc:
+        client.delete_dashboards(DashboardNames=[])
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidParameterValue"

@@ -2,6 +2,7 @@ import abc
 import operator
 import re
 from datetime import date, datetime
+from enum import Enum
 from itertools import repeat
 from typing import Any, Dict, List, Optional, Union
 
@@ -29,9 +30,207 @@ except ImportError:
     from pyparsing import delimited_list as DelimitedList  # type: ignore[assignment]
 
 from .exceptions import (
+    InvalidFilterFieldNameException,
+    InvalidFilterOperatorException,
     InvalidInputException,
+    InvalidLogicalOperatorException,
     InvalidStateException,
 )
+
+
+class Logical(str, Enum):
+    AND = "AND"
+    ANY = "ANY"
+
+
+class ConditionState(str, Enum):
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    STOPPED = "STOPPED"
+    TIMEOUT = "TIMEOUT"
+    CANCELLED = "CANCELLED"
+
+
+class CrawlState(str, Enum):
+    RUNNING = "RUNNING"
+    CANCELLING = "CANCELLING"
+    CANCELLED = "CANCELLED"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    ERROR = "ERROR"
+
+
+class Condition:
+    def __init__(self, inputs: Dict[str, str], index: int) -> None:
+        # if there's a job name present, the API creates a job trigger, even if crawler trigger args are provided
+        self.job_name = inputs.get("JobName")
+        self.crawler_name = inputs.get("CrawlerName")
+        self.state: Optional[ConditionState] = None
+        self.crawl_state: Optional[CrawlState] = None
+        if self.job_name:
+            self.crawler_name = None
+            if inputs.get("State"):
+                self.state = ConditionState(inputs.get("State"))
+            else:
+                raise InvalidInputException(
+                    "CreateTrigger",
+                    "State cannot be null or empty, choose from one of the following job state: [SUCCEEDED, STOPPED, FAILED, TIMEOUT]",
+                )
+        elif self.crawler_name:
+            self.job_name = None
+            if inputs.get("CrawlState"):
+                self.crawl_state = CrawlState(inputs.get("CrawlState"))
+            else:
+                raise InvalidInputException(
+                    "CreateTrigger",
+                    "State cannot be null or empty, choose from one of the following crawler state: [SUCCEEDED, FAILED, CANCELLED]",
+                )
+        else:
+            raise InvalidInputException(
+                "CreateTrigger",
+                "JobName or CrawlerName in condition cannot be null or empty",
+            )
+
+        logical_operator = inputs.get("LogicalOperator")
+        if logical_operator:
+            self.logical_operator = logical_operator
+        else:
+            raise InvalidInputException(
+                "CreateTrigger",
+                "Logical operator cannot be null or empty",
+            )
+        if self.logical_operator != "EQUALS":
+            raise InvalidLogicalOperatorException(self.logical_operator, index + 1)
+
+    def as_dict(self) -> Dict[str, str]:
+        return_dict = {
+            "LogicalOperator": self.logical_operator,
+        }
+        if self.crawler_name:
+            return_dict["CrawlerName"] = self.crawler_name
+        if self.job_name:
+            return_dict["JobName"] = self.job_name
+        if self.crawl_state:
+            return_dict["CrawlState"] = self.crawl_state.value
+        if self.state:
+            return_dict["State"] = self.state.value
+        return return_dict
+
+
+class Predicate:
+    def __init__(self, inputs: Dict[str, Any]) -> None:
+        self.logical = Logical(inputs.get("Logical"))
+
+        self.conditions: List[Condition] = [
+            Condition(condition, index)
+            for index, condition in enumerate(inputs.get("Conditions", []))
+        ]
+
+    def as_dict(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
+        return_dict: Dict[str, Union[str, List[Dict[str, str]]]] = {}
+        if self.logical:
+            return_dict["Logical"] = self.logical.value
+        if self.conditions:
+            return_dict["Conditions"] = [
+                condition.as_dict() for condition in self.conditions
+            ]
+        return return_dict
+
+
+class Action:
+    def __init__(self, inputs: Dict[str, Union[str, Dict[str, str], int]]) -> None:
+        self.arguments = inputs.get("Arguments")
+        self.crawler_name = inputs.get("CrawlerName")
+        self.job_name = inputs.get("JobName")
+        self.notification_property = inputs.get("NotificationProperty")
+        self.security_configuration = inputs.get("SecurityConfiguration")
+        self.timeout = inputs.get("Timeout")
+
+        if self.crawler_name and self.job_name:
+            raise InvalidInputException(
+                "CreateTrigger",
+                "Both JobName and CrawlerName cannot be set together in an action",
+            )
+
+    def as_dict(self) -> Dict[str, Union[str, Dict[str, str], int]]:
+        return_dict: Dict[str, Union[str, Dict[str, str], int]] = {}
+        if self.arguments:
+            return_dict["Arguments"] = self.arguments
+        if self.crawler_name:
+            return_dict["CrawlerName"] = self.crawler_name
+        if self.job_name:
+            return_dict["JobName"] = self.job_name
+        if self.notification_property:
+            return_dict["NotificationProperty"] = self.notification_property
+        if self.security_configuration:
+            return_dict["SecurityConfiguration"] = self.security_configuration
+        if self.timeout is not None:
+            return_dict["Timeout"] = self.timeout
+        return return_dict
+
+
+class FilterField(str, Enum):
+    CRAWL_ID = "CRAWL_ID"
+    STATE = "STATE"
+    START_TIME = "START_TIME"
+    END_TIME = "END_TIME"
+    DPU_HOUR = "DPU_HOUR"
+
+
+class FilterOperator(str, Enum):
+    GT = "GT"
+    GE = "GE"
+    LT = "LT"
+    LE = "LE"
+    EQ = "EQ"
+    NE = "NE"
+
+
+class CrawlFilter:
+    def __init__(
+        self, field_name: FilterField, operator: FilterOperator, field_value: str
+    ) -> None:
+        self.field_name = field_name
+        self.field_value = field_value
+        self.operator = operator
+        self.check_operator_valid_for_state()
+
+    def check_operator_valid_for_state(self) -> None:
+        if self.field_name in [FilterField.STATE, FilterField.CRAWL_ID]:
+            if self.operator not in [FilterOperator.EQ, FilterOperator.NE]:
+                raise InvalidInputException(
+                    "ListCrawls",
+                    f"Only EQ or NE operator is allowed for field : {self.field_name.value}",
+                )
+
+
+def validate_crawl_filters(filters: List[Dict[str, str]]) -> List[CrawlFilter]:
+    filter_objects: List[CrawlFilter] = []
+    for index, filter in enumerate(filters):
+        field_name_input = filter.get("FieldName")
+        operator_input = filter.get("FilterOperator")
+        field_value_input = filter.get("FieldValue")
+        if not all([field_name_input, field_value_input, operator_input]):
+            raise InvalidInputException(
+                "ListCrawls",
+                f"Invalid Filter Provided: FieldName: {field_name_input if field_name_input else 'null'}, "
+                f"FilterOperator: {operator_input if operator_input else 'null'}, "
+                f"FieldValue: {field_value_input if field_value_input else 'null'}",
+            )
+
+        try:
+            field_name = FilterField(field_name_input)
+        except ValueError:
+            raise InvalidFilterFieldNameException(filter["FieldName"], index + 1)
+
+        try:
+            operator = FilterOperator(operator_input)
+        except ValueError:
+            raise InvalidFilterOperatorException(filter["FilterOperator"], index + 1)
+
+        filter_objects.append(CrawlFilter(field_name, operator, filter["FieldValue"]))
+
+    return filter_objects
 
 
 def _cast(type_: str, value: Any) -> Union[date, datetime, float, int, str]:
@@ -130,7 +329,8 @@ class _Ident(_Expr):
             if self.ident == key["Name"]:
                 return key["Type"]
 
-        raise InvalidInputException("GetPartitions", f"Unknown column '{self.ident}'")
+        # not a partition column
+        raise InvalidInputException("GetPartitions", "Invalid partition expression!")
 
     def _eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
         for key, value in zip(part_keys, part_input["Values"]):
@@ -138,7 +338,7 @@ class _Ident(_Expr):
                 return _cast(key["Type"], value)
 
         # also raised for unpartitioned tables
-        raise InvalidInputException("GetPartitions", f"Unknown column '{self.ident}'")
+        raise InvalidInputException("GetPartitions", "Invalid partition expression!")
 
 
 class _IsNull(_Expr):

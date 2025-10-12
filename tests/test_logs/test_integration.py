@@ -163,9 +163,9 @@ def test_put_subscription_filter_with_lambda():
     msg_showed_up, received_message = _wait_for_log_msg(
         client_logs, "/aws/lambda/test", "awslogs"
     )
-    assert (
-        msg_showed_up
-    ), f"CloudWatch log event was not found. All logs: {received_message}"
+    assert msg_showed_up, (
+        f"CloudWatch log event was not found. All logs: {received_message}"
+    )
 
     data = json.loads(received_message)["awslogs"]["data"]
     response = json.loads(
@@ -234,9 +234,9 @@ def test_subscription_filter_applies_to_new_streams():
     msg_showed_up, received_message = _wait_for_log_msg(
         client_logs, "/aws/lambda/test", "awslogs"
     )
-    assert (
-        msg_showed_up
-    ), f"CloudWatch log event was not found. All logs: {received_message}"
+    assert msg_showed_up, (
+        f"CloudWatch log event was not found. All logs: {received_message}"
+    )
 
     data = json.loads(received_message)["awslogs"]["data"]
     response = json.loads(
@@ -275,10 +275,7 @@ def test_put_subscription_filter_with_firehose():
     # Create a S3 bucket.
     bucket_name = "firehosetestbucket"
     s3_client = boto3.client("s3", region_name=region_name)
-    s3_client.create_bucket(
-        Bucket=bucket_name,
-        CreateBucketConfiguration={"LocationConstraint": "us-west-1"},
-    )
+    s3_client.create_bucket(Bucket=bucket_name)
 
     # Create the Firehose delivery stream that uses that S3 bucket as
     # the destination.

@@ -1,7 +1,7 @@
 import boto3
 import pytest
 from botocore.config import Config
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -504,26 +504,10 @@ def test_create_another_member_adminpassword():
         "testmember2", "admin", "Admin12345", False
     )
 
-    # Too short
-    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
-        "AdminPassword"
-    ] = "badap"
-    with pytest.raises(ParamValidationError) as ex:
-        conn.create_member(
-            NetworkId=network_id,
-            InvitationId=invitation_id,
-            MemberConfiguration=badadminpassmemberconf,
-        )
-    err = ex.value
-    assert (
-        "Invalid length for parameter MemberConfiguration.FrameworkConfiguration.Fabric.AdminPassword"
-        in str(err)
-    )
-
     # No uppercase or numbers
-    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
-        "AdminPassword"
-    ] = "badadminpwd"
+    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"]["AdminPassword"] = (
+        "badadminpwd"
+    )
     with pytest.raises(ClientError) as ex:
         conn.create_member(
             NetworkId=network_id,
@@ -535,9 +519,9 @@ def test_create_another_member_adminpassword():
     assert "Invalid request body" in err["Message"]
 
     # No lowercase or numbers
-    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
-        "AdminPassword"
-    ] = "BADADMINPWD"
+    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"]["AdminPassword"] = (
+        "BADADMINPWD"
+    )
     with pytest.raises(ClientError) as ex:
         conn.create_member(
             NetworkId=network_id,
@@ -549,9 +533,9 @@ def test_create_another_member_adminpassword():
     assert "Invalid request body" in err["Message"]
 
     # No numbers
-    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
-        "AdminPassword"
-    ] = "badAdminpwd"
+    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"]["AdminPassword"] = (
+        "badAdminpwd"
+    )
     with pytest.raises(ClientError) as ex:
         conn.create_member(
             NetworkId=network_id,
@@ -563,9 +547,9 @@ def test_create_another_member_adminpassword():
     assert "Invalid request body" in err["Message"]
 
     # Invalid character
-    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"][
-        "AdminPassword"
-    ] = "badAdmin@pwd1"
+    badadminpassmemberconf["FrameworkConfiguration"]["Fabric"]["AdminPassword"] = (
+        "badAdmin@pwd1"
+    )
     with pytest.raises(ClientError) as ex:
         conn.create_member(
             NetworkId=network_id,

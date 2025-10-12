@@ -1,4 +1,5 @@
 """comprehend base URL and path."""
+
 from .responses import ComprehendResponse
 
 url_bases = [

@@ -139,12 +139,15 @@ def test_delete_inline_policy_to_permissionset():
 
 
 @mock_aws
-def test_attach_managed_policy_to_permission_set():
-    client = boto3.client("sso-admin", region_name="us-east-1")
+@pytest.mark.parametrize(
+    "region,partition", [("us-east-1", "aws"), ("cn-north-1", "aws-cn")]
+)
+def test_attach_managed_policy_to_permission_set(region, partition):
+    client = boto3.client("sso-admin", region_name=region)
 
     permission_set_arn = create_permissionset(client)
     permissionset_id = permission_set_arn.split("/")[-1]
-    managed_policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+    managed_policy_arn = f"arn:{partition}:iam::aws:policy/AdministratorAccess"
 
     client.attach_managed_policy_to_permission_set(
         InstanceArn=DUMMY_INSTANCE_ARN,
@@ -158,10 +161,7 @@ def test_attach_managed_policy_to_permission_set():
     )
 
     assert response["AttachedManagedPolicies"][0]["Name"] == "AdministratorAccess"
-    assert (
-        response["AttachedManagedPolicies"][0]["Arn"]
-        == "arn:aws:iam::aws:policy/AdministratorAccess"
-    )
+    assert response["AttachedManagedPolicies"][0]["Arn"] == managed_policy_arn
 
     # test for managed policy that is already attached
     with pytest.raises(ClientError) as e:

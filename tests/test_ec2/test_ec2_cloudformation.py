@@ -764,7 +764,11 @@ def test_vpc_endpoint_creation():
 
     outputs = cf.describe_stacks(StackName=stack_name)["Stacks"][0]["Outputs"]
     assert len(outputs) == 1
-    assert outputs[0] == {"OutputKey": "EndpointId", "OutputValue": vpc_endpoint_id}
+    assert outputs[0] == {
+        "OutputKey": "EndpointId",
+        "OutputValue": vpc_endpoint_id,
+        "Description": "Id of the endpoint created",
+    }
 
     endpoint = ec2_client.describe_vpc_endpoints(VpcEndpointIds=[vpc_endpoint_id])[
         "VpcEndpoints"
@@ -836,6 +840,7 @@ def test_launch_template_create():
     assert outputs[0] == {
         "OutputKey": "LaunchTemplateId",
         "OutputValue": launch_template_id,
+        "Description": "The ID of the created launch template",
     }
 
     launch_template = ec2.describe_launch_templates(

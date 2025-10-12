@@ -1,11 +1,10 @@
 from collections import OrderedDict
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 
 def cfn_to_api_encryption(
-    bucket_encryption_properties: Dict[str, Any]
+    bucket_encryption_properties: Dict[str, Any],
 ) -> Dict[str, Any]:
-
     sse_algorithm = bucket_encryption_properties["ServerSideEncryptionConfiguration"][
         0
     ]["ServerSideEncryptionByDefault"]["SSEAlgorithm"]
@@ -21,14 +20,4 @@ def cfn_to_api_encryption(
     )
     return OrderedDict(
         {"@xmlns": "http://s3.amazonaws.com/doc/2006-03-01/", "Rule": rule}
-    )
-
-
-def is_replacement_update(properties: List[str]) -> bool:
-    properties_requiring_replacement_update = ["BucketName", "ObjectLockEnabled"]
-    return any(
-        [
-            property_requiring_replacement in properties
-            for property_requiring_replacement in properties_requiring_replacement_update
-        ]
     )

@@ -7,15 +7,26 @@ from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .exceptions import (
     DistributionAlreadyExists,
     DomainNameNotAnS3Bucket,
     InvalidIfMatchVersion,
     NoSuchDistribution,
+    NoSuchInvalidation,
     NoSuchOriginAccessControl,
     OriginDoesNotExist,
 )
+
+
+def random_id(uppercase: bool = True, length: int = 13) -> str:
+    ascii_set = string.ascii_uppercase if uppercase else string.ascii_lowercase
+    chars = list(range(10)) + list(ascii_set)
+    resource_id = random.choice(ascii_set) + "".join(
+        str(random.choice(chars)) for _ in range(length - 1)
+    )
+    return resource_id
 
 
 class ActiveTrustedSigners:
@@ -51,15 +62,31 @@ class ForwardedValues:
             self.whitelisted_names = [self.whitelisted_names]
         self.headers: List[Any] = []
         self.query_string_cache_keys: List[Any] = []
+        self.cookies: List[Dict[str, Any]] = config.get("Cookies") or []
+
+
+class TrustedSigners:
+    def __init__(self, config: Dict[str, Any]):
+        items = config.get("Items") or {}
+        self.acct_nums = items.get("AwsAccountNumber") or []
+        if isinstance(self.acct_nums, str):
+            self.acct_nums = [self.acct_nums]
+
+
+class TrustedKeyGroups:
+    def __init__(self, config: Dict[str, Any]):
+        items = config.get("Items") or {}
+        self.group_ids = items.get("KeyGroup") or []
+        if isinstance(self.group_ids, str):
+            self.group_ids = [self.group_ids]
 
 
 class DefaultCacheBehaviour:
     def __init__(self, config: Dict[str, Any]):
         self.target_origin_id = config["TargetOriginId"]
         self.trusted_signers_enabled = False
-        self.trusted_signers: List[Any] = []
-        self.trusted_key_groups_enabled = False
-        self.trusted_key_groups: List[Any] = []
+        self.trusted_signers = TrustedSigners(config.get("TrustedSigners") or {})
+        self.trusted_key_groups = TrustedKeyGroups(config.get("TrustedKeyGroups") or {})
         self.viewer_protocol_policy = config["ViewerProtocolPolicy"]
         methods = config.get("AllowedMethods", {})
         self.allowed_methods = methods.get("Items", {}).get("Method", ["HEAD", "GET"])
@@ -80,6 +107,19 @@ class DefaultCacheBehaviour:
         self.realtime_log_config_arn = config.get("RealtimeLogConfigArn") or ""
 
 
+class CacheBehaviour(DefaultCacheBehaviour):
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__(config)
+        self.path_pattern: str = config.get("PathPattern", "")
+        methods = config.get("AllowedMethods", {})
+        self.cached_methods: List[str] = (
+            methods.get("CachedMethods", {}).get("Items", {}).get("Method", [])
+        )
+        self.allowed_methods: List[str] = methods.get("Items", {}).get("Method", [])
+        self.cache_policy_id = config.get("CachePolicyId", "")
+        self.origin_request_policy_id = config.get("OriginRequestPolicyId", "")
+
+
 class Logging:
     def __init__(self, config: Dict[str, Any]) -> None:
         self.enabled = config.get("Enabled") or False
@@ -89,9 +129,18 @@ class Logging:
 
 
 class ViewerCertificate:
-    def __init__(self) -> None:
-        self.cloud_front_default_certificate = True
-        self.min_protocol_version = "TLSv1"
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.cloud_front_default_certificate = config.get(
+            "CloudFrontDefaultCertificate", True
+        )
+        if isinstance(self.cloud_front_default_certificate, str):
+            self.cloud_front_default_certificate = (
+                self.cloud_front_default_certificate.lower() == "true"
+            )
+        self.iam_certificate_id = config.get("IAMCertificateId") or ""
+        self.acm_certificate_arn = config.get("ACMCertificateArn") or ""
+        self.ssl_support_method = config.get("SSLSupportMethod") or "sni-only"
+        self.min_protocol_version = config.get("MinimumProtocolVersion") or "TLSv1"
         self.certificate_source = "cloudfront"
 
 
@@ -157,10 +206,15 @@ class DistributionConfig:
             config["DefaultCacheBehavior"]
         )
         self.cache_behaviors: List[Any] = []
+        if config.get("CacheBehaviors", {}).get("Items"):
+            for _, v in config.get("CacheBehaviors", {}).get("Items").items():
+                self.cache_behaviors.append(CacheBehaviour(v))
         self.custom_error_responses: List[Any] = []
         self.logging = Logging(config.get("Logging") or {})
         self.enabled = config.get("Enabled") or False
-        self.viewer_certificate = ViewerCertificate()
+        self.viewer_certificate = ViewerCertificate(
+            config.get("ViewerCertificate") or {}
+        )
         self.geo_restriction = GeoRestrictions(config.get("Restrictions") or {})
         self.caller_reference = config.get("CallerReference", str(random.uuid4()))
         self.origins = config["Origins"]["Items"]["Origin"]
@@ -182,25 +236,14 @@ class DistributionConfig:
 
 
 class Distribution(BaseModel, ManagedState):
-    @staticmethod
-    def random_id(uppercase: bool = True) -> str:
-        ascii_set = string.ascii_uppercase if uppercase else string.ascii_lowercase
-        chars = list(range(10)) + list(ascii_set)
-        resource_id = random.choice(ascii_set) + "".join(
-            str(random.choice(chars)) for _ in range(12)
-        )
-        return resource_id
-
-    def __init__(self, account_id: str, config: Dict[str, Any]):
+    def __init__(self, account_id: str, region_name: str, config: Dict[str, Any]):
         # Configured ManagedState
         super().__init__(
             "cloudfront::distribution", transitions=[("InProgress", "Deployed")]
         )
         # Configure internal properties
-        self.distribution_id = Distribution.random_id()
-        self.arn = (
-            f"arn:aws:cloudfront:{account_id}:distribution/{self.distribution_id}"
-        )
+        self.distribution_id = random_id()
+        self.arn = f"arn:{get_partition(region_name)}:cloudfront:{account_id}:distribution/{self.distribution_id}"
         self.distribution_config = DistributionConfig(config)
         self.active_trusted_signers = ActiveTrustedSigners()
         self.active_trusted_key_groups = ActiveTrustedKeyGroups()
@@ -209,8 +252,8 @@ class Distribution(BaseModel, ManagedState):
         self.last_modified_time = "2021-11-27T10:34:26.802Z"
         self.in_progress_invalidation_batches = 0
         self.has_active_trusted_key_groups = False
-        self.domain_name = f"{Distribution.random_id(uppercase=False)}.cloudfront.net"
-        self.etag = Distribution.random_id()
+        self.domain_name = f"{random_id(uppercase=False)}.cloudfront.net"
+        self.etag = random_id()
 
     @property
     def location(self) -> str:
@@ -219,13 +262,13 @@ class Distribution(BaseModel, ManagedState):
 
 class OriginAccessControl(BaseModel):
     def __init__(self, config_dict: Dict[str, str]):
-        self.id = Invalidation.random_id()
+        self.id = random_id()
         self.name = config_dict.get("Name")
         self.description = config_dict.get("Description")
         self.signing_protocol = config_dict.get("SigningProtocol")
         self.signing_behaviour = config_dict.get("SigningBehavior")
         self.origin_type = config_dict.get("OriginAccessControlOriginType")
-        self.etag = Invalidation.random_id()
+        self.etag = random_id()
 
     def update(self, config: Dict[str, str]) -> None:
         if "Name" in config:
@@ -241,19 +284,10 @@ class OriginAccessControl(BaseModel):
 
 
 class Invalidation(BaseModel):
-    @staticmethod
-    def random_id(uppercase: bool = True) -> str:
-        ascii_set = string.ascii_uppercase if uppercase else string.ascii_lowercase
-        chars = list(range(10)) + list(ascii_set)
-        resource_id = random.choice(ascii_set) + "".join(
-            str(random.choice(chars)) for _ in range(12)
-        )
-        return resource_id
-
     def __init__(
         self, distribution: Distribution, paths: Dict[str, Any], caller_ref: str
     ):
-        self.invalidation_id = Invalidation.random_id()
+        self.invalidation_id = random_id()
         self.create_time = iso_8601_datetime_with_milliseconds()
         self.distribution = distribution
         self.status = "COMPLETED"
@@ -266,12 +300,42 @@ class Invalidation(BaseModel):
         return self.distribution.location + f"/invalidation/{self.invalidation_id}"
 
 
+class PublicKey(BaseModel):
+    def __init__(self, caller_ref: str, name: str, encoded_key: str):
+        self.id = random_id(length=14)
+        self.caller_ref = caller_ref
+        self.name = name
+        self.encoded_key = encoded_key
+        self.created = iso_8601_datetime_with_milliseconds()
+        self.etag = random_id(length=14)
+        self.location = (
+            f"https://cloudfront.amazonaws.com/2020-05-31/public-key/{self.id}"
+        )
+
+        # Last newline-separator is lost in the XML->Python transformation, but should exist
+        if not self.encoded_key.endswith("\n"):
+            self.encoded_key += "\n"
+
+
+class KeyGroup(BaseModel):
+    def __init__(self, name: str, items: List[str]):
+        self.id = random_id(length=14)
+        self.name = name
+        self.items = items
+        self.etag = random_id(length=14)
+        self.location = (
+            f"https://cloudfront.amazonaws.com/2020-05-31/key-group/{self.id}"
+        )
+
+
 class CloudFrontBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.distributions: Dict[str, Distribution] = dict()
         self.invalidations: Dict[str, List[Invalidation]] = dict()
         self.origin_access_controls: Dict[str, OriginAccessControl] = dict()
+        self.public_keys: Dict[str, PublicKey] = dict()
+        self.key_groups: Dict[str, KeyGroup] = dict()
         self.tagger = TaggingService()
 
     def create_distribution(
@@ -288,7 +352,7 @@ class CloudFrontBackend(BaseBackend):
     def create_distribution_with_tags(
         self, distribution_config: Dict[str, Any], tags: List[Dict[str, str]]
     ) -> Tuple[Distribution, str, str]:
-        dist = Distribution(self.account_id, distribution_config)
+        dist = Distribution(self.account_id, self.region_name, distribution_config)
         caller_reference = dist.distribution_config.caller_reference
         existing_dist = self._distribution_with_caller_reference(caller_reference)
         if existing_dist is not None:
@@ -377,6 +441,19 @@ class CloudFrontBackend(BaseBackend):
         """
         return self.invalidations.get(dist_id) or []
 
+    def get_invalidation(self, dist_id: str, id: str) -> Invalidation:
+        if dist_id not in self.distributions:
+            raise NoSuchDistribution
+        try:
+            invalidations = self.invalidations[dist_id]
+            if invalidations:
+                for invalidation in invalidations:
+                    if invalidation.invalidation_id == id:
+                        return invalidation
+        except KeyError:
+            pass
+        raise NoSuchInvalidation
+
     def list_tags_for_resource(self, resource: str) -> Dict[str, List[Dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
 
@@ -414,10 +491,46 @@ class CloudFrontBackend(BaseBackend):
         """
         self.origin_access_controls.pop(control_id)
 
+    def create_public_key(
+        self, caller_ref: str, name: str, encoded_key: str
+    ) -> PublicKey:
+        key = PublicKey(name=name, caller_ref=caller_ref, encoded_key=encoded_key)
+        self.public_keys[key.id] = key
+        return key
+
+    def get_public_key(self, key_id: str) -> PublicKey:
+        return self.public_keys[key_id]
+
+    def delete_public_key(self, key_id: str) -> None:
+        """
+        IfMatch is not yet implemented - deletion always succeeds
+        """
+        self.public_keys.pop(key_id, None)
+
+    def list_public_keys(self) -> List[PublicKey]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.public_keys.values())
+
+    def create_key_group(self, name: str, items: List[str]) -> KeyGroup:
+        key_group = KeyGroup(name=name, items=items)
+        self.key_groups[key_group.id] = key_group
+        return key_group
+
+    def get_key_group(self, group_id: str) -> KeyGroup:
+        return self.key_groups[group_id]
+
+    def list_key_groups(self) -> List[KeyGroup]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.key_groups.values())
+
 
 cloudfront_backends = BackendDict(
     CloudFrontBackend,
     "cloudfront",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

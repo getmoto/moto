@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from moto.core.responses import BaseResponse
 
@@ -46,7 +46,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
     def register_scalable_target(self) -> str:
         """Registers or updates a scalable target."""
         self._validate_params()
-        self.applicationautoscaling_backend.register_scalable_target(
+        target = self.applicationautoscaling_backend.register_scalable_target(
             self._get_param("ServiceNamespace"),
             self._get_param("ResourceId"),
             self._get_param("ScalableDimension"),
@@ -55,7 +55,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             role_arn=self._get_param("RoleARN"),
             suspended_state=self._get_param("SuspendedState"),
         )
-        return json.dumps({})
+        return json.dumps({"ScalableTargetARN": target.arn})
 
     def deregister_scalable_target(self) -> str:
         """Deregisters a scalable target."""
@@ -79,7 +79,9 @@ class ApplicationAutoScalingResponse(BaseResponse):
                 self._get_param("TargetTrackingScalingPolicyConfiguration"),
             ),
         )
-        return json.dumps({"PolicyARN": policy.policy_arn, "Alarms": []})  # ToDo
+        return json.dumps(
+            {"PolicyARN": policy.policy_arn, "Alarms": _build_alarms(policy)}
+        )
 
     def describe_scaling_policies(self) -> str:
         (
@@ -129,7 +131,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             message = f"1 validation error detected: {messages[0]}"
         elif len(messages) > 1:
             message = (
-                f'{len(messages)} validation errors detected: {"; ".join(messages)}'
+                f"{len(messages)} validation errors detected: {'; '.join(messages)}"
             )
         if message:
             raise AWSValidationException(message)
@@ -195,14 +197,19 @@ class ApplicationAutoScalingResponse(BaseResponse):
 def _build_target(t: FakeScalableTarget) -> Dict[str, Any]:
     return {
         "CreationTime": t.creation_time,
-        "ServiceNamespace": t.service_namespace,
+        "MaxCapacity": t.max_capacity,
+        "MinCapacity": t.min_capacity,
         "ResourceId": t.resource_id,
         "RoleARN": t.role_arn,
         "ScalableDimension": t.scalable_dimension,
-        "MaxCapacity": t.max_capacity,
-        "MinCapacity": t.min_capacity,
+        "ServiceNamespace": t.service_namespace,
+        "ScalableTargetARN": t.arn,
         "SuspendedState": t.suspended_state,
     }
+
+
+def _build_alarms(policy: FakeApplicationAutoscalingPolicy) -> List[Dict[str, str]]:
+    return [{"AlarmARN": a.alarm_arn, "AlarmName": a.name} for a in policy.alarms]
 
 
 def _build_policy(p: FakeApplicationAutoscalingPolicy) -> Dict[str, Any]:
@@ -214,13 +221,14 @@ def _build_policy(p: FakeApplicationAutoscalingPolicy) -> Dict[str, Any]:
         "ScalableDimension": p.scalable_dimension,
         "PolicyType": p.policy_type,
         "CreationTime": p.creation_time,
+        "Alarms": _build_alarms(p),
     }
     if p.policy_type == "StepScaling":
         response["StepScalingPolicyConfiguration"] = p.step_scaling_policy_configuration
     elif p.policy_type == "TargetTrackingScaling":
-        response[
-            "TargetTrackingScalingPolicyConfiguration"
-        ] = p.target_tracking_scaling_policy_configuration
+        response["TargetTrackingScalingPolicyConfiguration"] = (
+            p.target_tracking_scaling_policy_configuration
+        )
     return response
 
 

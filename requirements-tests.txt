@@ -1,8 +1,8 @@
 coverage
+pycognito
 pytest
 pytest-cov
 pytest-order
 pytest-xdist
 freezegun
-pylint
-ruff
+pyotp

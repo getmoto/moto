@@ -14,7 +14,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.paginator import paginate
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 from .exceptions import (
     ConsumerNotFound,
@@ -51,7 +51,7 @@ class Consumer(BaseModel):
         self.created = unix_time()
         self.stream_arn = stream_arn
         stream_name = stream_arn.split("/")[-1]
-        self.consumer_arn = f"arn:aws:kinesis:{region_name}:{account_id}:stream/{stream_name}/consumer/{consumer_name}"
+        self.consumer_arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}/consumer/{consumer_name}"
 
     def to_json(self, include_stream_arn: bool = False) -> Dict[str, Any]:
         resp = {
@@ -207,7 +207,7 @@ class Stream(CloudFormationModel):
         )
         self.region = region_name
         self.account_id = account_id
-        self.arn = f"arn:aws:kinesis:{region_name}:{account_id}:stream/{stream_name}"
+        self.arn = f"arn:{get_partition(region_name)}:kinesis:{region_name}:{account_id}:stream/{stream_name}"
         self.shards: Dict[str, Shard] = {}
         self.tags: Dict[str, str] = {}
         self.status = "ACTIVE"
@@ -366,7 +366,7 @@ class Stream(CloudFormationModel):
                 [s for s in shard_list[0:-1:2]], [s for s in shard_list[1::2]]
             )
 
-            for (shard, adjacent) in adjacent_shards:
+            for shard, adjacent in adjacent_shards:
                 self.merge_shards(shard.shard_id, adjacent.shard_id)
                 required_shard_merges -= 1
                 if required_shard_merges == 0:
@@ -585,6 +585,7 @@ class KinesisBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.streams: Dict[str, Stream] = OrderedDict()
+        self.resource_policies: Dict[str, str] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -683,7 +684,9 @@ class KinesisBackend(BaseBackend):
         )
 
         next_shard_iterator = compose_shard_iterator(
-            stream_name, shard, last_sequence_id  # type: ignore
+            stream_name,
+            shard,
+            last_sequence_id,  # type: ignore
         )
 
         return next_shard_iterator, records, millis_behind_latest
@@ -732,7 +735,9 @@ class KinesisBackend(BaseBackend):
             data = record.get("Data")
 
             sequence_number, shard_id = stream.put_record(
-                partition_key, explicit_hash_key, data  # type: ignore[arg-type]
+                partition_key,  # type: ignore[arg-type]
+                explicit_hash_key,  # type: ignore[arg-type]
+                data,  # type: ignore[arg-type]
             )
             response["Records"].append(
                 {"SequenceNumber": sequence_number, "ShardId": shard_id}
@@ -803,13 +808,12 @@ class KinesisBackend(BaseBackend):
 
         return current_shard_count
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_shards(
         self, stream_arn: Optional[str], stream_name: Optional[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Shard]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
-        shards = sorted(stream.shards.values(), key=lambda x: x.shard_id)
-        return [shard.to_json() for shard in shards]
+        return sorted(stream.shards.values(), key=lambda x: x.shard_id)
 
     def increase_stream_retention_period(
         self,
@@ -1020,6 +1024,45 @@ class KinesisBackend(BaseBackend):
             data=gzipped_payload,
             explicit_hash_key="",
         )
+
+    def put_resource_policy(self, resource_arn: str, policy_doc: str) -> None:
+        """
+        Creates/updates resource policy and return policy object
+        """
+        self.resource_policies[resource_arn] = policy_doc
+
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        """
+        Remove resource policy with a matching given resource arn.
+        """
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(resource_arn, self.account_id)
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundError(
+                message=f"No resource policy found for resource ARN {resource_arn}."
+            )
+        del self.resource_policies[resource_arn]
+
+    def get_resource_policy(self, resource_arn: str) -> str:
+        """
+        Get resource policy with a matching given resource arn.
+        """
+        stream_name = resource_arn.split("/")[-1]
+        if stream_name not in self.streams:
+            raise StreamNotFoundError(resource_arn, self.account_id)
+        if resource_arn not in self.resource_policies:
+            return "{}"
+        return self.resource_policies[resource_arn]
+
+    def describe_limits(self) -> dict[str, int]:
+        """Return fixed Kinesis limits."""
+        return {
+            "ShardLimit": 6000,
+            "OpenShardCount": 0,
+            "OnDemandStreamCount": 0,
+            "OnDemandStreamCountLimit": 50,
+        }
 
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")

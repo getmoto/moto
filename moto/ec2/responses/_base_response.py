@@ -1,12 +1,22 @@
 from typing import Any, Dict, Optional
 
 from moto.core.responses import BaseResponse
+from moto.core.serialize import return_if_not_empty
 
-from ..exceptions import EmptyTagSpecError, InvalidParameter
+from ..exceptions import EC2ClientError, EmptyTagSpecError, InvalidParameter
 from ..utils import convert_tag_spec
 
 
 class EC2BaseResponse(BaseResponse):
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        # ENI
+        "DescribeNetworkInterfacesResult.NetworkInterfaces.NetworkInterface.Association": return_if_not_empty,
+        # IAM Instance Profiles
+        "AssociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "associating",
+        "DisassociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "disassociating",
+        "ReplaceIamInstanceProfileAssociationResult.IamInstanceProfileAssociation.State": lambda _: "associating",
+    }
+
     @property
     def ec2_backend(self) -> Any:  # type: ignore[misc]
         from moto.ec2.models import ec2_backends
@@ -15,9 +25,14 @@ class EC2BaseResponse(BaseResponse):
 
     def _filters_from_querystring(self) -> Dict[str, str]:
         # [{"Name": x1, "Value": y1}, ..]
-        _filters = self._get_multi_param("Filter.")
+        _filters = self._get_multi_param("Filter.", skip_result_conversion=True)
         # return {x1: y1, ...}
-        return {f["Name"]: f["Value"] for f in _filters}
+        try:
+            return {f["Name"]: f.get("Value", []) for f in _filters}
+        except KeyError:
+            raise EC2ClientError(
+                "InvalidParameterValue", "The filter 'null' is invalid."
+            )
 
     def _parse_tag_specification(
         self, expected_type: Optional[str] = None

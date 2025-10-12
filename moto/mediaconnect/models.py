@@ -6,6 +6,7 @@ from moto.core.common_models import BaseModel
 from moto.mediaconnect.exceptions import NotFoundException
 from moto.moto_api._internal import mock_random as random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 
 class Flow(BaseModel):
@@ -19,13 +20,14 @@ class Flow(BaseModel):
         self.source_failover_config = kwargs.get("source_failover_config", {})
         self.sources = kwargs.get("sources", [])
         self.vpc_interfaces = kwargs.get("vpc_interfaces", [])
-        self.status: Optional[
-            str
-        ] = "STANDBY"  # one of 'STANDBY'|'ACTIVE'|'UPDATING'|'DELETING'|'STARTING'|'STOPPING'|'ERROR'
+        self.status: Optional[str] = (
+            "STANDBY"  # one of 'STANDBY'|'ACTIVE'|'UPDATING'|'DELETING'|'STARTING'|'STOPPING'|'ERROR'
+        )
         self._previous_status: Optional[str] = None
         self.description = "A Moto test flow"
-        self.flow_arn = f"arn:aws:mediaconnect:{region_name}:{account_id}:flow:{self.id}:{self.name}"
+        self.flow_arn = f"arn:{get_partition(region_name)}:mediaconnect:{region_name}:{account_id}:flow:{self.id}:{self.name}"
         self.egress_ip = "127.0.0.1"
+        self.maintenance = kwargs.get("maintenance", {})
         if self.source and not self.sources:
             self.sources = [
                 self.source,
@@ -46,6 +48,10 @@ class Flow(BaseModel):
             "status": self.status,
             "vpcInterfaces": self.vpc_interfaces,
         }
+
+        if self.maintenance:
+            data["maintenance"] = self.maintenance
+
         if include:
             new_data = {k: v for k, v in data.items() if k in include}
             if "sourceType" in include:
@@ -77,7 +83,7 @@ class MediaConnectBackend(BaseBackend):
     ) -> None:
         if source:
             source["sourceArn"] = (
-                f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:source"
+                f"arn:{get_partition(self.region_name)}:mediaconnect:{self.region_name}:{self.account_id}:source"
                 f":{flow_id}:{source['name']}"
             )
             if not source.get("entitlementArn"):
@@ -88,7 +94,7 @@ class MediaConnectBackend(BaseBackend):
     ) -> None:
         if entitlement:
             entitlement["entitlementArn"] = (
-                f"arn:aws:mediaconnect:{self.region_name}"
+                f"arn:{get_partition(self.region_name)}:mediaconnect:{self.region_name}"
                 f":{self.account_id}:entitlement:{entitlement_id}"
                 f":{entitlement['name']}"
             )
@@ -102,7 +108,7 @@ class MediaConnectBackend(BaseBackend):
                 output["listenerAddress"] = f"{index}.0.0.0"
             output_id = random.uuid4().hex
             arn = (
-                f"arn:aws:mediaconnect:{self.region_name}"
+                f"arn:{get_partition(self.region_name)}:mediaconnect:{self.region_name}"
                 f":{self.account_id}:output:{output_id}:{output['name']}"
             )
             output["outputArn"] = arn
@@ -121,6 +127,7 @@ class MediaConnectBackend(BaseBackend):
         source_failover_config: Dict[str, Any],
         sources: List[Dict[str, Any]],
         vpc_interfaces: List[Dict[str, Any]],
+        maintenance: Optional[List[Dict[str, Any]]] = None,
     ) -> Flow:
         flow = Flow(
             account_id=self.account_id,
@@ -133,6 +140,7 @@ class MediaConnectBackend(BaseBackend):
             source_failover_config=source_failover_config,
             sources=sources,
             vpc_interfaces=vpc_interfaces,
+            maintenance=maintenance,
         )
         self._create_flow_add_details(flow)
         self._flows[flow.flow_arn] = flow
@@ -262,9 +270,9 @@ class MediaConnectBackend(BaseBackend):
                 output["destination"] = destination
                 output["encryption"] = encryption
                 output["maxLatency"] = max_latency
-                output[
-                    "mediaStreamOutputConfiguration"
-                ] = media_stream_output_configuration
+                output["mediaStreamOutputConfiguration"] = (
+                    media_stream_output_configuration
+                )
                 output["minLatency"] = min_latency
                 output["port"] = port
                 output["protocol"] = protocol
@@ -286,7 +294,7 @@ class MediaConnectBackend(BaseBackend):
         for source in sources:
             source_id = random.uuid4().hex
             name = source["name"]
-            arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:source:{source_id}:{name}"
+            arn = f"arn:{get_partition(self.region_name)}:mediaconnect:{self.region_name}:{self.account_id}:source:{source_id}:{name}"
             source["sourceArn"] = arn
         flow.sources = sources
         return sources
@@ -328,9 +336,9 @@ class MediaConnectBackend(BaseBackend):
             source["maxBitrate"] = max_bitrate
             source["maxLatency"] = max_latency
             source["maxSyncBuffer"] = max_sync_buffer
-            source[
-                "mediaStreamSourceConfigurations"
-            ] = media_stream_source_configurations
+            source["mediaStreamSourceConfigurations"] = (
+                media_stream_source_configurations
+            )
             source["minLatency"] = min_latency
             source["protocol"] = protocol
             source["senderControlPort"] = sender_control_port
@@ -351,7 +359,7 @@ class MediaConnectBackend(BaseBackend):
         for entitlement in entitlements:
             entitlement_id = random.uuid4().hex
             name = entitlement["name"]
-            arn = f"arn:aws:mediaconnect:{self.region_name}:{self.account_id}:entitlement:{entitlement_id}:{name}"
+            arn = f"arn:{get_partition(self.region_name)}:mediaconnect:{self.region_name}:{self.account_id}:entitlement:{entitlement_id}:{name}"
             entitlement["entitlementArn"] = arn
 
         flow.entitlements += entitlements

@@ -14,30 +14,30 @@ panorama
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_application_instance
+- [X] create_application_instance
 - [ ] create_job_for_devices
-- [ ] create_node_from_template_job
+- [X] create_node_from_template_job
 - [ ] create_package
 - [ ] create_package_import_job
 - [X] delete_device
 - [ ] delete_package
 - [ ] deregister_package_version
-- [ ] describe_application_instance
+- [X] describe_application_instance
 - [ ] describe_application_instance_details
 - [X] describe_device
 - [ ] describe_device_job
 - [ ] describe_node
-- [ ] describe_node_from_template_job
+- [X] describe_node_from_template_job
 - [ ] describe_package
 - [ ] describe_package_import_job
 - [ ] describe_package_version
 - [ ] list_application_instance_dependencies
 - [ ] list_application_instance_node_instances
-- [ ] list_application_instances
+- [X] list_application_instances
 - [X] list_devices
 - [ ] list_devices_jobs
 - [ ] list_node_from_template_jobs
-- [ ] list_nodes
+- [X] list_nodes
 - [ ] list_package_import_jobs
 - [ ] list_packages
 - [ ] list_tags_for_resource

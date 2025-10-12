@@ -12,4 +12,8 @@ def test_list_streams():
     res = test_client.get("/?Action=ListStreams")
 
     json_data = json.loads(res.data.decode("utf-8"))
-    assert json_data == {"HasMoreStreams": False, "StreamNames": []}
+    assert json_data == {
+        "HasMoreStreams": False,
+        "StreamNames": [],
+        "StreamSummaries": [],
+    }

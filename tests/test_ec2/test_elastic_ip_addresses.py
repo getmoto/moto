@@ -708,3 +708,16 @@ def test_describe_addresses_with_vpc_associated_eni():
     assert address["PrivateIpAddress"] == eni.private_ip_address
     assert address["AssociationId"] == association_id
     assert address["NetworkInterfaceOwnerId"] == eni.owner_id
+
+
+@mock_aws
+def test_describe_addresses_attributes():
+    client = boto3.client("ec2", region_name="us-east-1")
+    eip = client.allocate_address(Domain="vpc")
+
+    addresses = client.describe_addresses_attribute(
+        AllocationIds=[eip["AllocationId"]], Attribute="domain-name"
+    )["Addresses"]
+    assert addresses == [
+        {"PublicIp": eip["PublicIp"], "AllocationId": eip["AllocationId"]}
+    ]

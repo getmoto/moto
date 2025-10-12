@@ -74,6 +74,9 @@ class EBSBackend(BaseBackend):
     def start_snapshot(
         self, volume_size: int, tags: Optional[List[Dict[str, str]]], description: str
     ) -> EBSSnapshot:
+        """
+        The following parameters are not yet implemented: ParentSnapshotId, ClientToken, Encrypted, KmsKeyArn, Timeout
+        """
         zone_name = f"{self.region_name}a"
         vol = self.ec2_backend.create_volume(size=volume_size, zone_name=zone_name)
         snapshot = self.ec2_backend.create_snapshot(
@@ -86,6 +89,9 @@ class EBSBackend(BaseBackend):
         return ebs_snapshot
 
     def complete_snapshot(self, snapshot_id: str) -> Dict[str, str]:
+        """
+        The following parameters are not yet supported: ChangedBlocksCount, Checksum, ChecksumAlgorithm, ChecksumAggregationMethod
+        """
         self.snapshots[snapshot_id].status = "completed"
         return {"Status": "completed"}
 
@@ -98,6 +104,10 @@ class EBSBackend(BaseBackend):
         checksum_algorithm: str,
         data_length: str,
     ) -> Tuple[str, str]:
+        """
+        The following parameters are currently not taken into account: DataLength, Progress.
+        The Checksum and ChecksumAlgorithm are taken at face-value, but no validation takes place.
+        """
         snapshot = self.snapshots[snapshot_id]
         snapshot.put_block(
             block_index, block_data, checksum, checksum_algorithm, data_length
@@ -121,7 +131,7 @@ class EBSBackend(BaseBackend):
         snapshot2 = self.snapshots[second_snapshot_id]
         changed_blocks: Dict[
             str, Tuple[str, Optional[str]]
-        ] = dict()  # {idx: (token1, token2), ..}
+        ] = {}  # {idx: (token1, token2), ..}
         for idx in snapshot1.blocks:
             block1 = snapshot1.blocks[idx]
             if idx in snapshot2.blocks:
@@ -134,6 +144,9 @@ class EBSBackend(BaseBackend):
         return changed_blocks, snapshot1
 
     def list_snapshot_blocks(self, snapshot_id: str) -> EBSSnapshot:
+        """
+        The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
+        """
         return self.snapshots[snapshot_id]
 
 

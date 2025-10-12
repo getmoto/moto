@@ -3,6 +3,7 @@ from typing import Any, Dict, Iterable, List
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
+from moto.utilities.utils import get_partition
 
 
 class RobotApplication(BaseModel):
@@ -23,7 +24,7 @@ class RobotApplication(BaseModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:robomaker:{self.region}:{self.account_id}:robot-application/{self.name}/{self.created_on}"
+        return f"arn:{get_partition(self.region)}:robomaker:{self.region}:{self.account_id}:robot-application/{self.name}/{self.created_on}"
 
     def to_dict(self) -> Dict[str, Any]:
         return {

@@ -3,6 +3,7 @@ from typing import Any, Dict, Iterable
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
+from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceNotFoundException
 
@@ -19,7 +20,7 @@ class Schema(BaseModel):
         self.name = name
         self.schema = schema
         self.domain = domain
-        self.arn = f"arn:aws:personalize:{region}:{account_id}:schema/{name}"
+        self.arn = f"arn:{get_partition(region)}:personalize:{region}:{account_id}:schema/{name}"
         self.created = unix_time()
 
     def to_dict(self, full: bool = True) -> Dict[str, Any]:

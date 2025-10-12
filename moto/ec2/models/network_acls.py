@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from ..exceptions import (
+    DependencyViolationError,
     InvalidNetworkAclIdError,
     InvalidRouteTableIdError,
     NetworkAclEntryAlreadyExistsError,
@@ -58,9 +59,18 @@ class NetworkAclBackend:
                 icmp_type=None,
                 port_range_from=None,
                 port_range_to=None,
+                ipv6_cidr_block=None,
             )
 
     def delete_network_acl(self, network_acl_id: str) -> "NetworkAcl":
+        if any(
+            network_acl.id == network_acl_id and len(network_acl.associations) > 0
+            for network_acl in self.network_acls.values()
+        ):
+            raise DependencyViolationError(
+                f"The network ACL '{network_acl_id}' has dependencies and cannot be deleted."
+            )
+
         deleted = self.network_acls.pop(network_acl_id, None)
         if not deleted:
             raise InvalidNetworkAclIdError(network_acl_id)
@@ -78,8 +88,8 @@ class NetworkAclBackend:
         icmp_type: Optional[int],
         port_range_from: Optional[int],
         port_range_to: Optional[int],
+        ipv6_cidr_block: Optional[str],
     ) -> "NetworkAclEntry":
-
         network_acl = self.get_network_acl(network_acl_id)
         if any(
             entry.egress == egress and entry.rule_number == rule_number
@@ -88,16 +98,17 @@ class NetworkAclBackend:
             raise NetworkAclEntryAlreadyExistsError(rule_number)
         network_acl_entry = NetworkAclEntry(
             self,
-            network_acl_id,
-            rule_number,
-            protocol,
-            rule_action,
-            egress,
-            cidr_block,
-            icmp_code,
-            icmp_type,
-            port_range_from,
-            port_range_to,
+            network_acl_id=network_acl_id,
+            rule_number=rule_number,
+            protocol=protocol,
+            rule_action=rule_action,
+            egress=egress,
+            cidr_block=cidr_block,
+            icmp_code=icmp_code,
+            icmp_type=icmp_type,
+            port_range_from=port_range_from,
+            port_range_to=port_range_to,
+            ipv6_cidr_block=ipv6_cidr_block,
         )
 
         network_acl.network_acl_entries.append(network_acl_entry)
@@ -128,27 +139,27 @@ class NetworkAclBackend:
         icmp_type: int,
         port_range_from: int,
         port_range_to: int,
+        ipv6_cidr_block: Optional[str],
     ) -> "NetworkAclEntry":
-
         self.delete_network_acl_entry(network_acl_id, rule_number, egress)
         network_acl_entry = self.create_network_acl_entry(
-            network_acl_id,
-            rule_number,
-            protocol,
-            rule_action,
-            egress,
-            cidr_block,
-            icmp_code,
-            icmp_type,
-            port_range_from,
-            port_range_to,
+            network_acl_id=network_acl_id,
+            rule_number=rule_number,
+            protocol=protocol,
+            rule_action=rule_action,
+            egress=egress,
+            cidr_block=cidr_block,
+            icmp_code=icmp_code,
+            icmp_type=icmp_type,
+            port_range_from=port_range_from,
+            port_range_to=port_range_to,
+            ipv6_cidr_block=ipv6_cidr_block,
         )
         return network_acl_entry
 
     def replace_network_acl_association(
         self, association_id: str, network_acl_id: str
     ) -> "NetworkAclAssociation":
-
         # lookup existing association for subnet and delete it
         default_acl = next(
             value
@@ -279,6 +290,7 @@ class NetworkAclEntry(TaggedEC2Resource):
         icmp_type: Optional[int],
         port_range_from: Optional[int],
         port_range_to: Optional[int],
+        ipv6_cidr_block: Optional[str],
     ):
         self.ec2_backend = ec2_backend
         self.network_acl_id = network_acl_id
@@ -287,6 +299,7 @@ class NetworkAclEntry(TaggedEC2Resource):
         self.rule_action = rule_action
         self.egress = egress
         self.cidr_block = cidr_block
+        self.ipv6_cidr_block = ipv6_cidr_block
         self.icmp_code = icmp_code
         self.icmp_type = icmp_type
         self.port_range_from = port_range_from

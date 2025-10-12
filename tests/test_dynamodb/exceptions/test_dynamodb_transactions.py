@@ -46,29 +46,17 @@ def test_multiple_transactions_on_same_item():
     )
 
 
-@mock_aws
-def test_transact_write_items__put_and_delete_on_same_item():
-    schema = {
-        "KeySchema": [
-            {"AttributeName": "pk", "KeyType": "HASH"},
-            {"AttributeName": "sk", "KeyType": "RANGE"},
-        ],
-        "AttributeDefinitions": [
-            {"AttributeName": "pk", "AttributeType": "S"},
-            {"AttributeName": "sk", "AttributeType": "S"},
-        ],
-    }
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
+def test_transact_write_items__put_and_delete_on_same_item(table_name=None):
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
 
     with pytest.raises(ClientError) as exc:
         dynamodb.transact_write_items(
             TransactItems=[
                 {
                     "Put": {
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "Item": {
                             "pk": {"S": "test-pk"},
                             "sk": {"S": "test-sk"},
@@ -78,7 +66,7 @@ def test_transact_write_items__put_and_delete_on_same_item():
                 },
                 {
                     "Delete": {
-                        "TableName": "test-table",
+                        "TableName": table_name,
                         "Key": {
                             "pk": {"S": "test-pk"},
                             "sk": {"S": "test-sk"},
@@ -93,6 +81,58 @@ def test_transact_write_items__put_and_delete_on_same_item():
         err["Message"]
         == "Transaction request cannot include multiple operations on one item"
     )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True)
+def test_transact_write_items__update_with_multiple_set_clauses(table_name=None):
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "TableName": table_name,
+                        "Key": {"pk": {"S": "s"}, "sk": {"S": "t"}},
+                        "UpdateExpression": "SET expire_at_utc = :expire_at_utc SET is_final = :true ADD version :one",
+                        "ExpressionAttributeValues": {
+                            ":true": {"BOOL": True},
+                            ":one": {"N": "1"},
+                            ":expire_at_utc": {"S": "asdf"},
+                        },
+                    }
+                }
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        err["Message"]
+        == 'Invalid UpdateExpression: The "SET" section can only be used once in an update expression;'
+    )
+
+    # Note that we can do this by simply separating the statements with a comma
+    dynamodb.transact_write_items(
+        TransactItems=[
+            {
+                "Update": {
+                    "TableName": table_name,
+                    "Key": {"pk": {"S": "s"}, "sk": {"S": "t"}},
+                    "UpdateExpression": "SET a1 = :v1, a2 = :v2",
+                    "ExpressionAttributeValues": {
+                        ":v1": {"S": "v1"},
+                        ":v2": {"S": "v1"},
+                    },
+                }
+            }
+        ]
+    )
+
+    inventory = dynamodb.scan(TableName=table_name)["Items"]
+    assert inventory == [
+        {"a1": {"S": "v1"}, "sk": {"S": "t"}, "a2": {"S": "v1"}, "pk": {"S": "s"}}
+    ]
 
 
 @mock_aws
@@ -233,3 +273,45 @@ def test_transaction_with_empty_key(table_name=None):
         err["Message"]
         == "One or more parameter values are not valid. The AttributeValue for a key attribute cannot contain an empty string value. Key: pk"
     )
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_transact_write_items__empty_expr_attr_values(table_name=None):
+    dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "Item": {"pk": {"S": "tenant#0000001-tenant#0000001"}},
+                        "ConditionExpression": "attribute_not_exists(#n0)",
+                        "TableName": table_name,
+                        "ExpressionAttributeNames": {"#n0": "pk"},
+                        "ExpressionAttributeValues": {},
+                    }
+                },
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "ExpressionAttributeValues must not be empty"
+
+    with pytest.raises(ClientError) as exc:
+        dynamodb.transact_write_items(
+            TransactItems=[
+                {
+                    "Update": {
+                        "Key": {"pk": {"S": "globals"}},
+                        "UpdateExpression": "SET #0 = {'S': 'asdf'}",
+                        "ExpressionAttributeNames": {"#0": "tenant_count"},
+                        "ExpressionAttributeValues": {},
+                        "TableName": table_name,
+                    }
+                },
+            ]
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "ExpressionAttributeValues must not be empty"

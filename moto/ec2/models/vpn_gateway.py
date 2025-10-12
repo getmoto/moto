@@ -32,7 +32,7 @@ class VPCGatewayAttachment(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "VPCGatewayAttachment":
         from ..models import ec2_backends
 
@@ -93,7 +93,7 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "VpnGateway":
         from ..models import ec2_backends
 

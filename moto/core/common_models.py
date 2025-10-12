@@ -6,10 +6,12 @@ from .base_backend import SERVICE_BACKEND, BackendDict, InstanceTrackerMeta
 
 class BaseModel(metaclass=InstanceTrackerMeta):
     def __new__(
-        cls, *args: Any, **kwargs: Any  # pylint: disable=unused-argument
+        cls,
+        *args: Any,
+        **kwargs: Any,
     ) -> "BaseModel":
         instance = super(BaseModel, cls).__new__(cls)
-        cls.instances.append(instance)  # type: ignore[attr-defined]
+        cls.instances_tracked.append(instance)  # type: ignore[attr-defined]
         return instance
 
 
@@ -33,7 +35,7 @@ class CloudFormationModel(BaseModel):
 
     @classmethod
     @abstractmethod
-    def has_cfn_attr(cls, attr: str) -> bool:  # pylint: disable=unused-argument
+    def has_cfn_attr(cls, attr: str) -> bool:
         # Used for validation
         # If a template creates an Output for an attribute that does not exist, an error should be thrown
         return True
@@ -46,7 +48,7 @@ class CloudFormationModel(BaseModel):
         cloudformation_json: Dict[str, Any],
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Any:
         # This must be implemented as a classmethod with parameters:
         # cls, resource_name, cloudformation_json, account_id, region_name
@@ -102,6 +104,7 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
     def list_config_service_resources(
         self,
         account_id: str,
+        partition: str,
         resource_ids: Optional[List[str]],
         resource_name: Optional[str],
         limit: int,
@@ -162,6 +165,7 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
     def get_config_resource(
         self,
         account_id: str,
+        partition: str,
         resource_id: str,
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
@@ -198,5 +202,5 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
 class CloudWatchMetricProvider:
     @staticmethod
     @abstractmethod
-    def get_cloudwatch_metrics(account_id: str) -> Any:  # type: ignore[misc]
+    def get_cloudwatch_metrics(account_id: str, region: str) -> Any:  # type: ignore[misc]
         pass

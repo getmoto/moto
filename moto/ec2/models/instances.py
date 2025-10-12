@@ -21,13 +21,17 @@ from moto.packages.boto.ec2.instance import Reservation
 
 from ..exceptions import (
     AvailabilityZoneNotFromRegionError,
+    InvalidInputError,
     InvalidInstanceIdError,
     InvalidInstanceTypeError,
     InvalidParameterCombination,
     InvalidParameterValueErrorUnknownAttribute,
     InvalidSecurityGroupNotFoundError,
     InvalidSubnetIdError,
+    MissingInputError,
+    OperationDisableApiStopNotPermitted,
     OperationNotPermitted4,
+    VPCIdNotSpecifiedError,
 )
 from ..utils import (
     convert_tag_spec,
@@ -51,6 +55,27 @@ class StateReason:
     def __init__(self, message: str = "", code: str = ""):
         self.message = message
         self.code = code
+
+
+class MetadataOptions:
+    def __init__(self, options: Optional[Dict[str, Any]] = None):
+        options = options or {}
+        self.state = options.get("State", "applied")
+        self.http_tokens = options.get("HttpTokens", "optional")
+        self.hop_limit = int(options.get("HttpPutResponseHopLimit", 1))
+        self.http_endpoint = options.get("HttpEndpoint", "enabled")
+        self.http_protocol = options.get("HttpProtocolIpv6", "disabled")
+        self.instance_metadata_tags = options.get("InstanceMetadataTags", "disabled")
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "State": str(self.state),
+            "HttpTokens": str(self.http_tokens),
+            "HttpPutResponseHopLimit": int(self.hop_limit),
+            "HttpEndpoint": str(self.http_endpoint),
+            "HttpProtocolIpv6": str(self.http_protocol),
+            "InstanceMetadataTags": str(self.instance_metadata_tags),
+        }
 
 
 class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
@@ -143,8 +168,12 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.virtualization_type = ami.virtualization_type if ami else "paravirtual"
         self.architecture = ami.architecture if ami else "x86_64"
         self.root_device_name = ami.root_device_name if ami else None
-        self.disable_api_stop = False
+        self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
+
+        self.metadata_options = MetadataOptions(
+            kwargs.get("metadata_options", {})
+        ).to_dict()
 
         # handle weird bug around user_data -- something grabs the repr(), so
         # it must be clean
@@ -173,6 +202,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             private_ip=kwargs.get("private_ip"),
             associate_public_ip=self.associate_public_ip,
             security_groups=self.security_groups,
+            ipv6_address_count=kwargs.get("ipv6_address_count"),
         )
 
     @property
@@ -383,7 +413,9 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         return self._state.name == "running"
 
     def delete(
-        self, account_id: str, region: str  # pylint: disable=unused-argument
+        self,
+        account_id: str,
+        region: str,
     ) -> None:
         self.terminate()
 
@@ -392,6 +424,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         for nic in self.nics.values():
             nic.stop()
+            if nic.delete_on_termination:
+                nic.delete()
 
         self.teardown_defaults()
 
@@ -433,7 +467,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             self.ec2_backend.disassociate_iam_instance_profile(
                 association_id=self.ec2_backend.iam_instance_profile_associations[
                     self.id
-                ].id
+                ].association_id
             )
 
         return previous_state
@@ -464,6 +498,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         private_ip: Optional[str] = None,
         associate_public_ip: Optional[bool] = None,
         security_groups: Optional[List[SecurityGroup]] = None,
+        ipv6_address_count: Optional[int] = None,
     ) -> None:
         self.nics: Dict[int, NetworkInterface] = {}
         for nic in nic_spec:
@@ -521,10 +556,27 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     nic_subnet: Subnet = self.ec2_backend.get_subnet(nic["SubnetId"])
                 else:
                     # Get default Subnet
-                    zone = self._placement.zone
-                    nic_subnet = self.ec2_backend.get_default_subnet(
-                        availability_zone=zone
-                    )
+                    default_subnets = self.ec2_backend.get_default_subnets()
+
+                    default_subnet = None
+
+                    if self.subnet_id is None:
+                        default_vpc = self.ec2_backend.get_default_vpc()
+                        if default_vpc is None:
+                            raise VPCIdNotSpecifiedError()
+
+                        if not default_subnets:
+                            raise MissingInputError(
+                                f"No subnets found for the default VPC '{default_vpc.id}'. Please specify a subnet."
+                            )
+
+                        default_subnet = default_subnets.get(self._placement.zone)
+                        if default_subnet is None:
+                            raise InvalidInputError(
+                                f"No default subnet for availability zone: '{self._placement.zone}'."
+                            )
+
+                    nic_subnet = default_subnet or self.subnet_id  # type: ignore[assignment]
 
                 group_ids = nic.get("SecurityGroupId") or []
                 if security_groups:
@@ -536,6 +588,8 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     device_index=device_index,
                     public_ip_auto_assign=nic.get("AssociatePublicIpAddress", False),
                     group_ids=group_ids,
+                    delete_on_termination=nic.get("DeleteOnTermination") == "true",
+                    ipv6_address_count=ipv6_address_count,
                 )
 
             self.attach_eni(use_nic, device_index)
@@ -588,16 +642,18 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     def applies(self, filters: List[Dict[str, Any]]) -> bool:
         if filters:
-            applicable = False
+            # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_instances.html
+            # Filters Section in the boto3 documentation
+            # If you specify multiple filters, the filters are joined with an AND, and the request returns only results that match all of the specified filters.
             for f in filters:
                 acceptable_values = f["values"]
                 if f["name"] == "instance-state-name":
-                    if self._state.name in acceptable_values:
-                        applicable = True
+                    if self._state.name not in acceptable_values:
+                        return False
                 if f["name"] == "instance-state-code":
-                    if str(self._state.code) in acceptable_values:
-                        applicable = True
-            return applicable
+                    if str(self._state.code) not in acceptable_values:
+                        return False
+            return True
         # If there are no filters, all instances are valid
         return True
 
@@ -666,7 +722,8 @@ class InstanceBackend:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])
 
         security_groups = [
-            self.get_security_group_by_name_or_id(name) for name in security_group_names  # type: ignore[attr-defined]
+            self.get_security_group_by_name_or_id(name)  # type: ignore[attr-defined]
+            for name in security_group_names
         ]
 
         for sg_id in kwargs.pop("security_group_ids", []):
@@ -754,6 +811,8 @@ class InstanceBackend:
     ) -> List[Tuple[Instance, InstanceState]]:
         stopped_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
+            if instance.disable_api_stop == "true":
+                raise OperationDisableApiStopNotPermitted(instance.id)
             previous_state = instance.stop()
             stopped_instances.append((instance, previous_state))
 
@@ -787,6 +846,33 @@ class InstanceBackend:
         instance = self.get_instance(instance_id)
         setattr(instance, key, value)
         return instance
+
+    def modify_instance_metadata_options(
+        self,
+        instance_id: str,
+        http_tokens: Optional[str] = None,
+        hop_limit: Optional[int] = None,
+        http_endpoint: Optional[str] = None,
+        dry_run: Optional[bool] = False,
+        http_protocol: Optional[str] = None,
+        metadata_tags: Optional[str] = None,
+    ) -> MetadataOptions:
+        instance = self.get_instance(instance_id)
+
+        metadata_dict = {
+            "State": "applied",
+            "HttpTokens": http_tokens,
+            "HttpPutResponseHopLimit": hop_limit,
+            "HttpEndpoint": http_endpoint,
+            "HttpProtocolIpv6": http_protocol,
+            "InstanceMetadataTags": metadata_tags,
+        }
+
+        metadata_options = MetadataOptions(metadata_dict)
+
+        instance.metadata_options = metadata_options.to_dict()
+
+        return metadata_options
 
     def modify_instance_security_groups(
         self, instance_id: str, new_group_id_list: List[str]
@@ -844,18 +930,20 @@ class InstanceBackend:
         :return: A list with instance objects
         """
         result = []
-
+        all_instance_ids = {}
         for reservation in self.all_reservations():
             for instance in reservation.instances:
-                if instance.id in instance_ids:
-                    if instance.applies(filters):
-                        result.append(instance)
-
-        if instance_ids and len(instance_ids) > len(result):
-            result_ids = [i.id for i in result]
-            missing_instance_ids = [i for i in instance_ids if i not in result_ids]
-            raise InvalidInstanceIdError(missing_instance_ids)
-
+                all_instance_ids[instance.id] = instance
+        not_found_instance_ids = []
+        for instance_id in instance_ids:
+            if instance_id not in all_instance_ids:
+                not_found_instance_ids.append(instance_id)
+                continue
+            instance = all_instance_ids[instance_id]
+            if instance.applies(filters):
+                result.append(instance)
+        if not_found_instance_ids:
+            raise InvalidInstanceIdError(not_found_instance_ids)
         return result
 
     def get_instance_by_id(self, instance_id: str) -> Optional[Instance]:
@@ -905,7 +993,10 @@ class InstanceBackend:
         self, instance_ids: List[str], include_all_instances: bool, filters: Any
     ) -> List[Instance]:
         if instance_ids:
-            return self.get_multi_instances_by_id(instance_ids, filters)
+            instances = self.get_multi_instances_by_id(instance_ids, filters)
+            if include_all_instances:
+                return instances
+            return [instance for instance in instances if instance.is_running()]
         elif include_all_instances:
             return self.all_instances(filters)
         else:
@@ -932,5 +1023,5 @@ class InstanceBackend:
             )[0]
         )
         version = launch_template_arg.get("Version", template.latest_version_number)
-        template_version = template.get_version(int(version))
+        template_version = template.get_version(version)
         return template_version

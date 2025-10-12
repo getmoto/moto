@@ -1,0 +1,14 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Transform Input",
+  "States": {
+    "Transform Input": {
+      "Type": "Pass",
+      "End": true,
+      "Parameters": {
+        "eggs.$": "$.Parameters[?(@.Name == '/eggs/cooked/like')].Value"
+      },
+      "ResultPath": "$.parameterTransforms"
+    }
+  }
+}

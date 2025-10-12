@@ -225,9 +225,9 @@ def test_stack_security_groups():
     first_desc = str(uuid4())
     second_desc = str(uuid4())
     our_template = SEC_GROUP_SOURCE.copy()
-    our_template["Resources"]["my-security-group"]["Properties"][
-        "GroupDescription"
-    ] = second_desc
+    our_template["Resources"]["my-security-group"]["Properties"]["GroupDescription"] = (
+        second_desc
+    )
     our_template["Resources"]["InstanceSecurityGroup"]["Properties"][
         "GroupDescription"
     ] = first_desc

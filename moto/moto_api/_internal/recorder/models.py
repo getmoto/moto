@@ -33,7 +33,11 @@ class Recorder:
 
         if body is None:
             if isinstance(request, AWSPreparedRequest):
-                body_str, body_encoded = self._encode_body(body=request.body)
+                if hasattr(request.body, "read"):
+                    body = request.body.read()  # type: ignore
+                else:
+                    body = request.body  # type: ignore
+                body_str, body_encoded = self._encode_body(body)
             else:
                 try:
                     request_body = None
@@ -132,6 +136,8 @@ class Recorder:
                 if parsed_url.query:
                     url = f"{url}?{parsed_url.query}"
             headers = row_loaded.get("headers")
+            if headers.get("Transfer-Encoding", "") == "chunked":
+                del headers["Transfer-Encoding"]
             requests.request(method=method, url=url, headers=headers, data=body)
 
         # restore the recording setting

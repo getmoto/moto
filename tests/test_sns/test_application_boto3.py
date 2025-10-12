@@ -139,7 +139,43 @@ def test_create_platform_endpoint():
 
 @pytest.mark.aws_verified
 @sns_aws_verified
-def test_create_duplicate_platform_endpoint(api_key=None):
+def test_create_duplicate_default_platform_endpoint(api_key=None):
+    conn = boto3.client("sns", region_name="us-east-1")
+    platform_name = str(uuid4())[0:6]
+    app_arn = None
+    try:
+        platform_application = conn.create_platform_application(
+            Name=platform_name,
+            Platform="GCM",
+            Attributes={"PlatformCredential": api_key},
+        )
+        app_arn = platform_application["PlatformApplicationArn"]
+
+        # Create duplicate endpoints
+        arn1 = conn.create_platform_endpoint(
+            PlatformApplicationArn=app_arn, Token="token"
+        )["EndpointArn"]
+        arn2 = conn.create_platform_endpoint(
+            PlatformApplicationArn=app_arn, Token="token"
+        )["EndpointArn"]
+
+        # Create another duplicate endpoint, just specify the default value
+        arn3 = conn.create_platform_endpoint(
+            PlatformApplicationArn=app_arn,
+            Token="token",
+            Attributes={"Enabled": "true"},
+        )["EndpointArn"]
+
+        assert arn1 == arn2
+        assert arn2 == arn3
+    finally:
+        if app_arn is not None:
+            conn.delete_platform_application(PlatformApplicationArn=app_arn)
+
+
+@pytest.mark.aws_verified
+@sns_aws_verified
+def test_create_duplicate_platform_endpoint_with_attrs(api_key=None):
     identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
     account_id = identity["Account"]
 
@@ -266,6 +302,13 @@ def test_get_list_endpoints_by_platform_application(api_key=None):
         assert len(endpoint_list) == 1
         assert endpoint_list[0]["Attributes"]["CustomUserData"] == "some data"
         assert endpoint_list[0]["EndpointArn"] == endpoint_arn
+
+        resp = conn.delete_endpoint(EndpointArn=endpoint_arn)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+        # Idempotent operation
+        resp = conn.delete_endpoint(EndpointArn=endpoint_arn)
+        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
     finally:
         if application_arn is not None:
             conn.delete_platform_application(PlatformApplicationArn=application_arn)
@@ -305,7 +348,7 @@ def test_get_endpoint_attributes():
 @sns_aws_verified
 def test_get_non_existent_endpoint_attributes(
     api_key=None,
-):  # pylint: disable=unused-argument
+):
     identity = boto3.client("sts", region_name="us-east-1").get_caller_identity()
     account_id = identity["Account"]
 
@@ -427,6 +470,62 @@ def test_publish_to_disabled_platform_endpoint(api_key=None):
         assert err["Code"] == "EndpointDisabled"
         assert err["Message"] == "Endpoint is disabled"
     finally:
+        if application_arn is not None:
+            conn.delete_platform_application(PlatformApplicationArn=application_arn)
+
+
+@sns_aws_verified
+def test_publish_to_deleted_platform_endpoint(api_key=None):
+    """
+    This used to run against AWS, but they have changed the API, and this currently throws an exception:
+        Invalid parameter: Attributes Reason: Platform credentials are invalid
+
+    Need to change this test accordingly
+
+    https://docs.aws.amazon.com/sns/latest/dg/sns-send-custom-platform-specific-payloads-mobile-devices.html
+
+    > Amazon SNS now supports Firebase Cloud Messaging (FCM) HTTP v1 API for sending mobile push notifications to Android devices.
+    >
+    > March 26, 2024 – Amazon SNS supports FCM HTTP v1 API for Apple devices and Webpush destinations.
+    > We recommend that you migrate your existing mobile push applications to the latest FCM HTTP v1 API on or before June 1, 2024 to avoid application disruption.
+    """
+    conn = boto3.client("sns", region_name="us-east-1")
+    platform_name = str(uuid4())[0:6]
+    topic_name = "topic_" + str(uuid4())[0:6]
+    application_arn = None
+    try:
+        platform_application = conn.create_platform_application(
+            Name=platform_name,
+            Platform="GCM",
+            Attributes={"PlatformCredential": api_key},
+        )
+        application_arn = platform_application["PlatformApplicationArn"]
+
+        endpoint_arn = conn.create_platform_endpoint(
+            PlatformApplicationArn=application_arn,
+            Token="some_unique_id",
+            Attributes={"Enabled": "false"},
+        )["EndpointArn"]
+
+        topic_arn = conn.create_topic(Name=topic_name)["TopicArn"]
+
+        conn.delete_endpoint(EndpointArn=endpoint_arn)
+
+        with pytest.raises(ClientError) as exc:
+            conn.subscribe(
+                TopicArn=topic_arn,
+                Endpoint=endpoint_arn,
+                Protocol="application",
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidParameter"
+        assert (
+            err["Message"]
+            == f"Invalid parameter: Endpoint Reason: Endpoint does not exist for endpoint arn{endpoint_arn}"
+        )
+    finally:
+        if topic_arn is not None:
+            conn.delete_topic(TopicArn=topic_arn)
         if application_arn is not None:
             conn.delete_platform_application(PlatformApplicationArn=application_arn)
 

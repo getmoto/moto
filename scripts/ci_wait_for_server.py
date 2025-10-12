@@ -14,7 +14,6 @@ expected_host = "http://localhost:{}/".format(expected_port)
 print("Waiting for service to come up on {}".format(expected_host))
 while True:
     try:
-
         urllib.urlopen(expected_host, timeout=1)
         break
     except EXCEPTIONS:

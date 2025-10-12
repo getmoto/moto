@@ -1,4 +1,5 @@
 """Unit tests for pinpoint-supported APIs."""
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -16,6 +17,7 @@ def test_create_app():
 
     assert "ApplicationResponse" in resp
     assert "Arn" in resp["ApplicationResponse"]
+    assert "us-east-1" in resp["ApplicationResponse"]["Arn"]
     assert "Id" in resp["ApplicationResponse"]
     assert resp["ApplicationResponse"]["Name"] == "myfirstapp"
     assert "CreationDate" in resp["ApplicationResponse"]
@@ -49,6 +51,7 @@ def test_get_app():
 
     assert "ApplicationResponse" in resp
     assert "Arn" in resp["ApplicationResponse"]
+    assert "eu-west-1" in resp["ApplicationResponse"]["Arn"]
     assert "Id" in resp["ApplicationResponse"]
     assert resp["ApplicationResponse"]["Name"] == "myfirstapp"
     assert "CreationDate" in resp["ApplicationResponse"]

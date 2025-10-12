@@ -1,19 +1,22 @@
+import hashlib
 import json
 import re
 import time
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
+from moto.utilities.utils import get_partition
 
 from ..utilities.paginator import paginate
 from ..utilities.tagging_service import TaggingService
 from .exceptions import (
+    AlreadyExistsException,
     ConcurrentRunsExceededException,
     CrawlerAlreadyExistsException,
     CrawlerNotFoundException,
@@ -21,10 +24,12 @@ from .exceptions import (
     CrawlerRunningException,
     DatabaseAlreadyExistsException,
     DatabaseNotFoundException,
+    EntityNotFoundException,
     IllegalSessionStateException,
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
+    NoCrawlsEntryForCrawler,
     PartitionAlreadyExistsException,
     PartitionNotFoundException,
     SchemaNotFoundException,
@@ -57,11 +62,105 @@ from .glue_schema_registry_utils import (
     validate_schema_version_metadata_pattern_and_length,
     validate_schema_version_params,
 )
-from .utils import PartitionFilter
+from .utils import Action, CrawlFilter, FilterField, FilterOperator, Predicate
+
+
+class FakeDevEndpoint(BaseModel):
+    def __init__(
+        self,
+        endpoint_name: str,
+        role_arn: str,
+        security_group_ids: List[str],
+        subnet_id: str,
+        worker_type: str = "Standard",
+        glue_version: str = "1.0",
+        number_of_workers: int = 5,
+        number_of_nodes: int = 5,
+        extra_python_libs_s3_path: Optional[str] = None,
+        extra_jars_s3_path: Optional[str] = None,
+        security_configuration: Optional[str] = None,
+        arguments: Optional[Dict[str, str]] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ):
+        pubkey = """ssh-rsa
+        AAAAB3NzaC1yc2EAAAADAQABAAABAQDV5+voluw2zmzqpqCAqtsyoP01TQ8Ydx1eS1yD6wUsHcPqMIqpo57YxiC8XPwrdeKQ6GG6MC3bHsgXoPypGP0LyixbiuLTU31DnnqorcHt4bWs6rQa7dK2pCCflz2fhYRt5ZjqSNsAKivIbqkH66JozN0SySIka3kEV79GdB0BicioKeEJlCwM9vvxafyzjWf/z8E0lh4ni3vkLpIVJ0t5l+Qd9QMJrT6Is0SCQPVagTYZoi8+fWDoGsBa8vyRwDjEzBl28ZplKh9tSyDkRIYszWTpmK8qHiqjLYZBfAxXjGJbEYL1iig4ZxvbYzKEiKSBi1ZMW9iWjHfZDZuxXAmB
+        example
+        """
+
+        self.endpoint_name = endpoint_name
+        self.role_arn = role_arn
+        self.security_group_ids = security_group_ids
+        self.subnet_id = subnet_id
+        self.worker_type = worker_type
+        self.glue_version = glue_version
+        self.number_of_workers = number_of_workers
+        self.number_of_nodes = number_of_nodes
+        self.extra_python_libs_s3_path = extra_python_libs_s3_path
+        self.extra_jars_s3_path = extra_jars_s3_path
+        self.security_configuration = security_configuration
+        self.arguments = arguments or {}
+        self.tags = tags or {}
+
+        # AWS Generated Fields
+        self.created_timestamp = utcnow()
+        self.last_modified_timestamp = self.created_timestamp
+        self.status = "READY"
+        self.availability_zone = "us-east-1a"
+        self.private_address = "10.0.0.1"
+        # TODO: Get the vpc id from the subnet using the subnet_id
+        self.vpc_id = "vpc-12345678" if subnet_id != "subnet-default" else None
+        self.yarn_endpoint_address = (
+            f"yarn-{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
+        self.public_address = (
+            f"{endpoint_name}.glue.amazonaws.com"
+            if subnet_id == "subnet-default"
+            else None
+        )
+        self.zeppelin_remote_spark_interpreter_port = 9007
+        self.public_key = pubkey
+        self.public_keys = [self.public_key]
+
+    def as_dict(self) -> Dict[str, Any]:
+        response = {
+            "EndpointName": self.endpoint_name,
+            "RoleArn": self.role_arn,
+            "SecurityGroupIds": self.security_group_ids,
+            "SubnetId": self.subnet_id,
+            "YarnEndpointAddress": self.yarn_endpoint_address,
+            "PrivateAddress": self.private_address,
+            "ZeppelinRemoteSparkInterpreterPort": self.zeppelin_remote_spark_interpreter_port,
+            "Status": self.status,
+            "WorkerType": self.worker_type,
+            "GlueVersion": self.glue_version,
+            "NumberOfWorkers": self.number_of_workers,
+            "NumberOfNodes": self.number_of_nodes,
+            "AvailabilityZone": self.availability_zone,
+            "VpcId": self.vpc_id,
+            "ExtraPythonLibsS3Path": self.extra_python_libs_s3_path,
+            "ExtraJarsS3Path": self.extra_jars_s3_path,
+            "CreatedTimestamp": self.created_timestamp.isoformat(),
+            "LastModifiedTimestamp": self.last_modified_timestamp.isoformat(),
+            "PublicKey": self.public_key,
+            "PublicKeys": self.public_keys,
+            "SecurityConfiguration": self.security_configuration,
+            "Arguments": self.arguments,
+        }
+        if self.public_address:
+            response["PublicAddress"] = self.public_address
+        return response
 
 
 class GlueBackend(BaseBackend):
     PAGINATION_MODEL = {
+        "get_connections": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
         "get_jobs": {
             "input_token": "next_token",
             "limit_key": "max_results",
@@ -98,29 +197,58 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "get_dev_endpoints": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "endpoint_name",
+        },
+        "get_job_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "job_run_id",
+        },
+        "list_crawls": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "crawl_id",
+        },
+        "list_workflows": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 20,
+            "unique_attribute": "name",
+        },
+        "get_workflow_runs": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "workflow_run_id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
+        self.region_name = region_name
+        self.account_id = account_id
         self.databases: Dict[str, FakeDatabase] = OrderedDict()
         self.crawlers: Dict[str, FakeCrawler] = OrderedDict()
+        self.connections: Dict[str, FakeConnection] = OrderedDict()
         self.jobs: Dict[str, FakeJob] = OrderedDict()
         self.job_runs: Dict[str, FakeJobRun] = OrderedDict()
         self.sessions: Dict[str, FakeSession] = OrderedDict()
         self.tagger = TaggingService()
         self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
+        self.workflows: Dict[str, FakeWorkflow] = OrderedDict()
         self.num_schemas = 0
         self.num_schema_versions = 0
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "glue"
-        )
+        self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
+        self.data_catalog_encryption_settings: Dict[str, Dict[str, Any]] = {}
+        self.resource_policies: Dict[str, Dict[str, Any]] = {}
+        self.default_catalog_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:catalog"
 
     def create_database(
         self,
@@ -135,7 +263,7 @@ class GlueBackend(BaseBackend):
             database_name, database_input, catalog_id=self.account_id
         )
         self.databases[database_name] = database
-        resource_arn = f"arn:aws:glue:{self.region_name}:{self.account_id}:database/{database_name}"
+        resource_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:database/{database_name}"
         self.tag_resource(resource_arn, tags)
         return database
 
@@ -354,6 +482,77 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise CrawlerNotFoundException(name)
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_crawls(
+        self, crawler_name: str, filters: List[CrawlFilter]
+    ) -> List["FakeCrawl"]:
+        filter_functions = []
+        for filter in filters:
+            if filter.field_name == FilterField.CRAWL_ID:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.crawl_id
+
+            elif filter.field_name == FilterField.STATE:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.status
+
+            elif filter.field_name == FilterField.START_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.start_time.isoformat()
+
+            elif filter.field_name == FilterField.END_TIME:
+
+                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                    return crawl.end_time.isoformat() if crawl.end_time else None
+
+            if filter.operator == FilterOperator.GT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value > field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.GE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value >= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LT:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value < field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.LE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value <= field_value if crawl_value else False
+
+            elif filter.operator == FilterOperator.EQ:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value == field_value
+
+            elif filter.operator == FilterOperator.NE:
+
+                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                    return crawl_value != field_value
+
+            def filter_function(crawl: FakeCrawl) -> bool:
+                return compare(get_field(crawl), filter.field_value)
+
+            filter_functions.append(filter_function)
+
+        if crawler := self.crawlers.get(crawler_name):
+            crawlers = []
+            for crawl in crawler.crawls:
+                if all(f(crawl) for f in filter_functions):
+                    crawl.advance()
+                    crawlers.append(crawl)
+            return crawlers
+        else:
+            raise NoCrawlsEntryForCrawler(crawler_name)
+
     def create_job(
         self,
         name: str,
@@ -415,13 +614,40 @@ class GlueBackend(BaseBackend):
     def get_jobs(self) -> List["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
-    def start_job_run(self, name: str) -> str:
+    def start_job_run(
+        self,
+        name: str,
+        arguments: Optional[Dict[str, str]],
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[Dict[str, int]],
+        previous_run_id: Optional[str],
+    ) -> str:
         job = self.get_job(name)
-        return job.start_job_run()
+        return job.start_job_run(
+            arguments=arguments,
+            allocated_capacity=allocated_capacity,
+            max_capacity=max_capacity,
+            timeout=timeout,
+            worker_type=worker_type,
+            security_configuration=security_configuration,
+            number_of_workers=number_of_workers,
+            notification_property=notification_property,
+            previous_run_id=previous_run_id,
+        )
 
     def get_job_run(self, name: str, run_id: str) -> "FakeJobRun":
         job = self.get_job(name)
         return job.get_job_run(run_id)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_job_runs(self, job_name: str) -> List["FakeJobRun"]:
+        job = self.get_job(job_name)
+        return job.get_job_runs()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(self) -> List["FakeJob"]:
@@ -854,8 +1080,8 @@ class GlueBackend(BaseBackend):
         workflow_name: str,
         trigger_type: str,
         schedule: str,
-        predicate: Dict[str, Any],
-        actions: List[Dict[str, Any]],
+        predicate: Optional[Predicate],
+        actions: List[Action],
         description: str,
         start_on_creation: bool,
         tags: Dict[str, str],
@@ -895,9 +1121,7 @@ class GlueBackend(BaseBackend):
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if ("JobName" in action) and (
-                        action["JobName"] == dependent_job_name
-                    ):
+                    if action.job_name and (action.job_name == dependent_job_name):
                         triggers.append(trigger)
             return triggers
 
@@ -909,9 +1133,7 @@ class GlueBackend(BaseBackend):
             triggers = []
             for trigger in self.triggers.values():
                 for action in trigger.actions:
-                    if ("JobName" in action) and (
-                        action["JobName"] == dependent_job_name
-                    ):
+                    if action.job_name and (action.job_name == dependent_job_name):
                         triggers.append(trigger)
             return triggers
 
@@ -1045,6 +1267,359 @@ class GlueBackend(BaseBackend):
                 triggers.append(self.triggers[trigger_name].as_dict())
         return triggers
 
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_dev_endpoints(self) -> List["FakeDevEndpoint"]:
+        return [endpoint for endpoint in self.dev_endpoints.values()]
+
+    def create_dev_endpoint(
+        self,
+        endpoint_name: str,
+        role_arn: str,
+        security_group_ids: Optional[List[str]] = None,
+        subnet_id: Optional[str] = None,
+        public_key: Optional[str] = None,
+        public_keys: Optional[List[str]] = None,
+        number_of_nodes: Optional[int] = None,
+        worker_type: str = "Standard",
+        glue_version: str = "5.0",
+        number_of_workers: Optional[int] = None,
+        extra_python_libs_s3_path: Optional[str] = None,
+        extra_jars_s3_path: Optional[str] = None,
+        security_configuration: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        arguments: Optional[Dict[str, str]] = None,
+    ) -> FakeDevEndpoint:
+        if endpoint_name in self.dev_endpoints:
+            raise AlreadyExistsException(f"DevEndpoint {endpoint_name} already exists")
+
+        dev_endpoint = FakeDevEndpoint(
+            endpoint_name=endpoint_name,
+            role_arn=role_arn,
+            security_group_ids=security_group_ids or [],
+            subnet_id=subnet_id or "subnet-default",
+            worker_type=worker_type,
+            glue_version=glue_version,
+            number_of_workers=number_of_workers or 1,
+            number_of_nodes=number_of_nodes or 1,
+            extra_python_libs_s3_path=extra_python_libs_s3_path,
+            extra_jars_s3_path=extra_jars_s3_path,
+            security_configuration=security_configuration,
+            arguments=arguments,
+            tags=tags,
+        )
+
+        if public_key:
+            dev_endpoint.public_key = public_key
+
+        if public_keys:
+            dev_endpoint.public_keys = public_keys
+
+        self.dev_endpoints[endpoint_name] = dev_endpoint
+        return dev_endpoint
+
+    def get_dev_endpoint(self, endpoint_name: str) -> FakeDevEndpoint:
+        try:
+            return self.dev_endpoints[endpoint_name]
+        except KeyError:
+            raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+
+    def delete_dev_endpoint(self, endpoint_name: str) -> None:
+        try:
+            del self.dev_endpoints[endpoint_name]
+        except KeyError:
+            raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+
+    def create_connection(
+        self, catalog_id: str, connection_input: Dict[str, Any], tags: Dict[str, str]
+    ) -> str:
+        name = connection_input.get("Name", "")
+        if name in self.connections:
+            raise AlreadyExistsException(f"Connection {name} already exists")
+        connection = FakeConnection(self, catalog_id, connection_input, tags)
+        self.connections[name] = connection
+        return connection.status
+
+    def get_connection(
+        self,
+        catalog_id: str,
+        name: str,
+        hide_password: bool,
+        apply_override_for_compute_environment: str,
+    ) -> "FakeConnection":
+        # TODO: Implement filtering
+        connection = self.connections.get(name)
+        if not connection:
+            raise EntityNotFoundException(f"Connection {name} not found")
+        return connection
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_connections(
+        self, catalog_id: str, filter: Dict[str, Any], hide_password: bool
+    ) -> List["FakeConnection"]:
+        # TODO: Implement filtering
+        return [connection for connection in self.connections.values()]
+
+    def put_data_catalog_encryption_settings(
+        self,
+        catalog_id: Optional[str],
+        data_catalog_encryption_settings: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        if catalog_id is None:
+            catalog_id = self.account_id
+
+        self.data_catalog_encryption_settings[catalog_id] = (
+            data_catalog_encryption_settings
+        )
+        return {}
+
+    def get_data_catalog_encryption_settings(
+        self, catalog_id: Optional[str]
+    ) -> Dict[str, Any]:
+        if catalog_id is None or catalog_id == "":
+            catalog_id = self.account_id
+
+        settings = self.data_catalog_encryption_settings.get(catalog_id, {})
+
+        if not isinstance(settings, dict):
+            settings = {}
+
+        response: Dict[str, Any] = {
+            "DataCatalogEncryptionSettings": {
+                "EncryptionAtRest": settings.get(
+                    "EncryptionAtRest", {"CatalogEncryptionMode": "DISABLED"}
+                ),
+                "ConnectionPasswordEncryption": settings.get(
+                    "ConnectionPasswordEncryption",
+                    {"ReturnConnectionPasswordEncrypted": False},
+                ),
+            }
+        }
+
+        return response
+
+    def put_resource_policy(
+        self,
+        policy_in_json: str,
+        resource_arn: Optional[str] = None,
+        policy_hash_condition: Optional[str] = None,
+        policy_exists_condition: Optional[str] = None,
+        enable_hybrid: Optional[str] = None,
+    ) -> Dict[str, str]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        policy_dict = self.resource_policies.get(resource_arn, {})
+
+        if policy_exists_condition and policy_exists_condition != "NONE":
+            if policy_exists_condition == "MUST_EXIST" and not policy_dict:
+                raise JsonRESTError(
+                    "ResourceNumberLimitExceededException", "Policy does not exist"
+                )
+            elif policy_exists_condition == "NOT_EXIST" and policy_dict:
+                raise JsonRESTError(
+                    "ResourceNumberLimitExceededException", "Policy already exists"
+                )
+
+        if (
+            policy_hash_condition
+            and policy_dict
+            and policy_hash_condition != policy_dict.get("PolicyHash")
+        ):
+            raise JsonRESTError(
+                "ConcurrentModificationException", "Policy hash condition not met"
+            )
+
+        policy_hash = hashlib.md5(policy_in_json.encode()).hexdigest()
+
+        if not policy_dict:
+            policy_dict = {
+                "PolicyInJson": policy_in_json,
+                "PolicyHash": policy_hash,
+                "CreateTime": utcnow(),
+                "UpdateTime": utcnow(),
+            }
+        else:
+            policy_dict.update(
+                {
+                    "PolicyInJson": policy_in_json,
+                    "PolicyHash": policy_hash,
+                    "UpdateTime": utcnow(),
+                }
+            )
+
+        if enable_hybrid in ("TRUE", "FALSE"):
+            policy_dict["EnableHybrid"] = enable_hybrid
+
+        self.resource_policies[resource_arn] = policy_dict
+
+        return {"PolicyHash": policy_hash}
+
+    def get_resource_policy(self, resource_arn: Optional[str] = None) -> Dict[str, Any]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        if resource_arn not in self.resource_policies:
+            return {}
+
+        policy = self.resource_policies[resource_arn]
+
+        response = {
+            "PolicyInJson": policy["PolicyInJson"],
+            "PolicyHash": policy["PolicyHash"],
+            "CreateTime": (
+                policy["CreateTime"].isoformat()
+                if isinstance(policy["CreateTime"], datetime)
+                else policy["CreateTime"]
+            ),
+            "UpdateTime": (
+                policy["UpdateTime"].isoformat()
+                if isinstance(policy["UpdateTime"], datetime)
+                else policy["UpdateTime"]
+            ),
+        }
+
+        return response
+
+    def delete_resource_policy(
+        self,
+        resource_arn: Optional[str] = None,
+        policy_hash_condition: Optional[str] = None,
+    ) -> Dict[str, str]:
+        if resource_arn is None:
+            resource_arn = self.default_catalog_arn
+
+        if resource_arn not in self.resource_policies:
+            raise EntityNotFoundException(
+                "Policy does not exist",
+            )
+        policy_dict = self.resource_policies.get(resource_arn, {})
+
+        if (
+            policy_hash_condition
+            and policy_dict
+            and policy_hash_condition != policy_dict.get("PolicyHash")
+        ):
+            raise JsonRESTError(
+                "ConcurrentModificationException", "Policy hash condition not met"
+            )
+
+        del self.resource_policies[resource_arn]
+        return {}
+
+    def create_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> str:
+        self.workflows[name] = FakeWorkflow(
+            name, default_run_properties, description, max_concurrent_runs, tags
+        )
+        return name
+
+    def get_workflow(
+        self,
+        name: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(name)
+        if workflow:
+            return workflow.as_dict()
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_workflows(self) -> List[str]:
+        return [workflow.name for workflow in self.workflows.values()]
+
+    def update_workflow(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+    ) -> str:
+        workflow = self.workflows.get(name)
+        if workflow:
+            if default_run_properties:
+                workflow.default_run_properties = default_run_properties
+            if description:
+                workflow.description = description
+            if max_concurrent_runs:
+                workflow.max_concurrent_runs = max_concurrent_runs
+            workflow.last_modified_on = utcnow()
+            return name
+        else:
+            raise EntityNotFoundException("Entity not found")
+
+    def delete_workflow(
+        self,
+        name: str,
+    ) -> str:
+        if self.workflows.get(name):
+            del self.workflows[name]
+        return name
+
+    def get_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, Any]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).as_dict()
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def get_workflow_runs(
+        self,
+        workflow_name: str,
+    ) -> List[Dict[str, Union[str, Dict[str, str]]]]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return [run.as_dict() for run in workflow.runs.values()]
+
+    def start_workflow_run(
+        self, workflow_name: str, properties: Optional[Dict[str, str]]
+    ) -> str:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.start_run(properties=properties)
+
+    def stop_workflow_run(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.stop_run(run_id)
+
+    def get_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+    ) -> Dict[str, str]:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        return workflow.get_run(run_id).properties
+
+    def put_workflow_run_properties(
+        self,
+        workflow_name: str,
+        run_id: str,
+        properties: Dict[str, str],
+    ) -> None:
+        workflow = self.workflows.get(workflow_name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        workflow.get_run(run_id).properties.update(properties)
+
 
 class FakeDatabase(BaseModel):
     def __init__(
@@ -1132,6 +1707,9 @@ class FakeTable(BaseModel):
         self.partitions[str(partition.values)] = partition
 
     def get_partitions(self, expression: str) -> List["FakePartition"]:
+        # Only load pyparsing when necessary
+        from .utils import PartitionFilter
+
         return list(filter(PartitionFilter(expression, self), self.partitions.values()))
 
     def get_partition(self, values: str) -> "FakePartition":
@@ -1203,7 +1781,7 @@ class FakeCrawler(BaseModel):
         tags: Dict[str, str],
         backend: GlueBackend,
     ):
-        self.name = name
+        self.name: str = name
         self.role = role
         self.database_name = database_name
         self.description = description
@@ -1216,21 +1794,20 @@ class FakeCrawler(BaseModel):
         self.lineage_configuration = lineage_configuration
         self.configuration = configuration
         self.crawler_security_configuration = crawler_security_configuration
-        self.state = "READY"
         self.creation_time = utcnow()
         self.last_updated = self.creation_time
         self.version = 1
         self.crawl_elapsed_time = 0
         self.last_crawl_info = None
-        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:crawler/{self.name}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:crawler/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
+        self.crawls: List[FakeCrawl] = []
 
     def get_name(self) -> str:
         return self.name
 
     def as_dict(self) -> Dict[str, Any]:
-        last_crawl = self.last_crawl_info.as_dict() if self.last_crawl_info else None  # type: ignore
         data = {
             "Name": self.name,
             "Role": self.role,
@@ -1241,12 +1818,11 @@ class FakeCrawler(BaseModel):
             "RecrawlPolicy": self.recrawl_policy,
             "SchemaChangePolicy": self.schema_change_policy,
             "LineageConfiguration": self.lineage_configuration,
-            "State": self.state,
+            "State": self.status,
             "TablePrefix": self.table_prefix,
             "CrawlElapsedTime": self.crawl_elapsed_time,
             "CreationTime": self.creation_time.isoformat(),
             "LastUpdated": self.last_updated.isoformat(),
-            "LastCrawl": last_crawl,
             "Version": self.version,
             "Configuration": self.configuration,
             "CrawlerSecurityConfiguration": self.crawler_security_configuration,
@@ -1258,52 +1834,97 @@ class FakeCrawler(BaseModel):
                 "State": "SCHEDULED",
             }
 
-        if self.last_crawl_info:
-            data["LastCrawl"] = self.last_crawl_info.as_dict()
+        if self.crawls:
+            last_crawl = self.crawls[-1]
+            data["LastCrawl"] = {
+                "LogGroup": last_crawl.log_group,
+                "LogStream": last_crawl.log_stream,
+                "MessagePrefix": last_crawl.message_prefix,
+                "StartTime": last_crawl.start_time.isoformat(),
+                "Status": last_crawl.status,
+            }
 
         return data
 
     def start_crawler(self) -> None:
-        if self.state == "RUNNING":
+        if self.crawls and self.crawls[-1].status == "RUNNING":
             raise CrawlerRunningException(
                 f"Crawler with name {self.name} has already started"
             )
-        self.state = "RUNNING"
+        else:
+            self.crawls.append(FakeCrawl(self.name))
 
     def stop_crawler(self) -> None:
-        if self.state != "RUNNING":
+        if not self.crawls:
             raise CrawlerNotRunningException(
                 f"Crawler with name {self.name} isn't running"
             )
-        self.state = "STOPPING"
+        elif self.crawls[-1].status != "RUNNING":
+            raise CrawlerNotRunningException(
+                f"Crawler with name {self.name} isn't running"
+            )
+        else:
+            self.crawls[-1].status = "STOPPING"
+
+    @property
+    def status(self) -> str:
+        if not self.crawls:
+            return "READY"
+        else:
+            if self.crawls[-1].status == "RUNNING":
+                return "RUNNING"
+            elif self.crawls[-1].status in ["COMPLETED", "STOPPED", "FAILED"]:
+                return "READY"
+            elif self.crawls[-1].status == "STOPPING":
+                return "STOPPING"
+            else:
+                raise RuntimeError(
+                    f"Unexpeected state found for crawler, found state {self.crawls[-1].status}"
+                )
 
 
-class LastCrawlInfo(BaseModel):
-    def __init__(
-        self,
-        error_message: str,
-        log_group: str,
-        log_stream: str,
-        message_prefix: str,
-        start_time: str,
-        status: str,
-    ):
-        self.error_message = error_message
-        self.log_group = log_group
-        self.log_stream = log_stream
-        self.message_prefix = message_prefix
-        self.start_time = start_time
-        self.status = status
+class FakeCrawl(ManagedState):
+    def __init__(self, crawler_name: str) -> None:
+        ManagedState.__init__(
+            self,
+            model_name="glue::crawl",
+            transitions=[("RUNNING", "COMPLETED"), ("STOPPING", "STOPPED")],
+        )
+        self.crawl_id = str(mock_random.uuid4())
+        self.dpu_hour = 100
+        self.end_time: Optional[datetime] = None
+        self.log_group = "/aws-glue/crawlers"
+        self.log_stream = crawler_name
+        self.message_prefix = self.crawl_id
+        self.start_time = utcnow()
 
-    def as_dict(self) -> Dict[str, Any]:
-        return {
-            "ErrorMessage": self.error_message,
+    def as_dict(self) -> Dict[str, Union[str, int]]:
+        response_dict: Dict[str, Union[str, int]] = {
+            "CrawlId": self.crawl_id,
+            "DPUHour": self.dpu_hour,
             "LogGroup": self.log_group,
             "LogStream": self.log_stream,
             "MessagePrefix": self.message_prefix,
-            "StartTime": self.start_time,
-            "Status": self.status,
+            "StartTime": self.start_time.isoformat(),
         }
+        if self.status:
+            # "STOPPING" isn't a real status for crawl, but we need to introduce
+            # a second state transition to simulate the crawler issuing an async stop
+            # command to the crawl
+            response_dict["State"] = (
+                "RUNNING" if self.status == "STOPPING" else self.status
+            )
+        if self.end_time:
+            response_dict["EndTime"] = self.end_time.isoformat()
+        return response_dict
+
+    def advance(self) -> None:
+        previous_state = self.status
+        ManagedState.advance(self)
+        if (previous_state == "RUNNING" and self.status == "COMPLETED") or (
+            previous_state == "STOPPING" and self.status == "STOPPED"
+        ):
+            self.end_time = utcnow()
 
 
 class FakeJob:
@@ -1339,7 +1960,7 @@ class FakeJob:
         self.role = role
         self.execution_property = execution_property or {}
         self.command = command
-        self.default_arguments = default_arguments
+        self.default_arguments = default_arguments or {}
         self.non_overridable_arguments = non_overridable_arguments
         self.connections = connections
         self.max_retries = max_retries
@@ -1356,9 +1977,7 @@ class FakeJob:
         self.source_control_details = source_control_details
         self.created_on = utcnow()
         self.last_modified_on = utcnow()
-        self.arn = (
-            f"arn:aws:glue:{backend.region_name}:{backend.account_id}:job/{self.name}"
-        )
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:job/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -1394,7 +2013,18 @@ class FakeJob:
             "SourceControlDetails": self.source_control_details,
         }
 
-    def start_job_run(self) -> str:
+    def start_job_run(
+        self,
+        allocated_capacity: Optional[int],
+        max_capacity: Optional[float],
+        timeout: Optional[int],
+        worker_type: Optional[str],
+        security_configuration: Optional[str],
+        number_of_workers: Optional[int],
+        notification_property: Optional[Dict[str, int]],
+        previous_run_id: Optional[str],
+        arguments: Optional[Dict[str, str]],
+    ) -> str:
         running_jobs = len(
             [jr for jr in self.job_runs if jr.status in ["STARTING", "RUNNING"]]
         )
@@ -1402,7 +2032,24 @@ class FakeJob:
             raise ConcurrentRunsExceededException(
                 f"Job with name {self.name} already running"
             )
-        fake_job_run = FakeJobRun(job_name=self.name)
+        job_run_arguments = self.default_arguments.copy()
+        job_run_arguments.update(arguments or {})
+        # this has to be last to ensure it can't be overridden
+        job_run_arguments.update(self.non_overridable_arguments or {})
+
+        fake_job_run = FakeJobRun(
+            job_name=self.name,
+            arguments=job_run_arguments,
+            allocated_capacity=allocated_capacity or self.allocated_capacity,
+            max_capacity=max_capacity or self.max_capacity,
+            timeout=timeout or self.timeout,
+            worker_type=worker_type or self.worker_type,
+            security_configuration=security_configuration
+            or self.security_configuration,
+            number_of_workers=number_of_workers or self.number_of_workers,
+            notification_property=notification_property or self.notification_property,
+            job_run_id=previous_run_id,
+        )
         self.job_runs.append(fake_job_run)
         return fake_job_run.job_run_id
 
@@ -1413,16 +2060,25 @@ class FakeJob:
                 return job_run
         raise JobRunNotFoundException(run_id)
 
+    def get_job_runs(self) -> List["FakeJobRun"]:
+        for job_run in self.job_runs:
+            job_run.advance()
+        return self.job_runs
+
 
 class FakeJobRun(ManagedState):
     def __init__(
         self,
         job_name: str,
-        job_run_id: str = "01",
+        job_run_id: Optional[str] = None,
         arguments: Optional[Dict[str, Any]] = None,
-        allocated_capacity: Optional[int] = None,
+        allocated_capacity: Optional[int] = 10,
+        max_capacity: Optional[float] = 10.0,
         timeout: Optional[int] = None,
-        worker_type: str = "Standard",
+        worker_type: Optional[str] = "Standard",
+        notification_property: Optional[Dict[str, int]] = None,
+        security_configuration: Optional[str] = None,
+        number_of_workers: Optional[int] = 10,
     ):
         ManagedState.__init__(
             self,
@@ -1430,45 +2086,52 @@ class FakeJobRun(ManagedState):
             transitions=[("STARTING", "RUNNING"), ("RUNNING", "SUCCEEDED")],
         )
         self.job_name = job_name
-        self.job_run_id = job_run_id
+        self.job_run_id = f"jr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = job_run_id
         self.arguments = arguments
         self.allocated_capacity = allocated_capacity
+        self.max_capacity = max_capacity
         self.timeout = timeout
         self.worker_type = worker_type
         self.started_on = utcnow()
         self.modified_on = utcnow()
         self.completed_on = utcnow()
+        self.notification_property = notification_property
+        self.security_configuration = security_configuration
+        self.number_of_workers = number_of_workers
 
     def get_name(self) -> str:
         return self.job_name
 
     def as_dict(self) -> Dict[str, Any]:
-        return {
+        return_dict = {
             "Id": self.job_run_id,
-            "Attempt": 1,
-            "PreviousRunId": "01",
-            "TriggerName": "test_trigger",
+            "Attempt": 0,
             "JobName": self.job_name,
             "StartedOn": self.started_on.isoformat(),
             "LastModifiedOn": self.modified_on.isoformat(),
             "CompletedOn": self.completed_on.isoformat(),
             "JobRunState": self.status,
-            "Arguments": self.arguments or {"runSpark": "spark -f test_file.py"},
-            "ErrorMessage": "",
-            "PredecessorRuns": [
-                {"JobName": "string", "RunId": "string"},
-            ],
-            "AllocatedCapacity": self.allocated_capacity or 123,
+            "PredecessorRuns": [],
             "ExecutionTime": 123,
-            "Timeout": self.timeout or 123,
-            "MaxCapacity": 123.0,
             "WorkerType": self.worker_type,
-            "NumberOfWorkers": 123,
-            "SecurityConfiguration": "string",
             "LogGroupName": "test/log",
-            "NotificationProperty": {"NotifyDelayAfter": 123},
             "GlueVersion": "0.9",
+            "AllocatedCapacity": self.allocated_capacity,
+            "MaxCapacity": self.max_capacity,
+            "NumberOfWorkers": self.number_of_workers,
         }
+        if self.arguments:
+            return_dict["Arguments"] = self.arguments
+        if self.notification_property:
+            return_dict["NotificationProperty"] = self.notification_property
+        if self.security_configuration:
+            return_dict["SecurityConfiguration"] = self.security_configuration
+        if self.timeout:
+            return_dict["Timeout"] = self.timeout
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        return return_dict
 
 
 class FakeRegistry(BaseModel):
@@ -1485,7 +2148,7 @@ class FakeRegistry(BaseModel):
         self.created_time = utcnow()
         self.updated_time = utcnow()
         self.status = "AVAILABLE"
-        self.registry_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:registry/{self.name}"
+        self.registry_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:registry/{self.name}"
         self.schemas: Dict[str, FakeSchema] = OrderedDict()
 
     def as_dict(self) -> Dict[str, Any]:
@@ -1509,9 +2172,9 @@ class FakeSchema(BaseModel):
         description: Optional[str] = None,
     ):
         self.registry_name = registry_name
-        self.registry_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:registry/{self.registry_name}"
+        self.registry_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:registry/{self.registry_name}"
         self.schema_name = schema_name
-        self.schema_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
+        self.schema_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
         self.description = description
         self.data_format = data_format
         self.compatibility = compatibility
@@ -1563,7 +2226,7 @@ class FakeSchemaVersion(BaseModel):
     ):
         self.registry_name = registry_name
         self.schema_name = schema_name
-        self.schema_arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
+        self.schema_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:schema/{self.registry_name}/{self.schema_name}"
         self.schema_definition = schema_definition
         self.schema_version_status = AVAILABLE_STATUS
         self.version_number = version_number
@@ -1640,7 +2303,7 @@ class FakeSession(BaseModel):
         self.request_origin = request_origin
         self.creation_time = utcnow()
         self.last_updated = self.creation_time
-        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:session/{self.session_id}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:session/{self.session_id}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
         self.state = "READY"
@@ -1679,8 +2342,8 @@ class FakeTrigger(BaseModel):
         workflow_name: str,
         trigger_type: str,  # to avoid any issues with built-in function type()
         schedule: str,
-        predicate: Dict[str, Any],
-        actions: List[Dict[str, Any]],
+        predicate: Optional[Predicate],
+        actions: List[Action],
         description: str,
         start_on_creation: bool,
         tags: Dict[str, str],
@@ -1698,7 +2361,7 @@ class FakeTrigger(BaseModel):
         else:
             self.state = "CREATED"
         self.event_batching_condition = event_batching_condition
-        self.arn = f"arn:aws:glue:{backend.region_name}:{backend.account_id}:trigger/{self.name}"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:trigger/{self.name}"
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
 
@@ -1715,7 +2378,7 @@ class FakeTrigger(BaseModel):
         data: Dict[str, Any] = {
             "Name": self.name,
             "Type": self.trigger_type,
-            "Actions": self.actions,
+            "Actions": [action.as_dict() for action in self.actions],
             "State": self.state,
         }
 
@@ -1726,7 +2389,7 @@ class FakeTrigger(BaseModel):
             data["Schedule"] = self.schedule
 
         if self.predicate:
-            data["Predicate"] = self.predicate
+            data["Predicate"] = self.predicate.as_dict()
 
         if self.description:
             data["Description"] = self.description
@@ -1735,6 +2398,135 @@ class FakeTrigger(BaseModel):
             data["EventBatchingCondition"] = self.event_batching_condition
 
         return data
+
+
+class FakeConnection(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        catalog_id: str,
+        connection_input: Dict[str, Any],
+        tags: Dict[str, str],
+    ) -> None:
+        self.catalog_id = catalog_id
+        self.connection_input = connection_input
+        self.created_time = utcnow()
+        self.updated_time = utcnow()
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:connection/{self.connection_input['Name']}"
+        self.backend = backend
+        self.backend.tag_resource(self.arn, tags)
+        self.status = "READY"
+        self.name = self.connection_input.get("Name")
+        self.description = self.connection_input.get("Description")
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Description": self.description,
+            "Connection": self.connection_input,
+            "CreationTime": self.created_time.isoformat(),
+            "LastUpdatedTime": self.updated_time.isoformat(),
+            "CatalogId": self.catalog_id,
+            "Status": self.status,
+            "PhysicalConnectionRequirements": self.connection_input.get(
+                "PhysicalConnectionRequirements"
+            ),
+        }
+
+
+class FakeWorkflowRun:
+    def __init__(
+        self,
+        workflow_name: str,
+        previous_run_id: Optional[str] = None,
+        properties: Optional[Dict[str, str]] = None,
+    ) -> None:
+        self.workflow_name = workflow_name
+        self.run_id = f"wr_{mock_random.get_random_hex(64)}"
+        self.previous_run_id = previous_run_id
+        self.properties = properties or {}
+        self.status = "RUNNING"
+        self.started_on = utcnow()
+        self.completed_on: Optional[datetime] = None
+
+    def as_dict(self) -> Dict[str, Union[str, Dict[str, str]]]:
+        return_dict: Dict[str, Union[str, Dict[str, str]]] = {
+            "Name": self.workflow_name,
+            "WorkflowRunId": self.run_id,
+            "StartedOn": self.started_on.isoformat(),
+            "Status": self.status,
+        }
+        if self.completed_on:
+            return_dict["CompletedOn"] = self.completed_on.isoformat()
+        if self.previous_run_id:
+            return_dict["PreviousRunId"] = self.previous_run_id
+        if self.properties:
+            return_dict["WorkflowRunProperties"] = self.properties
+        return return_dict
+
+
+class FakeWorkflow:
+    def __init__(
+        self,
+        name: str,
+        default_run_properties: Optional[Dict[str, str]],
+        description: Optional[str],
+        max_concurrent_runs: Optional[int],
+        tags: Optional[Dict[str, str]],
+    ) -> None:
+        self.name = name
+        self.default_run_properties = default_run_properties
+        self.description = description
+        self.max_concurrent_runs = max_concurrent_runs
+        self.tags = tags
+        self.created_on = utcnow()
+        self.last_modified_on = utcnow()
+        self.runs: OrderedDict[str, FakeWorkflowRun] = OrderedDict()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return_dict: Dict[str, Any] = {
+            "CreatedOn": self.created_on.isoformat(),
+            "LastModifiedOn": self.last_modified_on.isoformat(),
+            "Name": self.name,
+        }
+        if self.default_run_properties:
+            return_dict["DefaultRunProperties"] = self.default_run_properties
+        if self.description:
+            return_dict["Description"] = self.description
+        if self.max_concurrent_runs:
+            return_dict["MaxConcurrentRuns"] = self.max_concurrent_runs
+        if self.runs:
+            return_dict["LastRun"] = self.runs[next(reversed(self.runs))].as_dict()
+        return return_dict
+
+    def start_run(self, properties: Optional[Dict[str, str]]) -> str:
+        run_properties = (
+            self.default_run_properties.copy() if self.default_run_properties else {}
+        )
+        if properties:
+            run_properties.update(properties)
+        if self.runs:
+            previous_run_id = self.runs[next(reversed(self.runs))].run_id
+        else:
+            previous_run_id = None
+        workflow_run = FakeWorkflowRun(
+            workflow_name=self.name,
+            properties=run_properties,
+            previous_run_id=previous_run_id,
+        )
+        self.runs[workflow_run.run_id] = workflow_run
+        return workflow_run.run_id
+
+    def get_run(self, run_id: str) -> FakeWorkflowRun:
+        run = self.runs.get(run_id)
+        if not run:
+            raise EntityNotFoundException("Entity not found")
+        else:
+            return run
+
+    def stop_run(self, run_id: str) -> None:
+        if not self.runs.get(run_id):
+            raise EntityNotFoundException("Entity not found")
 
 
 glue_backends = BackendDict(GlueBackend, "glue")

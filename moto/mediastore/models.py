@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     ContainerNotFoundException,
@@ -45,7 +46,7 @@ class MediaStoreBackend(BaseBackend):
         self._containers: Dict[str, Container] = OrderedDict()
 
     def create_container(self, name: str, tags: Dict[str, str]) -> Container:
-        arn = f"arn:aws:mediastore:container:{name}"
+        arn = f"arn:{get_partition(self.region_name)}:mediastore:container:{name}"
         container = Container(
             arn=arn,
             name=name,

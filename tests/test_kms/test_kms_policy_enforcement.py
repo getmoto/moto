@@ -14,7 +14,7 @@ from moto.kms.policy_validator import validate_policy
 
 @mock_aws
 class TestKMSPolicyEnforcement:
-    def setup_method(self, *args) -> None:  # pylint: disable=unused-argument
+    def setup_method(self, *args) -> None:
         self.client = boto3.client("kms", "us-east-1")
 
         # The key-value is irrelevant, so let's mock the expensive cryptographic key-generation
@@ -122,7 +122,7 @@ class TestKMSPolicyValidator:
         with mock.patch.object(rsa, "generate_private_key", return_value=""):
             return Key(
                 account_id=None,
-                region=None,
+                region="us-east-1",
                 description=None,
                 key_spec=None,
                 key_usage=None,

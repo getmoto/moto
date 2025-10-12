@@ -63,4 +63,4 @@ class IoTDataPlaneResponse(BaseResponse):
     def list_named_shadows_for_thing(self) -> str:
         thing_name = self._get_param("thingName")
         shadows = self.iotdata_backend.list_named_shadows_for_thing(thing_name)
-        return json.dumps({"results": [shadow.to_dict() for shadow in shadows]})
+        return json.dumps({"results": shadows})

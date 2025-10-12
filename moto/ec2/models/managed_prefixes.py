@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from moto.utilities.utils import filter_resources
+from moto.utilities.utils import filter_resources, get_partition
 
 from ..utils import describe_tag_filter, random_managed_prefix_list_id
 from .core import TaggedEC2Resource
@@ -24,7 +24,7 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.id = random_managed_prefix_list_id()
         self.prefix_list_name = prefix_list_name
         self.state = "create-complete"
-        self.state_message = "create complete"
+        self.state_message = None
         self.add_tags(tags or {})
         self.version: Optional[int] = 1
         self.entries = {self.version: entry} if entry else {}
@@ -33,11 +33,17 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.delete_counter = 1
 
     def arn(self, region: str, owner_id: str) -> str:
-        return f"arn:aws:ec2:{region}:{owner_id}:prefix-list/{self.id}"
+        return (
+            f"arn:{get_partition(region)}:ec2:{region}:{owner_id}:prefix-list/{self.id}"
+        )
 
     @property
     def owner_id(self) -> str:
         return self.resource_owner_id or self.ec2_backend.account_id
+
+    @property
+    def prefix_list_id(self) -> str:
+        return self.id
 
 
 class ManagedPrefixListBackend:
@@ -103,7 +109,9 @@ class ManagedPrefixListBackend:
         return self.managed_prefix_lists.get(prefix_list_id)
 
     def delete_managed_prefix_list(self, prefix_list_id: str) -> ManagedPrefixList:
-        managed_prefix_list: ManagedPrefixList = self.managed_prefix_lists.get(prefix_list_id)  # type: ignore
+        managed_prefix_list: ManagedPrefixList = self.managed_prefix_lists.get(
+            prefix_list_id
+        )  # type: ignore
         managed_prefix_list.state = "delete-complete"
         return managed_prefix_list
 
@@ -143,7 +151,7 @@ class ManagedPrefixListBackend:
             address_family=address_family,
             entry=entries,
             prefix_list_name=name,
-            owner_id="aws",
+            owner_id="AWS",
         )
         managed_prefix_list.version = None
         managed_prefix_list.max_entries = None

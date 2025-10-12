@@ -5,10 +5,11 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.base_backend import BackendDict, BaseBackend, InstanceTrackerMeta
 from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_pascal, underscores_to_camelcase
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     AlreadyExistsException,
@@ -102,7 +103,7 @@ class DataBrewBackend(BaseBackend):
             and float(recipe_version) not in recipe.versions
         ):
             raise ResourceNotFoundException(
-                f"The recipe {recipe_name} version {recipe_version } wasn't found."
+                f"The recipe {recipe_name} version {recipe_version} wasn't found."
             )
 
         if recipe_version in (
@@ -300,7 +301,6 @@ class DataBrewBackend(BaseBackend):
         dataset_path_options: Dict[str, Any],
         tags: Dict[str, str],
     ) -> "FakeDataset":
-
         if dataset_name not in self.datasets:
             raise ResourceNotFoundException("One or more resources can't be found.")
 
@@ -478,6 +478,9 @@ class FakeRecipe(BaseModel):
         del self.versions[self.latest_working.version]
         self.versions[self.latest_published.version] = self.latest_published
         self.latest_working.version = self.latest_published.version + 0.1
+
+        if self.latest_published.published_date:
+            self.latest_working.created_time = self.latest_published.published_date
         self.versions[self.latest_working.version] = self.latest_working
 
     def update(
@@ -599,9 +602,7 @@ class FakeDataset(BaseModel):
 
     @property
     def resource_arn(self) -> str:
-        return (
-            f"arn:aws:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
-        )
+        return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -616,12 +617,11 @@ class FakeDataset(BaseModel):
         }
 
 
-class BaseModelABCMeta(ABCMeta, type(BaseModel)):  # type: ignore[misc]
+class JobMetaclass(ABCMeta, InstanceTrackerMeta):
     pass
 
 
-class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
-
+class FakeJob(BaseModel, metaclass=JobMetaclass):
     ENCRYPTION_MODES = ("SSE-S3", "SSE-KMS")
     LOG_SUBSCRIPTION_VALUES = ("ENABLE", "DISABLE")
 
@@ -666,7 +666,7 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
 
     @property
     def resource_arn(self) -> str:
-        return f"arn:aws:databrew:{self.region_name}:{self.account_id}:job/{self.name}"
+        return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:job/{self.name}"
 
     def as_dict(self) -> Dict[str, Any]:
         rtn_dict = {
@@ -696,12 +696,12 @@ class FakeJob(BaseModel, metaclass=BaseModelABCMeta):  # type: ignore[misc]
         return rtn_dict
 
 
-class FakeProfileJob(FakeJob):  # type: ignore[misc]
+class FakeProfileJob(FakeJob):
     job_type = "PROFILE"
     local_attrs = ["output_location", "configuration", "validation_configurations"]
 
 
-class FakeRecipeJob(FakeJob):  # type: ignore[misc]
+class FakeRecipeJob(FakeJob):
     local_attrs = [
         "database_outputs",
         "data_catalog_outputs",

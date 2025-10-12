@@ -30,7 +30,7 @@ else:
 
 
 class Ami(TaggedEC2Resource):
-    def __init__(  # pylint: disable=dangerous-default-value
+    def __init__(
         self,
         ec2_backend: Any,
         ami_id: str,
@@ -56,6 +56,7 @@ class Ami(TaggedEC2Resource):
         snapshot_description: Optional[str] = None,
         product_codes: Set[str] = set(),
         boot_mode: str = "uefi",
+        tags: Optional[Dict[str, Any]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
@@ -77,6 +78,10 @@ class Ami(TaggedEC2Resource):
         self.creation_date = creation_date or utc_date_and_time()
         self.product_codes = product_codes
         self.boot_mode = boot_mode
+        self.instance_id: Optional[str] = None
+
+        if tags is not None:
+            self.add_tags(tags)
 
         if instance:
             self.instance = instance
@@ -121,8 +126,22 @@ class Ami(TaggedEC2Resource):
         return {"Group": "all"} in self.launch_permissions
 
     @property
-    def is_public_string(self) -> str:
-        return str(self.is_public).lower()
+    def block_device_mappings(self) -> List[Dict[str, Any]]:
+        return [
+            {
+                "DeviceName": self.root_device_name,
+                "Ebs": {
+                    "SnapshotId": self.ebs_snapshot.id,
+                    "VolumeSize": 15,
+                    "DeleteOnTermination": False,
+                    "VolumeType": "standard",
+                },
+            }
+        ]
+
+    @property
+    def source_instance_id(self) -> Optional[str]:
+        return self.instance_id
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -136,7 +155,7 @@ class Ami(TaggedEC2Resource):
         elif filter_name == "image-id":
             return self.id
         elif filter_name == "is-public":
-            return self.is_public_string
+            return self.is_public
         elif filter_name == "state":
             return self.state
         elif filter_name == "name":
@@ -145,6 +164,12 @@ class Ami(TaggedEC2Resource):
             return self.owner_id
         elif filter_name == "owner-alias":
             return self.owner_alias
+        elif filter_name == "product-code":
+            return self.product_codes
+        elif filter_name == "product-code.type":
+            return "marketplace"  # devpay is not (yet?) supported
+        elif filter_name == "source-instance-id":
+            return self.source_instance_id
         else:
             return super().get_filter_value(filter_name, "DescribeImages")
 
@@ -172,7 +197,8 @@ class AmiBackend:
                     latest_amis = cast(
                         List[Dict[str, Any]],
                         load_resource(
-                            __name__, f"../resources/{path}/{self.region_name}.json"  # type: ignore[attr-defined]
+                            __name__,
+                            f"../resources/{path}/{self.region_name}.json",  # type: ignore[attr-defined]
                         ),
                     )
                     for ami in latest_amis:
@@ -271,10 +297,19 @@ class AmiBackend:
             if exec_users:
                 tmp_images = []
                 for ami in images:
-                    for user_id in exec_users:
-                        for lp in ami.launch_permissions:
-                            if lp.get("UserId") == user_id:
-                                tmp_images.append(ami)
+                    if ami.is_public:
+                        tmp_images.append(ami)
+                    else:
+                        # support filtering by ExecutableUsers=['self']
+                        if "self" in exec_users:
+                            exec_users = list(set(exec_users))
+                            exec_users.remove("self")
+                            exec_users.append(self.account_id)  # type: ignore[attr-defined]
+
+                        for user_id in exec_users:
+                            for lp in ami.launch_permissions:
+                                if lp.get("UserId") == user_id:
+                                    tmp_images.append(ami)
                 images = tmp_images
 
             # Limit by owner ids

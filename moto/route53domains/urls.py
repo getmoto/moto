@@ -1,4 +1,5 @@
 """route53domains base URL and path."""
+
 from .responses import Route53DomainsResponse
 
 url_bases = [

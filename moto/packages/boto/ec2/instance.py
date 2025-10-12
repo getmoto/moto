@@ -24,7 +24,8 @@
 """
 Represents an EC2 Instance
 """
-from typing import Any
+
+from typing import Any, Optional
 
 from moto.packages.boto.ec2.ec2object import EC2Object, TaggedEC2Object
 from moto.packages.boto.ec2.image import ProductCodes
@@ -158,8 +159,8 @@ class Instance(TaggedEC2Object):
         self.platform = None
         self.interfaces: Any = []
         self.hypervisor = None
-        self.virtualization_type = None
-        self.architecture = None
+        self.virtualization_type: Optional[str] = None
+        self.architecture: Optional[str] = None
         self.instance_profile = None
         self._previous_state = None
         self._placement = InstancePlacement()

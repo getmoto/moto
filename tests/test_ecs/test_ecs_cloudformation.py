@@ -2,6 +2,7 @@ import json
 from copy import deepcopy
 
 import boto3
+import pytest
 
 from moto import mock_aws
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys
@@ -36,9 +37,9 @@ def test_update_task_definition_family_through_cloudformation_should_trigger_a_r
     cfn_conn.create_stack(StackName="test_stack", TemplateBody=template1_json)
 
     template2 = deepcopy(template1)
-    template2["Resources"]["testTaskDefinition"]["Properties"][
-        "Family"
-    ] = "testTaskDefinition2"
+    template2["Resources"]["testTaskDefinition"]["Properties"]["Family"] = (
+        "testTaskDefinition2"
+    )
     template2_json = json.dumps(template2)
     cfn_conn.update_stack(StackName="test_stack", TemplateBody=template2_json)
 
@@ -366,3 +367,79 @@ def test_create_task_definition_through_cloudformation():
     assert task_definition["volumes"] == expected_properties["volumes"]
     for key, value in expected_properties["containerDefinitions"][0].items():
         assert task_definition["containerDefinitions"][0][key] == value
+
+
+@mock_aws
+def test_cloudformation_container_definition_validation():
+    cfn_conn = boto3.client("cloudformation", region_name="us-west-1")
+
+    # No task memory, no container memory
+    invalid_definition = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testTaskDefinition": {
+                "Type": "AWS::ECS::TaskDefinition",
+                "Properties": {
+                    "ContainerDefinitions": [
+                        {
+                            "Name": "ecs-sample",
+                            "Image": "amazon/amazon-ecs-sample",
+                        }
+                    ],
+                },
+            }
+        },
+    }
+    invalid_json = json.dumps(invalid_definition)
+    with pytest.raises(Exception):
+        cfn_conn.create_stack(StackName="invalid-stack", TemplateBody=invalid_json)
+
+    # No task memory, has container memory
+    valid_definition = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testTaskDefinition": {
+                "Type": "AWS::ECS::TaskDefinition",
+                "Properties": {
+                    "ContainerDefinitions": [
+                        {
+                            "Name": "ecs-sample",
+                            "Image": "amazon/amazon-ecs-sample",
+                            "Memory": 1024,
+                        }
+                    ],
+                },
+            }
+        },
+    }
+    valid_json = json.dumps(valid_definition)
+    name = "valid-stack-container-memory"
+    cfn_conn.create_stack(StackName=name, TemplateBody=valid_json)
+    cfn_conn.update_stack(StackName=name, TemplateBody=valid_json)
+
+    # Has task memory, no container memory
+    valid_definition = {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "ECS Cluster Test CloudFormation",
+        "Resources": {
+            "testTaskDefinition": {
+                "Type": "AWS::ECS::TaskDefinition",
+                "Properties": {
+                    "Memory": 1024,
+                    "ContainerDefinitions": [
+                        {
+                            "Name": "ecs-sample",
+                            "Image": "amazon/amazon-ecs-sample",
+                        }
+                    ],
+                },
+            }
+        },
+    }
+
+    valid_json = json.dumps(valid_definition)
+    name = "valid-stack-task-memory"
+    cfn_conn.create_stack(StackName=name, TemplateBody=valid_json)
+    cfn_conn.update_stack(StackName=name, TemplateBody=valid_json)

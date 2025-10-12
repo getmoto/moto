@@ -8,13 +8,17 @@ from moto.ssm.utils import convert_to_tree
 
 
 def retrieve_by_path(client, path):
-    print(f"Retrieving all parameters from {path}. "
-          f"AWS has around 14000 parameters, and we can only retrieve 10 at the time, so this may take a while.\n\n")
+    print(
+        f"Retrieving all parameters from {path}. "
+        f"AWS has around 14000 parameters, and we can only retrieve 10 at the time, so this may take a while.\n\n"
+    )
     x = client.get_parameters_by_path(Path=path, Recursive=True)
     parameters = x["Parameters"]
     next_token = x["NextToken"]
     while next_token:
-        x = client.get_parameters_by_path(Path=path, Recursive=True, NextToken=next_token)
+        x = client.get_parameters_by_path(
+            Path=path, Recursive=True, NextToken=next_token
+        )
         parameters.extend(x["Parameters"])
         next_token = x.get("NextToken")
         if len(parameters) % 100 == 0:
@@ -36,18 +40,20 @@ def main():
          So running this scripts takes a while.
     """
 
-    client = boto3.client('ssm', region_name="us-west-1")
+    client = boto3.client("ssm", region_name="us-west-1")
 
-    default_param_paths = ["/aws/service/global-infrastructure/regions",
-                           "/aws/service/global-infrastructure/services"]
+    default_param_paths = [
+        "/aws/service/global-infrastructure/regions",
+        "/aws/service/global-infrastructure/services",
+    ]
 
     for path in default_param_paths:
         params = retrieve_by_path(client, path)
         tree = convert_to_tree(params)
         root_dir = (
             subprocess.check_output(["git", "rev-parse", "--show-toplevel"])
-                .decode()
-                .strip()
+            .decode()
+            .strip()
         )
         filename = "{}.json".format(path.split("/")[-1])
         dest = os.path.join(root_dir, "moto/ssm/resources/{}".format(filename))

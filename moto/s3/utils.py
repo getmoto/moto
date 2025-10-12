@@ -34,7 +34,6 @@ user_settable_fields = {
 ARCHIVE_STORAGE_CLASSES = [
     "GLACIER",
     "DEEP_ARCHIVE",
-    "GLACIER_IR",
 ]
 STORAGE_CLASS = [
     "STANDARD",
@@ -42,6 +41,8 @@ STORAGE_CLASS = [
     "STANDARD_IA",
     "ONEZONE_IA",
     "INTELLIGENT_TIERING",
+    "GLACIER_IR",
+    "EXPRESS_ONEZONE",
 ] + ARCHIVE_STORAGE_CLASSES
 LOGGING_SERVICE_PRINCIPAL = "logging.s3.amazonaws.com"
 
@@ -115,7 +116,6 @@ def metadata_from_headers(headers: Dict[str, Any]) -> CaseInsensitiveDict:  # ty
 
 
 class _VersionedKeyStore(dict):  # type: ignore
-
     """A simplified/modified version of Django's `MultiValueDict` taken from:
     https://github.com/django/django/blob/70576740b0bb5289873f5a9a9a4e1a26b2c330e5/django/utils/datastructures.py#L282
     """
@@ -218,11 +218,7 @@ def compute_checksum(body: bytes, algorithm: str, encode_base64: bool = True) ->
 
 
 def _hash(fn: Any, args: Any) -> bytes:
-    try:
-        return fn(*args, usedforsecurity=False).digest()
-    except TypeError:
-        # The usedforsecurity-parameter is only available as of Python 3.9
-        return fn(*args).digest()
+    return fn(*args, usedforsecurity=False).digest()
 
 
 def cors_matches_origin(origin_header: str, allowed_origins: List[str]) -> bool:

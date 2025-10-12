@@ -23,7 +23,7 @@ def fixture_aws_credentials(monkeypatch: Any) -> None:  # type: ignore[misc]
 
 
 def test_mock_works_with_client_created_inside(
-    aws_credentials: Any,  # pylint: disable=unused-argument
+    aws_credentials: Any,
 ) -> None:
     m = mock_aws()
     m.start()
@@ -35,7 +35,7 @@ def test_mock_works_with_client_created_inside(
 
 
 def test_mock_works_with_client_created_outside(
-    aws_credentials: Any,  # pylint: disable=unused-argument
+    aws_credentials: Any,
 ) -> None:
     # Create the boto3 client first
     outside_client = boto3.client("s3", region_name="us-east-1")
@@ -55,7 +55,7 @@ def test_mock_works_with_client_created_outside(
 
 
 def test_mock_works_with_resource_created_outside(
-    aws_credentials: Any,  # pylint: disable=unused-argument
+    aws_credentials: Any,
 ) -> None:
     # Create the boto3 client first
     outside_resource = boto3.resource("s3", region_name="us-east-1")
@@ -122,7 +122,7 @@ class ImportantBusinessLogic:
 
 
 def test_mock_works_when_replacing_client(
-    aws_credentials: Any,  # pylint: disable=unused-argument
+    aws_credentials: Any,
 ) -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Error handling is different in newer versions")

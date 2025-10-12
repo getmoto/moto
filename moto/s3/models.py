@@ -1,7 +1,9 @@
 import base64
+import bz2
 import codecs
 import copy
 import datetime
+import gzip
 import itertools
 import json
 import os
@@ -12,6 +14,7 @@ import threading
 import urllib.parse
 from bisect import insort
 from importlib import reload
+from io import BytesIO
 from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union
 
 from moto.cloudwatch.models import MetricDatum
@@ -40,8 +43,10 @@ from moto.s3.exceptions import (
     EntityTooSmall,
     HeadOnDeleteMarker,
     InvalidBucketName,
+    InvalidBucketState,
     InvalidNotificationDestination,
     InvalidNotificationEvent,
+    InvalidObjectState,
     InvalidPart,
     InvalidPublicAccessBlockConfiguration,
     InvalidRequest,
@@ -49,14 +54,16 @@ from moto.s3.exceptions import (
     InvalidTagError,
     InvalidTargetBucketForLogging,
     MalformedXML,
+    MethodNotAllowed,
     MissingBucket,
+    MissingInventoryConfig,
     MissingKey,
     NoSuchPublicAccessBlockConfiguration,
     NoSuchUpload,
     ObjectLockConfigurationNotFoundError,
 )
 from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import LowercaseDict, md5_hash
+from moto.utilities.utils import PARTITION_NAMES, LowercaseDict, get_partition, md5_hash
 
 from ..events.notifications import send_notification as events_send_notification
 from ..settings import (
@@ -65,7 +72,7 @@ from ..settings import (
     s3_allow_crossdomain_access,
 )
 from . import notifications
-from .cloud_formation import cfn_to_api_encryption, is_replacement_update
+from .cloud_formation import cfn_to_api_encryption
 from .select_object_content import parse_query
 from .utils import (
     ARCHIVE_STORAGE_CLASSES,
@@ -105,6 +112,7 @@ class FakeKey(BaseModel, ManagedState):
         name: str,
         value: bytes,
         account_id: str,
+        region_name: str,
         storage: Optional[str] = "STANDARD",
         etag: Optional[str] = None,
         is_versioned: bool = False,
@@ -130,10 +138,12 @@ class FakeKey(BaseModel, ManagedState):
         )
         self.name = name
         self.account_id = account_id
+        self.region_name = region_name
+        self.partition = get_partition(region_name)
         self.last_modified = utcnow()
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.website_redirect_location: Optional[str] = None
-        self.checksum_algorithm = None
+        self.checksum_algorithm: Optional[str] = None
         self._storage_class: Optional[str] = storage if storage else "STANDARD"
         self._metadata = LowercaseDict()
         self._expiry: Optional[datetime.datetime] = None
@@ -183,10 +193,10 @@ class FakeKey(BaseModel, ManagedState):
     @property
     def arn(self) -> str:
         # S3 Objects don't have an ARN, but we do need something unique when creating tags against this resource
-        return f"arn:aws:s3:::{self.bucket_name}/{self.name}/{self.version_id}"
+        return f"arn:{self.partition}:s3:::{self.bucket_name}/{self.name}/{self.version_id}"
 
     @value.setter  # type: ignore
-    def value(self, new_value: bytes) -> None:
+    def value(self, new_value: bytes) -> None:  # type: ignore[misc]
         self._value_buffer.seek(0)
         self._value_buffer.truncate()
 
@@ -197,9 +207,36 @@ class FakeKey(BaseModel, ManagedState):
         self._value_buffer.write(new_value)
         self.contentsize = len(new_value)
 
+    @property
+    def status(self) -> Optional[str]:
+        previous = self._status
+        new_status = super().status
+        if previous != "RESTORED" and new_status == "RESTORED":
+            s3_backend = s3_backends[self.account_id][self.partition]
+            bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+            notifications.send_event(
+                self.account_id,
+                notifications.S3NotificationEvent.OBJECT_RESTORE_COMPLETED_EVENT,
+                bucket,
+                key=self,
+            )
+        return new_status
+
+    @status.setter
+    def status(self, value: str) -> None:
+        self._status = value
+
     def set_metadata(self, metadata: Any, replace: bool = False) -> None:
         if replace:
             self._metadata = {}  # type: ignore
+        # Remove AWS-specific Content-Encoding
+        if encoding := metadata.pop("Content-Encoding", None):
+            # Remove 'aws-chunked', but keep any other (user-provided) content encoding
+            encoding = ",".join(
+                [enc for enc in encoding.split(",") if enc != "aws-chunked"]
+            )
+            if encoding:
+                metadata["Content-Encoding"] = encoding
         self._metadata.update(metadata)
 
     def set_storage_class(self, storage: Optional[str]) -> None:
@@ -215,6 +252,14 @@ class FakeKey(BaseModel, ManagedState):
 
     def restore(self, days: int) -> None:
         self._expiry = utcnow() + datetime.timedelta(days)
+        s3_backend = s3_backends[self.account_id][self.partition]
+        bucket = s3_backend.get_bucket(self.bucket_name)  # type: ignore
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_RESTORE_POST_EVENT,
+            bucket,
+            key=self,
+        )
 
     @property
     def etag(self) -> str:
@@ -256,9 +301,9 @@ class FakeKey(BaseModel, ManagedState):
             if self.encryption == "aws:kms" and self.kms_key_id is not None:
                 res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
         if self.encryption == "aws:kms" and self.bucket_key_enabled is not None:
-            res[
-                "x-amz-server-side-encryption-bucket-key-enabled"
-            ] = self.bucket_key_enabled
+            res["x-amz-server-side-encryption-bucket-key-enabled"] = (
+                self.bucket_key_enabled
+            )
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
@@ -288,9 +333,9 @@ class FakeKey(BaseModel, ManagedState):
             res["x-amz-object-lock-retain-until-date"] = self.lock_until
         if self.lock_mode:
             res["x-amz-object-lock-mode"] = self.lock_mode
-        tags = s3_backends[self.account_id]["global"].tagger.get_tag_dict_for_resource(
-            self.arn
-        )
+
+        backend = s3_backends[self.account_id][self.partition]
+        tags = backend.tagger.get_tag_dict_for_resource(self.arn)
         if tags:
             res["x-amz-tagging-count"] = str(len(tags.keys()))
 
@@ -335,20 +380,24 @@ class FakeKey(BaseModel, ManagedState):
         self.value = state["value"]  # type: ignore
         self.lock = threading.Lock()
 
-    @property
-    def is_locked(self) -> bool:
+    def is_locked(self, governance_bypass: bool) -> bool:
         if self.lock_legal_status == "ON":
             return True
 
-        if self.lock_mode == "COMPLIANCE":
+        if self.lock_mode == "GOVERNANCE" and governance_bypass:
+            return False
+
+        if self.lock_mode in ["GOVERNANCE", "COMPLIANCE"]:
             now = utcnow()
             try:
                 until = datetime.datetime.strptime(
-                    self.lock_until, "%Y-%m-%dT%H:%M:%SZ"  # type: ignore
+                    self.lock_until,  # type: ignore
+                    "%Y-%m-%dT%H:%M:%SZ",
                 )
             except ValueError:
                 until = datetime.datetime.strptime(
-                    self.lock_until, "%Y-%m-%dT%H:%M:%S.%fZ"  # type: ignore
+                    self.lock_until,  # type: ignore
+                    "%Y-%m-%dT%H:%M:%S.%fZ",
                 )
 
             if until > now:
@@ -379,6 +428,7 @@ class FakeMultipart(BaseModel):
         key_name: str,
         metadata: CaseInsensitiveDict,  # type: ignore
         account_id: str,
+        region_name: str,
         storage: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         acl: Optional["FakeAcl"] = None,
@@ -388,6 +438,7 @@ class FakeMultipart(BaseModel):
         self.key_name = key_name
         self.metadata = metadata
         self.account_id = account_id
+        self.region_name = region_name
         self.storage = storage
         self.tags = tags
         self.acl = acl
@@ -446,7 +497,12 @@ class FakeMultipart(BaseModel):
             raise NoSuchUpload(upload_id=part_id)
 
         key = FakeKey(
-            part_id, value, account_id=self.account_id, encryption=self.sse_encryption, kms_key_id=self.kms_key_id  # type: ignore
+            part_id,  # type: ignore
+            value,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            encryption=self.sse_encryption,
+            kms_key_id=self.kms_key_id,
         )
         if part_id in self.parts:
             # We're overwriting the current part - dispose of it first
@@ -610,6 +666,9 @@ def get_canned_acl(acl: str) -> FakeAcl:
 
 
 class LifecycleFilter(BaseModel):
+    tag_key: Optional[str]
+    tag_value: Optional[str]
+
     def __init__(
         self,
         prefix: Optional[str] = None,
@@ -794,6 +853,7 @@ class CorsRule(BaseModel):
         allowed_headers: Any = None,
         expose_headers: Any = None,
         max_age_seconds: Any = None,
+        id_: Any = None,
     ):
         self.allowed_methods = (
             [allowed_methods] if isinstance(allowed_methods, str) else allowed_methods
@@ -808,6 +868,7 @@ class CorsRule(BaseModel):
             [expose_headers] if isinstance(expose_headers, str) else expose_headers
         )
         self.max_age_seconds = max_age_seconds
+        self.id_ = id_
 
 
 class Notification(BaseModel):
@@ -996,12 +1057,13 @@ class FakeBucket(CloudFormationModel):
         self.name = name
         self.account_id = account_id
         self.region_name = region_name
+        self.partition = get_partition(region_name)
         self.keys = _VersionedKeyStore()
         self.multiparts = MultipartDict()
         self.versioning_status: Optional[str] = None
         self.rules: List[LifecycleRule] = []
         self.policy: Optional[bytes] = None
-        self.website_configuration: Optional[Dict[str, Any]] = None
+        self.website_configuration: Optional[bytes] = None
         self.acl: Optional[FakeAcl] = get_canned_acl("private")
         self.cors: List[CorsRule] = []
         self.logging: Dict[str, Any] = {}
@@ -1016,7 +1078,8 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_days: Optional[int] = 0
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[Dict[str, Any]] = None
-        s3_backends.bucket_accounts[name] = account_id
+        self.inventory_configs: Dict[str, FakeBucketInventoryConfiguration] = {}
+        s3_backends.bucket_accounts[name] = (self.partition, account_id)
 
     @property
     def location(self) -> str:
@@ -1211,6 +1274,7 @@ class FakeBucket(CloudFormationModel):
                 rule.get("ExposeHeader", ""), str
             )
             assert isinstance(rule.get("MaxAgeSeconds", "0"), str)
+            assert isinstance(rule.get("ID", ""), str)
 
             if isinstance(rule["AllowedMethod"], str):
                 methods = [rule["AllowedMethod"]]
@@ -1228,6 +1292,7 @@ class FakeBucket(CloudFormationModel):
                     rule.get("AllowedHeader"),
                     rule.get("ExposeHeader"),
                     rule.get("MaxAgeSeconds"),
+                    rule.get("ID"),
                 )
             )
 
@@ -1253,9 +1318,11 @@ class FakeBucket(CloudFormationModel):
                     continue
                 if (
                     stmt.get("Resource")
-                    != f"arn:aws:s3:::{target_bucket.name}/{target_prefix if target_prefix else ''}*"
-                    and stmt.get("Resource") != f"arn:aws:s3:::{target_bucket.name}/*"
-                    and stmt.get("Resource") != f"arn:aws:s3:::{target_bucket.name}"
+                    != f"arn:{target_bucket.partition}:s3:::{target_bucket.name}/{target_prefix if target_prefix else ''}*"
+                    and stmt.get("Resource")
+                    != f"arn:{target_bucket.partition}:s3:::{target_bucket.name}/*"
+                    and stmt.get("Resource")
+                    != f"arn:{target_bucket.partition}:s3:::{target_bucket.name}"
                 ):
                     continue
                 return True
@@ -1379,7 +1446,7 @@ class FakeBucket(CloudFormationModel):
 
     @property
     def arn(self) -> str:
-        return f"arn:aws:s3:::{self.name}"
+        return f"arn:{self.partition}:s3:::{self.name}"
 
     @property
     def domain_name(self) -> str:
@@ -1419,17 +1486,20 @@ class FakeBucket(CloudFormationModel):
         region_name: str,
         **kwargs: Any,
     ) -> "FakeBucket":
-        bucket = s3_backends[account_id]["global"].create_bucket(
-            resource_name, region_name
-        )
+        partition = get_partition(region_name)
+        backend = s3_backends[account_id][partition]
+        bucket = backend.create_bucket(resource_name, region_name)
 
         properties = cloudformation_json.get("Properties", {})
 
         if "BucketEncryption" in properties:
             bucket_encryption = cfn_to_api_encryption(properties["BucketEncryption"])
-            s3_backends[account_id]["global"].put_bucket_encryption(
+            backend.put_bucket_encryption(
                 bucket_name=resource_name, encryption=bucket_encryption
             )
+        if "Tags" in properties:
+            tags = TaggingService().flatten_tag_list(properties["Tags"])
+            backend.put_bucket_tagging(bucket_name=resource_name, tags=tags)  # type: ignore
 
         return bucket
 
@@ -1443,8 +1513,15 @@ class FakeBucket(CloudFormationModel):
         region_name: str,
     ) -> "FakeBucket":
         properties = cloudformation_json["Properties"]
+        backend = s3_backends[account_id][get_partition(region_name)]
+        # BucketName is not mandatory - a random name will be autogenerated if not supplied
+        # Only if we specify the BucketName *and* it has changed should we replace the bucket
+        requires_replacement = (
+            "BucketName" in properties
+            and properties["BucketName"] != original_resource.name
+        )
 
-        if is_replacement_update(properties):
+        if requires_replacement:
             resource_name_property = cls.cloudformation_name_type()
             if resource_name_property not in properties:
                 properties[resource_name_property] = new_resource_name
@@ -1465,8 +1542,14 @@ class FakeBucket(CloudFormationModel):
                 bucket_encryption = cfn_to_api_encryption(
                     properties["BucketEncryption"]
                 )
-                s3_backends[account_id]["global"].put_bucket_encryption(
+                backend.put_bucket_encryption(
                     bucket_name=original_resource.name, encryption=bucket_encryption
+                )
+            if "Tags" in properties:
+                tags = TaggingService().flatten_tag_list(properties["Tags"])
+                backend.put_bucket_tagging(
+                    bucket_name=properties["BucketName"],
+                    tags=tags,  # type: ignore
                 )
             return original_resource
 
@@ -1478,7 +1561,7 @@ class FakeBucket(CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> None:
-        s3_backends[account_id]["global"].delete_bucket(resource_name)
+        s3_backends[account_id][get_partition(region_name)].delete_bucket(resource_name)
 
     def to_config_dict(self) -> Dict[str, Any]:
         """Return the AWS Config JSON format of this S3 bucket.
@@ -1486,6 +1569,7 @@ class FakeBucket(CloudFormationModel):
         Note: The following features are not implemented and will need to be if you care about them:
         - Bucket Accelerate Configuration
         """
+        backend = s3_backends[self.account_id][get_partition(self.region_name)]
         config_dict: Dict[str, Any] = {
             "version": "1.3",
             "configurationItemCaptureTime": str(self.creation_date),
@@ -1501,9 +1585,7 @@ class FakeBucket(CloudFormationModel):
             "resourceCreationTime": str(self.creation_date),
             "relatedEvents": [],
             "relationships": [],
-            "tags": s3_backends[self.account_id][
-                "global"
-            ].tagger.get_tag_dict_for_resource(self.arn),
+            "tags": backend.tagger.get_tag_dict_for_resource(self.arn),
             "configuration": {
                 "name": self.name,
                 "owner": {"id": OWNER},
@@ -1550,9 +1632,9 @@ class FakeBucket(CloudFormationModel):
         )
 
         if self.notification_configuration:
-            s_config[
-                "BucketNotificationConfiguration"
-            ] = self.notification_configuration.to_config_dict()
+            s_config["BucketNotificationConfiguration"] = (
+                self.notification_configuration.to_config_dict()
+            )
         else:
             s_config["BucketNotificationConfiguration"] = {"configurations": {}}
 
@@ -1575,6 +1657,27 @@ class FakeBucket(CloudFormationModel):
         now += datetime.timedelta(self.default_lock_days)  # type: ignore
         now += datetime.timedelta(self.default_lock_years * 365)  # type: ignore
         return now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+class FakeTableStorageBucket(FakeBucket): ...
+
+
+class FakeBucketInventoryConfiguration(BaseModel):
+    def __init__(
+        self,
+        id: str,
+        destination: Dict[str, Any],
+        is_enabled: bool,
+        schedule: Dict[str, Any],
+        filters: Optional[Dict[str, Any]] = None,
+        optional_fields: Optional[List[str]] = None,
+    ):
+        self.id = id
+        self.destination = destination
+        self.is_enabled = is_enabled
+        self.schedule = schedule
+        self.filters = filters
+        self.optional_fields = optional_fields
 
 
 class S3Backend(BaseBackend, CloudWatchMetricProvider):
@@ -1603,6 +1706,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     _-_-_-_
 
+    When listing objects, the default max-keys value is 1000, just as with AWS. Use the following environment variable to configure this this:
+
+    .. sourcecode:: bash
+
+        MOTO_S3_DEFAULT_MAX_KEYS=256
+
+    _-_-_-_
+
     CrossAccount access is allowed by default. If you want Moto to throw an AccessDenied-error when accessing a bucket in another account, use this environment variable:
 
     .. sourcecode:: bash
@@ -1615,20 +1726,38 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     If this dependency is not installed, Moto will fall-back to the CRC32-computation when computing checksums.
 
+    _-_-_-_
+
+    S3 has two endpoint styles, where the bucket name can be either part of the domain (bucket.s3.amazonaws.com) or part of the path (s3.amazonaws.com/bucket).
+
+    If you're running MotoServer on a custom host, for instance on `http://moto.service:5000`, a CreateBucket-request then becomes `http://moto.service:5000/bucketname`.
+
+    However, because Moto tries to get the bucket-name from the domain first, it will think that 'moto' is the bucket name.
+
+    You can disable this behaviour with an environment variable, so that Moto will always look at the path instead:
+
+    .. sourcecode:: bash
+
+        S3_IGNORE_SUBDOMAIN_BUCKETNAME=true
+
     """
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.buckets: Dict[str, FakeBucket] = {}
+        self.table_buckets: Dict[str, FakeTableStorageBucket] = {}
         self.tagger = TaggingService()
         self._pagination_tokens: Dict[str, str] = {}
+        self.inventory_configs: Dict[str, FakeBucketInventoryConfiguration] = {}
 
     def reset(self) -> None:
         # For every key and multipart, Moto opens a TemporaryFile to write the value of those keys
         # Ensure that these TemporaryFile-objects are closed, and leave no filehandles open
         #
         # First, check all known buckets/keys
-        for bucket in self.buckets.values():
+        for bucket in itertools.chain(
+            self.buckets.values(), self.table_buckets.values()
+        ):
             for key in bucket.keys.values():  # type: ignore
                 if isinstance(key, FakeKey):
                     key.dispose()
@@ -1638,9 +1767,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         #
         # Second, go through the list of instances
         # It may contain FakeKeys created earlier, which are no longer tracked
-        for mp in FakeMultipart.instances:  # type: ignore
+        for mp in FakeMultipart.instances_tracked:  # type: ignore
             mp.dispose()
-        for key in FakeKey.instances:  # type: ignore
+        for key in FakeKey.instances_tracked:  # type: ignore
             key.dispose()
         super().reset()
 
@@ -1719,9 +1848,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
 
     @classmethod
-    def get_cloudwatch_metrics(cls, account_id: str) -> List[MetricDatum]:
+    def get_cloudwatch_metrics(cls, account_id: str, region: str) -> List[MetricDatum]:
         metrics = []
-        for name, bucket in s3_backends[account_id]["global"].buckets.items():
+        for name, bucket in s3_backends[account_id][
+            get_partition(region)
+        ].buckets.items():
             metrics.append(
                 MetricDatum(
                     namespace="AWS/S3",
@@ -1731,7 +1862,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "StandardStorage"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
+                    timestamp=utcnow().replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Bytes",
@@ -1746,7 +1877,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                         {"Name": "StorageType", "Value": "AllStorageTypes"},
                         {"Name": "BucketName", "Value": name},
                     ],
-                    timestamp=datetime.datetime.now(tz=datetime.timezone.utc).replace(
+                    timestamp=utcnow().replace(
                         hour=0, minute=0, second=0, microsecond=0
                     ),
                     unit="Count",
@@ -1777,10 +1908,19 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             source="aws.s3",
             event_name="CreateBucket",
             region=region_name,
-            resources=[f"arn:aws:s3:::{bucket_name}"],
+            resources=[f"arn:{new_bucket.partition}:s3:::{bucket_name}"],
             detail=notification_detail,
         )
 
+        return new_bucket
+
+    def create_table_storage_bucket(self, region_name: str) -> FakeTableStorageBucket:
+        # every s3 table is assigned a unique s3 bucket with a random name
+        bucket_name = f"{str(random.uuid4())}--table-s3"
+        new_bucket = FakeTableStorageBucket(
+            name=bucket_name, account_id=self.account_id, region_name=region_name
+        )
+        self.table_buckets[bucket_name] = new_bucket
         return new_bucket
 
     def list_buckets(self) -> List[FakeBucket]:
@@ -1790,11 +1930,14 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if bucket_name in self.buckets:
             return self.buckets[bucket_name]
 
+        if bucket_name in self.table_buckets:
+            return self.table_buckets[bucket_name]
+
         if bucket_name in s3_backends.bucket_accounts:
             if not s3_allow_crossdomain_access():
                 raise AccessDeniedByLock
-            account_id = s3_backends.bucket_accounts[bucket_name]
-            return s3_backends[account_id]["global"].get_bucket(bucket_name)
+            (partition, account_id) = s3_backends.bucket_accounts[bucket_name]
+            return s3_backends[account_id][partition].get_bucket(bucket_name)
 
         raise MissingBucket(bucket=bucket_name)
 
@@ -1809,6 +1952,23 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         else:
             s3_backends.bucket_accounts.pop(bucket_name, None)
             return self.buckets.pop(bucket_name)
+
+    def delete_table_storage_bucket(self, bucket_name: str) -> Optional[FakeBucket]:
+        bucket = self.get_bucket(bucket_name)
+        assert isinstance(bucket, FakeTableStorageBucket)
+        # table storage buckets can be deleted while not empty
+        if bucket.keys:
+            for key in bucket.keys.values():  # type: ignore
+                if isinstance(key, FakeKey):
+                    key.dispose()
+            for part in bucket.multiparts.values():
+                part.dispose()
+        s3_backends.bucket_accounts.pop(bucket_name, None)
+        return self.table_buckets.pop(bucket_name)
+
+    def get_bucket_accelerate_configuration(self, bucket_name: str) -> Optional[str]:
+        bucket = self.get_bucket(bucket_name)
+        return bucket.accelerate_configuration
 
     def put_bucket_versioning(self, bucket_name: str, status: str) -> None:
         self.get_bucket(bucket_name).versioning_status = status
@@ -1830,6 +1990,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Tuple[
         List[FakeKey], List[str], List[FakeDeleteMarker], Optional[str], Optional[str]
     ]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
         bucket = self.get_bucket(bucket_name)
 
         common_prefixes: Set[str] = set()
@@ -1908,7 +2073,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                 and len(requested_versions) + len(delete_markers) + len(common_prefixes)
                 >= max_keys
             ):
-
                 next_key_marker = name
                 if is_common_prefix:
                     # No NextToken when returning common prefixes
@@ -2002,6 +2166,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_lifecycle(
         self, bucket_name: str, rules: List[Dict[str, Any]]
     ) -> None:
+        # Equivalent operation, just a different name. Holdover from the boto2->boto3 switch
+        return self.put_bucket_lifecycle_configuration(bucket_name, rules)
+
+    def put_bucket_lifecycle_configuration(
+        self, bucket_name: str, rules: List[Dict[str, Any]]
+    ) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
 
@@ -2009,15 +2179,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket = self.get_bucket(bucket_name)
         bucket.delete_lifecycle()
 
-    def set_bucket_website_configuration(
-        self, bucket_name: str, website_configuration: Dict[str, Any]
+    def put_bucket_website(
+        self, bucket_name: str, website_configuration: bytes
     ) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.website_configuration = website_configuration
 
-    def get_bucket_website_configuration(
-        self, bucket_name: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_bucket_website_configuration(self, bucket_name: str) -> Optional[bytes]:
         bucket = self.get_bucket(bucket_name)
         return bucket.website_configuration
 
@@ -2077,6 +2245,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             bucket_name=bucket_name,
             value=value,
             account_id=self.account_id,
+            region_name=self.region_name,
             storage=storage,
             etag=etag,
             is_versioned=bucket.is_versioned,
@@ -2123,11 +2292,22 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         bucket_name: str,
         key_name: str,
         acl: Optional[FakeAcl],
+        disable_notification: Optional[bool] = False,
     ) -> None:
         key = self.get_object(bucket_name, key_name)
         # TODO: Support the XML-based ACL format
         if key is not None:
             key.set_acl(acl)
+            bucket = self.get_bucket(key.bucket_name)  # type: ignore
+
+            notify_event_name = (
+                notifications.S3NotificationEvent.OBJECT_ACL_UPDATE_EVENT
+            )
+
+            if not disable_notification:
+                notifications.send_event(
+                    self.account_id, notify_event_name, bucket, key
+                )
         else:
             raise MissingKey(key=key_name)
 
@@ -2253,6 +2433,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> FakeKey:
         if key is None:
             raise MissingKey(key=key_name)
+
+        # get bucket for eventbridge notification
+        # we can assume that the key has its bucket
+        bucket = self.get_bucket(key.bucket_name)  # type: ignore
+
         tags_input = self.tagger.convert_dict_to_tags_input(tags)
         # Validation custom to S3
         if tags:
@@ -2266,6 +2451,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             raise InvalidTagError(errmsg)
         self.tagger.delete_all_tags_for_resource(key.arn)
         self.tagger.tag_resource(key.arn, tags_input)
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_TAGGING_PUT_EVENT,
+            bucket,
+            key,
+        )
         return key
 
     def get_bucket_tagging(self, bucket_name: str) -> Dict[str, List[Dict[str, str]]]:
@@ -2288,6 +2479,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         years: Optional[int] = None,
     ) -> None:
         bucket = self.get_bucket(bucket_name)
+        if not bucket.is_versioned:
+            raise InvalidBucketState(
+                "Versioning must be 'Enabled' on the bucket to apply a Object Lock configuration"
+            )
 
         if bucket.keys.item_size() > 0:
             raise BucketNeedsToBeNew
@@ -2307,6 +2502,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_cors(
         self, bucket_name: str, cors_rules: List[Dict[str, Any]]
     ) -> None:
+        """
+        Note that the moto server configures global wildcard CORS settings by default. To avoid this from overriding empty bucket CORS, disable global CORS with an environment variable:
+
+        MOTO_DISABLE_GLOBAL_CORS=true
+        """
         bucket = self.get_bucket(bucket_name)
         bucket.set_cors(cors_rules)
 
@@ -2336,8 +2536,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
          - EventBridge
 
         For the following events:
+         - 's3:ObjectCreated:CompleteMultipartUpload'
          - 's3:ObjectCreated:Copy'
+         - 's3:ObjectCreated:Post'
          - 's3:ObjectCreated:Put'
+         - 's3:ObjectDeleted'
+         - 's3:ObjectRestore:Post'
         """
         bucket = self.get_bucket(bucket_name)
         bucket.set_notification_configuration(notification_config)
@@ -2410,6 +2614,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             key_name,
             metadata,
             account_id=self.account_id,
+            region_name=self.region_name,
             storage=storage_type,
             tags=tags,
             acl=acl,
@@ -2454,6 +2659,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             bucket_name=bucket_name,
             key_name=key.name,
             acl=multipart.acl,
+            disable_notification=True,  # avoid sending ObjectAcl:Put events here
         )
 
         notifications.send_event(
@@ -2464,7 +2670,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
         return key
 
-    def get_all_multiparts(self, bucket_name: str) -> Dict[str, FakeMultipart]:
+    def list_multipart_uploads(self, bucket_name: str) -> Dict[str, FakeMultipart]:
+        """
+        The delimiter and max-uploads parameters have not yet been implemented.
+        """
         bucket = self.get_bucket(bucket_name)
         return bucket.multiparts
 
@@ -2504,6 +2713,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         marker: Optional[str],
         max_keys: Optional[int],
     ) -> Tuple[Set[FakeKey], Set[str], bool, Optional[str]]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         key_results = set()
         folder_results = set()
         if prefix:
@@ -2535,7 +2751,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         ]
 
         if marker:
-            limit = self._pagination_tokens.get(marker)
+            limit = self._pagination_tokens.get(marker) or marker
             key_results = self._get_results_from_token(key_results, limit)
 
         if max_keys is not None:
@@ -2557,6 +2773,13 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         start_after: Optional[str],
         max_keys: int,
     ) -> Tuple[Set[Union[FakeKey, str]], bool, Optional[str]]:
+        """
+        The default value for the MaxKeys-argument is 100. This can be configured with an environment variable:
+
+        MOTO_S3_DEFAULT_MAX_KEYS=5
+        """
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
         result_keys, result_folders, _, _ = self.list_objects(
             bucket, prefix, delimiter, marker=None, max_keys=None
         )
@@ -2620,7 +2843,16 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         self, bucket_name: str, key_name: str, version_id: Optional[str] = None
     ) -> None:
         key = self.get_object(bucket_name, key_name, version_id=version_id)
+        bucket = self.get_bucket(bucket_name)
+
         self.tagger.delete_all_tags_for_resource(key.arn)  # type: ignore
+
+        notifications.send_event(
+            self.account_id,
+            notifications.S3NotificationEvent.OBJECT_TAGGING_DELETE_EVENT,
+            bucket,
+            key,
+        )
 
     def delete_object(
         self,
@@ -2628,8 +2860,10 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         version_id: Optional[str] = None,
         bypass: bool = False,
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    ) -> Tuple[bool, Dict[str, Any]]:
         bucket = self.get_bucket(bucket_name)
+        if isinstance(bucket, FakeTableStorageBucket):
+            raise MethodNotAllowed()
 
         response_meta = {}
         delete_key = bucket.keys.get(key_name)
@@ -2656,10 +2890,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
                     for key in bucket.keys.getlist(key_name):
                         if str(key.version_id) == str(version_id):
-                            if (
-                                hasattr(key, "is_locked")
-                                and key.is_locked
-                                and not bypass
+                            if isinstance(key, FakeKey) and key.is_locked(
+                                governance_bypass=bypass
                             ):
                                 raise AccessDeniedByLock
 
@@ -2694,19 +2926,39 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
             return True, response_meta
         except KeyError:
-            return False, None
+            return False, response_meta
 
     def delete_objects(
-        self, bucket_name: str, objects: List[Dict[str, Any]]
-    ) -> List[Tuple[str, Optional[str]]]:
-        deleted_objects = []
+        self,
+        bucket_name: str,
+        objects: List[Dict[str, Any]],
+        bypass_retention: bool = False,
+    ) -> Tuple[List[Tuple[str, Optional[str], Optional[str]]], List[str]]:
+        deleted = []
+        errors = []
         for object_ in objects:
             key_name = object_["Key"]
             version_id = object_.get("VersionId", None)
 
-            self.delete_object(bucket_name, key_name, version_id=version_id)
-            deleted_objects.append((key_name, version_id))
-        return deleted_objects
+            try:
+                success, headers = self.delete_object(
+                    bucket_name,
+                    key_name,
+                    version_id=version_id,
+                    bypass=bypass_retention,
+                )
+                deleted.append(
+                    (
+                        key_name,
+                        version_id,
+                        headers.get("version-id")
+                        if headers and not version_id
+                        else None,
+                    )
+                )
+            except AccessDeniedByLock:
+                errors.append(key_name)
+        return deleted, errors
 
     def copy_object(
         self,
@@ -2723,6 +2975,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         lock_mode: Optional[str] = None,
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
+        provided_version_id: Optional[str] = None,
     ) -> None:
         bucket = self.get_bucket(dest_bucket_name)
         if src_key.name == dest_key_name and src_key.bucket_name == dest_bucket_name:
@@ -2738,11 +2991,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     encryption,
                     mdirective == "REPLACE",
                     website_redirect_location,
-                    bucket.encryption,  # S3 will allow copy in place if the bucket has encryption configured
-                    src_key._version_id and bucket.is_versioned,
+                    bucket.encryption,
                 )
             ):
-                raise CopyObjectMustChangeSomething
+                if not bucket.is_versioned or not provided_version_id:
+                    raise CopyObjectMustChangeSomething
 
         new_key = self.put_object(
             bucket_name=dest_bucket_name,
@@ -2796,6 +3049,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return bucket.cors
 
     def get_bucket_lifecycle(self, bucket_name: str) -> List[LifecycleRule]:
+        # Equivalent operation, just a different name. Holdover from the boto2->boto3 switch
+        return self.get_bucket_lifecycle_configuration(bucket_name)
+
+    def get_bucket_lifecycle_configuration(
+        self, bucket_name: str
+    ) -> list[LifecycleRule]:
         bucket = self.get_bucket(bucket_name)
         return bucket.rules
 
@@ -2820,7 +3079,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key_name: str,
         select_query: str,
         input_details: Dict[str, Any],
-    ) -> List[bytes]:
+        output_details: Dict[str, Any],
+    ) -> Tuple[List[bytes], int]:
         """
         Highly experimental. Please raise an issue if you find any inconsistencies/bugs.
 
@@ -2832,24 +3092,109 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         """
         self.get_bucket(bucket_name)
         key = self.get_object(bucket_name, key_name)
-        query_input = key.value.decode("utf-8")  # type: ignore
+        if key is None:
+            raise MissingKey(key=key_name)
+        if input_details.get("CompressionType") == "GZIP":
+            with gzip.open(BytesIO(key.value), "rt") as f:
+                query_input = f.read()
+        elif input_details.get("CompressionType") == "BZIP2":
+            query_input = bz2.decompress(key.value).decode("utf-8")
+        else:
+            query_input = key.value.decode("utf-8")
         if "CSV" in input_details:
             # input is in CSV - we need to convert it to JSON before parsing
-            from py_partiql_parser._internal.csv_converter import (  # noqa # pylint: disable=unused-import
-                csv_to_json,
-            )
+            from py_partiql_parser import csv_to_json
 
-            use_headers = input_details["CSV"].get("FileHeaderInfo", "") == "USE"
+            use_headers = (input_details.get("CSV") or {}).get(
+                "FileHeaderInfo", ""
+            ) == "USE"
             query_input = csv_to_json(query_input, use_headers)
-        query_result = parse_query(query_input, select_query)
-        from py_partiql_parser import SelectEncoder
+        query_result, bytes_scanned = parse_query(query_input, select_query)  # type: ignore
 
-        return [
-            json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder).encode(
-                "utf-8"
-            )
-            for x in query_result
-        ]
+        record_delimiter = "\n"
+        if "JSON" in output_details:
+            record_delimiter = (output_details.get("JSON") or {}).get(
+                "RecordDelimiter"
+            ) or "\n"
+        elif "CSV" in output_details:
+            record_delimiter = (output_details.get("CSV") or {}).get(
+                "RecordDelimiter"
+            ) or "\n"
+
+        if "CSV" in output_details:
+            field_delim = (output_details.get("CSV") or {}).get("FieldDelimiter") or ","
+
+            from py_partiql_parser import json_to_csv
+
+            query_result = json_to_csv(query_result, field_delim, record_delimiter)
+            return [query_result.encode("utf-8")], bytes_scanned  # type: ignore
+
+        else:
+            from py_partiql_parser import SelectEncoder
+
+            return [
+                (
+                    json.dumps(x, indent=None, separators=(",", ":"), cls=SelectEncoder)
+                    + record_delimiter
+                ).encode("utf-8")
+                for x in query_result
+            ], bytes_scanned
+
+    def restore_object(
+        self, bucket_name: str, key_name: str, days: Optional[str], type_: Optional[str]
+    ) -> bool:
+        key = self.get_object(bucket_name, key_name)
+        if not key:
+            raise MissingKey
+
+        if key.storage_class not in ARCHIVE_STORAGE_CLASSES:
+            raise InvalidObjectState(storage_class=key.storage_class)
+        had_expiry_date = key.expiry_date is not None
+        if days:
+            key.restore(int(days))
+        return had_expiry_date
+
+    def upload_file(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
+
+    def upload_fileobj(self) -> None:
+        # Listed for the implementation coverage
+        # Implementation part of responses.py
+        pass
+
+    def put_bucket_inventory_configuration(
+        self, bucket_name: str, inventory_configuration: Dict[str, Any]
+    ) -> None:
+        bucket = self.get_bucket(bucket_name)
+        inv_config = FakeBucketInventoryConfiguration(
+            id=inventory_configuration["Id"],
+            destination=inventory_configuration["Destination"],
+            is_enabled=inventory_configuration["IsEnabled"],
+            schedule=inventory_configuration["Schedule"],
+            filters=inventory_configuration.get("Filter"),
+            optional_fields=inventory_configuration.get("OptionalFields"),
+        )
+
+        bucket.inventory_configs[inv_config.id] = inv_config
+        return
+
+    def get_bucket_inventory_configuration(
+        self, bucket_name: str, id: str, expected_bucket_owner: Optional[str] = None
+    ) -> FakeBucketInventoryConfiguration:
+        bucket = self.get_bucket(bucket_name)
+
+        if id in bucket.inventory_configs:
+            return bucket.inventory_configs[id]
+
+        raise MissingInventoryConfig()
+
+    def list_bucket_inventory_configurations(
+        self, bucket_name: str
+    ) -> List[FakeBucketInventoryConfiguration]:
+        bucket = self.get_bucket(bucket_name)
+        return list(bucket.inventory_configs.values())
 
 
 class S3BackendDict(BackendDict[S3Backend]):
@@ -2869,11 +3214,14 @@ class S3BackendDict(BackendDict[S3Backend]):
     ):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 
-        # Maps bucket names to account IDs. This is used to locate the exact S3Backend
+        # Maps bucket names to (partition, account IDs). This is used to locate the exact S3Backend
         # holding the bucket and to maintain the common bucket namespace.
-        self.bucket_accounts: Dict[str, str] = {}
+        self.bucket_accounts: Dict[str, Tuple[str, str]] = {}
 
 
 s3_backends = S3BackendDict(
-    S3Backend, service_name="s3", use_boto3_regions=False, additional_regions=["global"]
+    S3Backend,
+    service_name="s3",
+    use_boto3_regions=False,
+    additional_regions=PARTITION_NAMES,
 )

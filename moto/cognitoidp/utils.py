@@ -44,6 +44,12 @@ PAGINATION_MODEL = {
         "limit_default": 60,
         "unique_attribute": "group_name",
     },
+    "admin_list_groups_for_user": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 60,
+        "unique_attribute": "group_name",
+    },
     "list_users_in_group": {
         "input_token": "next_token",
         "limit_key": "limit",

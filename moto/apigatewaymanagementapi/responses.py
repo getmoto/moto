@@ -1,8 +1,9 @@
 """Handles incoming apigatewaymanagementapi requests, invokes methods, returns responses."""
+
 import json
 from typing import Any
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
 
 from .models import ApiGatewayManagementApiBackend, apigatewaymanagementapi_backends
 
@@ -45,3 +46,16 @@ class ApiGatewayManagementApiResponse(BaseResponse):
             connection_id=connection_id,
         )
         return "{}"
+
+    @staticmethod
+    def connect_to_apigateway(  # type: ignore[misc]
+        request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        self = ApiGatewayManagementApiResponse()
+        self.setup_class(request, full_url, headers, use_raw_body=True)
+        if request.method == "GET":
+            return 200, {}, self.get_connection()
+        elif request.method == "DELETE":
+            return 200, {}, self.delete_connection()
+        else:
+            return 200, {}, self.post_to_connection()

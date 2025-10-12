@@ -1,9 +1,11 @@
 import json
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
+from .exceptions import EntityNotFoundException, InvalidInputException
 from .models import (
     FakeCrawler,
     FakeJob,
@@ -12,6 +14,14 @@ from .models import (
     GlueBackend,
     glue_backends,
 )
+from .utils import Action, Predicate, validate_crawl_filters
+
+
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, o: Any) -> Any:
+        if isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(o)
 
 
 class GlueResponse(BaseResponse):
@@ -31,7 +41,11 @@ class GlueResponse(BaseResponse):
         database_name = database_input.get("Name")  # type: ignore
         if "CatalogId" in self.parameters:
             database_input["CatalogId"] = self.parameters.get("CatalogId")  # type: ignore
-        self.glue_backend.create_database(database_name, database_input, self.parameters.get("Tags"))  # type: ignore[arg-type]
+        self.glue_backend.create_database(
+            database_name,
+            database_input,  # type: ignore[arg-type]
+            self.parameters.get("Tags"),
+        )
         return ""
 
     def get_database(self) -> str:
@@ -134,7 +148,9 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         expression = self.parameters.get("Expression")
         partitions = self.glue_backend.get_partitions(
-            database_name, table_name, expression  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            expression,  # type: ignore[arg-type]
         )
 
         return json.dumps({"Partitions": [p.as_dict() for p in partitions]})
@@ -154,7 +170,9 @@ class GlueResponse(BaseResponse):
         partitions_to_get = self.parameters.get("PartitionsToGet")
 
         partitions = self.glue_backend.batch_get_partition(
-            database_name, table_name, partitions_to_get  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            partitions_to_get,  # type: ignore[arg-type]
         )
 
         return json.dumps({"Partitions": partitions})
@@ -172,7 +190,9 @@ class GlueResponse(BaseResponse):
         table_name = self.parameters.get("TableName")
         partition_input = self.parameters.get("PartitionInputList")
         errors_output = self.glue_backend.batch_create_partition(
-            database_name, table_name, partition_input  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            partition_input,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -188,7 +208,10 @@ class GlueResponse(BaseResponse):
         part_to_update = self.parameters.get("PartitionValueList")
 
         self.glue_backend.update_partition(
-            database_name, table_name, part_input, part_to_update  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            part_input,  # type: ignore[arg-type]
+            part_to_update,  # type: ignore[arg-type]
         )
         return ""
 
@@ -198,7 +221,9 @@ class GlueResponse(BaseResponse):
         entries = self.parameters.get("Entries")
 
         errors_output = self.glue_backend.batch_update_partition(
-            database_name, table_name, entries  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            entries,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -221,7 +246,9 @@ class GlueResponse(BaseResponse):
         parts = self.parameters.get("PartitionsToDelete")
 
         errors_output = self.glue_backend.batch_delete_partition(
-            database_name, table_name, parts  # type: ignore[arg-type]
+            database_name,  # type: ignore[arg-type]
+            table_name,  # type: ignore[arg-type]
+            parts,  # type: ignore[arg-type]
         )
 
         out = {}
@@ -301,6 +328,12 @@ class GlueResponse(BaseResponse):
         self.glue_backend.delete_crawler(name)  # type: ignore[arg-type]
         return ""
 
+    def list_crawls(self) -> str:
+        crawler_name = self.parameters.get("CrawlerName")
+        filters = validate_crawl_filters(self.parameters.get("Filters", []))
+        crawls = self.glue_backend.list_crawls(crawler_name, filters)[0]
+        return json.dumps({"Crawls": [crawl.as_dict() for crawl in crawls]})
+
     def create_job(self) -> str:
         name = self._get_param("Name")
         description = self._get_param("Description")
@@ -369,15 +402,57 @@ class GlueResponse(BaseResponse):
         )
 
     def start_job_run(self) -> str:
-        name = self.parameters.get("JobName")
-        job_run_id = self.glue_backend.start_job_run(name)  # type: ignore[arg-type]
-        return json.dumps(dict(JobRunId=job_run_id))
+        allocated_capacity = self._get_int_param("AllocatedCapacity")
+        notification_property = self._get_dict_param("NotificationProperty")
+        number_of_workers = self._get_int_param("NumberOfWorkers")
+        security_configuration = self._get_param("SecurityConfiguration")
+        timeout = self._get_int_param("Timeout")
+        worker_type = self._get_param("WorkerType")
+        name = self._get_param("JobName")
+        arguments = self._get_param("Arguments")
+        max_capacity = self._get_float_param("MaxCapacity")
+        previous_job_run_id = self._get_param("JobRunId")
+
+        if allocated_capacity and max_capacity:
+            raise InvalidInputException(
+                "StartJobRun", "Please set only Allocated Capacity or Max Capacity"
+            )
+
+        job_run_id = self.glue_backend.start_job_run(
+            name,
+            arguments,
+            allocated_capacity,
+            max_capacity,
+            timeout,
+            worker_type,
+            security_configuration,
+            number_of_workers,
+            notification_property,
+            previous_job_run_id,
+        )
+        return json.dumps({"JobRunId": job_run_id})
 
     def get_job_run(self) -> str:
         name = self.parameters.get("JobName")
         run_id = self.parameters.get("RunId")
         job_run = self.glue_backend.get_job_run(name, run_id)  # type: ignore[arg-type]
         return json.dumps({"JobRun": job_run.as_dict()})
+
+    def get_job_runs(self) -> str:
+        job_name = self._get_param("JobName")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        job_runs, next_token = self.glue_backend.get_job_runs(
+            job_name,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(
+            dict(
+                JobRuns=[job_run.as_dict() for job_run in job_runs],
+                NextToken=next_token,
+            )
+        )
 
     def list_jobs(self) -> str:
         next_token = self._get_param("NextToken")
@@ -633,12 +708,26 @@ class GlueResponse(BaseResponse):
         workflow_name = self._get_param("WorkflowName")
         trigger_type = self._get_param("Type")
         schedule = self._get_param("Schedule")
-        predicate = self._get_param("Predicate")
-        actions = self._get_param("Actions")
+
+        predicate_input: Optional[Dict[str, Union[str, List[Dict[str, str]]]]] = (
+            self._get_param("Predicate")
+        )
+        if predicate_input:
+            predicate = Predicate(predicate_input)
+        else:
+            predicate = None
+
+        actions = [Action(inputs) for inputs in self._get_param("Actions", [])]
         description = self._get_param("Description")
         start_on_creation = self._get_param("StartOnCreation")
         tags = self._get_param("Tags")
         event_batching_condition = self._get_param("EventBatchingCondition")
+
+        if trigger_type == "CONDITIONAL" and not predicate:
+            raise InvalidInputException(
+                "CreateTrigger", "Predicate cannot be null or empty"
+            )
+
         self.glue_backend.create_trigger(
             name=name,
             workflow_name=workflow_name,
@@ -719,3 +808,299 @@ class GlueResponse(BaseResponse):
         name = self.parameters.get("Name")
         self.glue_backend.delete_trigger(name)  # type: ignore[arg-type]
         return json.dumps({"Name": name})
+
+    def get_dev_endpoints(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+
+        endpoints, next_token = self.glue_backend.get_dev_endpoints(
+            next_token=next_token, max_results=max_results
+        )
+
+        return json.dumps(
+            dict(
+                DevEndpoints=[endpoint.as_dict() for endpoint in endpoints],
+                NextToken=next_token,
+            )
+        )
+
+    def create_dev_endpoint(self) -> str:
+        endpoint_name = self._get_param("EndpointName")
+        role_arn = self._get_param("RoleArn")
+        security_group_ids = self._get_param("SecurityGroupIds")
+        subnet_id = self._get_param("SubnetId")
+        public_key = self._get_param("PublicKey")
+        public_keys = self._get_param("PublicKeys")
+        number_of_nodes = self._get_int_param("NumberOfNodes")
+        worker_type = self._get_param("WorkerType", "Standard")
+        glue_version = self._get_param("GlueVersion", "1.0")
+        number_of_workers = self._get_int_param("NumberOfWorkers")
+        extra_python_libs_s3_path = self._get_param("ExtraPythonLibsS3Path")
+        extra_jars_s3_path = self._get_param("ExtraJarsS3Path")
+        security_configuration = self._get_param("SecurityConfiguration")
+        tags = self._get_param("Tags")
+        arguments = self._get_param("Arguments")
+
+        dev_endpoint = self.glue_backend.create_dev_endpoint(
+            endpoint_name=endpoint_name,
+            role_arn=role_arn,
+            security_group_ids=security_group_ids,
+            subnet_id=subnet_id,
+            public_key=public_key,
+            public_keys=public_keys,
+            number_of_nodes=number_of_nodes,
+            worker_type=worker_type,
+            glue_version=glue_version,
+            number_of_workers=number_of_workers,
+            extra_python_libs_s3_path=extra_python_libs_s3_path,
+            extra_jars_s3_path=extra_jars_s3_path,
+            security_configuration=security_configuration,
+            tags=tags,
+            arguments=arguments,
+        )
+
+        return json.dumps(dev_endpoint.as_dict())
+
+    def get_dev_endpoint(self) -> str:
+        endpoint_name = self._get_param("EndpointName")
+        dev_endpoint = self.glue_backend.get_dev_endpoint(endpoint_name)
+        return json.dumps({"DevEndpoint": dev_endpoint.as_dict()})
+
+    def delete_dev_endpoint(self) -> str:
+        endpoint_name = self._get_param("EndpointName")
+        self.glue_backend.delete_dev_endpoint(endpoint_name)
+        return json.dumps({})
+
+    def create_connection(self) -> str:
+        catalog_id = self._get_param("CatalogId")
+        connection_input = self._get_param("ConnectionInput")
+        tags = self._get_param("Tags")
+        create_connection_status = self.glue_backend.create_connection(
+            catalog_id=catalog_id,
+            connection_input=connection_input,
+            tags=tags,
+        )
+        return json.dumps(dict(CreateConnectionStatus=create_connection_status))
+
+    def get_connection(self) -> str:
+        catalog_id = self._get_param("CatalogId")
+        name = self._get_param("Name")
+        hide_password = self._get_param("HidePassword")
+        apply_override_for_compute_environment = self._get_param(
+            "ApplyOverrideForComputeEnvironment"
+        )
+        connection = self.glue_backend.get_connection(
+            catalog_id=catalog_id,
+            name=name,
+            hide_password=hide_password,
+            apply_override_for_compute_environment=apply_override_for_compute_environment,
+        )
+        return json.dumps(dict(Connection=connection.as_dict()))
+
+    def get_connections(self) -> str:
+        catalog_id = self._get_param("CatalogId")
+        filter = self._get_param("Filter")
+        hide_password = self._get_param("HidePassword")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_param("MaxResults")
+        connections, next_token = self.glue_backend.get_connections(
+            catalog_id=catalog_id,
+            filter=filter,
+            hide_password=hide_password,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        connection_list = [connection.as_dict() for connection in connections]
+        return json.dumps(dict(ConnectionList=connection_list, NextToken=next_token))
+
+    def put_data_catalog_encryption_settings(self) -> str:
+        params = self.parameters
+        catalog_id = params.get("CatalogId", None)
+        data_catalog_encryption_settings = params.get(
+            "DataCatalogEncryptionSettings", {}
+        )
+
+        self.glue_backend.put_data_catalog_encryption_settings(
+            catalog_id=catalog_id,
+            data_catalog_encryption_settings=data_catalog_encryption_settings,
+        )
+
+        return json.dumps({})
+
+    def get_data_catalog_encryption_settings(self) -> str:
+        params = self.parameters
+        catalog_id = params.get("CatalogId", None)
+
+        response = self.glue_backend.get_data_catalog_encryption_settings(
+            catalog_id=catalog_id,
+        )
+
+        return json.dumps(response)
+
+    def put_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        policy_in_json = params.get("PolicyInJson")
+        resource_arn = params.get("ResourceArn")
+        policy_hash_condition = params.get("PolicyHashCondition")
+        policy_exists_condition = params.get("PolicyExistsCondition")
+        enable_hybrid = params.get("EnableHybrid")
+
+        policy_hash = self.glue_backend.put_resource_policy(
+            policy_in_json=policy_in_json,
+            resource_arn=resource_arn,
+            policy_hash_condition=policy_hash_condition,
+            policy_exists_condition=policy_exists_condition,
+            enable_hybrid=enable_hybrid,
+        )
+
+        return json.dumps(policy_hash, cls=DateTimeEncoder)
+
+    def get_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        response = self.glue_backend.get_resource_policy(
+            resource_arn=resource_arn,
+        )
+
+        return json.dumps(response, cls=DateTimeEncoder)
+
+    def delete_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        policy_hash_condition = params.get("PolicyHashCondition")
+        resource_arn = params.get("ResourceArn")
+        self.glue_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+            policy_hash_condition=policy_hash_condition,
+        )
+
+        return "{}"
+
+    def create_workflow(self) -> str:
+        name = self._get_param("Name")
+        default_run_properties = self._get_param("DefaultRunProperties")
+        description = self._get_param("Description")
+        max_concurrent_runs = self._get_int_param("MaxConcurrentRuns")
+        tags = self._get_param("Tags")
+
+        workflow_name = self.glue_backend.create_workflow(
+            name,
+            default_run_properties,
+            description,
+            max_concurrent_runs,
+            tags,
+        )
+        return json.dumps({"Name": workflow_name})
+
+    def get_workflow(self) -> str:
+        name = self._get_param("Name")
+
+        workflow = self.glue_backend.get_workflow(name)
+        return json.dumps({"Workflow": workflow})
+
+    def list_workflows(self) -> str:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+
+        workflows, next_token = self.glue_backend.list_workflows(
+            next_token=next_token, max_results=max_results
+        )
+        return json.dumps(
+            {
+                "NextToken": next_token,
+                "Workflows": workflows,
+            }
+        )
+
+    def batch_get_workflows(self) -> str:
+        names = self._get_param("Names")
+        workflows = []
+        missing_workflows = []
+
+        for name in names:
+            try:
+                workflow = self.glue_backend.get_workflow(name)
+                workflows.append(workflow)
+            except EntityNotFoundException:
+                missing_workflows.append(name)
+
+        return json.dumps(
+            {"MissingWorkflows": missing_workflows, "Workflows": workflows}
+        )
+
+    def update_workflow(self) -> str:
+        name = self._get_param("Name")
+        default_run_properties = self._get_param("DefaultRunProperties")
+        description = self._get_param("Description")
+        max_concurrent_runs = self._get_int_param("MaxConcurrentRuns")
+
+        name = self.glue_backend.update_workflow(
+            name,
+            default_run_properties,
+            description,
+            max_concurrent_runs,
+        )
+
+        return json.dumps({"Name": name})
+
+    def delete_workflow(self) -> str:
+        name = self._get_param("Name")
+        name = self.glue_backend.delete_workflow(name)
+
+        return json.dumps({"Name": name})
+
+    def get_workflow_run(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+
+        workflow_run = self.glue_backend.get_workflow_run(workflow_name, run_id)
+        return json.dumps({"Run": workflow_run})
+
+    def get_workflow_runs(self) -> str:
+        workflow_name = self._get_param("Name")
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+
+        workflow_runs, next_token = self.glue_backend.get_workflow_runs(
+            workflow_name,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(
+            {
+                "Runs": workflow_runs,
+                "NextToken": next_token,
+            }
+        )
+
+    def start_workflow_run(self) -> str:
+        workflow_name = self._get_param("Name")
+        properties = self._get_param("RunProperties")
+
+        run_id = self.glue_backend.start_workflow_run(workflow_name, properties)
+        return json.dumps({"RunId": run_id})
+
+    def stop_workflow_run(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+
+        self.glue_backend.stop_workflow_run(workflow_name, run_id)
+        return json.dumps({})
+
+    def get_workflow_run_properties(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+
+        run_properties = self.glue_backend.get_workflow_run_properties(
+            workflow_name, run_id
+        )
+        return json.dumps({"RunProperties": run_properties})
+
+    def put_workflow_run_properties(self) -> str:
+        workflow_name = self._get_param("Name")
+        run_id = self._get_param("RunId")
+        run_properties = self._get_param("RunProperties")
+
+        self.glue_backend.put_workflow_run_properties(
+            workflow_name, run_id, run_properties
+        )
+        return json.dumps({})

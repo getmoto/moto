@@ -18,7 +18,7 @@ class MessageAttributesInvalid(RESTError):
 
 
 class QueueDoesNotExist(RESTError):
-    code = 400
+    code = 404
 
     def __init__(self) -> None:
         super().__init__(
@@ -38,10 +38,10 @@ class QueueAlreadyExists(RESTError):
 class EmptyBatchRequest(RESTError):
     code = 400
 
-    def __init__(self) -> None:
+    def __init__(self, action: str = "Send") -> None:
         super().__init__(
-            "EmptyBatchRequest",
-            "There should be at least one SendMessageBatchRequestEntry in the request.",
+            "AWS.SimpleQueueService.EmptyBatchRequest",
+            f"There should be at least one {action}MessageBatchRequestEntry in the request.",
         )
 
 
@@ -60,9 +60,12 @@ class BatchRequestTooLong(RESTError):
     code = 400
 
     def __init__(self, length: int):
+        # local import to avoid circular dependencies
+        from .models import MAXIMUM_MESSAGE_LENGTH
+
         super().__init__(
             "BatchRequestTooLong",
-            "Batch requests cannot be longer than 262144 bytes. "
+            f"Batch requests cannot be longer than {MAXIMUM_MESSAGE_LENGTH} bytes. "
             f"You have sent {length} bytes.",
         )
 
@@ -80,7 +83,7 @@ class TooManyEntriesInBatchRequest(RESTError):
     def __init__(self, number: int):
         super().__init__(
             "TooManyEntriesInBatchRequest",
-            "Maximum number of entries per request are 10. " f"You have sent {number}.",
+            f"Maximum number of entries per request are 10. You have sent {number}.",
         )
 
 

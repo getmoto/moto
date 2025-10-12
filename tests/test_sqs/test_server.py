@@ -18,7 +18,6 @@ def test_sqs_list_identities():
     # See: https://github.com/getmoto/moto/issues/866
 
     for queue_name in ("testqueue", "otherqueue.fifo"):
-
         res = test_client.put(f"/?Action=CreateQueue&QueueName={queue_name}")
 
         res = test_client.put(

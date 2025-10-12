@@ -5,6 +5,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
+from tests.test_dynamodb import dynamodb_aws_verified
 
 
 @mock_aws
@@ -215,34 +216,22 @@ def test_put_long_string_gsi_range_key_exception():
     )
 
 
-@mock_aws
-def test_update_item_with_long_string_hash_key_exception():
-    name = "TestTable"
-    conn = boto3.client("dynamodb", region_name="us-west-2")
-    conn.create_table(
-        TableName=name,
-        KeySchema=[{"AttributeName": "forum_name", "KeyType": "HASH"}],
-        AttributeDefinitions=[{"AttributeName": "forum_name", "AttributeType": "S"}],
-        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
-    )
+@pytest.mark.aws_verified
+@dynamodb_aws_verified()
+def test_update_item_with_long_string_hash_key_exception(table_name=None):
+    conn = boto3.client("dynamodb", region_name="us-east-1")
 
     conn.update_item(
-        TableName=name,
-        Key={
-            "forum_name": {"S": "x" * HASH_KEY_MAX_LENGTH},
-            "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-        },
+        TableName=table_name,
+        Key={"pk": {"S": "x" * HASH_KEY_MAX_LENGTH}},
         UpdateExpression="set body=:New",
         ExpressionAttributeValues={":New": {"S": "hello"}},
     )
 
     with pytest.raises(ClientError) as ex:
         conn.update_item(
-            TableName=name,
-            Key={
-                "forum_name": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)},
-                "ReceivedTime": {"S": "12/9/2011 11:36:03 PM"},
-            },
+            TableName=table_name,
+            Key={"pk": {"S": "x" * (HASH_KEY_MAX_LENGTH + 1)}},
             UpdateExpression="set body=:New",
             ExpressionAttributeValues={":New": {"S": "hello"}},
         )

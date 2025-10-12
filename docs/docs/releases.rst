@@ -24,6 +24,8 @@ Development Releases
 
 Every commit should result in a development release, marked as `Pre-releases in PyPi <https://pypi.org/project/moto/#history>`_ and with the `latest`-tag `in DockerHub <https://hub.docker.com/r/motoserver/moto/tags>`_.
 
+Note that old development releases will be periodically deleted. There is a limit on how much disk space we can use on PyPi, and we've already hit that limit in the past because of the large number of dev releases we do - deleting old development releases is the only way to keep disk usage under control.
+
 
 Versioning scheme
 ----------------------
@@ -56,4 +58,5 @@ For Moto 5.x:
  - All decorators have been replaced with `mock_aws`
  - The `batch_simple` decorator has been replaced with: `@mock_aws(config={"batch": {"use_docker": False}})`
  - The `awslambda_simple` decorator has been replaced with: `@mock_aws(config={"lambda": {"use_docker": False}})`
+ - AWS IAM managed Policies are no longer loaded by default. To load them set `@mock_aws(config={"iam": {"load_aws_managed_policies": True}})` or set environment variable `MOTO_IAM_LOAD_MANAGED_POLICIES=true`
  - When starting the MotoServer, the `service`-argument (i.e.: `motoserver s3`) is no longer supported. A single MotoServer-instance can be used for all AWS-services.

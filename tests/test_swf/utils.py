@@ -24,9 +24,9 @@ SCHEDULE_ACTIVITY_TASK_DECISION = {
     },
 }
 for key, value in ACTIVITY_TASK_TIMEOUTS.items():
-    SCHEDULE_ACTIVITY_TASK_DECISION["scheduleActivityTaskDecisionAttributes"][
-        key
-    ] = value
+    SCHEDULE_ACTIVITY_TASK_DECISION["scheduleActivityTaskDecisionAttributes"][key] = (
+        value
+    )
 
 
 # A test Domain

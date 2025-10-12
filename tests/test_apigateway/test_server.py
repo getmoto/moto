@@ -137,7 +137,7 @@ def test_put_integration_response_without_body():
     test_client = backend.test_client()
 
     res = test_client.put(
-        "/restapis/f_id/resources/r_id/methods/m_id/integration/responses/200/"
+        "/restapis/f_id/resources/r_id/methods/m_id/integration/responses/200"
     )
     assert res.status_code == 400
     assert json.loads(res.data) == {

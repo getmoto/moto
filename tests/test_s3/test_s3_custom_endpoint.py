@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import boto3
 import pytest
+import requests
 
 from moto import mock_aws, settings
 
@@ -96,3 +97,27 @@ def test_put_and_list_objects(url):
             contents = s3_client.list_objects(Bucket=bucket)["Contents"]
             assert len(contents) == 3
             assert "two" in [c["Key"] for c in contents]
+
+
+@pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
+def test_get_presigned_url(url):
+    if not settings.TEST_DECORATOR_MODE:
+        raise SkipTest("Unable to set ENV VAR in ServerMode")
+    with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
+        with mock_aws():
+            bucket = "mybucket"
+            key = "file.txt"
+            contents = b"file contents"
+            conn = boto3.resource(
+                "s3", endpoint_url=url, region_name=DEFAULT_REGION_NAME
+            )
+            conn.create_bucket(Bucket=bucket)
+
+            s3_client = boto3.client("s3", endpoint_url=url)
+            s3_client.put_object(Bucket=bucket, Key=key, Body=contents)
+
+            signed_url = s3_client.generate_presigned_url(
+                "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=86400
+            )
+            response = requests.get(signed_url, stream=False)
+            assert contents == response.content

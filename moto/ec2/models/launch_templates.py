@@ -32,6 +32,9 @@ class LaunchTemplateVersion:
         self.data = data
         self.description = description
         self.create_time = utc_date_and_time()
+        self.instance_tags = convert_tag_spec(data.get("TagSpecification", [])).get(
+            "instance", {}
+        )
 
     @property
     def image_id(self) -> str:
@@ -127,9 +130,8 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "LaunchTemplate":
-
         from ..models import ec2_backends
 
         backend = ec2_backends[account_id][region_name]
@@ -160,7 +162,6 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         account_id: str,
         region_name: str,
     ) -> "LaunchTemplate":
-
         from ..models import ec2_backends
 
         backend = ec2_backends[account_id][region_name]
@@ -176,24 +177,15 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
 
         return launch_template
 
-    @classmethod
-    def delete_from_cloudformation_json(  # type: ignore[misc]
-        cls,
-        resource_name: str,
-        cloudformation_json: Any,
+    def delete(
+        self,
         account_id: str,
         region_name: str,
     ) -> None:
-
         from ..models import ec2_backends
 
         backend = ec2_backends[account_id][region_name]
-
-        properties = cloudformation_json["Properties"]
-
-        name = properties.get("LaunchTemplateName")
-
-        backend.delete_launch_template(name, None)
+        backend.delete_launch_template(self.name, None)
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -234,6 +226,22 @@ class LaunchTemplateBackend:
         self.launch_templates[template.id] = template
         self.launch_template_name_to_ids[template.name] = template.id
         self.launch_template_insert_order.append(template.id)
+        return template
+
+    def modify_launch_template(
+        self,
+        default_version: str,
+        template_name: Optional[str] = None,
+        template_id: Optional[str] = None,
+    ) -> LaunchTemplate:
+        if template_name:
+            template_id = self.launch_template_name_to_ids.get(template_name)
+        if template_id is None:
+            raise MissingParameterError("launch template ID or launch template name")
+        if template_id not in self.launch_templates:
+            raise InvalidLaunchTemplateNameNotFoundError()
+        self.launch_templates[template_id].default_version_number = int(default_version)
+        template = self.launch_templates[template_id]
         return template
 
     def get_launch_template(self, template_id: str) -> LaunchTemplate:

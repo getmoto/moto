@@ -1,8 +1,11 @@
+import datetime
 from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .data import compatible_versions
 from .exceptions import EngineTypeNotFoundException, ResourceNotFoundException
@@ -41,6 +44,25 @@ default_advanced_options = {
 }
 
 
+class EngineVersion(BaseModel):
+    def __init__(self, options: str, create_time: datetime.datetime) -> None:
+        self.options = options or "OpenSearch_2.5"
+        self.create_time = unix_time(create_time)
+        self.update_time = self.create_time
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "Options": self.options,
+            "Status": {
+                "CreationDate": self.create_time,
+                "PendingDeletion": False,
+                "State": "Active",
+                "UpdateDate": self.update_time,
+                "UpdateVersion": 28,
+            },
+        }
+
+
 class OpenSearchDomain(BaseModel):
     def __init__(
         self,
@@ -63,11 +85,19 @@ class OpenSearchDomain(BaseModel):
         auto_tune_options: Dict[str, Any],
         off_peak_window_options: Dict[str, Any],
         software_update_options: Dict[str, bool],
+        is_es: bool,
+        elasticsearch_version: Optional[str],
+        elasticsearch_cluster_config: Optional[str],
     ):
+        # Add creation_date attribute
+        self.creation_date = unix_time(datetime.datetime.now())
+
         self.domain_id = f"{account_id}/{domain_name}"
         self.domain_name = domain_name
-        self.arn = f"arn:aws:es:{region}:{account_id}:domain/{domain_name}"
-        self.engine_version = engine_version or "OpenSearch 2.5"
+        self.arn = (
+            f"arn:{get_partition(region)}:es:{region}:{account_id}:domain/{domain_name}"
+        )
+        self.engine_version = EngineVersion(engine_version, datetime.datetime.now())
         self.cluster_config = cluster_config or {}
         self.ebs_options = ebs_options or {"EBSEnabled": False}
         self.access_policies = access_policies or ""
@@ -89,10 +119,17 @@ class OpenSearchDomain(BaseModel):
             advanced_security_options or default_advanced_security_options
         )
         self.auto_tune_options = auto_tune_options or {"State": "ENABLE_IN_PROGRESS"}
-        self.off_peak_windows_options = off_peak_window_options
+        if not self.auto_tune_options.get("State"):
+            self.auto_tune_options["State"] = "ENABLED"
+        # Rename to singular everywhere
+        self.off_peak_window_options = off_peak_window_options
         self.software_update_options = (
             software_update_options or default_software_update_options
         )
+        self.engine_type = "Elasticsearch" if is_es else "OpenSearch"
+        self.is_es = is_es
+        self.elasticsearch_version = elasticsearch_version
+        self.elasticsearch_cluster_config = elasticsearch_cluster_config
 
         self.deleted = False
         self.processing = False
@@ -117,7 +154,6 @@ class OpenSearchDomain(BaseModel):
         return {
             "Endpoint": self.endpoint,
             "Endpoints": self.endpoints,
-            "EngineVersion": self.engine_version,
             "ClusterConfig": self.cluster_config,
             "EBSOptions": self.ebs_options,
             "AccessPolicies": self.access_policies,
@@ -131,8 +167,11 @@ class OpenSearchDomain(BaseModel):
             "DomainEndpointOptions": self.domain_endpoint_options,
             "AdvancedSecurityOptions": self.advanced_security_options,
             "AutoTuneOptions": self.auto_tune_options,
-            "OffPeakWindowsOptions": self.off_peak_windows_options,
+            # Use singular key and attribute
+            "OffPeakWindowOptions": self.off_peak_window_options,
             "SoftwareUpdateOptions": self.software_update_options,
+            "ElasticsearchVersion": self.elasticsearch_version,
+            "ElasticsearchClusterConfig": self.elasticsearch_cluster_config,
         }
 
     def to_dict(self) -> Dict[str, Any]:
@@ -142,6 +181,7 @@ class OpenSearchDomain(BaseModel):
             "ARN": self.arn,
             "Created": True,
             "Deleted": self.deleted,
+            "EngineVersion": self.engine_version.options,
             "Processing": self.processing,
             "UpgradeProcessing": False,
         }
@@ -150,12 +190,95 @@ class OpenSearchDomain(BaseModel):
                 dct[key] = value
         return dct
 
+    def _status_block(self) -> Dict[str, Any]:
+        return {
+            "State": "Active",
+            "CreationDate": self.creation_date,
+            "UpdateDate": self.creation_date,
+            "UpdateVersion": 1,
+            "PendingDeletion": False,
+        }
+
+    def _wrap(self, options: Any) -> Dict[str, Any]:
+        # Most DomainConfig sections only need {"Options": ...}
+        return {"Options": options}
+
     def to_config_dict(self) -> Dict[str, Any]:
-        dct: Dict[str, Any] = dict()
-        for key, value in self.dct_options().items():
-            if value is not None:
-                dct[key] = {"Options": value}
-        return dct
+        cfg: Dict[str, Any] = {}
+
+        # Cluster config section (key differs for ES vs OS)
+        cluster_key = "ElasticsearchClusterConfig" if self.is_es else "ClusterConfig"
+        cluster_opts = (
+            self.elasticsearch_cluster_config
+            if (self.is_es and self.elasticsearch_cluster_config)
+            else (self.cluster_config or default_cluster_config)
+        )
+        cfg[cluster_key] = self._wrap(cluster_opts)
+
+        # Version section:
+        # - OpenSearch expects Status for EngineVersion (use EngineVersion.to_dict()).
+        # - ES expects only Options for ElasticsearchVersion.
+        if self.is_es:
+            cfg["ElasticsearchVersion"] = self._wrap(
+                self.elasticsearch_version or self.engine_version.options
+            )
+        else:
+            cfg["EngineVersion"] = self.engine_version.to_dict()
+
+        # EBSOptions: default to minimal disabled if not provided
+        ebs_opts = (
+            self.ebs_options if self.ebs_options is not None else {"EBSEnabled": False}
+        )
+        cfg["EBSOptions"] = self._wrap(ebs_opts)
+
+        # Node-to-node encryption: default minimal
+        n2n_opts = (
+            self.node_to_node_encryption_options
+            if self.node_to_node_encryption_options is not None
+            else {"Enabled": False}
+        )
+        cfg["NodeToNodeEncryptionOptions"] = self._wrap(n2n_opts)
+
+        # Encryption at rest: default minimal
+        ear_opts = (
+            self.encryption_at_rest_options
+            if self.encryption_at_rest_options is not None
+            else {"Enabled": False}
+        )
+        cfg["EncryptionAtRestOptions"] = self._wrap(ear_opts)
+
+        # Access policies: default empty string
+        cfg["AccessPolicies"] = self._wrap(self.access_policies or "")
+
+        # Optional passthrough sections
+        if self.snapshot_options is not None:
+            cfg["SnapshotOptions"] = self._wrap(self.snapshot_options)
+        if self.vpc_options is not None:
+            cfg["VPCOptions"] = self._wrap(self.vpc_options)
+        if self.cognito_options is not None:
+            cfg["CognitoOptions"] = self._wrap(self.cognito_options)
+        if self.log_publishing_options is not None:
+            cfg["LogPublishingOptions"] = self._wrap(self.log_publishing_options)
+        if self.auto_tune_options is not None:
+            cfg["AutoTuneOptions"] = self._wrap(self.auto_tune_options)
+        if self.off_peak_window_options is not None:
+            cfg["OffPeakWindowOptions"] = self._wrap(self.off_peak_window_options)
+
+        # Always include with sensible defaults
+        cfg["AdvancedOptions"] = self._wrap(
+            self.advanced_options or default_advanced_options
+        )
+        cfg["DomainEndpointOptions"] = self._wrap(
+            self.domain_endpoint_options or default_domain_endpoint_options
+        )
+        cfg["AdvancedSecurityOptions"] = self._wrap(
+            self.advanced_security_options or default_advanced_security_options
+        )
+        cfg["SoftwareUpdateOptions"] = self._wrap(
+            self.software_update_options or default_software_update_options
+        )
+
+        return cfg
 
     def update(
         self,
@@ -198,12 +321,14 @@ class OpenSearchDomain(BaseModel):
             advanced_security_options or self.advanced_security_options
         )
         self.auto_tune_options = auto_tune_options or self.auto_tune_options
-        self.off_peak_windows_options = (
-            off_peak_window_options or self.off_peak_windows_options
+        # Fix attribute name (singular)
+        self.off_peak_window_options = (
+            off_peak_window_options or self.off_peak_window_options
         )
         self.software_update_options = (
             software_update_options or self.software_update_options
         )
+        self.engine_version.update_time = unix_time(datetime.datetime.now())
 
 
 class OpenSearchServiceBackend(BaseBackend):
@@ -234,6 +359,9 @@ class OpenSearchServiceBackend(BaseBackend):
         auto_tune_options: Dict[str, Any],
         off_peak_window_options: Dict[str, Any],
         software_update_options: Dict[str, Any],
+        is_es: bool,
+        elasticsearch_version: Optional[str],
+        elasticsearch_cluster_config: Optional[str],
     ) -> OpenSearchDomain:
         domain = OpenSearchDomain(
             account_id=self.account_id,
@@ -255,14 +383,19 @@ class OpenSearchServiceBackend(BaseBackend):
             auto_tune_options=auto_tune_options,
             off_peak_window_options=off_peak_window_options,
             software_update_options=software_update_options,
+            is_es=is_es,
+            elasticsearch_version=elasticsearch_version,
+            elasticsearch_cluster_config=elasticsearch_cluster_config,
         )
         self.domains[domain_name] = domain
         if tag_list:
             self.add_tags(domain.arn, tag_list)
         return domain
 
-    def get_compatible_versions(self, domain_name: str) -> List[Dict[str, Any]]:
-        if domain_name not in self.domains:
+    def get_compatible_versions(
+        self, domain_name: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        if domain_name and domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         return compatible_versions
 
@@ -277,8 +410,9 @@ class OpenSearchServiceBackend(BaseBackend):
             raise ResourceNotFoundException(domain_name)
         return self.domains[domain_name]
 
-    def describe_domain_config(self, domain_name: str) -> OpenSearchDomain:
-        return self.describe_domain(domain_name)
+    def describe_domain_config(self, domain_name: str) -> Dict[str, Any]:
+        domain = self.describe_domain(domain_name)
+        return domain.to_config_dict()
 
     def update_domain_config(
         self,
@@ -298,24 +432,37 @@ class OpenSearchServiceBackend(BaseBackend):
         auto_tune_options: Dict[str, Any],
         off_peak_window_options: Dict[str, Any],
         software_update_options: Dict[str, Any],
-    ) -> OpenSearchDomain:
-        domain = self.describe_domain(domain_name)
-        domain.update(
-            cluster_config=cluster_config,
-            ebs_options=ebs_options,
-            access_policies=access_policies,
-            snapshot_options=snapshot_options,
-            vpc_options=vpc_options,
-            cognito_options=cognito_options,
-            encryption_at_rest_options=encryption_at_rest_options,
-            node_to_node_encryption_options=node_to_node_encryption_options,
-            advanced_options=advanced_options,
-            log_publishing_options=log_publishing_options,
-            domain_endpoint_options=domain_endpoint_options,
-            advanced_security_options=advanced_security_options,
-            auto_tune_options=auto_tune_options,
-            off_peak_window_options=off_peak_window_options,
-            software_update_options=software_update_options,
+    ) -> "OpenSearchDomain":
+        domain = self.domains[domain_name]
+        domain.cluster_config = cluster_config or domain.cluster_config
+        domain.ebs_options = ebs_options or domain.ebs_options
+        domain.access_policies = access_policies or domain.access_policies
+        domain.snapshot_options = snapshot_options or domain.snapshot_options
+        domain.vpc_options = vpc_options or domain.vpc_options
+        domain.cognito_options = cognito_options or domain.cognito_options
+        domain.encryption_at_rest_options = (
+            encryption_at_rest_options or domain.encryption_at_rest_options
+        )
+        domain.node_to_node_encryption_options = (
+            node_to_node_encryption_options or domain.node_to_node_encryption_options
+        )
+        domain.advanced_options = advanced_options or domain.advanced_options
+        domain.log_publishing_options = (
+            log_publishing_options or domain.log_publishing_options
+        )
+        domain.domain_endpoint_options = (
+            domain_endpoint_options or domain.domain_endpoint_options
+        )
+        domain.advanced_security_options = (
+            advanced_security_options or domain.advanced_security_options
+        )
+        domain.auto_tune_options = auto_tune_options or domain.auto_tune_options
+        # Fix attribute name (singular)
+        domain.off_peak_window_options = (
+            off_peak_window_options or domain.off_peak_window_options
+        )
+        domain.software_update_options = (
+            software_update_options or domain.software_update_options
         )
         return domain
 
@@ -330,25 +477,26 @@ class OpenSearchServiceBackend(BaseBackend):
 
     def list_domain_names(self, engine_type: str) -> List[Dict[str, str]]:
         domains = []
+        if engine_type and engine_type not in ["Elasticsearch", "OpenSearch"]:
+            raise EngineTypeNotFoundException(engine_type)
         for domain in self.domains.values():
             if engine_type:
-                if engine_type in domain.engine_version:
+                if engine_type == domain.engine_type:
                     domains.append(
-                        {
-                            "DomainName": domain.domain_name,
-                            "EngineType": engine_type.split("_")[0],
-                        }
+                        {"DomainName": domain.domain_name, "EngineType": engine_type}
                     )
-                else:
-                    raise EngineTypeNotFoundException(domain.domain_name)
             else:
                 domains.append(
-                    {
-                        "DomainName": domain.domain_name,
-                        "EngineType": domain.engine_version.split("_")[0],
-                    }
+                    {"DomainName": domain.domain_name, "EngineType": domain.engine_type}
                 )
         return domains
+
+    def describe_domains(self, domain_names: List[str]) -> List[OpenSearchDomain]:
+        queried_domains = []
+        for domain_name in domain_names:
+            if domain_name in self.domains:
+                queried_domains.append(self.domains[domain_name])
+        return queried_domains
 
 
 opensearch_backends = BackendDict(OpenSearchServiceBackend, "opensearch")

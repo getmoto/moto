@@ -38,9 +38,35 @@ class DefaultVpcAlreadyExists(EC2ClientError):
         )
 
 
+class DefaultVpcDoesNotExistError(EC2ClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "DefaultVpcDoesNotExist",
+            "No default VPC exists for this account in this region.",
+        )
+
+
+class DefaultSubnetAlreadyExistsInAvailabilityZoneError(EC2ClientError):
+    def __init__(self, subnet_id: str, availability_zone: str) -> None:
+        super().__init__(
+            "DefaultSubnetAlreadyExistsInAvailabilityZone",
+            f"'{subnet_id}' is already the default subnet in {availability_zone}.",
+        )
+
+
 class DependencyViolationError(EC2ClientError):
     def __init__(self, message: str):
         super().__init__("DependencyViolation", message)
+
+
+class MissingInputError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("MissingInput", message)
+
+
+class InvalidInputError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("InvalidInput", message)
 
 
 class MissingParameterError(EC2ClientError):
@@ -95,6 +121,14 @@ class InvalidKeyPairFormatError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "InvalidKeyPair.Format", "Key is not in valid OpenSSH public key format"
+        )
+
+
+class VPCIdNotSpecifiedError(EC2ClientError):
+    def __init__(self) -> None:
+        super().__init__(
+            "VPCIdNotSpecified",
+            "No default VPC for this user. GroupName is only supported for EC2-Classic and default VPC.",
         )
 
 
@@ -162,7 +196,7 @@ class InvalidCustomerGatewayIdError(EC2ClientError):
     def __init__(self, customer_gateway_id: str):
         super().__init__(
             "InvalidCustomerGatewayID.NotFound",
-            f"The customer gateway ID '{customer_gateway_id}' does not exist",
+            f"The customerGateway ID '{customer_gateway_id}' does not exist",
         )
 
 
@@ -170,7 +204,7 @@ class InvalidNetworkInterfaceIdError(EC2ClientError):
     def __init__(self, eni_id: str):
         super().__init__(
             "InvalidNetworkInterfaceID.NotFound",
-            f"The network interface ID '{eni_id}' does not exist",
+            f"The networkInterface ID '{eni_id}' does not exist",
         )
 
 
@@ -197,6 +231,14 @@ class InvalidSecurityGroupNotFoundError(EC2ClientError):
         )
 
 
+class InvalidSecurityGroupRuleIdNotFoundError(EC2ClientError):
+    def __init__(self, name: Any):
+        super().__init__(
+            "InvalidSecurityGroupRuleId.NotFound",
+            f"The security group rule ID '{name}' does not exist",
+        )
+
+
 class InvalidPermissionNotFoundError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
@@ -209,6 +251,14 @@ class InvalidPermissionDuplicateError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "InvalidPermission.Duplicate", "The specified rule already exists"
+        )
+
+
+class DuplicateTransitGatewayAttachmentError(EC2ClientError):
+    def __init__(self, transit_gateway_id: str):
+        super().__init__(
+            "DuplicateTransitGatewayAttachment",
+            f"{transit_gateway_id} has non-deleted Transit Gateway Attachments with same VPC ID.",
         )
 
 
@@ -499,6 +549,14 @@ class InvalidInternetGatewayIdError(EC2ClientError):
         )
 
 
+class InvalidGroupIdMalformedError(EC2ClientError):
+    def __init__(self, group_id: str):
+        super().__init__(
+            "InvalidGroupId.Malformed",
+            f"The security group ID '{group_id}' is malformed",
+        )
+
+
 class GatewayNotAttachedError(EC2ClientError):
     def __init__(self, internet_gateway_id: str, vpc_id: str):
         super().__init__(
@@ -539,7 +597,7 @@ class RulesPerSecurityGroupLimitExceededError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "RulesPerSecurityGroupLimitExceeded",
-            "The maximum number of rules per security group " "has been reached.",
+            "The maximum number of rules per security group has been reached.",
         )
 
 
@@ -561,7 +619,7 @@ class CidrLimitExceeded(EC2ClientError):
     def __init__(self, vpc_id: str, max_cidr_limit: int):
         super().__init__(
             "CidrLimitExceeded",
-            f"This network '{vpc_id}' has met its maximum number of allowed CIDRs: {max_cidr_limit}",
+            f"This network {vpc_id} has met its maximum number of allowed CIDRs: {max_cidr_limit}",
         )
 
 
@@ -572,11 +630,23 @@ class UnsupportedTenancy(EC2ClientError):
         )
 
 
-class OperationNotPermitted(EC2ClientError):
+class VPCCidrBlockAssociationError(EC2ClientError):
     def __init__(self, association_id: str):
         super().__init__(
             "OperationNotPermitted",
             f"The vpc CIDR block with association ID {association_id} may not be disassociated. It is the primary IPv4 CIDR block of the VPC",
+        )
+
+
+class OperationNotPermitted(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__("OperationNotPermitted", message)
+
+
+class LastEniDetachError(OperationNotPermitted):
+    def __init__(self) -> None:
+        super().__init__(
+            "The network interface at device index 0 and networkCard index 0 cannot be detached."
         )
 
 
@@ -669,6 +739,14 @@ class OperationNotPermitted4(EC2ClientError):
         )
 
 
+class OperationDisableApiStopNotPermitted(EC2ClientError):
+    def __init__(self, instance_id: str):
+        super().__init__(
+            "OperationNotPermitted",
+            f"The instance '{instance_id}' may not be terminated. Modify its 'disableApiStop' instance attribute and try again.",
+        )
+
+
 # Raised when attempting to accept or reject a VPC peering connection request for a VPC not belonging to self
 class OperationNotPermitted5(EC2ClientError):
     def __init__(self, account_id: str, pcx_id: str, operation: str):
@@ -758,6 +836,22 @@ class InvalidParameter(EC2ClientError):
         )
 
 
+class InvalidParameterValue(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidParameterValue",
+            message,
+        )
+
+
+class MissingParameter(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "MissingParameter",
+            message,
+        )
+
+
 class InvalidSubnetCidrBlockAssociationID(EC2ClientError):
     def __init__(self, association_id: str):
         super().__init__(
@@ -771,6 +865,14 @@ class InvalidCarrierGatewayID(EC2ClientError):
         super().__init__(
             "InvalidCarrierGatewayID.NotFound",
             f"The CarrierGateway ID '{carrier_gateway_id}' does not exist",
+        )
+
+
+class InvalidTransitGatewayID(EC2ClientError):
+    def __init__(self, transit_gateway_id: str, msg: Optional[str] = None):
+        super().__init__(
+            "InvalidTransitGatewayID.NotFound",
+            msg or f"The transitGateway ID '{transit_gateway_id}' does not exist",
         )
 
 

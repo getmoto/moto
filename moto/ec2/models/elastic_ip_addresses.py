@@ -55,7 +55,7 @@ class ElasticAddress(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "ElasticAddress":
         from ..models import ec2_backends
 
@@ -238,6 +238,11 @@ class ElasticAddressBackend:
             matches = generic_filter(filters, matches)
 
         return matches
+
+    def describe_addresses_attribute(
+        self, allocation_ids: Optional[List[str]] = None
+    ) -> List[ElasticAddress]:
+        return self.describe_addresses(allocation_ids)
 
     def disassociate_address(
         self, address: Optional[str] = None, association_id: Optional[str] = None

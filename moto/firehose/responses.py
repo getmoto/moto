@@ -1,4 +1,5 @@
 """Handles Firehose API requests, invokes method and returns response."""
+
 import json
 
 from moto.core.responses import BaseResponse
@@ -31,6 +32,7 @@ class FirehoseResponse(BaseResponse):
             self._get_param("ElasticsearchDestinationConfiguration"),
             self._get_param("SplunkDestinationConfiguration"),
             self._get_param("HttpEndpointDestinationConfiguration"),
+            self._get_param("SnowflakeDestinationConfiguration"),
             self._get_param("Tags"),
         )
         return json.dumps({"DeliveryStreamARN": delivery_stream_arn})
@@ -108,6 +110,7 @@ class FirehoseResponse(BaseResponse):
             self._get_param("ElasticsearchDestinationUpdate"),
             self._get_param("SplunkDestinationUpdate"),
             self._get_param("HttpEndpointDestinationUpdate"),
+            self._get_param("SnowflakeDestinationConfiguration"),
         )
         return json.dumps({})
 

@@ -99,7 +99,6 @@ def test_passthrough_calls_for_wildcard_urls() -> None:
     with patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "a", "AWS_SECRET_ACCESS_KEY": "b"}
     ):
-
         # All requests to these URL's are passed through
         with mock_aws(
             config={

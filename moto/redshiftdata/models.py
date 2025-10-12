@@ -117,6 +117,15 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.statements: Dict[str, Statement] = {}
 
+    @staticmethod
+    def default_vpc_endpoint_service(
+        service_region: str, zones: List[str]
+    ) -> List[Dict[str, str]]:
+        """Default VPC endpoint service."""
+        return BaseBackend.default_vpc_endpoint_service_factory(
+            service_region, zones, "redshift-data", policy_supported=False
+        )
+
     def cancel_statement(self, statement_id: str) -> None:
         _validate_uuid(statement_id)
 

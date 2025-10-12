@@ -83,6 +83,7 @@ def test_submit_job_by_name():
     assert resp_jobs["jobs"][0]["jobId"] == job_id
     assert resp_jobs["jobs"][0]["jobQueue"] == queue_arn
     assert resp_jobs["jobs"][0]["jobDefinition"] == job_definition_arn
+    assert resp_jobs["jobs"][0]["tags"] == {}
 
 
 # SLOW TESTS
@@ -129,6 +130,11 @@ def test_submit_job_array_size():
     assert child_job_1["status"] == "SUCCEEDED"
     # Child job was executed
     assert len(child_job_1["attempts"]) == 1
+
+    # List all child jobs
+    child_job_list = batch_client.list_jobs(arrayJobId=job_id)["jobSummaryList"]
+    assert len(child_job_list) == 2
+    assert child_job_1_id in [c["jobId"] for c in child_job_list]
 
 
 @mock_aws
@@ -318,6 +324,19 @@ def test_list_jobs():
 
     resp = batch_client.list_jobs(jobQueue=queue_arn, jobStatus="SUCCEEDED")
     assert len(resp["jobSummaryList"]) == 0
+
+    # Test that when filter is provided, jobStatus is ignored
+    filtered_jobs = batch_client.list_jobs(
+        jobQueue=queue_arn,
+        jobStatus="SUCCEEDED",
+        filters=[
+            {
+                "name": "JOB_NAME",
+                "values": ["test*"],
+            }
+        ],
+    )["jobSummaryList"]
+    assert len(filtered_jobs) == 2
 
     # Wait only as long as it takes to run the jobs
     for job_id in [job_id1, job_id2]:
@@ -721,12 +740,12 @@ def test_failed_dependencies():
         assert resp["jobs"][1]["status"] != "SUCCEEDED", "Job 3 cannot succeed"
 
         if resp["jobs"][1]["status"] == "FAILED":
-            assert (
-                "logStreamName" in resp["jobs"][0]["container"]
-            ), "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
-            assert (
-                "logStreamName" not in resp["jobs"][1]["container"]
-            ), "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
+            assert "logStreamName" in resp["jobs"][0]["container"], (
+                "Job 2 should have logStreamName because it FAILED but was in RUNNING state"
+            )
+            assert "logStreamName" not in resp["jobs"][1]["container"], (
+                "Job 3 shouldn't have logStreamName because it was never in RUNNING state"
+            )
 
             break
 
@@ -1089,3 +1108,54 @@ def test_submit_job_invalid_name():
             jobName=too_long_job_name, jobQueue="arn", jobDefinition="job_def_name"
         )
     assert exc.match("ClientException")
+
+
+@mock_aws()
+def test_submit_job_with_parameters():
+    """
+    Test verifies that parameters will be used when submitting a Job
+    """
+
+    ec2_client, iam_client, _, _, batch_client = _get_clients()
+    _, _, _, iam_arn = _setup(ec2_client, iam_client)
+
+    compute_name = str(uuid4())
+    resp = batch_client.create_compute_environment(
+        computeEnvironmentName=compute_name,
+        type="UNMANAGED",
+        state="ENABLED",
+        serviceRole=iam_arn,
+    )
+    arn = resp["computeEnvironmentArn"]
+
+    resp = batch_client.create_job_queue(
+        jobQueueName=str(uuid4()),
+        state="ENABLED",
+        priority=123,
+        computeEnvironmentOrder=[{"order": 123, "computeEnvironment": arn}],
+    )
+    queue_arn = resp["jobQueueArn"]
+
+    job_definition_name = f"sleep_{str(uuid4())[0:6]}"
+
+    batch_client.register_job_definition(
+        jobDefinitionName=job_definition_name,
+        type="container",
+        containerProperties={
+            "image": "busybox",
+            "vcpus": 1,
+            "memory": 512,
+            "command": ["sleep", "Ref::seconds"],
+        },
+        parameters={"seconds": "0"},
+    )
+
+    job_id = batch_client.submit_job(
+        jobName="test1",
+        jobQueue=queue_arn,
+        jobDefinition=job_definition_name,
+        parameters={"seconds": "0.1"},
+    )["jobId"]
+
+    job = batch_client.describe_jobs(jobs=[job_id])["jobs"][0]
+    assert job["parameters"] == {"seconds": "0.1"}

@@ -9,11 +9,27 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+  - package-ecosystem: "gomod"
+    directory: "other_langs/tests_go"
+    schedule:
+      interval: "monthly"
+    groups:
+      go-deps:
+        patterns:
+          - "*"
   - package-ecosystem: "maven"
     directory: "other_langs/tests_java"
     schedule:
       interval: "monthly"
+    groups:
+      java-deps:
+        patterns:
+          - "*"
   - package-ecosystem: "nuget"
     directory: "other_langs/tests_dotnet"
     schedule:
       interval: "monthly"
+    groups:
+      dotnet-deps:
+        patterns:
+          - "*"

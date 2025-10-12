@@ -24,25 +24,25 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set up Python 3.9
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.9
 
     - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v5
       with:
         aws-region: us-east-1
-        role-to-assume: arn:aws:iam::486285699788:role/GithubActionsRole
+        role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
 
     - name: Pull EC2 instance types from AWS
       run: |
         pip install boto3
         scripts/ec2_get_instance_type_offerings.py
     - name: Create PR
-      uses: peter-evans/create-pull-request@v6
+      uses: peter-evans/create-pull-request@v7
       with:
         branch: 'chore-update-ec2-offerings-${{ github.run_number }}'
         title: 'chore: update EC2 Instance Offerings'

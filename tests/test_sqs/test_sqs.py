@@ -22,6 +22,10 @@ from moto.sqs.models import (
     Queue,
 )
 from moto.utilities.distutils_version import LooseVersion
+from tests import aws_verified
+from tests.test_sqs import sqs_aws_verified
+
+BOTOCORE_VERSION = sys.modules["botocore"].__version__
 
 TEST_POLICY = """
 {
@@ -56,6 +60,30 @@ def test_create_fifo_queue_fail():
         assert err.response["Error"]["Code"] == "InvalidParameterValue"
     else:
         raise RuntimeError("Should have raised InvalidParameterValue Exception")
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "queue_name",
+    [
+        "",
+        "ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+        "/my/test",
+        "!@£$%^&*()queue",
+    ],
+)
+def test_create_fifo_queue_invalid_name(queue_name):
+    sqs = boto3.client("sqs", region_name=REGION)
+
+    with pytest.raises(ClientError) as ex:
+        sqs.create_queue(QueueName=queue_name)
+
+    err = ex.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "Can only include alphanumeric characters, hyphens, or underscores. 1 to 80 in length"
+    )
 
 
 @mock_aws
@@ -107,19 +135,10 @@ def test_create_queue_with_different_attributes_fail():
     assert new_response["QueueUrl"] == response.get("QueueUrl")
 
 
-@mock_aws
-def test_create_fifo_queue():
-    # given
+@sqs_aws_verified(fifo_queue=True)
+@pytest.mark.aws_verified
+def test_create_fifo_queue(account_id, queue_name=None, queue_url=None):
     sqs = boto3.client("sqs", region_name=REGION)
-    queue_name = f"{str(uuid4())[0:6]}.fifo"
-
-    # when
-    queue_url = sqs.create_queue(
-        QueueName=queue_name, Attributes={"FifoQueue": "true"}
-    )["QueueUrl"]
-
-    # then
-    assert queue_name in queue_url
 
     attributes = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])[
         "Attributes"
@@ -134,9 +153,9 @@ def test_create_fifo_queue():
     assert isinstance(attributes["LastModifiedTimestamp"], str)
     assert attributes["FifoQueue"] == "true"
     assert attributes["FifoThroughputLimit"] == "perQueue"
-    assert attributes["MaximumMessageSize"] == "262144"
+    assert attributes["MaximumMessageSize"] == "1048576"
     assert attributes["MessageRetentionPeriod"] == "345600"
-    assert attributes["QueueArn"] == (f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{queue_name}")
+    assert attributes["QueueArn"] == f"arn:aws:sqs:{REGION}:{account_id}:{queue_name}"
     assert attributes["ReceiveMessageWaitTimeSeconds"] == "0"
     assert attributes["VisibilityTimeout"] == "30"
 
@@ -169,10 +188,19 @@ def test_create_fifo_queue_with_high_throughput():
 
 
 @mock_aws
-def test_create_queue():
+@pytest.mark.parametrize(
+    "q_name",
+    [
+        str(uuid4())[0:6],
+        "name_with_underscores",
+        "name-with-hyphens",
+        "Name-with_all_the_THings",
+    ],
+    ids=["random", "underscores", "hyphens", "combined"],
+)
+def test_create_queue(q_name):
     sqs = boto3.resource("sqs", region_name=REGION)
 
-    q_name = str(uuid4())[0:6]
     new_queue = sqs.create_queue(QueueName=q_name)
     assert q_name in getattr(new_queue, "url")
 
@@ -242,6 +270,15 @@ def test_create_queue_with_policy():
         "Id": "test",
         "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "*"}],
     }
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_get_unknown_queue_by_name():
+    sqs = boto3.resource("sqs", "us-east-1")
+    with pytest.raises(sqs.meta.client.exceptions.QueueDoesNotExist) as exc:
+        sqs.get_queue_by_name(QueueName="doesnotexist")
+    _verify_unknown_queue_error(exc)
 
 
 @mock_aws
@@ -321,37 +358,34 @@ def test_get_queue_url():
     assert q_name in response["QueueUrl"]
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 def test_get_queue_url_error_not_exists():
-    # given
     client = boto3.client("sqs", region_name=REGION)
+    sqs = boto3.resource("sqs", region_name=REGION)
 
-    # when
     with pytest.raises(ClientError) as e:
         client.get_queue_url(QueueName="not-exists")
-
-    # then
-    ex = e.value
-    assert ex.operation_name == "GetQueueUrl"
-    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
-
-
-@mock_aws
-def test_get_nonexistent_queue():
-    sqs = boto3.resource("sqs", region_name=REGION)
+    _verify_unknown_queue_error(e)
 
     with pytest.raises(ClientError) as err:
         sqs.Queue("http://whatever-incorrect-queue-address").load()
-    ex = err.value
-    assert ex.operation_name == "GetQueueAttributes"
-    assert ex.response["Error"]["Code"] == "AWS.SimpleQueueService.NonExistentQueue"
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(err, "GetQueueAttributes")
+
+
+def _verify_unknown_queue_error(e, op_name="GetQueueUrl", status_code=400):
+    response = e.value.response
+    assert e.value.operation_name == op_name
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == status_code
+    assert "AWS.SimpleQueueService.NonExistentQueue" == response["Error"]["Code"]
+
+    if LooseVersion(BOTOCORE_VERSION) >= LooseVersion("1.34.90"):
+        assert response["Error"]["Message"] == "The specified queue does not exist."
+    else:
+        assert (
+            response["Error"]["Message"]
+            == "The specified queue does not exist for this wsdl version."
+        )
 
 
 @mock_aws
@@ -589,22 +623,6 @@ def test_send_message_with_message_group_id():
 
 
 @mock_aws
-def test_send_message_with_message_group_id_standard_queue():
-    sqs = boto3.resource("sqs", region_name=REGION)
-    queue = sqs.create_queue(QueueName=str(uuid4())[0:6])
-
-    with pytest.raises(ClientError) as ex:
-        queue.send_message(MessageBody="mydata", MessageGroupId="group_id_1")
-
-    err = ex.value.response["Error"]
-    assert err["Code"] == "InvalidParameterValue"
-    assert err["Message"] == (
-        "Value group_id_1 for parameter MessageGroupId is invalid. "
-        "Reason: The request include parameter that is not valid for this queue type."
-    )
-
-
-@mock_aws
 def test_send_message_with_unicode_characters():
     body_one = "Héllo!😀"
 
@@ -632,8 +650,7 @@ def test_set_queue_attributes():
 def _get_common_url(region):
     # Different versions of botocore return different URLs
     # See https://github.com/boto/botocore/issues/2705
-    boto3_version = sys.modules["botocore"].__version__
-    if LooseVersion(boto3_version) >= LooseVersion("1.29.0"):
+    if LooseVersion(BOTOCORE_VERSION) >= LooseVersion("1.29.0"):
         return f"https://sqs.{region}.amazonaws.com"
     common_name_enabled = (
         os.environ.get("BOTO_DISABLE_COMMONNAME", "false").lower() == "false"
@@ -708,22 +725,16 @@ def test_delete_queue():
     assert q_name not in [u[u.rfind("/") + 1 :] for u in all_urls]
 
 
-@mock_aws
-def test_delete_queue_error_not_exists():
+@aws_verified
+@pytest.mark.aws_verified
+def test_delete_queue_error_not_exists(account_id):
     client = boto3.client("sqs", region_name=REGION)
 
     with pytest.raises(ClientError) as e:
         client.delete_queue(
-            QueueUrl=f"https://queue.amazonaws.com/{ACCOUNT_ID}/not-exists"
+            QueueUrl=f"https://queue.amazonaws.com/{account_id}/unknown"
         )
-
-    ex = e.value
-    assert ex.operation_name == "DeleteQueue"
-    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(e, op_name="DeleteQueue")
 
 
 @mock_aws
@@ -754,7 +765,7 @@ def test_get_queue_attributes():
     assert isinstance(response["Attributes"]["CreatedTimestamp"], str)
     assert response["Attributes"]["DelaySeconds"] == "0"
     assert isinstance(response["Attributes"]["LastModifiedTimestamp"], str)
-    assert response["Attributes"]["MaximumMessageSize"] == "262144"
+    assert response["Attributes"]["MaximumMessageSize"] == "1048576"
     assert response["Attributes"]["MessageRetentionPeriod"] == "345600"
     assert response["Attributes"]["QueueArn"] == (
         f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{q_name}"
@@ -775,7 +786,7 @@ def test_get_queue_attributes():
 
     assert response["Attributes"] == {
         "ApproximateNumberOfMessages": "0",
-        "MaximumMessageSize": "262144",
+        "MaximumMessageSize": "1048576",
         "QueueArn": f"arn:aws:sqs:{REGION}:{ACCOUNT_ID}:{q_name}",
         "VisibilityTimeout": "30",
         "RedrivePolicy": json.dumps(
@@ -816,25 +827,20 @@ def test_get_queue_attributes_errors():
     assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
 
-@mock_aws
-def test_get_queue_attributes_error_not_exists():
+@aws_verified
+@pytest.mark.aws_verified
+def test_get_queue_attributes_error_not_exists(account_id):
     # given
     client = boto3.client("sqs", region_name=REGION)
 
     # when
     with pytest.raises(ClientError) as e:
         client.get_queue_attributes(
-            QueueUrl=f"https://queue.amazonaws.com/{ACCOUNT_ID}/not-exists"
+            QueueUrl=f"https://queue.amazonaws.com/{account_id}/unknown"
         )
 
     # then
-    ex = e.value
-    assert ex.operation_name == "GetQueueAttributes"
-    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert "AWS.SimpleQueueService.NonExistentQueue" in ex.response["Error"]["Code"]
-    assert ex.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(e, op_name="GetQueueAttributes")
 
 
 @mock_aws
@@ -1021,7 +1027,6 @@ def test_change_message_visibility_than_permitted():
         )
 
     with freeze_time("2015-01-01 12:05:00"):
-
         with pytest.raises(ClientError) as err:
             conn.change_message_visibility(
                 QueueUrl=queue.url,
@@ -1735,16 +1740,7 @@ def test_delete_message_errors():
     response = client.create_queue(QueueName=str(uuid4())[0:6])
     queue_url = response["QueueUrl"]
     client.send_message(QueueUrl=queue_url, MessageBody="body")
-    response = client.receive_message(QueueUrl=queue_url)
-    receipt_handle = response["Messages"][0]["ReceiptHandle"]
-
-    with pytest.raises(ClientError) as client_error:
-        client.delete_message(
-            QueueUrl=queue_url + "-not-existing", ReceiptHandle=receipt_handle
-        )
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    client.receive_message(QueueUrl=queue_url)
 
     with pytest.raises(ClientError) as client_error:
         client.delete_message(QueueUrl=queue_url, ReceiptHandle="not-existing")
@@ -1752,6 +1748,18 @@ def test_delete_message_errors():
         client_error.value.response["Error"]["Message"]
         == "The input receipt handle is invalid."
     )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_delete_message_from_unknown_url(account_id):
+    client = boto3.client("sqs", region_name=REGION)
+    with pytest.raises(ClientError) as client_error:
+        client.delete_message(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/unknown",
+            ReceiptHandle="unknown",
+        )
+    _verify_unknown_queue_error(client_error, op_name="DeleteMessage")
 
 
 @mock_aws
@@ -1913,9 +1921,9 @@ def test_delete_message_batch_with_invalid_receipt_id():
     ]
     response = client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
 
-    assert response["Successful"] == [
-        {"Id": messages[0]["MessageId"]}
-    ], "delete ok for real message"
+    assert response["Successful"] == [{"Id": messages[0]["MessageId"]}], (
+        "delete ok for real message"
+    )
 
     assert response["Failed"] == [
         {
@@ -1937,6 +1945,20 @@ def test_delete_message_batch_with_invalid_receipt_id():
             ),
         },
     ]
+
+
+@sqs_aws_verified()
+@pytest.mark.aws_verified
+def test_delete_message_batch_with_zero_entries(queue_name=None, queue_url=None):
+    sqs = boto3.client("sqs", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        sqs.delete_message_batch(QueueUrl=queue_url, Entries=[])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AWS.SimpleQueueService.EmptyBatchRequest"
+    assert (
+        err["Message"]
+        == "There should be at least one DeleteMessageBatchRequestEntry in the request."
+    )
 
 
 @mock_aws
@@ -2004,21 +2026,17 @@ def test_message_attributes_in_receive_message():
     }
 
 
-@mock_aws
-def test_send_message_batch_errors():
+@sqs_aws_verified()
+@pytest.mark.aws_verified
+def test_send_message_batch_errors(queue_name=None, queue_url=None):
     client = boto3.client("sqs", region_name=REGION)
-
-    response = client.create_queue(QueueName="test-queue")
-    queue_url = response["QueueUrl"]
 
     with pytest.raises(ClientError) as client_error:
         client.send_message_batch(
             QueueUrl=queue_url + "-not-existing",
             Entries=[{"Id": "id_1", "MessageBody": "body_1"}],
         )
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+    _verify_unknown_queue_error(client_error, op_name="SendMessageBatch")
 
     with pytest.raises(ClientError) as client_error:
         client.send_message_batch(QueueUrl=queue_url, Entries=[])
@@ -2056,11 +2074,10 @@ def test_send_message_batch_errors():
 
     with pytest.raises(ClientError) as client_error:
         client.send_message_batch(
-            QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 262145}]
+            QueueUrl=queue_url, Entries=[{"Id": "id_1", "MessageBody": "b" * 1048577}]
         )
     assert client_error.value.response["Error"]["Message"] == (
-        "Batch requests cannot be longer than 262144 bytes. "
-        "You have sent 262145 bytes."
+        "Batch requests cannot be longer than 1048576 bytes. You have sent 1048577 bytes."
     )
 
     with pytest.raises(ClientError) as client_error:
@@ -2421,20 +2438,28 @@ def test_tags():
     assert client.list_queue_tags(QueueUrl=queue_url)["Tags"] == {"test1": "value1"}
 
 
-@mock_aws
-def test_list_queue_tags_errors():
+@aws_verified
+@pytest.mark.aws_verified
+def test_list_queue_tags_errors(account_id):
     client = boto3.client("sqs", region_name=REGION)
 
-    response = client.create_queue(
-        QueueName=str(uuid4())[0:6], tags={"tag_key_1": "tag_value_X"}
-    )
-    queue_url = response["QueueUrl"]
-
     with pytest.raises(ClientError) as client_error:
-        client.list_queue_tags(QueueUrl=queue_url + "-not-existing")
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
+        client.list_queue_tags(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/not-existing"
+        )
+    _verify_unknown_queue_error(client_error, op_name="ListQueueTags")
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_tag_unknown_queue(account_id):
+    client = boto3.client("sqs", region_name=REGION)
+    with pytest.raises(ClientError) as client_error:
+        client.tag_queue(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/unknown",
+            Tags={"t": "v"},
+        )
+    _verify_unknown_queue_error(client_error, op_name="TagQueue")
 
 
 @mock_aws
@@ -2444,14 +2469,6 @@ def test_tag_queue_errors():
     q_name = str(uuid4())[0:6]
     response = client.create_queue(QueueName=q_name, tags={"tag_key_1": "tag_value_X"})
     queue_url = response["QueueUrl"]
-
-    with pytest.raises(ClientError) as client_error:
-        client.tag_queue(
-            QueueUrl=queue_url + "-not-existing", Tags={"tag_key_1": "tag_value_1"}
-        )
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
 
     with pytest.raises(ClientError) as client_error:
         client.tag_queue(QueueUrl=queue_url, Tags={})
@@ -2472,6 +2489,18 @@ def test_tag_queue_errors():
     )
 
 
+@aws_verified
+@pytest.mark.aws_verified
+def test_untag_unknown_queue(account_id):
+    client = boto3.client("sqs", region_name=REGION)
+    with pytest.raises(ClientError) as client_error:
+        client.untag_queue(
+            QueueUrl=f"https://sqs.us-east-1.amazonaws.com/{account_id}/unknown",
+            TagKeys=["tag1"],
+        )
+    _verify_unknown_queue_error(client_error, op_name="UntagQueue")
+
+
 @mock_aws
 def test_untag_queue_errors():
     client = boto3.client("sqs", region_name=REGION)
@@ -2480,12 +2509,6 @@ def test_untag_queue_errors():
         QueueName=str(uuid4())[0:6], tags={"tag_key_1": "tag_value_1"}
     )
     queue_url = response["QueueUrl"]
-
-    with pytest.raises(ClientError) as client_error:
-        client.untag_queue(QueueUrl=queue_url + "-not-existing", TagKeys=["tag_key_1"])
-    assert client_error.value.response["Error"]["Message"] == (
-        "The specified queue does not exist for this wsdl version."
-    )
 
     with pytest.raises(ClientError) as client_error:
         client.untag_queue(QueueUrl=queue_url, TagKeys=[])
@@ -2921,7 +2944,6 @@ def test_send_message_fails_when_message_size_greater_than_max_message_size():
 def test_fifo_queue_deduplication_with_id(
     msg_1, msg_2, dedupid_1, dedupid_2, expected_count
 ):
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = str(uuid4())[0:6]
     msg_queue = sqs.create_queue(
@@ -2944,7 +2966,6 @@ def test_fifo_queue_deduplication_with_id(
     "msg_1, msg_2, expected_count", [("msg1", "msg1", 1), ("msg1", "msg2", 2)]
 )
 def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = str(uuid4())[0:6]
     msg_queue = sqs.create_queue(
@@ -2981,7 +3002,6 @@ def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
 
 @mock_aws
 def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = str(uuid4())[0:6]
     msg_queue = sqs.create_queue(
@@ -3004,7 +3024,6 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
 
 @mock_aws
 def test_fifo_send_message_when_same_group_id_is_in_dlq():
-
     sqs = boto3.resource("sqs", region_name=REGION)
     q_name = f"{str(uuid4())[0:6]}-dlq.fifo"
     dlq = sqs.create_queue(
@@ -3092,6 +3111,94 @@ def test_message_attributes_contains_trace_header():
         messages[0]["Attributes"]["AWSTraceHeader"]
         == "Root=1-3152b799-8954dae64eda91bc9a23a7e8;Parent=7fa8c0f79203be72;Sampled=1"
     )
+
+
+@mock_aws
+@pytest.mark.parametrize(
+    "attribute",
+    [
+        "MessageGroupId",
+        "MessageDeduplicationId",
+        "ApproximateFirstReceiveTimestamp",
+        "ApproximateReceiveCount",
+        "SenderId",
+        "SentTimestamp",
+        "SequenceNumber",
+    ],
+)
+def test_message_system_attributes_contains_system_attribute(attribute):
+    sqs = boto3.resource("sqs", region_name=REGION)
+    conn = boto3.client("sqs", region_name=REGION)
+    q_name = str(uuid4())[0:6] + ".fifo"
+    q_resp = conn.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+        },
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageGroupId="group1",
+        MessageDeduplicationId="dedup1",
+    )
+
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = [attribute]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = [attribute]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
+
+    assert messages[0]["Attributes"].get(attribute) is not None
+
+
+@mock_aws
+def test_message_system_attributes_contains_all_attributes():
+    sqs = boto3.resource("sqs", region_name=REGION)
+    conn = boto3.client("sqs", region_name=REGION)
+    q_name = str(uuid4())[0:6] + ".fifo"
+    q_resp = conn.create_queue(
+        QueueName=q_name,
+        Attributes={
+            "FifoQueue": "true",
+            "ContentBasedDeduplication": "true",
+        },
+    )
+    queue = sqs.Queue(q_resp["QueueUrl"])
+    body_one = "this is a test message"
+
+    queue.send_message(
+        MessageBody=body_one,
+        MessageGroupId="group1",
+        MessageDeduplicationId="dedup1",
+    )
+
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = ["All"]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = ["All"]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
+
+    assert messages[0]["Attributes"]["MessageGroupId"] == "group1"
+    assert messages[0]["Attributes"]["MessageDeduplicationId"] == "dedup1"
+    assert messages[0]["Attributes"]["ApproximateFirstReceiveTimestamp"] is not None
+    assert messages[0]["Attributes"]["ApproximateReceiveCount"] == "1"
+    assert messages[0]["Attributes"]["SenderId"] is not None
+    assert messages[0]["Attributes"]["SentTimestamp"] is not None
+    assert messages[0]["Attributes"]["SequenceNumber"] is not None
 
 
 @mock_aws
@@ -3307,18 +3414,16 @@ def test_fifo_dedupe_error_no_message_dedupe_id_batch():
     )
 
 
-@mock_aws
+@aws_verified
+@pytest.mark.aws_verified
 @pytest.mark.parametrize(
     "queue_config", [{"FifoQueue": "true"}, {"FifoQueue": "true", "DelaySeconds": "10"}]
 )
 def test_send_message_delay_seconds_validation(queue_config):
     # Setup
     client = boto3.client("sqs", region_name=REGION)
-    q = "test.fifo"
-    client.create_queue(
-        QueueName=q,
-        Attributes=queue_config,
-    )
+    q = f"moto_{str(uuid4())[0:6]}.fifo"
+    client.create_queue(QueueName=q, Attributes=queue_config)
 
     # Execute
     with pytest.raises(ClientError) as err:
@@ -3330,6 +3435,14 @@ def test_send_message_delay_seconds_validation(queue_config):
             MessageDeduplicationId=str(uuid4()),
         )
 
+    # Verify
+    ex = err.value
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
+    assert ex.response["Error"]["Message"] == (
+        "Value 5 for parameter DelaySeconds is invalid. Reason: "
+        "The request include parameter that is not valid for this queue type."
+    )
+
     # this should succeed regardless of DelaySeconds configuration on the q
     # https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html#API_SendMessage_RequestSyntax
     client.send_message(
@@ -3340,12 +3453,11 @@ def test_send_message_delay_seconds_validation(queue_config):
         MessageDeduplicationId=str(uuid4()),
     )
 
-    # Verify
-    ex = err.value
-    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
-    assert ex.response["Error"]["Message"] == (
-        "Value 5 for parameter DelaySeconds is invalid. Reason: "
-        "The request include parameter that is not valid for this queue type."
+    client.send_message(
+        QueueUrl=q,
+        MessageBody="test",
+        MessageGroupId="test",
+        MessageDeduplicationId=str(uuid4()),
     )
 
     # clean up for servertests

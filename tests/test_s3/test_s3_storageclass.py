@@ -3,11 +3,12 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.s3.responses import DEFAULT_REGION_NAME
 
 
 @mock_aws
 def test_s3_storage_class_standard():
-    s3_client = boto3.client("s3", region_name="us-east-1")
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="Bucket")
 
     # add an object to the bucket with standard storage
@@ -21,10 +22,8 @@ def test_s3_storage_class_standard():
 
 @mock_aws
 def test_s3_storage_class_infrequent_access():
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(
-        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-2"}
-    )
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket="Bucket")
 
     # add an object to the bucket with standard storage
 
@@ -42,11 +41,9 @@ def test_s3_storage_class_infrequent_access():
 
 @mock_aws
 def test_s3_storage_class_intelligent_tiering():
-    s3_client = boto3.client("s3")
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
 
-    s3_client.create_bucket(
-        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-east-2"}
-    )
+    s3_client.create_bucket(Bucket="Bucket")
     s3_client.put_object(
         Bucket="Bucket",
         Key="my_key_infrequent",
@@ -118,10 +115,8 @@ def test_s3_invalid_copied_storage_class():
 
 @mock_aws
 def test_s3_invalid_storage_class():
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(
-        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket="Bucket")
 
     # Try to add an object with an invalid storage class
     with pytest.raises(ClientError) as err:
@@ -138,10 +133,8 @@ def test_s3_invalid_storage_class():
 
 @mock_aws
 def test_s3_default_storage_class():
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(
-        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket="Bucket")
 
     s3_client.put_object(Bucket="Bucket", Key="First_Object", Body="Body")
 
@@ -153,10 +146,8 @@ def test_s3_default_storage_class():
 
 @mock_aws
 def test_s3_copy_object_error_for_glacier_storage_class_not_restored():
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(
-        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket="Bucket")
 
     s3_client.put_object(
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="GLACIER"
@@ -174,10 +165,8 @@ def test_s3_copy_object_error_for_glacier_storage_class_not_restored():
 
 @mock_aws
 def test_s3_copy_object_error_for_deep_archive_storage_class_not_restored():
-    s3_client = boto3.client("s3")
-    s3_client.create_bucket(
-        Bucket="Bucket", CreateBucketConfiguration={"LocationConstraint": "us-west-1"}
-    )
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket="Bucket")
 
     s3_client.put_object(
         Bucket="Bucket", Key="First_Object", Body="Body", StorageClass="DEEP_ARCHIVE"
@@ -203,9 +192,10 @@ def test_s3_copy_object_for_glacier_storage_class_restored():
     )
 
     s3_client.create_bucket(Bucket="Bucket2")
-    s3_client.restore_object(
+    resp = s3_client.restore_object(
         Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123}
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
 
     s3_client.copy_object(
         CopySource={"Bucket": "Bucket", "Key": "First_Object"},
@@ -241,9 +231,10 @@ def test_s3_copy_object_for_deep_archive_storage_class_restored():
     assert err["StorageClass"] == "DEEP_ARCHIVE"
 
     s3_client.create_bucket(Bucket="Bucket2")
-    s3_client.restore_object(
+    resp = s3_client.restore_object(
         Bucket="Bucket", Key="First_Object", RestoreRequest={"Days": 123}
     )
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 202
     s3_client.get_object(Bucket="Bucket", Key="First_Object")
 
     s3_client.copy_object(
@@ -278,3 +269,24 @@ def test_s3_get_object_from_glacier():
         "The operation is not valid for the object's storage class"
     )
     assert err["StorageClass"] == "GLACIER"
+
+    # Note that get_object_attributes should work
+    resp = s3_client.get_object_attributes(
+        Bucket=bucket_name, Key="test.txt", ObjectAttributes=["StorageClass"]
+    )
+    assert resp["StorageClass"] == "GLACIER"
+
+
+@mock_aws
+def test_s3_get_object_from_glacierir():
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    bucket_name = "tests3getobjectfromglacierir"
+    s3_client.create_bucket(Bucket=bucket_name)
+
+    s3_client.put_object(
+        Bucket=bucket_name, Key="test.txt", Body="contents", StorageClass="GLACIER_IR"
+    )
+
+    resp = s3_client.get_object(Bucket=bucket_name, Key="test.txt")
+
+    assert resp["StorageClass"] == "GLACIER_IR"

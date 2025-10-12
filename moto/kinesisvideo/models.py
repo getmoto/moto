@@ -4,6 +4,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random as random
+from moto.utilities.utils import get_partition
 
 from .exceptions import ResourceInUseException, ResourceNotFoundException
 
@@ -30,7 +31,7 @@ class Stream(BaseModel):
         self.status = "ACTIVE"
         self.version = random.get_random_string(include_digits=False, lower_case=True)
         self.creation_time = utcnow()
-        stream_arn = f"arn:aws:kinesisvideo:{region_name}:{account_id}:stream/{stream_name}/1598784211076"
+        stream_arn = f"arn:{get_partition(region_name)}:kinesisvideo:{region_name}:{account_id}:stream/{stream_name}/1598784211076"
         self.data_endpoint_number = random.get_random_hex()
         self.arn = stream_arn
 
@@ -87,11 +88,10 @@ class KinesisVideoBackend(BaseBackend):
             streams = [_ for _ in self.streams.values() if _.stream_name == stream_name]
             if len(streams) == 0:
                 raise ResourceNotFoundException()
-            stream = streams[0]
-        elif stream_arn:
-            stream = self.streams.get(stream_arn)
-            if stream is None:
-                raise ResourceNotFoundException()
+            return streams[0]
+        # Assume stream_arn is supplied instead
+        if not (stream := self.streams.get(stream_arn)):
+            raise ResourceNotFoundException()
         return stream
 
     def describe_stream(self, stream_name: str, stream_arn: str) -> Dict[str, Any]:

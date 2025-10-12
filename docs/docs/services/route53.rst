@@ -96,7 +96,7 @@ route53
         
 
 - [X] list_tags_for_resource
-- [ ] list_tags_for_resources
+- [X] list_tags_for_resources
 - [ ] list_traffic_policies
 - [ ] list_traffic_policy_instances
 - [ ] list_traffic_policy_instances_by_hosted_zone

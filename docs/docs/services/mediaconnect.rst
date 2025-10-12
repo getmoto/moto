@@ -30,6 +30,7 @@ mediaconnect
 - [ ] describe_bridge
 - [X] describe_flow
 - [ ] describe_flow_source_metadata
+- [ ] describe_flow_source_thumbnail
 - [ ] describe_gateway
 - [ ] describe_gateway_instance
 - [ ] describe_offering

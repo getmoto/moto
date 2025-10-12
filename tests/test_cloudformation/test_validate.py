@@ -5,7 +5,7 @@ import botocore
 import pytest
 
 from moto import mock_aws
-from tests import EXAMPLE_AMI_ID
+from tests import EXAMPLE_AMI_ID, aws_verified
 
 json_template = {
     "AWSTemplateFormatVersion": "2010-09-09",
@@ -69,7 +69,10 @@ def test_boto3_json_invalid_missing_resource():
     err = exc.value.response["Error"]
     assert (
         err["Message"]
-        == "Stack with id Missing top level template section Resources does not exist"
+        in (
+            "Stack with id Missing top level template section Resources does not exist",  # cfn-lint 0.x
+            "Stack with id 'Resources' is a required property does not exist",  # cfn-lint 1.x
+        )
     )
 
 
@@ -124,5 +127,35 @@ def test_boto3_yaml_invalid_missing_resource():
     err = exc.value.response["Error"]
     assert (
         err["Message"]
-        == "Stack with id Missing top level template section Resources does not exist"
+        in (
+            "Stack with id Missing top level template section Resources does not exist",  # cfn-lint 0.x
+            "Stack with id 'Resources' is a required property does not exist",  # cfn-lint 1.x
+        )
     )
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_validate_yaml_using_short_func_refs():
+    """Template using !Sub as a key, which is not valid YAML"""
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    template = """AWSTemplateFormatVersion: '2010-09-09'
+Description: Test template
+Parameters:
+  BucketName:
+    Type: String
+Resources:
+  TestBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        !Sub "${AWS::StackName}-${BucketName}"
+Outputs:
+  BucketName:
+    Value:
+      !Sub "${TestBucket}"
+"""
+
+    response = cf_client.validate_template(TemplateBody=template)
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200

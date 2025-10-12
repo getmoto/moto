@@ -1,4 +1,5 @@
 """Exceptions raised by the Route53 service."""
+
 from typing import Any, Optional
 
 from moto.core.exceptions import RESTError
@@ -32,6 +33,18 @@ class InvalidInput(Route53ClientError):
 
     def __init__(self, message: str):
         super().__init__("InvalidInput", message)
+
+
+class UnsupportedCharacter(Route53ClientError):
+    """Malformed ARN for the CloudWatch log group."""
+
+    code = 400
+
+    def __init__(self, code: str, char: str):
+        super().__init__(
+            code,
+            f"FATAL problem: UnsupportedCharacter (Value contains unsupported characters) encountered with '{char}'",
+        )
 
 
 class InvalidCloudWatchArn(InvalidInput):
@@ -161,7 +174,6 @@ class QueryLoggingConfigAlreadyExists(Route53ClientError):
 
 
 class InvalidChangeBatch(Route53ClientError):
-
     code = 400
 
     def __init__(self) -> None:

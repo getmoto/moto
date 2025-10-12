@@ -1,9 +1,10 @@
 """Implementation of the AWS Config Service APIs."""
+
 import json
 import re
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from moto.config.exceptions import (
     DuplicateTags,
@@ -16,6 +17,7 @@ from moto.config.exceptions import (
     InvalidParameterValueException,
     InvalidRecordingGroupException,
     InvalidResourceParameters,
+    InvalidResourceType,
     InvalidResourceTypeException,
     InvalidResultTokenException,
     InvalidS3KeyPrefixException,
@@ -50,13 +52,12 @@ from moto.config.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, ConfigQueryModel
-from moto.core.responses import AWSServiceSpec
-from moto.core.utils import utcnow
+from moto.core.utils import get_service_model, utcnow
 from moto.iam.config import policy_config_query, role_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
 from moto.s3control.config import s3_account_public_access_block_query
-from moto.utilities.utils import load_resource
+from moto.utilities.utils import get_partition, load_resource
 
 POP_STRINGS = [
     "capitalizeStart",
@@ -83,6 +84,8 @@ MAX_TAGS_IN_ARG = 50
 
 MANAGED_RULES = load_resource(__name__, "resources/aws_managed_rules.json")
 MANAGED_RULES_CONSTRAINTS = MANAGED_RULES["ManagedRules"]
+
+DEFAULT_RETENTION_PERIOD = 30
 
 
 def datetime2int(date: datetime) -> int:
@@ -399,7 +402,7 @@ class ConfigAggregator(ConfigEmptyDictable):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self.configuration_aggregator_name = name
-        self.configuration_aggregator_arn = f"arn:aws:config:{region}:{account_id}:config-aggregator/config-aggregator-{random_string()}"
+        self.configuration_aggregator_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:config-aggregator/config-aggregator-{random_string()}"
         self.account_aggregation_sources = account_sources
         self.organization_aggregation_source = org_source
         self.creation_time = datetime2int(utcnow())
@@ -437,7 +440,7 @@ class ConfigAggregationAuthorization(ConfigEmptyDictable):
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
-        self.aggregation_authorization_arn = f"arn:aws:config:{current_region}:{account_id}:aggregation-authorization/{authorized_account_id}/{authorized_aws_region}"
+        self.aggregation_authorization_arn = f"arn:{get_partition(current_region)}:config:{current_region}:{account_id}:aggregation-authorization/{authorized_account_id}/{authorized_aws_region}"
         self.authorized_account_id = authorized_account_id
         self.authorized_aws_region = authorized_aws_region
         self.creation_time = datetime2int(utcnow())
@@ -467,7 +470,7 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         self.delivery_s3_key_prefix = delivery_s3_key_prefix
         self.excluded_accounts = excluded_accounts or []
         self.last_update_time = datetime2int(utcnow())
-        self.organization_conformance_pack_arn = f"arn:aws:config:{region}:{account_id}:organization-conformance-pack/{self._unique_pack_name}"
+        self.organization_conformance_pack_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:organization-conformance-pack/{self._unique_pack_name}"
         self.organization_conformance_pack_name = name
 
     def update(
@@ -487,7 +490,6 @@ class OrganizationConformancePack(ConfigEmptyDictable):
 
 
 class Scope(ConfigEmptyDictable):
-
     """Defines resources that can trigger an evaluation for the rule.
 
     Per boto3 documentation, Scope can be one of:
@@ -536,7 +538,6 @@ class Scope(ConfigEmptyDictable):
 
 
 class SourceDetail(ConfigEmptyDictable):
-
     """Source and type of event triggering AWS Config resource evaluation.
 
     Applies only to customer rules.
@@ -572,8 +573,7 @@ class SourceDetail(ConfigEmptyDictable):
         # A more specific message will be used here instead.
         if not event_source:
             raise MissingRequiredConfigRuleParameterException(
-                "Missing required parameter in ConfigRule.SourceDetails: "
-                "'EventSource'"
+                "Missing required parameter in ConfigRule.SourceDetails: 'EventSource'"
             )
         if event_source not in SourceDetail.EVENT_SOURCES:
             raise ValidationException(
@@ -633,7 +633,6 @@ class SourceDetail(ConfigEmptyDictable):
 
 
 class Source(ConfigEmptyDictable):
-
     """Defines rule owner, id and notification for triggering evaluation."""
 
     OWNERS = {"AWS", "CUSTOM_LAMBDA"}
@@ -713,7 +712,6 @@ class Source(ConfigEmptyDictable):
 
 
 class ConfigRule(ConfigEmptyDictable):
-
     """AWS Config Rule to evaluate compliance of resources to configuration.
 
     Can be a managed or custom config rule.  Contains the instantiations of
@@ -741,12 +739,10 @@ class ConfigRule(ConfigEmptyDictable):
                 "ConfigRule Arn or Id"
             )
 
-        self.maximum_execution_frequency = None  # keeps pylint happy
+        self.maximum_execution_frequency = None
         self.modify_fields(region, config_rule, tags)
         self.config_rule_id = f"config-rule-{random_string():.6}"
-        self.config_rule_arn = (
-            f"arn:aws:config:{region}:{account_id}:config-rule/{self.config_rule_id}"
-        )
+        self.config_rule_arn = f"arn:{get_partition(region)}:config:{region}:{account_id}:config-rule/{self.config_rule_id}"
 
     def modify_fields(
         self, region: str, config_rule: Dict[str, Any], tags: Dict[str, str]
@@ -785,7 +781,7 @@ class ConfigRule(ConfigEmptyDictable):
                 # are actually needed.
                 self.input_parameters_dict = json.loads(self.input_parameters)
             except ValueError:
-                raise InvalidParameterValueException(  # pylint: disable=raise-missing-from
+                raise InvalidParameterValueException(
                     f"Invalid json {self.input_parameters} passed in the "
                     f"InputParameters field"
                 )
@@ -916,50 +912,35 @@ class ConfigBackend(BaseBackend):
         self.config_aggregators: Dict[str, ConfigAggregator] = {}
         self.aggregation_authorizations: Dict[str, ConfigAggregationAuthorization] = {}
         self.organization_conformance_packs: Dict[str, OrganizationConformancePack] = {}
-        self.config_rules: Dict[str, ConfigRule] = {}
-        self.config_schema: Optional[AWSServiceSpec] = None
+        self.config_schema = get_service_model("config")
+        self.query_results: Dict[str, List[Dict[str, Any]]] = {}
+        self.query_results_queue: List[List[Dict[str, Any]]] = []
         self.retention_configuration: Optional[RetentionConfiguration] = None
-
-    @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "config"
-        )
+        self._custom_resources: Dict[str, Dict[str, Any]] = {}
+        self._expression_results: Dict[str, List[Dict[str, Any]]] = {}
+        self.config_rules: Dict[str, ConfigRule] = {}
 
     def _validate_resource_types(self, resource_list: List[str]) -> None:
-        if not self.config_schema:
-            self.config_schema = AWSServiceSpec(
-                path="data/config/2014-11-12/service-2.json"
-            )
-
+        shape = self.config_schema.shape_for("ResourceType")
+        valid_resource_types = getattr(shape, "enum", [])
         # Verify that each entry exists in the supported list:
         bad_list = []
         for resource in resource_list:
-            if resource not in self.config_schema.shapes["ResourceType"]["enum"]:
+            if resource not in valid_resource_types:
                 bad_list.append(resource)
-
         if bad_list:
-            raise InvalidResourceTypeException(
-                bad_list, self.config_schema.shapes["ResourceType"]["enum"]
-            )
+            raise InvalidResourceTypeException(bad_list, valid_resource_types)
 
     def _validate_delivery_snapshot_properties(
         self, properties: Dict[str, Any]
     ) -> None:
-        if not self.config_schema:
-            self.config_schema = AWSServiceSpec(
-                path="data/config/2014-11-12/service-2.json"
-            )
-
+        shape = self.config_schema.shape_for("MaximumExecutionFrequency")
+        valid_delivery_frequencies = getattr(shape, "enum", [])
         # Verify that the deliveryFrequency is set to an acceptable value:
-        if (
-            properties.get("deliveryFrequency", None)
-            not in self.config_schema.shapes["MaximumExecutionFrequency"]["enum"]
-        ):
+        delivery_frequency = properties.get("deliveryFrequency", None)
+        if delivery_frequency not in valid_delivery_frequencies:
             raise InvalidDeliveryFrequency(
-                properties.get("deliveryFrequency", None),
-                self.config_schema.shapes["MaximumExecutionFrequency"]["enum"],
+                delivery_frequency, valid_delivery_frequencies
             )
 
     def put_configuration_aggregator(
@@ -1459,7 +1440,6 @@ class ConfigBackend(BaseBackend):
     def list_discovered_resources(
         self,
         resource_type: str,
-        backend_region: str,
         resource_ids: List[str],
         resource_name: str,
         limit: int,
@@ -1495,14 +1475,19 @@ class ConfigBackend(BaseBackend):
         # moto, then call upon the resource type's Config Query class to
         # retrieve the list of resources that match the criteria:
         if RESOURCE_MAP.get(resource_type, {}):
-            # Is this a global resource type? -- if so, re-write the region to 'global':
-            backend_query_region = (
-                backend_region  # Always provide the backend this request arrived from.
-            )
-            if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
-                backend_region = "global"
+            # Always provide the backend this request arrived from.
+            backend_query_region = self.region_name
+            # Is this a global resource type? -- if so, use the partition
+            if (
+                RESOURCE_MAP[resource_type]
+                .backends[self.account_id]
+                .get(self.partition)
+            ):
+                backend_region = self.partition
+            else:
+                backend_region = self.region_name
 
-            # For non-aggregated queries, the we only care about the
+            # For non-aggregated queries, we only care about the
             # backend_region. Need to verify that moto has implemented
             # the region for the given backend:
             if (
@@ -1515,10 +1500,11 @@ class ConfigBackend(BaseBackend):
                     resource_type
                 ].list_config_service_resources(
                     self.account_id,
-                    resource_ids,
-                    resource_name,
-                    limit,
-                    next_token,
+                    partition=self.partition,
+                    resource_ids=resource_ids,
+                    resource_name=resource_name,
+                    limit=limit,
+                    next_token=next_token,
                     backend_region=backend_query_region,
                 )
 
@@ -1585,10 +1571,11 @@ class ConfigBackend(BaseBackend):
                 resource_type
             ].list_config_service_resources(
                 self.account_id,
-                resource_id,
-                resource_name,
-                limit,
-                next_token,
+                partition=self.partition,
+                resource_ids=resource_id,
+                resource_name=resource_name,
+                limit=limit,
+                next_token=next_token,
                 resource_region=resource_region,
                 aggregator=self.config_aggregators.get(aggregator_name).__dict__,
             )
@@ -1631,12 +1618,12 @@ class ConfigBackend(BaseBackend):
         if resource_type not in RESOURCE_MAP:
             raise ResourceNotDiscoveredException(resource_type, resource_id)
 
+        # Always provide the backend this request arrived from.
+        backend_query_region = backend_region
         # Is the resource type global?
-        backend_query_region = (
-            backend_region  # Always provide the backend this request arrived from.
-        )
-        if RESOURCE_MAP[resource_type].backends[self.account_id].get("global"):
-            backend_region = "global"
+        partition = get_partition(backend_region)
+        if RESOURCE_MAP[resource_type].backends[self.account_id].get(partition):
+            backend_region = partition
 
         # If the backend region isn't implemented then we won't find the item:
         if (
@@ -1648,7 +1635,10 @@ class ConfigBackend(BaseBackend):
 
         # Get the item:
         item = RESOURCE_MAP[resource_type].get_config_resource(
-            self.account_id, resource_id, backend_region=backend_query_region
+            account_id=self.account_id,
+            partition=self.partition,
+            resource_id=resource_id,
+            backend_region=backend_query_region,
         )
         if not item:
             raise ResourceNotDiscoveredException(resource_type, resource_id)
@@ -1680,17 +1670,17 @@ class ConfigBackend(BaseBackend):
                 # Not found so skip.
                 continue
 
-            # Is the resource type global?
             config_backend_region = backend_region
-            backend_query_region = (
-                backend_region  # Always provide the backend this request arrived from.
-            )
+            # Always provide the backend this request arrived from.
+            backend_query_region = backend_region
+            # Is the resource type global?
+            partition = get_partition(backend_region)
             if (
                 RESOURCE_MAP[resource["resourceType"]]
                 .backends[self.account_id]
-                .get("global")
+                .get(partition)
             ):
-                config_backend_region = "global"
+                config_backend_region = partition
 
             # If the backend region isn't implemented then we won't find the item:
             if (
@@ -1703,7 +1693,8 @@ class ConfigBackend(BaseBackend):
             # Get the item:
             item = RESOURCE_MAP[resource["resourceType"]].get_config_resource(
                 self.account_id,
-                resource["resourceId"],
+                partition=self.partition,
+                resource_id=resource["resourceId"],
                 backend_region=backend_query_region,
             )
             if not item:
@@ -1758,7 +1749,8 @@ class ConfigBackend(BaseBackend):
             # Get the item:
             item = RESOURCE_MAP[resource_type].get_config_resource(
                 self.account_id,
-                resource_id,
+                partition=self.partition,
+                resource_id=resource_id,
                 resource_name=resource_name,
                 resource_region=resource_region,
             )
@@ -2038,7 +2030,7 @@ class ConfigBackend(BaseBackend):
                 if rule_arn and config_rule_obj.config_rule_arn == rule_arn:
                     rule_name = config_rule_obj.config_rule_name
                     break
-            else:
+            if not rule_name:
                 raise InvalidParameterValueException(
                     "One or more identifiers needs to be provided. Provide "
                     "Name or Id or Arn"
@@ -2178,6 +2170,78 @@ class ConfigBackend(BaseBackend):
             raise NoSuchRetentionConfigurationException(retention_configuration_name)
 
         self.retention_configuration = None
+
+    def select_resource_config(
+        self,
+        expression: str,
+        limit: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, str]]], Optional[str]]:
+        """
+        This method doesn't actually execute SQL but uses predefined results
+        that can be configured through the moto API. Modeled after AWS Athena's approach.
+        Also need to implement pagination.
+        """
+
+        query_id = str(random.uuid4())
+
+        if expression in self._expression_results:
+            self.query_results[query_id] = self._expression_results[expression]
+        elif query_id not in self.query_results and self.query_results_queue:
+            self.query_results[query_id] = self.query_results_queue.pop(0)
+
+        if query_id in self.query_results:
+            results = self.query_results[query_id]
+
+            columns = []
+            if results and isinstance(results[0], dict):
+                columns = [{"Name": key} for key in results[0].keys()]
+
+            query_info = {"SelectFields": columns}
+            return results, query_info, None
+        else:
+            return [], {"SelectFields": []}, None
+
+    def put_resource_config(
+        self,
+        resource_type: str,
+        schema_version_id: str,
+        resource_id: str,
+        resource_name: str,
+        configuration: str,
+        tags: Optional[Dict[str, str]],
+    ) -> None:
+        if resource_type.split("::")[0].lower() in [
+            "amzn",
+            "amazon",
+            "alexa",
+            "custom",
+        ]:
+            raise InvalidResourceType(
+                resource_type=resource_type,
+                message=f"You cannot use the organization name '{resource_type.split('::')[0]}' with custom resource types.",
+            )
+
+        resource_key = f"{resource_type}:{resource_id}"
+
+        self._custom_resources[resource_key] = {
+            "ResourceType": resource_type,
+            "SchemaVersionId": schema_version_id,
+            "ResourceId": resource_id,
+            "ResourceName": resource_name,
+            "Configuration": configuration,
+            "Tags": tags or {},
+        }
+
+        return
+
+    def delete_resource_config(self, resource_type: str, resource_id: str) -> None:
+        resource_key = f"{resource_type}:{resource_id}"
+
+        if resource_key in self._custom_resources:
+            del self._custom_resources[resource_key]
+
+        return
 
 
 config_backends = BackendDict(ConfigBackend, "config")

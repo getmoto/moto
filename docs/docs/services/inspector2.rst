@@ -15,6 +15,8 @@ inspector2
 |start-h3| Implemented features for this service |end-h3|
 
 - [X] associate_member
+- [ ] batch_associate_code_security_scan_configuration
+- [ ] batch_disassociate_code_security_scan_configuration
 - [X] batch_get_account_status
 - [ ] batch_get_code_snippet
 - [ ] batch_get_finding_details
@@ -24,10 +26,14 @@ inspector2
 - [ ] cancel_findings_report
 - [ ] cancel_sbom_export
 - [ ] create_cis_scan_configuration
+- [ ] create_code_security_integration
+- [ ] create_code_security_scan_configuration
 - [X] create_filter
 - [ ] create_findings_report
 - [ ] create_sbom_export
 - [ ] delete_cis_scan_configuration
+- [ ] delete_code_security_integration
+- [ ] delete_code_security_scan_configuration
 - [X] delete_filter
 - [X] describe_organization_configuration
 - [X] disable
@@ -37,6 +43,10 @@ inspector2
 - [X] enable_delegated_admin_account
 - [ ] get_cis_scan_report
 - [ ] get_cis_scan_result_details
+- [ ] get_clusters_for_image
+- [ ] get_code_security_integration
+- [ ] get_code_security_scan
+- [ ] get_code_security_scan_configuration
 - [ ] get_configuration
 - [ ] get_delegated_admin_account
 - [ ] get_ec2_deep_inspection_configuration
@@ -49,6 +59,9 @@ inspector2
 - [ ] list_cis_scan_results_aggregated_by_checks
 - [ ] list_cis_scan_results_aggregated_by_target_resource
 - [ ] list_cis_scans
+- [ ] list_code_security_integrations
+- [ ] list_code_security_scan_configuration_associations
+- [ ] list_code_security_scan_configurations
 - [ ] list_coverage
 - [ ] list_coverage_statistics
 - [X] list_delegated_admin_accounts
@@ -82,7 +95,7 @@ inspector2
                 "region": "us-east-1",  # This is the default - can be omitted
             }
             resp = requests.post(
-                "http://motoapi.amazonaws.com:5000/moto-api/static/inspector2/findings-results",
+                "http://motoapi.amazonaws.com/moto-api/static/inspector2/findings-results",
                 json=findings,
             )
 
@@ -99,10 +112,13 @@ inspector2
 - [ ] send_cis_session_health
 - [ ] send_cis_session_telemetry
 - [ ] start_cis_session
+- [ ] start_code_security_scan
 - [ ] stop_cis_session
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_cis_scan_configuration
+- [ ] update_code_security_integration
+- [ ] update_code_security_scan_configuration
 - [ ] update_configuration
 - [ ] update_ec2_deep_inspection_configuration
 - [ ] update_encryption_key

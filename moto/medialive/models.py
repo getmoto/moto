@@ -4,6 +4,23 @@ from typing import Any, Dict, List, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
+from moto.utilities.utils import get_partition
+
+PAGINATION_MODEL = {
+    "list_channels": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+    "list_inputs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "arn",
+    },
+}
 
 
 class Input(BaseModel):
@@ -135,7 +152,7 @@ class MediaLiveBackend(BaseBackend):
         The RequestID and Reserved parameters are not yet implemented
         """
         channel_id = mock_random.uuid4().hex
-        arn = f"arn:aws:medialive:channel:{channel_id}"
+        arn = f"arn:{get_partition(self.region_name)}:medialive:channel:{channel_id}"
         channel = Channel(
             arn=arn,
             cdi_input_specification=cdi_input_specification,
@@ -156,16 +173,9 @@ class MediaLiveBackend(BaseBackend):
         self._channels[channel_id] = channel
         return channel
 
-    def list_channels(self, max_results: Optional[int]) -> List[Dict[str, Any]]:
-        """
-        Pagination is not yet implemented
-        """
-        channels = list(self._channels.values())
-        if max_results is not None:
-            channels = channels[:max_results]
-        return [
-            c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
-        ]
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_channels(self) -> List[Channel]:
+        return [c for c in self._channels.values()]
 
     def describe_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
@@ -231,7 +241,7 @@ class MediaLiveBackend(BaseBackend):
         The VPC and RequestId parameters are not yet implemented
         """
         input_id = mock_random.uuid4().hex
-        arn = f"arn:aws:medialive:input:{input_id}"
+        arn = f"arn:{get_partition(self.region_name)}:medialive:input:{input_id}"
         a_input = Input(
             arn=arn,
             input_id=input_id,
@@ -254,14 +264,9 @@ class MediaLiveBackend(BaseBackend):
         a_input._resolve_transient_states()
         return a_input
 
-    def list_inputs(self, max_results: Optional[int]) -> List[Dict[str, Any]]:
-        """
-        Pagination is not yet implemented
-        """
-        inputs = list(self._inputs.values())
-        if max_results is not None:
-            inputs = inputs[:max_results]
-        return [i.to_dict() for i in inputs]
+    @paginate(PAGINATION_MODEL)
+    def list_inputs(self) -> List[Input]:
+        return [i for i in self._inputs.values()]
 
     def delete_input(self, input_id: str) -> None:
         a_input = self._inputs[input_id]

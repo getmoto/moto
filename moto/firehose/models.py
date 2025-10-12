@@ -11,6 +11,7 @@ Incomplete list of unfinished items:
     are reported back to the user.  Instead an exception is raised.
   - put_record(), put_record_batch() always set "Encrypted" to False.
 """
+
 import io
 import json
 import warnings
@@ -36,6 +37,7 @@ from moto.firehose.exceptions import (
 from moto.moto_api._internal import mock_random
 from moto.s3.models import s3_backends
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 MAX_TAGS_PER_DELIVERY_STREAM = 50
 
@@ -45,6 +47,7 @@ DESTINATION_TYPES_TO_NAMES = {
     "http_endpoint": "HttpEndpoint",
     "elasticsearch": "Elasticsearch",
     "redshift": "Redshift",
+    "snowflake": "Snowflake",
     "splunk": "Splunk",  # Unimplemented
 }
 
@@ -83,7 +86,7 @@ def find_destination_config_in_args(api_args: Dict[str, Any]) -> Tuple[str, Any]
 
 
 def create_s3_destination_config(
-    extended_s3_destination_config: Dict[str, Any]
+    extended_s3_destination_config: Dict[str, Any],
 ) -> Dict[str, Any]:
     """Return dict with selected fields copied from ExtendedS3 config.
 
@@ -105,9 +108,7 @@ def create_s3_destination_config(
     return destination
 
 
-class DeliveryStream(
-    BaseModel
-):  # pylint: disable=too-few-public-methods,too-many-instance-attributes
+class DeliveryStream(BaseModel):
     """Represents a delivery stream, its source and destination configs."""
 
     STATES = {"CREATING", "ACTIVE", "CREATING_FAILED"}
@@ -131,7 +132,7 @@ class DeliveryStream(
         kinesis_stream_source_configuration: Dict[str, Any],
         destination_name: str,
         destination_config: Dict[str, Any],
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.delivery_stream_status = "CREATING"
         self.delivery_stream_name = delivery_stream_name
         self.delivery_stream_type = (
@@ -161,7 +162,7 @@ class DeliveryStream(
                 del self.destinations[0][destination_name][old]
 
         self.delivery_stream_status = "ACTIVE"
-        self.delivery_stream_arn = f"arn:aws:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
+        self.delivery_stream_arn = f"arn:{get_partition(region)}:firehose:{region}:{account_id}:deliverystream/{delivery_stream_name}"
 
         self.create_timestamp = datetime.now(timezone.utc).isoformat()
         self.version_id = "1"  # Used to track updates of destination configs
@@ -187,7 +188,7 @@ class FirehoseBackend(BaseBackend):
             service_region, zones, "firehose", special_service_name="kinesis-firehose"
         )
 
-    def create_delivery_stream(  # pylint: disable=unused-argument
+    def create_delivery_stream(
         self,
         region: str,
         delivery_stream_name: str,
@@ -200,6 +201,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_configuration: Dict[str, Any],
         splunk_destination_configuration: Dict[str, Any],
         http_endpoint_destination_configuration: Dict[str, Any],
+        snowflake_destination_configuration: Dict[str, Any],
         tags: List[Dict[str, str]],
     ) -> str:
         """Create a Kinesis Data Firehose delivery stream."""
@@ -414,7 +416,9 @@ class FirehoseBackend(BaseBackend):
         }
 
     @staticmethod
-    def put_http_records(http_destination: Dict[str, Any], records: List[Dict[str, bytes]]) -> List[Dict[str, str]]:  # type: ignore[misc]
+    def put_http_records(  # type: ignore[misc]
+        http_destination: Dict[str, Any], records: List[Dict[str, bytes]]
+    ) -> List[Dict[str, str]]:
         """Put records to a HTTP destination."""
         # Mostly copied from localstack
         url = http_destination["EndpointConfiguration"]["Url"]
@@ -443,7 +447,7 @@ class FirehoseBackend(BaseBackend):
         # Path prefix pattern: myApp/YYYY/MM/DD/HH/
         # Object name pattern:
         # DeliveryStreamName-DeliveryStreamVersion-YYYY-MM-DD-HH-MM-SS-RandomString
-        prefix = f"{prefix}{'' if prefix.endswith('/') else '/'}"
+        prefix = f"{prefix}{'' if prefix.endswith('/') or prefix == '' else '/'}"
         now = utcnow()
         return (
             f"{prefix}{now.strftime('%Y/%m/%d/%H')}/"
@@ -468,7 +472,7 @@ class FirehoseBackend(BaseBackend):
 
         batched_data = b"".join([b64decode(r["Data"]) for r in records])
         try:
-            s3_backends[self.account_id]["global"].put_object(
+            s3_backends[self.account_id][self.partition].put_object(
                 bucket_name, object_path, batched_data
             )
         except Exception as exc:
@@ -513,8 +517,8 @@ class FirehoseBackend(BaseBackend):
                 request_responses = self.put_http_records(
                     destination["HttpEndpoint"], records
                 )
-            elif "Elasticsearch" in destination or "Redshift" in destination:
-                # This isn't implmented as these services aren't implemented,
+            elif {"Elasticsearch", "Redshift", "Snowflake"} & set(destination):
+                # This isn't implemented as these services aren't implemented,
                 # so ignore the data, but return a "proper" response.
                 request_responses = [
                     {"RecordId": str(mock_random.uuid4())} for _ in range(len(records))
@@ -586,7 +590,7 @@ class FirehoseBackend(BaseBackend):
 
         delivery_stream.delivery_stream_encryption_configuration["Status"] = "DISABLED"
 
-    def update_destination(  # pylint: disable=unused-argument
+    def update_destination(
         self,
         delivery_stream_name: str,
         current_delivery_stream_version_id: str,
@@ -598,6 +602,7 @@ class FirehoseBackend(BaseBackend):
         elasticsearch_destination_update: Dict[str, Any],
         splunk_destination_update: Dict[str, Any],
         http_endpoint_destination_update: Dict[str, Any],
+        snowflake_destination_configuration: Dict[str, Any],
     ) -> None:
         (dest_name, dest_config) = find_destination_config_in_args(locals())
 
@@ -662,9 +667,9 @@ class FirehoseBackend(BaseBackend):
         # to be updated as well.  The problem is that they don't have the
         # same fields.
         if dest_name == "ExtendedS3":
-            delivery_stream.destinations[destination_idx][
-                "S3"
-            ] = create_s3_destination_config(dest_config)
+            delivery_stream.destinations[destination_idx]["S3"] = (
+                create_s3_destination_config(dest_config)
+            )
         elif dest_name == "S3" and "ExtendedS3" in destination:
             destination["ExtendedS3"] = {
                 k: v

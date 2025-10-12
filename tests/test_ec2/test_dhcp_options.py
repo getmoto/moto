@@ -458,9 +458,9 @@ def test_dhcp_options_get_by_key_filter():
 
     filters = [{"Name": "key", "Values": ["domain-name"]}]
     dhcp_options_sets = list(ec2.dhcp_options_sets.filter(Filters=filters))
-    assert (
-        len(dhcp_options_sets) >= 3
-    ), "Should have at least 3 DHCP options just created"
+    assert len(dhcp_options_sets) >= 3, (
+        "Should have at least 3 DHCP options just created"
+    )
 
     configs = []
     for d in dhcp_options_sets:

@@ -12,6 +12,7 @@ from ..exceptions import (
     InvalidVolumeAttachmentError,
     InvalidVolumeDetachmentError,
     InvalidVolumeIdError,
+    MissingParameterError,
     VolumeInUseError,
 )
 from ..utils import (
@@ -86,7 +87,7 @@ class VolumeAttachment(CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "VolumeAttachment":
         from ..models import ec2_backends
 
@@ -160,7 +161,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         cloudformation_json: Any,
         account_id: str,
         region_name: str,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> "Volume":
         from ..models import ec2_backends
 
@@ -222,6 +223,7 @@ class Snapshot(TaggedEC2Resource):
         volume: Any,
         description: str,
         encrypted: bool = False,
+        kms_key_id: Optional[str] = None,
         owner_id: Optional[str] = None,
         from_ami: Optional[str] = None,
     ):
@@ -233,9 +235,10 @@ class Snapshot(TaggedEC2Resource):
         self.create_volume_permission_userids: Set[str] = set()
         self.ec2_backend = ec2_backend
         self.status = "completed"
-        self.encrypted = encrypted
+        self.encrypted = encrypted or (kms_key_id is not None)
         self.owner_id = owner_id or ec2_backend.account_id
         self.from_ami = from_ami
+        self.kms_key_id = kms_key_id
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -252,6 +255,8 @@ class Snapshot(TaggedEC2Resource):
             return self.volume.size
         elif filter_name == "encrypted":
             return str(self.encrypted).lower()
+        elif filter_name == "kms-key-id":
+            return self.kms_key_id
         elif filter_name == "status":
             return self.status
         elif filter_name == "owner-id":
@@ -265,6 +270,7 @@ class EBSBackend:
         self.volumes: Dict[str, Volume] = {}
         self.attachments: Dict[str, VolumeAttachment] = {}
         self.snapshots: Dict[str, Snapshot] = {}
+        self.default_kms_key_id: str = ""
 
     def create_volume(
         self,
@@ -280,7 +286,9 @@ class EBSBackend:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
         if encrypted and not kms_key_id:
-            kms_key_id = self._get_default_encryption_key()
+            if not self.default_kms_key_id:
+                self._create_default_encryption_key()
+            kms_key_id = self.default_kms_key_id
         if volume_type in IOPS_REQUIRED_VOLUME_TYPES and not iops:
             raise InvalidParameterDependency("VolumeType", "Iops")
         elif volume_type == "gp3" and not iops:
@@ -298,6 +306,10 @@ class EBSBackend:
                 size = snapshot.volume.size
             if snapshot.encrypted:
                 encrypted = snapshot.encrypted
+
+        if size is None:
+            raise MissingParameterError("size/snapshot")
+
         volume = Volume(
             self,
             volume_id=volume_id,
@@ -416,12 +428,18 @@ class EBSBackend:
     ) -> Snapshot:
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
-        params = [self, snapshot_id, volume, description, volume.encrypted]
+        params = {
+            "ec2_backend": self,
+            "snapshot_id": snapshot_id,
+            "volume": volume,
+            "description": description,
+            "encrypted": volume.encrypted,
+        }
         if owner_id:
-            params.append(owner_id)
+            params["owner_id"] = owner_id
         if from_ami:
-            params.append(from_ami)
-        snapshot = Snapshot(*params)  # type: ignore[arg-type]
+            params["from_ami"] = from_ami
+        snapshot = Snapshot(**params)  # type: ignore[arg-type]
         self.snapshots[snapshot_id] = snapshot
         return snapshot
 
@@ -463,7 +481,11 @@ class EBSBackend:
         return matches
 
     def copy_snapshot(
-        self, source_snapshot_id: str, source_region: str, description: str
+        self,
+        source_snapshot_id: str,
+        source_region: str,
+        description: str,
+        kms_key_id: Optional[str],
     ) -> Snapshot:
         from ..models import ec2_backends
 
@@ -478,6 +500,7 @@ class EBSBackend:
             volume=source_snapshot.volume,
             description=description,
             encrypted=source_snapshot.encrypted,
+            kms_key_id=kms_key_id,
         )
         self.snapshots[snapshot_id] = snapshot
         return snapshot
@@ -531,7 +554,7 @@ class EBSBackend:
         else:
             snapshot.create_volume_permission_groups.difference_update(groups)  # type: ignore[arg-type]
 
-    def _get_default_encryption_key(self) -> str:
+    def _create_default_encryption_key(self) -> str:
         # https://aws.amazon.com/kms/features/#AWS_Service_Integration
         # An AWS managed CMK is created automatically when you first create
         # an encrypted resource using an AWS service integrated with KMS.
@@ -547,6 +570,20 @@ class EBSBackend:
                 description="Default master key that protects my EBS volumes when no other key is defined",
                 tags=None,
             )
-            kms.add_alias(key.id, ebs_alias)
+            kms.create_alias(key.id, ebs_alias)
         ebs_key = kms.describe_key(ebs_alias)
+        self.default_kms_key_id = ebs_key.arn
         return ebs_key.arn
+
+    def modify_ebs_default_kms_key_id(self, kms_key_id: str) -> str:
+        # If this parameter is not specified, the standard KMS key for Amazon EBS is used.
+        if not kms_key_id:
+            return self._create_default_encryption_key()
+
+        # Determine if the value is a key ID, alias, key ARN, or alias ARN. All are valid possibilities.
+        from moto.kms import kms_backends
+
+        kms = kms_backends[self.account_id][self.region_name]  # type: ignore[attr-defined]
+        kms_key = kms.describe_key(kms_key_id)
+        self.default_kms_key_id = kms_key.arn
+        return kms_key.arn

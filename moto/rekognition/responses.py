@@ -103,6 +103,14 @@ class RekognitionResponse(BaseResponse):
             )
         )
 
+    def detect_custom_labels(self) -> str:
+        (custom_labels,) = self.rekognition_backend.detect_custom_labels()
+        return json.dumps(
+            dict(
+                CustomLabels=custom_labels,
+            )
+        )
+
     def start_face_search(self) -> TYPE_RESPONSE:
         headers = {"Content-Type": "application/x-amz-json-1.1"}
         job_id = self.rekognition_backend.start_face_search()

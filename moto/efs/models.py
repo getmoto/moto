@@ -31,7 +31,7 @@ from moto.efs.exceptions import (
 )
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
-from moto.utilities.utils import md5_hash
+from moto.utilities.utils import get_partition, md5_hash
 
 
 def _lookup_az_id(account_id: str, az_name: str) -> Optional[str]:
@@ -56,7 +56,7 @@ class AccessPoint(CloudFormationModel):
         context: "EFSBackend",
     ):
         self.access_point_id = f"fsap-{mock_random.get_random_hex(8)}"
-        self.access_point_arn = f"arn:aws:elasticfilesystem:{region_name}:{account_id}:access-point/{self.access_point_id}"
+        self.access_point_arn = f"arn:{get_partition(region_name)}:elasticfilesystem:{region_name}:{account_id}:access-point/{self.access_point_id}"
         self.client_token = client_token
         self.file_system_id = file_system_id
         self.name = name
@@ -161,7 +161,7 @@ class FileSystem(CloudFormationModel):
 
         # Generate AWS-assigned parameters
         self.file_system_id = file_system_id
-        self.file_system_arn = f"arn:aws:elasticfilesystem:{region_name}:{account_id}:file-system/{self.file_system_id}"
+        self.file_system_arn = f"arn:{get_partition(region_name)}:elasticfilesystem:{region_name}:{account_id}:file-system/{self.file_system_id}"
         self.creation_time = time.time()
         self.owner_id = account_id
 
@@ -757,6 +757,18 @@ class EFSBackend(BaseBackend):
 
     def untag_resource(self, resource_id: str, tag_keys: List[str]) -> None:
         self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
+
+    def describe_file_system_policy(self, file_system_id: str) -> str:
+        policy = self.file_systems_by_id[file_system_id].file_system_policy
+        if not policy:
+            raise PolicyNotFound("None")
+        return policy
+
+    def put_file_system_policy(
+        self, file_system_id: str, policy: str, bypass_policy_lockout_safety_check: bool
+    ) -> None:
+        file_system = self.file_systems_by_id[file_system_id]
+        file_system.file_system_policy = policy
 
 
 efs_backends = BackendDict(EFSBackend, "efs")

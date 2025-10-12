@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -973,6 +973,7 @@ def test_instance_start_and_stop():
 
     instance1.reload()
     assert instance1.state == {"Code": 80, "Name": "stopped"}
+    assert instance1.state_transition_reason.startswith("User initiated")
 
     with pytest.raises(ClientError) as ex:
         client.start_instances(InstanceIds=[instance1.id], DryRun=True)
@@ -1760,11 +1761,6 @@ def test_run_instance_with_block_device_mappings_using_no_device():
     # moto gives the key with an empty list instead of not having it at all, that's also fine
     assert instances["Reservations"][0]["Instances"][0]["BlockDeviceMappings"] == []
 
-    # passing None with NoDevice should raise ParamValidationError
-    kwargs["BlockDeviceMappings"][0]["NoDevice"] = None
-    with pytest.raises(ParamValidationError) as ex:
-        ec2_client.run_instances(**kwargs)
-
     # passing a string other than "" with NoDevice should raise InvalidRequest
     kwargs["BlockDeviceMappings"][0]["NoDevice"] = "yes"
     with pytest.raises(ClientError) as ex:
@@ -1983,6 +1979,56 @@ def test_describe_instance_status_with_instance_filter():
     for _id in running_instance_ids:
         assert _id not in found_instance_ids
 
+    # Filter instance using the state code and state name
+    state_code_filter = {
+        "running_and_stopped": [
+            {"Name": "instance-state-code", "Values": ["16", "80"]},
+            {"Name": "instance-state-name", "Values": ["running", "stopped"]},
+        ],
+        "running": [
+            {"Name": "instance-state-code", "Values": ["16"]},
+            {"Name": "instance-state-name", "Values": ["running"]},
+        ],
+        "stopped": [
+            {"Name": "instance-state-code", "Values": ["80"]},
+            {"Name": "instance-state-name", "Values": ["stopped"]},
+        ],
+        "contradiction": [
+            {"Name": "instance-state-code", "Values": ["80"]},
+            {"Name": "instance-state-name", "Values": ["running"]},
+        ],
+    }
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running_and_stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    for _id in all_instance_ids:
+        assert _id in found_instance_ids
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["running"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    for _id in stopped_instance_ids:
+        assert _id not in found_instance_ids
+    for _id in running_instance_ids:
+        assert _id in found_instance_ids
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["stopped"]
+    )["InstanceStatuses"]
+    found_instance_ids = [status["InstanceId"] for status in found_statuses]
+    for _id in stopped_instance_ids:
+        assert _id in found_instance_ids
+    for _id in running_instance_ids:
+        assert _id not in found_instance_ids
+
+    found_statuses = conn.describe_instance_status(
+        IncludeAllInstances=True, Filters=state_code_filter["contradiction"]
+    )["InstanceStatuses"]
+    assert len(found_statuses) == 0
+
 
 @mock_aws
 def test_describe_instance_status_with_non_running_instances():
@@ -2016,6 +2062,66 @@ def test_describe_instance_status_with_non_running_instances():
 
     status3 = next((s for s in all_status if s["InstanceId"] == instance3.id), None)
     assert status3["InstanceState"] == {"Code": 16, "Name": "running"}
+
+
+@mock_aws
+def test_describe_instance_status_with_partial_instance_ids():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
+    instance1, instance2, instance3 = reservation
+
+    all_status = client.describe_instance_status(
+        InstanceIds=[instance1.id, instance3.id]
+    )["InstanceStatuses"]
+    assert instance1.id in [status["InstanceId"] for status in all_status]
+    assert instance2.id not in [status["InstanceId"] for status in all_status]
+    assert instance3.id in [status["InstanceId"] for status in all_status]
+
+
+@mock_aws
+def test_describe_instance_status_with_partial_instance_id_stopped():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=3, MaxCount=3)
+    instance1, instance2, instance3 = reservation
+    instance1.stop()
+
+    all_running_status = client.describe_instance_status(
+        InstanceIds=[instance1.id, instance2.id, instance3.id]
+    )["InstanceStatuses"]
+    assert instance1.id not in [status["InstanceId"] for status in all_running_status]
+    assert instance2.id in [status["InstanceId"] for status in all_running_status]
+    assert instance3.id in [status["InstanceId"] for status in all_running_status]
+
+    all_status = client.describe_instance_status(
+        InstanceIds=[instance1.id, instance2.id, instance3.id], IncludeAllInstances=True
+    )["InstanceStatuses"]
+    assert instance1.id in [status["InstanceId"] for status in all_status]
+    assert instance2.id in [status["InstanceId"] for status in all_status]
+    assert instance3.id in [status["InstanceId"] for status in all_status]
+
+
+@mock_aws
+def test_describe_instance_status_with_stopped_instance_filter_and_instance_ids():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    reservation = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance1 = reservation[0]
+    instance1.stop()
+
+    stopped_status = client.describe_instance_status(
+        InstanceIds=[instance1.id],
+        Filters=[{"Name": "instance-state-name", "Values": ["stopped"]}],
+    )["InstanceStatuses"]
+    assert instance1.id not in [status["InstanceId"] for status in stopped_status]
+
+    all_status = client.describe_instance_status(
+        InstanceIds=[instance1.id],
+        Filters=[{"Name": "instance-state-name", "Values": ["stopped"]}],
+        IncludeAllInstances=True,
+    )["InstanceStatuses"]
+    assert instance1.id in [status["InstanceId"] for status in all_status]
 
 
 @mock_aws
@@ -2155,6 +2261,7 @@ def test_describe_instance_attribute():
         "groupSet",
         "ebsOptimized",
         "sriovNetSupport",
+        "disableApiStop",
     ]
 
     for valid_instance_attribute in valid_instance_attributes:
@@ -2294,6 +2401,70 @@ def test_instance_termination_protection():
     assert len(instances) == 1
     instance = instances[0]
     assert instance["State"]["Name"] == "terminated"
+
+
+@mock_aws
+def test_instance_stop_protection():
+    client = boto3.client("ec2", region_name="us-west-1")
+
+    response = client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, DisableApiStop=True
+    )
+    instance_id = response["Instances"][0]["InstanceId"]
+
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is True
+
+    # can't stop an instance with stop protection
+    with pytest.raises(ClientError) as ex:
+        client.stop_instances(InstanceIds=[instance_id])
+    error = ex.value.response["Error"]
+    assert error["Code"] == "OperationNotPermitted"
+
+    # stopping an instance without stop protection works
+    client.modify_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop", Value="false"
+    )
+    response = client.stop_instances(InstanceIds=[instance_id])
+    assert response["StoppingInstances"][0]["CurrentState"]["Name"] in [
+        "stopping",
+        "stopped",
+    ]
+
+    # Run instance without stop protection
+    response = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    instance_id = response["Instances"][0]["InstanceId"]
+
+    # Enable it afterwards
+    # Note that we're using the DisableApiStop here, instead of Attribute="disableApiStop", to verify both work
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiStop={"Value": True}
+    )
+
+    # Verify it's set
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is True
+
+    with pytest.raises(ClientError) as ex:
+        client.stop_instances(InstanceIds=[instance_id])
+    assert ex.value.response["Error"]["Code"] == "OperationNotPermitted"
+
+    # Verify we can disable it
+    client.modify_instance_attribute(
+        InstanceId=instance_id, DisableApiStop={"Value": False}
+    )
+
+    # Verify it's set
+    response = client.describe_instance_attribute(
+        InstanceId=instance_id, Attribute="disableApiStop"
+    )
+    assert response["DisableApiStop"]["Value"] is False
+
+    client.stop_instances(InstanceIds=[instance_id])
 
 
 @mock_aws
@@ -2632,7 +2803,7 @@ def test_instance_iam_instance_profile():
     assert retrieve_all_instances(ec2_client, filters) == []
 
 
-def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_reservations(client, filters=[]):
     resp = client.describe_instances(Filters=filters)
     all_reservations = resp["Reservations"]
     next_token = resp.get("NextToken")
@@ -2643,7 +2814,7 @@ def retrieve_all_reservations(client, filters=[]):  # pylint: disable=W0102
     return all_reservations
 
 
-def retrieve_all_instances(client, filters=[]):  # pylint: disable=W0102
+def retrieve_all_instances(client, filters=[]):
     reservations = retrieve_all_reservations(client, filters)
     return [i for r in reservations for i in r["Instances"]]
 
@@ -2734,3 +2905,165 @@ def test_describe_instance_with_enhanced_monitoring():
     )["Reservations"][0]["Instances"]
 
     assert result[0]["Monitoring"] == {"State": "disabled"}
+
+
+@mock_aws
+def test_instance_with_ipv6_address():
+    ec2_client = boto3.client("ec2", "us-east-1")
+    # Build a VPC.
+    vpc = ec2_client.create_vpc(
+        CidrBlock="10.0.0.0/16",
+        AmazonProvidedIpv6CidrBlock=True,
+    )["Vpc"]
+
+    # The IPv6 CIDR for the subnet needs to be /64; the block associated with the VPC will be /56.
+    ipv6_subnet_cidr = vpc["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlock"]
+    ipv6_subnet_cidr = ipv6_subnet_cidr[:-2] + "64"
+
+    # Build a subnet.
+    subnet = ec2_client.create_subnet(
+        VpcId=vpc["VpcId"], CidrBlock="10.0.0.0/24", Ipv6CidrBlock=ipv6_subnet_cidr
+    )["Subnet"]
+    assert "Ipv6CidrBlockAssociationSet" in subnet
+
+    # Build a security group.
+    security_group_id = ec2_client.create_security_group(
+        GroupName="ipv6-test",
+        Description="Test security group.",
+        VpcId=vpc["VpcId"],
+    )["GroupId"]
+
+    # Launch the instance.
+    instance = ec2_client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        InstanceType="t3.nano",
+        MinCount=1,
+        MaxCount=1,
+        Ipv6AddressCount=1,
+        SecurityGroupIds=[security_group_id],
+        SubnetId=subnet["SubnetId"],
+    )["Instances"][0]
+
+    assert len(instance["NetworkInterfaces"]) == 1
+    assert len(instance["NetworkInterfaces"][0]["Ipv6Addresses"]) == 1
+
+
+@mock_aws
+def test_instance_without_default_subnet():
+    # Ensure that in an account without a default subnet, launching instances without specifying a subnet raises.
+    client = boto3.client("ec2", region_name="ap-south-1")
+
+    # Delete all VPCs and subnets
+    subnets = client.describe_subnets()
+    for subnet in subnets["Subnets"]:
+        client.delete_subnet(SubnetId=subnet["SubnetId"])
+    vpcs = client.describe_vpcs()
+    for vpc in vpcs["Vpcs"]:
+        client.delete_vpc(VpcId=vpc["VpcId"])
+
+    # RunInstances must raise
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    assert exc.value.response["Error"]["Code"] == "VPCIdNotSpecified"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "No default VPC for this user. GroupName is only supported for EC2-Classic and default VPC."
+    )
+
+    # Create default VPC but without default subnets
+    default_vpc_id = client.create_default_vpc()["Vpc"]["VpcId"]
+    subnets = client.describe_subnets()
+    for subnet in subnets["Subnets"]:
+        client.delete_subnet(SubnetId=subnet["SubnetId"])
+
+    # Ensure RunInstances raises
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
+    assert exc.value.response["Error"]["Code"] == "MissingInput"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"No subnets found for the default VPC '{default_vpc_id}'. Please specify a subnet."
+    )
+
+    # Create default subnet in an AZ
+    client.create_default_subnet(AvailabilityZone="ap-south-1c")
+
+    # Ensure RunInstances without a subnet, in a different AZ raises
+    with pytest.raises(ClientError) as exc:
+        client.run_instances(
+            ImageId=EXAMPLE_AMI_ID,
+            MinCount=1,
+            MaxCount=1,
+            Placement={"AvailabilityZone": "ap-south-1b"},
+        )
+    assert exc.value.response["Error"]["Code"] == "InvalidInput"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == "No default subnet for availability zone: 'ap-south-1b'."
+    )
+
+    # Ensure RunInstances without a subnet where a default subnet exists succeeds
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        Placement={"AvailabilityZone": "ap-south-1c"},
+    )
+
+    # Create another VPC and subnet
+    vpc = client.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]
+    subnet = client.create_subnet(VpcId=vpc["VpcId"], CidrBlock="10.0.1.0/24")["Subnet"]
+
+    # Ensure RunInstances with a subnet specified succeeds
+    client.run_instances(
+        ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, SubnetId=subnet["SubnetId"]
+    )
+
+
+@mock_aws
+def test_modify_instance_metadata_options():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+
+    instances = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t2.micro",
+    ).get("Instances")
+
+    instance_id = [i["InstanceId"] for i in instances]
+
+    # Verify the original
+    metadata_options = instances[0]["MetadataOptions"]
+    assert metadata_options == {
+        "HttpTokens": "optional",
+        "HttpPutResponseHopLimit": 1,
+        "HttpEndpoint": "enabled",
+        "HttpProtocolIpv6": "disabled",
+        "InstanceMetadataTags": "disabled",
+    }
+
+    # Change the defaults
+    ec2.modify_instance_metadata_options(
+        InstanceId=instance_id[0],
+        HttpTokens="required",
+        HttpPutResponseHopLimit=2,
+        HttpEndpoint="disabled",
+        DryRun=False,
+        HttpProtocolIpv6="enabled",
+        InstanceMetadataTags="enabled",
+    )
+
+    response = ec2.describe_instances(InstanceIds=instance_id)
+
+    # Verify the updated fields
+    updated_metadata_options = response["Reservations"][0]["Instances"][0][
+        "MetadataOptions"
+    ]
+    assert updated_metadata_options == {
+        "HttpTokens": "required",
+        "HttpPutResponseHopLimit": 2,
+        "HttpEndpoint": "disabled",
+        "HttpProtocolIpv6": "enabled",
+        "InstanceMetadataTags": "enabled",
+    }

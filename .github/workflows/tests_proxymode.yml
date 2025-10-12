@@ -3,18 +3,24 @@ on: [workflow_call]
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        os: ["ubuntu-latest", "windows-latest"]
         python-version: ["3.10", "3.11", "3.12"]
+        include:
+          - os: ubuntu-latest
+            path: ~/.cache/pip
+          - os: windows-latest
+            path: ~\AppData\Local\pip\Cache
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         fetch-depth: 0
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Get pip cache dir
@@ -24,8 +30,10 @@ jobs:
     - name: pip cache
       uses: actions/cache@v4
       with:
-        path: ${{ steps.pip-cache.outputs.dir }}
-        key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
+        path: ${{ matrix.path }}
+        key: pip-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
+        restore-keys: |
+          pip-${{ runner.os }}-${{ matrix.python-version }}-
     - name: Update pip
       run: |
         python -m pip install --upgrade pip
@@ -33,23 +41,38 @@ jobs:
       run: |
         pip install -r requirements-tests.txt
         pip install .[all,server]
-    - name: Start MotoProxy
+    - name: Start MotoProxy on Linux
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
-        moto_proxy -h > moto_proxy.log
         moto_proxy -H 0.0.0.0 -v > moto_proxy.log &
-    - name: Test ProxyMode
+    - name: Test ProxyMode on Linux
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       env:
         TEST_PROXY_MODE: ${{ true }}
       run: |
         pytest -sv tests/test_acmpca tests/test_athena tests/test_awslambda tests/test_apigateway tests/test_core/test_proxy.py tests/test_s3
+    - name: Test ProxyMode on Windows
+      if: ${{ matrix.os == 'windows-latest' }}
+      shell: pwsh
+      env:
+        TEST_PROXY_MODE: ${{ true }}
+      # We should start moto_proxy in a different step
+      # But I can't keep the process alive, across different steps
+      # It does run in the background - but it looks like the process is killed at the end of the step
+      # Starting the proxy in the same step has the same outcome though, even if it's not pretty
+      #
+      # This step does not test everything, because it takes ages on Windows for some reason
+      run: |
+        moto_proxy -v &
+        pytest -sv tests/test_acmpca tests/test_core/test_proxy.py
     - name: "Stop MotoProxy"
-      if: always()
+      if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         kill $(lsof -t -i:5005)
     - name: Archive Proxy logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: motoproxy-${{ matrix.python-version }}
+        name: motoproxy-${{ matrix.os }}-${{ matrix.python-version }}
         path: |
           moto_proxy.log

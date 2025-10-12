@@ -3,12 +3,13 @@ import re
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 E164_REGEX = re.compile(r"^\+?[1-9]\d{1,14}$")
 
 
 def make_arn_for_topic(account_id: str, name: str, region_name: str) -> str:
-    return f"arn:aws:sns:{region_name}:{account_id}:{name}"
+    return f"arn:{get_partition(region_name)}:sns:{region_name}:{account_id}:{name}"
 
 
 def make_arn_for_subscription(topic_arn: str) -> str:
@@ -24,7 +25,9 @@ class FilterPolicyMatcher:
     class CheckException(Exception):
         pass
 
-    def __init__(self, filter_policy: Dict[str, Any], filter_policy_scope: str):
+    def __init__(
+        self, filter_policy: Dict[str, Any], filter_policy_scope: Optional[str]
+    ):
         self.filter_policy = filter_policy
         self.filter_policy_scope = (
             filter_policy_scope
@@ -406,7 +409,6 @@ class FilterPolicyMatcher:
                 elif keyword == "numeric" and isinstance(value, list):
                     if attributes_based_check:
                         if dict_body.get(field, {}).get("Type", "") == "Number":
-
                             checks = value
                             numeric_ranges = zip(checks[0::2], checks[1::2])
                             if _numeric_match(

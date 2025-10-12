@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -9,6 +10,7 @@ from freezegun import freeze_time
 from moto import mock_aws, settings
 from moto.core.utils import unix_time_millis, utcnow
 from moto.logs.models import MAX_RESOURCE_POLICIES_PER_REGION
+from tests import allow_aws_request, aws_verified
 
 TEST_REGION = "us-east-1" if settings.TEST_SERVER_MODE else "us-west-2"
 
@@ -46,226 +48,59 @@ access_policy_doc = json.dumps(
     }
 )
 
-
-@mock_aws
-def test_describe_metric_filters_happy_prefix():
-    conn = boto3.client("logs", "us-west-2")
-
-    response1 = put_metric_filter(conn, count=1)
-    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
-    response2 = put_metric_filter(conn, count=2)
-    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = conn.describe_metric_filters(filterNamePrefix="filter")
-
-    assert len(response["metricFilters"]) == 2
-    assert response["metricFilters"][0]["filterName"] == "filterName1"
-    assert response["metricFilters"][1]["filterName"] == "filterName2"
-
-
-@mock_aws
-def test_describe_metric_filters_happy_log_group_name():
-    conn = boto3.client("logs", "us-west-2")
-
-    response1 = put_metric_filter(conn, count=1)
-    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
-    response2 = put_metric_filter(conn, count=2)
-    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = conn.describe_metric_filters(logGroupName="logGroupName2")
-
-    assert len(response["metricFilters"]) == 1
-    assert response["metricFilters"][0]["logGroupName"] == "logGroupName2"
-
-
-@mock_aws
-def test_describe_metric_filters_happy_metric_name():
-    conn = boto3.client("logs", "us-west-2")
-
-    response1 = put_metric_filter(conn, count=1)
-    assert response1["ResponseMetadata"]["HTTPStatusCode"] == 200
-    response2 = put_metric_filter(conn, count=2)
-    assert response2["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = conn.describe_metric_filters(
-        metricName="metricName1", metricNamespace="metricNamespace1"
-    )
-
-    assert len(response["metricFilters"]) == 1
-    metrics = response["metricFilters"][0]["metricTransformations"]
-    assert metrics[0]["metricName"] == "metricName1"
-    assert metrics[0]["metricNamespace"] == "metricNamespace1"
-
-
-@mock_aws
-def test_put_metric_filters_validation():
-    conn = boto3.client("logs", "us-west-2")
-
-    invalid_filter_name = "X" * 513
-    invalid_filter_pattern = "X" * 1025
-    invalid_metric_transformations = [
-        {
-            "defaultValue": 1,
-            "metricName": "metricName",
-            "metricNamespace": "metricNamespace",
-            "metricValue": "metricValue",
-        },
-        {
-            "defaultValue": 1,
-            "metricName": "metricName",
-            "metricNamespace": "metricNamespace",
-            "metricValue": "metricValue",
-        },
-    ]
-
-    test_cases = [
-        build_put_case(name="Invalid filter name", filter_name=invalid_filter_name),
-        build_put_case(
-            name="Invalid filter pattern", filter_pattern=invalid_filter_pattern
-        ),
-        build_put_case(
-            name="Invalid filter metric transformations",
-            metric_transformations=invalid_metric_transformations,
-        ),
-    ]
-
-    for test_case in test_cases:
-        with pytest.raises(ClientError) as exc:
-            conn.put_metric_filter(**test_case["input"])
-        response = exc.value.response
-        assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert response["Error"]["Code"] == "InvalidParameterException"
-
-
-@mock_aws
-def test_describe_metric_filters_validation():
-    conn = boto3.client("logs", "us-west-2")
-
-    length_over_512 = "X" * 513
-    length_over_255 = "X" * 256
-
-    test_cases = [
-        build_describe_case(
-            name="Invalid filter name prefix", filter_name_prefix=length_over_512
-        ),
-        build_describe_case(
-            name="Invalid log group name", log_group_name=length_over_512
-        ),
-        build_describe_case(name="Invalid metric name", metric_name=length_over_255),
-        build_describe_case(
-            name="Invalid metric namespace", metric_namespace=length_over_255
-        ),
-    ]
-
-    for test_case in test_cases:
-        with pytest.raises(ClientError) as exc:
-            conn.describe_metric_filters(**test_case["input"])
-        response = exc.value.response
-        assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
-        assert response["Error"]["Code"] == "InvalidParameterException"
-
-
-@mock_aws
-def test_describe_metric_filters_multiple_happy():
-    conn = boto3.client("logs", "us-west-2")
-
-    response = put_metric_filter(conn, 1)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-    response = put_metric_filter(conn, 2)
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-    response = conn.describe_metric_filters(
-        filterNamePrefix="filter", logGroupName="logGroupName1"
-    )
-    assert response["metricFilters"][0]["filterName"] == "filterName1"
-
-    response = conn.describe_metric_filters(filterNamePrefix="filter")
-    assert response["metricFilters"][0]["filterName"] == "filterName1"
-
-    response = conn.describe_metric_filters(logGroupName="logGroupName1")
-    assert response["metricFilters"][0]["filterName"] == "filterName1"
-
-
-@mock_aws
-def test_delete_metric_filter():
-    client = boto3.client("logs", "us-west-2")
-
-    lg_name = "/hello-world/my-cool-endpoint"
-    client.create_log_group(logGroupName=lg_name)
-    client.put_metric_filter(
-        logGroupName=lg_name,
-        filterName="my-cool-filter",
-        filterPattern="{ $.val = * }",
-        metricTransformations=[
+delivery_destination_policy = json.dumps(
+    {
+        "Version": "2012-10-17",
+        "Statement": [
             {
-                "metricName": "my-metric",
-                "metricNamespace": "my-namespace",
-                "metricValue": "$.value",
+                "Sid": "AllowLogDeliveryActions",
+                "Effect": "Allow",
+                "Principal": {"AWS": "arn:aws:iam::123456789012:root"},
+                "Action": "logs:CreateDelivery",
+                "Resource": [
+                    f"arn:aws:logs:{TEST_REGION}:123456789012:delivery-source:*",
+                    f"arn:aws:logs:{TEST_REGION}:123456789012:delivery:*",
+                    f"arn:aws:logs:{TEST_REGION}:123456789012:delivery-destination:*",
+                ],
             }
         ],
-    )
+    }
+)
 
-    response = client.delete_metric_filter(
-        filterName="filterName", logGroupName=lg_name
-    )
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    response = client.describe_metric_filters(
-        filterNamePrefix="filter", logGroupName="logGroupName2"
-    )
-    assert response["metricFilters"] == []
+@pytest.fixture(name="log_group_name")
+def create_log_group():
+    if allow_aws_request():
+        yield from _create_log_group()
+    else:
+        with mock_aws():
+            yield from _create_log_group()
+
+
+def _create_log_group():
+    conn = boto3.client("logs", TEST_REGION)
+    log_group_name = f"test_log_group_{str(uuid4())[0:6]}"
+    conn.create_log_group(logGroupName=log_group_name)
+    yield log_group_name
+    conn.delete_log_group(logGroupName=log_group_name)
 
 
 @mock_aws
-@pytest.mark.parametrize(
-    "filter_name, failing_constraint",
-    [
-        (
-            "X" * 513,
-            "Minimum length of 1. Maximum length of 512.",
-        ),  # filterName too long
-        ("x:x", "Must match pattern"),  # invalid filterName pattern
-    ],
-)
-def test_delete_metric_filter_invalid_filter_name(filter_name, failing_constraint):
+def test_destinations_no_prefix():
     conn = boto3.client("logs", "us-west-2")
-    with pytest.raises(ClientError) as exc:
-        conn.delete_metric_filter(filterName=filter_name, logGroupName="valid")
-    response = exc.value.response
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert response["Error"]["Code"] == "InvalidParameterException"
-    assert (
-        f"Value '{filter_name}' at 'filterName' failed to satisfy constraint"
-        in response["Error"]["Message"]
-    )
-    assert failing_constraint in response["Error"]["Message"]
+    destination_name = "test-destination"
+    role_arn = "arn:aws:iam::123456789012:role/my-subscription-role"
+    target_arn = "arn:aws:kinesis:us-east-1:123456789012:stream/my-kinesis-stream"
 
-
-@mock_aws
-@pytest.mark.parametrize(
-    "log_group_name, failing_constraint",
-    [
-        (
-            "X" * 513,
-            "Minimum length of 1. Maximum length of 512.",
-        ),  # logGroupName too long
-        ("x!x", "Must match pattern"),  # invalid logGroupName pattern
-    ],
-)
-def test_delete_metric_filter_invalid_log_group_name(
-    log_group_name, failing_constraint
-):
-    conn = boto3.client("logs", "us-west-2")
-    with pytest.raises(ClientError) as exc:
-        conn.delete_metric_filter(filterName="valid", logGroupName=log_group_name)
-    response = exc.value.response
-    assert response["ResponseMetadata"]["HTTPStatusCode"] == 400
-    assert response["Error"]["Code"] == "InvalidParameterException"
-    assert (
-        f"Value '{log_group_name}' at 'logGroupName' failed to satisfy constraint"
-        in response["Error"]["Message"]
+    response = conn.put_destination(
+        destinationName=destination_name,
+        targetArn=target_arn,
+        roleArn=role_arn,
+        tags={"Name": destination_name},
     )
-    assert failing_constraint in response["Error"]["Message"]
+
+    response = conn.describe_destinations()
+    assert len(response["destinations"]) == 1
 
 
 @mock_aws
@@ -342,84 +177,6 @@ def test_destinations():
 
     response = conn.delete_destination(destinationName=destination_name)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
-
-
-def put_metric_filter(conn, count=1):
-    count = str(count)
-    return conn.put_metric_filter(
-        filterName="filterName" + count,
-        filterPattern="filterPattern" + count,
-        logGroupName="logGroupName" + count,
-        metricTransformations=[
-            {
-                "defaultValue": int(count),
-                "metricName": "metricName" + count,
-                "metricNamespace": "metricNamespace" + count,
-                "metricValue": "metricValue" + count,
-            },
-        ],
-    )
-
-
-def build_put_case(
-    name,
-    filter_name="filterName",
-    filter_pattern="filterPattern",
-    log_group_name="logGroupName",
-    metric_transformations=None,
-):
-    return {
-        "name": name,
-        "input": build_put_input(
-            filter_name, filter_pattern, log_group_name, metric_transformations
-        ),
-    }
-
-
-def build_put_input(
-    filter_name, filter_pattern, log_group_name, metric_transformations
-):
-    if metric_transformations is None:
-        metric_transformations = [
-            {
-                "defaultValue": 1,
-                "metricName": "metricName",
-                "metricNamespace": "metricNamespace",
-                "metricValue": "metricValue",
-            },
-        ]
-    return {
-        "filterName": filter_name,
-        "filterPattern": filter_pattern,
-        "logGroupName": log_group_name,
-        "metricTransformations": metric_transformations,
-    }
-
-
-def build_describe_input(
-    filter_name_prefix, log_group_name, metric_name, metric_namespace
-):
-    return {
-        "filterNamePrefix": filter_name_prefix,
-        "logGroupName": log_group_name,
-        "metricName": metric_name,
-        "metricNamespace": metric_namespace,
-    }
-
-
-def build_describe_case(
-    name,
-    filter_name_prefix="filterNamePrefix",
-    log_group_name="logGroupName",
-    metric_name="metricName",
-    metric_namespace="metricNamespace",
-):
-    return {
-        "name": name,
-        "input": build_describe_input(
-            filter_name_prefix, log_group_name, metric_name, metric_namespace
-        ),
-    }
 
 
 @mock_aws
@@ -849,6 +606,82 @@ def test_get_log_events():
     assert (
         resp["nextBackwardToken"]
         == "b/00000000000000000000000000000000000000000000000000000001"
+    )
+
+
+@pytest.mark.aws_verified
+@aws_verified
+def test_arn_formats_log_group_and_stream(account_id, log_group_name):
+    client = boto3.client("logs", TEST_REGION)
+
+    # Verify that we return all LogGroup ARN's
+    group = client.describe_log_groups(logGroupNamePrefix=log_group_name)["logGroups"][
+        0
+    ]
+    assert group["logGroupName"] == log_group_name
+    assert (
+        group["arn"]
+        == f"arn:aws:logs:{TEST_REGION}:{account_id}:log-group:{log_group_name}:*"
+    )
+    assert (
+        group["logGroupArn"]
+        == f"arn:aws:logs:{TEST_REGION}:{account_id}:log-group:{log_group_name}"
+    )
+
+    client.create_log_stream(logGroupName=log_group_name, logStreamName="stream")
+
+    # Verify that LogStreams have the correct ARN
+    stream = client.describe_log_streams(logGroupName=log_group_name)["logStreams"][0]
+    assert stream["logStreamName"] == "stream"
+    assert (
+        stream["arn"]
+        == f"arn:aws:logs:{TEST_REGION}:{account_id}:log-group:{log_group_name}:log-stream:stream"
+    )
+
+    # Verify that LogStreams can be found using the logStreamIdentifier
+    stream = client.describe_log_streams(logGroupIdentifier=group["logGroupArn"])[
+        "logStreams"
+    ][0]
+    assert stream["logStreamName"] == "stream"
+
+    # We can't use the ARN, as that throws a ValidationError
+    with pytest.raises(ClientError) as exc:
+        client.describe_log_streams(logGroupIdentifier=group["arn"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == f"1 validation error detected: Value '{group['arn']}' at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
+    )
+
+
+@pytest.mark.aws_verified
+@aws_verified
+def test_get_log_events_using_arn(account_id, log_group_name):
+    client = boto3.client("logs", TEST_REGION)
+
+    group = client.describe_log_groups(logGroupNamePrefix=log_group_name)["logGroups"][
+        0
+    ]
+
+    client.create_log_stream(logGroupName=log_group_name, logStreamName="stream")
+
+    # Verify we can call this method with all variantions
+    # Note that we don't verify whether it returns anything - we just want to ensure that the parameters are valid
+    client.get_log_events(logGroupName=log_group_name, logStreamName="stream")
+    client.get_log_events(logGroupIdentifier=log_group_name, logStreamName="stream")
+    client.get_log_events(
+        logGroupIdentifier=group["logGroupArn"], logStreamName="stream"
+    )
+
+    # We can't use the ARN, as that throws a ValidationError
+    with pytest.raises(ClientError) as exc:
+        client.get_log_events(logGroupIdentifier=group["arn"], logStreamName="stream")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterException"
+    assert (
+        err["Message"]
+        == f"1 validation error detected: Value '{group['arn']}' at 'logGroupIdentifier' failed to satisfy constraint: Member must satisfy regular expression pattern: [\\w#+=/:,.@-]*"
     )
 
 
@@ -1369,3 +1202,475 @@ def test_describe_log_streams_no_prefix():
     err = ex.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
     assert err["Message"] == "Cannot order by LastEventTime with a logStreamNamePrefix."
+
+
+@mock_aws
+def test_put_delivery_destination():
+    client = boto3.client("logs", "us-east-1")
+    resp = client.put_delivery_destination(
+        name="test-delivery-destination",
+        outputFormat="json",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+        tags={"key1": "value1"},
+    )
+    delivery_destination = resp["deliveryDestination"]
+    assert delivery_destination["name"] == "test-delivery-destination"
+    assert delivery_destination["outputFormat"] == "json"
+    assert delivery_destination["deliveryDestinationConfiguration"] == {
+        "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+    }
+    assert delivery_destination["tags"] == {"key1": "value1"}
+
+    # Invalid OutputFormat
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_destination(
+            name="test-dd",
+            outputFormat="foobar",
+            deliveryDestinationConfiguration={
+                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+            },
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+    # Cannot update OutoutFormat
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_destination(
+            name="test-delivery-destination",
+            outputFormat="plain",
+            deliveryDestinationConfiguration={
+                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+            },
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+
+@mock_aws
+def test_put_delivery_destination_update():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    # Update destination resource
+    resp = client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket-2"
+        },
+    )
+    delivery_destination = resp["deliveryDestination"]
+    assert delivery_destination["deliveryDestinationConfiguration"] == {
+        "destinationResourceArn": "arn:aws:s3:::test-s3-bucket-2"
+    }
+
+
+@mock_aws
+def test_get_delivery_destination():
+    client = boto3.client("logs", "us-east-1")
+    for i in range(1, 3):
+        client.put_delivery_destination(
+            name=f"test-delivery-destination-{i}",
+            deliveryDestinationConfiguration={
+                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+            },
+        )
+    resp = client.get_delivery_destination(name="test-delivery-destination-1")
+    assert "deliveryDestination" in resp
+    assert resp["deliveryDestination"]["name"] == "test-delivery-destination-1"
+
+    # Invalid name for delivery destination
+    with pytest.raises(ClientError) as ex:
+        client.get_delivery_destination(
+            name="foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_describe_delivery_destinations():
+    client = boto3.client("logs", "us-east-1")
+    for i in range(1, 3):
+        client.put_delivery_destination(
+            name=f"test-delivery-destination-{i}",
+            deliveryDestinationConfiguration={
+                "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+            },
+        )
+    resp = client.describe_delivery_destinations()
+    assert len(resp["deliveryDestinations"]) == 2
+
+
+@mock_aws
+def test_put_delivery_destination_policy():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    resp = client.put_delivery_destination_policy(
+        deliveryDestinationName="test-delivery-destination",
+        deliveryDestinationPolicy=delivery_destination_policy,
+    )
+    assert "policy" in resp
+
+    # Invalid name for destination policy
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_destination_policy(
+            deliveryDestinationName="foobar",
+            deliveryDestinationPolicy=delivery_destination_policy,
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_get_delivery_destination_policy():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    client.put_delivery_destination_policy(
+        deliveryDestinationName="test-delivery-destination",
+        deliveryDestinationPolicy=delivery_destination_policy,
+    )
+    resp = client.get_delivery_destination_policy(
+        deliveryDestinationName="test-delivery-destination"
+    )
+    assert "deliveryDestinationPolicy" in resp["policy"]
+
+    #  Invalide name for destination policy
+    with pytest.raises(ClientError) as ex:
+        client.get_delivery_destination_policy(
+            deliveryDestinationName="foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_put_delivery_source():
+    client = boto3.client("logs", "us-east-1")
+    resp = client.put_delivery_source(
+        name="test-delivery-source",
+        resourceArn="arn:aws:cloudfront::123456789012:distribution/E1Q5F5862X9VJ5",
+        logType="ACCESS_LOGS",
+        tags={"key1": "value1"},
+    )
+    assert "deliverySource" in resp
+    assert "name" in resp["deliverySource"]
+    assert "arn" in resp["deliverySource"]
+    assert "resourceArns" in resp["deliverySource"]
+    assert "service" in resp["deliverySource"]
+    assert "logType" in resp["deliverySource"]
+    assert "tags" in resp["deliverySource"]
+
+    # Invalid resource source.
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_source(
+            name="test-ds",
+            resourceArn="arn:aws:s3:::test-s3-bucket",  # S3 cannot be a source
+            logType="ACCESS_LOGS",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+    # Invalid Log type
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_source(
+            name="test-ds",
+            resourceArn="arn:aws:cloudfront::123456789012:distribution/E1Q5F5862X9VJ5",
+            logType="EVENT_LOGS",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+
+    # Cannot update resource source with a differen resourceArn
+    with pytest.raises(ClientError) as ex:
+        client.put_delivery_source(
+            name="test-delivery-source",
+            resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
+            logType="ACCESS_LOGS",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ConflictException"
+
+
+@mock_aws
+def test_describe_delivery_sources():
+    client = boto3.client("logs", "us-east-1")
+    for i in range(1, 3):
+        client.put_delivery_source(
+            name=f"test-delivery-source-{i}",
+            resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
+            logType="ACCESS_LOGS",
+        )
+    resp = client.describe_delivery_sources()
+    assert len(resp["deliverySources"]) == 2
+
+
+@mock_aws
+def test_get_delivery_source():
+    client = boto3.client("logs", "us-east-1")
+    for i in range(1, 3):
+        client.put_delivery_source(
+            name=f"test-delivery-source-{i}",
+            resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
+            logType="ACCESS_LOGS",
+        )
+    resp = client.get_delivery_source(name="test-delivery-source-1")
+    assert "deliverySource" in resp
+    assert resp["deliverySource"]["name"] == "test-delivery-source-1"
+
+    # Invalid name for delivery source
+    with pytest.raises(ClientError) as ex:
+        client.get_delivery_source(
+            name="foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_create_delivery():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_source(
+        name="test-delivery-source",
+        resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
+        logType="ACCESS_LOGS",
+    )
+    client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    resp = client.create_delivery(
+        deliverySourceName="test-delivery-source",
+        deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
+        recordFields=[
+            "date",
+        ],
+        fieldDelimiter=",",
+        s3DeliveryConfiguration={
+            "suffixPath": "AWSLogs/123456789012/CloudFront/",
+            "enableHiveCompatiblePath": True,
+        },
+        tags={"key1": "value1"},
+    )
+    assert "delivery" in resp
+    assert "id" in resp["delivery"]
+    assert "arn" in resp["delivery"]
+    assert "deliverySourceName" in resp["delivery"]
+    assert "deliveryDestinationArn" in resp["delivery"]
+    assert "deliveryDestinationType" in resp["delivery"]
+    assert "recordFields" in resp["delivery"]
+    assert "fieldDelimiter" in resp["delivery"]
+    assert "s3DeliveryConfiguration" in resp["delivery"]
+    assert "tags" in resp["delivery"]
+
+    # Invalid delivery source
+    with pytest.raises(ClientError) as ex:
+        client.create_delivery(
+            deliverySourceName="foobar",
+            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
+        )
+    err = ex.value.response["Error"]
+
+    # Invalid Delivery destination
+    with pytest.raises(ClientError) as ex:
+        client.create_delivery(
+            deliverySourceName="test-delivery-source",
+            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:foobar",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+    # Delivery already exists
+    with pytest.raises(ClientError) as ex:
+        client.create_delivery(
+            deliverySourceName="test-delivery-source",
+            deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
+        )
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ConflictException"
+
+
+@mock_aws
+def test_describe_deliveries():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_source(
+        name="test-delivery-source",
+        resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
+        logType="ACCESS_LOGS",
+    )
+    client.put_delivery_destination(
+        name="test-delivery-destination-1",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    client.put_delivery_destination(
+        name="test-delivery-destination-2",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:firehose:us-east-1:123456789012:deliverystream/test-delivery-stream"
+        },
+    )
+    for i in range(1, 3):
+        client.create_delivery(
+            deliverySourceName="test-delivery-source",
+            deliveryDestinationArn=f"arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination-{i}",
+        )
+    resp = client.describe_deliveries()
+    assert len(resp["deliveries"]) == 2
+
+
+@mock_aws
+def test_get_delivery():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_source(
+        name="test-delivery-source",
+        resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
+        logType="ACCESS_LOGS",
+    )
+    client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    delivery = client.create_delivery(
+        deliverySourceName="test-delivery-source",
+        deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
+    )
+    delivery_id = delivery["delivery"]["id"]
+    resp = client.get_delivery(id=delivery_id)
+    assert "delivery" in resp
+    assert resp["delivery"]["id"] == delivery_id
+
+    # Invalid delivery id
+    with pytest.raises(ClientError) as ex:
+        client.get_delivery(id="foobar")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_delete_delivery():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_source(
+        name="test-delivery-source",
+        resourceArn="arn:aws:cloudfront::123456789012:distribution/E19DL18TOXN9JU",
+        logType="ACCESS_LOGS",
+    )
+    client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    delivery = client.create_delivery(
+        deliverySourceName="test-delivery-source",
+        deliveryDestinationArn="arn:aws:logs:us-east-1:123456789012:delivery-destination:test-delivery-destination",
+    )
+    delivery_id = delivery["delivery"]["id"]
+    resp = client.describe_deliveries()
+    assert len(resp["deliveries"]) == 1
+    client.delete_delivery(id=delivery_id)
+    resp = client.describe_deliveries()
+    assert len(resp["deliveries"]) == 0
+
+    # invalid delivery id
+    with pytest.raises(ClientError) as ex:
+        client.delete_delivery(id="foobar")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_delete_delivery_destination():
+    client = boto3.client("logs", "us-east-1")
+    resp = client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    delivery_destination = resp["deliveryDestination"]
+    resp = client.describe_delivery_destinations()
+    assert len(resp["deliveryDestinations"]) == 1
+    resp = client.delete_delivery_destination(name=delivery_destination["name"])
+    resp = client.describe_delivery_destinations()
+    assert len(resp["deliveryDestinations"]) == 0
+
+    # Invalid name for delivery destination
+    with pytest.raises(ClientError) as ex:
+        client.delete_delivery_destination(name="foobar")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_delete_delivery_destination_policy():
+    client = boto3.client("logs", "us-east-1")
+    client.put_delivery_destination(
+        name="test-delivery-destination",
+        deliveryDestinationConfiguration={
+            "destinationResourceArn": "arn:aws:s3:::test-s3-bucket"
+        },
+    )
+    client.put_delivery_destination_policy(
+        deliveryDestinationName="test-delivery-destination",
+        deliveryDestinationPolicy=delivery_destination_policy,
+    )
+    resp = client.get_delivery_destination_policy(
+        deliveryDestinationName="test-delivery-destination"
+    )
+    policy = resp["policy"]
+    assert "deliveryDestinationPolicy" in policy
+    client.delete_delivery_destination_policy(
+        deliveryDestinationName="test-delivery-destination"
+    )
+    resp = client.get_delivery_destination_policy(
+        deliveryDestinationName="test-delivery-destination"
+    )
+    assert resp["policy"] == {}
+
+    # Invalid name for delivery destination policy
+    with pytest.raises(ClientError) as ex:
+        client.delete_delivery_destination_policy(deliveryDestinationName="test")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_delete_delivery_source():
+    client = boto3.client("logs", "us-east-1")
+    resp = client.put_delivery_source(
+        name="test-delivery-source",
+        resourceArn="arn:aws:cloudfront::123456789012:distribution/E1Q5F5862X9VJ5",
+        logType="ACCESS_LOGS",
+    )
+    delivery_source = resp["deliverySource"]
+    resp = client.describe_delivery_sources()
+    assert len(resp["deliverySources"]) == 1
+    client.delete_delivery_source(name=delivery_source["name"])
+    resp = client.describe_delivery_sources()
+    assert len(resp["deliverySources"]) == 0
+
+    # Invalid name for delivery source
+    with pytest.raises(ClientError) as ex:
+        client.delete_delivery_source(name="foobar")
+    err = ex.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"

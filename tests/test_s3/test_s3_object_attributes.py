@@ -8,7 +8,7 @@ from moto import mock_aws
 
 @mock_aws
 class TestS3ObjectAttributes:
-    def setup_method(self, *args) -> None:  # pylint: disable=unused-argument
+    def setup_method(self, *args) -> None:
         self.bucket_name = str(uuid4())
         self.s3_resource = boto3.resource("s3", region_name="us-east-1")
         self.client = boto3.client("s3", region_name="us-east-1")
@@ -68,9 +68,6 @@ class TestS3ObjectAttributes:
             Bucket=self.bucket_name, Key="mykey", ObjectAttributes=["Checksum"]
         )
         resp.pop("ResponseMetadata")
-
-        # Checksum is not returned, because it's not set
-        assert set(resp.keys()) == {"LastModified"}
 
         # Retrieve checksum from key that was created with CRC32
         resp = self.client.get_object_attributes(

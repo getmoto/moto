@@ -150,7 +150,7 @@ def test_create_custom_lambda_resource__verify_manual_request():
     )
     stack_id = stack["StackId"]
     stack = cf.describe_stacks(StackName=stack_id)["Stacks"][0]
-    assert stack["Outputs"] == []
+    assert "Outputs" not in stack
     assert stack["StackStatus"] == "CREATE_IN_PROGRESS"
 
     callback_url = f"http://cloudformation.{region_name}.amazonaws.com/cloudformation_{region_name}/cfnresponse?stack={stack_id}"
@@ -165,7 +165,11 @@ def test_create_custom_lambda_resource__verify_manual_request():
     stack = cf.describe_stacks(StackName=stack_id)["Stacks"][0]
     assert stack["StackStatus"] == "CREATE_COMPLETE"
     assert stack["Outputs"] == [
-        {"OutputKey": "infokey", "OutputValue": "resultfromthirdpartysystem"}
+        {
+            "OutputKey": "infokey",
+            "OutputValue": "resultfromthirdpartysystem",
+            "Description": "A very important value",
+        },
     ]
 
     # AWSlambda will not have logged anything

@@ -73,9 +73,9 @@ def test_creating_bucket__invokes_lambda():
     log_group = f"/aws/lambda/{bucket_name}"
     msg_showed_up, all_logs = wait_for_log_msg(expected_msg, log_group, wait_time=5)
 
-    assert (
-        msg_showed_up
-    ), "Lambda was not invoked after creating an S3 bucket. All logs: " + str(all_logs)
+    assert msg_showed_up, (
+        "Lambda was not invoked after creating an S3 bucket. All logs: " + str(all_logs)
+    )
 
     event = json.loads(list([line for line in all_logs if expected_msg in line])[-1])
 

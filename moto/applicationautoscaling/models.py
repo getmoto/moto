@@ -1,14 +1,19 @@
+import re
 import time
 from collections import OrderedDict
 from enum import Enum, unique
-from typing import Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.ecs import ecs_backends
 from moto.moto_api._internal import mock_random
+from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 
 from .exceptions import AWSValidationException
+
+if TYPE_CHECKING:
+    from moto.cloudwatch.models import Alarm
 
 
 @unique
@@ -73,19 +78,9 @@ class ApplicationAutoscalingBackend(BaseBackend):
         self.policies: Dict[str, FakeApplicationAutoscalingPolicy] = {}
         self.scheduled_actions: List[FakeScheduledAction] = list()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "application-autoscaling"
-        )
-
     def describe_scalable_targets(
         self, namespace: str, r_ids: Union[None, List[str]], dimension: Union[None, str]
     ) -> List["FakeScalableTarget"]:
-        """Describe scalable targets."""
         if r_ids is None:
             r_ids = []
         targets = self._flatten_scalable_targets(namespace)
@@ -114,7 +109,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
         role_arn: str,
         suspended_state: str,
     ) -> "FakeScalableTarget":
-        """Registers or updates a scalable target."""
         _ = _target_params_are_valid(namespace, r_id, dimension)
         if namespace == ServiceNamespaceValueSet.ECS.value:
             _ = self._ecs_service_exists_for_target(r_id)
@@ -160,7 +154,6 @@ class ApplicationAutoscalingBackend(BaseBackend):
     def deregister_scalable_target(
         self, namespace: str, r_id: str, dimension: str
     ) -> None:
-        """Registers or updates a scalable target."""
         if self._scalable_target_exists(r_id, dimension):
             del self.targets[dimension][r_id]
         else:
@@ -174,7 +167,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         service_namespace: str,
         resource_id: str,
         scalable_dimension: str,
-        policy_body: str,
+        policy_body: Dict[str, Any],
         policy_type: Optional[None],
     ) -> "FakeApplicationAutoscalingPolicy":
         policy_key = FakeApplicationAutoscalingPolicy.formulate_key(
@@ -247,6 +240,8 @@ class ApplicationAutoscalingBackend(BaseBackend):
             service_namespace, resource_id, scalable_dimension, policy_name
         )
         if policy_key in self.policies:
+            policy = self.policies[policy_key]
+            policy.delete_alarms(self.account_id, self.region_name)
             del self.policies[policy_key]
         else:
             raise AWSValidationException(
@@ -313,6 +308,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 a
                 for a in self.scheduled_actions
                 if a.service_namespace == service_namespace
+                and a.scheduled_action_name == scheduled_action_name
                 and a.resource_id == resource_id
                 and a.scalable_dimension == scalable_dimension
             ),
@@ -385,7 +381,7 @@ def _get_resource_type_from_resource_id(resource_id: str) -> str:
     #    - ...except for sagemaker endpoints, dynamodb GSIs and keyspaces tables, where it's the third.
     #  - Comprehend uses an arn, with the resource type being the last element.
 
-    if resource_id.startswith("arn:aws:comprehend"):
+    if re.match(ARN_PARTITION_REGEX + ":comprehend", resource_id):
         resource_id = resource_id.split(":")[-1]
     resource_split = (
         resource_id.split("/") if "/" in resource_id else resource_id.split(":")
@@ -422,6 +418,7 @@ class FakeScalableTarget(BaseModel):
         self.role_arn = role_arn
         self.suspended_state = suspended_state
         self.creation_time = time.time()
+        self.arn = f"arn:{get_partition(backend.region_name)}:application-autoscaling:{backend.region_name}:{backend.account_id}:scalable-target/{mock_random.get_random_string(length=36, lower_case=True)}"
 
     def update(
         self,
@@ -447,7 +444,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         resource_id: str,
         scalable_dimension: str,
         policy_type: Optional[str],
-        policy_body: str,
+        policy_body: Dict[str, Any],
     ) -> None:
         self.step_scaling_policy_configuration = None
         self.target_tracking_scaling_policy_configuration = None
@@ -460,7 +457,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
             self.target_tracking_scaling_policy_configuration = policy_body
         else:
             raise AWSValidationException(
-                f"Unknown policy type {policy_type} specified."
+                f"1 validation error detected: Value '{policy_type}' at 'policyType' failed to satisfy constraint: Member must satisfy enum value set: [PredictiveScaling, StepScaling, TargetTrackingScaling]"
             )
 
         self._policy_body = policy_body
@@ -470,8 +467,153 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         self.policy_name = policy_name
         self.policy_type = policy_type
         self._guid = mock_random.uuid4()
-        self.policy_arn = f"arn:aws:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
+        self.policy_arn = f"arn:{get_partition(region_name)}:autoscaling:{region_name}:{account_id}:scalingPolicy:{self._guid}:resource/{self.service_namespace}/{self.resource_id}:policyName/{self.policy_name}"
         self.creation_time = time.time()
+        self.alarms: List["Alarm"] = []
+
+        self.account_id = account_id
+        self.region_name = region_name
+
+        self.create_alarms()
+
+    def create_alarms(self) -> None:
+        if self.policy_type == "TargetTrackingScaling":
+            if self.service_namespace == "dynamodb":
+                self.alarms.extend(self._generate_dynamodb_alarms())
+            if self.service_namespace == "ecs":
+                self.alarms.extend(self._generate_ecs_alarms())
+
+    def _generate_dynamodb_alarms(self) -> List["Alarm"]:
+        from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
+
+        cloudwatch: CloudWatchBackend = cloudwatch_backends[self.account_id][
+            self.region_name
+        ]
+        alarms = []
+        table_name = self.resource_id.split("/")[-1]
+        alarm_action = f"{self.policy_arn}:createdBy/{mock_random.uuid4()}"
+        alarm1 = cloudwatch.put_metric_alarm(
+            name=f"TargetTracking-table/{table_name}-AlarmHigh-{mock_random.uuid4()}",
+            namespace="AWS/DynamoDB",
+            metric_name="ConsumedReadCapacityUnits",
+            metric_data_queries=[],
+            comparison_operator="GreaterThanThreshold",
+            evaluation_periods=2,
+            period=60,
+            threshold=42.0,
+            statistic="Sum",
+            description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
+            dimensions=[{"name": "TableName", "value": table_name}],
+            alarm_actions=[alarm_action],
+        )
+        alarms.append(alarm1)
+        alarm2 = cloudwatch.put_metric_alarm(
+            name=f"TargetTracking-table/{table_name}-AlarmLow-{mock_random.uuid4()}",
+            namespace="AWS/DynamoDB",
+            metric_name="ConsumedReadCapacityUnits",
+            metric_data_queries=[],
+            comparison_operator="LessThanThreshold",
+            evaluation_periods=15,
+            period=60,
+            threshold=30.0,
+            statistic="Sum",
+            description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
+            dimensions=[{"name": "TableName", "value": table_name}],
+            alarm_actions=[alarm_action],
+        )
+        alarms.append(alarm2)
+        alarm3 = cloudwatch.put_metric_alarm(
+            name=f"TargetTracking-table/{table_name}-ProvisionedCapacityHigh-{mock_random.uuid4()}",
+            namespace="AWS/DynamoDB",
+            metric_name="ProvisionedReadCapacityUnits",
+            metric_data_queries=[],
+            comparison_operator="GreaterThanThreshold",
+            evaluation_periods=2,
+            period=300,
+            threshold=1.0,
+            statistic="Average",
+            description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
+            dimensions=[{"name": "TableName", "value": table_name}],
+            alarm_actions=[alarm_action],
+        )
+        alarms.append(alarm3)
+        alarm4 = cloudwatch.put_metric_alarm(
+            name=f"TargetTracking-table/{table_name}-ProvisionedCapacityLow-{mock_random.uuid4()}",
+            namespace="AWS/DynamoDB",
+            metric_name="ProvisionedReadCapacityUnits",
+            metric_data_queries=[],
+            comparison_operator="LessThanThreshold",
+            evaluation_periods=3,
+            period=300,
+            threshold=1.0,
+            statistic="Average",
+            description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
+            dimensions=[{"name": "TableName", "value": table_name}],
+            alarm_actions=[alarm_action],
+        )
+        alarms.append(alarm4)
+        return alarms
+
+    def _generate_ecs_alarms(self) -> List["Alarm"]:
+        from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
+
+        cloudwatch: CloudWatchBackend = cloudwatch_backends[self.account_id][
+            self.region_name
+        ]
+        alarms: List["Alarm"] = []
+        alarm_action = f"{self.policy_arn}:createdBy/{mock_random.uuid4()}"
+        config = self.target_tracking_scaling_policy_configuration or {}
+        metric_spec = config.get("PredefinedMetricSpecification", {})
+        if "Memory" in metric_spec.get("PredefinedMetricType", ""):
+            metric_name = "MemoryUtilization"
+        else:
+            metric_name = "CPUUtilization"
+        _, cluster_name, service_name = self.resource_id.split("/")
+        alarm1 = cloudwatch.put_metric_alarm(
+            name=f"TargetTracking-{self.resource_id}-AlarmHigh-{mock_random.uuid4()}",
+            namespace="AWS/ECS",
+            metric_name=metric_name,
+            metric_data_queries=[],
+            comparison_operator="GreaterThanThreshold",
+            evaluation_periods=3,
+            period=60,
+            threshold=6,
+            unit="Percent",
+            statistic="Average",
+            description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
+            dimensions=[
+                {"name": "ClusterName", "value": cluster_name},
+                {"name": "ServiceName", "value": service_name},
+            ],
+            alarm_actions=[alarm_action],
+        )
+        alarms.append(alarm1)
+        alarm2 = cloudwatch.put_metric_alarm(
+            name=f"TargetTracking-{self.resource_id}-AlarmLow-{mock_random.uuid4()}",
+            namespace="AWS/ECS",
+            metric_name=metric_name,
+            metric_data_queries=[],
+            comparison_operator="LessThanThreshold",
+            evaluation_periods=15,
+            period=60,
+            threshold=6,
+            unit="Percent",
+            statistic="Average",
+            description=f"DO NOT EDIT OR DELETE. For TargetTrackingScaling policy {alarm_action}",
+            dimensions=[
+                {"name": "ClusterName", "value": cluster_name},
+                {"name": "ServiceName", "value": service_name},
+            ],
+            alarm_actions=[alarm_action],
+        )
+        alarms.append(alarm2)
+        return alarms
+
+    def delete_alarms(self, account_id: str, region_name: str) -> None:
+        from moto.cloudwatch.models import CloudWatchBackend, cloudwatch_backends
+
+        cloudwatch: CloudWatchBackend = cloudwatch_backends[account_id][region_name]
+        cloudwatch.delete_alarms([a.name for a in self.alarms])
 
     @staticmethod
     def formulate_key(
@@ -500,7 +642,7 @@ class FakeScheduledAction(BaseModel):
         account_id: str,
         region: str,
     ) -> None:
-        self.arn = f"arn:aws:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}:scheduledActionName/{scheduled_action_name}"
+        self.arn = f"arn:{get_partition(region)}:autoscaling:{region}:{account_id}:scheduledAction:{service_namespace}/{resource_id}:scheduledActionName/{scheduled_action_name}"
         self.service_namespace = service_namespace
         self.schedule = schedule
         self.timezone = timezone
@@ -533,4 +675,6 @@ class FakeScheduledAction(BaseModel):
         self.end_time = end_time
 
 
-applicationautoscaling_backends = BackendDict(ApplicationAutoscalingBackend, "ec2")
+applicationautoscaling_backends = BackendDict(
+    ApplicationAutoscalingBackend, "application-autoscaling"
+)

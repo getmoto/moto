@@ -64,10 +64,13 @@ class CertificateCreator:
             # All requests that match this wildcard certificate will reuse it
 
             wildcard_name = f"*.{'.'.join(full_name.split('.')[1:])}"
-            server_csr = f"{self.certdir.rstrip('/')}/{wildcard_name}.csr"
+            # In Linux we could use asterisk as part of the filename, but not on Windows
+            # So we need to pick a different (unique) filename that works everywhere
+            wildcard_filename = f"_.{'.'.join(full_name.split('.')[1:])}"
+            server_csr = f"{self.certdir.rstrip('/')}/{wildcard_filename}.csr"
 
             # Verify if the certificate already exists
-            certpath = f"{self.certdir.rstrip('/')}/{wildcard_name}.crt"
+            certpath = f"{self.certdir.rstrip('/')}/{wildcard_filename}.crt"
             if not os.path.isfile(certpath):
                 # Create a Config-file that contains the wildcard-name
                 with open(f"{self.certdir.rstrip('/')}/req.conf.tmpl", "r") as f:
@@ -77,12 +80,12 @@ class CertificateCreator:
                     "{{wildcard_name}}", wildcard_name
                 )
                 config_template_name = (
-                    f"{self.certdir.rstrip('/')}/{wildcard_name}.conf"
+                    f"{self.certdir.rstrip('/')}/{wildcard_filename}.conf"
                 )
                 with open(config_template_name, "w") as f:
                     f.write(config_template)
 
-                # Create an Certificate Signing Request
+                # Create a Certificate Signing Request
                 #
                 subject = f"/CN={full_name}"[0:64]
                 commands = [

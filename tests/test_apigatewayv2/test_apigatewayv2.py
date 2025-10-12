@@ -1,4 +1,5 @@
 """Unit tests for apigatewayv2-supported APIs."""
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -138,6 +139,17 @@ def test_get_api_unknown():
     err = exc.value.response["Error"]
     assert err["Code"] == "NotFoundException"
     assert err["Message"] == "Invalid API identifier specified unknown"
+
+
+@mock_aws
+def test_get_api_without_id():
+    client = boto3.client("apigatewayv2", region_name="ap-southeast-1")
+    resp = client.get_api(ApiId="")
+
+    assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+
+    del resp["ResponseMetadata"]
+    assert resp == {}
 
 
 @mock_aws

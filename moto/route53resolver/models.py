@@ -1,4 +1,5 @@
 """Route53ResolverBackend class with methods for supported APIs."""
+
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -23,11 +24,12 @@ from moto.route53resolver.utils import PAGINATION_MODEL
 from moto.route53resolver.validations import validate_args
 from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 CAMEL_TO_SNAKE_PATTERN = re.compile(r"(?<!^)(?=[A-Z])")
 
 
-class ResolverRuleAssociation(BaseModel):  # pylint: disable=too-few-public-methods
+class ResolverRuleAssociation(BaseModel):
     """Representation of a fake Route53 Resolver Rules Association."""
 
     MAX_TAGS_PER_RESOLVER_ENDPOINT = 200
@@ -49,14 +51,14 @@ class ResolverRuleAssociation(BaseModel):  # pylint: disable=too-few-public-meth
         resolver_rule_id: str,
         vpc_id: str,
         name: str,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.region = region
         self.resolver_rule_id = resolver_rule_id
         self.name = name
         self.vpc_id = vpc_id
 
         # Constructed members.
-        self.id = resolver_rule_association_id  # pylint: disable=invalid-name
+        self.id = resolver_rule_association_id
         self.status = "COMPLETE"
         self.status_message = ""
 
@@ -72,7 +74,7 @@ class ResolverRuleAssociation(BaseModel):  # pylint: disable=too-few-public-meth
         }
 
 
-class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
+class ResolverRule(BaseModel):
     """Representation of a fake Route53 Resolver Rule."""
 
     MAX_TAGS_PER_RESOLVER_RULE = 200
@@ -100,7 +102,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         target_ips: Optional[List[Dict[str, Any]]],
         resolver_endpoint_id: Optional[str],
         name: str,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.account_id = account_id
         self.region = region
         self.creator_request_id = creator_request_id
@@ -112,7 +114,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.resolver_endpoint_id = resolver_endpoint_id
 
         # Constructed members.
-        self.id = rule_id  # pylint: disable=invalid-name
+        self.id = rule_id
         self.status = "COMPLETE"
 
         # The status message should contain a trace Id which is the value
@@ -122,14 +124,13 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
             f"[Trace id: 1-{mock_random.get_random_hex(8)}-{mock_random.get_random_hex(24)}] "
             f"Successfully created Resolver Rule"
         )
-        self.share_status = "SHARED_WITH_ME"
+        self.share_status = "NOT_SHARED"
         self.creation_time = datetime.now(timezone.utc).isoformat()
         self.modification_time = datetime.now(timezone.utc).isoformat()
 
     @property
     def arn(self) -> str:
-        """Return ARN for this resolver rule."""
-        return f"arn:aws:route53resolver:{self.region}:{self.account_id}:resolver-rule/{self.id}"
+        return f"arn:{get_partition(self.region)}:route53resolver:{self.region}:{self.account_id}:resolver-rule/{self.id}"
 
     def description(self) -> Dict[str, Any]:
         """Return a dictionary of relevant info for this resolver rule."""
@@ -151,7 +152,7 @@ class ResolverRule(BaseModel):  # pylint: disable=too-many-instance-attributes
         }
 
 
-class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attributes
+class ResolverEndpoint(BaseModel):
     """Representation of a fake Route53 Resolver Endpoint."""
 
     MAX_TAGS_PER_RESOLVER_ENDPOINT = 200
@@ -179,7 +180,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         direction: str,
         ip_addresses: List[Dict[str, Any]],
         name: str,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.account_id = account_id
         self.region = region
         self.creator_request_id = creator_request_id
@@ -190,7 +191,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         self.ec2_backend = ec2_backends[self.account_id][self.region]
 
         # Constructed members.
-        self.id = endpoint_id  # pylint: disable=invalid-name
+        self.id = endpoint_id
 
         # NOTE; This currently doesn't reflect IPv6 addresses.
         self.subnets = self._build_subnet_info()
@@ -212,8 +213,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
 
     @property
     def arn(self) -> str:
-        """Return ARN for this resolver endpoint."""
-        return f"arn:aws:route53resolver:{self.region}:{self.account_id}:resolver-endpoint/{self.id}"
+        return f"arn:{get_partition(self.region)}:route53resolver:{self.region}:{self.account_id}:resolver-endpoint/{self.id}"
 
     def _vpc_id_from_subnet(self) -> str:
         """Return VPC Id associated with the subnet.
@@ -233,9 +233,9 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
         """
         subnets: Dict[str, Any] = defaultdict(dict)
         for entry in self.ip_addresses:
-            subnets[entry["SubnetId"]][
-                entry["Ip"]
-            ] = f"rni-{mock_random.get_random_hex(17)}"
+            subnets[entry["SubnetId"]][entry["Ip"]] = (
+                f"rni-{mock_random.get_random_hex(17)}"
+            )
         return subnets
 
     def create_eni(self) -> List[str]:
@@ -278,7 +278,7 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             "ModificationTime": self.modification_time,
         }
 
-    def ip_descriptions(self) -> List[Dict[str, Any]]:
+    def ip_descriptions(self) -> List[Dict[str, str]]:
         """Return a list of dicts describing resolver endpoint IP addresses."""
         description = []
         for subnet_id, ip_info in self.subnets.items():
@@ -342,6 +342,86 @@ class ResolverEndpoint(BaseModel):  # pylint: disable=too-many-instance-attribut
             self.ip_address_count = len(self.ip_addresses)
 
 
+class ResolverQueryLogConfig(BaseModel):
+    """Representation of a fake Route53 Resolver Query Log Config."""
+
+    MAX_TAGS_PER_QUERY_LOG_CONFIG = 50
+    MAX_QUERY_LOG_CONFIGS_PER_REGION = 100
+
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        config_id: str,
+        name: str,
+        destination_arn: str,
+        creator_request_id: str,
+    ):
+        self.account_id = account_id
+        self.region = region
+        self.id = config_id
+        self.name = name
+        self.destination_arn = destination_arn
+        self.creator_request_id = creator_request_id
+
+        self.status = "CREATED"
+        self.share_status = "NOT_SHARED"
+        self.association_count = 0
+        self.creation_time = datetime.now(timezone.utc).isoformat()
+
+    @property
+    def arn(self) -> str:
+        return f"arn:{get_partition(self.region)}:route53resolver:{self.region}:{self.account_id}:resolver-query-log-config/{self.id}"
+
+    def description(self) -> Dict[str, Any]:
+        """Return a dictionary of relevant info for this query log config."""
+        return {
+            "Id": self.id,
+            "OwnerId": self.account_id,
+            "Status": self.status,
+            "ShareStatus": self.share_status,
+            "AssociationCount": self.association_count,
+            "Arn": self.arn,
+            "Name": self.name,
+            "DestinationArn": self.destination_arn,
+            "CreatorRequestId": self.creator_request_id,
+            "CreationTime": self.creation_time,
+        }
+
+
+class ResolverQueryLogConfigAssociation(BaseModel):
+    """Representation of an association between a VPC and a query logging configuration."""
+
+    def __init__(
+        self,
+        region: str,
+        association_id: str,
+        resolver_query_log_config_id: str,
+        resource_id: str,
+    ):
+        self.region = region
+        self.id = association_id
+        self.resolver_query_log_config_id = resolver_query_log_config_id
+        self.resource_id = resource_id
+
+        self.status = "ACTIVE"
+        self.error = "NONE"
+        self.error_message = ""
+        self.creation_time = datetime.now(timezone.utc).isoformat()
+
+    def description(self) -> Dict[str, Any]:
+        """Return a dictionary of relevant info for this query log config association."""
+        return {
+            "Id": self.id,
+            "ResolverQueryLogConfigId": self.resolver_query_log_config_id,
+            "ResourceId": self.resource_id,
+            "Status": self.status,
+            "Error": self.error,
+            "ErrorMessage": self.error_message,
+            "CreationTime": self.creation_time,
+        }
+
+
 class Route53ResolverBackend(BaseBackend):
     """Implementation of Route53Resolver APIs."""
 
@@ -356,6 +436,12 @@ class Route53ResolverBackend(BaseBackend):
         self.resolver_rule_associations: Dict[
             str, ResolverRuleAssociation
         ] = {}  # Key is resolver_rule_association_id)
+        self.resolver_query_log_configs: Dict[
+            str, ResolverQueryLogConfig
+        ] = {}  # Key is resolver_query_log_config_id
+        self.resolver_query_log_config_associations: Dict[
+            str, ResolverQueryLogConfigAssociation
+        ] = {}  # Key is resolver_query_log_config_association_id
         self.tagger = TaggingService()
 
         self.ec2_backend = ec2_backends[self.account_id][self.region_name]
@@ -482,7 +568,7 @@ class Route53ResolverBackend(BaseBackend):
         direction: str,
         ip_addresses: List[Dict[str, Any]],
         tags: List[Dict[str, str]],
-    ) -> ResolverEndpoint:  # pylint: disable=too-many-arguments
+    ) -> ResolverEndpoint:
         """
         Return description for a newly created resolver endpoint.
 
@@ -554,7 +640,7 @@ class Route53ResolverBackend(BaseBackend):
         target_ips: List[Dict[str, Any]],
         resolver_endpoint_id: str,
         tags: List[Dict[str, str]],
-    ) -> ResolverRule:  # pylint: disable=too-many-arguments
+    ) -> ResolverRule:
         """Return description for a newly created resolver rule."""
         validate_args(
             [
@@ -691,8 +777,7 @@ class Route53ResolverBackend(BaseBackend):
         ]
         if associations:
             raise ResourceInUseException(
-                "Please disassociate this resolver rule from VPC first "
-                "before deleting"
+                "Please disassociate this resolver rule from VPC first before deleting"
             )
 
         self.tagger.delete_all_tags_for_resource(resolver_rule_id)
@@ -756,7 +841,7 @@ class Route53ResolverBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_resolver_endpoint_ip_addresses(
         self, resolver_endpoint_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Dict[str, str]]:
         self._validate_resolver_endpoint_id(resolver_endpoint_id)
         endpoint = self.resolver_endpoints[resolver_endpoint_id]
         return endpoint.ip_descriptions()
@@ -928,6 +1013,109 @@ class Route53ResolverBackend(BaseBackend):
 
         resolver_endpoint.disassociate_ip_address(value)
         return resolver_endpoint
+
+    def create_resolver_query_log_config(
+        self,
+        name: str,
+        destination_arn: str,
+        creator_request_id: str,
+        tags: Optional[List[Dict[str, str]]] = None,
+    ) -> ResolverQueryLogConfig:
+        if tags:
+            errmsg = self.tagger.validate_tags(
+                tags, limit=ResolverQueryLogConfig.MAX_TAGS_PER_QUERY_LOG_CONFIG
+            )
+            if errmsg:
+                raise TagValidationException(errmsg)
+
+        # Checks if we have reached the limit for the number of query log configs
+        configs = [
+            x
+            for x in self.resolver_query_log_configs.values()
+            if x.region == self.region_name
+        ]
+        if len(configs) >= ResolverQueryLogConfig.MAX_QUERY_LOG_CONFIGS_PER_REGION:
+            raise LimitExceededException(
+                f"Account '{self.account_id}' has exceeded 'max-query-log-configs'"
+            )
+
+        if creator_request_id in [
+            x.creator_request_id for x in self.resolver_query_log_configs.values()
+        ]:
+            raise ResourceExistsException(
+                f"Resolver query log config with creator request ID "
+                f"'{creator_request_id}' already exists"
+            )
+
+        config_id = f"rslvr-qlc-{mock_random.get_random_hex(17)}"
+
+        query_log_config = ResolverQueryLogConfig(
+            account_id=self.account_id,
+            region=self.region_name,
+            config_id=config_id,
+            name=name,
+            destination_arn=destination_arn,
+            creator_request_id=creator_request_id,
+        )
+
+        self.resolver_query_log_configs[config_id] = query_log_config
+        if tags:
+            self.tagger.tag_resource(query_log_config.arn, tags)
+
+        return query_log_config
+
+    def associate_resolver_query_log_config(
+        self, resolver_query_log_config_id: str, resource_id: str
+    ) -> ResolverQueryLogConfigAssociation:
+        """Associate a VPC with a resolver query log config."""
+
+        if resolver_query_log_config_id not in self.resolver_query_log_configs:
+            raise ResourceNotFoundException(
+                f"Resolver query log config with ID '{resolver_query_log_config_id}' does not exist"
+            )
+
+        vpcs = self.ec2_backend.describe_vpcs()
+        if resource_id not in [x.id for x in vpcs]:
+            raise InvalidParameterException(
+                f"The vpc ID '{resource_id}' does not exist"
+            )
+
+        for association in self.resolver_query_log_config_associations.values():
+            if (
+                association.resolver_query_log_config_id == resolver_query_log_config_id
+                and association.resource_id == resource_id
+            ):
+                raise ResourceExistsException(
+                    f"Resolver query log config '{resolver_query_log_config_id}' is already associated with VPC '{resource_id}'"
+                )
+
+        association_id = f"rslvr-qla-{mock_random.get_random_hex(17)}"
+
+        association = ResolverQueryLogConfigAssociation(
+            region=self.region_name,
+            association_id=association_id,
+            resolver_query_log_config_id=resolver_query_log_config_id,
+            resource_id=resource_id,
+        )
+
+        query_log_config = self.resolver_query_log_configs[resolver_query_log_config_id]
+        query_log_config.association_count += 1
+
+        self.resolver_query_log_config_associations[association_id] = association
+
+        return association
+
+    def get_resolver_query_log_config(
+        self, resolver_query_log_config_id: str
+    ) -> ResolverQueryLogConfig:
+        """Get information about a resolver query log config."""
+
+        if resolver_query_log_config_id not in self.resolver_query_log_configs:
+            raise ResourceNotFoundException(
+                f"Resolver query log config with ID '{resolver_query_log_config_id}' does not exist"
+            )
+
+        return self.resolver_query_log_configs[resolver_query_log_config_id]
 
 
 route53resolver_backends = BackendDict(Route53ResolverBackend, "route53resolver")

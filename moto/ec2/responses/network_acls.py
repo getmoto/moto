@@ -1,3 +1,5 @@
+from moto.core.responses import ActionResult, EmptyResult
+
 from ._base_response import EC2BaseResponse
 
 
@@ -11,7 +13,7 @@ class NetworkACLs(EC2BaseResponse):
         template = self.response_template(CREATE_NETWORK_ACL_RESPONSE)
         return template.render(network_acl=network_acl)
 
-    def create_network_acl_entry(self) -> str:
+    def create_network_acl_entry(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         protocol = self._get_param("Protocol")
@@ -22,38 +24,37 @@ class NetworkACLs(EC2BaseResponse):
         icmp_type = self._get_param("Icmp.Type")
         port_range_from = self._get_param("PortRange.From")
         port_range_to = self._get_param("PortRange.To")
+        ipv6_cidr_block = self._get_param("Ipv6CidrBlock")
 
-        network_acl_entry = self.ec2_backend.create_network_acl_entry(
-            network_acl_id,
-            rule_number,
-            protocol,
-            rule_action,
-            egress,
-            cidr_block,
-            icmp_code,
-            icmp_type,
-            port_range_from,
-            port_range_to,
+        self.ec2_backend.create_network_acl_entry(
+            network_acl_id=network_acl_id,
+            rule_number=rule_number,
+            protocol=protocol,
+            rule_action=rule_action,
+            egress=egress,
+            cidr_block=cidr_block,
+            icmp_code=icmp_code,
+            icmp_type=icmp_type,
+            port_range_from=port_range_from,
+            port_range_to=port_range_to,
+            ipv6_cidr_block=ipv6_cidr_block,
         )
 
-        template = self.response_template(CREATE_NETWORK_ACL_ENTRY_RESPONSE)
-        return template.render(network_acl_entry=network_acl_entry)
+        return EmptyResult()
 
-    def delete_network_acl(self) -> str:
+    def delete_network_acl(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         self.ec2_backend.delete_network_acl(network_acl_id)
-        template = self.response_template(DELETE_NETWORK_ACL_ASSOCIATION)
-        return template.render()
+        return EmptyResult()
 
-    def delete_network_acl_entry(self) -> str:
+    def delete_network_acl_entry(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         egress = self._get_param("Egress")
         self.ec2_backend.delete_network_acl_entry(network_acl_id, rule_number, egress)
-        template = self.response_template(DELETE_NETWORK_ACL_ENTRY_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
-    def replace_network_acl_entry(self) -> str:
+    def replace_network_acl_entry(self) -> ActionResult:
         network_acl_id = self._get_param("NetworkAclId")
         rule_number = self._get_param("RuleNumber")
         protocol = self._get_param("Protocol")
@@ -64,22 +65,23 @@ class NetworkACLs(EC2BaseResponse):
         icmp_type = self._get_param("Icmp.Type")
         port_range_from = self._get_param("PortRange.From")
         port_range_to = self._get_param("PortRange.To")
+        ipv6_cidr_block = self._get_param("Ipv6CidrBlock")
 
         self.ec2_backend.replace_network_acl_entry(
-            network_acl_id,
-            rule_number,
-            protocol,
-            rule_action,
-            egress,
-            cidr_block,
-            icmp_code,
-            icmp_type,
-            port_range_from,
-            port_range_to,
+            network_acl_id=network_acl_id,
+            rule_number=rule_number,
+            protocol=protocol,
+            rule_action=rule_action,
+            egress=egress,
+            cidr_block=cidr_block,
+            icmp_code=icmp_code,
+            icmp_type=icmp_type,
+            port_range_from=port_range_from,
+            port_range_to=port_range_to,
+            ipv6_cidr_block=ipv6_cidr_block,
         )
 
-        template = self.response_template(REPLACE_NETWORK_ACL_ENTRY_RESPONSE)
-        return template.render()
+        return EmptyResult()
 
     def describe_network_acls(self) -> str:
         network_acl_ids = self._get_multi_param("NetworkAclId")
@@ -139,7 +141,12 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
            <protocol>{{ entry.protocol }}</protocol>
            <ruleAction>{{ entry.rule_action }}</ruleAction>
            <egress>{{ entry.egress.lower() }}</egress>
-           <cidrBlock>{{ entry.cidr_block }}</cidrBlock>
+           {% if entry.cidr_block %}<cidrBlock>{{ entry.cidr_block }}</cidrBlock>{% endif %}
+           {% if entry.ipv6_cidr_block %}<ipv6CidrBlock>{{ entry.ipv6_cidr_block }}</ipv6CidrBlock>{% endif %}
+           {% if entry.icmp_code or entry.icmp_type %}<icmpTypeCode>
+             {% if entry.icmp_code %}<code>{{ entry.icmp_code }}</code>{% endif %}
+             {% if entry.icmp_type %}<type>{{ entry.icmp_type }}</type>{% endif %}
+           </icmpTypeCode>{% endif %}
            {% if entry.port_range_from or entry.port_range_to %}
              <portRange>
                <from>{{ entry.port_range_from }}</from>
@@ -174,37 +181,10 @@ DESCRIBE_NETWORK_ACL_RESPONSE = """
 </DescribeNetworkAclsResponse>
 """
 
-CREATE_NETWORK_ACL_ENTRY_RESPONSE = """
-<CreateNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</CreateNetworkAclEntryResponse>
-"""
-
-REPLACE_NETWORK_ACL_ENTRY_RESPONSE = """
-<ReplaceNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</ReplaceNetworkAclEntryResponse>
-"""
 
 REPLACE_NETWORK_ACL_ASSOCIATION = """
 <ReplaceNetworkAclAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
    <newAssociationId>{{ association.new_association_id }}</newAssociationId>
 </ReplaceNetworkAclAssociationResponse>
-"""
-
-DELETE_NETWORK_ACL_ASSOCIATION = """
-<DeleteNetworkAclResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</DeleteNetworkAclResponse>
-"""
-
-DELETE_NETWORK_ACL_ENTRY_RESPONSE = """
-<DeleteNetworkAclEntryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-   <return>true</return>
-</DeleteNetworkAclEntryResponse>
 """

@@ -1,4 +1,5 @@
 """EMRContainersBackend class with methods for supported APIs."""
+
 import re
 from datetime import datetime
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -6,10 +7,11 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_without_milliseconds
+from moto.utilities.utils import get_partition
 
 from ..config.exceptions import ValidationException
 from .exceptions import ResourceNotFoundException
-from .utils import get_partition, paginated_list, random_cluster_id, random_job_id
+from .utils import paginated_list, random_cluster_id, random_job_id
 
 VIRTUAL_CLUSTER_ARN_TEMPLATE = "arn:{partition}:emr-containers:{region}:{account_id}:/virtualclusters/{virtual_cluster_id}"
 
@@ -274,7 +276,6 @@ class EMRContainersBackend(BaseBackend):
         configuration_overrides: Dict[str, Any],
         tags: Dict[str, str],
     ) -> FakeJob:
-
         if virtual_cluster_id not in self.virtual_clusters.keys():
             raise ResourceNotFoundException(
                 f"Virtual cluster {virtual_cluster_id} doesn't exist."
@@ -304,7 +305,6 @@ class EMRContainersBackend(BaseBackend):
         return job
 
     def cancel_job_run(self, job_id: str, virtual_cluster_id: str) -> FakeJob:
-
         if not re.match(r"[a-z,A-Z,0-9]{19}", job_id):
             raise ValidationException("Invalid job run short id")
 

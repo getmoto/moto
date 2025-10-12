@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict
 
 from moto.core.responses import BaseResponse
+from moto.core.utils import camelcase_to_underscores
 
 from .models import EC2ContainerServiceBackend, ecs_backends
 
@@ -147,22 +148,21 @@ class EC2ContainerServiceResponse(BaseResponse):
             pid_mode=pid_mode,
             ephemeral_storage=ephemeral_storage,
         )
-        return json.dumps({"taskDefinition": task_definition.response_object})
+        return json.dumps(task_definition.response_object)
 
     def list_task_definitions(self) -> str:
         family_prefix = self._get_param("familyPrefix")
-        task_definition_arns = self.ecs_backend.list_task_definitions(family_prefix)
-        return json.dumps(
-            {
-                "taskDefinitionArns": task_definition_arns
-                #  'nextToken': str(uuid.uuid4())
-            }
+        status = self._get_param("status", "ACTIVE")
+        task_definition_arns = self.ecs_backend.list_task_definitions(
+            family_prefix, status
         )
+        return json.dumps({"taskDefinitionArns": task_definition_arns})
 
     def describe_task_definition(self) -> str:
         task_definition_str = self._get_param("taskDefinition")
         data = self.ecs_backend.describe_task_definition(task_definition_str)
-        resp: Dict[str, Any] = {"taskDefinition": data.response_object, "failures": []}
+        resp: Dict[str, Any] = data.response_object
+        resp["failures"] = []
         if "TAGS" in self._get_param("include", []):
             resp["tags"] = self.ecs_backend.list_tags_for_resource(data.arn)
         return json.dumps(resp)
@@ -172,7 +172,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition = self.ecs_backend.deregister_task_definition(
             task_definition_str
         )
-        return json.dumps({"taskDefinition": task_definition.response_object})
+        return json.dumps(task_definition.response_object)
 
     def run_task(self) -> str:
         cluster_str = self._get_param("cluster", "default")
@@ -183,6 +183,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         tags = self._get_param("tags")
         launch_type = self._get_param("launchType")
         network_configuration = self._get_param("networkConfiguration")
+        group = self._get_param("group")
+        platform_version = self._get_param("platformVersion")
         tasks = self.ecs_backend.run_task(
             cluster_str,
             task_definition_str,
@@ -192,6 +194,8 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             launch_type,
             network_configuration,
+            group,
+            platform_version,
         )
         return json.dumps(
             {"tasks": [task.response_object() for task in tasks], "failures": []}
@@ -216,6 +220,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         container_instances = self._get_param("containerInstances")
         started_by = self._get_param("startedBy")
         tags = self._get_param("tags")
+        group = self._get_param("group")
         tasks = self.ecs_backend.start_task(
             cluster_str,
             task_definition_str,
@@ -223,6 +228,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             overrides,
             started_by,
             tags,
+            group,
         )
         return json.dumps(
             {"tasks": [task.response_object() for task in tasks], "failures": []}
@@ -264,6 +270,9 @@ class EC2ContainerServiceResponse(BaseResponse):
         deployment_controller = self._get_param("deploymentController")
         launch_type = self._get_param("launchType")
         platform_version = self._get_param("platformVersion")
+        propagate_tags = self._get_param("propagateTags") or "NONE"
+        network_configuration = self._get_param("networkConfiguration")
+        role = self._get_param("role")
         service = self.ecs_backend.create_service(
             cluster_str,
             service_name,
@@ -274,8 +283,11 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             deployment_controller,
             launch_type,
+            network_configuration=network_configuration,
             service_registries=service_registries,
             platform_version=platform_version,
+            propagate_tags=propagate_tags,
+            role_arn=role,
         )
         return json.dumps({"service": service.response_object})
 
@@ -306,13 +318,12 @@ class EC2ContainerServiceResponse(BaseResponse):
         return json.dumps(resp)
 
     def update_service(self) -> str:
-        cluster_str = self._get_param("cluster", "default")
-        service_name = self._get_param("service")
-        task_definition = self._get_param("taskDefinition")
-        desired_count = self._get_int_param("desiredCount")
-        service = self.ecs_backend.update_service(
-            cluster_str, service_name, task_definition, desired_count
-        )
+        service_properties = json.loads(self.body)
+        parsed_props = {}
+        for k, v in service_properties.items():
+            parsed_props[camelcase_to_underscores(k)] = v
+
+        service = self.ecs_backend.update_service(parsed_props)
         return json.dumps({"service": service.response_object})
 
     def delete_service(self) -> str:
@@ -538,3 +549,18 @@ class EC2ContainerServiceResponse(BaseResponse):
         name = self._get_param("name")
         self.ecs_backend.delete_account_setting(name)
         return "{}"
+
+    def delete_task_definitions(self) -> str:
+        task_definitions = self._get_param("taskDefinitions")
+        deleted_task_definitions, failures = self.ecs_backend.delete_task_definitions(
+            task_definitions=task_definitions,
+        )
+        return json.dumps(
+            {
+                "taskDefinitions": [
+                    td.response_object["taskDefinition"]
+                    for td in deleted_task_definitions
+                ],
+                "failures": [f.response_object for f in failures],
+            }
+        )

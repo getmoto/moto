@@ -270,6 +270,48 @@ def test_route_tables_filters_vpc_peering_connection():
 
 
 @mock_aws
+def test_route_tables_filters_transit_gateway():
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    main_route_table_id = client.describe_route_tables(
+        Filters=[{"Name": "vpc-id", "Values": [vpc.id]}]
+    )["RouteTables"][0]["RouteTableId"]
+    main_route_table = ec2.RouteTable(main_route_table_id)
+
+    response = client.create_transit_gateway()
+
+    gateway = response["TransitGateway"]
+    main_route_table.create_route(TransitGatewayId=gateway["TransitGatewayId"])
+    route_tables = client.describe_route_tables(
+        Filters=[
+            {
+                "Name": "route.transit-gateway-id",
+                "Values": [gateway["TransitGatewayId"]],
+            }
+        ]
+    )["RouteTables"]
+
+    assert len(route_tables) == 1
+    route_table = route_tables[0]
+    assert route_table["RouteTableId"] == main_route_table_id
+
+    # Filter using regex
+    route_tables = client.describe_route_tables(
+        Filters=[
+            {
+                "Name": "route.transit-gateway-id",
+                "Values": ["tgw-*"],
+            }
+        ]
+    )["RouteTables"]
+
+    assert len(route_tables) == 1
+    route_table = route_tables[0]
+    assert route_table["RouteTableId"] == main_route_table_id
+
+
+@mock_aws
 def test_route_table_associations():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -564,7 +606,13 @@ def test_routes_replace():
         ]
     )["RouteTables"][0]["RouteTableId"]
     main_route_table = ec2.RouteTable(main_route_table_id)
+
+    # Various route sources
     ROUTE_CIDR = "10.0.0.4/24"
+
+    prefix_list = client.create_managed_prefix_list(
+        PrefixListName="examplelist", MaxEntries=2, AddressFamily="?"
+    )["PrefixList"]
 
     # Various route targets
     igw = ec2.create_internet_gateway()
@@ -584,7 +632,8 @@ def test_routes_replace():
         routes = [
             route
             for route in route_table["Routes"]
-            if route["DestinationCidrBlock"] != vpc.cidr_block
+            if "DestinationCidrBlock" not in route
+            or route["DestinationCidrBlock"] != vpc.cidr_block
         ]
         assert len(routes) == 1
         return routes[0]
@@ -649,6 +698,30 @@ def test_routes_replace():
     # This should be 'InvalidRoute.NotFound' in line with the delete_route()
     # equivalent, but for some reason AWS returns InvalidParameterValue instead.
     assert ex.value.response["Error"]["Code"] == "InvalidParameterValue"
+
+    # Remove route
+    client.delete_route(
+        RouteTableId=main_route_table.id, DestinationCidrBlock=ROUTE_CIDR
+    )
+
+    # Create prefix list source route
+    main_route_table.create_route(
+        DestinationPrefixListId=prefix_list["PrefixListId"], GatewayId=igw.id
+    )
+
+    # Replace...
+    client.replace_route(
+        RouteTableId=main_route_table.id,
+        DestinationPrefixListId=prefix_list["PrefixListId"],
+        InstanceId=instance.id,
+    )
+
+    target_route = get_target_route()
+    assert "GatewayId" not in target_route
+    assert target_route["InstanceId"] == instance.id
+    assert "NetworkInterfaceId" not in target_route
+    assert target_route["State"] == "active"
+    assert target_route["DestinationPrefixListId"] == prefix_list["PrefixListId"]
 
 
 @mock_aws
@@ -910,6 +983,47 @@ def test_describe_route_tables_with_nat_gateway():
     nat_gw_routes = [
         route
         for route in route_table["Routes"]
+        if route["DestinationCidrBlock"] == "0.0.0.0/0"
+    ]
+
+    assert len(nat_gw_routes) == 1
+    assert nat_gw_routes[0]["DestinationCidrBlock"] == "0.0.0.0/0"
+    assert nat_gw_routes[0]["NatGatewayId"] == nat_gw_id
+    assert nat_gw_routes[0]["State"] == "active"
+
+
+@mock_aws
+def test_describe_route_tables_filter_with_nat_gateway_id():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="192.168.0.0/23")["Vpc"]["VpcId"]
+    az = ec2.describe_availability_zones()["AvailabilityZones"][0]["ZoneName"]
+    sn_id = ec2.create_subnet(
+        AvailabilityZone=az, CidrBlock="192.168.0.0/24", VpcId=vpc_id
+    )["Subnet"]["SubnetId"]
+    route_table_id = ec2.create_route_table(VpcId=vpc_id)["RouteTable"]["RouteTableId"]
+    ec2.associate_route_table(SubnetId=sn_id, RouteTableId=route_table_id)
+    alloc_id = ec2.allocate_address(Domain="vpc")["AllocationId"]
+    nat_gw_id = ec2.create_nat_gateway(SubnetId=sn_id, AllocationId=alloc_id)[
+        "NatGateway"
+    ]["NatGatewayId"]
+
+    route_tables_by_nat_gateway_id = ec2.describe_route_tables(
+        Filters=[{"Name": "route.nat-gateway-id", "Values": [nat_gw_id]}]
+    )["RouteTables"]
+    assert len(route_tables_by_nat_gateway_id) == 0
+
+    ec2.create_route(
+        DestinationCidrBlock="0.0.0.0/0",
+        NatGatewayId=nat_gw_id,
+        RouteTableId=route_table_id,
+    )
+
+    route_tables_by_nat_gateway_id = ec2.describe_route_tables(
+        Filters=[{"Name": "route.nat-gateway-id", "Values": [nat_gw_id]}]
+    )["RouteTables"][0]
+    nat_gw_routes = [
+        route
+        for route in route_tables_by_nat_gateway_id["Routes"]
         if route["DestinationCidrBlock"] == "0.0.0.0/0"
     ]
 

@@ -2,6 +2,7 @@
 This test lives on its own as it requires moto to be imported after
 setting of MOTO_AMIS_PATH env var, as per ec2 models documentation
 """
+
 import importlib
 import json
 import os
@@ -40,6 +41,10 @@ class TestEC2CustomAMIs(TestCase):
                 "root_device_type": "ebs",
                 "sriov": "simple",
                 "creation_date": "2021-11-10T08:13:01.000Z",
+                "tags": {
+                    "tag1": "value1",
+                    "tag2": "value2",
+                },
             }
         ]
         with test_ami_path.open("w") as fp:
@@ -71,3 +76,9 @@ class TestEC2CustomAMIs(TestCase):
         # Now reload our images with only the custom AMIs loaded
         images = ec2_client.describe_images()["Images"]
         assert len(images) == 1
+        image = images[0]
+        expected_tags = [
+            {"Key": "tag1", "Value": "value1"},
+            {"Key": "tag2", "Value": "value2"},
+        ]
+        assert image["Tags"] == expected_tags

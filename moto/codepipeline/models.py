@@ -11,8 +11,9 @@ from moto.codepipeline.exceptions import (
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
-from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends
+from moto.utilities.utils import get_partition
 
 
 class CodePipeline(BaseModel):
@@ -23,7 +24,7 @@ class CodePipeline(BaseModel):
         self.pipeline = self.add_default_values(pipeline)
         self.tags: Dict[str, str] = {}
 
-        self._arn = f"arn:aws:codepipeline:{region}:{account_id}:{pipeline['name']}"
+        self._arn = f"arn:{get_partition(region)}:codepipeline:{region}:{account_id}:{pipeline['name']}"
         self._created = utcnow()
         self._updated = utcnow()
 
@@ -78,7 +79,7 @@ class CodePipelineBackend(BaseBackend):
 
     @property
     def iam_backend(self) -> IAMBackend:
-        return iam_backends[self.account_id]["global"]
+        return iam_backends[self.account_id][self.partition]
 
     def create_pipeline(
         self, pipeline: Dict[str, Any], tags: List[Dict[str, str]]

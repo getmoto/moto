@@ -1,39 +1,71 @@
-# Run separate test cases to verify SQS works with multiple botocore versions (/multiple response-types, QUERY and JSON)
-#
-name: "SQS Tests"
-
+name: "SQS Wire Protocol Tests"
 on:
   pull_request:
-    types: [ labeled ]
-
+    paths:
+      - ".github/workflows/test_sqs.yml"
+      - "moto/core/**"
+      - "moto/sqs/**"
+      - "tests/test_sqs/**"
+  schedule:
+    - cron: '00 12 * * 0'
+  workflow_dispatch:
+env:
+  python-version: "3.12"
 jobs:
-  test:
-    if: ${{ github.event.label.name == 'service-sqs' }}
+  test-sqs-protocols:
+    name: "${{ matrix.protocol }} protocol, server mode: ${{ matrix.test-server-mode }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.11" ]
-        botocore-version: ["1.29.126", "1.29.127", "1.29.128"]
-
+        protocol: [ "json", "query" ]
+        test-server-mode: [ "true", "false" ]
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Update pip
-      run: |
-        python -m pip install --upgrade pip
-
-    - name: Install project dependencies
-      run: |
-        pip install -r requirements-dev.txt
-        pip install botocore==${{ matrix.botocore-version }}
-
-    - name: Run tests
-      run: |
-        pytest -sv tests/test_sqs
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ env.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.python-version }}
+      - name: Start MotoServer
+        if: ${{ matrix.test-server-mode == 'true' }}
+        run: |
+          pip install build
+          python -m build
+          docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_EC2_LOAD_DEFAULT_AMIS=false -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${{ env.python-version }}-slim /moto/scripts/ci_moto_server.sh &
+          python scripts/ci_wait_for_server.py
+      - name: Update pip
+        run: |
+          python -m pip install --upgrade pip
+      - name: Install project dependencies
+        run: |
+          pip install -r requirements-dev.txt
+      - name: Install AWS Client SDK for JSON Protocol
+        if: ${{ matrix.protocol == 'json' }}
+        run: |
+          pip install --upgrade boto3 botocore
+      - name: Install AWS Client SDK for Query Protocol
+        if: ${{ matrix.protocol == 'query' }}
+        run: |
+          pip install botocore==1.29.126 boto3==1.26.126
+      - name: Run tests
+        run: |
+          pytest -sv tests/test_sqs
+        env:
+          TEST_SERVER_MODE: ${{ matrix.test-server-mode }}
+      - name: "Stop MotoServer"
+        if: ${{ matrix.test-server-mode == 'true' }}
+        run: |
+          ls -la
+          docker stop motoserver
+          mkdir serverlogs
+          cp server_output.log serverlogs/server_output.log
+      - name: Archive Server logs
+        if: ${{ matrix.test-server-mode == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: motoserver-with-client-using-${{ matrix.protocol }}-protocol
+          path: |
+            serverlogs/*

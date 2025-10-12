@@ -9,43 +9,282 @@ from botocore.config import Config
 from moto import mock_aws
 from moto.core.utils import utcnow
 from moto.s3.responses import DEFAULT_REGION_NAME
+from tests import allow_aws_request
+from tests.test_s3 import generate_content_md5, s3_aws_verified
+from tests.test_s3.test_s3 import enable_versioning
 
 
-@mock_aws
-def test_locked_object():
-    s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_put_object_lock_on_non_versioned_bucket(bucket_name=None):
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
 
-    bucket_name = "locked-bucket-test"
+    with pytest.raises(ClientError) as exc:
+        s3_client.put_object_lock_configuration(
+            Bucket=bucket_name,
+            ObjectLockConfiguration={
+                "ObjectLockEnabled": "Enabled",
+                "Rule": {"DefaultRetention": {"Mode": "COMPLIANCE", "Days": 1}},
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidBucketState"
+    assert (
+        err["Message"]
+        == "Versioning must be 'Enabled' on the bucket to apply a Object Lock configuration"
+    )
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_put_object_lock_misconfiguration(bucket_name=None):
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+
+    enable_versioning(bucket_name, s3_client)
+
+    with pytest.raises(ClientError) as exc:
+        s3_client.put_object_lock_configuration(Bucket=bucket_name)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingRequestBodyError"
+    assert err["Message"] == "Request Body is empty"
+
+    with pytest.raises(ClientError) as exc:
+        s3_client.put_object_lock_configuration(
+            Bucket=bucket_name, ObjectLockConfiguration={}
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MalformedXML"
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "bypass_governance_retention",
+    [True, False, None],
+    ids=["bypass", "no_bypass", "unspecified"],
+)
+def test_locked_object_governance_mode(bypass_governance_retention, bucket_name=None):
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+
     key_name = "file.txt"
-    seconds_lock = 2
+    seconds_lock = 10
 
-    s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
+    enable_versioning(bucket_name, s3_client)
 
-    until = utcnow() + datetime.timedelta(0, seconds_lock)
+    s3_client.put_object_lock_configuration(
+        Bucket=bucket_name,
+        ObjectLockConfiguration={
+            "ObjectLockEnabled": "Enabled",
+            "Rule": {"DefaultRetention": {"Mode": "GOVERNANCE", "Days": 1}},
+        },
+    )
+
+    until = utcnow() + datetime.timedelta(seconds=seconds_lock)
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+        ObjectLockMode="GOVERNANCE",
+        ObjectLockRetainUntilDate=until,
+        ContentMD5=generate_content_md5(b"test"),
+    )
+
+    versions_response = s3_client.list_object_versions(Bucket=bucket_name)
+    initial_version_id = versions_response["Versions"][0]["VersionId"]
+
+    with pytest.raises(ClientError) as exc:
+        s3_client.delete_object(
+            Bucket=bucket_name, Key=key_name, VersionId=initial_version_id
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AccessDenied"
+
+    kwargs = {}
+    if bypass_governance_retention in [True, False]:
+        kwargs["BypassGovernanceRetention"] = bypass_governance_retention
+
+    # Delete the object without VersionId always succeeds
+    response = s3_client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": key_name},
+            ],
+        },
+        **kwargs,
+    )
+    assert response["Deleted"][0]["Key"] == key_name
+    deleted_version_id = response["Deleted"][0]["DeleteMarkerVersionId"]
+
+    # Delete any version id only succeeds if BypassGovernanceRetention=true
+    response = s3_client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": key_name, "VersionId": initial_version_id},
+            ],
+        },
+        **kwargs,
+    )
+    if bypass_governance_retention:
+        assert "Deleted" in response
+
+        deleted_version_id = response["Deleted"][0]["VersionId"]
+
+        response = s3_client.delete_objects(
+            Bucket=bucket_name,
+            Delete={
+                "Objects": [
+                    {"Key": key_name, "VersionId": deleted_version_id},
+                ],
+            },
+            **kwargs,
+        )
+        assert response["Deleted"] == [
+            {"Key": key_name, "VersionId": deleted_version_id}
+        ]
+
+    else:
+        # BypassGovernanceMode is either unspecified or False
+        assert "Errors" in response
+        assert response["Errors"][0]["Code"] == "AccessDenied"
+        assert response["Errors"][0]["Key"] == key_name
+        assert (
+            response["Errors"][0]["Message"]
+            == "Access Denied because object protected by object lock."
+        )
+
+        # We know we couldn't delete the initial version ID
+        # Can we delete the DeleteVersion
+        response = s3_client.delete_objects(
+            Bucket=bucket_name,
+            Delete={
+                "Objects": [
+                    {"Key": key_name, "VersionId": deleted_version_id},
+                ],
+            },
+            **kwargs,
+        )
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_put_locked_object_with_checksum_algorithm(bucket_name=None):
+    s3_resource = boto3.resource("s3", DEFAULT_REGION_NAME)
+    s3_client = s3_resource.meta.client
+
+    key_name = "file.txt"
+    seconds_lock = 10
+
+    enable_versioning(bucket_name, s3_client)
+
+    s3_client.put_object_lock_configuration(
+        Bucket=bucket_name,
+        ObjectLockConfiguration={
+            "ObjectLockEnabled": "Enabled",
+            "Rule": {"DefaultRetention": {"Mode": "GOVERNANCE", "Days": 1}},
+        },
+    )
+
+    until = utcnow() + datetime.timedelta(seconds=seconds_lock)
+
+    import base64
+    import hashlib
+
+    sha = hashlib.sha256(b"test")
+    checksum = base64.b64encode(sha.digest()).decode("utf-8")
+
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+        ObjectLockMode="GOVERNANCE",
+        ObjectLockRetainUntilDate=until,
+        ChecksumAlgorithm="SHA256",
+        ChecksumSHA256=checksum,
+    )
+
+    versions_response = s3_client.list_object_versions(Bucket=bucket_name)
+    version_id = versions_response["Versions"][0]["VersionId"]
+    version = s3_resource.ObjectVersion(bucket_name, key_name, version_id)
+    response = version.head(ChecksumMode="ENABLED")
+
+    assert (
+        response["ResponseMetadata"]["HTTPHeaders"]["x-amz-checksum-sha256"] == checksum
+    )
+
+
+@s3_aws_verified
+@pytest.mark.aws_verified
+@pytest.mark.parametrize(
+    "bypass_governance_retention",
+    [True, False, None],
+    ids=["bypass", "no_bypass", "unspecified"],
+)
+def test_locked_object_compliance_mode(bypass_governance_retention, bucket_name=None):
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
+
+    key_name = "file.txt"
+    seconds_lock = 5 if allow_aws_request() else 2
+
+    enable_versioning(bucket_name, s3_client)
+
+    s3_client.put_object_lock_configuration(
+        Bucket=bucket_name,
+        ObjectLockConfiguration={
+            "ObjectLockEnabled": "Enabled",
+            "Rule": {"DefaultRetention": {"Mode": "GOVERNANCE", "Days": 1}},
+        },
+    )
+
+    until = utcnow() + datetime.timedelta(seconds=seconds_lock)
     s3_client.put_object(
         Bucket=bucket_name,
         Body=b"test",
         Key=key_name,
         ObjectLockMode="COMPLIANCE",
         ObjectLockRetainUntilDate=until,
+        ContentMD5=generate_content_md5(b"test"),
     )
 
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
-    version_id = versions_response["Versions"][0]["VersionId"]
+    initial_version_id = versions_response["Versions"][0]["VersionId"]
 
-    deleted = False
-    try:
-        s3_client.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-        deleted = True
-    except ClientError as exc:
-        assert exc.response["Error"]["Code"] == "AccessDenied"
+    kwargs = {}
+    if bypass_governance_retention in [True, False]:
+        kwargs["BypassGovernanceRetention"] = bypass_governance_retention
 
-    assert deleted is False
+    # Delete the object without VersionId always succeeds
+    response = s3_client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": key_name},
+            ],
+        },
+        **kwargs,
+    )
+    assert response["Deleted"][0]["Key"] == key_name
 
-    # cleaning
+    # Delete any version id never succeeds in COMPLIANCE mode
+    response = s3_client.delete_objects(
+        Bucket=bucket_name,
+        Delete={
+            "Objects": [
+                {"Key": key_name, "VersionId": initial_version_id},
+            ],
+        },
+        **kwargs,
+    )
+    assert "Errors" in response
+    assert response["Errors"][0]["Code"] == "AccessDenied"
+    assert response["Errors"][0]["Key"] == key_name
+    assert (
+        response["Errors"][0]["Message"]
+        == "Access Denied because object protected by object lock."
+    )
+
     time.sleep(seconds_lock)
-    s3_client.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-    s3_client.delete_bucket(Bucket=bucket_name)
 
 
 @mock_aws
@@ -54,7 +293,7 @@ def test_fail_locked_object():
     key_name = "file.txt"
     seconds_lock = 2
 
-    s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
 
     s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=False)
     until = utcnow() + datetime.timedelta(0, seconds_lock)
@@ -66,6 +305,7 @@ def test_fail_locked_object():
             Key=key_name,
             ObjectLockMode="COMPLIANCE",
             ObjectLockRetainUntilDate=until,
+            ContentMD5=generate_content_md5(b"test"),
         )
     except ClientError as exc:
         assert exc.response["Error"]["Code"] == "InvalidRequest"
@@ -113,16 +353,30 @@ def test_put_object_lock():
     s3_client.delete_bucket(Bucket=bucket_name)
 
 
-@mock_aws
-def test_put_object_legal_hold():
-    s3_client = boto3.client("s3", config=Config(region_name=DEFAULT_REGION_NAME))
+@s3_aws_verified
+@pytest.mark.aws_verified
+def test_put_object_legal_hold(bucket_name=None):
+    s3_client = boto3.client("s3", DEFAULT_REGION_NAME)
 
-    bucket_name = "put-legal-bucket"
     key_name = "file.txt"
 
-    s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
+    s3_client.create_bucket(Bucket=bucket_name)
+    enable_versioning(bucket_name, s3_client)
 
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
+    s3_client.put_object_lock_configuration(
+        Bucket=bucket_name,
+        ObjectLockConfiguration={
+            "ObjectLockEnabled": "Enabled",
+            "Rule": {"DefaultRetention": {"Mode": "GOVERNANCE", "Days": 1}},
+        },
+    )
+
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+        ContentMD5=generate_content_md5(b"test"),
+    )
 
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)
     version_id = versions_response["Versions"][0]["VersionId"]
@@ -132,26 +386,37 @@ def test_put_object_legal_hold():
         Key=key_name,
         VersionId=version_id,
         LegalHold={"Status": "ON"},
+        ContentMD5=generate_content_md5(
+            b'<LegalHold xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Status>ON</Status></LegalHold>'
+        ),
     )
 
-    deleted = False
-    try:
-        s3_client.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-        deleted = True
-    except ClientError as exc:
-        assert exc.response["Error"]["Code"] == "AccessDenied"
+    with pytest.raises(ClientError) as exc:
+        s3_client.delete_object(
+            Bucket=bucket_name,
+            Key=key_name,
+            VersionId=version_id,
+            BypassGovernanceRetention=True,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "AccessDenied"
 
-    assert deleted is False
-
-    # cleaning
+    # Deletion works when LegalHold is OFF
     s3_client.put_object_legal_hold(
         Bucket=bucket_name,
         Key=key_name,
         VersionId=version_id,
         LegalHold={"Status": "OFF"},
+        ContentMD5=generate_content_md5(
+            b'<LegalHold xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Status>OFF</Status></LegalHold>'
+        ),
     )
-    s3_client.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-    s3_client.delete_bucket(Bucket=bucket_name)
+    s3_client.delete_object(
+        Bucket=bucket_name,
+        Key=key_name,
+        VersionId=version_id,
+        BypassGovernanceRetention=True,
+    )
 
 
 @mock_aws
@@ -175,7 +440,12 @@ def test_put_default_lock():
         },
     )
 
-    s3_client.put_object(Bucket=bucket_name, Body=b"test", Key=key_name)
+    s3_client.put_object(
+        Bucket=bucket_name,
+        Body=b"test",
+        Key=key_name,
+        ContentMD5=generate_content_md5(b"test"),
+    )
 
     deleted = False
     versions_response = s3_client.list_object_versions(Bucket=bucket_name)

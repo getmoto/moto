@@ -5,6 +5,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
 from moto.utilities.paginator import paginate
+from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import (
     DomainLimitExceededException,
@@ -47,7 +48,9 @@ class Route53DomainsBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.__route53_backend: Route53Backend = route53_backends[account_id]["global"]
+        self.__route53_backend: Route53Backend = route53_backends[account_id][
+            self.partition
+        ]
         self.__domains: Dict[str, Route53Domain] = {}
         self.__operations: Dict[str, Route53DomainsOperation] = {}
 
@@ -80,7 +83,6 @@ class Route53DomainsBackend(BaseBackend):
         )
 
         try:
-
             domain = Route53Domain.validate(
                 domain_name=domain_name,
                 auto_renew=auto_renew,
@@ -149,7 +151,7 @@ class Route53DomainsBackend(BaseBackend):
 
         return self.__domains[domain_name]
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_domains(
         self,
         filter_conditions: Optional[List[Dict[str, Any]]] = None,
@@ -195,7 +197,7 @@ class Route53DomainsBackend(BaseBackend):
 
         return domains_to_return
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_operations(
         self,
         submitted_since_timestamp: Optional[int] = None,
@@ -204,7 +206,6 @@ class Route53DomainsBackend(BaseBackend):
         sort_by: Optional[str] = None,
         sort_order: Optional[str] = None,
     ) -> List[Route53DomainsOperation]:
-
         input_errors: List[str] = []
         statuses = statuses or []
         types = types or []
@@ -298,5 +299,5 @@ route53domains_backends = BackendDict(
     Route53DomainsBackend,
     "route53domains",
     use_boto3_regions=False,
-    additional_regions=["global"],
+    additional_regions=PARTITION_NAMES,
 )

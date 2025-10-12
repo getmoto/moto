@@ -1,8 +1,9 @@
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.utils import get_partition
 
 from .exceptions import InvalidRequestException
 
@@ -21,7 +22,7 @@ class Location(BaseModel):
         self.metadata = metadata
         self.typ = typ
         # Generate ARN
-        self.arn = f"arn:aws:datasync:{region_name}:111222333444:location/loc-{str(arn_counter).zfill(17)}"
+        self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:location/loc-{str(arn_counter).zfill(17)}"
 
 
 class Task(BaseModel):
@@ -42,11 +43,10 @@ class Task(BaseModel):
         self.status = "AVAILABLE"
         self.current_task_execution_arn: Optional[str] = None
         # Generate ARN
-        self.arn = f"arn:aws:datasync:{region_name}:111222333444:task/task-{str(arn_counter).zfill(17)}"
+        self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:task/task-{str(arn_counter).zfill(17)}"
 
 
 class TaskExecution(BaseModel):
-
     # For simplicity, task_execution can never fail
     # Some documentation refers to this list:
     # 'Status': 'QUEUED'|'LAUNCHING'|'PREPARING'|'TRANSFERRING'|'VERIFYING'|'SUCCESS'|'ERROR'
@@ -103,13 +103,6 @@ class DataSyncBackend(BaseBackend):
         self.locations: Dict[str, Location] = OrderedDict()
         self.tasks: Dict[str, Task] = OrderedDict()
         self.task_executions: Dict[str, TaskExecution] = OrderedDict()
-
-    @staticmethod
-    def default_vpc_endpoint_service(service_region: str, zones: List[str]) -> List[Dict[str, Any]]:  # type: ignore[misc]
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "datasync"
-        )
 
     def create_location(
         self, location_uri: str, typ: str, metadata: Dict[str, Any]

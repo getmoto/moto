@@ -20,8 +20,9 @@ import moto.backends as backends
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict
 from moto.core.utils import convert_to_flask_response
+from moto.settings import DISABLE_GLOBAL_CORS, MAX_FORM_MEMORY_SIZE
 
-from .utilities import AWSTestHelper, RegexConverter
+from .utilities import AWSTestHelper, RegexConverter, decompress_request_body
 
 HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "HEAD", "PATCH", "OPTIONS"]
 
@@ -136,6 +137,8 @@ class DomainDispatcherApplication:
             # All MediaStore API calls have a target header
             # If no target is set, assume we're trying to reach the mediastore-data service
             host = f"data.{service}.{region}.amazonaws.com"
+        elif service == "dsql":
+            host = f"{service}.{region}.api.aws"
         elif service == "dynamodb":
             if environ["HTTP_X_AMZ_TARGET"].startswith("DynamoDBStreams"):
                 host = "dynamodbstreams"
@@ -151,6 +154,8 @@ class DomainDispatcherApplication:
         elif service == "sagemaker":
             if environ["PATH_INFO"].endswith("invocations"):
                 host = f"runtime.{service}.{region}.amazonaws.com"
+            elif environ["PATH_INFO"].endswith("BatchPutMetrics"):
+                host = f"metrics.{service}.{region}.amazonaws.com"
             else:
                 host = f"api.{service}.{region}.amazonaws.com"
         elif service == "timestream":
@@ -161,6 +166,8 @@ class DomainDispatcherApplication:
             host = "s3control"
         elif service == "ses" and path.startswith("/v2/"):
             host = "sesv2"
+        elif service == "memorydb":
+            host = f"memory-db.{region}.amazonaws.com"
         else:
             host = f"{service}.{region}.amazonaws.com"
 
@@ -268,7 +275,11 @@ def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
     backend_app = Flask("moto", template_folder=template_dir)
     backend_app.debug = True
     backend_app.service = service  # type: ignore[attr-defined]
-    CORS(backend_app)
+    backend_app.before_request(decompress_request_body)
+    backend_app.config["MAX_FORM_MEMORY_SIZE"] = MAX_FORM_MEMORY_SIZE
+
+    if not DISABLE_GLOBAL_CORS:
+        CORS(backend_app)
 
     # Reset view functions to reset the app
     backend_app.view_functions = {}
@@ -282,7 +293,7 @@ def create_backend_app(service: backends.SERVICE_NAMES) -> Flask:
         if "us-east-1" in backend_dict[DEFAULT_ACCOUNT_ID]:
             backend = backend_dict[DEFAULT_ACCOUNT_ID]["us-east-1"]
         else:
-            backend = backend_dict[DEFAULT_ACCOUNT_ID]["global"]
+            backend = backend_dict[DEFAULT_ACCOUNT_ID]["aws"]
     else:
         backend = backend_dict["global"]
 

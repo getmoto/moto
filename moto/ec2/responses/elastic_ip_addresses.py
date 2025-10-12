@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult, EmptyResult
 from moto.ec2.utils import add_tag_specification
 
 from ._base_response import EC2BaseResponse
@@ -82,7 +83,14 @@ class ElasticIPAddresses(EC2BaseResponse):
         template = self.response_template(DESCRIBE_ADDRESS_RESPONSE)
         return template.render(addresses=addresses)
 
-    def disassociate_address(self) -> str:
+    def describe_addresses_attribute(self) -> str:
+        self.error_on_dryrun()
+        allocation_ids = self._get_multi_param("AllocationId")
+        addresses = self.ec2_backend.describe_addresses_attribute(allocation_ids)
+        template = self.response_template(DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE)
+        return template.render(addresses=addresses)
+
+    def disassociate_address(self) -> ActionResult:
         if (
             "PublicIp" not in self.querystring
             and "AssociationId" not in self.querystring
@@ -101,9 +109,9 @@ class ElasticIPAddresses(EC2BaseResponse):
                 association_id=self._get_param("AssociationId")
             )
 
-        return self.response_template(DISASSOCIATE_ADDRESS_RESPONSE).render()
+        return EmptyResult()
 
-    def release_address(self) -> str:
+    def release_address(self) -> ActionResult:
         if (
             "PublicIp" not in self.querystring
             and "AllocationId" not in self.querystring
@@ -122,7 +130,7 @@ class ElasticIPAddresses(EC2BaseResponse):
                 allocation_id=self._get_param("AllocationId")
             )
 
-        return self.response_template(RELEASE_ADDRESS_RESPONSE).render()
+        return EmptyResult()
 
 
 ALLOCATE_ADDRESS_RESPONSE = """<AllocateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -180,12 +188,22 @@ DESCRIBE_ADDRESS_RESPONSE = """<DescribeAddressesResponse xmlns="http://ec2.amaz
   </addressesSet>
 </DescribeAddressesResponse>"""
 
-DISASSOCIATE_ADDRESS_RESPONSE = """<DisassociateAddressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE = """<DescribeAddressesAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>true</return>
-</DisassociateAddressResponse>"""
-
-RELEASE_ADDRESS_RESPONSE = """<ReleaseAddressResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <return>true</return>
-</ReleaseAddressResponse>"""
+  <addressSet>
+    {% for address in addresses %}
+        <item>
+          <publicIp>{{ address.public_ip }}</publicIp>
+          {% if address.allocation_id %}
+            <allocationId>{{ address.allocation_id }}</allocationId>
+          {% endif %}
+          {% if address.ptrRecord %}
+            <ptrRecord>{{ address.ptrRecord }}</ptrRecord>
+          {% endif %}
+          {% if address.ptrRecordUpdate %}
+            <ptrRecordUpdate>{{ address.ptrRecordUpdate }}</ptrRecordUpdate>
+          {% endif %}
+        </item>
+    {% endfor %}
+  </addressSet>
+</DescribeAddressesAttributeResponse>"""

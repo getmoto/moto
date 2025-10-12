@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import calendar
 import copy
@@ -31,7 +33,7 @@ from moto.dynamodb import dynamodb_backends
 from moto.dynamodbstreams import dynamodbstreams_backends
 from moto.ecr.exceptions import ImageNotFoundException
 from moto.ecr.models import ecr_backends
-from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import iam_backends
 from moto.kinesis.models import KinesisBackend, kinesis_backends
 from moto.logs.models import logs_backends
@@ -40,14 +42,19 @@ from moto.s3.exceptions import MissingBucket, MissingKey
 from moto.s3.models import FakeKey, s3_backends
 from moto.sqs.models import sqs_backends
 from moto.utilities.docker_utilities import DockerModel
-from moto.utilities.utils import load_resource_as_bytes
+from moto.utilities.utils import (
+    ARN_PARTITION_REGEX,
+    get_partition,
+    load_resource_as_bytes,
+)
 
 from .exceptions import (
     ConflictException,
     CrossAccountNotAllowed,
-    FunctionUrlConfigNotFound,
+    GenericResourcNotFound,
     InvalidParameterValueException,
     InvalidRoleFormat,
+    LambdaClientError,
     UnknownAliasException,
     UnknownEventConfig,
     UnknownFunctionException,
@@ -56,6 +63,7 @@ from .exceptions import (
     ValidationException,
 )
 from .utils import (
+    make_event_source_mapping_arn,
     make_function_arn,
     make_function_ver_arn,
     make_layer_arn,
@@ -280,12 +288,12 @@ def _s3_content(key: Any) -> Tuple[bytes, int, str, str]:
 
 
 def _validate_s3_bucket_and_key(
-    account_id: str, data: Dict[str, Any]
+    account_id: str, partition: str, data: Dict[str, Any]
 ) -> Optional[FakeKey]:
     key = None
     try:
         # FIXME: does not validate bucket region
-        key = s3_backends[account_id]["global"].get_object(
+        key = s3_backends[account_id][partition].get_object(
             data["S3Bucket"], data["S3Key"]
         )
     except MissingBucket:
@@ -425,10 +433,14 @@ class LayerVersion(CloudFormationModel):
         self.compatible_architectures = spec.get("CompatibleArchitectures", [])
         self.compatible_runtimes = spec.get("CompatibleRuntimes", [])
         self.license_info = spec.get("LicenseInfo", "")
+        self.policy = Policy(self)  # type: ignore[no-untyped-call]
 
-        # auto-generated
-        self.created_date = utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        self.version: Optional[int] = None
+        # For `list_layer_versions`, AWS sends back a hardcoded string over the wire, with timezone info automatically set to UTC (+0000)
+        # This despite the fact that the layer exists in the US (us-east-1), and my local timezone was set to UTC+2
+        # So it seems like the date is automatically set to UTC on creation, that's why we can just return this hardcoded
+        # Also add microseconds to be compatible with AWS (milliseconds '%f' adds six, we only want three chars)
+        self.created_date = utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+0000"
+        self.version: int = 1
         self._attached = False
         self._layer: Optional["Layer"] = None
 
@@ -440,7 +452,10 @@ class LayerVersion(CloudFormationModel):
                 self.code_digest,
             ) = _zipfile_content(self.content["ZipFile"])
         else:
-            key = _validate_s3_bucket_and_key(account_id, data=self.content)
+            partition = get_partition(region)
+            key = _validate_s3_bucket_and_key(
+                account_id, partition=partition, data=self.content
+            )
             if key:
                 (
                     self.code_bytes,
@@ -468,7 +483,7 @@ class LayerVersion(CloudFormationModel):
         self.version = version
 
     def get_layer_version(self) -> Dict[str, Any]:
-        return {
+        version = {
             "Content": {
                 "Location": "s3://",
                 "CodeSha256": self.code_sha_256,
@@ -478,11 +493,15 @@ class LayerVersion(CloudFormationModel):
             "LayerArn": self._layer.layer_arn,  # type: ignore[union-attr]
             "LayerVersionArn": self.arn,
             "CreatedDate": self.created_date,
-            "CompatibleArchitectures": self.compatible_architectures,
-            "CompatibleRuntimes": self.compatible_runtimes,
-            "Description": self.description,
             "LicenseInfo": self.license_info,
         }
+        if self.description:
+            version["Description"] = self.description
+        if self.compatible_architectures:
+            version["CompatibleArchitectures"] = self.compatible_architectures
+        if self.compatible_runtimes:
+            version["CompatibleRuntimes"] = self.compatible_runtimes
+        return version
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -529,9 +548,7 @@ class LambdaAlias(BaseModel):
         description: str,
         routing_config: str,
     ):
-        self.arn = (
-            f"arn:aws:lambda:{region}:{account_id}:function:{function_name}:{name}"
-        )
+        self.arn = f"arn:{get_partition(region)}:lambda:{region}:{account_id}:function:{function_name}:{name}"
         self.name = name
         self.function_version = function_version
         self.description = description
@@ -607,6 +624,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         # required
         self.account_id = account_id
         self.region = region
+        self.partition = get_partition(region)
         self.code = spec["Code"]
         self.function_name = spec["FunctionName"]
         self.handler = spec.get("Handler")
@@ -614,7 +632,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.run_time = spec.get("Runtime")
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
-        self.policy = Policy(self)
+        self.policy = Policy(self)  # type: ignore[no-untyped-call]
         self.url_config: Optional[FunctionUrlConfig] = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
@@ -645,16 +663,15 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
         self.logs_group_name = f"/aws/lambda/{self.function_name}"
 
-        # this isn't finished yet. it needs to find out the VpcId value
-        self._vpc_config = spec.get(
-            "VpcConfig", {"SubnetIds": [], "SecurityGroupIds": []}
-        )
+        # VpcConfig has no default, if not supplied
+        self._vpc_config = spec.get("VpcConfig")
 
         # auto-generated
         self.version = version
         self.last_modified = iso_8601_datetime_with_nanoseconds()
 
         self._set_function_code(self.code)
+        self.code_or_config_updated = False
 
         self.function_arn: str = make_function_arn(
             self.region, self.account_id, self.function_name
@@ -712,7 +729,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self._ephemeral_storage = ephemeral_storage
 
     @property
-    def vpc_config(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def vpc_config(self) -> Optional[Dict[str, Any]]:  # type: ignore[misc]
+        if not self._vpc_config:
+            return None
         config = self._vpc_config.copy()
         if config["SecurityGroupIds"]:
             config.update({"VpcId": "vpc-123abc"})
@@ -739,7 +758,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             {"Arn": lv.arn, "CodeSize": lv.code_size} for lv in layer_versions if lv
         ]
 
-    def get_code_signing_config(self) -> Dict[str, Any]:
+    def get_function_code_signing_config(self) -> Dict[str, Any]:
         return {
             "CodeSigningConfigArn": self.code_signing_config_arn,
             "FunctionName": self.function_name,
@@ -788,7 +807,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         resp = {"Configuration": self.get_configuration()}
         if "S3Key" in self.code:
             resp["Code"] = {
-                "Location": f"s3://awslambda-{self.region}-tasks.s3-{self.region}.amazonaws.com/{self.code['S3Key']}",
+                "Location": f"https://awslambda-{self.region}-tasks.s3.{self.region}.amazonaws.com/{self.code['S3Key']}",
                 "RepositoryType": "S3",
             }
         elif "ImageUri" in self.code:
@@ -832,6 +851,8 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             elif key == "Layers":
                 self.layers = self._get_layers_data(value)
 
+        self.code_or_config_updated = True
+
         return self.get_configuration()
 
     def _set_function_code(self, updated_spec: Dict[str, Any]) -> None:
@@ -860,11 +881,13 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             try:
                 if from_update:
                     # FIXME: does not validate bucket region
-                    key = s3_backends[self.account_id]["global"].get_object(
+                    key = s3_backends[self.account_id][self.partition].get_object(
                         updated_spec["S3Bucket"], updated_spec["S3Key"]
                     )
                 else:
-                    key = _validate_s3_bucket_and_key(self.account_id, data=self.code)
+                    key = _validate_s3_bucket_and_key(
+                        self.account_id, partition=self.partition, data=self.code
+                    )
             except MissingBucket:
                 if do_validate_s3():
                     raise ValueError(
@@ -915,11 +938,12 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 )["images"]
 
                 if len(images) == 0:
-                    raise ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                    exc = ImageNotFoundException(image_id, repo_name, registry_id)  # type: ignore
+                    raise LambdaClientError(exc.code, exc.message)
                 else:
-                    manifest = json.loads(images[0]["imageManifest"])
-                    self.code_sha_256 = images[0]["imageId"]["imageDigest"].replace(
-                        "sha256:", ""
+                    manifest = json.loads(images[0].image_manifest)
+                    self.code_sha_256 = (
+                        images[0].image_id["imageDigest"].replace("sha256:", "")
                     )
                     self.code_size = manifest["config"]["size"]
             if from_update:
@@ -927,6 +951,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def update_function_code(self, updated_spec: Dict[str, Any]) -> Dict[str, Any]:
         self._set_function_code(updated_spec)
+        self.code_or_config_updated = True
         return self.get_configuration()
 
     @staticmethod
@@ -968,7 +993,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             env_vars["MOTO_HOST"] = settings.moto_server_host()
             moto_port = settings.moto_server_port()
             env_vars["MOTO_PORT"] = moto_port
-            env_vars["MOTO_HTTP_ENDPOINT"] = f'{env_vars["MOTO_HOST"]}:{moto_port}'
+            env_vars["MOTO_HTTP_ENDPOINT"] = f"{env_vars['MOTO_HOST']}:{moto_port}"
 
             if settings.is_test_proxy_mode():
                 env_vars["HTTPS_PROXY"] = env_vars["MOTO_HTTP_ENDPOINT"]
@@ -977,9 +1002,10 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             container = exit_code = None
             log_config = docker.types.LogConfig(type=docker.types.LogConfig.types.JSON)
 
-            with _DockerDataVolumeContext(
-                self
-            ) as data_vol, _DockerDataVolumeLayerContext(self) as layer_context:
+            with (
+                _DockerDataVolumeContext(self) as data_vol,
+                _DockerDataVolumeLayerContext(self) as layer_context,
+            ):
                 try:
                     run_kwargs: Dict[str, Any] = dict()
                     network_name = settings.moto_network_name()
@@ -1011,15 +1037,17 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                     # - lambci/lambda (the repo with older/outdated AWSLambda images
                     #
                     # We'll cycle through all of them - when we find the repo that contains our image, we use it
-                    image_repos = set(
-                        [
-                            settings.moto_lambda_image(),
-                            "mlupin/docker-lambda",
-                            "lambci/lambda",
-                        ]
-                    )
+                    image_repos = {  # dict maintains insertion order
+                        settings.moto_lambda_image(): None,
+                        "mlupin/docker-lambda": None,
+                        "lambci/lambda": None,
+                    }
                     for image_repo in image_repos:
-                        image_ref = f"{image_repo}:{self.run_time}"
+                        image_ref = (
+                            image_repo
+                            if ":" in image_repo
+                            else f"{image_repo}:{self.run_time}"
+                        )
                         try:
                             self.ensure_image_exists(image_ref)
                             break
@@ -1142,9 +1170,9 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         spec = {
             "Code": properties["Code"],
             "FunctionName": resource_name,
-            "Handler": properties["Handler"],
+            "Handler": properties.get("Handler"),
             "Role": properties["Role"],
-            "Runtime": properties["Runtime"],
+            "Runtime": properties.get("Runtime"),
         }
 
         # NOTE: Not doing `properties.get(k, DEFAULT)` to avoid duplicating the
@@ -1216,7 +1244,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
 
     def get_url_config(self) -> "FunctionUrlConfig":
         if not self.url_config:
-            raise FunctionUrlConfigNotFound()
+            raise GenericResourcNotFound()
         return self.url_config
 
     def update_url_config(self, config: Dict[str, Any]) -> "FunctionUrlConfig":
@@ -1254,27 +1282,60 @@ class FunctionUrlConfig:
 class EventSourceMapping(CloudFormationModel):
     def __init__(self, spec: Dict[str, Any]):
         # required
+        self.region = spec["RegionName"]
+        self.account_id = spec["AccountId"]
+        self.uuid = str(random.uuid4())
         self.function_name = spec["FunctionName"]
         self.event_source_arn = spec["EventSourceArn"]
+        self.arn: str = make_event_source_mapping_arn(
+            self.region, self.account_id, self.uuid
+        )
 
         # optional
         self.batch_size = spec.get("BatchSize")  # type: ignore[assignment]
-        self.starting_position = spec.get("StartingPosition", "TRIM_HORIZON")
+        self.starting_position = spec.get("StartingPosition")
+        if (
+            not self.starting_position
+            and "sqs" not in self._get_service_source_from_arn()
+        ):
+            self.starting_position = "TRIM_HORIZON"
         self.enabled = spec.get("Enabled", True)
-        self.starting_position_timestamp = spec.get("StartingPositionTimestamp", None)
+        self.starting_position_timestamp = spec.get("StartingPositionTimestamp")
+        self.kafka_config = spec.get("AmazonManagedKafkaEventSourceConfig")
+        self.bisect_on_error = spec.get("BisectBatchOnFunctionError")
+        self.destination_config = spec.get("DestinationConfig")
+        self.document_db_config = spec.get("DocumentDBEventSourceConfig")
+        self.filter_criteria = spec.get("FilterCriteria")
+        self.function_response_types = spec.get("FunctionResponseTypes")
+        self.kms_key = spec.get("KMSKeyArn")
+        self.max_batch_window = spec.get("MaximumBatchingWindowInSeconds")
+        self.max_record_age = spec.get("MaximumRecordAgeInSeconds")
+        self.max_retry_attempts = spec.get("MaximumRetryAttempts")
+        self.metrics = spec.get("MetricsConfig")
+        self.parallelization_factor = spec.get("ParallelizationFactor")
+        self.poller_config = spec.get("ProvisionedPollerConfig")
+        self.queues = spec.get("Queues")
+        self.scaling_config = spec.get("ScalingConfig")
+        self.self_managed_event_source = spec.get("SelfManagedEventSource")
+        self.self_managed_kafka_event_source_config = spec.get(
+            "SelfManagedKafkaEventSourceConfig"
+        )
+        self.source_access_config = spec.get("SourceAccessConfigurations")
+        self.tags = spec.get("Tags") or dict()
+        self.topics = spec.get("Topics")
+        self.tumbling_window = spec.get("TumblingWindowInSeconds")
 
         self.function_arn: str = spec["FunctionArn"]
-        self.uuid = str(random.uuid4())
         self.last_modified = time.mktime(utcnow().timetuple())
 
-    def _get_service_source_from_arn(self, event_source_arn: str) -> str:
-        return event_source_arn.split(":")[2].lower()
-
-    def _validate_event_source(self, event_source_arn: str) -> bool:
-
-        valid_services = ("dynamodb", "kinesis", "sqs")
-        service = self._get_service_source_from_arn(event_source_arn)
-        return service in valid_services
+    def _get_service_source_from_arn(
+        self, event_source_arn: Optional[str] = None
+    ) -> str:
+        arn = event_source_arn or self.event_source_arn
+        service = arn.split(":")[2].lower()
+        if service == "sqs" and arn.endswith(".fifo"):
+            return "sqs-fifo"
+        return service
 
     @property
     def event_source_arn(self) -> str:
@@ -1282,7 +1343,8 @@ class EventSourceMapping(CloudFormationModel):
 
     @event_source_arn.setter
     def event_source_arn(self, event_source_arn: str) -> None:
-        if not self._validate_event_source(event_source_arn):
+        service = self._get_service_source_from_arn(event_source_arn)
+        if service not in ("dynamodb", "kinesis", "sqs", "sqs-fifo"):
             raise ValueError(
                 "InvalidParameterValueException", "Unsupported event source type"
             )
@@ -1293,38 +1355,61 @@ class EventSourceMapping(CloudFormationModel):
         return self._batch_size
 
     @batch_size.setter
-    def batch_size(self, batch_size: Optional[int]) -> None:
+    def batch_size(self, new_batch_size: Optional[int]) -> None:
         batch_size_service_map = {
             "kinesis": (100, 10000),
-            "dynamodb": (100, 1000),
-            "sqs": (10, 10),
+            "dynamodb": (100, 10000),
+            "sqs": (10, 10000),
+            "sqs-fifo": (10, 10),
         }
 
-        source_type = self._get_service_source_from_arn(self.event_source_arn)
+        source_type = self._get_service_source_from_arn()
         batch_size_for_source = batch_size_service_map[source_type]
 
-        if batch_size is None:
+        if new_batch_size is None:
             self._batch_size = batch_size_for_source[0]
-        elif batch_size > batch_size_for_source[1]:
-            error_message = (
-                f"BatchSize {batch_size} exceeds the max of {batch_size_for_source[1]}"
-            )
+        elif new_batch_size > batch_size_for_source[1]:
+            error_message = f"BatchSize {new_batch_size} exceeds the max of {batch_size_for_source[1]}"
             raise ValueError("InvalidParameterValueException", error_message)
         else:
-            self._batch_size = int(batch_size)
+            self._batch_size = int(new_batch_size)
 
     def get_configuration(self) -> Dict[str, Any]:
-        return {
+        response_dict = {
             "UUID": self.uuid,
             "BatchSize": self.batch_size,
             "EventSourceArn": self.event_source_arn,
+            "EventSourceMappingArn": self.arn,
             "FunctionArn": self.function_arn,
             "LastModified": self.last_modified,
             "LastProcessingResult": None,
             "State": "Enabled" if self.enabled else "Disabled",
             "StateTransitionReason": "User initiated",
             "StartingPosition": self.starting_position,
+            "AmazonManagedKafkaEventSourceConfig": self.kafka_config,
+            "BisectBatchOnFunctionError": self.bisect_on_error,
+            "DestinationConfig": self.destination_config,
+            "DocumentDBEventSourceConfig": self.document_db_config,
+            "FilterCriteria": self.filter_criteria,
+            "FunctionResponseTypes": self.function_response_types,
+            "KMSKeyArn": self.kms_key,
+            "MaximumBatchingWindowInSeconds": self.max_batch_window,
+            "MaximumRecordAgeInSeconds": self.max_record_age,
+            "MaximumRetryAttempts": self.max_retry_attempts,
+            "MetricsConfig": self.metrics,
+            "ParallelizationFactor": self.parallelization_factor,
+            "ProvisionedPollerConfig": self.poller_config,
+            "Queues": self.queues,
+            "ScalingConfig": self.scaling_config,
+            "SelfManagedEventSource": self.self_managed_event_source,
+            "SelfManagedKafkaEventSourceConfig": self.self_managed_kafka_event_source_config,
+            "SourceAccessConfigurations": self.source_access_config,
+            "Tags": self.tags,
+            "Topics": self.topics,
+            "TumblingWindowInSeconds": self.tumbling_window,
         }
+        # Only return fields with a value - we don't want to return None for a boolean/int field
+        return {k: v for k, v in response_dict.items() if v is not None}
 
     def delete(self, account_id: str, region_name: str) -> None:
         lambda_backend = lambda_backends[account_id][region_name]
@@ -1409,7 +1494,7 @@ class LambdaVersion(CloudFormationModel):
     ) -> "LambdaVersion":
         properties = cloudformation_json["Properties"]
         function_name = properties["FunctionName"]
-        func = lambda_backends[account_id][region_name].publish_function(function_name)
+        func = lambda_backends[account_id][region_name].publish_version(function_name)
         spec = {"Version": func.version}  # type: ignore[union-attr]
         return LambdaVersion(spec)
 
@@ -1418,11 +1503,12 @@ class LambdaStorage(object):
     def __init__(self, region_name: str, account_id: str):
         # Format 'func_name' {'versions': []}
         self._functions: Dict[str, Any] = {}
-        self._arns: weakref.WeakValueDictionary[
-            str, LambdaFunction
-        ] = weakref.WeakValueDictionary()
+        self._arns: weakref.WeakValueDictionary[str, LambdaFunction] = (
+            weakref.WeakValueDictionary()
+        )
         self.region_name = region_name
         self.account_id = account_id
+        self.partition = get_partition(region_name)
 
         # function-arn -> alias -> LambdaAlias
         self._aliases: Dict[str, Dict[str, LambdaAlias]] = defaultdict(lambda: {})
@@ -1452,7 +1538,7 @@ class LambdaStorage(object):
         if name in aliases:
             return aliases[name]
 
-        arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+        arn = f"arn:{get_partition(self.region_name)}:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
         raise UnknownAliasException(arn)
 
     def put_alias(
@@ -1468,7 +1554,7 @@ class LambdaStorage(object):
         )
         aliases = self._get_function_aliases(function_name)
         if name in aliases:
-            arn = f"arn:aws:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
+            arn = f"arn:{get_partition(self.region_name)}:lambda:{self.region_name}:{self.account_id}:function:{function_name}:{name}"
             raise ConflictException(f"Alias already exists: {arn}")
 
         alias = LambdaAlias(
@@ -1602,7 +1688,7 @@ class LambdaStorage(object):
         :raises: InvalidParameterValue if qualifier is provided
         """
 
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             [_, name, qualifier] = self.split_function_arn(name_or_arn)
 
             if qualifier is not None:
@@ -1621,7 +1707,7 @@ class LambdaStorage(object):
         :raises: UnknownFunctionException if function not found
         """
 
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             [_, name, qualifier_in_arn] = self.split_function_arn(name_or_arn)
             return self.get_function_by_name_with_qualifier(
                 name, qualifier_in_arn or qualifier
@@ -1632,7 +1718,7 @@ class LambdaStorage(object):
     def construct_unknown_function_exception(
         self, name_or_arn: str, qualifier: Optional[str] = None
     ) -> UnknownFunctionException:
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             arn = name_or_arn
         else:
             # name_or_arn is a function name with optional qualifier <func_name>[:<qualifier>]
@@ -1649,7 +1735,7 @@ class LambdaStorage(object):
             if account != self.account_id:
                 raise CrossAccountNotAllowed()
             try:
-                iam_backend = iam_backends[self.account_id]["global"]
+                iam_backend = iam_backends[self.account_id][self.partition]
                 iam_backend.get_role_by_arn(fn.role)
             except IAMNotFoundException:
                 raise InvalidParameterValueException(
@@ -1663,7 +1749,7 @@ class LambdaStorage(object):
             self._functions[fn.function_name] = {"latest": fn, "versions": []}
         self._arns[fn.function_arn] = fn
 
-    def publish_function(
+    def publish_version(
         self, name_or_arn: str, description: str = ""
     ) -> Optional[LambdaFunction]:
         function = self.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
@@ -1676,9 +1762,11 @@ class LambdaStorage(object):
         all_versions = self._functions[name]["versions"]
         if all_versions:
             latest_published = all_versions[-1]
-            if latest_published.code_sha_256 == function.code_sha_256:
+            if not function.code_or_config_updated:
                 # Nothing has changed, don't publish
                 return latest_published
+            else:
+                function.code_or_config_updated = False
 
         new_version = len(all_versions) + 1
         fn = copy.copy(self._functions[name]["latest"])
@@ -1692,7 +1780,7 @@ class LambdaStorage(object):
 
     def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
-        if name_or_arn.startswith("arn:aws"):
+        if re.match(ARN_PARTITION_REGEX, name_or_arn):
             # Extract from ARN
             if ":" in name_or_arn.split(":function:")[-1]:
                 qualifier = name_or_arn.split(":")[-1]
@@ -1758,9 +1846,9 @@ class LambdaStorage(object):
 class LayerStorage(object):
     def __init__(self) -> None:
         self._layers: Dict[str, Layer] = {}
-        self._arns: weakref.WeakValueDictionary[
-            str, LambdaFunction
-        ] = weakref.WeakValueDictionary()
+        self._arns: weakref.WeakValueDictionary[str, LambdaFunction] = (
+            weakref.WeakValueDictionary()
+        )
 
     def _find_layer_by_name_or_arn(self, name_or_arn: str) -> Layer:
         if name_or_arn in self._layers:
@@ -1894,15 +1982,6 @@ class LambdaBackend(BaseBackend):
         self._event_source_mappings: Dict[str, EventSourceMapping] = {}
         self._layers = LayerStorage()
 
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "lambda"
-        )
-
     def create_alias(
         self,
         name: str,
@@ -1954,7 +2033,7 @@ class LambdaBackend(BaseBackend):
         self._lambdas.put_function(fn)
 
         if spec.get("Publish"):
-            ver = self.publish_function(function_name)
+            ver = self.publish_version(function_name)
             fn = copy.deepcopy(
                 fn
             )  # We don't want to change the actual version - just the return value
@@ -2009,6 +2088,8 @@ class LambdaBackend(BaseBackend):
         for param in required:
             if not spec.get(param):
                 raise RESTError("InvalidParameterValueException", f"Missing {param}")
+        spec["RegionName"] = self.region_name
+        spec["AccountId"] = self.account_id
 
         # Validate function name
         func = self._lambdas.get_function_by_name_or_arn_with_qualifier(
@@ -2035,12 +2116,12 @@ class LambdaBackend(BaseBackend):
 
         ddbstream_backend = dynamodbstreams_backends[self.account_id][self.region_name]
         ddb_backend = dynamodb_backends[self.account_id][self.region_name]
-        for stream in json.loads(ddbstream_backend.list_streams())["Streams"]:
-            if stream["StreamArn"] == spec["EventSourceArn"]:
+        for ddbstream in ddbstream_backend.list_streams():
+            if ddbstream["StreamArn"] == spec["EventSourceArn"]:
                 spec.update({"FunctionArn": func.function_arn})
                 esm = EventSourceMapping(spec)
                 self._event_source_mappings[esm.uuid] = esm
-                table_name = stream["TableName"]
+                table_name = ddbstream["TableName"]
                 table = ddb_backend.get_table(table_name)
                 table.lambda_event_source_mappings[esm.function_arn] = esm
                 return esm
@@ -2078,16 +2159,16 @@ class LambdaBackend(BaseBackend):
     def get_layer_version(self, layer_name: str, layer_version: str) -> LayerVersion:
         return self._layers.get_layer_version(layer_name, layer_version)
 
-    def get_layer_versions(self, layer_name: str) -> Iterable[LayerVersion]:
+    def list_layer_versions(self, layer_name: str) -> Iterable[LayerVersion]:
         return self._layers.get_layer_versions(layer_name)
 
     def layers_versions_by_arn(self, layer_version_arn: str) -> Optional[LayerVersion]:
         return self._layers.get_layer_version_by_arn(layer_version_arn)
 
-    def publish_function(
+    def publish_version(
         self, function_name: str, description: str = ""
     ) -> Optional[LambdaFunction]:
-        return self._lambdas.publish_function(function_name, description)
+        return self._lambdas.publish_version(function_name, description)
 
     def get_function(
         self, function_name_or_arn: str, qualifier: Optional[str] = None
@@ -2125,6 +2206,36 @@ class LambdaBackend(BaseBackend):
                 esm.batch_size = spec[key]
             elif key == "Enabled":
                 esm.enabled = spec[key]
+            elif key == "FilterCriteria":
+                esm.filter_criteria = spec[key]
+            elif key == "MaximumBatchingWindowInSeconds":
+                esm.max_batch_window = spec[key]
+            elif key == "ParallelizationFactor":
+                esm.parallelization_factor = spec[key]
+            elif key == "DestinationConfig":
+                esm.destination_config = spec[key]
+            elif key == "MaximumRecordAgeInSeconds":
+                esm.max_record_age = spec[key]
+            elif key == "BisectBatchOnFunctionError":
+                esm.bisect_on_error = spec[key]
+            elif key == "MaximumRetryAttempts":
+                esm.max_retry_attempts = spec[key]
+            elif key == "TumblingWindowInSeconds":
+                esm.tumbling_window = spec[key]
+            elif key == "SourceAccessConfigurations":
+                esm.source_access_config = spec[key]
+            elif key == "FunctionResponseTypes":
+                esm.function_response_types = spec[key]
+            elif key == "ScalingConfig":
+                esm.scaling_config = spec[key]
+            elif key == "DocumentDBEventSourceConfig":
+                esm.document_db_config = spec[key]
+            elif key == "KMSKeyArn":
+                esm.kms_key = spec[key]
+            elif key == "MetricsConfig":
+                esm.metrics = spec[key]
+            elif key == "ProvisionedPollerConfig":
+                esm.poller_config = spec[key]
 
         esm.last_modified = time.mktime(utcnow().timetuple())
         return esm
@@ -2283,7 +2394,7 @@ class LambdaBackend(BaseBackend):
             "Records": [
                 {
                     "eventID": item.to_json()["eventID"],
-                    "eventName": "INSERT",
+                    "eventName": item.to_json()["eventName"],
                     "eventVersion": item.to_json()["eventVersion"],
                     "eventSource": item.to_json()["eventSource"],
                     "awsRegion": self.region_name,
@@ -2323,23 +2434,39 @@ class LambdaBackend(BaseBackend):
         func = self._lambdas.get_arn(function_arn)
         func.invoke(json.dumps(event), {}, {})  # type: ignore[union-attr]
 
-    def list_tags(self, resource: str) -> Dict[str, str]:
-        return self._lambdas.get_function_by_name_or_arn_with_qualifier(resource).tags
+    def _get_resource_by_arn(self, arn: str) -> EventSourceMapping | LambdaFunction:
+        arn_breakdown = arn.split(":")
+        resource_type = arn_breakdown[len(arn_breakdown) - 2]
+        resource_name = arn_breakdown[len(arn_breakdown) - 1]
+        if resource_type == "event-source-mapping":
+            esm = self._event_source_mappings.get(resource_name)
+            if not esm:
+                raise RESTError(
+                    "ResourceNotFoundException",
+                    f"Event source mapping {resource_name} not found.",
+                )
+            return esm
+        return self._lambdas.get_function_by_name_or_arn_with_qualifier(arn)
 
-    def tag_resource(self, resource: str, tags: Dict[str, str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
-        fn.tags.update(tags)
+    def list_tags(self, resource_arn: str) -> Dict[str, str]:
+        resource = self._get_resource_by_arn(resource_arn)
+        return resource.tags
 
-    def untag_resource(self, resource: str, tagKeys: List[str]) -> None:
-        fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(resource)
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        resource.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tagKeys: List[str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
         for key in tagKeys:
-            fn.tags.pop(key, None)
+            resource.tags.pop(key, None)
 
     def add_permission(
         self, function_name: str, qualifier: str, raw: str
     ) -> Dict[str, Any]:
         fn = self.get_function(function_name, qualifier)
-        return fn.policy.add_statement(raw, qualifier)
+        statement, revision = fn.policy.add_statement(raw, qualifier)
+        return statement
 
     def remove_permission(
         self, function_name: str, sid: str, revision: str = ""
@@ -2347,9 +2474,9 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         fn.policy.del_statement(sid, revision)
 
-    def get_code_signing_config(self, function_name: str) -> Dict[str, Any]:
+    def get_function_code_signing_config(self, function_name: str) -> Dict[str, Any]:
         fn = self.get_function(function_name)
-        return fn.get_code_signing_config()
+        return fn.get_function_code_signing_config()
 
     def get_policy(self, function_name: str, qualifier: Optional[str] = None) -> str:
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
@@ -2364,7 +2491,7 @@ class LambdaBackend(BaseBackend):
         fn.update_function_code(body)
 
         if body.get("Publish", False):
-            fn = self.publish_function(function_name)  # type: ignore[assignment]
+            fn = self.publish_version(function_name)  # type: ignore[assignment]
 
         return fn.update_function_code(body)
 
@@ -2385,6 +2512,26 @@ class LambdaBackend(BaseBackend):
     ) -> Optional[Union[str, bytes]]:
         """
         Invoking a Function with PackageType=Image is not yet supported.
+
+        Invoking a Function against Lambda without docker now supports customised responses, the default being `Simple Lambda happy path OK`.
+        You can use a dedicated API to override this, by configuring a queue of expected results.
+
+        A request to `invoke` will take the first result from that queue.
+
+        Configure this queue by making an HTTP request to `/moto-api/static/lambda-simple/response`. An example invocation looks like this:
+
+        .. sourcecode:: python
+
+            expected_results = {"results": ["test", "test 2"], "region": "us-east-1"}
+            resp = requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/lambda-simple/response",
+                json=expected_results
+            )
+            assert resp.status_code == 201
+
+            client = boto3.client("lambda", region_name="us-east-1")
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test"
+            resp = client.invoke(...) # resp["Payload"].read().decode() == "test2"
         """
         fn = self.get_function(function_name, qualifier)
         payload = fn.invoke(body, headers, response_headers)
@@ -2428,7 +2575,7 @@ class LambdaBackend(BaseBackend):
         fn.reserved_concurrency = None
         return fn.reserved_concurrency
 
-    def get_function_concurrency(self, function_name: str) -> str:
+    def get_function_concurrency(self, function_name: str) -> Optional[str]:
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 
@@ -2469,6 +2616,22 @@ class LambdaBackend(BaseBackend):
             return response
         except UnknownEventConfig:
             return response
+
+    def add_layer_version_permission(
+        self, layer_name: str, version_number: int, statement: str
+    ) -> Tuple[str, str]:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        return layer_version.policy.add_statement(statement)
+
+    def get_layer_version_policy(self, layer_name: str, version_number: int) -> str:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        return layer_version.policy.wire_format()
+
+    def remove_layer_version_permission(
+        self, layer_name: str, version_number: str, sid: str, revision: str = ""
+    ) -> None:
+        layer_version = self.get_layer_version(layer_name, str(version_number))
+        layer_version.policy.del_statement(sid, revision)
 
 
 def do_validate_s3() -> bool:

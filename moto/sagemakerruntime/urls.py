@@ -1,4 +1,5 @@
 """sagemakerruntime base URL and path."""
+
 from .responses import SageMakerRuntimeResponse
 
 url_bases = [

@@ -1,4 +1,5 @@
 """Exceptions raised by the identitystore service."""
+
 import json
 from typing import Any
 

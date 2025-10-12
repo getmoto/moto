@@ -507,6 +507,58 @@ def test_list_task_definitions_with_family_prefix():
 
 
 @mock_aws
+def test_list_task_definitions_with_status_filter():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    td2_response = client.register_task_definition(
+        family="test_ecs_task",
+        containerDefinitions=[
+            {
+                "name": "hello_world2",
+                "image": "docker/hello-world2:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+                "environment": [
+                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY2"}
+                ],
+                "logConfiguration": {"logDriver": "json-file"},
+            }
+        ],
+    )
+    client.deregister_task_definition(
+        taskDefinition=td2_response["taskDefinition"]["taskDefinitionArn"]
+    )
+    response = client.list_task_definitions(status="ACTIVE")
+    assert len(response["taskDefinitionArns"]) == 1
+    assert (
+        response["taskDefinitionArns"][0]
+        == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:1"
+    )
+    response = client.list_task_definitions(status="INACTIVE")
+    assert len(response["taskDefinitionArns"]) == 1
+    assert (
+        response["taskDefinitionArns"][0]
+        == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:2"
+    )
+
+
+@mock_aws
 def test_describe_task_definitions():
     client = boto3.client("ecs", region_name=ECS_REGION)
     client.register_task_definition(
@@ -648,52 +700,58 @@ def test_deregister_task_definition_2():
 @mock_aws
 def test_create_service():
     client = boto3.client("ecs", region_name=ECS_REGION)
-    client.create_cluster(clusterName="test_ecs_cluster")
-    client.register_task_definition(
-        family="test_ecs_task",
-        containerDefinitions=[
-            {
-                "name": "hello_world",
-                "image": "docker/hello-world:latest",
-                "cpu": 1024,
-                "memory": 400,
-                "essential": True,
-                "environment": [
-                    {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
-                ],
-                "logConfiguration": {"logDriver": "json-file"},
-            }
-        ],
-    )
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    subnet, sg = setup_ecs(client, ec2)
     response = client.create_service(
         cluster="test_ecs_cluster",
         serviceName="test_ecs_service",
         taskDefinition="test_ecs_task",
         desiredCount=2,
         platformVersion="2",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [subnet.id],
+                "securityGroups": [sg.id],
+            }
+        },
     )
     assert (
         response["service"]["clusterArn"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:cluster/test_ecs_cluster"
     )
-    assert response["service"]["desiredCount"] == 2
-    assert len(response["service"]["events"]) == 0
-    assert len(response["service"]["loadBalancers"]) == 0
-    assert response["service"]["pendingCount"] == 2
-    assert response["service"]["runningCount"] == 0
+    svc = response["service"]
+    assert svc["desiredCount"] == 2
+    assert len(svc["events"]) == 0
+    assert len(svc["loadBalancers"]) == 0
+    assert svc["pendingCount"] == 2
+    assert svc["runningCount"] == 0
     assert (
-        response["service"]["serviceArn"]
+        svc["serviceArn"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:service/test_ecs_cluster/test_ecs_service"
     )
-    assert response["service"]["serviceName"] == "test_ecs_service"
-    assert response["service"]["status"] == "ACTIVE"
+    assert svc["serviceName"] == "test_ecs_service"
+    assert svc["status"] == "ACTIVE"
     assert (
-        response["service"]["taskDefinition"]
+        svc["taskDefinition"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:1"
     )
-    assert response["service"]["schedulingStrategy"] == "REPLICA"
-    assert response["service"]["launchType"] == "EC2"
-    assert response["service"]["platformVersion"] == "2"
+    assert svc["schedulingStrategy"] == "REPLICA"
+    assert svc["launchType"] == "EC2"
+    assert svc["platformVersion"] == "2"
+    assert svc["deployments"][0]["platformVersion"] == "2"
+    assert svc["deployments"][0]["platformFamily"] == "EC2"
+
+    assert "networkConfiguration" in svc
+    nc = svc["networkConfiguration"]["awsvpcConfiguration"]
+    assert len(["subnets"]) == 1
+    assert len(["securityGroups"]) == 1
+    assert nc["subnets"][0] == subnet.id
+    assert nc["securityGroups"][0] == sg.id
+
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 2
 
 
 @mock_aws
@@ -721,6 +779,10 @@ def test_create_running_service():
         assert response["service"]["runningCount"] == running_service_count
         assert response["service"]["pendingCount"] == 1
 
+        cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+        assert cluster["runningTasksCount"] == running_service_count
+        assert cluster["pendingTasksCount"] == 1
+
 
 @mock_aws
 def test_create_running_service_bad_env_var():
@@ -742,6 +804,9 @@ def test_create_running_service_bad_env_var():
 
         assert response["service"]["runningCount"] == 0
 
+        cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+        assert cluster["runningTasksCount"] == 0
+
 
 @mock_aws
 def test_create_running_service_negative_env_var():
@@ -762,6 +827,9 @@ def test_create_running_service_negative_env_var():
         )
 
         assert response["service"]["runningCount"] == 0
+
+        cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+        assert cluster["runningTasksCount"] == 0
 
 
 @mock_aws
@@ -1225,6 +1293,8 @@ def test_update_service():
         desiredCount=2,
     )
     assert response["service"]["desiredCount"] == 2
+    id = response["service"]["deployments"][0]["id"]
+    created_at = response["service"]["deployments"][0]["createdAt"]
 
     response = client.update_service(
         cluster="test_ecs_cluster",
@@ -1233,6 +1303,8 @@ def test_update_service():
         desiredCount=0,
     )
     assert response["service"]["desiredCount"] == 0
+    assert response["service"]["runningCount"] == 0
+    assert response["service"]["pendingCount"] == 0
     assert response["service"]["schedulingStrategy"] == "REPLICA"
 
     # Verify we can pass the ARNs of the cluster and service
@@ -1243,6 +1315,22 @@ def test_update_service():
         desiredCount=1,
     )
     assert response["service"]["desiredCount"] == 1
+    assert response["service"]["runningCount"] == 1
+    assert response["service"]["pendingCount"] == 0
+
+    response = client.update_service(
+        cluster="test_ecs_cluster",
+        service="test_ecs_service",
+        taskDefinition="test_ecs_task",
+        desiredCount=1,
+        forceNewDeployment=True,
+    )
+    assert response["service"]["deployments"][0]["id"] != id
+    assert response["service"]["deployments"][0]["createdAt"] != created_at
+    assert (
+        response["service"]["deployments"][0]["createdAt"]
+        == response["service"]["deployments"][0]["updatedAt"]
+    )
 
 
 @mock_aws
@@ -1285,9 +1373,19 @@ def test_delete_service():
         taskDefinition="test_ecs_task",
         desiredCount=2,
     )
+
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 2
+    assert cluster["runningTasksCount"] == 0
+
     client.update_service(
         cluster="test_ecs_cluster", service="test_ecs_service", desiredCount=0
     )
+
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 0
+    assert cluster["runningTasksCount"] == 0
+
     response = client.delete_service(
         cluster="test_ecs_cluster", service="test_ecs_service"
     )
@@ -1311,6 +1409,10 @@ def test_delete_service():
         response["service"]["taskDefinition"]
         == f"arn:aws:ecs:us-east-1:{ACCOUNT_ID}:task-definition/test_ecs_task:1"
     )
+
+    cluster = client.describe_clusters(clusters=["test_ecs_cluster"])["clusters"][0]
+    assert cluster["pendingTasksCount"] == 0
+    assert cluster["runningTasksCount"] == 0
 
     # service should still exist, just in the INACTIVE state
     service = client.describe_services(
@@ -1833,31 +1935,27 @@ def test_update_container_instances_state_by_arn():
 
 @mock_aws
 def test_run_task():
+    # Setup
+    test_cluster_name = "test_ecs_cluster"
+    image = "docker/hello-world:latest"
     client = boto3.client("ecs", region_name=ECS_REGION)
     ec2 = boto3.resource("ec2", region_name=ECS_REGION)
-
-    test_cluster_name = "test_ecs_cluster"
-
     client.create_cluster(clusterName=test_cluster_name)
-
     test_instance = ec2.create_instances(
         ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1
     )[0]
-
     instance_id_document = json.dumps(
         ec2_utils.generate_instance_identity_document(test_instance)
     )
-
-    response = client.register_container_instance(
+    client.register_container_instance(
         cluster=test_cluster_name, instanceIdentityDocument=instance_id_document
     )
-
-    client.register_task_definition(
+    td = client.register_task_definition(
         family="test_ecs_task",
         containerDefinitions=[
             {
                 "name": "hello_world",
-                "image": "docker/hello-world:latest",
+                "image": image,
                 "cpu": 1024,
                 "memory": 400,
                 "essential": True,
@@ -1868,12 +1966,19 @@ def test_run_task():
             }
         ],
     )
+
+    # Execute
     response = client.run_task(
         cluster="test_ecs_cluster",
         overrides={},
         taskDefinition="test_ecs_task",
         startedBy="moto",
     )
+
+    cluster = client.describe_clusters(clusters=[test_cluster_name])["clusters"][0]
+    assert cluster["runningTasksCount"] == 1
+
+    # Verify
     assert len(response["tasks"]) == 1
     response = client.run_task(
         cluster="test_ecs_cluster",
@@ -1907,6 +2012,16 @@ def test_run_task():
     assert task["startedBy"] == "moto"
     assert task["stoppedReason"] == ""
     assert task["tags"][0].get("value") == "tagValue0"
+    assert len(task["containers"]) == 1
+
+    con = task["containers"][0]
+    assert td["taskDefinition"]["taskDefinitionArn"] in con["containerArn"]
+    assert con["taskArn"] == td["taskDefinition"]["taskDefinitionArn"]
+    assert con["lastStatus"] == "PENDING"
+    assert con["image"] == image
+
+    cluster = client.describe_clusters(clusters=[test_cluster_name])["clusters"][0]
+    assert cluster["runningTasksCount"] == 3
 
 
 @mock_aws
@@ -2050,6 +2165,10 @@ def test_run_task_awsvpc_network():
 
     # ECS setup
     setup_resources = setup_ecs(client, ec2)
+    subnet = setup_resources[0]
+    ec2_client.modify_vpc_attribute(
+        VpcId=subnet.vpc.id, EnableDnsHostnames={"Value": True}
+    )
 
     # Execute
     response = client.run_task(
@@ -2087,6 +2206,47 @@ def test_run_task_awsvpc_network():
     assert {"name": "privateIPv4Address", "value": eni["PrivateIpAddress"]} in details
     assert {"name": "networkInterfaceId", "value": eni["NetworkInterfaceId"]} in details
     assert {"name": "macAddress", "value": eni["MacAddress"]} in details
+
+
+@mock_aws
+def test_run_task_awsvpc_network__unknown_sec_group():
+    # Setup
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2_client = boto3.client("ec2", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    setup_resources = setup_ecs(client, ec2)
+    subnet = setup_resources[0]
+    ec2_client.modify_vpc_attribute(
+        VpcId=subnet.vpc.id, EnableDnsHostnames={"Value": True}
+    )
+
+    # Execute
+    task = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        startedBy="moto",
+        launchType="FARGATE",
+        networkConfiguration={
+            "awsvpcConfiguration": {
+                "subnets": [setup_resources[0].id],
+                "securityGroups": ["unknown_sg"],
+            }
+        },
+    )["tasks"][0]
+    eni_id = next(
+        t["value"]
+        for t in task["attachments"][0]["details"]
+        if t["name"] == "networkInterfaceId"
+    )
+
+    eni = ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])[
+        "NetworkInterfaces"
+    ][0]
+    # Unknown SecurityGroup is created for us
+    assert eni["Groups"] == [{"GroupId": "unknown_sg", "GroupName": "unknown_sg"}]
 
 
 @mock_aws
@@ -2277,6 +2437,7 @@ def test_start_task():
     assert response["tasks"][0]["desiredStatus"] == "RUNNING"
     assert response["tasks"][0]["startedBy"] == "moto"
     assert response["tasks"][0]["stoppedReason"] == ""
+    assert response["tasks"][0]["group"] == "family:test_ecs_task"
 
 
 @mock_aws
@@ -2298,6 +2459,7 @@ def test_start_task_with_tags():
         containerInstances=[container_instance_id],
         startedBy="moto",
         tags=task_tags,
+        group="test_group",
     )
 
     assert len(response["tasks"]) == 1
@@ -2322,6 +2484,7 @@ def test_start_task_with_tags():
     assert response["tasks"][0]["desiredStatus"] == "RUNNING"
     assert response["tasks"][0]["startedBy"] == "moto"
     assert response["tasks"][0]["stoppedReason"] == ""
+    assert response["tasks"][0]["group"] == "test_group"
 
 
 @mock_aws
@@ -2437,12 +2600,27 @@ def test_describe_tasks():
     assert set(
         [response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]]
     ) == set(tasks_arns)
+    # Since no "group parameter" was passed with RunTask, we get back the one generated by default
+    assert response["tasks"][0]["group"] == "family:test_ecs_task"
+    assert response["tasks"][1]["group"] == "family:test_ecs_task"
 
     # Test we can pass task ids instead of ARNs
     response = client.describe_tasks(
         cluster="test_ecs_cluster", tasks=[tasks_arns[0].split("/")[-1]]
     )
     assert len(response["tasks"]) == 1
+
+    # Test passing in a group parameter with RunTask
+    response = client.run_task(
+        cluster="test_ecs_cluster",
+        overrides={},
+        taskDefinition="test_ecs_task",
+        count=1,
+        startedBy="moto",
+        group="test_group",
+    )
+    assert len(response["tasks"]) == 1
+    assert response["tasks"][0]["group"] == "test_group"
 
 
 @mock_aws
@@ -2616,11 +2794,18 @@ def test_stop_task():
         count=1,
         startedBy="moto",
     )
+
+    cluster = client.describe_clusters(clusters=[test_cluster_name])["clusters"][0]
+    assert cluster["runningTasksCount"] == 1
+
     stop_response = client.stop_task(
         cluster="test_ecs_cluster",
         task=run_response["tasks"][0].get("taskArn"),
         reason="moto testing",
     )
+
+    cluster = client.describe_clusters(clusters=[test_cluster_name])["clusters"][0]
+    assert cluster["runningTasksCount"] == 0
 
     assert stop_response["task"]["taskArn"] == run_response["tasks"][0].get("taskArn")
     assert stop_response["task"]["lastStatus"] == "STOPPED"
@@ -3650,6 +3835,84 @@ def test_list_tasks_with_filters():
     assert len(resp["taskArns"]) == 1
 
 
+@pytest.mark.parametrize(
+    "update_params",
+    [
+        {
+            "loadBalancers": [
+                {
+                    "targetGroupArn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/mock-service-http",
+                    "loadBalancerName": "mock-service1",
+                    "containerName": "mock-container1",
+                    "containerPort": 80,
+                }
+            ]
+        },
+        {
+            "serviceRegistries": [
+                {
+                    "registryArn": "string",
+                    "port": 123,
+                    "containerName": "string",
+                    "containerPort": 123,
+                },
+                {
+                    "registryArn": "string2",
+                    "port": 1234,
+                    "containerName": "string2",
+                    "containerPort": 1234,
+                },
+            ],
+        },
+        {
+            "placementStrategy": [
+                {"type": "random", "field": "string"},
+            ],
+        },
+        {
+            "deploymentConfiguration": {
+                "deploymentCircuitBreaker": {"enable": True, "rollback": True},
+                "maximumPercent": 10,
+                "minimumHealthyPercent": 1,
+                "alarms": {
+                    "alarmNames": [
+                        "string",
+                    ],
+                    "enable": True,
+                    "rollback": True,
+                },
+            },
+        },
+    ],
+)
+@mock_aws
+def test_remove_tg(update_params):
+    # Setup
+    ecs_client = boto3.client("ecs", region_name=ECS_REGION)
+    cluster = "mock-cluster"
+    service = "mock-service"
+    ecs_client.create_cluster(clusterName=cluster)
+    ecs_client.create_service(
+        cluster=cluster,
+        serviceName=service,
+    )
+
+    # Execute
+    ecs_client.update_service(
+        cluster="arn:aws:ecs:us-east-1:123456789012:cluster/" + cluster,
+        service=service,
+        **update_params,
+    )
+    response = ecs_client.describe_services(cluster=cluster, services=[service])
+    response_svc = response["services"][0]
+    property_key = next(iter(update_params))
+    property_val = next(iter(update_params.values()))
+
+    # Verify
+    assert len(response_svc[property_key]) == len(property_val)
+    assert response_svc[property_key] == update_params[property_key]
+
+
 def setup_ecs(client, ec2):
     """test helper"""
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -3709,3 +3972,93 @@ def setup_ecs_cluster_with_ec2_instance(client, test_cluster_name):
             }
         ],
     )
+
+
+c1 = {
+    "awsvpcConfiguration": {
+        "subnets": ["fake-subnet"],
+    }
+}
+e1 = "Error retrieving subnet information for [fake-subnet]: The subnet ID 'fake-subnet' does not exist (ErrorCode: InvalidSubnetID.NotFound)"
+c2 = {
+    "awsvpcConfiguration": {
+        "subnets": "[subnet.id]",
+        "securityGroups": ["sg-123456"],
+    }
+}
+e2 = "Error retrieving security group information for [sg-123456]: The security group 'sg-123456' does not exist (ErrorCode: InvalidGroup.NotFound)"
+c3 = {
+    "awsvpcConfiguration": {
+        "subnets": [],
+    }
+}
+e3 = "subnets can not be empty."
+
+
+@pytest.mark.parametrize(
+    "net_config,error_message",
+    [(c1, e1), (c2, e2), (c3, e3)],
+)
+@mock_aws
+def test_service_exceptions(net_config, error_message):
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    ec2 = boto3.resource("ec2", region_name=ECS_REGION)
+
+    # ECS setup
+    subnet, sg = setup_ecs(client, ec2)
+    if net_config["awsvpcConfiguration"]["subnets"] == "[subnet.id]":
+        # sub real subnet for evaluation
+        net_config["awsvpcConfiguration"]["subnets"] = [subnet.id]
+
+    with pytest.raises(ClientError) as exc:
+        client.create_service(
+            cluster="test_ecs_cluster",
+            serviceName="test_ecs_service",
+            taskDefinition="test_ecs_task",
+            desiredCount=2,
+            platformVersion="2",
+            networkConfiguration=net_config,
+        )
+    ex = exc.value
+    assert ex.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert ex.response["Error"]["Code"] == "InvalidParameterException"
+    assert ex.response["Error"]["Message"] == error_message
+
+
+@mock_aws
+def test_create_service_with_role_arn():
+    client = boto3.client("ecs", region_name=ECS_REGION)
+    cluster_name = "test_ecs_cluster"
+    service_name = "test_ecs_service"
+    task_definition_family = "test_ecs_task"
+    role_arn = "arn:aws:iam::123456789012:role/test-role"
+
+    client.create_cluster(clusterName=cluster_name)
+
+    client.register_task_definition(
+        family=task_definition_family,
+        containerDefinitions=[
+            {
+                "name": "hello_world",
+                "image": "docker/hello-world:latest",
+                "cpu": 1024,
+                "memory": 400,
+                "essential": True,
+            }
+        ],
+    )
+
+    response = client.create_service(
+        cluster=cluster_name,
+        serviceName=service_name,
+        taskDefinition=task_definition_family,
+        desiredCount=2,
+        role=role_arn,
+    )
+
+    assert response["service"]["roleArn"] == role_arn
+
+    describe_response = client.describe_services(
+        cluster=cluster_name, services=[service_name]
+    )
+    assert describe_response["services"][0]["roleArn"] == role_arn

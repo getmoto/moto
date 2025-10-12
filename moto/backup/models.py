@@ -6,6 +6,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import AlreadyExistsException, ResourceNotFoundException
 
@@ -17,9 +18,8 @@ class Plan(BaseModel):
         creator_request_id: str,
         backend: "BackupBackend",
     ):
-
         self.backup_plan_id = str(mock_random.uuid4())
-        self.backup_plan_arn = f"arn:aws:backup:{backend.region_name}:{backend.account_id}:backup-plan:{self.backup_plan_id}"
+        self.backup_plan_arn = f"arn:{get_partition(backend.region_name)}:backup:{backend.region_name}:{backend.account_id}:backup-plan:{self.backup_plan_id}"
         self.creation_date = unix_time()
         ran_str = mock_random.get_random_string(length=48)
         self.version_id = ran_str
@@ -85,7 +85,7 @@ class Vault(BaseModel):
         backend: "BackupBackend",
     ):
         self.backup_vault_name = backup_vault_name
-        self.backup_vault_arn = f"arn:aws:backup:{backend.region_name}:{backend.account_id}:backup-vault:{backup_vault_name}"
+        self.backup_vault_arn = f"arn:{get_partition(backend.region_name)}:backup:{backend.region_name}:{backend.account_id}:backup-vault:{backup_vault_name}"
         self.creation_date = unix_time()
         self.encryption_key_arn = encryption_key_arn
         self.creator_request_id = creator_request_id
@@ -137,7 +137,6 @@ class BackupBackend(BaseBackend):
         backup_plan_tags: Dict[str, str],
         creator_request_id: str,
     ) -> Plan:
-
         if backup_plan["BackupPlanName"] in list(
             p.backup_plan["BackupPlanName"] for p in list(self.plans.values())
         ):
@@ -197,7 +196,6 @@ class BackupBackend(BaseBackend):
         encryption_key_arn: str,
         creator_request_id: str,
     ) -> Vault:
-
         if backup_vault_name in self.vaults:
             raise AlreadyExistsException(
                 msg="Backup vault with the same name already exists"

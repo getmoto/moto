@@ -1,6 +1,6 @@
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
@@ -25,6 +25,7 @@ def test_update_distribution():
     aliases = ["alias1", "alias2"]
     dist_config["Origins"]["Items"][0]["OriginPath"] = "/updated"
     dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
+    dist_config["ViewerCertificate"]["CloudFrontDefaultCertificate"] = False
 
     dist = client.update_distribution(
         DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
@@ -113,9 +114,12 @@ def test_update_distribution():
     assert config["IsIPV6Enabled"] is True
 
     cert = config["ViewerCertificate"]
-    assert cert["CloudFrontDefaultCertificate"] is True
+    assert cert["CloudFrontDefaultCertificate"] is False
     assert cert["MinimumProtocolVersion"] == "TLSv1"
     assert cert["CertificateSource"] == "cloudfront"
+    assert cert["IAMCertificateId"] == ""
+    assert cert["ACMCertificateArn"] == ""
+    assert cert["SSLSupportMethod"] == "sni-only"
 
     restriction = config["Restrictions"]["GeoRestriction"]
     assert restriction["RestrictionType"] == "none"
@@ -151,33 +155,6 @@ def test_update_distribution_no_such_distId():
 
 
 @mock_aws
-def test_update_distribution_distId_is_None():
-    client = boto3.client("cloudfront", region_name="us-east-1")
-
-    # Create standard distribution
-    config = scaffold.example_distribution_config(ref="ref")
-    dist = client.create_distribution(DistributionConfig=config)
-
-    # Make up a fake dist ID by reversing the actual ID
-    dist_id = None
-    dist_etag = dist["ETag"]
-
-    dist_config = dist["Distribution"]["DistributionConfig"]
-    aliases = ["alias1", "alias2"]
-    dist_config["Aliases"] = {"Quantity": len(aliases), "Items": aliases}
-
-    with pytest.raises(ParamValidationError) as error:
-        client.update_distribution(
-            DistributionConfig=dist_config, Id=dist_id, IfMatch=dist_etag
-        )
-
-    typename = error.typename
-    assert typename == "ParamValidationError"
-    error_str = "botocore.exceptions.ParamValidationError: Parameter validation failed:\nInvalid type for parameter Id, value: None, type: <class 'NoneType'>, valid types: <class 'str'>"
-    assert error.exconly() == error_str
-
-
-@mock_aws
 def test_update_distribution_IfMatch_not_set():
     client = boto3.client("cloudfront", region_name="us-east-1")
 
@@ -203,27 +180,6 @@ def test_update_distribution_IfMatch_not_set():
     assert err["Code"] == "InvalidIfMatchVersion"
     msg = "The If-Match version is missing or not valid for the resource."
     assert err["Message"] == msg
-
-
-@mock_aws
-def test_update_distribution_dist_config_not_set():
-    client = boto3.client("cloudfront", region_name="us-east-1")
-
-    # Create standard distribution
-    config = scaffold.example_distribution_config(ref="ref")
-    dist = client.create_distribution(DistributionConfig=config)
-
-    # Make up a fake dist ID by reversing the actual ID
-    dist_id = dist["Distribution"]["Id"]
-    dist_etag = dist["ETag"]
-
-    with pytest.raises(ParamValidationError) as error:
-        client.update_distribution(Id=dist_id, IfMatch=dist_etag)
-
-    typename = error.typename
-    assert typename == "ParamValidationError"
-    error_str = 'botocore.exceptions.ParamValidationError: Parameter validation failed:\nMissing required parameter in input: "DistributionConfig"'
-    assert error.exconly() == error_str
 
 
 @mock_aws
@@ -279,3 +235,47 @@ def test_update_distribution_applies_changes():
         "DistributionConfig"
     ]
     assert actual_dist_config["Enabled"]
+
+
+@mock_aws
+def test_update_distribution_trusted_signers():
+    client = boto3.client("cloudfront", region_name="us-east-1")
+
+    # Create standard distribution
+    config = scaffold.example_distribution_config(ref="ref")
+
+    dist = client.create_distribution(DistributionConfig=config)
+    dist_id = dist["Distribution"]["Id"]
+
+    # Assert that default TrustedSigners 'Enabled' value is false
+    actual_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert (
+        actual_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Enabled"] is False
+    )
+
+    # Add an item to TrustedSigners
+    get_config_response = client.get_distribution_config(Id=dist_id)
+    actual_dist_config = get_config_response["DistributionConfig"]
+    etag = get_config_response["ETag"]
+    actual_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Items"] = [
+        "AwsAccountNumber123"
+    ]
+
+    client.update_distribution(
+        DistributionConfig=actual_dist_config, Id=dist_id, IfMatch=etag
+    )
+
+    # Assert that all TrustedSigners fields updated
+    updated_dist_config = client.get_distribution(Id=dist_id)["Distribution"][
+        "DistributionConfig"
+    ]
+    assert (
+        updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Quantity"] == 1
+    )
+    assert updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Enabled"]
+    assert (
+        "AwsAccountNumber123"
+        in updated_dist_config["DefaultCacheBehavior"]["TrustedSigners"]["Items"]
+    )

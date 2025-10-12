@@ -19,42 +19,7 @@ class CloudFrontResponse(BaseResponse):
 
     @property
     def backend(self) -> CloudFrontBackend:
-        return cloudfront_backends[self.current_account]["global"]
-
-    def distributions(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_distribution()
-        if request.method == "GET":
-            return self.list_distributions()
-
-    def invalidation(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_invalidation()
-        if request.method == "GET":
-            return self.list_invalidations()
-
-    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-
-    def origin_access_controls(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self.create_origin_access_control()
-        if request.method == "GET":
-            return self.list_origin_access_controls()
-
-    def origin_access_control(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.get_origin_access_control()
-        if request.method == "PUT":
-            return self.update_origin_access_control()
-        if request.method == "DELETE":
-            return self.delete_origin_access_control()
+        return cloudfront_backends[self.current_account][self.partition]
 
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
@@ -82,43 +47,40 @@ class CloudFrontResponse(BaseResponse):
         response = template.render(distributions=distributions)
         return 200, {}, response
 
-    def individual_distribution(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        distribution_id = full_url.split("/")[-1]
-        if request.method == "DELETE":
-            if_match = self._get_param("If-Match")
-            self.backend.delete_distribution(distribution_id, if_match)
-            return 204, {}, ""
-        if request.method == "GET":
-            dist, etag = self.backend.get_distribution(distribution_id)
-            template = self.response_template(GET_DISTRIBUTION_TEMPLATE)
-            response = template.render(distribution=dist, xmlns=XMLNS)
-            return 200, {"ETag": etag}, response
+    def delete_distribution(self) -> TYPE_RESPONSE:
+        distribution_id = self.path.split("/")[-1]
+        if_match = self._get_param("If-Match")
+        self.backend.delete_distribution(distribution_id, if_match)
+        return 204, {"status": 204}, ""
 
-    def update_distribution(  # type: ignore[return]
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
-        self.setup_class(request, full_url, headers)
-        dist_id = full_url.split("/")[-2]
-        if request.method == "GET":
-            distribution_config, etag = self.backend.get_distribution_config(dist_id)
-            template = self.response_template(GET_DISTRIBUTION_CONFIG_TEMPLATE)
-            response = template.render(distribution=distribution_config, xmlns=XMLNS)
-            return 200, {"ETag": etag}, response
-        if request.method == "PUT":
-            params = self._get_xml_body()
-            dist_config = params.get("DistributionConfig")
-            if_match = headers["If-Match"]
+    def get_distribution(self) -> TYPE_RESPONSE:
+        distribution_id = self.path.split("/")[-1]
+        dist, etag = self.backend.get_distribution(distribution_id)
+        template = self.response_template(GET_DISTRIBUTION_TEMPLATE)
+        response = template.render(distribution=dist, xmlns=XMLNS)
+        return 200, {"ETag": etag}, response
 
-            dist, location, e_tag = self.backend.update_distribution(
-                dist_config=dist_config,  # type: ignore[arg-type]
-                _id=dist_id,
-                if_match=if_match,
-            )
-            template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
-            response = template.render(distribution=dist, xmlns=XMLNS)
-            headers = {"ETag": e_tag, "Location": location}
-            return 200, headers, response
+    def get_distribution_config(self) -> TYPE_RESPONSE:
+        dist_id = self.path.split("/")[-2]
+        distribution_config, etag = self.backend.get_distribution_config(dist_id)
+        template = self.response_template(GET_DISTRIBUTION_CONFIG_TEMPLATE)
+        response = template.render(distribution=distribution_config, xmlns=XMLNS)
+        return 200, {"ETag": etag}, response
+
+    def update_distribution(self) -> TYPE_RESPONSE:
+        dist_id = self.path.split("/")[-2]
+        params = self._get_xml_body()
+        dist_config = params.get("DistributionConfig")
+        if_match = self.headers["If-Match"]
+        dist, location, e_tag = self.backend.update_distribution(
+            dist_config=dist_config,  # type: ignore[arg-type]
+            _id=dist_id,
+            if_match=if_match,
+        )
+        template = self.response_template(UPDATE_DISTRIBUTION_TEMPLATE)
+        response = template.render(distribution=dist, xmlns=XMLNS)
+        headers = {"ETag": e_tag, "Location": location}
+        return 200, headers, response
 
     def create_invalidation(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]
@@ -138,6 +100,15 @@ class CloudFrontResponse(BaseResponse):
         template = self.response_template(INVALIDATIONS_TEMPLATE)
         response = template.render(invalidations=invalidations, xmlns=XMLNS)
 
+        return 200, {}, response
+
+    def get_invalidation(self) -> TYPE_RESPONSE:
+        pathItems = self.path.split("/")
+        dist_id = pathItems[-3]
+        id = pathItems[-1]
+        invalidation = self.backend.get_invalidation(dist_id, id)
+        template = self.response_template(GET_INVALIDATION_TEMPLATE)
+        response = template.render(invalidation=invalidation, xmlns=XMLNS)
         return 200, {}, response
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
@@ -177,6 +148,71 @@ class CloudFrontResponse(BaseResponse):
         control_id = self.path.split("/")[-1]
         self.backend.delete_origin_access_control(control_id)
         return 200, {}, "{}"
+
+    def create_public_key(self) -> TYPE_RESPONSE:
+        config = self._get_xml_body()["PublicKeyConfig"]
+        caller_ref = config["CallerReference"]
+        name = config["Name"]
+        encoded_key = config["EncodedKey"]
+        public_key = self.backend.create_public_key(
+            caller_ref=caller_ref, name=name, encoded_key=encoded_key
+        )
+
+        response = self.response_template(PUBLIC_KEY_TEMPLATE)
+        headers = {
+            "Location": public_key.location,
+            "ETag": public_key.etag,
+            "status": 201,
+        }
+        return 201, headers, response.render(key=public_key)
+
+    def get_public_key(self) -> TYPE_RESPONSE:
+        key_id = self.parsed_url.path.split("/")[-1]
+        public_key = self.backend.get_public_key(key_id=key_id)
+
+        response = self.response_template(PUBLIC_KEY_TEMPLATE)
+        return 200, {"ETag": public_key.etag}, response.render(key=public_key)
+
+    def delete_public_key(self) -> TYPE_RESPONSE:
+        key_id = self.parsed_url.path.split("/")[-1]
+        self.backend.delete_public_key(key_id=key_id)
+        return 204, {"status": 204}, "{}"
+
+    def list_public_keys(self) -> TYPE_RESPONSE:
+        keys = self.backend.list_public_keys()
+        response = self.response_template(LIST_PUBLIC_KEYS)
+        return 200, {}, response.render(keys=keys)
+
+    def create_key_group(self) -> TYPE_RESPONSE:
+        config = self._get_xml_body()["KeyGroupConfig"]
+        name = config["Name"]
+        items = config["Items"]["PublicKey"]
+        if isinstance(items, str):
+            # Serialized as a string if there is only one item
+            items = [items]
+
+        key_group = self.backend.create_key_group(name=name, items=items)
+
+        response = self.response_template(KEY_GROUP_TEMPLATE)
+        headers = {
+            "Location": key_group.location,
+            "ETag": key_group.etag,
+            "status": 201,
+        }
+        return 201, headers, response.render(group=key_group)
+
+    def get_key_group(self) -> TYPE_RESPONSE:
+        group_id = self.parsed_url.path.split("/")[-1]
+        key_group = self.backend.get_key_group(group_id=group_id)
+
+        response = self.response_template(KEY_GROUP_TEMPLATE)
+        return 200, {"ETag": key_group.etag}, response.render(group=key_group)
+
+    def list_key_groups(self) -> TYPE_RESPONSE:
+        groups = self.backend.list_key_groups()
+
+        response = self.response_template(LIST_KEY_GROUPS_TEMPLATE)
+        return 200, {}, response.render(groups=groups)
 
 
 DIST_META_TEMPLATE = """
@@ -288,20 +324,20 @@ DIST_CONFIG_TEMPLATE = """
       <DefaultCacheBehavior>
         <TargetOriginId>{{ distribution.distribution_config.default_cache_behavior.target_origin_id }}</TargetOriginId>
         <TrustedSigners>
-          <Enabled>{{ distribution.distribution_config.default_cache_behavior.trusted_signers_enabled }}</Enabled>
-          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers|length }}</Quantity>
+          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>          
+          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums|length }}</Quantity>
           <Items>
-            {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers %}
+            {% for aws_account_number  in distribution.distribution_config.default_cache_behavior.trusted_signers.acct_nums %}
               <AwsAccountNumber>{{ aws_account_number }}</AwsAccountNumber>
             {% endfor %}
           </Items>
         </TrustedSigners>
         <TrustedKeyGroups>
-          <Enabled>{{ distribution.distribution_config.default_cache_behavior.trusted_key_groups_enabled }}</Enabled>
-          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_key_groups|length }}</Quantity>
+          <Enabled>{{ 'true' if distribution.distribution_config.default_cache_behavior.trusted_key_groups.group_ids|length > 0 else 'false' }}</Enabled>
+          <Quantity>{{ distribution.distribution_config.default_cache_behavior.trusted_key_groups.group_ids|length }}</Quantity>
           <Items>
-            {% for key_group  in distribution.distribution_config.default_cache_behavior.trusted_key_groups %}
-              <KeyGroup>{{ key_group }}</KeyGroup>
+            {% for group_id  in distribution.distribution_config.default_cache_behavior.trusted_key_groups.group_ids %}
+              <KeyGroup>{{ group_id }}</KeyGroup>
             {% endfor %}
           </Items>
         </TrustedKeyGroups>
@@ -391,98 +427,100 @@ DIST_CONFIG_TEMPLATE = """
         {% if distribution.distribution_config.cache_behaviors %}
         <Items>
           {% for behaviour in distribution.distribution_config.cache_behaviors %}
-            <PathPattern>{{ behaviour.path_pattern }}</PathPattern>
-            <TargetOriginId>{{ behaviour.target_origin_id }}</TargetOriginId>
-            <TrustedSigners>
-              <Enabled>{{ behaviour.trusted_signers.enabled }}</Enabled>
-              <Quantity>{{ behaviour.trusted_signers.quantity }}</Quantity>
-              <Items>
-                {% for account_nr  in behaviour.trusted_signers %}
-                  <AwsAccountNumber>{{ account_nr }}</AwsAccountNumber>
-                {% endfor %}
-              </Items>
-            </TrustedSigners>
-            <TrustedKeyGroups>
-              <Enabled>{{ behaviour.trusted_key_groups.enabled }}</Enabled>
-              <Quantity>{{ behaviour.trusted_key_groups.quantity }}</Quantity>
-              <Items>
-                {% for trusted_key_group_id_list  in behaviour.trusted_key_groups.TrustedKeyGroupIdList %}
-                  <KeyGroup>{{ trusted_key_group_id_list.key_group }}</KeyGroup>
-                {% endfor %}
-              </Items>
-            </TrustedKeyGroups>
-            <ViewerProtocolPolicy>{{ ViewerProtocolPolicy }}</ViewerProtocolPolicy>
-            <AllowedMethods>
-              <Quantity>{{ behaviour.allowed_methods.quantity }}</Quantity>
-              <Items>
-                {% for methods_list in behaviour.allowed_methods.MethodsList %}{{ Method }}{% endfor %}
-              </Items>
-              <CachedMethods>
-                <Quantity>{{ behaviour.allowed_methods.cached_methods.quantity }}</Quantity>
-                <Items>
-                  {% for methods_list in behaviour.allowed_methods.cached_methods.MethodsList %}{{ Method }}{% endfor %}
-                </Items>
-              </CachedMethods>
-            </AllowedMethods>
-            <SmoothStreaming>{{ behaviour.smooth_streaming }}</SmoothStreaming>
-            <Compress>{{ behaviour.compress }}</Compress>
-            <LambdaFunctionAssociations>
-              <Quantity>{{ behaviour.lambda_function_associations.quantity }}</Quantity>
-              <Items>
-                {% for lambda_function_association_list in behaviour.lambda_function_associations.LambdaFunctionAssociationList %}
-                  <LambdaFunctionARN>{{ LambdaFunctionARN }}</LambdaFunctionARN>
-                  <EventType>{{ EventType }}</EventType>
-                  <IncludeBody>{{ lambda_function_association_list.include_body }}</IncludeBody>
-                {% endfor %}
-              </Items>
-            </LambdaFunctionAssociations>
-            <FunctionAssociations>
-              <Quantity>{{ behaviour.function_associations.quantity }}</Quantity>
-              <Items>
-                {% for function_association_list  in behaviour.function_associations.FunctionAssociationList %}
-                  <FunctionARN>{{ FunctionARN }}</FunctionARN>
-                  <EventType>{{ EventType }}</EventType>
-                {% endfor %}
-              </Items>
-            </FunctionAssociations>
-            <FieldLevelEncryptionId>{{ behaviour.field_level_encryption_id }}</FieldLevelEncryptionId>
-            <RealtimeLogConfigArn>{{ behaviour.realtime_log_config_arn }}</RealtimeLogConfigArn>
-            <CachePolicyId>{{ behaviour.cache_policy_id }}</CachePolicyId>
-            <OriginRequestPolicyId>{{ behaviour.origin_request_policy_id }}</OriginRequestPolicyId>
-            <ResponseHeadersPolicyId>{{ behaviour.response_headers_policy_id }}</ResponseHeadersPolicyId>
-            <ForwardedValues>
-              <QueryString>{{ behaviour.forwarded_values.query_string }}</QueryString>
-              <Cookies>
-                <Forward>{{ ItemSelection }}</Forward>
-                <WhitelistedNames>
-                  <Quantity>{{ behaviour.forwarded_values.cookies.whitelisted_names.quantity }}</Quantity>
+            <CacheBehavior>
+                <PathPattern>{{ behaviour.path_pattern }}</PathPattern>
+                <TargetOriginId>{{ behaviour.target_origin_id }}</TargetOriginId>
+                <TrustedSigners>
+                  <Enabled>{{ 'true' if behaviour.trusted_signers.acct_nums|length > 0 else 'false' }}</Enabled>
+                  <Quantity>{{ behaviour.trusted_signers.acct_nums | length }}</Quantity>
                   <Items>
-                    {% for cookie_name_list  in behaviour.forwarded_values.cookies.whitelisted_names.CookieNameList %}
-                      <Name>{{ cookie_name_list.name }}</Name>
+                    {% for account_nr  in behaviour.trusted_signers.acct_nums %}
+                      <AwsAccountNumber>{{ account_nr }}</AwsAccountNumber>
                     {% endfor %}
                   </Items>
-                </WhitelistedNames>
-              </Cookies>
-              <Headers>
-                <Quantity>{{ behaviour.forwarded_values.headers.quantity }}</Quantity>
-                <Items>
-                  {% for header_list in behaviour.forwarded_values.headers.HeaderList %}
-                    <Name>{{ header_list.name }}</Name>
-                  {% endfor %}
-                </Items>
-              </Headers>
-              <QueryStringCacheKeys>
-                <Quantity>{{ behaviour.forwarded_values.query_string_cache_keys.quantity }}</Quantity>
-                <Items>
-                  {% for query_string_cache_keys_list in behaviour.forwarded_values.query_string_cache_keys.QueryStringCacheKeysList %}
-                    <Name>{{ query_string_cache_keys_list.name }}</Name>
-                  {% endfor %}
-                </Items>
-              </QueryStringCacheKeys>
-            </ForwardedValues>
-            <MinTTL>{{ behaviour.min_ttl }}</MinTTL>
-            <DefaultTTL>{{ behaviour.default_ttl }}</DefaultTTL>
-            <MaxTTL>{{ behaviour.max_ttl }}</MaxTTL>
+                </TrustedSigners>
+                <TrustedKeyGroups>
+                  <Enabled>{{ 'true' if behaviour.trusted_key_groups.group_ids|length > 0 else 'false' }}</Enabled>
+                  <Quantity>{{ behaviour.trusted_key_groups.group_ids | length }}</Quantity>
+                  <Items>
+                    {% for group_id  in behaviour.trusted_key_groups.group_ids %}
+                      <KeyGroup>{{ group_id }}</KeyGroup>
+                    {% endfor %}
+                  </Items>
+                </TrustedKeyGroups>
+                <ViewerProtocolPolicy>{{ behaviour.viewer_protocol_policy }}</ViewerProtocolPolicy>
+                <AllowedMethods>
+                  <Quantity>{{ behaviour.allowed_methods | length }}</Quantity>
+                  <Items>
+                    {% for method in behaviour.allowed_methods %}<Method>{{ method }}</Method>{% endfor %}
+                  </Items>
+                  <CachedMethods>
+                    <Quantity>{{ behaviour.cached_methods|length }}</Quantity>
+                    <Items>
+                      {% for method in behaviour.cached_methods %}<Method>{{ method }}</Method>{% endfor %}
+                    </Items>
+                  </CachedMethods>
+                </AllowedMethods>
+                <SmoothStreaming>{{ behaviour.smooth_streaming }}</SmoothStreaming>
+                <Compress>{{ behaviour.compress }}</Compress>
+                <LambdaFunctionAssociations>
+                  <Quantity>{{ behaviour.lambda_function_associations | length }}</Quantity>
+                  <Items>
+                    {% for lambda_function_association_list in behaviour.lambda_function_associations.LambdaFunctionAssociationList %}
+                      <LambdaFunctionARN>{{ LambdaFunctionARN }}</LambdaFunctionARN>
+                      <EventType>{{ EventType }}</EventType>
+                      <IncludeBody>{{ lambda_function_association_list.include_body }}</IncludeBody>
+                    {% endfor %}
+                  </Items>
+                </LambdaFunctionAssociations>
+                <FunctionAssociations>
+                  <Quantity>{{ behaviour.function_associations | length }}</Quantity>
+                  <Items>
+                    {% for function_association_list  in behaviour.function_associations.FunctionAssociationList %}
+                      <FunctionARN>{{ FunctionARN }}</FunctionARN>
+                      <EventType>{{ EventType }}</EventType>
+                    {% endfor %}
+                  </Items>
+                </FunctionAssociations>
+                <FieldLevelEncryptionId>{{ behaviour.field_level_encryption_id }}</FieldLevelEncryptionId>
+                <RealtimeLogConfigArn>{{ behaviour.realtime_log_config_arn }}</RealtimeLogConfigArn>
+                <CachePolicyId>{{ behaviour.cache_policy_id }}</CachePolicyId>
+                <OriginRequestPolicyId>{{ behaviour.origin_request_policy_id }}</OriginRequestPolicyId>
+                <ResponseHeadersPolicyId>{{ behaviour.response_headers_policy_id }}</ResponseHeadersPolicyId>
+                <ForwardedValues>
+                  <QueryString>{{ behaviour.forwarded_values.query_string }}</QueryString>
+                  <Cookies>
+                    <Forward>{{ ItemSelection }}</Forward>
+                    <WhitelistedNames>
+                      <Quantity>{{ behaviour.forwarded_values.cookies.whitelisted_names| length }}</Quantity>
+                      <Items>
+                        {% for wl_name in behaviour.forwarded_values.cookies.whitelisted_names %}
+                          <Name>{{ wl_name }}</Name>
+                        {% endfor %}
+                      </Items>
+                    </WhitelistedNames>
+                  </Cookies>
+                  <Headers>
+                    <Quantity>{{ behaviour.forwarded_values.headers | length }}</Quantity>
+                    <Items>
+                      {% for header_list in behaviour.forwarded_values.headers.HeaderList %}
+                        <Name>{{ header_list.name }}</Name>
+                      {% endfor %}
+                    </Items>
+                  </Headers>
+                  <QueryStringCacheKeys>
+                    <Quantity>{{ behaviour.forwarded_values.query_string_cache_keys | length }}</Quantity>
+                    <Items>
+                      {% for query_string_cache_keys_list in behaviour.forwarded_values.query_string_cache_keys.QueryStringCacheKeysList %}
+                        <Name>{{ query_string_cache_keys_list.name }}</Name>
+                      {% endfor %}
+                    </Items>
+                  </QueryStringCacheKeys>
+                </ForwardedValues>
+                <MinTTL>{{ behaviour.min_ttl }}</MinTTL>
+                <DefaultTTL>{{ behaviour.default_ttl }}</DefaultTTL>
+                <MaxTTL>{{ behaviour.max_ttl }}</MaxTTL>
+            </CacheBehavior>
           {% endfor %}
         </Items>
         {% endif %}
@@ -510,10 +548,10 @@ DIST_CONFIG_TEMPLATE = """
       <PriceClass>{{ distribution.distribution_config.price_class }}</PriceClass>
       <Enabled>{{ distribution.distribution_config.enabled }}</Enabled>
       <ViewerCertificate>
-        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate else 'false' }}</CloudFrontDefaultCertificate>
+        <CloudFrontDefaultCertificate>{{ 'true' if distribution.distribution_config.viewer_certificate.cloud_front_default_certificate == True else 'false' }}</CloudFrontDefaultCertificate>
         <IAMCertificateId>{{ distribution.distribution_config.viewer_certificate.iam_certificate_id }}</IAMCertificateId>
         <ACMCertificateArn>{{ distribution.distribution_config.viewer_certificate.acm_certificate_arn }}</ACMCertificateArn>
-        <SSLSupportMethod>{{ SSLSupportMethod }}</SSLSupportMethod>
+        <SSLSupportMethod>{{ distribution.distribution_config.viewer_certificate.ssl_support_method }}</SSLSupportMethod>
         <MinimumProtocolVersion>{{ distribution.distribution_config.viewer_certificate.min_protocol_version }}</MinimumProtocolVersion>
         <Certificate>{{ distribution.distribution_config.viewer_certificate.certificate }}</Certificate>
         <CertificateSource>{{ distribution.distribution_config.viewer_certificate.certificate_source }}</CertificateSource>
@@ -669,6 +707,8 @@ CREATE_INVALIDATION_TEMPLATE = """<?xml version="1.0"?>
 </Invalidation>
 """
 
+GET_INVALIDATION_TEMPLATE = CREATE_INVALIDATION_TEMPLATE
+
 INVALIDATIONS_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
 <InvalidationList>
    <IsTruncated>false</IsTruncated>
@@ -737,3 +777,75 @@ LIST_ORIGIN_ACCESS_CONTROl = """<?xml version="1.0"?>
   </Items>
 </OriginAccessControlList>
 """
+
+
+PUBLIC_KEY_TEMPLATE = """<?xml version="1.0"?>
+<PublicKey>
+    <Id>{{ key.id }}</Id>
+    <CreatedTime>{{ key.created }}</CreatedTime>
+    <PublicKeyConfig>
+        <CallerReference>{{ key.caller_ref }}</CallerReference>
+        <Name>{{ key.name }}</Name>
+        <EncodedKey>{{ key.encoded_key }}</EncodedKey>
+        <Comment></Comment>
+    </PublicKeyConfig>
+</PublicKey>
+"""
+
+
+LIST_PUBLIC_KEYS = """<?xml version="1.0"?>
+<PublicKeyList>
+    <MaxItems>100</MaxItems>
+    <Quantity>{{ keys|length }}</Quantity>
+    {% if keys %}
+    <Items>
+        {% for key in keys %}
+        <PublicKeySummary>
+            <Id>{{ key.id }}</Id>
+            <Name>{{ key.name }}</Name>
+            <CreatedTime>{{ key.created }}</CreatedTime>
+            <EncodedKey>{{ key.encoded_key }}</EncodedKey>
+            <Comment></Comment>
+        </PublicKeySummary>
+        {% endfor %}
+    </Items>
+    {% endif %}
+</PublicKeyList>
+"""
+
+
+KEY_GROUP_TEMPLATE = """<?xml version="1.0"?>
+<KeyGroup>
+  <Id>{{ group.id }}</Id>
+  <KeyGroupConfig>
+    <Name>{{ group.name }}</Name>
+    <Items>
+     {% for item in group.items %}<PublicKey>{{ item }}</PublicKey>{% endfor %}
+    </Items>
+  </KeyGroupConfig>
+</KeyGroup>
+"""
+
+
+LIST_KEY_GROUPS_TEMPLATE = """<?xml version="1.0"?>
+<KeyGroupList>
+  <MaxItems>100</MaxItems>
+  <Quantity>{{ groups|length }}</Quantity>
+  {% if groups %}
+  <Items>
+    {% for group in groups %}
+    <KeyGroupSummary>
+      <KeyGroup>
+        <Id>{{ group.id }}</Id>
+        <KeyGroupConfig>
+          <Name>{{ group.name }}</Name>
+          <Items>
+           {% for item in group.items %}<PublicKey>{{ item }}</PublicKey>{% endfor %}
+          </Items>
+        </KeyGroupConfig>
+      </KeyGroup>
+    </KeyGroupSummary>
+    {% endfor %}
+  </Items>
+  {% endif %}
+</KeyGroupList>"""

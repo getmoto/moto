@@ -6,7 +6,7 @@ import time
 from itertools import cycle
 from sys import platform
 from time import sleep
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import dateutil.parser
 
@@ -20,13 +20,14 @@ from moto.ec2.models.instance_types import INSTANCE_FAMILIES as EC2_INSTANCE_FAM
 from moto.ec2.models.instance_types import INSTANCE_TYPES as EC2_INSTANCE_TYPES
 from moto.ec2.models.instances import Instance
 from moto.ecs.models import EC2ContainerServiceBackend, ecs_backends
-from moto.iam.exceptions import IAMNotFoundException
+from moto.iam.exceptions import NotFoundException as IAMNotFoundException
 from moto.iam.models import IAMBackend, iam_backends
 from moto.logs.models import LogsBackend, logs_backends
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.docker_utilities import DockerModel
 from moto.utilities.tagging_service import TaggingService
+from moto.utilities.utils import get_partition
 
 from .exceptions import ClientException, InvalidParameterValueException, ValidationError
 from .utils import (
@@ -469,13 +470,16 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         name: str,
         job_def: JobDefinition,
         job_queue: JobQueue,
+        backend: "BatchBackend",
         log_backend: LogsBackend,
         container_overrides: Optional[Dict[str, Any]],
         depends_on: Optional[List[Dict[str, str]]],
+        parameters: Optional[Dict[str, str]],
         all_jobs: Dict[str, "Job"],
         timeout: Optional[Dict[str, int]],
         array_properties: Dict[str, Any],
         provided_job_id: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
     ):
         threading.Thread.__init__(self)
         DockerModel.__init__(self)
@@ -490,6 +494,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_definition = job_def
         self.container_overrides: Dict[str, Any] = container_overrides or {}
         self.job_queue = job_queue
+        self.backend = backend
         self.job_queue.jobs.append(self)
         self.job_created_at = datetime.datetime.now()
         self.job_started_at = datetime.datetime(1970, 1, 1)
@@ -497,6 +502,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.job_stopped = False
         self.job_stopped_reason: Optional[str] = None
         self.depends_on = depends_on
+        self.parameters = {**self.job_definition.parameters, **(parameters or {})}
         self.timeout = timeout
         self.all_jobs = all_jobs
         self.array_properties: Dict[str, Any] = array_properties
@@ -520,6 +526,14 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         self.attempts: List[Dict[str, Any]] = []
         self.latest_attempt: Optional[Dict[str, Any]] = None
         self._child_jobs: Optional[List[Job]] = None
+
+        tag_list = self.backend.tagger.convert_dict_to_tags_input(tags or {})
+        # Validate the tag list. Maximum entires in the map is 50
+        errmsg = self.backend.tagger.validate_tags(tag_list, 50)
+        if errmsg:
+            raise ValidationError(errmsg)
+
+        self.backend.tagger.tag_resource(self.arn, tag_list)
 
     def describe_short(self) -> Dict[str, Any]:
         result = {
@@ -545,6 +559,8 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
         result = self.describe_short()
         result["jobQueue"] = self.job_queue.arn
         result["dependsOn"] = self.depends_on or []
+        result["parameters"] = {**self.job_definition.parameters, **self.parameters}
+        result["tags"] = self.backend.list_tags_for_resource(self.arn)
         if self.job_definition.type == "container":
             result["container"] = self._container_details()
         elif self.job_definition.type == "multinode":
@@ -627,6 +643,25 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
             return self.job_definition.timeout["attemptDurationSeconds"]
         return None
 
+    def _add_parameters_to_command(self, command: Union[str, List[str]]) -> List[str]:
+        if isinstance(command, str):
+            command = [command]
+
+        if not self.parameters:
+            return command
+
+        return [
+            next(
+                (
+                    command_part.replace(f"Ref::{param}", value)
+                    for param, value in self.parameters.items()
+                    if f"Ref::{param}" in command_part
+                ),
+                command_part,
+            )
+            for command_part in command
+        ]
+
     def run(self) -> None:
         """
         Run the container.
@@ -675,9 +710,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         "privileged": self.job_definition.container_properties.get(
                             "privileged", False
                         ),
-                        "command": self._get_container_property(
-                            "command",
-                            '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                        "command": self._add_parameters_to_command(
+                            self._get_container_property(
+                                "command",
+                                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                            )
                         ),
                         "environment": {
                             e["name"]: e["value"]
@@ -722,9 +759,11 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                         {
                             "image": spec.get("image", "alpine:latest"),
                             "privileged": spec.get("privileged", False),
-                            "command": spec.get(
-                                "command",
-                                '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                            "command": self._add_parameters_to_command(
+                                spec.get(
+                                    "command",
+                                    '/bin/sh -c "for a in `seq 1 10`; do echo Hello World; sleep 1; done"',
+                                )
                             ),
                             "environment": {
                                 e["name"]: e["value"]
@@ -768,9 +807,9 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 environment = kwargs["environment"]
                 environment["MOTO_HOST"] = settings.moto_server_host()
                 environment["MOTO_PORT"] = settings.moto_server_port()
-                environment[
-                    "MOTO_HTTP_ENDPOINT"
-                ] = f'{environment["MOTO_HOST"]}:{environment["MOTO_PORT"]}'
+                environment["MOTO_HTTP_ENDPOINT"] = (
+                    f"{environment['MOTO_HOST']}:{environment['MOTO_PORT']}"
+                )
 
                 if network_name:
                     kwargs["network"] = network_name
@@ -977,7 +1016,7 @@ class SchedulingPolicy(BaseModel):
         tags: Dict[str, str],
     ):
         self.name = name
-        self.arn = f"arn:aws:batch:{region}:{account_id}:scheduling-policy/{name}"
+        self.arn = f"arn:{get_partition(region)}:batch:{region}:{account_id}:scheduling-policy/{name}"
         self.fairshare_policy = {
             "computeReservation": fairshare_policy.get("computeReservation") or 0,
             "shareDecaySeconds": fairshare_policy.get("shareDecaySeconds") or 0,
@@ -1020,7 +1059,7 @@ class BatchBackend(BaseBackend):
         :return: IAM Backend
         :rtype: moto.iam.models.IAMBackend
         """
-        return iam_backends[self.account_id]["global"]
+        return iam_backends[self.account_id][self.partition]
 
     @property
     def ec2_backend(self) -> EC2Backend:
@@ -1192,6 +1231,7 @@ class BatchBackend(BaseBackend):
                 "type": environment.env_type,
                 "status": "VALID",
                 "statusReason": "Compute environment is available",
+                "tags": self.list_tags_for_resource(arn),
             }
             if environment.env_type == "MANAGED":
                 json_part["computeResources"] = environment.compute_resources
@@ -1207,6 +1247,7 @@ class BatchBackend(BaseBackend):
         state: str,
         compute_resources: Dict[str, Any],
         service_role: str,
+        tags: Optional[Dict[str, str]] = None,
     ) -> ComputeEnvironment:
         # Validate
         if COMPUTE_ENVIRONMENT_NAME_REGEX.match(compute_environment_name) is None:
@@ -1217,6 +1258,12 @@ class BatchBackend(BaseBackend):
         if self.get_compute_environment_by_name(compute_environment_name) is not None:
             raise InvalidParameterValueException(
                 f"A compute environment already exists with the name {compute_environment_name}"
+            )
+
+        if not service_role:
+            raise ClientException(
+                f"Error executing request, Exception : ServiceRole is required.,"
+                f" RequestId: {mock_random.uuid4()}"
             )
 
         # Look for IAM role
@@ -1255,6 +1302,9 @@ class BatchBackend(BaseBackend):
             region_name=self.region_name,
         )
         self._compute_environments[new_comp_env.arn] = new_comp_env
+
+        if tags:
+            self.tag_resource(new_comp_env.arn, tags)
 
         # Ok by this point, everything is legit, so if its Managed then start some instances
         if _type == "MANAGED" and "FARGATE" not in compute_resources["type"]:
@@ -1311,7 +1361,10 @@ class BatchBackend(BaseBackend):
                     "Error executing request, Exception : Instance role is required."
                 )
             for profile in self.iam_backend.get_instance_profiles():
-                if profile.arn == cr["instanceRole"]:
+                if (
+                    profile.arn == cr["instanceRole"]
+                    or profile.name == cr["instanceRole"]
+                ):
                     break
             else:
                 raise InvalidParameterValueException(
@@ -1516,11 +1569,13 @@ class BatchBackend(BaseBackend):
                 for item in sorted(compute_env_order, key=lambda x: x["order"])
             ]
             env_objects = []
-            # Check each ARN exists, then make a list of compute env's
-            for arn in ordered_compute_environments:
-                env = self.get_compute_environment_by_arn(arn)
+            # Check each compute env exists, then make a list of them
+            for identifier in ordered_compute_environments:
+                env = self.get_compute_environment(identifier)
                 if env is None:
-                    raise ClientException(f"Compute environment {arn} does not exist")
+                    raise ClientException(
+                        f"Compute environment {identifier} does not exist"
+                    )
                 env_objects.append(env)
         except Exception:
             raise ClientException("computeEnvironmentOrder is malformed")
@@ -1722,6 +1777,8 @@ class BatchBackend(BaseBackend):
         depends_on: Optional[List[Dict[str, str]]] = None,
         container_overrides: Optional[Dict[str, Any]] = None,
         timeout: Optional[Dict[str, int]] = None,
+        parameters: Optional[Dict[str, str]] = None,
+        tags: Optional[Dict[str, str]] = None,
     ) -> Tuple[str, str, str]:
         """
         Parameters RetryStrategy and Parameters are not yet implemented.
@@ -1742,13 +1799,17 @@ class BatchBackend(BaseBackend):
             job_name,
             job_def,
             queue,
+            self,
             log_backend=self.logs_backend,
             container_overrides=container_overrides,
             depends_on=depends_on,
             all_jobs=self._jobs,
             timeout=timeout,
             array_properties=array_properties or {},
+            parameters=parameters,
+            tags=tags,
         )
+
         self._jobs[job.job_id] = job
 
         if "size" in array_properties:
@@ -1759,12 +1820,14 @@ class BatchBackend(BaseBackend):
                     job_name,
                     job_def,
                     queue,
+                    self,
                     log_backend=self.logs_backend,
                     container_overrides=container_overrides,
                     depends_on=depends_on,
                     all_jobs=self._jobs,
                     timeout=timeout,
                     array_properties={"statusSummary": {}, "index": array_index},
+                    parameters=parameters,
                     provided_job_id=provided_job_id,
                 )
                 child_jobs.append(child_job)
@@ -1799,37 +1862,65 @@ class BatchBackend(BaseBackend):
 
     def list_jobs(
         self,
-        job_queue_name: str,
+        job_queue_name: Optional[str],
+        array_job_id: Optional[str],
         job_status: Optional[str] = None,
         filters: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Job]:
         """
-        Pagination is not yet implemented
+        TODO: Pagination is not yet implemented
+        TODO: Acording to Boto3 documentation, filters are not supported when filtering by batch array job id.
+            Current implementation does not differentiate between array job listing and normal job listing.
         """
-        jobs = []
+        jobs_to_check: List[Job] = []
+        jobs: List[Job] = []
 
-        job_queue = self.get_job_queue(job_queue_name)
-        if job_queue is None:
-            raise ClientException(f"Job queue {job_queue_name} does not exist")
+        if job_queue_name:
+            if job_queue := self.get_job_queue(job_queue_name):
+                jobs_to_check.extend(job_queue.jobs)
+            else:
+                raise ClientException(f"Job queue {job_queue_name} does not exist")
+        if array_job_id:
+            if array_job := self.get_job_by_id(array_job_id):
+                jobs_to_check.extend(array_job._child_jobs or [])
 
-        if job_status is not None and job_status not in JobStatus.job_statuses():
+        if not jobs_to_check:
+            return jobs
+
+        if (
+            job_status is not None
+            and filters is None
+            and job_status not in JobStatus.job_statuses()
+        ):
             raise ClientException(
                 "Job status is not one of SUBMITTED | PENDING | RUNNABLE | STARTING | RUNNING | SUCCEEDED | FAILED"
             )
 
-        for job in job_queue.jobs:
-            if job_status is not None and job.status != job_status:
+        def matches_filter(job: Job, filter: Dict[str, Any]) -> bool:
+            if filter["name"] == "JOB_NAME":
+                for value in filter["values"]:
+                    if value.endswith("*"):
+                        pattern = value[:-1].lower()
+                        if job.job_name.lower().startswith(pattern):
+                            return True
+                    else:
+                        if job.job_name.lower() == value.lower():
+                            return True
+                return False
+            # Return True for unsupported filters.
+            return True
+
+        for job in jobs_to_check:
+            # Boto3 ignores jobStatus when filters are provided
+            if job_status is not None and filters is None and job.status != job_status:
                 continue
 
             if filters is not None:
-                matches = True
+                matches = False
                 for filt in filters:
-                    name = filt["name"]
-                    values = filt["values"]
-                    if name == "JOB_NAME":
-                        if job.job_name not in values:
-                            matches = False
-                            break
+                    if matches_filter(job, filt):
+                        matches = True
+                        break
                 if not matches:
                     continue
 

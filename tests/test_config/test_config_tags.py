@@ -1,14 +1,15 @@
 """Unit tests specific to the tag-related ConfigService APIs.
 
- These APIs include:
-   list_tags_for_resource
-   tag_resource
-   untag_resource
+These APIs include:
+  list_tags_for_resource
+  tag_resource
+  untag_resource
 
 """
+
 import boto3
 import pytest
-from botocore.exceptions import ClientError, ParamValidationError
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.config.models import MAX_TAGS_IN_ARG
@@ -88,14 +89,6 @@ def test_tag_resource():
         "at 'tags' failed to satisfy constraint: Member must have length "
         "less than or equal to 50"
     ) in cerr.value.response["Error"]["Message"]
-
-    # Try specifying an invalid key.
-    with pytest.raises(ParamValidationError) as cerr:
-        client.tag_resource(ResourceArn=good_arn, Tags=[{"Test": "abc"}])
-    assert cerr.typename == "ParamValidationError"
-    assert 'Unknown parameter in Tags[0]: "Test", must be one of: Key, Value' in str(
-        cerr
-    )
 
     # Verify keys added to ConfigurationAggregator.
     rsp = client.list_tags_for_resource(ResourceArn=good_arn)

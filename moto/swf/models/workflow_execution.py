@@ -25,7 +25,6 @@ from .workflow_type import WorkflowType
 
 # TODO: extract decision related logic into a Decision class
 class WorkflowExecution(BaseModel):
-
     # NB: the list is ordered exactly as in SWF validation exceptions so we can
     # mimic error messages closely ; don't reorder it without checking SWF.
     KNOWN_DECISION_TYPES = [

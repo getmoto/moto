@@ -28,7 +28,9 @@ class XRayResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
+    def _get_param(
+        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
+    ) -> Any:
         return self.request_params.get(param_name, if_none)
 
     def _get_action(self) -> str:
@@ -107,7 +109,9 @@ class XRayResponse(BaseResponse):
 
         try:
             result = self.xray_backend.get_trace_summary(
-                start_time, end_time, filter_expression
+                start_time,  # type: ignore[arg-type]
+                end_time,  # type: ignore[arg-type]
+                filter_expression,
             )
         except AWSError as err:
             raise err

@@ -1,6 +1,5 @@
 import re
 import string
-import sys
 from functools import lru_cache
 from threading import RLock
 from typing import (
@@ -12,6 +11,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    Tuple,
     TypeVar,
 )
 from uuid import uuid4
@@ -19,22 +19,14 @@ from uuid import uuid4
 from boto3 import Session
 
 from moto.settings import allow_unknown_region, enable_iso_regions
+from moto.utilities.utils import get_partition
 
 from .model_instances import model_data
 from .responses import TYPE_RESPONSE
-from .utils import convert_regex_to_flask_path
+from .utils import ISO_REGION_DOMAINS, convert_regex_to_flask_path
 
 if TYPE_CHECKING:
     from moto.core.common_models import BaseModel
-
-    if sys.version_info >= (3, 9):
-        from builtins import type as Type
-    else:
-        # https://github.com/python/mypy/issues/10068
-        # Legacy generic type annotation classes
-        # Deprecated in Python 3.9
-        # Remove once we no longer support Python 3.8 or lower
-        from typing import Type
 
 
 class InstanceTrackerMeta(type):
@@ -46,7 +38,7 @@ class InstanceTrackerMeta(type):
         service = cls.__module__.split(".")[1]
         if name not in model_data[service]:
             model_data[service][name] = cls
-        cls.instances: ClassVar[List["BaseModel"]] = []  # type: ignore
+        cls.instances_tracked: ClassVar[List["BaseModel"]] = []  # type: ignore
         return cls
 
 
@@ -54,6 +46,7 @@ class BaseBackend:
     def __init__(self, region_name: str, account_id: str):
         self.region_name = region_name
         self.account_id = account_id
+        self.partition = get_partition(region_name)
 
     def reset(self) -> None:
         region_name = self.region_name
@@ -64,7 +57,8 @@ class BaseBackend:
     @property
     def _url_module(self) -> Any:  # type: ignore[misc]
         backend_module = self.__class__.__module__
-        backend_urls_module_name = backend_module.replace("models", "urls")
+        # moto.service.models --> moto.service.urls
+        backend_urls_module_name = backend_module.rstrip("models") + "urls"
         backend_urls_module = __import__(
             backend_urls_module_name, fromlist=["url_bases", "url_paths"]
         )
@@ -85,14 +79,7 @@ class BaseBackend:
             # This extension ensures support for the China & ISO regions
             alt_dns_suffixes = {"cn": "amazonaws.com.cn"}
             if enable_iso_regions():
-                alt_dns_suffixes.update(
-                    {
-                        "iso": "c2s.ic.gov",
-                        "isob": "sc2s.sgov.gov",
-                        "isoe": "cloud.adc-e.uk",
-                        "isof": "csp.hci.ic.gov",
-                    }
-                )
+                alt_dns_suffixes.update(ISO_REGION_DOMAINS)
 
             for url_path, handler in unformatted_paths.items():
                 url = url_path.format(url_base)
@@ -140,7 +127,8 @@ class BaseBackend:
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]  # pylint: disable=unused-argument
+        service_region: str,
+        zones: List[str],
     ) -> List[Dict[str, str]]:
         """Invoke the factory method for any VPC endpoint(s) services."""
         return []
@@ -162,7 +150,7 @@ class BaseBackend:
         special_service_name: str = "",
         policy_supported: bool = True,
         base_endpoint_dns_names: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:  # pylint: disable=too-many-arguments
+    ) -> List[Dict[str, Any]]:
         """List of dicts representing default VPC endpoints for this service."""
         if special_service_name:
             service_name = f"com.amazonaws.{service_region}.{special_service_name}"
@@ -188,9 +176,9 @@ class BaseBackend:
         # Don't know how private DNS names are different, so for now just
         # one will be added.
         if private_dns_names:
-            endpoint_service[
-                "PrivateDnsName"
-            ] = f"{service}.{service_region}.amazonaws.com"
+            endpoint_service["PrivateDnsName"] = (
+                f"{service}.{service_region}.amazonaws.com"
+            )
             endpoint_service["PrivateDnsNameVerificationState"] = "verified"
             endpoint_service["PrivateDnsNames"] = [
                 {"PrivateDnsName": f"{service}.{service_region}.amazonaws.com"}
@@ -213,8 +201,6 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
       account_specific_backend[region: str] = backend: BaseBackend
     """
 
-    session = Session()
-
     def __init__(
         self,
         service_name: str,
@@ -235,12 +221,24 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
     @lru_cache()
     def _generate_regions(self, service_name: str) -> List[str]:
         regions = []
-        for partition in AccountSpecificBackend.session.get_available_partitions():
-            partition_regions = AccountSpecificBackend.session.get_available_regions(
-                service_name, partition_name=partition
+        for (
+            partition
+        ) in AccountSpecificBackend.get_session().get_available_partitions():
+            partition_regions = (
+                AccountSpecificBackend.get_session().get_available_regions(
+                    service_name, partition_name=partition
+                )
             )
             regions.extend(partition_regions)
         return regions
+
+    @classmethod
+    @lru_cache()
+    def get_session(cls) -> Session:  # type: ignore[misc]
+        # Only instantiate Session when we absolutely need it
+        # This gives the user time to remove any env variables that break botocore, like AWS_PROFILE
+        # See https://github.com/getmoto/moto/issues/5469#issuecomment-2474897120
+        return Session()
 
     def __hash__(self) -> int:  # type: ignore[override]
         return hash(self._id)
@@ -260,6 +258,8 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
             region_specific_backend.reset()
 
     def __contains__(self, region: str) -> bool:  # type: ignore[override]
+        if region == "global":
+            region = "aws"
         return region in self.regions or region in self.keys()
 
     def __delitem__(self, key: str) -> None:
@@ -275,6 +275,13 @@ class AccountSpecificBackend(Dict[str, SERVICE_BACKEND]):
         super().__setitem__(key, value)
 
     def __getitem__(self, region_name: str) -> SERVICE_BACKEND:
+        # Some services, like S3, used to be truly global - meaning one Backend serving all
+        # Now that we support partitions (AWS, AWS-CN, AWS-GOV, etc), there will be one backend per partition
+        # Because the concept of 'region' doesn't exist in a global service, we use the partition name to keep the backends separate
+        # We used to use the term 'global' in lieu of a region name, and users may still use this
+        # It should resolve to 'aws', to ensure consistency
+        if region_name == "global":
+            region_name = "aws"
         if region_name in self.keys():
             return super().__getitem__(region_name)
         # Create the backend for a specific region
@@ -322,7 +329,7 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
 
     def __init__(
         self,
-        backend: "Type[SERVICE_BACKEND]",
+        backend: type[SERVICE_BACKEND],
         service_name: str,
         use_boto3_regions: bool = True,
         additional_regions: Optional[List[str]] = None,
@@ -375,3 +382,12 @@ class BackendDict(Dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
                     additional_regions=self._additional_regions,
                 )
                 BackendDict._instances.append(self)  # type: ignore[misc]
+
+    def iter_backends(self) -> Iterator[Tuple[str, str, BaseBackend]]:
+        """
+        Iterate over a flattened view of all base backends in a BackendDict.
+        Each record is a tuple of account id, region name, and the base backend within that account and region.
+        """
+        for account_id, account_specific_backend in self.items():
+            for region_name, backend in account_specific_backend.items():
+                yield account_id, region_name, backend

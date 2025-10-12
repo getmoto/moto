@@ -54,7 +54,7 @@ class TraceSegment(BaseModel):
         metadata: Any = None,
         annotations: Any = None,
         subsegments: Any = None,
-        **kwargs: Any
+        **kwargs: Any,
     ):
         self.name = name
         self.id = segment_id
@@ -249,15 +249,6 @@ class XRayBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._telemetry_records: List[TelemetryRecords] = []
         self._segment_collection = SegmentCollection()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """Default VPC endpoint service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "xray"
-        )
 
     def add_telemetry_records(self, src: Any) -> None:
         self._telemetry_records.append(TelemetryRecords.from_json(src))

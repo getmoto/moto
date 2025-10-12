@@ -1,21 +1,31 @@
 import json
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 from moto.awslambda.exceptions import (
+    GenericResourcNotFound,
     PreconditionFailedException,
     UnknownPolicyException,
 )
 from moto.moto_api._internal import mock_random
 
 if TYPE_CHECKING:
-    from .models import LambdaFunction
-
+    from .models import LambdaFunction, LayerVersion
 
 TYPE_IDENTITY = TypeVar("TYPE_IDENTITY")
 
 
 class Policy:
-    def __init__(self, parent: "LambdaFunction"):
+    def __init__(self, parent: Union["LambdaFunction", "LayerVersion"]):
         self.revision = str(mock_random.uuid4())
         self.statements: List[Dict[str, Any]] = []
         self.parent = parent
@@ -26,6 +36,8 @@ class Policy:
         return json.dumps(p)
 
     def get_policy(self) -> Dict[str, Any]:
+        if not self.statements:
+            raise GenericResourcNotFound()
         return {
             "Policy": {
                 "Version": "2012-10-17",
@@ -38,7 +50,7 @@ class Policy:
     # adds the raw JSON statement to the policy
     def add_statement(
         self, raw: str, qualifier: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> Tuple[Any, str]:
         policy = json.loads(raw, object_hook=self.decode_policy)
         if len(policy.revision) > 0 and self.revision != policy.revision:
             raise PreconditionFailedException(
@@ -55,7 +67,7 @@ class Policy:
             )
         self.statements.append(policy.statements[0])
         self.revision = str(mock_random.uuid4())
-        return policy.statements[0]
+        return policy.statements[0], self.revision
 
     # removes the statement that matches 'sid' from the policy
     def del_statement(self, sid: str, revision: str = "") -> None:
@@ -75,12 +87,20 @@ class Policy:
     # converts AddPermission request to PolicyStatement
     # https://docs.aws.amazon.com/lambda/latest/dg/API_AddPermission.html
     def decode_policy(self, obj: Dict[str, Any]) -> "Policy":
+        # Circumvent circular cimport
+        from moto.awslambda.models import LayerVersion
+
         policy = Policy(self.parent)
         policy.revision = obj.get("RevisionId", "")
+        # get function_arn or arn from parent
+        if isinstance(self.parent, LayerVersion):
+            resource_arn = self.parent.arn
+        else:
+            resource_arn = self.parent.function_arn
 
         # set some default values if these keys are not set
         self.ensure_set(obj, "Effect", "Allow")
-        self.ensure_set(obj, "Resource", self.parent.function_arn + ":$LATEST")
+        self.ensure_set(obj, "Resource", resource_arn + ":$LATEST")
         self.ensure_set(obj, "StatementId", str(mock_random.uuid4()))
 
         # transform field names and values

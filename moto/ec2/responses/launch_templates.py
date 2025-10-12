@@ -87,7 +87,7 @@ class LaunchTemplates(EC2BaseResponse):
             "launchTemplate",
             {
                 "createTime": version.create_time,
-                "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                 "defaultVersionNumber": template.default_version_number,
                 "latestVersionNumber": version.number,
                 "launchTemplateId": template.id,
@@ -120,7 +120,7 @@ class LaunchTemplates(EC2BaseResponse):
             "launchTemplateVersion",
             {
                 "createTime": version.create_time,
-                "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                 "defaultVersion": template.is_default(version),
                 "launchTemplateData": version.data,
                 "launchTemplateId": template.id,
@@ -187,11 +187,7 @@ class LaunchTemplates(EC2BaseResponse):
         ret_versions = []
         if versions and template is not None:
             for v in versions:
-                if str(v).lower() == "$latest" or "$default":
-                    tv = template.get_version(v)
-                else:
-                    tv = template.get_version(int(v))
-                ret_versions.append(tv)
+                ret_versions.append(template.get_version(v))
         elif min_version:
             if max_version:
                 vMax = max_version
@@ -214,7 +210,7 @@ class LaunchTemplates(EC2BaseResponse):
                 "item",
                 {
                     "createTime": version.create_time,
-                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                    "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                     "defaultVersion": True,
                     "launchTemplateData": version.data,
                     "launchTemplateId": template.id,
@@ -251,7 +247,7 @@ class LaunchTemplates(EC2BaseResponse):
                 "item",
                 {
                     "createTime": template.create_time,
-                    "createdBy": f"arn:aws:iam::{self.current_account}:root",
+                    "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
                     "defaultVersionNumber": template.default_version_number,
                     "latestVersionNumber": template.latest_version_number,
                     "launchTemplateId": template.id,
@@ -267,6 +263,35 @@ class LaunchTemplates(EC2BaseResponse):
         instance = self.ec2_backend.get_launch_template_data(instance_id)
         template = self.response_template(GET_LAUNCH_TEMPLATE_DATA_RESPONSE)
         return template.render(i=instance)
+
+    def modify_launch_template(self) -> str:
+        template_name = self._get_param("LaunchTemplateName")
+        template_id = self._get_param("LaunchTemplateId")
+        default_version = self._get_param("SetDefaultVersion")
+
+        self.error_on_dryrun()
+
+        template = self.ec2_backend.modify_launch_template(
+            template_name=template_name,
+            template_id=template_id,
+            default_version=default_version,
+        )
+
+        tree = xml_root("ModifyLaunchTemplateVersion")
+        xml_serialize(
+            tree,
+            "LaunchTemplate",
+            {
+                "createTime": template.create_time,
+                "createdBy": f"arn:{self.partition}:iam::{self.current_account}:root",
+                "defaultVersionNumber": template.default_version_number,
+                "latestVersionNumber": template.latest_version_number,
+                "launchTemplateId": template.id,
+                "launchTemplateName": template.name,
+                "tags": template.tags,
+            },
+        )
+        return pretty_xml(tree)
 
 
 GET_LAUNCH_TEMPLATE_DATA_RESPONSE = """<GetLaunchTemplateDataResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

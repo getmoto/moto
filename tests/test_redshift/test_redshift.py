@@ -44,14 +44,12 @@ def test_create_cluster_boto3():
             "ParameterApplyStatus": "in-sync",
         }
     ]
-    assert cluster["ClusterSubnetGroupName"] == ""
     assert cluster["AvailabilityZone"] == "us-east-1a"
     assert cluster["PreferredMaintenanceWindow"] == "Mon:03:00-Mon:03:30"
     assert cluster["ClusterVersion"] == "1.0"
     assert cluster["AllowVersionUpgrade"] is True
     assert cluster["NumberOfNodes"] == 1
     assert cluster["EnhancedVpcRouting"] is False
-    assert cluster["KmsKeyId"] == ""
     assert cluster["Endpoint"]["Port"] == 5439
 
 
@@ -366,6 +364,55 @@ def test_create_cluster_with_iam_roles():
 
 
 @mock_aws
+def test_describe_default_cluster_params():
+    client = boto3.client(
+        "redshift",
+        region_name="us-east-1",
+    )
+    response = client.describe_default_cluster_parameters(
+        ParameterGroupFamily="redshift-1.0"
+    )
+    assert (
+        response["DefaultClusterParameters"]["ParameterGroupFamily"] == "redshift-1.0"
+    )
+    assert len(response["DefaultClusterParameters"]["Parameters"])
+    assert all(
+        ("ParameterName" in param and "ParameterValue" in param)
+        for param in response["DefaultClusterParameters"]["Parameters"]
+    )
+
+
+@mock_aws
+def test_describe_cluster_params():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    param_group_name = "groupx"
+
+    with pytest.raises(ClientError) as exc:
+        client.describe_cluster_parameters(
+            ParameterGroupName=param_group_name,
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ClusterParameterGroupNotFound"
+    assert err["Message"] == "ClusterParameterGroup not found: groupx"
+
+    client.create_cluster_parameter_group(
+        ParameterGroupFamily="redshift-1.0",
+        ParameterGroupName=param_group_name,
+        Description="blahblah",
+    )
+
+    response = client.describe_cluster_parameters(
+        ParameterGroupName=param_group_name,
+    )
+    assert len(response["Parameters"])
+    assert all(
+        ("ParameterName" in param and "ParameterValue" in param)
+        for param in response["Parameters"]
+    )
+
+
+@mock_aws
 def test_create_cluster_with_parameter_group_boto3():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_id = "my-cluster"
@@ -591,7 +638,7 @@ def test_authorize_security_group_ingress():
         client.authorize_cluster_security_group_ingress(
             ClusterSecurityGroupName="invalid_security_group", CIDRIP="192.168.10.0/28"
         )
-    assert ex.value.response["Error"]["Code"] == "ClusterSecurityGroupNotFoundFault"
+    assert ex.value.response["Error"]["Code"] == "ClusterSecurityGroupNotFound"
 
     assert (
         ex.value.response["Error"]["Message"]
@@ -619,7 +666,7 @@ def test_describe_non_existent_subnet_group_boto3():
     with pytest.raises(ClientError) as ex:
         client.describe_cluster_subnet_groups(ClusterSubnetGroupName="my_subnet")
     err = ex.value.response["Error"]
-    assert err["Code"] == "ClusterSubnetGroupNotFound"
+    assert err["Code"] == "ClusterSubnetGroupNotFoundFault"
     assert err["Message"] == "Subnet group my_subnet not found."
 
 
@@ -746,7 +793,7 @@ def test_describe_non_existent_parameter_group_boto3():
         )
     err = ex.value.response["Error"]
     assert err["Code"] == "ClusterParameterGroupNotFound"
-    assert err["Message"] == "Parameter group not-a-parameter-group not found."
+    assert err["Message"] == "ClusterParameterGroup not found: not-a-parameter-group"
 
 
 @mock_aws
@@ -769,7 +816,7 @@ def test_delete_parameter_group_boto3():
     assert err["Code"] == "ClusterParameterGroupNotFound"
     # BUG: This is what AWS returns
     # assert err["Message"] == "ParameterGroup not found: my-parameter-group"
-    assert err["Message"] == "Parameter group my-parameter-group not found."
+    assert err["Message"] == "ClusterParameterGroup not found: my-parameter-group"
 
     assert len(client.describe_cluster_parameter_groups()["ParameterGroups"]) == 1
 
@@ -1985,3 +2032,70 @@ def test_resume_unknown_cluster():
     err = exc.value.response["Error"]
     assert err["Code"] == "ClusterNotFound"
     assert err["Message"] == "Cluster test not found."
+
+
+@mock_aws
+def test_enable_logging():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    resp = client.enable_logging(ClusterIdentifier="test", BucketName="redshift-logs")
+    assert resp["LoggingEnabled"] is True
+    assert resp["BucketName"] == "redshift-logs"
+
+
+@mock_aws
+def test_disable_logging():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier="test",
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    resp = client.enable_logging(ClusterIdentifier="test", BucketName="redshift-logs")
+    assert resp["LoggingEnabled"] is True
+    resp = client.disable_logging(ClusterIdentifier="test")
+    assert resp["LoggingEnabled"] is False
+
+
+@mock_aws
+def test_describe_logging_status():
+    client = boto3.client("redshift", region_name="us-east-1")
+    cluster_id = "test"
+    client.create_cluster(
+        DBName="test",
+        ClusterIdentifier=cluster_id,
+        ClusterType="single-node",
+        NodeType="ds2.xlarge",
+        MasterUsername="user",
+        MasterUserPassword="password",
+    )
+
+    bucket_name = "redshift-logs"
+    s3_key_prefix = "logs/"
+    log_destination_type = "s3"
+    log_exports = ["connectionlog", "querylog", "auditinglog"]
+    client.enable_logging(
+        ClusterIdentifier=cluster_id,
+        BucketName=bucket_name,
+        S3KeyPrefix=s3_key_prefix,
+        LogDestinationType=log_destination_type,
+        LogExports=log_exports,
+    )
+
+    resp = client.describe_logging_status(ClusterIdentifier=cluster_id)
+    assert resp["LoggingEnabled"] is True
+    assert resp["BucketName"] == bucket_name
+    assert resp["S3KeyPrefix"] == s3_key_prefix
+    assert resp["LogDestinationType"] == log_destination_type

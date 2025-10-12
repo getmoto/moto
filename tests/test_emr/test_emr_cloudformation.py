@@ -53,7 +53,11 @@ def test_create_simple_cluster__using_cloudformation():
 
     # Verify outputs
     stack = cf.describe_stacks(StackName="teststack")["Stacks"][0]
-    assert {"OutputKey": "ClusterId", "OutputValue": cluster_id} in stack["Outputs"]
+    assert {
+        "OutputKey": "ClusterId",
+        "OutputValue": cluster_id,
+        "Description": "Cluster info",
+    } in stack["Outputs"]
 
     # Verify EMR Cluster
     cl = emr.describe_cluster(ClusterId=cluster_id)["Cluster"]

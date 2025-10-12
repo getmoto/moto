@@ -255,3 +255,45 @@ class TestAutoScalingGroup(TestCase):
             LaunchConfigurationName=self.lc_name,
             VPCZoneIdentifier=self.mocked_networking["subnet1"],
         )
+
+
+@mock_aws
+def test_launch_template_with_tags():
+    mocked_networking = setup_networking()
+
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    template = ec2_client.create_launch_template(
+        LaunchTemplateName="test_launch_template",
+        LaunchTemplateData={
+            "ImageId": EXAMPLE_AMI_ID,
+            "InstanceType": "t2.micro",
+            "TagSpecifications": [
+                {
+                    "ResourceType": "instance",
+                    "Tags": [{"Key": "from_lt", "Value": "val"}],
+                }
+            ],
+        },
+    )["LaunchTemplate"]
+
+    as_client = boto3.client("autoscaling", region_name="us-east-1")
+    as_client.create_auto_scaling_group(
+        AutoScalingGroupName="myasgroup",
+        MinSize=1,
+        MaxSize=2,
+        LaunchTemplate={"LaunchTemplateId": template["LaunchTemplateId"]},
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+        Tags=[
+            {
+                "PropagateAtLaunch": True,
+                "Key": "TestTagKey1",
+                "Value": "TestTagValue1",
+            }
+        ],
+    )
+
+    instances = ec2_client.describe_instances()
+
+    tags = instances["Reservations"][0]["Instances"][0]["Tags"]
+    assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
+    assert {"Key": "from_lt", "Value": "val"} in tags

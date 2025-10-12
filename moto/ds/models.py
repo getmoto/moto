@@ -1,9 +1,11 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
-from datetime import datetime, timezone
+
+import copy
 from typing import Any, Dict, List, Optional, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import unix_time
 from moto.ds.exceptions import (
     ClientException,
     DirectoryLimitExceededException,
@@ -11,9 +13,10 @@ from moto.ds.exceptions import (
     EntityDoesNotExistException,
     InvalidParameterException,
     TagLimitExceededException,
+    UnsupportedOperationException,
     ValidationException,
 )
-from moto.ds.utils import PAGINATION_MODEL
+from moto.ds.utils import PAGINATION_MODEL, SETTINGS_ENTRIES_MODEL
 from moto.ds.validations import validate_args
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidSubnetIdError
@@ -22,7 +25,76 @@ from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 
 
-class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
+class LdapsSettingInfo(BaseModel):
+    def __init__(self) -> None:
+        self.last_updated_date_time = unix_time()
+        self.ldaps_status = "Enabled"
+        self.ldaps_status_reason = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "LastUpdatedDateTime": self.last_updated_date_time,
+            "LDAPSStatus": self.ldaps_status,
+            "LDAPSStatusReason": self.ldaps_status_reason,
+        }
+
+
+class LogSubscription(BaseModel):
+    def __init__(self, directory_id: str, log_group_name: str) -> None:
+        self.directory_id = directory_id
+        self.log_group_name = log_group_name
+        self.created_date_time = unix_time()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "SubscriptionCreatedDateTime": self.created_date_time,
+            "DirectoryId": self.directory_id,
+            "LogGroupName": self.log_group_name,
+        }
+
+
+class Trust(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        remote_domain_name: str,
+        trust_password: str,
+        trust_direction: str,
+        trust_type: Optional[str],
+        conditional_forwarder_ip_addrs: Optional[List[str]],
+        selective_auth: Optional[str],
+    ) -> None:
+        self.trust_id = f"t-{mock_random.get_random_hex(10)}"
+        self.created_date_time = unix_time()
+        self.last_updated_date_time = self.created_date_time
+        self.state_last_updated_date_time = self.created_date_time
+        self.trust_state = "Creating"
+        self.trust_state_reason = ""
+        self.directory_id = directory_id
+        self.remote_domain_name = remote_domain_name
+        self.trust_password = trust_password
+        self.trust_direction = trust_direction
+        self.trust_type = trust_type
+        self.conditional_forwarder_ip_addrs = conditional_forwarder_ip_addrs
+        self.selective_auth = selective_auth
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "CreatedDateTime": self.created_date_time,
+            "DirectoryId": self.directory_id,
+            "LastUpdatedDateTime": self.last_updated_date_time,
+            "RemoteDomainName": self.remote_domain_name,
+            "SelectiveAuth": self.selective_auth,
+            "StateLastUpdatedDateTime": self.state_last_updated_date_time,
+            "TrustDirection": self.trust_direction,
+            "TrustId": self.trust_id,
+            "TrustState": self.trust_state,
+            "TrustStateReason": self.trust_state_reason,
+            "TrustType": self.trust_type,
+        }
+
+
+class Directory(BaseModel):
     """Representation of a Simple AD Directory.
 
     When the "create" API for a Simple AD or a Microsoft AD directory is
@@ -59,7 +131,7 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         short_name: Optional[str] = None,
         description: Optional[str] = None,
         edition: Optional[str] = None,
-    ):  # pylint: disable=too-many-arguments
+    ):
         self.account_id = account_id
         self.region = region
         self.name = name
@@ -79,15 +151,23 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         self.desired_number_of_domain_controllers = 0
         self.sso_enabled = False
         self.stage = "Active"
-        self.launch_time = datetime.now(timezone.utc).isoformat()
-        self.stage_last_updated_date_time = datetime.now(timezone.utc).isoformat()
+        self.launch_time = unix_time()
+        self.stage_last_updated_date_time = unix_time()
+        self.ldaps_settings_info: List[LdapsSettingInfo] = []
+        self.trusts: List[Trust] = []
+        self.settings = (
+            copy.deepcopy(SETTINGS_ENTRIES_MODEL)
+            if self.directory_type == "MicrosoftAD"
+            else []
+        )
 
         if self.directory_type == "ADConnector":
             self.security_group_id = self.create_security_group(
                 self.connect_settings["VpcId"]  # type: ignore[index]
             )
             self.eni_ids, self.subnet_ips = self.create_eni(
-                self.security_group_id, self.connect_settings["SubnetIds"]  # type: ignore[index]
+                self.security_group_id,
+                self.connect_settings["SubnetIds"],  # type: ignore[index]
             )
             self.connect_settings["SecurityGroupId"] = self.security_group_id  # type: ignore[index]
             self.connect_settings["ConnectIps"] = self.subnet_ips  # type: ignore[index]
@@ -98,7 +178,8 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
                 self.vpc_settings["VpcId"]  # type: ignore[index]
             )
             self.eni_ids, self.subnet_ips = self.create_eni(
-                self.security_group_id, self.vpc_settings["SubnetIds"]  # type: ignore[index]
+                self.security_group_id,
+                self.vpc_settings["SubnetIds"],  # type: ignore[index]
             )
             self.vpc_settings["SecurityGroupId"] = self.security_group_id  # type: ignore[index]
             self.dns_ip_addrs = self.subnet_ips
@@ -156,6 +237,22 @@ class Directory(BaseModel):  # pylint: disable=too-many-instance-attributes
         """Enable/disable sso based on whether new_state is True or False."""
         self.sso_enabled = new_state
 
+    def enable_ldaps(self, enable: bool) -> None:
+        """Enable/disable ldaps based on whether new_state is True or False.
+        This method is only for MicrosoftAD.
+        """
+        if self.directory_type not in ("MicrosoftAD", "ADConnector"):
+            raise UnsupportedOperationException(
+                "LDAPS operations are not supported for this Directory Type."
+            )
+        if enable and len(self.ldaps_settings_info) == 0:
+            ldaps_setting = LdapsSettingInfo()
+            ldaps_setting.ldaps_status = "Enabled"
+            self.ldaps_settings_info.append(ldaps_setting)
+        elif not enable and len(self.ldaps_settings_info) > 0:
+            for setting in self.ldaps_settings_info:
+                setting.ldaps_status = "Disabled"
+
     def to_dict(self) -> Dict[str, Any]:
         """Create a dictionary of attributes for Directory."""
         attributes = {
@@ -195,16 +292,8 @@ class DirectoryServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.directories: Dict[str, Directory] = {}
+        self.log_subscriptions: Dict[str, LogSubscription] = {}
         self.tagger = TaggingService()
-
-    @staticmethod
-    def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
-        """List of dicts representing default VPC endpoints for this service."""
-        return BaseBackend.default_vpc_endpoint_service_factory(
-            service_region, zones, "ds"
-        )
 
     def _verify_subnets(self, region: str, vpc_settings: Dict[str, Any]) -> None:
         """Verify subnets are valid, else raise an exception.
@@ -251,7 +340,7 @@ class DirectoryServiceBackend(BaseBackend):
         size: str,
         connect_settings: Dict[str, Any],
         tags: List[Dict[str, str]],
-    ) -> str:  # pylint: disable=too-many-arguments
+    ) -> str:
         """Create a fake AD Connector."""
         if len(self.directories) > Directory.CONNECTED_DIRECTORIES_LIMIT:
             raise DirectoryLimitExceededException(
@@ -311,7 +400,7 @@ class DirectoryServiceBackend(BaseBackend):
         size: str,
         vpc_settings: Dict[str, Any],
         tags: List[Dict[str, str]],
-    ) -> str:  # pylint: disable=too-many-arguments
+    ) -> str:
         """Create a fake Simple Ad Directory."""
         if len(self.directories) > Directory.CLOUDONLY_DIRECTORIES_LIMIT:
             raise DirectoryLimitExceededException(
@@ -395,7 +484,7 @@ class DirectoryServiceBackend(BaseBackend):
         vpc_settings: Dict[str, Any],
         edition: str,
         tags: List[Dict[str, str]],
-    ) -> str:  # pylint: disable=too-many-arguments
+    ) -> str:
         """Create a fake Microsoft Ad Directory."""
         if len(self.directories) > Directory.CLOUDONLY_MICROSOFT_AD_LIMIT:
             raise DirectoryLimitExceededException(
@@ -538,6 +627,170 @@ class DirectoryServiceBackend(BaseBackend):
         """List all tags on a directory."""
         self._validate_directory_id(resource_id)
         return self.tagger.list_tags_for_resource(resource_id).get("Tags")  # type: ignore[return-value]
+
+    def create_trust(
+        self,
+        directory_id: str,
+        remote_domain_name: str,
+        trust_password: str,
+        trust_direction: str,
+        trust_type: Optional[str],
+        conditional_forwarder_ip_addrs: Optional[List[str]],
+        selective_auth: Optional[str],
+    ) -> str:
+        self._validate_directory_id(directory_id)
+        validate_args(
+            [
+                ("ssoPassword", trust_password),
+                ("trustDirection", trust_direction),
+                ("remoteDomainName", remote_domain_name),
+            ]
+        )
+        directory = self.directories[directory_id]
+        trust = Trust(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+            trust_password=trust_password,
+            trust_direction=trust_direction,
+            trust_type=trust_type,
+            conditional_forwarder_ip_addrs=conditional_forwarder_ip_addrs,
+            selective_auth=selective_auth,
+        )
+        directory.trusts.append(trust)
+        return trust.trust_id
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_trusts(
+        self, directory_id: Optional[str], trust_ids: Optional[List[str]]
+    ) -> List[Trust]:
+        if directory_id:
+            self._validate_directory_id(directory_id)
+            directory = self.directories[directory_id]
+            trusts = directory.trusts
+        else:
+            trusts = [
+                trust
+                for directory in self.directories.values()
+                for trust in directory.trusts
+            ]
+        if trust_ids:
+            queried_trusts = [t for t in trusts if t.trust_id in trust_ids]
+        else:
+            queried_trusts = trusts
+        return queried_trusts
+
+    def delete_trust(
+        self, trust_id: str, delete_associated_conditional_forwarder: Optional[bool]
+    ) -> str:
+        # TODO: Implement handle for delete_associated_conditional_forwarder once conditional forwarder is implemented
+        delete_associated_conditional_forwarder = (
+            delete_associated_conditional_forwarder or False
+        )
+        for directory in self.directories.values():
+            for trust in directory.trusts:
+                if trust.trust_id == trust_id:
+                    directory.trusts.remove(trust)
+                    return trust_id
+        raise EntityDoesNotExistException(f"Trust {trust_id} does not exist")
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_ldaps_settings(
+        self, directory_id: str, type: str
+    ) -> List[LdapsSettingInfo]:
+        """Describe LDAPS settings for a Directory"""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type not in ("MicrosoftAD", "ADConnector"):
+            raise UnsupportedOperationException(
+                "LDAPS operations are not supported for this Directory Type."
+            )
+
+        return directory.ldaps_settings_info
+
+    def enable_ldaps(self, directory_id: str, type: str) -> None:
+        """Enable LDAPS for a Directory"""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        directory.enable_ldaps(True)
+
+    def disable_ldaps(self, directory_id: str, type: str) -> None:
+        """Disable LDAPS for a Directory"""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        directory.enable_ldaps(False)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def describe_settings(
+        self, directory_id: str, status: Optional[str]
+    ) -> List[Dict[str, str]]:
+        """Describe settings for a Directory"""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type not in ("MicrosoftAD"):
+            raise InvalidParameterException(
+                "This operation is only supported for Microsoft AD"
+            )
+        if status:
+            queried_settings = [
+                setting
+                for setting in directory.settings
+                if setting["RequestStatus"] == status
+            ]
+        else:
+            queried_settings = directory.settings
+        return queried_settings
+
+    def update_settings(self, directory_id: str, settings: List[Dict[str, Any]]) -> str:
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type not in ("MicrosoftAD"):
+            raise InvalidParameterException(
+                "This operation is only supported for Microsoft AD"
+            )
+        for s in settings:
+            for setting in directory.settings:
+                if setting["Name"] == s["Name"]:
+                    # TODO: Add validation for the value
+                    setting["AppliedValue"] = s["Value"]
+
+        return directory_id
+
+    def create_log_subscription(self, directory_id: str, log_group_name: str) -> None:
+        self._validate_directory_id(directory_id)
+        log_subscription = LogSubscription(directory_id, log_group_name)
+        if directory_id not in self.log_subscriptions:
+            self.log_subscriptions[directory_id] = log_subscription
+        else:
+            raise EntityAlreadyExistsException("Log subscription already exists")
+        return
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_log_subscriptions(
+        self,
+        directory_id: str,
+    ) -> List[LogSubscription]:
+        if directory_id:
+            self._validate_directory_id(directory_id)
+            log_subscription = self.log_subscriptions.get(directory_id, None)
+            if log_subscription:
+                log_subscriptions = [log_subscription]
+            else:
+                log_subscriptions = []
+        else:
+            log_subscriptions = [
+                log_subscription for log_subscription in self.log_subscriptions.values()
+            ]
+        return log_subscriptions
+
+    def delete_log_subscription(self, directory_id: str) -> None:
+        self._validate_directory_id(directory_id)
+        if directory_id in self.log_subscriptions:
+            self.log_subscriptions.pop(directory_id)
+        else:
+            raise EntityDoesNotExistException(
+                f"Log subscription for {directory_id} does not exist"
+            )
+        return
 
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")

@@ -1,0 +1,37 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "DynamoDB DeleteItem",
+  "States": {
+    "DynamoDB DeleteItem": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:deleteItem",
+      "Parameters": {
+        "TableName": "ThisTableDoesNotExist",
+        "Key": {
+          "Column": {
+            "S": "MyEntry"
+          }
+        }
+      },
+      "End": true,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ConditionalCheckFailedException"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 1,
+          "MaxAttempts": 0
+        },
+        {
+          "ErrorEquals": [
+            "DynamoDB.AmazonDynamoDBException"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3
+        }
+      ]
+    }
+  }
+}

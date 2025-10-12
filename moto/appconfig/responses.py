@@ -8,15 +8,6 @@ from .models import AppConfigBackend, appconfig_backends
 
 
 class AppConfigResponse(BaseResponse):
-    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-        if request.method == "POST":
-            return self.tag_resource()
-        if request.method == "DELETE":
-            return self.untag_resource()
-
     def __init__(self) -> None:
         super().__init__(service_name="appconfig")
 
