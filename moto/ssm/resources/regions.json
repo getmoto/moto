@@ -928,6 +928,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -2732,6 +2741,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.ap-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -4093,6 +4111,15 @@
                 "Value": "iam",
                 "endpoint": {
                   "Value": "iam.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "identitystore": {
+                "Value": "identitystore",
+                "endpoint": {
+                  "Value": "identitystore.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -10492,6 +10519,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "drs": {
                 "Value": "drs",
                 "endpoint": {
@@ -10853,6 +10889,15 @@
                 "Value": "kafka",
                 "endpoint": {
                   "Value": "kafka.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -20306,6 +20351,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -22119,6 +22173,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.ap-southeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -23572,6 +23635,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.ap-southeast-4.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -24621,6 +24693,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26199,6 +26280,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "sagemaker-metrics": {
+                "Value": "sagemaker-metrics",
+                "endpoint": {
+                  "Value": "metrics.sagemaker.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "scheduler": {
                 "Value": "scheduler",
                 "endpoint": {
@@ -26275,6 +26365,15 @@
                 "Value": "stepfunctions",
                 "endpoint": {
                   "Value": "states.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "storagegateway": {
+                "Value": "storagegateway",
+                "endpoint": {
+                  "Value": "storagegateway.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26666,6 +26765,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.ap-southeast-7.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -29096,6 +29204,15 @@
                   "Value": "HTTPS, HTTP"
                 }
               },
+              "neptune-graph": {
+                "Value": "neptune-graph",
+                "endpoint": {
+                  "Value": "neptune-graph.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "network-firewall": {
                 "Value": "network-firewall",
                 "endpoint": {
@@ -29200,6 +29317,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
               },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
@@ -37856,6 +37976,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -41683,6 +41812,15 @@
                 "Value": "kafka",
                 "endpoint": {
                   "Value": "kafka.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48915,6 +49053,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
@@ -52641,6 +52782,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -54194,6 +54344,15 @@
                 "Value": "kafka",
                 "endpoint": {
                   "Value": "kafka.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.me-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55897,6 +56056,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "kafkaconnect": {
+                "Value": "kafkaconnect",
+                "endpoint": {
+                  "Value": "kafkaconnect.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "kinesis": {
                 "Value": "kinesis",
                 "endpoint": {
@@ -56985,6 +57153,15 @@
                 "Value": "dms",
                 "endpoint": {
                   "Value": "dms.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "docdb": {
+                "Value": "docdb",
+                "endpoint": {
+                  "Value": "rds.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
