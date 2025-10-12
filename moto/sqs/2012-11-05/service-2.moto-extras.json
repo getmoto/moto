@@ -2,11 +2,11 @@
   "version": 1.0,
   "merge": {
     "metadata": {
+      "errorNamespace": "com.amazonaws.sqs",
       "protocols": [
         "json",
         "query"
       ],
-      "targetPrefix": "com.amazonaws.sqs",
       "xmlNamespace": "http://queue.amazonaws.com/doc/2012-11-05/"
     },
     "operations": {
@@ -278,6 +278,13 @@
           "senderFault": true
         }
       },
+      "BatchRequestTooLong": {
+        "error": {
+          "code": "AWS.SimpleQueueService.BatchRequestTooLong",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
       "EmptyBatchRequest": {
         "error": {
           "code": "AWS.SimpleQueueService.EmptyBatchRequest",
@@ -285,10 +292,50 @@
           "senderFault": true
         }
       },
+      "InvalidBatchEntryId": {
+        "error": {
+          "code": "AWS.SimpleQueueService.InvalidBatchEntryId",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "MessageNotInflight": {
+        "error": {
+          "code": "AWS.SimpleQueueService.MessageNotInflight",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "MissingRequiredParameterException": {
+        "type": "structure",
+        "members": {},
+        "documentation": "<p>A required parameter for the specified action is not supplied. A <a href=\"https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/CommonErrors.html\">common error</a> not normally included with the AWS service model.</p>",
+        "error": {
+          "code": "MissingParameter",
+          "httpStatusCode": 400,
+          "namespace": "com.amazon.coral.service",
+          "senderFault": true
+        },
+        "exception": true
+      },
       "OverLimit": {
         "error": {
           "code": "OverLimit",
           "httpStatusCode": 403,
+          "senderFault": true
+        }
+      },
+      "PurgeQueueInProgress": {
+        "error": {
+          "code": "AWS.SimpleQueueService.PurgeQueueInProgress",
+          "httpStatusCode": 403,
+          "senderFault": true
+        }
+      },
+      "QueueDeletedRecently": {
+        "error": {
+          "code": "AWS.SimpleQueueService.QueueDeletedRecently",
+          "httpStatusCode": 400,
           "senderFault": true
         }
       },
@@ -303,6 +350,20 @@
       "QueueNameExists": {
         "error": {
           "code": "QueueAlreadyExists",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "TooManyEntriesInBatchRequest": {
+        "error": {
+          "code": "AWS.SimpleQueueService.TooManyEntriesInBatchRequest",
+          "httpStatusCode": 400,
+          "senderFault": true
+        }
+      },
+      "UnsupportedOperation": {
+        "error": {
+          "code": "AWS.SimpleQueueService.UnsupportedOperation",
           "httpStatusCode": 400,
           "senderFault": true
         }

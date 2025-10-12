@@ -15,8 +15,10 @@ class ReceiptHandleIsInvalid(SQSException):
 
 
 class MessageAttributesInvalid(SQSException):
+    code = "InvalidParameterValue"
+
     def __init__(self, description: str):
-        super().__init__("MessageAttributesInvalid", description)
+        super().__init__(description)
 
 
 class QueueDoesNotExist(SQSException):
