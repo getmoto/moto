@@ -78,7 +78,7 @@ class Message(BaseModel):
         system_attributes: Optional[Dict[str, Any]] = None,
     ):
         self.id = message_id
-        self._body = body
+        self.body = body
         self.message_attributes: Dict[str, Any] = {}
         self.receipt_handle: Optional[str] = None
         self._old_receipt_handles: List[str] = []
@@ -96,7 +96,7 @@ class Message(BaseModel):
     @property
     def body_md5(self) -> str:
         md5 = md5_hash()
-        md5.update(self._body.encode("utf-8"))
+        md5.update(self.body.encode("utf-8"))
         return md5.hexdigest()
 
     @property
@@ -156,15 +156,6 @@ class Message(BaseModel):
         if isinstance(value, str):
             return value.encode("utf-8")
         return value
-
-    @property
-    def body(self) -> str:
-        # return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
-        return self.original_body
-
-    @property
-    def original_body(self) -> str:
-        return self._body
 
     def mark_sent(self, delay_seconds: Optional[int] = None) -> None:
         self.sent_timestamp = int(unix_time_millis())  # type: ignore

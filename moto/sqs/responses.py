@@ -380,7 +380,7 @@ class SQSResponse(BaseResponse):
                 "MessageId": message.id,
                 "ReceiptHandle": message.receipt_handle,
                 "MD5OfBody": message.body_md5,
-                "Body": message.original_body,
+                "Body": message.body,
                 "Attributes": {},
                 "MessageAttributes": {},
             }
