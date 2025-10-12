@@ -56,6 +56,7 @@ import abc
 import base64
 import calendar
 import json
+from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
@@ -953,35 +954,62 @@ class EC2Serializer(QuerySerializer):
         return resp
 
 
-class SqsQueryResponseSerializer(QuerySerializer):
-    CHAR_TO_MARK = {'"': '__marker__"__marker__', "\r": "__marker__-r__marker__"}
-    CHAR_TO_ESCAPE = {
-        '"': "&quot;",
-        "\r": "&#xD;",
-    }
+DoublePassEncoding = namedtuple(
+    "DoublePassEncoding", ["char", "marker", "escape_sequence"]
+)
+
+
+class DoublePassEncoder:
+    """Facilitates double pass encoding of special characters in a string
+    by replacing them with markers in one pass and then replacing the markers
+    with escape sequences in a second pass."""
+
+    def __init__(self, encodings: list[DoublePassEncoding]) -> None:
+        self.encodings = encodings
 
     def mark(self, value: str) -> str:
-        for char, marker in self.CHAR_TO_MARK.items():
-            value = value.replace(char, marker)
+        for item in self.encodings:
+            value = value.replace(item.char, item.marker)
         return value
 
     def escape(self, value: str) -> str:
-        for char, escaped in self.CHAR_TO_ESCAPE.items():
-            value = value.replace(self.CHAR_TO_MARK[char], escaped)
+        for item in self.encodings:
+            value = value.replace(item.marker, item.escape_sequence)
         return value
+
+
+class SqsQueryResponseSerializer(QuerySerializer):
+    """
+    Special handling of SQS query responses to escape special characters
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.encoder = DoublePassEncoder(
+            [
+                DoublePassEncoding(
+                    char="\r",
+                    marker="__CARRIAGE_RETURN_MARKER__",
+                    escape_sequence="&#xD;",
+                ),
+                DoublePassEncoding(
+                    char='"', marker="__DOUBLE_QUOTE_MARKER__", escape_sequence="&quot;"
+                ),
+            ]
+        )
 
     def _default_serialize(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
         if isinstance(value, str):
-            value = self.mark(value)
+            value = self.encoder.mark(value)
         serialization_key = self.get_serialized_name(shape, key)
         serialized[serialization_key] = value
 
     def _serialize_body(self, body: Serialized) -> str:
         body_encoded = super()._serialize_body(body)
-        escaped_string = self.escape(body_encoded)
-        return escaped_string
+        body_escaped = self.encoder.escape(body_encoded)
+        return body_escaped
 
     @staticmethod
     def get_serialized_name(shape: Shape, default_name: str) -> str:
