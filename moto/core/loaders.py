@@ -16,9 +16,13 @@ service model by supplying additional error shapes or default input
 values for use by Moto.
 """
 
+import os
+
 from botocore.loaders import Loader as BotocoreLoader
 
-from moto import MOTO_ROOT
+import moto
+
+moto_root = os.path.dirname(os.path.abspath(moto.__file__))
 
 
 class Loader(BotocoreLoader):
@@ -26,4 +30,4 @@ class Loader(BotocoreLoader):
 
 
 def create_loader() -> Loader:
-    return Loader(extra_search_paths=[MOTO_ROOT])
+    return Loader(extra_search_paths=[moto_root])
