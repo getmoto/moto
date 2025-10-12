@@ -497,7 +497,7 @@ def test_message_with_invalid_attributes():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute name 'öther_encodings' is invalid. "
         "Attribute name can contain A-Z, a-z, 0-9, underscore (_), "
@@ -595,7 +595,7 @@ def test_message_with_attributes_invalid_datatype():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute 'timestamp' has an invalid message "
         "attribute type, the set of supported type "
