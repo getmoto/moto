@@ -10,6 +10,7 @@ from moto.sns.models import SNSBackend
 
 class SNSConfigQuery(ConfigQueryModel[SNSBackend]):
     """Config query model for SNS topics."""
+
     def list_config_service_resources(
         self,
         account_id: str,
