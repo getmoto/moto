@@ -1434,6 +1434,16 @@ def test_delete_vpc_end_points():
     ][0]
     assert ep1["State"] == "deleted"
 
+    deleted_endpoints = ec2.describe_vpc_endpoints(
+        Filters=[{"Name": "vpc-endpoint-state", "Values": ["deleted"]}]
+    )["VpcEndpoints"]
+    assert vpc_end_point1["VpcEndpointId"] in [
+        e["VpcEndpointId"] for e in deleted_endpoints
+    ]
+    assert vpc_end_point2["VpcEndpointId"] not in [
+        e["VpcEndpointId"] for e in deleted_endpoints
+    ]
+
     ep2 = ec2.describe_vpc_endpoints(VpcEndpointIds=[vpc_end_point2["VpcEndpointId"]])[
         "VpcEndpoints"
     ][0]

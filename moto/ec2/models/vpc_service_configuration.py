@@ -14,6 +14,7 @@ class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
         region: str,
         acceptance_required: bool,
         private_dns_name: str,
+        supported_regions: list[str],
         ec2_backend: Any,
     ):
         self.id = f"vpce-svc-{mock_random.get_random_hex(length=8)}"
@@ -39,6 +40,7 @@ class VPCServiceConfiguration(TaggedEC2Resource, CloudFormationModel):
         self.manages_vpc_endpoints = False
         self.private_dns_name = private_dns_name
         self.endpoint_dns_name = f"{self.id}.{region}.vpce.amazonaws.com"
+        self.supported_regions = supported_regions
 
         self.principals: List[str] = []
         self.ec2_backend = ec2_backend
@@ -80,6 +82,7 @@ class VPCServiceConfigurationBackend:
         acceptance_required: bool,
         private_dns_name: str,
         tags: List[Dict[str, str]],
+        supported_regions: list[str],
     ) -> VPCServiceConfiguration:
         lbs = self.elbv2_backend.describe_load_balancers(arns=lb_arns, names=None)
         config = VPCServiceConfiguration(
@@ -87,6 +90,7 @@ class VPCServiceConfigurationBackend:
             region=self.region_name,  # type: ignore[attr-defined]
             acceptance_required=acceptance_required,
             private_dns_name=private_dns_name,
+            supported_regions=supported_regions,
             ec2_backend=self,
         )
         for tag in tags or []:
@@ -143,6 +147,8 @@ class VPCServiceConfigurationBackend:
         remove_network_lbs: List[str],
         add_gateway_lbs: List[str],
         remove_gateway_lbs: List[str],
+        add_supported_regions: list[str],
+        remove_supported_regions: list[str],
     ) -> None:
         """
         The following parameters are not yet implemented: RemovePrivateDnsName
@@ -160,3 +166,7 @@ class VPCServiceConfigurationBackend:
             config.gateway_load_balancer_arns.append(lb)
         for lb in remove_gateway_lbs:
             config.gateway_load_balancer_arns.remove(lb)
+        for reg in add_supported_regions:
+            config.supported_regions.append(reg)
+        for reg in remove_supported_regions:
+            config.supported_regions.remove(reg)

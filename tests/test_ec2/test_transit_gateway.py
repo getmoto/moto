@@ -11,6 +11,7 @@ from tests.test_ec2 import (
     delete_tg_attachments,
     ec2_aws_verified,
     wait_for_transit_gateway_attachments,
+    wait_for_vpn_connections,
 )
 
 
@@ -217,33 +218,44 @@ def retrieve_all_transit_gateways(ec2):
     return all_tg
 
 
-@mock_aws
-def test_create_transit_gateway_vpn_attachment():
-    ec2 = boto3.client("ec2", region_name="us-west-1")
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_transit_gateway=True, create_customer_gateway=True)
+def test_create_transit_gateway_vpn_attachment(ec2_client=None, tg_id=None, cg_id=None):
+    vpn_conn_id = None
+    try:
+        vpn_connection = ec2_client.create_vpn_connection(
+            Type="ipsec.1",
+            CustomerGatewayId=cg_id,
+            TransitGatewayId=tg_id,
+        )["VpnConnection"]
+        vpn_conn_id = vpn_connection["VpnConnectionId"]
+        wait_for_vpn_connections(ec2_client, vpn_connection_id=vpn_conn_id)
 
-    transit_gateway_id = ec2.create_transit_gateway(Description="my first gatway")[
-        "TransitGateway"
-    ]["TransitGatewayId"]
+        # Get default RouteTableID
+        default_route_table_id = ec2_client.describe_transit_gateway_route_tables(
+            Filters=[{"Name": "transit-gateway-id", "Values": [tg_id]}]
+        )["TransitGatewayRouteTables"][0]["TransitGatewayRouteTableId"]
 
-    customer_gateway = ec2.create_customer_gateway(
-        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
-    )["CustomerGateway"]
-    vpn_connection = ec2.create_vpn_connection(
-        Type="ipsec.1",
-        CustomerGatewayId=customer_gateway["CustomerGatewayId"],
-        TransitGatewayId=transit_gateway_id,
-    )["VpnConnection"]
-    vpn_conn_id = vpn_connection["VpnConnectionId"]
+        #
+        # Verify we can retrieve it as a general attachment
+        attachments = retrieve_all_attachments(ec2_client)
+        assert vpn_conn_id in [a["ResourceId"] for a in attachments]
 
-    #
-    # Verify we can retrieve it as a general attachment
-    attachments = retrieve_all_attachments(ec2)
-    assert vpn_conn_id in [a["ResourceId"] for a in attachments]
+        my_attachments = [a for a in attachments if a["ResourceId"] == vpn_conn_id]
 
-    my_attachments = [a for a in attachments if a["ResourceId"] == vpn_conn_id]
-    assert len(my_attachments) == 1
+        assert len(my_attachments) == 1
+        attachment = my_attachments[0]
 
-    assert my_attachments[0]["ResourceType"] == "vpn"
+        assert attachment["Association"] == {
+            "State": "associated",
+            "TransitGatewayRouteTableId": default_route_table_id,
+        }
+        assert attachment["ResourceType"] == "vpn"
+        assert attachment["ResourceId"] == vpn_conn_id
+        assert attachment["TransitGatewayId"] == tg_id
+    finally:
+        if vpn_conn_id:
+            ec2_client.delete_vpn_connection(VpnConnectionId=vpn_conn_id)
 
 
 def retrieve_all_attachments(client):
@@ -268,6 +280,12 @@ def test_create_and_describe_transit_gateway_vpc_attachment(
         SubnetIds=[subnet_id],
     )
     create = response["TransitGatewayVpcAttachment"]
+    tg_attachment_id = create["TransitGatewayAttachmentId"]
+
+    # Get default RouteTableID
+    default_route_table_id = ec2_client.describe_transit_gateway_route_tables(
+        Filters=[{"Name": "transit-gateway-id", "Values": [tg_id]}]
+    )["TransitGatewayRouteTables"][0]["TransitGatewayRouteTableId"]
 
     assert create["TransitGatewayAttachmentId"].startswith("tgw-attach-")
     assert create["TransitGatewayId"] == tg_id
@@ -283,20 +301,21 @@ def test_create_and_describe_transit_gateway_vpc_attachment(
     assert create["Options"]["SecurityGroupReferencingSupport"] in ["disable", "enable"]
     assert "Tags" not in create
     assert "CreationTime" in create
+
+    # Wait until the attachment is fully ready
+    wait_for_transit_gateway_attachments(ec2_client, tg_attachment_id=tg_attachment_id)
+
     #
     # Verify we can retrieve it as a VPC attachment
     attachments = ec2_client.describe_transit_gateway_vpc_attachments(
-        TransitGatewayAttachmentIds=[create["TransitGatewayAttachmentId"]]
+        TransitGatewayAttachmentIds=[tg_attachment_id]
     )["TransitGatewayVpcAttachments"]
     assert len(attachments) == 1
     describe = attachments[0]
     assert "CreationTime" in describe
     assert describe["Options"] == create["Options"]
-    # AWS returns 'pending' - Moto is immediately 'available'
-    assert describe["State"] in ["pending", "available"]
-    assert (
-        describe["TransitGatewayAttachmentId"] == create["TransitGatewayAttachmentId"]
-    )
+    assert describe["State"] == "available"
+    assert describe["TransitGatewayAttachmentId"] == tg_attachment_id
     assert describe["TransitGatewayId"] == tg_id
     assert describe["VpcId"] == vpc_id
     assert describe["VpcOwnerId"] == account_id
@@ -304,7 +323,7 @@ def test_create_and_describe_transit_gateway_vpc_attachment(
     #
     # Verify we can retrieve it as a general attachment
     attachments = ec2_client.describe_transit_gateway_attachments(
-        TransitGatewayAttachmentIds=[describe["TransitGatewayAttachmentId"]]
+        TransitGatewayAttachmentIds=[tg_attachment_id]
     )["TransitGatewayAttachments"]
     assert len(attachments) == 1
     assert "CreationTime" in attachments[0]
@@ -312,13 +331,13 @@ def test_create_and_describe_transit_gateway_vpc_attachment(
     assert attachments[0]["ResourceOwnerId"] == account_id
     assert attachments[0]["ResourceType"] == "vpc"
     assert attachments[0]["ResourceId"] == vpc_id
-    # AWS returns 'pending' - Moto is immediately 'available'
-    assert attachments[0]["State"] in ["pending", "available"]
-    assert (
-        attachments[0]["TransitGatewayAttachmentId"]
-        == describe["TransitGatewayAttachmentId"]
-    )
+    assert attachments[0]["State"] == "available"
+    assert attachments[0]["TransitGatewayAttachmentId"] == tg_attachment_id
     assert attachments[0]["TransitGatewayId"] == tg_id
+    assert attachments[0]["Association"] == {
+        "TransitGatewayRouteTableId": default_route_table_id,
+        "State": "associated",
+    }
 
 
 @mock_aws
@@ -865,6 +884,7 @@ def test_create_vpc_attachment_for_different_vpcs(
 
 
 @mock_aws
+# TODO: run this against AWS, and check for Assocation-key
 def test_associate_transit_gateway_route_table():
     ec2 = boto3.client("ec2", region_name="us-west-1")
     gateway_id = ec2.create_transit_gateway(Description="g")["TransitGateway"][

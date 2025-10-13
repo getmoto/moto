@@ -129,6 +129,7 @@ class CertBundle(BaseModel):
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
         cert_authority_arn: Optional[str] = None,
+        cert_options: Optional[Dict[str, Any]] = None,
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -140,6 +141,10 @@ class CertBundle(BaseModel):
         self.status = cert_status  # Should really be an enum
         self.cert_authority_arn = cert_authority_arn
         self.in_use_by: List[str] = []
+        self.cert_options = cert_options or {
+            "CertificateTransparencyLoggingPreference": "ENABLED",
+            "Export": "DISABLED",
+        }
 
         # Takes care of PEM checking
         self._key = self.validate_pk()
@@ -377,7 +382,7 @@ class CertBundle(BaseModel):
                 "Type": self.type,  # One of IMPORTED, AMAZON_ISSUED,
                 "ExtendedKeyUsages": [],
                 "RenewalEligibility": "INELIGIBLE",
-                "Options": {"CertificateTransparencyLoggingPreference": "ENABLED"},
+                "Options": self.cert_options,
             }
         }
 
@@ -526,11 +531,18 @@ class AWSCertificateManagerBackend(BaseBackend):
 
         return bundle.arn
 
-    def list_certificates(self, statuses: List[str]) -> Iterable[CertBundle]:
+    def list_certificates(
+        self, statuses: List[str], includes: Dict[str, Any]
+    ) -> Iterable[CertBundle]:
         for arn in self._certificates.keys():
             cert = self.get_certificate(arn)
             if not statuses or cert.status in statuses:
-                yield cert
+                if not includes or (
+                    "Export" in cert.cert_options
+                    and includes.get("exportOption", None)
+                    in cert.cert_options["Export"]
+                ):
+                    yield cert
 
     def get_certificate(self, arn: str) -> CertBundle:
         if arn not in self._certificates:
@@ -556,6 +568,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         subject_alt_names: List[str],
         tags: List[Dict[str, str]],
         cert_authority_arn: Optional[str] = None,
+        cert_options: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented
@@ -575,6 +588,9 @@ class AWSCertificateManagerBackend(BaseBackend):
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
         self._certificates[cert.arn] = cert
+
+        if cert_options:
+            self._certificates[cert.arn].cert_options = cert_options
 
         if tags:
             cert.tags.add(tags)
@@ -603,7 +619,9 @@ class AWSCertificateManagerBackend(BaseBackend):
             )
         passphrase_bytes = base64.standard_b64decode(passphrase)
         cert_bundle = self.get_certificate(certificate_arn)
-        if cert_bundle.type != "PRIVATE":
+        if (cert_bundle.type != "PRIVATE") and (
+            cert_bundle.cert_options["Export"] != "ENABLED"
+        ):
             raise AWSValidationException(
                 "Certificate ARN: %s is not a private certificate" % (certificate_arn)
             )

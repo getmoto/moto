@@ -243,10 +243,12 @@ DESCRIBE_TRANSIT_GATEWAY_ATTACHMENTS = """<DescribeTransitGatewayAttachmentsResp
     <transitGatewayAttachments>
         {% for transit_gateway_attachment in transit_gateway_attachments %}
         <item>
+            {% if transit_gateway_attachment.state == 'available' %}
             <association>
                 <state>associated</state>
-                <transitGatewayRouteTableId>tgw-rtb-0b36edb9b88f0d5e3</transitGatewayRouteTableId>
+                <transitGatewayRouteTableId>{{ transit_gateway_attachment.transit_gateway_route_table.id }}</transitGatewayRouteTableId>
             </association>
+            {% endif %}
             <creationTime>2021-07-18T08:57:21.000Z</creationTime>
             <resourceId>{{ transit_gateway_attachment.resource_id }}</resourceId>
             <resourceOwnerId>{{ transit_gateway_attachment.resource_owner_id }}</resourceOwnerId>

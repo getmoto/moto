@@ -2499,15 +2499,14 @@ def test_kms_key_is_created(auth_type, auth_parameters, with_headers):
 
         secret_deleted = False
         attempts = 0
-        while not secret_deleted and attempts < 5:
+        while not secret_deleted and attempts < 10:
             try:
                 attempts += 1
                 secrets.describe_secret(SecretId=secret_arn)
                 sleep(1)
-            except ClientError as e:
-                secret_deleted = (
-                    e.response["Error"]["Code"] == "ResourceNotFoundException"
-                )
+            except ClientError as exc:
+                err = exc.response["Error"]
+                secret_deleted = err["Code"] == "ResourceNotFoundException"
 
         if not secret_deleted:
             assert False, f"Should have automatically deleted secret {secret_arn}"

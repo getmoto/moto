@@ -363,6 +363,7 @@ class LambdaResponse(BaseResponse):
     def list_layer_versions(self) -> str:
         layer_name = self.path.rsplit("/", 2)[-2]
         layer_versions = self.backend.list_layer_versions(layer_name)
+        layer_versions = sorted(layer_versions, key=lambda lv: lv.version, reverse=True)
         return json.dumps(
             {"LayerVersions": [lv.get_layer_version() for lv in layer_versions]}
         )
