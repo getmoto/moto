@@ -591,10 +591,14 @@ def test_query_unused_attribute_name(table_name=None):
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
-    assert (
-        err["Message"]
-        == "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}"
-    )
+    # Moto will always complain about the fact that #count is unused
+    # AWS will usually complain about that
+    # Sometimes (1 in 10 times, maybe?) it will complain about multiple attribute names are used in one condition
+    # Which is interesting, as there is obviously some async error handling going on. Whichever error is found first, 'wins'
+    assert err["Message"] in [
+        "Value provided in ExpressionAttributeNames unused in expressions: keys: {#count}",
+        "Invalid KeyConditionExpression: Invalid condition in KeyConditionExpression: Multiple attribute names used in one condition",
+    ]
 
 
 @pytest.mark.aws_verified
