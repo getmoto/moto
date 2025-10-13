@@ -4,6 +4,7 @@ from time import sleep
 from uuid import uuid4
 
 import boto3
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import allow_aws_request
@@ -225,9 +226,16 @@ def delete_tg_attachments(ec2_client, tg_id):
 
         for attachment in attachments:
             if attachment["State"] == "available":
-                ec2_client.delete_transit_gateway_vpc_attachment(
-                    TransitGatewayAttachmentId=attachment["TransitGatewayAttachmentId"]
-                )
+                try:
+                    ec2_client.delete_transit_gateway_vpc_attachment(
+                        TransitGatewayAttachmentId=attachment[
+                            "TransitGatewayAttachmentId"
+                        ]
+                    )
+                except ClientError as exc:
+                    # If we run tests in parallel, the attachment may have already been deleted
+                    err = exc.value.response["Error"]
+                    assert err["Code"] == "InvalidTransitGatewayAttachmentID.NotFound"
 
         if set(a["State"] for a in attachments) == {"deleted"}:
             return
