@@ -1249,7 +1249,7 @@ class SNSBackend(BaseBackend):
         except ValueError:
             pass
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_config_service_resources(
         self,
         resource_ids: Optional[List[str]] = None,
