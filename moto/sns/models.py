@@ -1250,7 +1250,7 @@ class SNSBackend(BaseBackend):
             pass
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
-    def list_config_service_resources(
+    def list_config_service_resources(  # type: ignore[misc]
         self,
         resource_ids: Optional[List[str]] = None,
         resource_name: Optional[str] = None,
