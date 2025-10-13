@@ -984,7 +984,7 @@ class DoublePassEncoder:
         return value
 
 
-class SqsQueryResponseSerializer(QuerySerializer):
+class SqsQuerySerializer(QuerySerializer):
     """
     Special handling of SQS query responses to escape special characters
     """
@@ -1009,8 +1009,7 @@ class SqsQueryResponseSerializer(QuerySerializer):
     ) -> None:
         if isinstance(value, str):
             value = self.encoder.mark(value)
-        serialization_key = self.get_serialized_name(shape, key)
-        serialized[serialization_key] = value
+        super()._default_serialize(serialized, value, shape, key)
 
     def _serialize_body(self, body: Serialized) -> str:
         body_encoded = super()._serialize_body(body)
@@ -1036,7 +1035,7 @@ SERIALIZERS = {
 }
 SERVICE_SPECIFIC_SERIALIZERS = {
     "sqs": {
-        "query": SqsQueryResponseSerializer,
+        "query": SqsQuerySerializer,
     }
 }
 
