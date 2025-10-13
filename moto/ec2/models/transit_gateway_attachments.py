@@ -15,6 +15,7 @@ from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
 
 if TYPE_CHECKING:
+    from .transit_gateway import TransitGateway
     from .transit_gateway_route_tables import TransitGatewayRouteTable
 
 
@@ -24,7 +25,7 @@ class TransitGatewayAttachment(TaggedEC2Resource):
         backend: Any,
         resource_id: str,
         resource_type: str,
-        transit_gateway_id: str,
+        transit_gateway: "TransitGateway",
         tags: Optional[Dict[str, str]] = None,
     ):
         self.ec2_backend = backend
@@ -34,7 +35,9 @@ class TransitGatewayAttachment(TaggedEC2Resource):
         self.resource_type = resource_type
 
         self.id = random_transit_gateway_attachment_id()
-        self.transit_gateway_id = transit_gateway_id
+        self.transit_gateway_id = transit_gateway.id
+        # Attachments are attached to the default RouteTable by default
+        self.transit_gateway_route_table = transit_gateway.default_route_table
 
         self.state = "available"
         self.add_tags(tags or {})
@@ -59,7 +62,7 @@ class TransitGatewayVpcAttachment(TransitGatewayAttachment):
     def __init__(
         self,
         backend: Any,
-        transit_gateway_id: str,
+        transit_gateway: "TransitGateway",
         vpc_id: str,
         subnet_ids: List[str],
         tags: Optional[Dict[str, str]] = None,
@@ -67,7 +70,7 @@ class TransitGatewayVpcAttachment(TransitGatewayAttachment):
     ):
         super().__init__(
             backend=backend,
-            transit_gateway_id=transit_gateway_id,
+            transit_gateway=transit_gateway,
             resource_id=vpc_id,
             resource_type="vpc",
             tags=tags,
@@ -82,7 +85,7 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
     def __init__(
         self,
         backend: Any,
-        transit_gateway_id: str,
+        transit_gateway: "TransitGateway",
         peer_transit_gateway_id: str,
         peer_region: str,
         peer_account_id: str,
@@ -91,7 +94,7 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
     ):
         super().__init__(
             backend=backend,
-            transit_gateway_id=transit_gateway_id,
+            transit_gateway=transit_gateway,
             resource_id=peer_transit_gateway_id,
             resource_type="peering",
             tags=tags,
@@ -105,7 +108,7 @@ class TransitGatewayPeeringAttachment(TransitGatewayAttachment):
         self.requester_tgw_info = {
             "ownerId": self.owner_id,
             "region": region_name,
-            "transitGatewayId": transit_gateway_id,
+            "transitGatewayId": transit_gateway.id,
         }
         self.status = PeeringConnectionStatus(accepter_id=peer_account_id)
 
@@ -132,11 +135,12 @@ class TransitGatewayAttachmentBackend:
         transit_gateway_id: str,
         tags: Optional[Dict[str, str]] = None,
     ) -> TransitGatewayAttachment:
+        transit_gateway = self.transit_gateways[transit_gateway_id]  # type: ignore[attr-defined]
         transit_gateway_vpn_attachment = TransitGatewayAttachment(
             self,
             resource_id=vpn_id,
             resource_type="vpn",
-            transit_gateway_id=transit_gateway_id,
+            transit_gateway=transit_gateway,
             tags=tags,
         )
         self.transit_gateway_attachments[transit_gateway_vpn_attachment.id] = (
@@ -163,7 +167,7 @@ class TransitGatewayAttachmentBackend:
             raise DuplicateTransitGatewayAttachmentError(transit_gateway_id)
         transit_gateway_vpc_attachment = TransitGatewayVpcAttachment(
             self,
-            transit_gateway_id=transit_gateway_id,
+            transit_gateway=transit_gateway,
             tags=tags,
             vpc_id=vpc_id,
             subnet_ids=subnet_ids,
@@ -172,11 +176,9 @@ class TransitGatewayAttachmentBackend:
         self.transit_gateway_attachments[transit_gateway_vpc_attachment.id] = (
             transit_gateway_vpc_attachment
         )
-        # Attachments are attached to the default RouteTable by default
-        default_transit_gateway_route_table = transit_gateway.default_route_table
         self.set_route_table_association(  # type: ignore[attr-defined]
             transit_gateway_attachment_id=transit_gateway_vpc_attachment.id,
-            transit_gateway_route_table_id=default_transit_gateway_route_table.id,
+            transit_gateway_route_table_id=transit_gateway_vpc_attachment.transit_gateway_route_table.id,
         )
         return transit_gateway_vpc_attachment
 
@@ -321,9 +323,10 @@ class TransitGatewayAttachmentBackend:
         peer_account_id: str,
         tags: Dict[str, str],
     ) -> TransitGatewayPeeringAttachment:
+        transit_gateway = self.transit_gateways[transit_gateway_id]  # type: ignore[attr-defined]
         transit_gateway_peering_attachment = TransitGatewayPeeringAttachment(
             self,
-            transit_gateway_id=transit_gateway_id,
+            transit_gateway=transit_gateway,
             peer_transit_gateway_id=peer_transit_gateway_id,
             peer_region=peer_region,
             peer_account_id=peer_account_id,

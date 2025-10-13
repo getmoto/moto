@@ -38,7 +38,8 @@ def test_publish_to_sqs(
     published_message_id = published_message["MessageId"]
 
     queue = sqs_conn.get_queue_by_name(QueueName=queue_name)
-    messages = queue.receive_messages(MaxNumberOfMessages=1)
+    # Long polling - make sure we wait until the message has arrived
+    messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=20)
     acquired_message = json.loads(messages[0].body)
 
     assert acquired_message["Message"] == "my message"

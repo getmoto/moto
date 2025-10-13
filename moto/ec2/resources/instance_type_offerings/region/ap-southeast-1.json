@@ -2796,6 +2796,10 @@
   "Location": "ap-southeast-1"
  },
  {
+  "InstanceType": "u7in-16tb.224xlarge",
+  "Location": "ap-southeast-1"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "ap-southeast-1"
  },

@@ -1,4 +1,5 @@
 import json
+from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
@@ -56,3 +57,51 @@ class VPCLatticeResponse(BaseResponse):
             tags=self._get_param("tags"),
         )
         return json.dumps(rule.to_dict())
+
+    def create_access_log_subscription(self) -> str:
+        sub = self.backend.create_access_log_subscription(
+            resourceIdentifier=self._get_param("resourceIdentifier"),
+            destinationArn=self._get_param("destinationArn"),
+            client_token=self._get_param("clientToken"),
+            serviceNetworkLogType=self._get_param("serviceNetworkLogType"),
+            tags=self._get_param("tags"),
+        )
+
+        return json.dumps(sub.to_dict())
+
+    def get_access_log_subscription(self) -> str:
+        path = unquote(self.path)
+
+        sub = self.backend.get_access_log_subscription(
+            accessLogSubscriptionIdentifier=path.split("/")[-1]
+        )
+
+        return json.dumps(sub.to_dict())
+
+    def list_access_log_subscriptions(self) -> str:
+        subs = self.backend.list_access_log_subscriptions(
+            resourceIdentifier=self._get_param("resourceIdentifier"),
+            maxResults=self._get_int_param("maxResults"),
+            nextToken=self._get_param("nextToken"),
+        )
+
+        return json.dumps({"items": [s.to_dict() for s in subs], "nextToken": ""})
+
+    def update_access_log_subscription(self) -> str:
+        path = unquote(self.path)
+
+        sub = self.backend.update_access_log_subscription(
+            accessLogSubscriptionIdentifier=path.split("/")[-1],
+            destinationArn=self._get_param("destinationArn"),
+        )
+
+        return json.dumps(sub.to_dict())
+
+    def delete_access_log_subscription(self) -> str:
+        path = unquote(self.path)
+
+        self.backend.delete_access_log_subscription(
+            accessLogSubscriptionIdentifier=path.split("/")[-1]
+        )
+
+        return json.dumps({})

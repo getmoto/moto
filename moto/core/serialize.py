@@ -95,6 +95,7 @@ Serialized = MutableMapping[str, Any]
 # TODO: Augment the service definitions with shape models for these errors.
 COMMON_ERROR_CODES = [
     "InvalidParameterCombination",
+    "InvalidParameterException",
     "InvalidParameterValue",
     "ValidationError",
     "ValidationException",
@@ -885,6 +886,27 @@ class QuerySerializer(BaseXMLSerializer):
         resp["body"] = self._serialize_body(response_wrapper)
         resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
+
+    def _serialize_type_map(
+        self, serialized: Serialized, value: Any, shape: MapShape, key: str
+    ) -> None:
+        key_shape = shape.key
+        assert isinstance(key_shape, Shape)
+        value_shape = shape.value
+        assert isinstance(value_shape, Shape)
+        map_list = []
+        for k, v in value.items():
+            # Query protocol does not serialize null values
+            if v is None:
+                continue
+            wrapper = {"__current__": {}}
+            self._serialize(wrapper["__current__"], k, key_shape, "key")
+            self._serialize(wrapper["__current__"], v, value_shape, "value")
+            map_list.append(wrapper["__current__"])
+        if self.is_flattened(shape):
+            self._default_serialize(serialized, map_list, shape, key)
+        else:
+            self._default_serialize(serialized, {"entry": map_list}, shape, key)
 
 
 class QueryJSONSerializer(QuerySerializer):

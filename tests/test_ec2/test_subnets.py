@@ -8,6 +8,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 from tests import DEFAULT_ACCOUNT_ID, EXAMPLE_AMI_ID
+from tests.test_ec2 import ec2_aws_verified, wait_for_ipv6_cidr_block_associations
 
 
 @mock_aws
@@ -932,3 +933,78 @@ def test_describe_subnets_dryrun():
         ex.value.response["Error"]["Message"]
         == "An error occurred (DryRunOperation) when calling the DescribeSubnets operation: Request would have succeeded, but DryRun flag is set"
     )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet_without_cidr(
+    account_id, ec2_client=None, vpc_id=None
+):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_subnet(VpcId=vpc_id, Ipv6Native=True)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingParameter"
+    assert (
+        err["Message"]
+        == "Either 'ipv6CidrBlock' or 'ipv6IpamPoolId' should be provided."
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet_with_ipv4_cidr(
+    account_id, ec2_client=None, vpc_id=None
+):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_subnet(VpcId=vpc_id, Ipv6Native=True, CidrBlock="10.0.0.0/24")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "MissingParameter"
+    assert (
+        err["Message"]
+        == "Either 'ipv6CidrBlock' or 'ipv6IpamPoolId' should be provided."
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet_with_ipv4_and_ipv6_cidr(
+    account_id, ec2_client=None, vpc_id=None
+):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_subnet(
+            VpcId=vpc_id,
+            Ipv6Native=True,
+            CidrBlock="10.0.0.0/24",
+            Ipv6CidrBlock="1080::1:200C:417A/112",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterCombination"
+    assert (
+        err["Message"]
+        == "When specifying ipv4 parameters, cidrBlock or ipv4IpamPoolId, you cannot set ipv6Native to true."
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified(create_vpc=True)
+def test_create_ipv6native_subnet(account_id, ec2_client=None, vpc_id=None):
+    subnet = None
+    try:
+        ec2_client.associate_vpc_cidr_block(
+            VpcId=vpc_id, AmazonProvidedIpv6CidrBlock=True
+        )["Ipv6CidrBlockAssociation"]
+        assoc = wait_for_ipv6_cidr_block_associations(ec2_client, vpc_id=vpc_id)
+
+        subnet = ec2_client.create_subnet(
+            VpcId=vpc_id, Ipv6Native=True, Ipv6CidrBlock=assoc["Ipv6CidrBlock"]
+        )["Subnet"]
+        assert subnet["AssignIpv6AddressOnCreation"] is True
+        assert subnet["Ipv6Native"] is True
+        assert subnet["State"] == "available"
+        assert (
+            subnet["Ipv6CidrBlockAssociationSet"][0]["Ipv6CidrBlock"]
+            == assoc["Ipv6CidrBlock"]
+        )
+    finally:
+        if subnet:
+            ec2_client.delete_subnet(SubnetId=subnet["SubnetId"])
