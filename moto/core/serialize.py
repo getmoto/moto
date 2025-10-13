@@ -423,6 +423,9 @@ class ResponseSerializer:
 
     _serialize_type_double = _serialize_type_float
 
+    def get_serialized_name(self, shape: Shape, default_name: str) -> str:
+        return shape.serialization.get("name", default_name)
+
 
 class BaseJSONSerializer(ResponseSerializer):
     APPLICATION_AMZ_JSON = "application/x-amz-json-{version}"
@@ -1011,13 +1014,13 @@ class SqsQueryResponseSerializer(QuerySerializer):
         body_escaped = self.encoder.escape(body_encoded)
         return body_escaped
 
-    @staticmethod
-    def get_serialized_name(shape: Shape, default_name: str) -> str:
-        shape_data = getattr(shape, "_shape_model", {})
-        query_compatible_name = shape_data.get("locationNameForQueryCompatibility")
-        if query_compatible_name:
-            return query_compatible_name
-        return shape.serialization.get("name", default_name)
+    def get_serialized_name(self, shape: Shape, default_name: str) -> str:
+        serialization_name = shape.get_serialized_name(default_name=default_name)
+        if self.service_model.is_query_compatible:
+            serialization_name = shape.get_query_compatible_name(
+                default_name=serialization_name
+            )
+        return serialization_name
 
 
 SERIALIZERS = {
