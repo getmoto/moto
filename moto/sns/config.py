@@ -9,6 +9,7 @@ from moto.sns.models import SNSBackend
 
 
 class SNSConfigQuery(ConfigQueryModel[SNSBackend]):
+    """Config query model for SNS topics."""
     def list_config_service_resources(
         self,
         account_id: str,
@@ -31,7 +32,7 @@ class SNSConfigQuery(ConfigQueryModel[SNSBackend]):
             if not match_found:
                 return [], None
 
-        region = resource_region or backend_region
+        region = resource_region or backend_region or "us-east-1"
         backend = self.backends[account_id][region]
 
         topics, new_token = backend.list_config_service_resources(
@@ -52,7 +53,7 @@ class SNSConfigQuery(ConfigQueryModel[SNSBackend]):
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        region = resource_region or backend_region
+        region = resource_region or backend_region or "us-east-1"
         backend = self.backends[account_id][region]
 
         config_data = backend.get_config_resource(resource_id)
