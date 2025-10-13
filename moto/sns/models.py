@@ -28,6 +28,7 @@ from moto.sqs import sqs_backends
 from moto.sqs.exceptions import MissingParameter, QueueDoesNotExist
 from moto.sqs.models import SQSBackend
 from moto.utilities.arns import parse_arn
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -53,6 +54,15 @@ from .utils import (
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 MAXIMUM_SMS_MESSAGE_BYTES = 1600  # Amazon limit for a single publish SMS action
+
+PAGINATION_MODEL = {
+    "list_config_service_resources": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "id",
+    }
+}
 
 
 class SMS(BaseModel):
@@ -1239,13 +1249,12 @@ class SNSBackend(BaseBackend):
         except ValueError:
             pass
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_config_service_resources(
         self,
         resource_ids: Optional[List[str]] = None,
         resource_name: Optional[str] = None,
-        limit: int = 100,
-        next_token: Optional[str] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> List[Dict[str, Any]]:
         """List SNS topics for AWS Config."""
         topics = list(self.topics.values())
 
@@ -1255,14 +1264,8 @@ class SNSBackend(BaseBackend):
         if resource_name:
             topics = [t for t in topics if t.name == resource_name]
 
-        start = int(next_token) if next_token else 0
-        end = start + limit
-        topics_page = topics[start:end]
-
-        new_next_token = str(end) if end < len(topics) else None
-
         config_resources = []
-        for topic in topics_page:
+        for topic in topics:
             config_resources.append(
                 {
                     "type": "AWS::SNS::Topic",
@@ -1272,7 +1275,7 @@ class SNSBackend(BaseBackend):
                 }
             )
 
-        return config_resources, new_next_token
+        return config_resources
 
     def get_config_resource(self, resource_id: str) -> Optional[Dict[str, Any]]:
         """Get a specific SNS topic configuration for AWS Config."""
@@ -1303,8 +1306,11 @@ class SNSBackend(BaseBackend):
                 "subscriptionsPending": topic.subscriptions_pending,
                 "subscriptionsDeleted": topic.subscriptions_deleted,
             },
-            "supplementaryConfiguration": {},
-            "tags": topic._tags,
+            "supplementaryConfiguration": {
+                "Tags": json.dumps(
+                    [{"Key": k, "Value": v} for k, v in topic._tags.items()]
+                )
+            },
             "configurationItemMD5Hash": "",
         }
         configuration = cast(Dict[str, Any], config_item["configuration"])
@@ -1320,9 +1326,7 @@ class SNSBackend(BaseBackend):
 
         return config_item
 
-    def select_resource_config(
-        self, query: str, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+    def select_resource_config(self, query: str) -> List[Dict[str, Any]]:
         """
         Execute a SQL query against SNS topic configurations for AWS Config.
         Returns topic configurations that match the query criteria.
@@ -1409,7 +1413,7 @@ class SNSBackend(BaseBackend):
             else:
                 results.append(config)
 
-        return results[:limit]
+        return results
 
     def confirm_subscription(self) -> None:
         pass

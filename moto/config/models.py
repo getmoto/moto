@@ -57,6 +57,7 @@ from moto.iam.config import policy_config_query, role_config_query
 from moto.moto_api._internal import mock_random as random
 from moto.s3.config import s3_config_query
 from moto.s3control.config import s3_account_public_access_block_query
+from moto.sns.config import sns_config_query
 from moto.utilities.utils import get_partition, load_resource
 
 POP_STRINGS = [
@@ -76,6 +77,7 @@ RESOURCE_MAP: Dict[str, ConfigQueryModel[Any]] = {
     "AWS::S3::AccountPublicAccessBlock": s3_account_public_access_block_query,
     "AWS::IAM::Role": role_config_query,
     "AWS::IAM::Policy": policy_config_query,
+    "AWS::SNS::Topic": sns_config_query,
 }
 
 CAMEL_TO_SNAKE_REGEX = re.compile(r"(?<!^)(?=[A-Z])")
