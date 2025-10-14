@@ -661,19 +661,23 @@ def test_select_resource_config():
 
     backend = sns_backends[ACCOUNT_ID]["us-east-1"]
 
-    results = backend.select_resource_config(
+    our_topic_names = ["default-policy-topic", "wildcard-topic"]
+    all_results = backend.select_resource_config(
         "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic'"
     )
+    results = [r for r in all_results if r["resourceName"] in our_topic_names]
     assert len(results) == 2
 
-    results = backend.select_resource_config(
+    all_results = backend.select_resource_config(
         "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic' AND hasWildcardPrincipal = true"
     )
+    results = [r for r in all_results if r["resourceName"] in our_topic_names]
     assert len(results) == 2
 
-    results = backend.select_resource_config(
+    all_results = backend.select_resource_config(
         "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic' AND hasConditionalAccess = false"
     )
+    results = [r for r in all_results if r["resourceName"] in our_topic_names]
     assert len(results) == 1
     assert results[0]["resourceName"] == "wildcard-topic"
 
