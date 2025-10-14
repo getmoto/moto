@@ -23,16 +23,6 @@ class SNSConfigQuery(ConfigQueryModel[SNSBackend]):
         resource_region: Optional[str] = None,
         aggregator: Optional[Dict[str, Any]] = None,
     ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
-        if resource_ids and resource_name:
-            match_found = False
-            for resource_id in resource_ids:
-                topic_name = resource_id.split(":")[-1]
-                if topic_name == resource_name:
-                    match_found = True
-                    break
-            if not match_found:
-                return [], None
-
         region = resource_region or backend_region or "us-east-1"
         backend = self.backends[account_id][region]
 
