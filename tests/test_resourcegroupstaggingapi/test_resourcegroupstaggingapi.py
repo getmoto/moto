@@ -1285,9 +1285,9 @@ def test_get_resources_ssm():
     assert {"Key": "env", "Value": "production"} in resp["ResourceTagMappingList"][0][
         "Tags"
     ]
-    assert "parameter/test/parameter1" in resp["ResourceTagMappingList"][0][
-        "ResourceARN"
-    ]
+    assert (
+        "parameter/test/parameter1" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    )
 
 
 @mock_aws

@@ -1001,13 +1001,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if parameter is None:
                     continue
 
-                tags = format_tags(self.ssm_backend.list_tags_for_resource("Parameter", param_name))
+                tags = format_tags(
+                    self.ssm_backend.list_tags_for_resource("Parameter", param_name)
+                )
                 if not tags or not tag_filter(
                     tags
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {
-                    "ResourceARN": parameter_arn(self.account_id, self.region_name, param_name),
+                    "ResourceARN": parameter_arn(
+                        self.account_id, self.region_name, param_name
+                    ),
                     "Tags": tags,
                 }
 
