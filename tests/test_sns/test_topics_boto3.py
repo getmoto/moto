@@ -633,9 +633,19 @@ def test_topic_get_attributes_with_fifo_false():
 
 @mock_aws
 def test_select_resource_config():
+    from moto.sns import sns_backends
+
+    backend = sns_backends[ACCOUNT_ID]["us-east-1"]
+
+    existing_results = backend.select_resource_config(
+        "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic'"
+    )
+    existing_arns = {r["resourceId"] for r in existing_results}
+
     conn = boto3.client("sns", region_name="us-east-1")
 
-    conn.create_topic(Name="default-policy-topic")
+    response1 = conn.create_topic(Name="default-policy-topic")
+    default_arn = response1["TopicArn"]
 
     response2 = conn.create_topic(Name="wildcard-topic")
     wildcard_arn = response2["TopicArn"]
@@ -657,27 +667,36 @@ def test_select_resource_config():
         AttributeValue=json.dumps(wildcard_policy),
     )
 
-    from moto.sns import sns_backends
+    topic_arns = [default_arn, wildcard_arn]
 
-    backend = sns_backends[ACCOUNT_ID]["us-east-1"]
-
-    our_topic_names = ["default-policy-topic", "wildcard-topic"]
     all_results = backend.select_resource_config(
         "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic'"
     )
-    results = [r for r in all_results if r["resourceName"] in our_topic_names]
+    results = [
+        r
+        for r in all_results
+        if r["resourceId"] not in existing_arns and r["resourceId"] in topic_arns
+    ]
     assert len(results) == 2
 
     all_results = backend.select_resource_config(
         "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic' AND hasWildcardPrincipal = true"
     )
-    results = [r for r in all_results if r["resourceName"] in our_topic_names]
+    results = [
+        r
+        for r in all_results
+        if r["resourceId"] not in existing_arns and r["resourceId"] in topic_arns
+    ]
     assert len(results) == 2
 
     all_results = backend.select_resource_config(
         "SELECT * FROM resources WHERE resourceType = 'AWS::SNS::Topic' AND hasConditionalAccess = false"
     )
-    results = [r for r in all_results if r["resourceName"] in our_topic_names]
+    results = [
+        r
+        for r in all_results
+        if r["resourceId"] not in existing_arns and r["resourceId"] in topic_arns
+    ]
     assert len(results) == 1
     assert results[0]["resourceName"] == "wildcard-topic"
 
