@@ -1551,9 +1551,11 @@ def test_modify_non_existent_option_group(client):
     )
 
 
-@pytest.mark.aws_verified
 @mock_aws
 def test_delete_database_with_protection(client):
+    # This has been verified against AWS
+    # We're not going to mark it with @pytest.mark.aws_verified though, as we cannot run this against AWS yet
+    # Not without additional work to ensure we properly create and teardown any resources
     create_db_instance(DBInstanceIdentifier="db-primary-1", DeletionProtection=True)
 
     with pytest.raises(ClientError) as exc:

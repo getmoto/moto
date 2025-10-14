@@ -71,9 +71,10 @@ def _invoke_func(
         kwargs["vpc_id"] = vpc_id
 
         if create_subnet:
-            subnet_id = ec2_client.create_subnet(VpcId=vpc_id, CidrBlock="10.0.0.0/24")[
-                "Subnet"
-            ]["SubnetId"]
+            subnet = ec2_client.create_subnet(
+                VpcId=vpc_id, CidrBlock="10.0.0.0/24", AvailabilityZone="us-east-1a"
+            )
+            subnet_id = subnet["Subnet"]["SubnetId"]
             kwargs["subnet_id"] = subnet_id
 
     if create_sg:
