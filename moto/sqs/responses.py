@@ -147,6 +147,7 @@ class SQSResponse(BaseResponse):
                 )
                 body = json.dumps(err)
             else:
+                del headers["X-Amzn-ErrorType"]
                 body = self.response_template(ERROR_INEXISTENT_QUEUE).render()
             status_code = 400
         return status_code, headers, body
