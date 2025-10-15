@@ -150,14 +150,6 @@ class SQSResponse(BaseResponse):
     def set_queue_attributes(self) -> ActionResult:
         # TODO validate self.get_param('QueueUrl')
         attribute = self.attribute
-
-        # Fixes issue with Policy set to empty str
-        # attribute_names = self._get_multi_param("Attribute")
-        # if attribute_names:
-        #     for attr in attribute_names:
-        #         if attr["Name"] == "Policy" and len(attr["Value"]) == 0:
-        #             attribute = {attr["Name"]: None}
-
         queue_name = self._get_queue_name()
         self.sqs_backend.set_queue_attributes(queue_name, attribute)
 
