@@ -997,10 +997,6 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             or "ssm:parameter" in resource_type_filters
         ):
             for param_name in self.ssm_backend._parameters:
-                parameter = self.ssm_backend.get_parameter(param_name)
-                if parameter is None:
-                    continue
-
                 tags = format_tags(
                     self.ssm_backend.list_tags_for_resource("Parameter", param_name)
                 )
