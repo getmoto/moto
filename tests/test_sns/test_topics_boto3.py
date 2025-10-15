@@ -629,3 +629,96 @@ def test_topic_get_attributes_with_fifo_false():
 
     assert "FifoTopic" not in attributes
     assert "ContentBasedDeduplication" not in attributes
+
+
+@mock_aws
+def test_list_config_service_resources():
+    sns_client = boto3.client("sns", region_name="us-east-1")
+    config_client = boto3.client("config", region_name="us-east-1")
+
+    topic_arns = []
+    for i in range(3):
+        response = sns_client.create_topic(Name=f"test-topic-{i}")
+        topic_arns.append(response["TopicArn"])
+
+    response = config_client.list_discovered_resources(resourceType="AWS::SNS::Topic")
+    assert len(response["resourceIdentifiers"]) == 3
+    assert all(
+        r["resourceType"] == "AWS::SNS::Topic" for r in response["resourceIdentifiers"]
+    )
+
+    response = config_client.list_discovered_resources(
+        resourceType="AWS::SNS::Topic", resourceIds=[topic_arns[0]]
+    )
+    assert len(response["resourceIdentifiers"]) == 1
+    assert response["resourceIdentifiers"][0]["resourceId"] == topic_arns[0]
+
+    response = config_client.list_discovered_resources(
+        resourceType="AWS::SNS::Topic", resourceName="test-topic-1"
+    )
+    assert len(response["resourceIdentifiers"]) == 1
+    assert response["resourceIdentifiers"][0]["resourceName"] == "test-topic-1"
+
+    response = config_client.list_discovered_resources(
+        resourceType="AWS::SNS::Topic", limit=2
+    )
+    assert len(response["resourceIdentifiers"]) == 2
+    assert "nextToken" in response
+
+    response = config_client.list_discovered_resources(
+        resourceType="AWS::SNS::Topic", limit=2, nextToken=response["nextToken"]
+    )
+    assert len(response["resourceIdentifiers"]) == 1
+    assert "nextToken" not in response
+
+
+@mock_aws
+def test_get_config_resource():
+    sns_client = boto3.client("sns", region_name="us-east-1")
+    config_client = boto3.client("config", region_name="us-east-1")
+
+    response = sns_client.create_topic(
+        Name="config-test.fifo",
+        Attributes={
+            "FifoTopic": "true",
+            "ContentBasedDeduplication": "true",
+            "DisplayName": "Test Topic",
+            "KmsMasterKeyId": "test-key",
+        },
+        Tags=[{"Key": "Environment", "Value": "Test"}],
+    )
+    topic_arn = response["TopicArn"]
+
+    response = config_client.batch_get_resource_config(
+        resourceKeys=[
+            {
+                "resourceType": "AWS::SNS::Topic",
+                "resourceId": topic_arn,
+            }
+        ]
+    )
+
+    assert len(response["baseConfigurationItems"]) == 1
+    config_item = response["baseConfigurationItems"][0]
+
+    assert config_item["resourceType"] == "AWS::SNS::Topic"
+    assert config_item["resourceId"] == topic_arn
+    assert config_item["resourceName"] == "config-test.fifo"
+
+    configuration = json.loads(config_item["configuration"])
+    assert configuration["displayName"] == "Test Topic"
+    assert configuration["kmsMasterKeyId"] == "test-key"
+    assert configuration["fifoTopic"] is True
+    assert configuration["contentBasedDeduplication"] is True
+    tags = json.loads(config_item["supplementaryConfiguration"]["Tags"])
+    assert tags == [{"Key": "Environment", "Value": "Test"}]
+
+    response = config_client.batch_get_resource_config(
+        resourceKeys=[
+            {
+                "resourceType": "AWS::SNS::Topic",
+                "resourceId": "arn:aws:sns:us-east-1:123456789012:fake",
+            }
+        ]
+    )
+    assert len(response["baseConfigurationItems"]) == 0
