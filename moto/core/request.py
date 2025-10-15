@@ -11,7 +11,8 @@ from moto.utilities.constants import APPLICATION_JSON, JSON_TYPES
 
 if TYPE_CHECKING:
     from botocore.awsrequest import AWSPreparedRequest
-    from botocore.model import ServiceModel
+
+    from moto.core.model import ServiceModel
 
 
 def normalize_request(request: AWSPreparedRequest | Request) -> Request:

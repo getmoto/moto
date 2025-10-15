@@ -9,7 +9,8 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
-from botocore.model import ServiceModel
+
+from moto.core.model import ServiceModel
 
 from ..settings import get_s3_custom_endpoints
 from .common_types import TYPE_RESPONSE

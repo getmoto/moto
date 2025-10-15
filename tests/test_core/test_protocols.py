@@ -5,8 +5,8 @@ import os
 from enum import Enum
 
 import pytest
-from botocore.model import OperationModel, ServiceModel
 
+from moto.core.model import OperationModel, ServiceModel
 from moto.core.serialize import SERIALIZERS
 
 TEST_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "protocols")
@@ -89,7 +89,7 @@ def test_output_compliance(json_description: dict, case: dict, protocol):
 
 
 def _create_exception(case):
-    exc = Exception()
+    exc = type(case["errorCode"], (Exception,), {})()
     exc.code = case["errorCode"]
     if "errorMessage" in case:
         exc.message = case["errorMessage"]
