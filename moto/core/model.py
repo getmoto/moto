@@ -20,7 +20,6 @@ which may change over time.
 
 from __future__ import annotations
 
-import warnings
 from typing import Any, Mapping, cast
 
 from botocore.model import ListShape as BotocoreListShape
@@ -33,18 +32,6 @@ from botocore.model import StringShape as BotocoreStringShape
 from botocore.model import StructureShape as BotocoreStructureShape
 from botocore.utils import CachedProperty, instance_cache
 
-# These are common error codes that are *not* included in the service definitions.
-# For example:
-# https://docs.aws.amazon.com/emr/latest/APIReference/CommonErrors.html
-# https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonErrors.html
-# TODO: Augment the service definitions with shape models for these errors.
-COMMON_ERROR_CODES = [
-    "InvalidParameterCombination",
-    "InvalidParameterException",
-    "InvalidParameterValue",
-    "ValidationError",
-    "ValidationException",
-]
 
 class Shape(BotocoreShape):
     # Custom Moto model properties that we want available in the serialization dict.
@@ -52,14 +39,7 @@ class Shape(BotocoreShape):
         "locationNameForQueryCompatibility"
     ]
 
-class ShapeExtensionMethodsMixin:
     serialization: dict[str, Any]
-
-    def get_serialized_name(self, default_name: str) -> str:
-        return self.serialization.get("name", default_name)
-
-    def get_query_compatible_name(self, default_name: str) -> str:
-        return self.serialization.get("locationNameForQueryCompatibility", default_name)
 
     @property
     def is_flattened(self) -> bool:
@@ -73,11 +53,6 @@ class ShapeExtensionMethodsMixin:
     def is_not_bound_to_body(self) -> bool:
         return "location" in self.serialization
 
-MOTO_SERIALIZED_ATTRS = ["locationNameForQueryCompatibility"]
-
-
-class Shape(BotocoreShape, ShapeExtensionMethodsMixin):
-    SERIALIZED_ATTRS = BotocoreShape.SERIALIZED_ATTRS + MOTO_SERIALIZED_ATTRS
 
 class StringShape(BotocoreStringShape, Shape):
     pass
@@ -104,36 +79,6 @@ class StructureShape(BotocoreStructureShape, Shape):
         aliases = error_metadata.get("codeAliases", [])
         return aliases
 
-class ErrorShape(StructureShape):
-    _shape_model: dict[str, Any]
-
-    @property
-    def is_sender_fault(self) -> bool:
-        internal_fault = self._shape_model.get("fault", False)
-        error_info = self.metadata.get("error", {})
-        sender_fault = error_info.get("senderFault", False)
-        return sender_fault or not internal_fault
-
-    # Overriding super class property to keep mypy happy...
-    @property
-    def error_code(self) -> str:
-        code = str(super().error_code)
-        return code
-
-    @property
-    def error_message(self) -> str:
-        error_info = self.metadata.get("error", {})
-        error_message = error_info.get("message", "")
-        return error_message
-
-    @property
-    def namespace(self) -> str | None:
-        return self.metadata.get("error", {}).get("namespace")
-
-    @classmethod
-    def from_existing_shape(cls, shape: StructureShape) -> ErrorShape:
-        return cls(shape.name, shape._shape_model, shape._shape_resolver)  # type: ignore[attr-defined]
-
 
 class ServiceModel(BotocoreServiceModel):
     def __init__(
@@ -152,38 +97,6 @@ class ServiceModel(BotocoreServiceModel):
     @CachedProperty
     def is_query_compatible(self) -> bool:
         return "awsQueryCompatible" in self.metadata
-
-    def get_error_shape(self, error: Exception) -> ErrorShape:
-        error_code = getattr(error, "code", "UnknownError")
-        error_name = error.__class__.__name__
-        error_shapes = cast(list[ErrorShape], self.error_shapes)
-        for error_shape in error_shapes:
-            if error_shape.error_code == error_code:
-                break
-            if error_shape.name in [error_code, error_name]:
-                break
-            aliases = error_shape.metadata.get("error", {}).get("aliasCodes", [])
-            if error_code in aliases or error_name in aliases:
-                break
-        else:
-            error_shape = None
-        if error_shape is None:
-            service_id = self.metadata.get("serviceId")
-            if service_id and error_code not in COMMON_ERROR_CODES:
-                warning = f"{service_id} service model does not contain an error shape that matches code {error_code} from Exception({error_name})"
-                warnings.warn(warning)
-            generic_error_model = {
-                "exception": True,
-                "type": "structure",
-                "members": {},
-                "error": {
-                    "code": error_code,
-                },
-            }
-            error_shape = ErrorShape(error_code, generic_error_model)
-        else:
-            error_shape = ErrorShape.from_existing_shape(error_shape)
-        return error_shape
 
 
 class OperationModel(BotocoreOperationModel):
