@@ -27,16 +27,20 @@ from xml.dom.minidom import parseString as parseXML
 
 import boto3
 import requests
-from botocore.model import OperationModel, ServiceModel
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
+from moto.core.model import OperationModel, ServiceModel
 from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
 from moto.core.request import determine_request_protocol, normalize_request
-from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
+from moto.core.serialize import (
+    ResponseSerializer,
+    XFormedAttributePicker,
+    get_serializer_class,
+)
 from moto.core.utils import (
     camelcase_to_underscores,
     get_service_model,
@@ -660,7 +664,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
-        serializer_cls = SERIALIZERS[protocol]
+        serializer_cls = get_serializer_class(service_model.service_name, protocol)
         context = ActionContext(
             service_model, operation_model, serializer_cls, self.__class__
         )
