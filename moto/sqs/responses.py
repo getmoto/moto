@@ -130,9 +130,6 @@ class SQSResponse(BaseResponse):
 
     def get_queue_attributes(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        # TODO: What was this checking and is it covered by a test?
-        # if not self.is_json() and self.querystring.get("AttributeNames"):
-        #     raise InvalidAttributeName("")
         attribute_names = self._get_param(
             "AttributeNames",
         )
