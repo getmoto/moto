@@ -141,6 +141,7 @@ class SQSResponse(BaseResponse):
                     "__type": "com.amazonaws.sqs#QueueDoesNotExist",
                     "message": "The specified queue does not exist.",
                 }
+                headers["X-Amzn-ErrorType"] = "com.amazonaws.sqs#QueueDoesNotExist"
                 headers["x-amzn-query-error"] = (
                     "AWS.SimpleQueueService.NonExistentQueue;Sender"
                 )
