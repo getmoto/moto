@@ -56,14 +56,14 @@ jobs:
         env:
           TEST_SERVER_MODE: ${{ matrix.test-server-mode }}
       - name: "Stop MotoServer"
-        if: ${{ matrix.test-server-mode == 'true' }}
+        if: always() && matrix.test-server-mode == 'true'
         run: |
           ls -la
           docker stop motoserver
           mkdir serverlogs
           cp server_output.log serverlogs/server_output.log
       - name: Archive Server logs
-        if: ${{ matrix.test-server-mode == 'true' }}
+        if: always() && matrix.test-server-mode == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: motoserver-with-client-using-${{ matrix.protocol }}-protocol
