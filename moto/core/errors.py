@@ -39,9 +39,9 @@ class ErrorShape(StructureShape):
         return code
 
     @property
-    def error_message(self) -> str:
+    def query_compatible_error_message(self) -> str:
         error_info = self.metadata.get("error", {})
-        error_message = error_info.get("message", "")
+        error_message = error_info.get("messageForQueryCompatibility", "")
         return error_message
 
     @property
