@@ -141,11 +141,13 @@ class SQSResponse(BaseResponse):
                     "__type": "com.amazonaws.sqs#QueueDoesNotExist",
                     "message": "The specified queue does not exist.",
                 }
+                headers["X-Amzn-ErrorType"] = "com.amazonaws.sqs#QueueDoesNotExist"
                 headers["x-amzn-query-error"] = (
                     "AWS.SimpleQueueService.NonExistentQueue;Sender"
                 )
                 body = json.dumps(err)
             else:
+                del headers["X-Amzn-ErrorType"]
                 body = self.response_template(ERROR_INEXISTENT_QUEUE).render()
             status_code = 400
         return status_code, headers, body
