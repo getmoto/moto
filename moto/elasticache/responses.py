@@ -48,7 +48,7 @@ class ElastiCacheResponse(BaseResponse):
             )
 
         if authentication_mode:
-            for key, _ in authentication_mode.original_items():
+            for key, _ in authentication_mode.items():
                 if key not in VALID_AUTH_MODE_KEYS:
                     raise InvalidParameterValueException(
                         f'Unknown parameter in AuthenticationMode: "{key}", must be one of: {", ".join(VALID_AUTH_MODE_KEYS)}'

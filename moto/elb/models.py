@@ -390,10 +390,10 @@ class ELBBackend(BaseBackend):
         balancer = self.load_balancers.get(name, None)
         if balancer:
             for port in ports:
-                protocol = port["protocol"]
-                instance_port = port["instance_port"]
-                lb_port = port["load_balancer_port"]
-                ssl_certificate_id = port.get("ssl_certificate_id")
+                protocol = port["Protocol"]
+                instance_port = port["InstancePort"]
+                lb_port = port["LoadBalancerPort"]
+                ssl_certificate_id = port.get("SSLCertificateId")
                 for listener in balancer.listeners:
                     if lb_port == listener.load_balancer_port:
                         if protocol.lower() != listener.protocol.lower():
