@@ -11,7 +11,6 @@ from moto.core.utils import (
 from moto.utilities.aws_headers import amz_crc32
 
 from ..core.common_types import TYPE_RESPONSE
-from ..core.parsers import XFormedDict
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
     MAXIMUM_MESSAGE_LENGTH,
@@ -46,13 +45,6 @@ class SQSResponse(BaseResponse):
     def attribute(self) -> Any:  # type: ignore[misc]
         return self._get_attrs("Attributes")
 
-    # Get rid of this after we get rid of XFormedDict
-    @property
-    def tags(self) -> Dict[str, str]:
-        tags = self._get_param("Tags", XFormedDict())
-        tags = tags.original_dict()
-        return tags
-
     def _get_queue_name(self) -> str:
         try:
             queue_url = self._get_param("QueueUrl")
@@ -86,7 +78,8 @@ class SQSResponse(BaseResponse):
     def create_queue(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
-        queue = self.sqs_backend.create_queue(queue_name, self.tags, **self.attribute)
+        tags = self._get_param("tags", {})
+        queue = self.sqs_backend.create_queue(queue_name, tags, **self.attribute)
         result = {"QueueUrl": queue.url(request_url)}
         return ActionResult(result)
 
@@ -199,8 +192,7 @@ class SQSResponse(BaseResponse):
 
     # TODO: get rid of this or refactor to check both the new and deprecated Attributes params.
     def _get_attrs(self, param_name: str) -> Dict[str, Any]:
-        attrs = self._get_param(param_name, XFormedDict())
-        attrs = attrs.original_dict()
+        attrs = self._get_param(param_name, {})
         return attrs
 
     def normalize_json_msg_attributes(self, message_attributes: Dict[str, Any]) -> None:
@@ -278,7 +270,6 @@ class SQSResponse(BaseResponse):
     def delete_message_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
         receipts = self._get_param("Entries", [])
-        receipts = [receipt.original_dict() for receipt in receipts]
         if not receipts:
             raise EmptyBatchRequest(action="Delete")
         for r in receipts:
