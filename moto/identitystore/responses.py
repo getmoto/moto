@@ -75,6 +75,15 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps(dict(GroupId=group_id, IdentityStoreId=identity_store_id))
 
+    def get_user_id(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        alternate_identifier = self._get_param("AlternateIdentifier")
+        user_id, identity_store_id = self.identitystore_backend.get_user_id(
+            identity_store_id=identity_store_id,
+            alternate_identifier=alternate_identifier,
+        )
+        return json.dumps(dict(UserId=user_id, IdentityStoreId=identity_store_id))
+
     def describe_user(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
         user_id = self._get_param("UserId")
