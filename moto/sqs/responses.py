@@ -38,13 +38,6 @@ class SQSResponse(BaseResponse):
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.current_account][self.region]
 
-    # TODO: get rid of this and use _get_param directly
-    # Or, if we need a helper, just make _get_attributes
-    # and have it check SystemAttributes and the deprecated Attributes param
-    @property
-    def attribute(self) -> Any:  # type: ignore[misc]
-        return self._get_attrs("Attributes")
-
     def _get_queue_name(self) -> str:
         try:
             queue_url = self._get_param("QueueUrl")
@@ -78,8 +71,9 @@ class SQSResponse(BaseResponse):
     def create_queue(self) -> ActionResult:
         request_url = urlparse(self.uri)
         queue_name = self._get_param("QueueName")
+        attributes = self._get_param("Attributes", {})
         tags = self._get_param("tags", {})
-        queue = self.sqs_backend.create_queue(queue_name, tags, **self.attribute)
+        queue = self.sqs_backend.create_queue(queue_name, tags, **attributes)
         result = {"QueueUrl": queue.url(request_url)}
         return ActionResult(result)
 
@@ -146,9 +140,9 @@ class SQSResponse(BaseResponse):
 
     def set_queue_attributes(self) -> ActionResult:
         # TODO validate self.get_param('QueueUrl')
-        attribute = self.attribute
+        attributes = self._get_param("Attributes", {})
         queue_name = self._get_queue_name()
-        self.sqs_backend.set_queue_attributes(queue_name, attribute)
+        self.sqs_backend.set_queue_attributes(queue_name, attributes)
 
         return EmptyResult()
 
@@ -168,7 +162,7 @@ class SQSResponse(BaseResponse):
                 "InvalidParameterValue",
                 "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
             )
-        message_attributes = self._get_attrs("MessageAttributes")
+        message_attributes = self._get_param("MessageAttributes", {})
         self.normalize_json_msg_attributes(message_attributes)
         system_message_attributes = self._get_param("MessageSystemAttributes")
         self.normalize_json_msg_attributes(system_message_attributes)
@@ -189,11 +183,6 @@ class SQSResponse(BaseResponse):
         if len(message.message_attributes) > 0:
             resp["MD5OfMessageAttributes"] = message.attribute_md5
         return ActionResult(resp)
-
-    # TODO: get rid of this or refactor to check both the new and deprecated Attributes params.
-    def _get_attrs(self, param_name: str) -> Dict[str, Any]:
-        attrs = self._get_param(param_name, {})
-        return attrs
 
     def normalize_json_msg_attributes(self, message_attributes: Dict[str, Any]) -> None:
         # TODO: I don't think we need this, right... Just use the PascalCase keys directly.
