@@ -39,10 +39,14 @@ class SQSResponse(BaseResponse):
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.current_account][self.region]
 
+    # TODO: get rid of this and use _get_param directly
+    # Or, if we need a helper, just make _get_attributes
+    # and have it check SystemAttributes and the deprecated Attributes param
     @property
     def attribute(self) -> Any:  # type: ignore[misc]
         return self._get_attrs("Attributes")
 
+    # Get rid of this after we get rid of XFormedDict
     @property
     def tags(self) -> Dict[str, str]:
         tags = self._get_param("Tags", XFormedDict())
@@ -193,12 +197,14 @@ class SQSResponse(BaseResponse):
             resp["MD5OfMessageAttributes"] = message.attribute_md5
         return ActionResult(resp)
 
+    # TODO: get rid of this or refactor to check both the new and deprecated Attributes params.
     def _get_attrs(self, param_name: str) -> Dict[str, Any]:
         attrs = self._get_param(param_name, XFormedDict())
         attrs = attrs.original_dict()
         return attrs
 
     def normalize_json_msg_attributes(self, message_attributes: Dict[str, Any]) -> None:
+        # TODO: I don't think we need this, right... Just use the PascalCase keys directly.
         for key, value in (message_attributes or {}).items():
             if "BinaryValue" in value:
                 message_attributes[key]["binary_value"] = value.pop("BinaryValue")
@@ -217,11 +223,13 @@ class SQSResponse(BaseResponse):
             raise EmptyBatchRequest()
         entries = {str(idx): entry for idx, entry in enumerate(entries)}
         # This was originally in query parsing - do we still need this?
-        for entry in entries.values():
-            if "MessageAttribute" in entry:
-                entry["MessageAttributes"] = {
-                    val["Name"]: val["Value"] for val in entry.pop("MessageAttribute")
-                }
+        # I don't think so.  This was just because of the different parsing
+        # between the XML and JSON protocols. (the multi_param stuff maybe didn't pluralize?)
+        # for entry in entries.values():
+        #     if "MessageAttribute" in entry:
+        #         entry["MessageAttributes"] = {
+        #             val["Name"]: val["Value"] for val in entry.pop("MessageAttribute")
+        #         }
 
         for entry in entries.values():
             if "MessageAttributes" in entry:
@@ -333,7 +341,7 @@ class SQSResponse(BaseResponse):
         messages = self.sqs_backend.receive_message(
             queue_name, message_count, wait_time, visibility_timeout, message_attributes
         )
-
+        # TODO: None of this casing stuff should be necessary...
         attributes = {
             "approximate_first_receive_timestamp": "ApproximateFirstReceiveTimestamp"
             in message_system_attributes,
@@ -357,7 +365,7 @@ class SQSResponse(BaseResponse):
                 "sent_timestamp": True,
                 "sequence_number": True,
             }
-
+        # TODO: This is an abomination.  We should just use the PascalCase keys directly.
         for attribute in attributes:
             pascalcase_name = camelcase_to_pascal(underscores_to_camelcase(attribute))
             if any(x in ["All", pascalcase_name] for x in attribute_names):
@@ -373,6 +381,7 @@ class SQSResponse(BaseResponse):
                 "Attributes": {},
                 "MessageAttributes": {},
             }
+            # TODO: If we have the right casing, this just becomes a for loop, right?
             if len(message.message_attributes) > 0:
                 msg["MD5OfMessageAttributes"] = message.attribute_md5
             if attributes["sender_id"]:
@@ -410,6 +419,7 @@ class SQSResponse(BaseResponse):
                         "string_value"
                     ]
 
+            # Double check this against real AWS. Do they return [] or omit the keys entirely?
             if len(msg["Attributes"]) == 0:
                 msg.pop("Attributes")
             if len(msg["MessageAttributes"]) == 0:
