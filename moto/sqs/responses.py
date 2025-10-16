@@ -90,7 +90,7 @@ class SQSResponse(BaseResponse):
         queues = self.sqs_backend.list_queues(queue_name_prefix)
         result = {}
         if queues:
-            result = {"QueueUrls": [queue.url(request_url) for queue in queues]}
+            result["QueueUrls"] = [queue.url(request_url) for queue in queues]
         return ActionResult(result)
 
     def change_message_visibility(self) -> ActionResult:
@@ -109,14 +109,11 @@ class SQSResponse(BaseResponse):
 
     def change_message_visibility_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        entries = [
-            {camelcase_to_underscores(key): value for key, value in entr.items()}
-            for entr in self._get_param("Entries")
-        ]
-        success, error = self.sqs_backend.change_message_visibility_batch(
+        entries = self._get_param("Entries", [])
+        success, failed = self.sqs_backend.change_message_visibility_batch(
             queue_name, entries
         )
-        result = {"Successful": [{"Id": _id} for _id in success], "Failed": error}
+        result = {"Successful": [{"Id": _id} for _id in success], "Failed": failed}
         return ActionResult(result)
 
     def get_queue_attributes(self) -> ActionResult:

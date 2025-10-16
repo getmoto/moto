@@ -1098,13 +1098,13 @@ class SQSBackend(BaseBackend):
         error = []
         for entry in entries:
             try:
-                visibility_timeout = int(entry["visibility_timeout"])
+                visibility_timeout = int(entry["VisibilityTimeout"])
                 assert visibility_timeout <= MAXIMUM_VISIBILITY_TIMEOUT
             except:  # noqa: E722 Do not use bare except
                 error.append(
                     {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
+                        "Id": entry["Id"],
+                        "SenderFault": True,
                         "Code": "InvalidParameterValue",
                         "Message": "Visibility timeout invalid",
                     }
@@ -1114,15 +1114,15 @@ class SQSBackend(BaseBackend):
             try:
                 self.change_message_visibility(
                     queue_name=queue_name,
-                    receipt_handle=entry["receipt_handle"],
+                    receipt_handle=entry["ReceiptHandle"],
                     visibility_timeout=visibility_timeout,
                 )
-                success.append(entry["id"])
+                success.append(entry["Id"])
             except ReceiptHandleIsInvalid as e:
                 error.append(
                     {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
+                        "Id": entry["Id"],
+                        "SenderFault": True,
                         "Code": "ReceiptHandleIsInvalid",
                         "Message": getattr(e, "message", ""),
                     }
