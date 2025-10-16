@@ -3,11 +3,6 @@ from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.core.utils import (
-    camelcase_to_pascal,
-    camelcase_to_underscores,
-    underscores_to_camelcase,
-)
 from moto.utilities.aws_headers import amz_crc32
 
 from ..core.common_types import TYPE_RESPONSE
@@ -180,13 +175,13 @@ class SQSResponse(BaseResponse):
 
     def normalize_json_msg_attributes(self, message_attributes: Dict[str, Any]) -> None:
         # TODO: I don't think we need this, right... Just use the PascalCase keys directly.
-        for key, value in (message_attributes or {}).items():
-            if "BinaryValue" in value:
-                message_attributes[key]["binary_value"] = value.pop("BinaryValue")
-            if "StringValue" in value:
-                message_attributes[key]["string_value"] = value.pop("StringValue")
-            if "DataType" in value:
-                message_attributes[key]["data_type"] = value.pop("DataType")
+        # for key, value in (message_attributes or {}).items():
+        #     if "BinaryValue" in value:
+        #         message_attributes[key]["binary_value"] = value.pop("BinaryValue")
+        #     if "StringValue" in value:
+        #         message_attributes[key]["string_value"] = value.pop("StringValue")
+        #     if "DataType" in value:
+        #         message_attributes[key]["data_type"] = value.pop("DataType")
 
         validate_message_attributes(message_attributes)
 
@@ -255,20 +250,14 @@ class SQSResponse(BaseResponse):
         receipts = self._get_param("Entries", [])
         if not receipts:
             raise EmptyBatchRequest(action="Delete")
-        for r in receipts:
-            for key in list(r.keys()):
-                if key == "Id":
-                    r["msg_user_id"] = r.pop(key)
-                else:
-                    r[camelcase_to_underscores(key)] = r.pop(key)
         receipt_seen = set()
         for receipt_and_id in receipts:
-            receipt = receipt_and_id["receipt_handle"]
+            receipt = receipt_and_id["ReceiptHandle"]
             if receipt in receipt_seen:
-                raise BatchEntryIdsNotDistinct(receipt_and_id["msg_user_id"])
+                raise BatchEntryIdsNotDistinct(receipt_and_id["Id"])
             receipt_seen.add(receipt)
-        success, errors = self.sqs_backend.delete_message_batch(queue_name, receipts)
-        result = {"Successful": [{"Id": _id} for _id in success], "Failed": errors}
+        success, failed = self.sqs_backend.delete_message_batch(queue_name, receipts)
+        result = {"Successful": [{"Id": _id} for _id in success], "Failed": failed}
         return ActionResult(result)
 
     def purge_queue(self) -> ActionResult:
@@ -317,32 +306,30 @@ class SQSResponse(BaseResponse):
         )
         # TODO: None of this casing stuff should be necessary...
         attributes = {
-            "approximate_first_receive_timestamp": "ApproximateFirstReceiveTimestamp"
+            "ApproximateFirstReceiveTimestamp": "ApproximateFirstReceiveTimestamp"
             in message_system_attributes,
-            "approximate_receive_count": "ApproximateReceiveCount"
+            "ApproximateReceiveCount": "ApproximateReceiveCount"
             in message_system_attributes,
-            "message_deduplication_id": "MessageDeduplicationId"
+            "MessageDeduplicationId": "MessageDeduplicationId"
             in message_system_attributes,
-            "message_group_id": "MessageGroupId" in message_system_attributes,
-            "sender_id": "SenderId" in message_system_attributes,
-            "sent_timestamp": "SentTimestamp" in message_system_attributes,
-            "sequence_number": "SequenceNumber" in message_system_attributes,
+            "MessageGroupId": "MessageGroupId" in message_system_attributes,
+            "SenderId": "SenderId" in message_system_attributes,
+            "SentTimestamp": "SentTimestamp" in message_system_attributes,
+            "SequenceNumber": "SequenceNumber" in message_system_attributes,
         }
 
         if "All" in message_system_attributes:
             attributes = {
-                "approximate_first_receive_timestamp": True,
-                "approximate_receive_count": True,
-                "message_deduplication_id": True,
-                "message_group_id": True,
-                "sender_id": True,
-                "sent_timestamp": True,
-                "sequence_number": True,
+                "ApproximateFirstReceiveTimestamp": True,
+                "ApproximateReceiveCount": True,
+                "MessageDeduplicationId": True,
+                "MessageGroupId": True,
+                "SenderId": True,
+                "SentTimestamp": True,
+                "SequenceNumber": True,
             }
-        # TODO: This is an abomination.  We should just use the PascalCase keys directly.
         for attribute in attributes:
-            pascalcase_name = camelcase_to_pascal(underscores_to_camelcase(attribute))
-            if any(x in ["All", pascalcase_name] for x in attribute_names):
+            if any(x in ["All", attribute] for x in attribute_names):
                 attributes[attribute] = True
 
         msgs = []
@@ -353,45 +340,45 @@ class SQSResponse(BaseResponse):
                 "MD5OfBody": message.body_md5,
                 "Body": message.body,
                 "Attributes": {},
-                "MessageAttributes": {},
+                "MessageAttributes": message.message_attributes,
             }
             # TODO: If we have the right casing, this just becomes a for loop, right?
             if len(message.message_attributes) > 0:
                 msg["MD5OfMessageAttributes"] = message.attribute_md5
-            if attributes["sender_id"]:
+            if attributes["SenderId"]:
                 msg["Attributes"]["SenderId"] = message.sender_id
-            if attributes["sent_timestamp"]:
+            if attributes["SentTimestamp"]:
                 msg["Attributes"]["SentTimestamp"] = str(message.sent_timestamp)
-            if attributes["approximate_receive_count"]:
+            if attributes["ApproximateReceiveCount"]:
                 msg["Attributes"]["ApproximateReceiveCount"] = str(
                     message.approximate_receive_count
                 )
-            if attributes["approximate_first_receive_timestamp"]:
+            if attributes["ApproximateFirstReceiveTimestamp"]:
                 msg["Attributes"]["ApproximateFirstReceiveTimestamp"] = str(
                     message.approximate_first_receive_timestamp
                 )
-            if attributes["message_deduplication_id"]:
+            if attributes["MessageDeduplicationId"]:
                 msg["Attributes"]["MessageDeduplicationId"] = message.deduplication_id
-            if attributes["message_group_id"] and message.group_id is not None:
+            if attributes["MessageGroupId"] and message.group_id is not None:
                 msg["Attributes"]["MessageGroupId"] = message.group_id
             if message.system_attributes and message.system_attributes.get(
                 "AWSTraceHeader"
             ):
                 msg["Attributes"]["AWSTraceHeader"] = message.system_attributes[
                     "AWSTraceHeader"
-                ].get("string_value")
-            if attributes["sequence_number"] and message.sequence_number is not None:
+                ].get("StringValue")
+            if attributes["SequenceNumber"] and message.sequence_number is not None:
                 msg["Attributes"]["SequenceNumber"] = message.sequence_number
-            for name, value in message.message_attributes.items():
-                msg["MessageAttributes"][name] = {"DataType": value["data_type"]}
-                if "Binary" in value["data_type"]:
-                    msg["MessageAttributes"][name]["BinaryValue"] = value[
-                        "binary_value"
-                    ]
-                else:
-                    msg["MessageAttributes"][name]["StringValue"] = value[
-                        "string_value"
-                    ]
+            # for name, value in message.message_attributes.items():
+            #     msg["MessageAttributes"][name] = {"DataType": value["data_type"]}
+            #     if "Binary" in value["data_type"]:
+            #         msg["MessageAttributes"][name]["BinaryValue"] = value[
+            #             "binary_value"
+            #         ]
+            #     else:
+            #         msg["MessageAttributes"][name]["StringValue"] = value[
+            #             "string_value"
+            #         ]
 
             # Double check this against real AWS. Do they return [] or omit the keys entirely?
             if len(msg["Attributes"]) == 0:

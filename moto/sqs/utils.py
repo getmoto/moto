@@ -14,7 +14,7 @@ def generate_receipt_handle() -> str:
 
 def validate_message_attributes(message_attributes: Dict[str, Any]) -> None:
     for name, value in (message_attributes or {}).items():
-        data_type = value["data_type"]
+        data_type = value["DataType"]
 
         if not data_type:
             raise MessageAttributesInvalid(
@@ -31,7 +31,7 @@ def validate_message_attributes(message_attributes: Dict[str, Any]) -> None:
                 f"The message attribute '{name}' has an invalid message attribute type, the set of supported type prefixes is Binary, Number, and String."
             )
 
-        possible_value_fields = ["string_value", "binary_value"]
+        possible_value_fields = ["StringValue", "BinaryValue"]
         for field in possible_value_fields:
             if field in value and value[field] is None:
                 raise MessageAttributesInvalid(
