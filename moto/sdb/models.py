@@ -19,19 +19,19 @@ class FakeItem(BaseModel):
     def get_attributes(self, names: Optional[List[str]]) -> List[Dict[str, Any]]:
         if not names:
             return self.attributes
-        return [attr for attr in self.attributes if attr["name"] in names]
+        return [attr for attr in self.attributes if attr["Name"] in names]
 
     def put_attributes(self, attributes: List[Dict[str, Any]]) -> None:
         # Replacing attributes involves quite a few loops
         # Lock this, so we know noone else touches this list while we're operating on it
         with self.lock:
             for attr in attributes:
-                if attr.get("replace", False):
-                    self._remove_attributes(attr["name"])
+                if attr.get("Replace", False):
+                    self._remove_attributes(attr["Name"])
                 self.attributes.append(attr)
 
     def _remove_attributes(self, name: str) -> None:
-        self.attributes = [attr for attr in self.attributes if attr["name"] != name]
+        self.attributes = [attr for attr in self.attributes if attr["Name"] != name]
 
 
 class FakeDomain(BaseModel):

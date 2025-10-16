@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.utils import camelcase_to_underscores, utcnow
+from moto.core.utils import utcnow
 from moto.ec2 import ec2_backends
 from moto.ec2.exceptions import InvalidInstanceIdError
 from moto.ec2.models import EC2Backend
@@ -713,15 +713,15 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         if launch_template or mixed_instances_policy:
             if launch_template:
-                launch_template_id = launch_template.get("launch_template_id")
-                launch_template_name = launch_template.get("launch_template_name")
+                launch_template_id = launch_template.get("LaunchTemplateId")
+                launch_template_name = launch_template.get("LaunchTemplateName")
                 # If no version is specified, AWS will use '$Default'
                 # However, AWS will never show the version if it is not specified
                 # (If the user explicitly specifies '$Default', it will be returned)
                 self.launch_template_version = (
-                    launch_template.get("version") or "$Default"
+                    launch_template.get("Version") or "$Default"
                 )
-                self.provided_launch_template_version = launch_template.get("version")
+                self.provided_launch_template_version = launch_template.get("Version")
             elif mixed_instances_policy:
                 spec = mixed_instances_policy["LaunchTemplate"][
                     "LaunchTemplateSpecification"
@@ -783,10 +783,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         launch_config_name = properties.get("LaunchConfigurationName")
-        launch_template = {
-            camelcase_to_underscores(k): v
-            for k, v in properties.get("LaunchTemplate", {}).items()
-        }
+        launch_template = properties.get("LaunchTemplate", {})
         load_balancer_names = properties.get("LoadBalancerNames", [])
         target_group_arns = properties.get("TargetGroupARNs", [])
         mixed_instances_policy = properties.get("MixedInstancesPolicy", {})
@@ -1653,7 +1650,7 @@ class AutoScalingBackend(BaseBackend):
 
         for target_group in target_groups:
             asg_targets = [
-                {"id": x, "port": target_group.port} for x in group_instance_ids
+                {"Id": x, "Port": target_group.port} for x in group_instance_ids
             ]
             self.elbv2_backend.register_targets(target_group.arn, (asg_targets))
 
@@ -1729,7 +1726,7 @@ class AutoScalingBackend(BaseBackend):
             x for x in group.target_group_arns if x not in target_group_arns
         ]
         for target_group in target_group_arns:
-            asg_targets = [{"id": x.instance.id} for x in group.instance_states]
+            asg_targets = [{"Id": x.instance.id} for x in group.instance_states]
             self.elbv2_backend.deregister_targets(target_group, (asg_targets))
 
     def suspend_processes(self, group_name: str, scaling_processes: List[str]) -> None:

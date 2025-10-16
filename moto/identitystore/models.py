@@ -220,6 +220,38 @@ class IdentityStoreBackend(BaseBackend):
 
         return user_id, identity_store_id
 
+    def get_user_id(
+        self, identity_store_id: str, alternate_identifier: Dict[str, Any]
+    ) -> Tuple[str, str]:
+        """
+        The ExternalId alternate identifier is not yet implemented
+        """
+        identity_store = self.__get_identity_store(identity_store_id)
+        if "UniqueAttribute" in alternate_identifier:
+            value = alternate_identifier["UniqueAttribute"].get("AttributeValue")
+            if not value:
+                raise ValidationException(
+                    message="attribute value cannot be empty or null for attribute path"
+                )
+
+            path = alternate_identifier["UniqueAttribute"].get("AttributePath")
+            if path.lower() not in ["username", "emails.value"]:
+                raise ValidationException(
+                    message=f"The attribute {path} is not a unique attribute",
+                )
+
+            path = path.lower()
+            for user in identity_store.users.values():
+                if path == "username" and user.UserName == value:
+                    return user.UserId, identity_store_id
+
+                if path == "emails.value":
+                    for email in user.Emails:
+                        if email.get("Value") == value:
+                            return user.UserId, identity_store_id
+
+        raise ResourceNotFoundException(message="USER not found.", resource_type="USER")
+
     def describe_user(self, identity_store_id: str, user_id: str) -> User:
         identity_store = self.__get_identity_store(identity_store_id)
 

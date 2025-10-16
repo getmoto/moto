@@ -34,7 +34,7 @@ from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
 from moto.core.model import OperationModel, ServiceModel
-from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
+from moto.core.parsers import PROTOCOL_PARSERS
 from moto.core.request import determine_request_protocol, normalize_request
 from moto.core.serialize import (
     ResponseSerializer,
@@ -341,6 +341,8 @@ class EmptyResult(ActionResult):
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
+    PROTOCOL_PARSER_MAP_TYPE: Any = dict
+
     default_region = "us-east-1"
     # to extract region, use [^.]
     # Note that the URL region can be anything, thanks to our MOTO_ALLOW_NONEXISTENT_REGION-config - so we can't have a very specific regex
@@ -642,7 +644,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             service_model, normalized_request.content_type
         )
         parser_cls = PROTOCOL_PARSERS[protocol]
-        parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
+        parser = parser_cls(map_type=self.PROTOCOL_PARSER_MAP_TYPE)  # type: ignore[no-untyped-call]
         parsed = parser.parse(
             {
                 "query_params": normalized_request.values,
@@ -752,21 +754,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             pass
         return headers, body
 
-    def _get_param(
-        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
-    ) -> Any:
-        """
-        Get parameter from body/query/headers
-
-        :param use_original_dict Whether to return the data that was originally provided, or return the normalized (snake-case) dict
-        """
+    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         if self.automated_parameter_parsing:
-            params_to_use = (
-                self.params.original_dict()
-                if use_original_dict and isinstance(self.params, XFormedDict)
-                else self.params
-            )
-            return get_value(params_to_use, param_name, default=if_none)
+            return get_value(self.params, param_name, default=if_none)
 
         val = self.querystring.get(param_name)
         if val is not None:

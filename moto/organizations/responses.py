@@ -21,9 +21,7 @@ class OrganizationsResponse(BaseResponse):
         except ValueError:
             return {}
 
-    def _get_param(
-        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
-    ) -> Any:
+    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         return self.request_params.get(param_name, if_none)
 
     def create_organization(self) -> str:
