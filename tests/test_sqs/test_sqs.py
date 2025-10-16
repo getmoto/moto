@@ -828,10 +828,6 @@ def test_get_queue_attributes_errors():
         client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[""])
     assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
-    with pytest.raises(ClientError) as client_error:
-        client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
-    assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
-
 
 @aws_verified
 @pytest.mark.aws_verified
@@ -1361,6 +1357,9 @@ def test_get_queue_attributes_no_param():
     queue_url = sqs.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url)
+    assert "Attributes" not in queue_attrs
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
     assert "Attributes" not in queue_attrs
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])

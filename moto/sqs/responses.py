@@ -118,10 +118,8 @@ class SQSResponse(BaseResponse):
 
     def get_queue_attributes(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        attribute_names = self._get_param(
-            "AttributeNames",
-        )
-        if attribute_names == [] or (attribute_names and "" in attribute_names):
+        attribute_names = self._get_param("AttributeNames", [])
+        if attribute_names and "" in attribute_names:
             raise InvalidAttributeName("")
         attributes = self.sqs_backend.get_queue_attributes(queue_name, attribute_names)
         result = {
@@ -140,7 +138,6 @@ class SQSResponse(BaseResponse):
         attributes = self._get_param("Attributes", {})
         queue_name = self._get_queue_name()
         self.sqs_backend.set_queue_attributes(queue_name, attributes)
-
         return EmptyResult()
 
     def delete_queue(self) -> ActionResult:
