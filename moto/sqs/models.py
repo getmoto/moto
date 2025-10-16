@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import json
 import re
@@ -109,30 +108,17 @@ class Message(BaseModel):
             # Encode name
             self.update_binary_length_and_value(md5, self.utf8(attrName))
             # Encode type
-            self.update_binary_length_and_value(md5, self.utf8(attrValue["data_type"]))
+            self.update_binary_length_and_value(md5, self.utf8(attrValue["DataType"]))
 
-            if attrValue.get("string_value"):
+            if attrValue.get("StringValue"):
                 md5.update(bytearray([STRING_TYPE_FIELD_INDEX]))
                 self.update_binary_length_and_value(
-                    md5, self.utf8(attrValue.get("string_value"))
+                    md5, self.utf8(attrValue.get("StringValue"))
                 )
-            elif attrValue.get("binary_value"):
+            elif attrValue.get("BinaryValue"):
                 md5.update(bytearray([BINARY_TYPE_FIELD_INDEX]))
-                decoded_binary_value = attrValue.get("binary_value")
+                decoded_binary_value = attrValue.get("BinaryValue")
                 self.update_binary_length_and_value(md5, decoded_binary_value)
-            # string_list_value type is not implemented, reserved for the future use.
-            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
-            elif len(attrValue["string_list_value"]) > 0:
-                md5.update(bytearray([STRING_LIST_TYPE_FIELD_INDEX]))
-                for strListMember in attrValue["string_list_value"]:
-                    self.update_binary_length_and_value(md5, self.utf8(strListMember))
-            # binary_list_value type is not implemented, reserved for the future use.
-            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
-            elif len(attrValue["binary_list_value"]) > 0:
-                md5.update(bytearray([BINARY_LIST_TYPE_FIELD_INDEX]))
-                for strListMember in attrValue["binary_list_value"]:
-                    decoded_binary_value = base64.b64decode(strListMember)
-                    self.update_binary_length_and_value(md5, decoded_binary_value)
 
         return md5.hexdigest()
 
@@ -1056,15 +1042,15 @@ class SQSBackend(BaseBackend):
         errors = []
         for receipt_and_id in receipts:
             try:
-                self.delete_message(queue_name, receipt_and_id["receipt_handle"])
-                success.append(receipt_and_id["msg_user_id"])
+                self.delete_message(queue_name, receipt_and_id["ReceiptHandle"])
+                success.append(receipt_and_id["Id"])
             except ReceiptHandleIsInvalid:
                 errors.append(
                     {
-                        "Id": receipt_and_id["msg_user_id"],
+                        "Id": receipt_and_id["Id"],
                         "SenderFault": True,
                         "Code": "ReceiptHandleIsInvalid",
-                        "Message": f'The input receipt handle "{receipt_and_id["receipt_handle"]}" is not a valid receipt handle.',
+                        "Message": f'The input receipt handle "{receipt_and_id["ReceiptHandle"]}" is not a valid receipt handle.',
                     }
                 )
         return success, errors
