@@ -847,8 +847,14 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             for logical_name in resource_names_by_action["Remove"].copy():
                 resource_json = self._resource_json_map[logical_name]
                 try:
-                    resource = self._parsed_resources[logical_name]
-                    self._delete_resource(resource, resource_json)
+                    if logical_name in self._parsed_resources:
+                        resource = self._parsed_resources[logical_name]
+                        self._delete_resource(resource, resource_json)
+                    else:
+                        # Resource wasn't created in the first place
+                        warnings.warn(
+                            f"Unable to delete {logical_name}, as it was never created"
+                        )
                 except Exception as e:
                     # skip over dependency violations, and try again in another pass
                     last_exception = e

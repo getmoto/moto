@@ -301,9 +301,9 @@ class FakeKey(BaseModel, ManagedState):
             if self.encryption == "aws:kms" and self.kms_key_id is not None:
                 res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
         if self.encryption == "aws:kms" and self.bucket_key_enabled is not None:
-            res["x-amz-server-side-encryption-bucket-key-enabled"] = (
+            res["x-amz-server-side-encryption-bucket-key-enabled"] = str(
                 self.bucket_key_enabled
-            )
+            ).lower()
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
