@@ -53,6 +53,7 @@ from moto.ssm.utils import parameter_arn
 from moto.stepfunctions.models import StepFunctionBackend, stepfunctions_backends
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
+from moto.vpclattice.models import VPCLatticeBackend, vpclattice_backends
 from moto.workspaces.models import WorkSpacesBackend, workspaces_backends
 from moto.workspacesweb.models import WorkSpacesWebBackend, workspacesweb_backends
 
@@ -252,6 +253,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def elasticache_backend(self) -> ElastiCacheBackend:
         return elasticache_backends[self.account_id][self.region_name]
+
+    @property
+    def vpclattice_backend(self) -> VPCLatticeBackend:
+        return vpclattice_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -1026,6 +1031,26 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 if not tags or not tag_filter(tags):
                     continue
                 yield {"ResourceARN": state_machine.arn, "Tags": tags}
+
+        # VPC Lattice
+        if not resource_type_filters or "vpc-lattice" in resource_type_filters:
+            # Service
+            for service in self.vpclattice_backend.services.values():  # type: ignore[assignment]
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
+                    service.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{service.arn}", "Tags": tags}
+
+            # Service Networks
+            for service_network in self.vpclattice_backend.service_networks.values():
+                tags = self.vpclattice_backend.tagger.list_tags_for_resource(
+                    service_network.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{service_network.arn}", "Tags": tags}
 
         # Workspaces
         if self.workspaces_backend and (

@@ -5,11 +5,14 @@ from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
 from moto.vpclattice.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
+
+from .exceptions import ResourceNotFoundException
 
 
 class VPCLatticeService(BaseModel):
@@ -206,6 +209,21 @@ class VPCLatticeAccessLogSubscription(BaseModel):
 
 
 class VPCLatticeBackend(BaseBackend):
+    PAGINATION_MODEL = {
+        "list_services": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+        "list_service_networks": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+    }
+
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.services: Dict[str, VPCLatticeService] = {}
@@ -237,7 +255,32 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.services[service.id] = service
+        self.tag_resource(service.arn, tags or {})
         return service
+
+    def get_service(self, service_identifier: str) -> VPCLatticeService:
+        service = self._get_service_by_arn(service_identifier)
+        if service:
+            return service
+
+        service = self._get_service_by_id(service_identifier)
+        if service:
+            return service
+
+        raise ResourceNotFoundException(service_identifier)
+
+    def _get_service_by_id(self, service_id: str) -> Optional[VPCLatticeService]:
+        return self.services.get(service_id)
+
+    def _get_service_by_arn(self, service_arn: str) -> Optional[VPCLatticeService]:
+        for service in self.services.values():
+            if service.arn == service_arn:
+                return service
+        return None
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_services(self) -> List[VPCLatticeService]:
+        return [service for service in self.services.values()]
 
     def create_service_network(
         self,
@@ -260,7 +303,38 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.service_networks[sn.id] = sn
+        self.tag_resource(sn.arn, tags or {})
         return sn
+
+    def get_service_network(
+        self, service_network_identifier: str
+    ) -> VPCLatticeServiceNetwork:
+        service = self._get_service_network_by_arn(service_network_identifier)
+        if service:
+            return service
+
+        service = self._get_service_network_by_id(service_network_identifier)
+        if service:
+            return service
+
+        raise ResourceNotFoundException(service_network_identifier)
+
+    def _get_service_network_by_id(
+        self, service_network_id: str
+    ) -> Optional[VPCLatticeServiceNetwork]:
+        return self.service_networks.get(service_network_id)
+
+    def _get_service_network_by_arn(
+        self, service_network_arn: str
+    ) -> Optional[VPCLatticeServiceNetwork]:
+        for service_network in self.service_networks.values():
+            if service_network.arn == service_network_arn:
+                return service_network
+        return None
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_service_networks(self) -> List[VPCLatticeServiceNetwork]:
+        return [service_network for service_network in self.service_networks.values()]
 
     def create_service_network_vpc_association(
         self,
@@ -280,6 +354,7 @@ class VPCLatticeBackend(BaseBackend):
             vpc_identifier,
         )
         self.service_network_vpc_associations[assoc.id] = assoc
+        self.tag_resource(assoc.arn, tags or {})
         return assoc
 
     def create_rule(
@@ -306,8 +381,20 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.rules[rule.id] = rule
+        self.tag_resource(rule.arn, tags or {})
         return rule
 
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        tags_input = self.tagger.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags_input)
+
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+        if not isinstance(tag_keys, list):
+            tag_keys = [tag_keys]
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
     def create_access_log_subscription(
         self,
         resourceIdentifier: str,
