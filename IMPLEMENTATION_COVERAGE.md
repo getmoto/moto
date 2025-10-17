@@ -2749,6 +2749,8 @@
 - [ ] copy_fpga_image
 - [X] copy_image
 - [X] copy_snapshot
+- [ ] copy_volumes
+- [ ] create_capacity_manager_data_export
 - [ ] create_capacity_reservation
 - [ ] create_capacity_reservation_by_splitting
 - [ ] create_capacity_reservation_fleet
@@ -2842,6 +2844,7 @@
 - [X] create_vpn_connection
 - [ ] create_vpn_connection_route
 - [X] create_vpn_gateway
+- [ ] delete_capacity_manager_data_export
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
 - [ ] delete_client_vpn_route
@@ -2946,6 +2949,7 @@
 - [ ] describe_capacity_block_offerings
 - [ ] describe_capacity_block_status
 - [ ] describe_capacity_blocks
+- [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
@@ -3113,6 +3117,7 @@
 - [ ] disable_address_transfer
 - [ ] disable_allowed_images_settings
 - [ ] disable_aws_network_performance_metric_subscription
+- [ ] disable_capacity_manager
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -3149,6 +3154,7 @@
 - [ ] enable_address_transfer
 - [ ] enable_allowed_images_settings
 - [ ] enable_aws_network_performance_metric_subscription
+- [ ] enable_capacity_manager
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
@@ -3176,6 +3182,9 @@
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
 - [ ] get_aws_network_performance_data
+- [ ] get_capacity_manager_attributes
+- [ ] get_capacity_manager_metric_data
+- [ ] get_capacity_manager_metric_dimensions
 - [ ] get_capacity_reservation_usage
 - [ ] get_coip_pool_usage
 - [ ] get_console_output
@@ -3380,6 +3389,7 @@
 - [ ] unassign_private_nat_gateway_address
 - [ ] unlock_snapshot
 - [ ] unmonitor_instances
+- [ ] update_capacity_manager_organizations_access
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
 - [ ] withdraw_byoip_cidr
@@ -4905,7 +4915,7 @@
 
 ## identitystore
 <details>
-<summary>68% implemented</summary>
+<summary>73% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -4918,7 +4928,7 @@
 - [X] describe_user
 - [X] get_group_id
 - [ ] get_group_membership_id
-- [ ] get_user_id
+- [X] get_user_id
 - [ ] is_member_in_groups
 - [X] list_group_memberships
 - [X] list_group_memberships_for_member
@@ -6337,7 +6347,7 @@
 
 ## memorydb
 <details>
-<summary>30% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] batch_update_cluster
 - [ ] copy_snapshot
@@ -6360,6 +6370,8 @@
 - [ ] describe_engine_versions
 - [ ] describe_events
 - [ ] describe_multi_region_clusters
+- [ ] describe_multi_region_parameter_groups
+- [ ] describe_multi_region_parameters
 - [ ] describe_parameter_groups
 - [ ] describe_parameters
 - [ ] describe_reserved_nodes
@@ -7165,13 +7177,14 @@
 
 ## quicksight
 <details>
-<summary>14% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] batch_create_topic_reviewed_answer
 - [ ] batch_delete_topic_reviewed_answer
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
+- [ ] create_action_connector
 - [ ] create_analysis
 - [ ] create_brand
 - [ ] create_custom_permissions
@@ -7197,6 +7210,7 @@
 - [ ] delete_account_custom_permission
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
+- [ ] delete_action_connector
 - [ ] delete_analysis
 - [ ] delete_brand
 - [ ] delete_brand_assignment
@@ -7230,6 +7244,8 @@
 - [ ] describe_account_customization
 - [X] describe_account_settings
 - [ ] describe_account_subscription
+- [ ] describe_action_connector
+- [ ] describe_action_connector_permissions
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
@@ -7282,7 +7298,10 @@
 - [ ] generate_embed_url_for_registered_user
 - [ ] generate_embed_url_for_registered_user_with_identity
 - [ ] get_dashboard_embed_url
+- [ ] get_flow_metadata
+- [ ] get_flow_permissions
 - [ ] get_session_embed_url
+- [ ] list_action_connectors
 - [ ] list_analyses
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
@@ -7292,6 +7311,7 @@
 - [X] list_dashboards
 - [ ] list_data_sets
 - [X] list_data_sources
+- [ ] list_flows
 - [ ] list_folder_members
 - [ ] list_folders
 - [ ] list_folders_for_resource
@@ -7321,10 +7341,12 @@
 - [ ] put_data_set_refresh_properties
 - [X] register_user
 - [ ] restore_analysis
+- [ ] search_action_connectors
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_data_sets
 - [ ] search_data_sources
+- [ ] search_flows
 - [ ] search_folders
 - [X] search_groups
 - [ ] search_topics
@@ -7337,6 +7359,8 @@
 - [ ] update_account_custom_permission
 - [ ] update_account_customization
 - [X] update_account_settings
+- [ ] update_action_connector
+- [ ] update_action_connector_permissions
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_application_with_token_exchange_grant
@@ -7354,6 +7378,7 @@
 - [X] update_data_source
 - [ ] update_data_source_permissions
 - [ ] update_default_q_business_application
+- [ ] update_flow_permissions
 - [ ] update_folder
 - [ ] update_folder_permissions
 - [X] update_group
@@ -9033,13 +9058,14 @@
 
 ## service-quotas
 <details>
-<summary>10% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] associate_service_quota_template
 - [ ] create_support_case
 - [ ] delete_service_quota_increase_request_from_template
 - [ ] disassociate_service_quota_template
 - [ ] get_association_for_service_quota_template
+- [ ] get_auto_management_configuration
 - [ ] get_aws_default_service_quota
 - [ ] get_requested_service_quota_change
 - [X] get_service_quota
@@ -9053,8 +9079,11 @@
 - [ ] list_tags_for_resource
 - [ ] put_service_quota_increase_request_into_template
 - [ ] request_service_quota_increase
+- [ ] start_auto_management
+- [ ] stop_auto_management
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_auto_management
 </details>
 
 ## servicecatalog
@@ -10169,10 +10198,10 @@
 
 ## vpc-lattice
 <details>
-<summary>5% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] batch_update_rule
-- [ ] create_access_log_subscription
+- [X] create_access_log_subscription
 - [ ] create_listener
 - [ ] create_resource_configuration
 - [ ] create_resource_gateway
@@ -10183,7 +10212,7 @@
 - [ ] create_service_network_service_association
 - [X] create_service_network_vpc_association
 - [ ] create_target_group
-- [ ] delete_access_log_subscription
+- [X] delete_access_log_subscription
 - [ ] delete_auth_policy
 - [ ] delete_listener
 - [ ] delete_resource_configuration
@@ -10198,7 +10227,7 @@
 - [ ] delete_service_network_vpc_association
 - [ ] delete_target_group
 - [ ] deregister_targets
-- [ ] get_access_log_subscription
+- [X] get_access_log_subscription
 - [ ] get_auth_policy
 - [ ] get_listener
 - [ ] get_resource_configuration
@@ -10211,7 +10240,7 @@
 - [ ] get_service_network_service_association
 - [ ] get_service_network_vpc_association
 - [ ] get_target_group
-- [ ] list_access_log_subscriptions
+- [X] list_access_log_subscriptions
 - [ ] list_listeners
 - [ ] list_resource_configurations
 - [ ] list_resource_endpoint_associations
@@ -10231,7 +10260,7 @@
 - [ ] register_targets
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_access_log_subscription
+- [X] update_access_log_subscription
 - [ ] update_listener
 - [ ] update_resource_configuration
 - [ ] update_resource_gateway

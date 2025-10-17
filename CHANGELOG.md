@@ -1,6 +1,50 @@
 Moto Changelog
 ==============
 
+5.1.15
+-----
+Docker Digest for 5.1.15: <autopopulateddigest>
+
+    General:
+        * Python 3.14 is now officially supported
+
+    New Methods:
+        * IdentityStore:
+            * get_user_id()
+
+        * SESv2:
+            * delete_email_identity()
+
+        * VPCLattice:
+            * create_access_log_subscription()
+            * delete_access_log_subscription()
+            * get_access_log_subscription()
+            * list_access_log_subscriptions()
+            * update_access_log_subscription()
+
+    Miscellaneous:
+        * ACM: request_certificate() now supports the Option-parameter
+        * ACM: list_certificates() now supports the Includes-parameter, supporting Exportable Public Certificates
+        * APIGatewayV2: get_domain_name() now returns the DomainNameArn-attribute
+        * Athena: Executions can now be delayed using state transitions
+        * CloudFormation: validate_template() now supports short function refs (!Sub)
+        * Config: Now supports "AWS::SNS::Topic"-resources
+        * EC2: create_subnet() now supports the Ipv6Native-parameter
+        * EC2: create_transit_gateway_vpc_attachment() now validates that the TransitGateway exists
+        * EC2: create_transit_gateway_vpc_attachment() now validates that no other attachment to this VPC exists
+        * EC2: create_transit_gateway_vpc_attachment() now automatically adds the attachment to the default RouteTable
+        * EC2: create_transit_gateway_vpc_attachment() now correctly creates multiple attachments if called twice (for different VPC's)
+        * EC2: create_vpn_connection() now validates that only one of [VPNGateway|TransitGateway] is provided
+        * EC2: create_vpn_connection() now validates that the provided CustomerGateway and TransitGateway exists
+        * EC2: create/modify/describe_vpc_endpoint_service_configuration now supports the SupportedRegions-param
+        * EC2: describe_transit_gateway_attachments() now returns the correct RouteTableID
+        * EC2: describe_vpc_endpoints() now supports the 'vpc-endpoint-state'-filter
+        * Lambda: list_layer_versions() now returns the layers in the correct order - latest version first.
+        * ResourceGroupsTaggingAPI: get_resources() now supports SSM Parameters
+        * ResourceGroupsTaggingAPI: get_resources() now supports the 'kms:key' type
+        * SESv2: send_email() can now use an email registered by `create_email_identity()`, instead of having the SESv1:verify_domain_identity()-method
+
+
 5.1.14
 -----
 Docker Digest for 5.1.14: _sha256:800719627036dc38dc699e9f314f624f2c98ac3d8bb754db078cb2698f08ee77_
