@@ -3112,7 +3112,7 @@ def test_message_attributes_contains_trace_header():
     )
 
     messages = conn.receive_message(
-        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
+        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageSystemAttributeNames=["All"]
     )["Messages"]
 
     assert (
