@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.15
 -----
-Docker Digest for 5.1.15: <autopopulateddigest>
+Docker Digest for 5.1.15: _sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914_
 
     General:
         * Python 3.14 is now officially supported
