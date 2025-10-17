@@ -2,10 +2,10 @@ import re
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.utilities.aws_headers import amz_crc32
 
-from ..core.common_types import TYPE_RESPONSE
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
     MAXIMUM_MESSAGE_LENGTH,
@@ -152,9 +152,9 @@ class SQSResponse(BaseResponse):
                 "One or more parameters are invalid. Reason: Message must be shorter than 262144 bytes.",
             )
         message_attributes = self._get_param("MessageAttributes", {})
-        self.normalize_json_msg_attributes(message_attributes)
+        validate_message_attributes(message_attributes)
         system_message_attributes = self._get_param("MessageSystemAttributes")
-        self.normalize_json_msg_attributes(system_message_attributes)
+        validate_message_attributes(system_message_attributes)
         queue_name = self._get_queue_name()
         message = self.sqs_backend.send_message(
             queue_name,
@@ -173,37 +173,14 @@ class SQSResponse(BaseResponse):
             resp["MD5OfMessageAttributes"] = message.attribute_md5
         return ActionResult(resp)
 
-    def normalize_json_msg_attributes(self, message_attributes: Dict[str, Any]) -> None:
-        # TODO: I don't think we need this, right... Just use the PascalCase keys directly.
-        # for key, value in (message_attributes or {}).items():
-        #     if "BinaryValue" in value:
-        #         message_attributes[key]["binary_value"] = value.pop("BinaryValue")
-        #     if "StringValue" in value:
-        #         message_attributes[key]["string_value"] = value.pop("StringValue")
-        #     if "DataType" in value:
-        #         message_attributes[key]["data_type"] = value.pop("DataType")
-
-        validate_message_attributes(message_attributes)
-
     def send_message_batch(self) -> ActionResult:
         queue_name = self._get_queue_name()
         self.sqs_backend.get_queue(queue_name)
         entries = self._get_param("Entries", [])
-        if not entries:
-            raise EmptyBatchRequest()
         entries = {str(idx): entry for idx, entry in enumerate(entries)}
-        # This was originally in query parsing - do we still need this?
-        # I don't think so.  This was just because of the different parsing
-        # between the XML and JSON protocols. (the multi_param stuff maybe didn't pluralize?)
-        # for entry in entries.values():
-        #     if "MessageAttribute" in entry:
-        #         entry["MessageAttributes"] = {
-        #             val["Name"]: val["Value"] for val in entry.pop("MessageAttribute")
-        #         }
-
         for entry in entries.values():
             if "MessageAttributes" in entry:
-                self.normalize_json_msg_attributes(entry["MessageAttributes"])
+                validate_message_attributes(entry["MessageAttributes"])
             else:
                 entry["MessageAttributes"] = {}
             if "DelaySeconds" not in entry:
@@ -212,12 +189,12 @@ class SQSResponse(BaseResponse):
         if entries == {}:
             raise EmptyBatchRequest()
 
-        messages, failedInvalidDelay = self.sqs_backend.send_message_batch(
+        messages, failed_invalid_delay = self.sqs_backend.send_message_batch(
             queue_name, entries
         )
 
         errors = []
-        for entry in failedInvalidDelay:
+        for entry in failed_invalid_delay:
             errors.append(
                 {
                     "Id": entry["Id"],
@@ -267,9 +244,16 @@ class SQSResponse(BaseResponse):
 
     def receive_message(self) -> ActionResult:
         queue_name = self._get_queue_name()
-        message_attributes = self._get_param("MessageAttributeNames", [])
-        message_system_attributes = self._get_param("MessageSystemAttributeNames", {})
         attribute_names = self._get_param("AttributeNames", [])
+        message_system_attribute_names = self._get_param(
+            "MessageSystemAttributeNames", []
+        )
+        # AttributeNames has been deprecated in favor of MessageSystemAttributeNames.
+        # We combine both here (with no duplicates) in order to support either parameter.
+        message_system_attribute_names = list(
+            set(attribute_names + message_system_attribute_names)
+        )
+        message_attribute_names = self._get_param("MessageAttributeNames", [])
         queue = self.sqs_backend.get_queue(queue_name)
         message_count = self._get_param(
             "MaxNumberOfMessages", DEFAULT_RECEIVED_MESSAGES
@@ -302,35 +286,27 @@ class SQSResponse(BaseResponse):
             raise MaxVisibilityTimeout()
 
         messages = self.sqs_backend.receive_message(
-            queue_name, message_count, wait_time, visibility_timeout, message_attributes
+            queue_name,
+            message_count,
+            wait_time,
+            visibility_timeout,
+            message_attribute_names,
         )
-        # TODO: None of this casing stuff should be necessary...
-        attributes = {
-            "ApproximateFirstReceiveTimestamp": "ApproximateFirstReceiveTimestamp"
-            in message_system_attributes,
-            "ApproximateReceiveCount": "ApproximateReceiveCount"
-            in message_system_attributes,
-            "MessageDeduplicationId": "MessageDeduplicationId"
-            in message_system_attributes,
-            "MessageGroupId": "MessageGroupId" in message_system_attributes,
-            "SenderId": "SenderId" in message_system_attributes,
-            "SentTimestamp": "SentTimestamp" in message_system_attributes,
-            "SequenceNumber": "SequenceNumber" in message_system_attributes,
-        }
-
-        if "All" in message_system_attributes:
-            attributes = {
-                "ApproximateFirstReceiveTimestamp": True,
-                "ApproximateReceiveCount": True,
-                "MessageDeduplicationId": True,
-                "MessageGroupId": True,
-                "SenderId": True,
-                "SentTimestamp": True,
-                "SequenceNumber": True,
-            }
-        for attribute in attributes:
-            if any(x in ["All", attribute] for x in attribute_names):
-                attributes[attribute] = True
+        SUPPORTED_SYSTEM_MESSAGE_ATTRIBUTE_NAMES = [
+            "AWSTraceHeader",
+            "ApproximateFirstReceiveTimestamp",
+            "ApproximateReceiveCount",
+            "MessageDeduplicationId",
+            "MessageGroupId",
+            "SenderId",
+            "SentTimestamp",
+            "SequenceNumber",
+        ]
+        attributes_to_include = []
+        include_all = "All" in message_system_attribute_names
+        for attribute_name in SUPPORTED_SYSTEM_MESSAGE_ATTRIBUTE_NAMES:
+            if include_all or attribute_name in message_system_attribute_names:
+                attributes_to_include.append(attribute_name)
 
         msgs = []
         for message in messages:
@@ -339,52 +315,41 @@ class SQSResponse(BaseResponse):
                 "ReceiptHandle": message.receipt_handle,
                 "MD5OfBody": message.body_md5,
                 "Body": message.body,
-                "Attributes": {},
-                "MessageAttributes": message.message_attributes,
             }
-            # TODO: If we have the right casing, this just becomes a for loop, right?
-            if len(message.message_attributes) > 0:
+            if len(message.message_attributes):
+                msg["MessageAttributes"] = message.message_attributes
                 msg["MD5OfMessageAttributes"] = message.attribute_md5
-            if attributes["SenderId"]:
-                msg["Attributes"]["SenderId"] = message.sender_id
-            if attributes["SentTimestamp"]:
-                msg["Attributes"]["SentTimestamp"] = str(message.sent_timestamp)
-            if attributes["ApproximateReceiveCount"]:
-                msg["Attributes"]["ApproximateReceiveCount"] = str(
+            attributes = {}
+            if "SenderId" in attributes_to_include:
+                attributes["SenderId"] = message.sender_id
+            if "SentTimestamp" in attributes_to_include:
+                attributes["SentTimestamp"] = str(message.sent_timestamp)
+            if "ApproximateReceiveCount" in attributes_to_include:
+                attributes["ApproximateReceiveCount"] = str(
                     message.approximate_receive_count
                 )
-            if attributes["ApproximateFirstReceiveTimestamp"]:
-                msg["Attributes"]["ApproximateFirstReceiveTimestamp"] = str(
+            if "ApproximateFirstReceiveTimestamp" in attributes_to_include:
+                attributes["ApproximateFirstReceiveTimestamp"] = str(
                     message.approximate_first_receive_timestamp
                 )
-            if attributes["MessageDeduplicationId"]:
-                msg["Attributes"]["MessageDeduplicationId"] = message.deduplication_id
-            if attributes["MessageGroupId"] and message.group_id is not None:
-                msg["Attributes"]["MessageGroupId"] = message.group_id
-            if message.system_attributes and message.system_attributes.get(
-                "AWSTraceHeader"
-            ):
-                msg["Attributes"]["AWSTraceHeader"] = message.system_attributes[
+            if "MessageDeduplicationId" in attributes_to_include:
+                if message.deduplication_id is not None:
+                    attributes["MessageDeduplicationId"] = message.deduplication_id
+            if "MessageGroupId" in attributes_to_include:
+                if message.group_id is not None:
+                    attributes["MessageGroupId"] = message.group_id
+            if "AWSTraceHeader" in attributes_to_include:
+                if message.system_attributes and message.system_attributes.get(
                     "AWSTraceHeader"
-                ].get("StringValue")
-            if attributes["SequenceNumber"] and message.sequence_number is not None:
-                msg["Attributes"]["SequenceNumber"] = message.sequence_number
-            # for name, value in message.message_attributes.items():
-            #     msg["MessageAttributes"][name] = {"DataType": value["data_type"]}
-            #     if "Binary" in value["data_type"]:
-            #         msg["MessageAttributes"][name]["BinaryValue"] = value[
-            #             "binary_value"
-            #         ]
-            #     else:
-            #         msg["MessageAttributes"][name]["StringValue"] = value[
-            #             "string_value"
-            #         ]
-
-            # Double check this against real AWS. Do they return [] or omit the keys entirely?
-            if len(msg["Attributes"]) == 0:
-                msg.pop("Attributes")
-            if len(msg["MessageAttributes"]) == 0:
-                msg.pop("MessageAttributes")
+                ):
+                    attributes["AWSTraceHeader"] = message.system_attributes[
+                        "AWSTraceHeader"
+                    ].get("StringValue")
+            if "SequenceNumber" in attributes_to_include:
+                if message.sequence_number is not None:
+                    attributes["SequenceNumber"] = message.sequence_number
+            if attributes_to_include:
+                msg["Attributes"] = attributes
             msgs.append(msg)
 
         result = {"Messages": msgs} if msgs else {}
