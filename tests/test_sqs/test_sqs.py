@@ -3111,9 +3111,16 @@ def test_message_attributes_contains_trace_header():
         },
     )
 
-    messages = conn.receive_message(
-        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageSystemAttributeNames=["All"]
-    )["Messages"]
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = ["All"]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = ["All"]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
 
     assert (
         messages[0]["Attributes"]["AWSTraceHeader"]
