@@ -15,11 +15,7 @@ jobs:
       with:
           go-version: '1.24.x'
     - name: Start MotoServer
-      run: |
-        pip install build
-        python -m build
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:3.10-slim /moto/scripts/ci_moto_server.sh &
-        python scripts/ci_wait_for_server.py
+      uses: ./.github/actions/run_moto_server
     - name: Install Dependencies
       run: cd other_langs/tests_go && go get -t .
     - name: Run Tests
