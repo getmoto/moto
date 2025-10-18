@@ -106,3 +106,13 @@ class ErrorLookupFactory:
             for error_code in error_shape.error_code_aliases:
                 code_to_shape[error_code] = error_shape
         return ErrorLookup(code_to_shape, service_model)
+
+
+def get_error_model(exception: Exception) -> ErrorShape:
+    from moto.core.utils import get_service_model
+
+    service = exception.__module__.split(".")[1]
+    service_model = get_service_model(service)
+    error_map = ErrorLookupFactory().for_service(service_model)
+    error_shape = error_map.from_exception(exception)
+    return error_shape
