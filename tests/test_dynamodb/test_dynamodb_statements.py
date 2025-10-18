@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -86,6 +87,123 @@ def test_execute_statement_with_no_results(table_name=None):
         "Items"
     ]
     assert items == []
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_gsi=True)
+def test_execute_statement_on_gsi(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    # Create regular items
+    create_items(table_name)
+    # Create GSI items
+    gsi_item1 = {"pk": {"S": "item1"}, "gsi_pk": {"S": "item1"}}
+    gsi_item2 = {"pk": {"S": "item2"}, "gsi_pk": {"S": "item2"}}
+    client.put_item(TableName=table_name, Item=gsi_item1)
+    client.put_item(TableName=table_name, Item=gsi_item2)
+
+    # Query regular table
+    stmt = f"select * from {table_name}"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert len(items) == 4
+
+    # Query GSI
+    stmt = f"select * from {table_name}.test_gsi"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert len(items) == 2
+    assert gsi_item1 in items
+    assert gsi_item2 in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_gsi_range=True)
+def test_execute_statement_on_gsi_with_range(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    # Create regular items
+    create_items(table_name)
+    # Create GSI items with just PK
+    gsi_item1 = {"pk": {"S": "item1"}, "gsi_pk": {"S": "item1"}}
+    gsi_item2 = {"pk": {"S": "item2"}, "gsi_pk": {"S": "item2"}}
+    # Create GSI items with just SK
+    gsi_item3 = {"pk": {"S": "item3"}, "gsi_sk": {"S": "item3"}}
+    gsi_item4 = {"pk": {"S": "item4"}, "gsi_sk": {"S": "item4"}}
+    # Create GSI items with both PK and SK
+    gsi_item5 = {
+        "pk": {"S": "item5"},
+        "gsi_pk": {"S": "item5"},
+        "gsi_sk": {"S": "item5"},
+    }
+    gsi_item6 = {
+        "pk": {"S": "item6"},
+        "gsi_pk": {"S": "item5"},
+        "gsi_sk": {"S": "item6"},
+    }
+    client.put_item(TableName=table_name, Item=gsi_item1)
+    client.put_item(TableName=table_name, Item=gsi_item2)
+    client.put_item(TableName=table_name, Item=gsi_item3)
+    client.put_item(TableName=table_name, Item=gsi_item4)
+    client.put_item(TableName=table_name, Item=gsi_item5)
+    client.put_item(TableName=table_name, Item=gsi_item6)
+
+    # Query regular table - sanity check that everything is returned
+    items = client.execute_statement(Statement=f"select * from {table_name}")["Items"]
+    assert len(items) == 8
+
+    # Query GSI
+    # Only items with both GSI PK and GSI SK should be returned
+    stmt = f"select * from {table_name}.test_gsi"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert len(items) == 2
+    assert gsi_item5 in items
+    assert gsi_item6 in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(add_range=True, add_lsi=True)
+def test_execute_statement_on_lsi(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+    # Create regular items
+    item1 = {"pk": {"S": "item1"}, "sk": {"S": "item1"}}
+    item2 = {"pk": {"S": "item1"}, "sk": {"S": "item2"}}
+    client.put_item(TableName=table_name, Item=item1)
+    client.put_item(TableName=table_name, Item=item2)
+    # Create LSI items
+    lsi_item1 = {"pk": {"S": "item2"}, "sk": {"S": "item1"}, "lsi_sk": {"S": "item1"}}
+    lsi_item2 = {"pk": {"S": "item2"}, "sk": {"S": "item2"}, "lsi_sk": {"S": "item2"}}
+    client.put_item(TableName=table_name, Item=lsi_item1)
+    client.put_item(TableName=table_name, Item=lsi_item2)
+
+    # Query Table
+    items = client.execute_statement(Statement=f"select * from {table_name}")["Items"]
+    assert item1 in items
+    assert item2 in items
+    assert lsi_item1 in items
+    assert lsi_item2 in items
+
+    # Query LSI
+    stmt = f"select * from {table_name}.test_lsi"
+    items = client.execute_statement(Statement=stmt)["Items"]
+    assert lsi_item1 in items
+    assert lsi_item2 in items
+
+
+@pytest.mark.aws_verified
+@dynamodb_aws_verified(create_table=True)
+def test_execute_statement_on_unknown_gsi_table(table_name=None):
+    client = boto3.client("dynamodb", "us-east-1")
+
+    with pytest.raises(ClientError) as exc:
+        # Query Unknown GSI
+        client.execute_statement(Statement=f"select * from {table_name}.test_gsi")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert err["Message"] == "The table does not have the specified index"
+
+    with pytest.raises(ClientError) as exc:
+        # Query GSI on Unknown Table
+        client.execute_statement(Statement="select * from whatnow.test_gsi")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "Requested resource not found"
 
 
 @mock_aws
