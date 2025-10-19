@@ -171,6 +171,9 @@ class QueryParser(RequestParser):
         return value.get(prefix, default_value)
 
     def _get_serialized_name(self, shape, default_name):
+        serialized_name = shape.serialization.get("locationNameForQueryCompatibility")
+        if serialized_name:
+            return serialized_name
         return shape.serialization.get("name", default_name)
 
     def _parsed_key_name(self, member_name):
@@ -209,6 +212,12 @@ class JSONParser(RequestParser):
 
     def _default_handle(self, _, value):
         return value
+
+    def _handle_blob(self, shape, value):
+        value = self._default_handle(shape, value)
+        if value is UNDEFINED:
+            return value
+        return self._blob_parser(value)
 
     def _handle_float(self, _, value):
         return float(value) if value is not UNDEFINED else value

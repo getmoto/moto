@@ -284,15 +284,15 @@ class Subscription(BaseModel):
             else:
                 raw_message_attributes = {}
                 for key, value in message_attributes.items():  # type: ignore
-                    attr_type = "string_value"
+                    attr_type = "StringValue"
                     type_value = value["Value"]
                     if value["Type"].startswith("Binary"):
-                        attr_type = "binary_value"
+                        attr_type = "BinaryValue"
                     elif value["Type"].startswith("Number"):
                         type_value = str(value["Value"])
 
                     raw_message_attributes[key] = {
-                        "data_type": value["Type"],
+                        "DataType": value["Type"],
                         attr_type: type_value,
                     }
 

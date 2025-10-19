@@ -497,7 +497,7 @@ def test_message_with_invalid_attributes():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute name 'öther_encodings' is invalid. "
         "Attribute name can contain A-Z, a-z, 0-9, underscore (_), "
@@ -595,7 +595,7 @@ def test_message_with_attributes_invalid_datatype():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute 'timestamp' has an invalid message "
         "attribute type, the set of supported type "
@@ -826,10 +826,6 @@ def test_get_queue_attributes_errors():
 
     with pytest.raises(ClientError) as client_error:
         client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[""])
-    assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
-
-    with pytest.raises(ClientError) as client_error:
-        client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
     assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
 
@@ -1361,6 +1357,9 @@ def test_get_queue_attributes_no_param():
     queue_url = sqs.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url)
+    assert "Attributes" not in queue_attrs
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
     assert "Attributes" not in queue_attrs
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
@@ -1898,7 +1897,10 @@ def test_delete_message_batch_with_duplicates():
     with pytest.raises(ClientError) as e:
         client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
     ex = e.value
-    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+    assert (
+        ex.response["Error"]["Code"]
+        == "AWS.SimpleQueueService.BatchEntryIdsNotDistinct"
+    )
 
     # no messages are deleted
     messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
@@ -3109,9 +3111,16 @@ def test_message_attributes_contains_trace_header():
         },
     )
 
-    messages = conn.receive_message(
-        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
-    )["Messages"]
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = ["All"]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = ["All"]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
 
     assert (
         messages[0]["Attributes"]["AWSTraceHeader"]

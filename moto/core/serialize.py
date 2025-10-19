@@ -56,6 +56,7 @@ import abc
 import base64
 import calendar
 import json
+from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
@@ -606,6 +607,8 @@ class BaseXMLSerializer(ResponseSerializer):
         serialized["Type"] = "Sender" if shape.is_sender_fault else "Receiver"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
+        if shape.query_compatible_error_message:
+            message = shape.query_compatible_error_message
         if message is not None:
             serialized["Message"] = message
         # Serialize any error model attributes.
@@ -949,6 +952,73 @@ class EC2Serializer(QuerySerializer):
         return resp
 
 
+DoublePassEncoding = namedtuple(
+    "DoublePassEncoding", ["char", "marker", "escape_sequence"]
+)
+
+
+class DoublePassEncoder:
+    """Facilitates double pass encoding of special characters in a string
+    by replacing them with markers in one pass and then replacing the markers
+    with escape sequences in a second pass."""
+
+    def __init__(self, encodings: list[DoublePassEncoding]) -> None:
+        self.encodings = encodings
+
+    def mark(self, value: str) -> str:
+        for item in self.encodings:
+            value = value.replace(item.char, item.marker)
+        return value
+
+    def escape(self, value: str) -> str:
+        for item in self.encodings:
+            value = value.replace(item.marker, item.escape_sequence)
+        return value
+
+
+class SqsQuerySerializer(QuerySerializer):
+    """
+    Special handling of SQS Query protocol responses:
+        * support aws.protocols#awsQueryCompatible trait after switch to JSON protocol
+        * escape HTML entities within XML tag text
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.encoder = DoublePassEncoder(
+            [
+                DoublePassEncoding(
+                    char="\r",
+                    marker="__CARRIAGE_RETURN_MARKER__",
+                    escape_sequence="&#xD;",
+                ),
+                DoublePassEncoding(
+                    char='"', marker="__DOUBLE_QUOTE_MARKER__", escape_sequence="&quot;"
+                ),
+            ]
+        )
+
+    def _default_serialize(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        if isinstance(value, str):
+            value = self.encoder.mark(value)
+        super()._default_serialize(serialized, value, shape, key)
+
+    def _serialize_body(self, body: Serialized) -> str:
+        body_encoded = super()._serialize_body(body)
+        body_escaped = self.encoder.escape(body_encoded)
+        return body_escaped
+
+    def get_serialized_name(self, shape: Shape, default_name: str) -> str:
+        serialized_name = super().get_serialized_name(shape, default_name)
+        if self.service_model.is_query_compatible:
+            serialized_name = shape.serialization.get(
+                "locationNameForQueryCompatibility", serialized_name
+            )
+        return serialized_name
+
+
 SERIALIZERS = {
     "ec2": EC2Serializer,
     "json": JSONSerializer,
@@ -957,7 +1027,11 @@ SERIALIZERS = {
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
-SERVICE_SPECIFIC_SERIALIZERS = {}
+SERVICE_SPECIFIC_SERIALIZERS = {
+    "sqs": {
+        "query": SqsQuerySerializer,
+    }
+}
 
 
 def get_serializer_class(service_name: str, protocol: str) -> type[ResponseSerializer]:
