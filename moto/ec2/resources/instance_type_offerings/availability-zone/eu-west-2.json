@@ -6844,6 +6844,10 @@
   "Location": "eu-west-2c"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "eu-west-2c"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "eu-west-2c"
  },

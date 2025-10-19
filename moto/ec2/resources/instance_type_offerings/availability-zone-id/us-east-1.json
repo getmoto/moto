@@ -10300,6 +10300,10 @@
   "Location": "use1-az4"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "use1-az4"
+ },
+ {
   "InstanceType": "p4de.24xlarge",
   "Location": "use1-az4"
  },

@@ -9924,6 +9924,10 @@
   "Location": "us-east-2c"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "us-east-2c"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "us-east-2c"
  },
@@ -9937,6 +9941,10 @@
  },
  {
   "InstanceType": "p5en.48xlarge",
+  "Location": "us-east-2c"
+ },
+ {
+  "InstanceType": "p6-b200.48xlarge",
   "Location": "us-east-2c"
  },
  {

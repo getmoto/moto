@@ -9924,6 +9924,10 @@
   "Location": "use2-az3"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "use2-az3"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "use2-az3"
  },
@@ -9937,6 +9941,10 @@
  },
  {
   "InstanceType": "p5en.48xlarge",
+  "Location": "use2-az3"
+ },
+ {
+  "InstanceType": "p6-b200.48xlarge",
   "Location": "use2-az3"
  },
  {

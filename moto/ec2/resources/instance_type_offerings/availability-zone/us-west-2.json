@@ -14196,6 +14196,10 @@
   "Location": "us-west-2d"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "us-west-2d"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "us-west-2d"
  },

@@ -3120,6 +3120,10 @@
   "Location": "euc1-az1"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "euc1-az1"
+ },
+ {
   "InstanceType": "u7in-16tb.224xlarge",
   "Location": "euc1-az1"
  },
