@@ -43,6 +43,10 @@ class InstanceTrackerMeta(type):
 
 
 class BaseBackend:
+    region_name: str
+    account_id: str
+    partition: str
+
     def __init__(self, region_name: str, account_id: str):
         self.region_name = region_name
         self.account_id = account_id
