@@ -30,11 +30,7 @@ format:
 
 test-only:
 	rm -f .coverage
-	rm -rf cover
-	pytest -sv -rs --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
-	# https://github.com/aws/aws-xray-sdk-python/issues/196 - Run these tests separately without Coverage enabled
-	pytest -sv -rs ./tests/test_xray
-	MOTO_CALL_RESET_API=false pytest -sv --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS) --dist loadscope
+	MOTO_CALL_RESET_API=false pytest -sv -n auto tests --dist loadscope
 
 test: lint test-only
 
