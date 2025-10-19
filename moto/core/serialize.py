@@ -978,7 +978,9 @@ class DoublePassEncoder:
 
 class SqsQuerySerializer(QuerySerializer):
     """
-    Special handling of SQS query responses to escape special characters
+    Special handling of SQS Query protocol responses:
+        * support aws.protocols#awsQueryCompatible trait after switch to JSON protocol
+        * escape HTML entities within XML tag text
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
