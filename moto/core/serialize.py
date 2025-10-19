@@ -262,7 +262,7 @@ class ResponseSerializer:
         resp: ResponseDict,
         error: Exception,
     ) -> ResponseDict:
-        error_shape = get_error_model(error)
+        error_shape = get_error_model(error, self.service_model)
         serialized_error = self.MAP_TYPE()
         self._serialize_error_metadata(serialized_error, error, error_shape)
         return self._serialized_error_to_response(

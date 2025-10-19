@@ -51,31 +51,11 @@ class ErrorShape(StructureShape):
 
 
 class ErrorLookup:
-    def __init__(
-        self, code_to_error: dict[str, ErrorShape], service_model: ServiceModel
-    ) -> None:
+    def __init__(self, code_to_error: dict[str, ErrorShape]) -> None:
         self._code_to_error = code_to_error
-        self._service_id = service_model.metadata.get("serviceId")
 
-    def from_exception(self, exception: Exception) -> ErrorShape:
-        code = getattr(exception, "code", exception.__class__.__name__)
-        error = self._code_to_error.get(code)
-        if error is None:
-            if self._service_id and code not in COMMON_ERROR_CODES:
-                warning = f"{self._service_id} service model does not contain an error shape that matches code {code} from Exception({exception.__class__.__name__})"
-                warn(warning)
-            error = ErrorShape(
-                shape_name=exception.__class__.__name__,
-                shape_model={
-                    "exception": True,
-                    "type": "structure",
-                    "members": {},
-                    "error": {
-                        "code": code,
-                    },
-                },
-            )
-        return error
+    def from_code(self, code: str) -> ErrorShape | None:
+        return self._code_to_error.get(code)
 
 
 class ErrorLookupFactory:
@@ -105,14 +85,50 @@ class ErrorLookupFactory:
             code_to_shape[error_shape.error_code] = error_shape
             for error_code in error_shape.error_code_aliases:
                 code_to_shape[error_code] = error_shape
-        return ErrorLookup(code_to_shape, service_model)
+        return ErrorLookup(code_to_shape)
 
 
-def get_error_model(exception: Exception) -> ErrorShape:
+def get_exception_service_model(exception: Exception) -> ServiceModel | None:
     from moto.core.utils import get_service_model
 
-    service = exception.__module__.split(".")[1]
+    exception_module = exception.__module__
+    if not exception_module.startswith("moto"):
+        return None
+    service = exception_module.split(".")[1]
     service_model = get_service_model(service)
-    error_map = ErrorLookupFactory().for_service(service_model)
-    error_shape = error_map.from_exception(exception)
-    return error_shape
+    return service_model
+
+
+def get_error_model(
+    exception: Exception, default_service_model: ServiceModel
+) -> ErrorShape:
+    possible_service_models = [
+        default_service_model,
+        get_exception_service_model(exception),
+    ]
+    services_checked = []
+    code = getattr(exception, "code", exception.__class__.__name__)
+    error = None
+    for service_model in [sm for sm in possible_service_models if sm is not None]:
+        if (service_id := service_model.metadata.get("serviceId")) is not None:
+            services_checked.append(service_id)
+        error_map = ErrorLookupFactory().for_service(service_model)
+        error = error_map.from_code(code)
+        if error is not None:
+            break
+    if error is None:
+        if services_checked and code not in COMMON_ERROR_CODES:
+            warning = f"Exception({exception.__class__.__name__}) with code {code} does not match an eror shape in service models(s): {services_checked}"  # pragma: no cover
+            warn(warning)  # pragma: no cover
+        error = ErrorShape(
+            shape_name=exception.__class__.__name__,
+            shape_model={
+                "exception": True,
+                "type": "structure",
+                "members": {},
+                "error": {
+                    "code": code,
+                },
+            },
+        )
+    return error
