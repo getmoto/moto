@@ -26,9 +26,8 @@ class VPCLatticeResponse(BaseResponse):
         return json.dumps(service.to_dict())
 
     def get_service(self) -> str:
-        service = self.backend.get_service(
-            service_identifier=unquote(self._get_param("serviceIdentifier"))
-        )
+        path = unquote(self.path)
+        service = self.backend.get_service(service_identifier=path.split("/")[-1])
         return json.dumps(service.to_dict())
 
     def list_services(self) -> str:
@@ -54,12 +53,11 @@ class VPCLatticeResponse(BaseResponse):
         return json.dumps(sn.to_dict())
 
     def get_service_network(self) -> str:
-        service = self.backend.get_service_network(
-            service_network_identifier=unquote(
-                self._get_param("serviceNetworkIdentifier")
-            )
+        path = unquote(self.path)
+        service_network = self.backend.get_service_network(
+            service_network_identifier=path.split("/")[-1]
         )
-        return json.dumps(service.to_dict())
+        return json.dumps(service_network.to_dict())
 
     def list_service_networks(self) -> str:
         max_results = self._get_param("MaxResults")
@@ -113,7 +111,8 @@ class VPCLatticeResponse(BaseResponse):
         resource_arn = unquote(self._get_param("resourceArn"))
         tag_keys = self._get_param("tagKeys")
         self.backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
-        
+        return json.dumps({})
+
     def create_access_log_subscription(self) -> str:
         sub = self.backend.create_access_log_subscription(
             resourceIdentifier=self._get_param("resourceIdentifier"),

@@ -12,8 +12,6 @@ from moto.vpclattice.exceptions import (
     ValidationException,
 )
 
-from .exceptions import ResourceNotFoundException
-
 
 class VPCLatticeService(BaseModel):
     def __init__(
@@ -259,24 +257,10 @@ class VPCLatticeBackend(BaseBackend):
         return service
 
     def get_service(self, service_identifier: str) -> VPCLatticeService:
-        service = self._get_service_by_arn(service_identifier)
-        if service:
-            return service
-
-        service = self._get_service_by_id(service_identifier)
-        if service:
-            return service
-
-        raise ResourceNotFoundException(service_identifier)
-
-    def _get_service_by_id(self, service_id: str) -> Optional[VPCLatticeService]:
-        return self.services.get(service_id)
-
-    def _get_service_by_arn(self, service_arn: str) -> Optional[VPCLatticeService]:
-        for service in self.services.values():
-            if service.arn == service_arn:
-                return service
-        return None
+        service = self.services.get(service_identifier)
+        if not service:
+            raise ResourceNotFoundException(service_identifier)
+        return service
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_services(self) -> List[VPCLatticeService]:
@@ -309,28 +293,10 @@ class VPCLatticeBackend(BaseBackend):
     def get_service_network(
         self, service_network_identifier: str
     ) -> VPCLatticeServiceNetwork:
-        service = self._get_service_network_by_arn(service_network_identifier)
-        if service:
-            return service
-
-        service = self._get_service_network_by_id(service_network_identifier)
-        if service:
-            return service
-
-        raise ResourceNotFoundException(service_network_identifier)
-
-    def _get_service_network_by_id(
-        self, service_network_id: str
-    ) -> Optional[VPCLatticeServiceNetwork]:
-        return self.service_networks.get(service_network_id)
-
-    def _get_service_network_by_arn(
-        self, service_network_arn: str
-    ) -> Optional[VPCLatticeServiceNetwork]:
-        for service_network in self.service_networks.values():
-            if service_network.arn == service_network_arn:
-                return service_network
-        return None
+        service_network = self.service_networks.get(service_network_identifier)
+        if not service_network:
+            raise ResourceNotFoundException(service_network_identifier)
+        return service_network
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_service_networks(self) -> List[VPCLatticeServiceNetwork]:
@@ -395,6 +361,7 @@ class VPCLatticeBackend(BaseBackend):
         if not isinstance(tag_keys, list):
             tag_keys = [tag_keys]
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
     def create_access_log_subscription(
         self,
         resourceIdentifier: str,

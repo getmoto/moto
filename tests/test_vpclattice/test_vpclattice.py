@@ -27,11 +27,20 @@ def test_get_service():
 
     service_arn = resp["arn"]
     service_id = resp["id"]
-    service_by_arn = client.get_service(serviceIdentifier=service_arn)
-    assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
 
+    # lookup by id
     service_by_id = client.get_service(serviceIdentifier=service_id)
     assert service_by_id["id"].startswith("svc-")
+    assert service_by_id["status"] == "ACTIVE"
+    assert service_by_id["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+    assert service_by_id["dnsEntry"]["hostedZoneId"].startswith("Z")
+    assert service_by_id["authType"] == "NONE"
+    assert service_by_id["certificateArn"] == ""
+    assert service_by_id["customDomainName"] == ""
+
+    # lookup by arn
+    service_by_arn = client.get_service(serviceIdentifier=service_arn)
+    assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
 
 
 @mock_aws
@@ -82,11 +91,18 @@ def test_get_service_network():
 
     service_arn = resp["arn"]
     service_id = resp["id"]
+
+    # lookup by id
+    service_by_id = client.get_service_network(serviceNetworkIdentifier=service_id)
+    assert service_by_id["name"] == "my-sn"
+    assert service_by_id["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+    assert service_by_id["id"].startswith("sn-")
+    assert service_by_id["authType"] == "NONE"
+    assert service_by_id["sharingConfig"] == {"enabled": False}
+
+    # lookup by arn
     service_by_arn = client.get_service_network(serviceNetworkIdentifier=service_arn)
     assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
-
-    service_by_id = client.get_service_network(serviceNetworkIdentifier=service_id)
-    assert service_by_id["id"].startswith("sn-")
 
 
 @mock_aws
@@ -223,6 +239,9 @@ def test_untag_resource():
 
     returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
     assert returned_tags["tags"] == {"tag2": "value2"}
+
+
+@mock_aws
 def test_create_access_log_subscription():
     client = boto3.client("vpc-lattice", region_name="us-west-2")
 
