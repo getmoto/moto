@@ -17,7 +17,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: "3.11"
     - name: Get pip cache dir
@@ -36,7 +36,7 @@ jobs:
       run: |
         pip install -r requirements-dev.txt
     - name: Configure AWS
-      uses: aws-actions/configure-aws-credentials@v4
+      uses: aws-actions/configure-aws-credentials@v5
       with:
         aws-region: us-east-1
         role-to-assume: arn:aws:iam::682283128318:role/GithubActionsRole
@@ -45,4 +45,4 @@ jobs:
       env:
         MOTO_TEST_ALLOW_AWS_REQUEST: ${{ true }}
       run: |
-        pytest -sv -n auto --dist loadfile tests/test_applicationautoscaling/ tests/test_athena/ tests/test_cloudformation/ tests/test_dynamodb/ tests/test_ec2/ tests/test_events/ tests/test_iam/ tests/test_iot/ tests/test_lakeformation/ tests/test_logs/ tests/test_rds/ tests/test_sqs/ tests/test_ses/ tests/test_s3* tests/test_stepfunctions/ tests/test_sns/ tests/test_timestreamwrite/ -m aws_verified
+        pytest -sv -n auto --dist loadfile tests -m aws_verified --durations 100

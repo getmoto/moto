@@ -7,7 +7,6 @@ from uuid import uuid4
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from dateutil.tz import tzutc
 from freezegun import freeze_time
 
 from moto import mock_aws
@@ -1710,11 +1709,11 @@ def test_put_metric_alarm_with_percentile():
         == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
     assert alarm["AlarmDescription"] == "test alarm"
-    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["AlarmConfigurationUpdatedTimestamp"], datetime)
     assert alarm["ActionsEnabled"] is True
     assert alarm["StateValue"] == "OK"
     assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
-    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["StateUpdatedTimestamp"], datetime)
     assert alarm["MetricName"] == "5XXError"
     assert alarm["Namespace"] == "AWS/ApiGateway"
     assert alarm["ExtendedStatistic"] == "p90"
@@ -1781,10 +1780,10 @@ def test_put_metric_alarm_with_anomaly_detection():
         alarm["AlarmArn"]
         == f"arn:aws:cloudwatch:{region_name}:{ACCOUNT_ID}:alarm:{alarm_name}"
     )
-    assert alarm["AlarmConfigurationUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["AlarmConfigurationUpdatedTimestamp"], datetime)
     assert alarm["StateValue"] == "OK"
     assert alarm["StateReason"] == "Unchecked: Initial alarm creation"
-    assert alarm["StateUpdatedTimestamp"].tzinfo == tzutc()
+    assert isinstance(alarm["StateUpdatedTimestamp"], datetime)
     assert alarm["EvaluationPeriods"] == 2
     assert alarm["ComparisonOperator"] == "GreaterThanOrEqualToThreshold"
     assert alarm["Metrics"] == metrics
@@ -1943,11 +1942,15 @@ def test_get_metric_data_with_custom_label():
 
 
 @mock_aws
-def test_get_metric_data_queries():
-    """
-    verify that >= 10 queries can still be parsed
-    there was an error with the order of parsing items, leading to IndexError
-    """
+@pytest.mark.parametrize(
+    "return_data, expected_result_length",
+    [
+        pytest.param(True, 20, id="ReturnData=True"),
+        pytest.param(False, 0, id="ReturnData=False"),
+        pytest.param(None, 20, id="ReturnData=None"),
+    ],
+)
+def test_get_metric_data_queries(return_data, expected_result_length):
     now = utcnow().replace(microsecond=0)
     start_time = now - timedelta(minutes=10)
     end_time = now + timedelta(minutes=5)
@@ -1963,6 +1966,8 @@ def test_get_metric_data_queries():
             "Unit": "Percent",
         },
     }
+    if return_data is not None:
+        original_query["ReturnData"] = return_data
 
     queries = []
     for i in range(0, 20):
@@ -1975,9 +1980,7 @@ def test_get_metric_data_queries():
     response = boto3.client("cloudwatch", "eu-west-1").get_metric_data(
         StartTime=start_time, EndTime=end_time, MetricDataQueries=queries
     )
-
-    # we expect twenty results
-    assert len(response["MetricDataResults"]) == 20
+    assert len(response["MetricDataResults"]) == expected_result_length
 
 
 @mock_aws

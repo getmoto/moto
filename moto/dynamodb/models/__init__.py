@@ -829,11 +829,21 @@ class DynamoDBBackend(BaseBackend):
         """
         # We need to execute a statement - but we don't know which table
         # Just pass all tables to PartiQL
-        source_data: Dict[str, str] = dict()
+        source_data: dict[str, list[Any]] = dict()
         for table in self.tables.values():
             source_data[table.name] = [  # type: ignore
                 item.to_json()["Attributes"] for item in table.all_items()
             ]
+            for index in table.all_indexes():
+                source_data[f"{table.name}.{index.name}"] = [
+                    item.to_json()["Attributes"]
+                    for item in table.all_items()
+                    # Only add items that contain all index schema attributes
+                    if all(
+                        index_attr["AttributeName"] in item.attrs
+                        for index_attr in index.schema
+                    )
+                ]
 
         return_data, updates_per_table = partiql.query(
             statement, source_data, parameters

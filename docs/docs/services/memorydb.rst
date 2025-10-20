@@ -37,6 +37,8 @@ memorydb
 - [ ] describe_engine_versions
 - [ ] describe_events
 - [ ] describe_multi_region_clusters
+- [ ] describe_multi_region_parameter_groups
+- [ ] describe_multi_region_parameters
 - [ ] describe_parameter_groups
 - [ ] describe_parameters
 - [ ] describe_reserved_nodes

@@ -12,15 +12,11 @@ jobs:
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Start MotoServer
-      run: |
-        pip install build
-        python -m build
-        docker run --rm -t --name motoserver -e TEST_SERVER_MODE=true -e MOTO_EC2_LOAD_DEFAULT_AMIS=false -e AWS_SECRET_ACCESS_KEY=server_secret -e AWS_ACCESS_KEY_ID=server_key -v `pwd`:/moto -p 5000:5000 -v /var/run/docker.sock:/var/run/docker.sock python:${{ matrix.python-version }}-slim /moto/scripts/ci_moto_server.sh &
-        python scripts/ci_wait_for_server.py
+      uses: ./.github/actions/run_moto_server
     - name: Install CDK
       id: install-cdk
       run: |
@@ -43,3 +39,49 @@ jobs:
         cd cdk_example_app
         source .venv/bin/activate
         cdk bootstrap -v
+
+  find-jobs:
+    runs-on: ubuntu-latest
+    needs: cdk_start
+    name: Find Jobs
+    outputs:
+      folders: ${{ steps.set-folders.outputs.folders }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: set-folders
+        name: Get CDK Examples
+        shell: bash
+        run: |
+          cd other_langs/tests_cdk/
+          folders=$(tree -J -d -L 1 | jq -c '.[0].contents | map(.name)')
+          echo $folders
+          echo "folders=$folders" >> $GITHUB_OUTPUT
+
+  test:
+    runs-on: ubuntu-latest
+    needs: find-jobs
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.find-jobs.outputs.folders )}}
+
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.12"
+    - name: Start MotoServer
+      uses: ./.github/actions/run_moto_server
+    - name: Install Dependencies
+      run: |
+        pip install -r other_langs/tests_cdk/${{ matrix.service }}/requirements.txt
+    - name: Deploy Service ${{ matrix.service }}
+      env:
+        AWS_ENDPOINT_URL: "http://localhost:5000"
+      run: |
+        mkdir ~/.aws && touch ~/.aws/credentials && echo -e "[default]\naws_access_key_id = test\naws_secret_access_key = test" > ~/.aws/credentials
+        npm install -g aws-cdk
+        cd other_langs/tests_cdk/${{ matrix.service }}
+        cdk bootstrap
+        cdk deploy --require-approval never

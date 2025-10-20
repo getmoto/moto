@@ -346,3 +346,7 @@ class KinesisResponse(BaseResponse):
             resource_arn=resource_arn,
         )
         return json.dumps(dict())
+
+    def describe_limits(self) -> str:
+        limits = self.kinesis_backend.describe_limits()
+        return json.dumps(limits)

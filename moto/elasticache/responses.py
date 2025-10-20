@@ -48,7 +48,7 @@ class ElastiCacheResponse(BaseResponse):
             )
 
         if authentication_mode:
-            for key, _ in authentication_mode.original_items():
+            for key, _ in authentication_mode.items():
                 if key not in VALID_AUTH_MODE_KEYS:
                     raise InvalidParameterValueException(
                         f'Unknown parameter in AuthenticationMode: "{key}", must be one of: {", ".join(VALID_AUTH_MODE_KEYS)}'
@@ -184,8 +184,20 @@ class ElastiCacheResponse(BaseResponse):
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("ResourceName")
-        tags = self.elasticache_backend.list_tags_for_resource(arn)
-        return ActionResult({"TagList": tags})
+        result = self.elasticache_backend.list_tags_for_resource(arn)
+        return ActionResult({"TagList": result["Tags"]})
+
+    def add_tags_to_resource(self) -> ActionResult:
+        arn = self._get_param("ResourceName")
+        tags = self._get_param("Tags", [])
+        self.elasticache_backend.add_tags_to_resource(arn, tags)
+        return ActionResult({})
+
+    def remove_tags_from_resource(self) -> ActionResult:
+        arn = self._get_param("ResourceName")
+        tags = self._get_param("TagKeys", [])
+        self.elasticache_backend.remove_tags_from_resource(arn, tags)
+        return ActionResult({})
 
     def create_cache_subnet_group(self) -> ActionResult:
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
@@ -321,3 +333,48 @@ class ElastiCacheResponse(BaseResponse):
             retain_primary_cluster=retain_primary_cluster,
         )
         return ActionResult({"ReplicationGroup": replication_group})
+
+    def create_snapshot(self) -> ActionResult:
+        snapshot_name = self._get_param("SnapshotName")
+        replication_group_id = self._get_param("ReplicationGroupId")
+        cache_cluster_id = self._get_param("CacheClusterId")
+        kms_key_id = self._get_param("KmsKeyId")
+        tags = self._get_param("Tags", [])
+
+        snapshot = self.elasticache_backend.create_snapshot(
+            snapshot_name=snapshot_name,
+            replication_group_id=replication_group_id,
+            cache_cluster_id=cache_cluster_id,
+            kms_key_id=kms_key_id,
+            tags=tags,
+        )
+
+        return ActionResult({"Snapshot": snapshot})
+
+    def describe_snapshots(self) -> ActionResult:
+        snapshot_name = self._get_param("SnapshotName")
+        snapshot_source = self._get_param("SnapshotSource")
+        replication_group_id = self._get_param("ReplicationGroupId")
+        cache_cluster_id = self._get_param("CacheClusterId")
+        max_records = self._get_param("MaxRecords")
+        marker = self._get_param("Marker")
+
+        snapshots = self.elasticache_backend.describe_snapshots(
+            snapshot_name=snapshot_name,
+            snapshot_source=snapshot_source,
+            replication_group_id=replication_group_id,
+            cache_cluster_id=cache_cluster_id,
+            max_records=max_records,
+            marker=marker,
+        )
+
+        return ActionResult({"Snapshots": snapshots, "Marker": marker})
+
+    def delete_snapshot(self) -> ActionResult:
+        snapshot_name = self._get_param("SnapshotName")
+
+        snapshot = self.elasticache_backend.delete_snapshot(
+            snapshot_name=snapshot_name,
+        )
+
+        return ActionResult({"Snapshot": snapshot})

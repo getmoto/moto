@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.9, "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ 3.9, "3.10", "3.11", "3.12", "3.13", "3.14" ]
 
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get pip cache dir
@@ -42,11 +42,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.9, "3.10", "3.11", "3.12", "3.13"]
+        python-version: [3.9, "3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
     - uses: actions/checkout@v5
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     # Retrieve the previously cached dependencies
@@ -72,12 +72,45 @@ jobs:
         mkdir .mypy_cache
         make lint
 
-  clitest:
+  buildserver:
     needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+      # Retrieve the previously cached dependencies
+      - name: Get pip cache dir
+        id: pip-cache
+        run: |
+          echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+      - name: pip cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: pip-${{ matrix.python-version }}-${{ hashFiles('**/setup.cfg') }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          tags: motoserver/moto:local
+          outputs: type=docker,dest=/tmp/localimage.tar
+          push: false
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: localimage
+          path: /tmp/localimage.tar
+
+  clitest:
+    needs: buildserver
     uses: ./.github/workflows/tests_cli.yml
 
   cpptest:
-    needs: lint
+    needs: buildserver
     uses: ./.github/workflows/tests_sdk_cpp.yml
 
   sagemaker_client_test:
@@ -85,27 +118,27 @@ jobs:
     uses: ./.github/workflows/tests_sdk_sagemaker.yml
 
   javatest:
-    needs: lint
+    needs: buildserver
     uses: ./.github/workflows/tests_sdk_java.yml
 
   jstest:
-    needs: lint
+    needs: buildserver
     uses: ./.github/workflows/tests_sdk_js.yml
 
   dotnettest:
-    needs: lint
+    needs: buildserver
     uses: ./.github/workflows/tests_sdk_dotnet.yml
 
   rubytest:
-    needs: lint
+    needs: buildserver
     uses: ./.github/workflows/tests_sdk_ruby.yml
 
   gotest:
-    needs: lint
+    needs: buildserver
     uses: ./.github/workflows/tests_sdk_go.yml
 
   terraformexamplestest:
-    needs: lint
+    needs: buildserver
     uses: ./.github/workflows/tests_terraform_examples.yml
 
   test:
@@ -126,6 +159,6 @@ jobs:
     uses: ./.github/workflows/tests_proxymode.yml
 
   testcdk:
-    needs: [lint]
+    needs: [buildserver]
     if: "!contains(github.event.pull_request.labels.*.name, 'java')"
     uses: ./.github/workflows/tests_cdk.yml

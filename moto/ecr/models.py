@@ -552,8 +552,7 @@ class ECRBackend(BaseBackend):
         ]:
             raise InvalidParameterException(
                 "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
-                "must be one of 'MUTABLE', 'IMMUTABLE', 'MUTABLE_WITH_EXCLUSION', 'IMMUTABLE_WITH_EXCLUSION'",
-                400,
+                "must be one of 'MUTABLE', 'IMMUTABLE', 'MUTABLE_WITH_EXCLUSION', 'IMMUTABLE_WITH_EXCLUSION'"
             )
 
         # Validate imageTagMutabilityExclusionFilters
@@ -563,8 +562,7 @@ class ECRBackend(BaseBackend):
         if errmsg:
             raise InvalidParameterException(
                 f"Invalid parameter at 'imageTagMutabilityExclusionFilters' failed to satisfy constraint: "
-                f"{errmsg}",
-                400,
+                f"{errmsg}"
             )
 
         self.validate_image_tag_mutability_params_compatibility(

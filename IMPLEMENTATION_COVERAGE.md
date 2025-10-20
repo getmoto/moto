@@ -52,7 +52,7 @@
 
 ## amp
 <details>
-<summary>47% implemented</summary>
+<summary>43% implemented</summary>
 
 - [ ] create_alert_manager_definition
 - [X] create_logging_configuration
@@ -66,6 +66,7 @@
 - [ ] delete_resource_policy
 - [X] delete_rule_groups_namespace
 - [ ] delete_scraper
+- [ ] delete_scraper_logging_configuration
 - [X] delete_workspace
 - [ ] describe_alert_manager_definition
 - [X] describe_logging_configuration
@@ -73,6 +74,7 @@
 - [ ] describe_resource_policy
 - [X] describe_rule_groups_namespace
 - [ ] describe_scraper
+- [ ] describe_scraper_logging_configuration
 - [X] describe_workspace
 - [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
@@ -88,6 +90,7 @@
 - [X] update_logging_configuration
 - [ ] update_query_logging_configuration
 - [ ] update_scraper
+- [ ] update_scraper_logging_configuration
 - [X] update_workspace_alias
 - [ ] update_workspace_configuration
 </details>
@@ -511,7 +514,7 @@
 
 ## athena
 <details>
-<summary>29% implemented</summary>
+<summary>33% implemented</summary>
 
 - [ ] batch_get_named_query
 - [ ] batch_get_prepared_statement
@@ -551,7 +554,7 @@
 - [ ] import_notebook
 - [ ] list_application_dpu_sizes
 - [ ] list_calculation_executions
-- [ ] list_capacity_reservations
+- [X] list_capacity_reservations
 - [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
@@ -563,7 +566,7 @@
 - [X] list_query_executions
 - [ ] list_sessions
 - [ ] list_table_metadata
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] list_work_groups
 - [ ] put_capacity_assignment_configuration
 - [ ] start_calculation_execution
@@ -574,7 +577,7 @@
 - [ ] tag_resource
 - [ ] terminate_session
 - [ ] untag_resource
-- [ ] update_capacity_reservation
+- [X] update_capacity_reservation
 - [ ] update_data_catalog
 - [ ] update_named_query
 - [ ] update_notebook
@@ -1476,13 +1479,14 @@
 
 ## cloudwatch
 <details>
-<summary>52% implemented</summary>
+<summary>51% implemented</summary>
 
 - [X] delete_alarms
 - [ ] delete_anomaly_detector
 - [X] delete_dashboards
 - [X] delete_insight_rules
 - [ ] delete_metric_stream
+- [ ] describe_alarm_contributors
 - [ ] describe_alarm_history
 - [X] describe_alarms
 - [ ] describe_alarms_for_metric
@@ -1927,7 +1931,7 @@
 
 ## comprehend
 <details>
-<summary>30% implemented</summary>
+<summary>74% implemented</summary>
 
 - [ ] batch_detect_dominant_language
 - [ ] batch_detect_entities
@@ -1946,23 +1950,23 @@
 - [X] delete_endpoint
 - [X] delete_entity_recognizer
 - [X] delete_flywheel
-- [ ] delete_resource_policy
+- [X] delete_resource_policy
 - [ ] describe_dataset
-- [ ] describe_document_classification_job
+- [X] describe_document_classification_job
 - [X] describe_document_classifier
-- [ ] describe_dominant_language_detection_job
+- [X] describe_dominant_language_detection_job
 - [X] describe_endpoint
-- [ ] describe_entities_detection_job
+- [X] describe_entities_detection_job
 - [X] describe_entity_recognizer
-- [ ] describe_events_detection_job
+- [X] describe_events_detection_job
 - [X] describe_flywheel
 - [ ] describe_flywheel_iteration
-- [ ] describe_key_phrases_detection_job
-- [ ] describe_pii_entities_detection_job
-- [ ] describe_resource_policy
-- [ ] describe_sentiment_detection_job
-- [ ] describe_targeted_sentiment_detection_job
-- [ ] describe_topics_detection_job
+- [X] describe_key_phrases_detection_job
+- [X] describe_pii_entities_detection_job
+- [X] describe_resource_policy
+- [X] describe_sentiment_detection_job
+- [X] describe_targeted_sentiment_detection_job
+- [X] describe_topics_detection_job
 - [ ] detect_dominant_language
 - [ ] detect_entities
 - [X] detect_key_phrases
@@ -1973,41 +1977,41 @@
 - [ ] detect_toxic_content
 - [ ] import_model
 - [ ] list_datasets
-- [ ] list_document_classification_jobs
+- [X] list_document_classification_jobs
 - [ ] list_document_classifier_summaries
 - [X] list_document_classifiers
-- [ ] list_dominant_language_detection_jobs
+- [X] list_dominant_language_detection_jobs
 - [X] list_endpoints
-- [ ] list_entities_detection_jobs
+- [X] list_entities_detection_jobs
 - [ ] list_entity_recognizer_summaries
 - [X] list_entity_recognizers
-- [ ] list_events_detection_jobs
+- [X] list_events_detection_jobs
 - [ ] list_flywheel_iteration_history
 - [X] list_flywheels
-- [ ] list_key_phrases_detection_jobs
-- [ ] list_pii_entities_detection_jobs
-- [ ] list_sentiment_detection_jobs
+- [X] list_key_phrases_detection_jobs
+- [X] list_pii_entities_detection_jobs
+- [X] list_sentiment_detection_jobs
 - [X] list_tags_for_resource
-- [ ] list_targeted_sentiment_detection_jobs
-- [ ] list_topics_detection_jobs
-- [ ] put_resource_policy
-- [ ] start_document_classification_job
-- [ ] start_dominant_language_detection_job
-- [ ] start_entities_detection_job
-- [ ] start_events_detection_job
+- [X] list_targeted_sentiment_detection_jobs
+- [X] list_topics_detection_jobs
+- [X] put_resource_policy
+- [X] start_document_classification_job
+- [X] start_dominant_language_detection_job
+- [X] start_entities_detection_job
+- [X] start_events_detection_job
 - [X] start_flywheel_iteration
-- [ ] start_key_phrases_detection_job
-- [ ] start_pii_entities_detection_job
-- [ ] start_sentiment_detection_job
-- [ ] start_targeted_sentiment_detection_job
-- [ ] start_topics_detection_job
-- [ ] stop_dominant_language_detection_job
-- [ ] stop_entities_detection_job
-- [ ] stop_events_detection_job
-- [ ] stop_key_phrases_detection_job
-- [ ] stop_pii_entities_detection_job
-- [ ] stop_sentiment_detection_job
-- [ ] stop_targeted_sentiment_detection_job
+- [X] start_key_phrases_detection_job
+- [X] start_pii_entities_detection_job
+- [X] start_sentiment_detection_job
+- [X] start_targeted_sentiment_detection_job
+- [X] start_topics_detection_job
+- [X] stop_dominant_language_detection_job
+- [X] stop_entities_detection_job
+- [X] stop_events_detection_job
+- [X] stop_key_phrases_detection_job
+- [X] stop_pii_entities_detection_job
+- [X] stop_sentiment_detection_job
+- [X] stop_targeted_sentiment_detection_job
 - [X] stop_training_document_classifier
 - [X] stop_training_entity_recognizer
 - [X] tag_resource
@@ -2497,7 +2501,7 @@
 
 ## ds
 <details>
-<summary>29% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -2523,6 +2527,7 @@
 - [ ] deregister_certificate
 - [ ] deregister_event_topic
 - [ ] describe_ad_assessment
+- [ ] describe_ca_enrollment_policy
 - [ ] describe_certificate
 - [ ] describe_client_authentication_settings
 - [ ] describe_conditional_forwarders
@@ -2538,11 +2543,13 @@
 - [ ] describe_snapshots
 - [X] describe_trusts
 - [ ] describe_update_directory
+- [ ] disable_ca_enrollment_policy
 - [ ] disable_client_authentication
 - [ ] disable_directory_data_access
 - [X] disable_ldaps
 - [ ] disable_radius
 - [X] disable_sso
+- [ ] enable_ca_enrollment_policy
 - [ ] enable_client_authentication
 - [ ] enable_directory_data_access
 - [X] enable_ldaps
@@ -2742,6 +2749,8 @@
 - [ ] copy_fpga_image
 - [X] copy_image
 - [X] copy_snapshot
+- [ ] copy_volumes
+- [ ] create_capacity_manager_data_export
 - [ ] create_capacity_reservation
 - [ ] create_capacity_reservation_by_splitting
 - [ ] create_capacity_reservation_fleet
@@ -2760,6 +2769,7 @@
 - [X] create_flow_logs
 - [ ] create_fpga_image
 - [X] create_image
+- [ ] create_image_usage_report
 - [ ] create_instance_connect_endpoint
 - [ ] create_instance_event_window
 - [ ] create_instance_export_task
@@ -2834,6 +2844,7 @@
 - [X] create_vpn_connection
 - [ ] create_vpn_connection_route
 - [X] create_vpn_gateway
+- [ ] delete_capacity_manager_data_export
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
 - [ ] delete_client_vpn_route
@@ -2845,6 +2856,7 @@
 - [X] delete_fleets
 - [X] delete_flow_logs
 - [ ] delete_fpga_image
+- [ ] delete_image_usage_report
 - [ ] delete_instance_connect_endpoint
 - [ ] delete_instance_event_window
 - [X] delete_internet_gateway
@@ -2937,6 +2949,7 @@
 - [ ] describe_capacity_block_offerings
 - [ ] describe_capacity_block_status
 - [ ] describe_capacity_blocks
+- [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
@@ -2971,6 +2984,9 @@
 - [ ] describe_id_format
 - [ ] describe_identity_id_format
 - [X] describe_image_attribute
+- [ ] describe_image_references
+- [ ] describe_image_usage_report_entries
+- [ ] describe_image_usage_reports
 - [X] describe_images
 - [ ] describe_import_image_tasks
 - [ ] describe_import_snapshot_tasks
@@ -3101,6 +3117,7 @@
 - [ ] disable_address_transfer
 - [ ] disable_allowed_images_settings
 - [ ] disable_aws_network_performance_metric_subscription
+- [ ] disable_capacity_manager
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -3137,6 +3154,7 @@
 - [ ] enable_address_transfer
 - [ ] enable_allowed_images_settings
 - [ ] enable_aws_network_performance_metric_subscription
+- [ ] enable_capacity_manager
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
@@ -3164,6 +3182,9 @@
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
 - [ ] get_aws_network_performance_data
+- [ ] get_capacity_manager_attributes
+- [ ] get_capacity_manager_metric_data
+- [ ] get_capacity_manager_metric_dimensions
 - [ ] get_capacity_reservation_usage
 - [ ] get_coip_pool_usage
 - [ ] get_console_output
@@ -3368,6 +3389,7 @@
 - [ ] unassign_private_nat_gateway_address
 - [ ] unlock_snapshot
 - [ ] unmonitor_instances
+- [ ] update_capacity_manager_organizations_access
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
 - [ ] withdraw_byoip_cidr
@@ -3541,7 +3563,7 @@
 
 ## eks
 <details>
-<summary>26% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] associate_access_policy
 - [ ] associate_encryption_config
@@ -3571,6 +3593,7 @@
 - [X] describe_fargate_profile
 - [ ] describe_identity_provider_config
 - [ ] describe_insight
+- [ ] describe_insights_refresh
 - [X] describe_nodegroup
 - [ ] describe_pod_identity_association
 - [ ] describe_update
@@ -3590,11 +3613,12 @@
 - [X] list_tags_for_resource
 - [ ] list_updates
 - [ ] register_cluster
+- [ ] start_insights_refresh
 - [X] tag_resource
 - [X] untag_resource
 - [ ] update_access_entry
 - [ ] update_addon
-- [ ] update_cluster_config
+- [X] update_cluster_config
 - [ ] update_cluster_version
 - [ ] update_eks_anywhere_subscription
 - [ ] update_nodegroup_config
@@ -3604,9 +3628,9 @@
 
 ## elasticache
 <details>
-<summary>14% implemented</summary>
+<summary>22% implemented</summary>
 
-- [ ] add_tags_to_resource
+- [X] add_tags_to_resource
 - [ ] authorize_cache_security_group_ingress
 - [ ] batch_apply_update_action
 - [ ] batch_stop_update_action
@@ -3621,7 +3645,7 @@
 - [X] create_replication_group
 - [ ] create_serverless_cache
 - [ ] create_serverless_cache_snapshot
-- [ ] create_snapshot
+- [X] create_snapshot
 - [X] create_user
 - [ ] create_user_group
 - [ ] decrease_node_groups_in_global_replication_group
@@ -3631,10 +3655,10 @@
 - [ ] delete_cache_security_group
 - [ ] delete_cache_subnet_group
 - [ ] delete_global_replication_group
-- [ ] delete_replication_group
+- [X] delete_replication_group
 - [ ] delete_serverless_cache
 - [ ] delete_serverless_cache_snapshot
-- [ ] delete_snapshot
+- [X] delete_snapshot
 - [X] delete_user
 - [ ] delete_user_group
 - [X] describe_cache_clusters
@@ -3652,7 +3676,7 @@
 - [ ] describe_serverless_cache_snapshots
 - [ ] describe_serverless_caches
 - [ ] describe_service_updates
-- [ ] describe_snapshots
+- [X] describe_snapshots
 - [ ] describe_update_actions
 - [ ] describe_user_groups
 - [X] describe_users
@@ -3675,7 +3699,7 @@
 - [ ] purchase_reserved_cache_nodes_offering
 - [ ] rebalance_slots_in_global_replication_group
 - [ ] reboot_cache_cluster
-- [ ] remove_tags_from_resource
+- [X] remove_tags_from_resource
 - [ ] reset_cache_parameter_group
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
@@ -3970,7 +3994,7 @@
 
 ## es
 <details>
-<summary>15% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] accept_inbound_cross_cluster_search_connection
 - [X] add_tags
@@ -3991,7 +4015,7 @@
 - [ ] describe_domain_auto_tunes
 - [ ] describe_domain_change_progress
 - [X] describe_elasticsearch_domain
-- [ ] describe_elasticsearch_domain_config
+- [X] describe_elasticsearch_domain_config
 - [X] describe_elasticsearch_domains
 - [ ] describe_elasticsearch_instance_type_limits
 - [ ] describe_inbound_cross_cluster_search_connections
@@ -4270,7 +4294,7 @@
 
 ## glue
 <details>
-<summary>30% implemented</summary>
+<summary>35% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -4323,7 +4347,7 @@
 - [X] create_trigger
 - [ ] create_usage_profile
 - [ ] create_user_defined_function
-- [ ] create_workflow
+- [X] create_workflow
 - [ ] delete_blueprint
 - [ ] delete_catalog
 - [ ] delete_classifier
@@ -4335,7 +4359,7 @@
 - [ ] delete_custom_entity_type
 - [ ] delete_data_quality_ruleset
 - [X] delete_database
-- [ ] delete_dev_endpoint
+- [X] delete_dev_endpoint
 - [ ] delete_glue_identity_center_configuration
 - [ ] delete_integration
 - [ ] delete_integration_table_properties
@@ -4355,7 +4379,7 @@
 - [X] delete_trigger
 - [ ] delete_usage_profile
 - [ ] delete_user_defined_function
-- [ ] delete_workflow
+- [X] delete_workflow
 - [ ] describe_connection_type
 - [ ] describe_entity
 - [ ] describe_inbound_integrations
@@ -4434,16 +4458,16 @@
 - [ ] get_usage_profile
 - [ ] get_user_defined_function
 - [ ] get_user_defined_functions
-- [ ] get_workflow
-- [ ] get_workflow_run
-- [ ] get_workflow_run_properties
-- [ ] get_workflow_runs
+- [X] get_workflow
+- [X] get_workflow_run
+- [X] get_workflow_run_properties
+- [X] get_workflow_runs
 - [ ] import_catalog_to_glue
 - [ ] list_blueprints
 - [ ] list_column_statistics_task_runs
 - [ ] list_connection_types
 - [X] list_crawlers
-- [ ] list_crawls
+- [X] list_crawls
 - [ ] list_custom_entity_types
 - [ ] list_data_quality_results
 - [ ] list_data_quality_rule_recommendation_runs
@@ -4463,13 +4487,13 @@
 - [ ] list_table_optimizer_runs
 - [X] list_triggers
 - [ ] list_usage_profiles
-- [ ] list_workflows
+- [X] list_workflows
 - [ ] modify_integration
 - [X] put_data_catalog_encryption_settings
 - [ ] put_data_quality_profile_annotation
 - [X] put_resource_policy
 - [X] put_schema_version_metadata
-- [ ] put_workflow_run_properties
+- [X] put_workflow_run_properties
 - [ ] query_schema_version_metadata
 - [X] register_schema_version
 - [ ] remove_schema_version_metadata
@@ -4490,14 +4514,14 @@
 - [ ] start_ml_evaluation_task_run
 - [ ] start_ml_labeling_set_generation_task_run
 - [X] start_trigger
-- [ ] start_workflow_run
+- [X] start_workflow_run
 - [ ] stop_column_statistics_task_run
 - [ ] stop_column_statistics_task_run_schedule
 - [X] stop_crawler
 - [ ] stop_crawler_schedule
 - [X] stop_session
 - [X] stop_trigger
-- [ ] stop_workflow_run
+- [X] stop_workflow_run
 - [X] tag_resource
 - [ ] test_connection
 - [X] untag_resource
@@ -4528,7 +4552,7 @@
 - [ ] update_trigger
 - [ ] update_usage_profile
 - [ ] update_user_defined_function
-- [ ] update_workflow
+- [X] update_workflow
 </details>
 
 ## greengrass
@@ -4891,7 +4915,7 @@
 
 ## identitystore
 <details>
-<summary>68% implemented</summary>
+<summary>73% implemented</summary>
 
 - [X] create_group
 - [X] create_group_membership
@@ -4904,7 +4928,7 @@
 - [X] describe_user
 - [X] get_group_id
 - [ ] get_group_membership_id
-- [ ] get_user_id
+- [X] get_user_id
 - [ ] is_member_in_groups
 - [X] list_group_memberships
 - [X] list_group_memberships_for_member
@@ -4997,10 +5021,10 @@
 
 ## iot
 <details>
-<summary>33% implemented</summary>
+<summary>36% implemented</summary>
 
 - [ ] accept_certificate_transfer
-- [ ] add_thing_to_billing_group
+- [X] add_thing_to_billing_group
 - [X] add_thing_to_thing_group
 - [ ] associate_sbom_with_package_version
 - [ ] associate_targets_with_job
@@ -5018,7 +5042,7 @@
 - [ ] confirm_topic_rule_destination
 - [ ] create_audit_suppression
 - [ ] create_authorizer
-- [ ] create_billing_group
+- [X] create_billing_group
 - [X] create_certificate_from_csr
 - [ ] create_certificate_provider
 - [ ] create_command
@@ -5051,7 +5075,7 @@
 - [ ] delete_account_audit_configuration
 - [ ] delete_audit_suppression
 - [ ] delete_authorizer
-- [ ] delete_billing_group
+- [X] delete_billing_group
 - [X] delete_ca_certificate
 - [X] delete_certificate
 - [ ] delete_certificate_provider
@@ -5091,7 +5115,7 @@
 - [ ] describe_audit_suppression
 - [ ] describe_audit_task
 - [ ] describe_authorizer
-- [ ] describe_billing_group
+- [X] describe_billing_group
 - [X] describe_ca_certificate
 - [X] describe_certificate
 - [ ] describe_certificate_provider
@@ -5157,7 +5181,7 @@
 - [ ] list_audit_suppressions
 - [ ] list_audit_tasks
 - [ ] list_authorizers
-- [ ] list_billing_groups
+- [X] list_billing_groups
 - [ ] list_ca_certificates
 - [ ] list_certificate_providers
 - [X] list_certificates
@@ -5208,7 +5232,7 @@
 - [ ] list_thing_registration_tasks
 - [X] list_thing_types
 - [X] list_things
-- [ ] list_things_in_billing_group
+- [X] list_things_in_billing_group
 - [X] list_things_in_thing_group
 - [ ] list_topic_rule_destinations
 - [X] list_topic_rules
@@ -5220,7 +5244,7 @@
 - [X] register_certificate_without_ca
 - [ ] register_thing
 - [ ] reject_certificate_transfer
-- [ ] remove_thing_from_billing_group
+- [X] remove_thing_from_billing_group
 - [X] remove_thing_from_thing_group
 - [X] replace_topic_rule
 - [X] search_index
@@ -5242,7 +5266,7 @@
 - [ ] update_account_audit_configuration
 - [ ] update_audit_suppression
 - [ ] update_authorizer
-- [ ] update_billing_group
+- [X] update_billing_group
 - [X] update_ca_certificate
 - [X] update_certificate
 - [ ] update_certificate_provider
@@ -5388,7 +5412,7 @@
 
 ## kinesis
 <details>
-<summary>85% implemented</summary>
+<summary>88% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -5396,7 +5420,7 @@
 - [X] delete_resource_policy
 - [X] delete_stream
 - [X] deregister_stream_consumer
-- [ ] describe_limits
+- [X] describe_limits
 - [X] describe_stream
 - [X] describe_stream_consumer
 - [X] describe_stream_summary
@@ -5918,6 +5942,93 @@
 - [ ] update_log_anomaly_detector
 </details>
 
+## macie2
+<details>
+<summary>16% implemented</summary>
+
+- [X] accept_invitation
+- [ ] batch_get_custom_data_identifiers
+- [ ] batch_update_automated_discovery_accounts
+- [ ] create_allow_list
+- [ ] create_classification_job
+- [ ] create_custom_data_identifier
+- [ ] create_findings_filter
+- [X] create_invitations
+- [ ] create_member
+- [ ] create_sample_findings
+- [X] decline_invitations
+- [ ] delete_allow_list
+- [ ] delete_custom_data_identifier
+- [ ] delete_findings_filter
+- [ ] delete_invitations
+- [X] delete_member
+- [ ] describe_buckets
+- [ ] describe_classification_job
+- [ ] describe_organization_configuration
+- [X] disable_macie
+- [ ] disable_organization_admin_account
+- [ ] disassociate_from_administrator_account
+- [ ] disassociate_from_master_account
+- [X] disassociate_member
+- [X] enable_macie
+- [X] enable_organization_admin_account
+- [X] get_administrator_account
+- [ ] get_allow_list
+- [ ] get_automated_discovery_configuration
+- [ ] get_bucket_statistics
+- [ ] get_classification_export_configuration
+- [ ] get_classification_scope
+- [ ] get_custom_data_identifier
+- [ ] get_finding_statistics
+- [ ] get_findings
+- [ ] get_findings_filter
+- [ ] get_findings_publication_configuration
+- [ ] get_invitations_count
+- [X] get_macie_session
+- [ ] get_master_account
+- [ ] get_member
+- [ ] get_resource_profile
+- [ ] get_reveal_configuration
+- [ ] get_sensitive_data_occurrences
+- [ ] get_sensitive_data_occurrences_availability
+- [ ] get_sensitivity_inspection_template
+- [ ] get_usage_statistics
+- [ ] get_usage_totals
+- [ ] list_allow_lists
+- [ ] list_automated_discovery_accounts
+- [ ] list_classification_jobs
+- [ ] list_classification_scopes
+- [ ] list_custom_data_identifiers
+- [ ] list_findings
+- [ ] list_findings_filters
+- [X] list_invitations
+- [ ] list_managed_data_identifiers
+- [X] list_members
+- [X] list_organization_admin_accounts
+- [ ] list_resource_profile_artifacts
+- [ ] list_resource_profile_detections
+- [ ] list_sensitivity_inspection_templates
+- [ ] list_tags_for_resource
+- [ ] put_classification_export_configuration
+- [ ] put_findings_publication_configuration
+- [ ] search_resources
+- [ ] tag_resource
+- [ ] test_custom_data_identifier
+- [ ] untag_resource
+- [ ] update_allow_list
+- [ ] update_automated_discovery_configuration
+- [ ] update_classification_job
+- [ ] update_classification_scope
+- [ ] update_findings_filter
+- [ ] update_macie_session
+- [ ] update_member_session
+- [ ] update_organization_configuration
+- [ ] update_resource_profile
+- [ ] update_resource_profile_detections
+- [ ] update_reveal_configuration
+- [ ] update_sensitivity_inspection_template
+</details>
+
 ## managedblockchain
 <details>
 <summary>74% implemented</summary>
@@ -6160,6 +6271,42 @@
 - [X] update_origin_endpoint
 </details>
 
+## mediapackagev2
+<details>
+<summary>23% implemented</summary>
+
+- [ ] cancel_harvest_job
+- [X] create_channel
+- [X] create_channel_group
+- [ ] create_harvest_job
+- [ ] create_origin_endpoint
+- [X] delete_channel
+- [X] delete_channel_group
+- [ ] delete_channel_policy
+- [ ] delete_origin_endpoint
+- [ ] delete_origin_endpoint_policy
+- [X] get_channel
+- [X] get_channel_group
+- [ ] get_channel_policy
+- [ ] get_harvest_job
+- [ ] get_origin_endpoint
+- [ ] get_origin_endpoint_policy
+- [X] list_channel_groups
+- [ ] list_channels
+- [ ] list_harvest_jobs
+- [ ] list_origin_endpoints
+- [ ] list_tags_for_resource
+- [ ] put_channel_policy
+- [ ] put_origin_endpoint_policy
+- [ ] reset_channel_state
+- [ ] reset_origin_endpoint_state
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_channel
+- [ ] update_channel_group
+- [ ] update_origin_endpoint
+</details>
+
 ## mediastore
 <details>
 <summary>52% implemented</summary>
@@ -6200,7 +6347,7 @@
 
 ## memorydb
 <details>
-<summary>30% implemented</summary>
+<summary>28% implemented</summary>
 
 - [ ] batch_update_cluster
 - [ ] copy_snapshot
@@ -6223,6 +6370,8 @@
 - [ ] describe_engine_versions
 - [ ] describe_events
 - [ ] describe_multi_region_clusters
+- [ ] describe_multi_region_parameter_groups
+- [ ] describe_multi_region_parameters
 - [ ] describe_parameter_groups
 - [ ] describe_parameters
 - [ ] describe_reserved_nodes
@@ -6649,86 +6798,6 @@
 - [ ] update_vpc_endpoint
 </details>
 
-## opsworks
-<details>
-<summary>12% implemented</summary>
-
-- [ ] assign_instance
-- [ ] assign_volume
-- [ ] associate_elastic_ip
-- [ ] attach_elastic_load_balancer
-- [ ] clone_stack
-- [X] create_app
-- [ ] create_deployment
-- [X] create_instance
-- [X] create_layer
-- [X] create_stack
-- [ ] create_user_profile
-- [ ] delete_app
-- [ ] delete_instance
-- [ ] delete_layer
-- [ ] delete_stack
-- [ ] delete_user_profile
-- [ ] deregister_ecs_cluster
-- [ ] deregister_elastic_ip
-- [ ] deregister_instance
-- [ ] deregister_rds_db_instance
-- [ ] deregister_volume
-- [ ] describe_agent_versions
-- [X] describe_apps
-- [ ] describe_commands
-- [ ] describe_deployments
-- [ ] describe_ecs_clusters
-- [ ] describe_elastic_ips
-- [ ] describe_elastic_load_balancers
-- [X] describe_instances
-- [X] describe_layers
-- [ ] describe_load_based_auto_scaling
-- [ ] describe_my_user_profile
-- [ ] describe_operating_systems
-- [ ] describe_permissions
-- [ ] describe_raid_arrays
-- [ ] describe_rds_db_instances
-- [ ] describe_service_errors
-- [ ] describe_stack_provisioning_parameters
-- [ ] describe_stack_summary
-- [X] describe_stacks
-- [ ] describe_time_based_auto_scaling
-- [ ] describe_user_profiles
-- [ ] describe_volumes
-- [ ] detach_elastic_load_balancer
-- [ ] disassociate_elastic_ip
-- [ ] get_hostname_suggestion
-- [ ] grant_access
-- [ ] list_tags
-- [ ] reboot_instance
-- [ ] register_ecs_cluster
-- [ ] register_elastic_ip
-- [ ] register_instance
-- [ ] register_rds_db_instance
-- [ ] register_volume
-- [ ] set_load_based_auto_scaling
-- [ ] set_permission
-- [ ] set_time_based_auto_scaling
-- [X] start_instance
-- [ ] start_stack
-- [ ] stop_instance
-- [ ] stop_stack
-- [ ] tag_resource
-- [ ] unassign_instance
-- [ ] unassign_volume
-- [ ] untag_resource
-- [ ] update_app
-- [ ] update_elastic_ip
-- [ ] update_instance
-- [ ] update_layer
-- [ ] update_my_user_profile
-- [ ] update_rds_db_instance
-- [ ] update_stack
-- [ ] update_user_profile
-- [ ] update_volume
-</details>
-
 ## organizations
 <details>
 <summary>71% implemented</summary>
@@ -6794,16 +6863,24 @@
 
 ## osis
 <details>
-<summary>71% implemented</summary>
+<summary>45% implemented</summary>
 
 - [X] create_pipeline
+- [ ] create_pipeline_endpoint
 - [X] delete_pipeline
+- [ ] delete_pipeline_endpoint
+- [ ] delete_resource_policy
 - [X] get_pipeline
 - [ ] get_pipeline_blueprint
 - [ ] get_pipeline_change_progress
+- [ ] get_resource_policy
 - [ ] list_pipeline_blueprints
+- [ ] list_pipeline_endpoint_connections
+- [ ] list_pipeline_endpoints
 - [X] list_pipelines
 - [X] list_tags_for_resource
+- [ ] put_resource_policy
+- [ ] revoke_pipeline_endpoint_connections
 - [X] start_pipeline
 - [X] stop_pipeline
 - [X] tag_resource
@@ -7100,19 +7177,20 @@
 
 ## quicksight
 <details>
-<summary>11% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] batch_create_topic_reviewed_answer
 - [ ] batch_delete_topic_reviewed_answer
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
+- [ ] create_action_connector
 - [ ] create_analysis
 - [ ] create_brand
 - [ ] create_custom_permissions
 - [X] create_dashboard
 - [X] create_data_set
-- [ ] create_data_source
+- [X] create_data_source
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
@@ -7129,8 +7207,10 @@
 - [ ] create_topic
 - [ ] create_topic_refresh_schedule
 - [ ] create_vpc_connection
+- [ ] delete_account_custom_permission
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
+- [ ] delete_action_connector
 - [ ] delete_analysis
 - [ ] delete_brand
 - [ ] delete_brand_assignment
@@ -7138,7 +7218,7 @@
 - [ ] delete_dashboard
 - [ ] delete_data_set
 - [ ] delete_data_set_refresh_properties
-- [ ] delete_data_source
+- [X] delete_data_source
 - [ ] delete_default_q_business_application
 - [ ] delete_folder
 - [ ] delete_folder_membership
@@ -7160,9 +7240,12 @@
 - [ ] delete_user_by_principal_id
 - [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
+- [ ] describe_account_custom_permission
 - [ ] describe_account_customization
 - [X] describe_account_settings
 - [ ] describe_account_subscription
+- [ ] describe_action_connector
+- [ ] describe_action_connector_permissions
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
@@ -7181,7 +7264,7 @@
 - [ ] describe_data_set
 - [ ] describe_data_set_permissions
 - [ ] describe_data_set_refresh_properties
-- [ ] describe_data_source
+- [X] describe_data_source
 - [ ] describe_data_source_permissions
 - [ ] describe_default_q_business_application
 - [ ] describe_folder
@@ -7215,7 +7298,10 @@
 - [ ] generate_embed_url_for_registered_user
 - [ ] generate_embed_url_for_registered_user_with_identity
 - [ ] get_dashboard_embed_url
+- [ ] get_flow_metadata
+- [ ] get_flow_permissions
 - [ ] get_session_embed_url
+- [ ] list_action_connectors
 - [ ] list_analyses
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
@@ -7224,7 +7310,8 @@
 - [ ] list_dashboard_versions
 - [X] list_dashboards
 - [ ] list_data_sets
-- [ ] list_data_sources
+- [X] list_data_sources
+- [ ] list_flows
 - [ ] list_folder_members
 - [ ] list_folders
 - [ ] list_folders_for_resource
@@ -7237,7 +7324,7 @@
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
 - [ ] list_templates
@@ -7254,10 +7341,12 @@
 - [ ] put_data_set_refresh_properties
 - [X] register_user
 - [ ] restore_analysis
+- [ ] search_action_connectors
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_data_sets
 - [ ] search_data_sources
+- [ ] search_flows
 - [ ] search_folders
 - [X] search_groups
 - [ ] search_topics
@@ -7265,10 +7354,13 @@
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
 - [ ] start_dashboard_snapshot_job_schedule
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_account_custom_permission
 - [ ] update_account_customization
 - [X] update_account_settings
+- [ ] update_action_connector
+- [ ] update_action_connector_permissions
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_application_with_token_exchange_grant
@@ -7283,9 +7375,10 @@
 - [ ] update_dashboards_qa_configuration
 - [ ] update_data_set
 - [ ] update_data_set_permissions
-- [ ] update_data_source
+- [X] update_data_source
 - [ ] update_data_source_permissions
 - [ ] update_default_q_business_application
+- [ ] update_flow_permissions
 - [ ] update_folder
 - [ ] update_folder_permissions
 - [X] update_group
@@ -7536,7 +7629,7 @@
 
 ## redshift
 <details>
-<summary>23% implemented</summary>
+<summary>25% implemented</summary>
 
 - [ ] accept_reserved_node_exchange
 - [ ] add_partner
@@ -7593,7 +7686,7 @@
 - [ ] describe_authentication_profiles
 - [ ] describe_cluster_db_revisions
 - [X] describe_cluster_parameter_groups
-- [ ] describe_cluster_parameters
+- [X] describe_cluster_parameters
 - [X] describe_cluster_security_groups
 - [X] describe_cluster_snapshots
 - [X] describe_cluster_subnet_groups
@@ -7604,7 +7697,7 @@
 - [ ] describe_data_shares
 - [ ] describe_data_shares_for_consumer
 - [ ] describe_data_shares_for_producer
-- [ ] describe_default_cluster_parameters
+- [X] describe_default_cluster_parameters
 - [ ] describe_endpoint_access
 - [ ] describe_endpoint_authorization
 - [ ] describe_event_categories
@@ -7877,7 +7970,7 @@
 
 ## resourcegroupstaggingapi
 <details>
-<summary>50% implemented</summary>
+<summary>62% implemented</summary>
 
 - [ ] describe_report_creation
 - [ ] get_compliance_summary
@@ -7886,7 +7979,7 @@
 - [X] get_tag_values
 - [ ] start_report_creation
 - [X] tag_resources
-- [ ] untag_resources
+- [X] untag_resources
 </details>
 
 ## robomaker
@@ -8144,7 +8237,7 @@
 
 ## s3
 <details>
-<summary>68% implemented</summary>
+<summary>70% implemented</summary>
 
 - [X] abort_multipart_upload
 - [X] complete_multipart_upload
@@ -8181,7 +8274,7 @@
 - [ ] get_bucket_intelligent_tiering_configuration
 - [X] get_bucket_inventory_configuration
 - [X] get_bucket_lifecycle
-- [ ] get_bucket_lifecycle_configuration
+- [X] get_bucket_lifecycle_configuration
 - [X] get_bucket_location
 - [X] get_bucket_logging
 - [ ] get_bucket_metadata_configuration
@@ -8227,7 +8320,7 @@
 - [ ] put_bucket_intelligent_tiering_configuration
 - [X] put_bucket_inventory_configuration
 - [X] put_bucket_lifecycle
-- [ ] put_bucket_lifecycle_configuration
+- [X] put_bucket_lifecycle_configuration
 - [X] put_bucket_logging
 - [ ] put_bucket_metrics_configuration
 - [ ] put_bucket_notification
@@ -8260,7 +8353,7 @@
 
 ## s3control
 <details>
-<summary>13% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] associate_access_grants_identity_center
 - [ ] create_access_grant
@@ -8322,12 +8415,12 @@
 - [ ] get_multi_region_access_point_routes
 - [X] get_public_access_block
 - [X] get_storage_lens_configuration
-- [ ] get_storage_lens_configuration_tagging
+- [X] get_storage_lens_configuration_tagging
 - [ ] get_storage_lens_group
 - [ ] list_access_grants
 - [ ] list_access_grants_instances
 - [ ] list_access_grants_locations
-- [ ] list_access_points
+- [X] list_access_points
 - [ ] list_access_points_for_directory_buckets
 - [ ] list_access_points_for_object_lambda
 - [ ] list_caller_access_grants
@@ -8351,7 +8444,7 @@
 - [ ] put_multi_region_access_point_policy
 - [X] put_public_access_block
 - [X] put_storage_lens_configuration
-- [ ] put_storage_lens_configuration_tagging
+- [X] put_storage_lens_configuration_tagging
 - [ ] submit_multi_region_access_point_routes
 - [ ] tag_resource
 - [ ] untag_resource
@@ -8854,7 +8947,7 @@
 
 ## securityhub
 <details>
-<summary>5% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] accept_administrator_invitation
 - [ ] accept_invitation
@@ -8892,7 +8985,7 @@
 - [ ] delete_invitations
 - [ ] delete_members
 - [ ] describe_action_targets
-- [ ] describe_hub
+- [X] describe_hub
 - [X] describe_organization_configuration
 - [ ] describe_products
 - [ ] describe_products_v2
@@ -8901,14 +8994,14 @@
 - [ ] describe_standards_controls
 - [ ] disable_import_findings_for_product
 - [ ] disable_organization_admin_account
-- [ ] disable_security_hub
+- [X] disable_security_hub
 - [ ] disable_security_hub_v2
 - [ ] disassociate_from_administrator_account
 - [ ] disassociate_from_master_account
 - [ ] disassociate_members
 - [ ] enable_import_findings_for_product
 - [X] enable_organization_admin_account
-- [ ] enable_security_hub
+- [X] enable_security_hub
 - [ ] enable_security_hub_v2
 - [X] get_administrator_account
 - [ ] get_aggregator_v2
@@ -8965,13 +9058,14 @@
 
 ## service-quotas
 <details>
-<summary>10% implemented</summary>
+<summary>8% implemented</summary>
 
 - [ ] associate_service_quota_template
 - [ ] create_support_case
 - [ ] delete_service_quota_increase_request_from_template
 - [ ] disassociate_service_quota_template
 - [ ] get_association_for_service_quota_template
+- [ ] get_auto_management_configuration
 - [ ] get_aws_default_service_quota
 - [ ] get_requested_service_quota_change
 - [X] get_service_quota
@@ -8985,8 +9079,11 @@
 - [ ] list_tags_for_resource
 - [ ] put_service_quota_increase_request_into_template
 - [ ] request_service_quota_increase
+- [ ] start_auto_management
+- [ ] stop_auto_management
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_auto_management
 </details>
 
 ## servicecatalog
@@ -9087,7 +9184,7 @@
 
 ## servicecatalog-appregistry
 <details>
-<summary>12% implemented</summary>
+<summary>20% implemented</summary>
 
 - [ ] associate_attribute_group
 - [X] associate_resource
@@ -9100,14 +9197,14 @@
 - [ ] get_application
 - [ ] get_associated_resource
 - [ ] get_attribute_group
-- [ ] get_configuration
+- [X] get_configuration
 - [X] list_applications
 - [ ] list_associated_attribute_groups
 - [ ] list_associated_resources
 - [ ] list_attribute_groups
 - [ ] list_attribute_groups_for_application
 - [ ] list_tags_for_resource
-- [ ] put_configuration
+- [X] put_configuration
 - [ ] sync_resource
 - [ ] tag_resource
 - [ ] untag_resource
@@ -9255,7 +9352,7 @@
 - [X] delete_contact_list
 - [ ] delete_custom_verification_email_template
 - [X] delete_dedicated_ip_pool
-- [ ] delete_email_identity
+- [X] delete_email_identity
 - [X] delete_email_identity_policy
 - [ ] delete_email_template
 - [ ] delete_multi_region_endpoint
@@ -9489,7 +9586,7 @@
 
 ## ssm
 <details>
-<summary>25% implemented</summary>
+<summary>27% implemented</summary>
 
 - [X] add_tags_to_resource
 - [ ] associate_ops_item_related_item
@@ -9517,7 +9614,7 @@
 - [ ] delete_resource_data_sync
 - [ ] delete_resource_policy
 - [ ] deregister_managed_instance
-- [ ] deregister_patch_baseline_for_patch_group
+- [X] deregister_patch_baseline_for_patch_group
 - [X] deregister_target_from_maintenance_window
 - [X] deregister_task_from_maintenance_window
 - [ ] describe_activations
@@ -9578,7 +9675,7 @@
 - [X] get_parameters
 - [X] get_parameters_by_path
 - [ ] get_patch_baseline
-- [ ] get_patch_baseline_for_patch_group
+- [X] get_patch_baseline_for_patch_group
 - [ ] get_resource_policies
 - [ ] get_service_setting
 - [X] label_parameter_version
@@ -9606,7 +9703,7 @@
 - [X] put_parameter
 - [ ] put_resource_policy
 - [ ] register_default_patch_baseline
-- [ ] register_patch_baseline_for_patch_group
+- [X] register_patch_baseline_for_patch_group
 - [X] register_target_with_maintenance_window
 - [X] register_task_with_maintenance_window
 - [X] remove_tags_from_resource
@@ -9845,6 +9942,34 @@
 - [ ] untag_resource
 </details>
 
+## synthetics
+<details>
+<summary>18% implemented</summary>
+
+- [ ] associate_resource
+- [X] create_canary
+- [ ] create_group
+- [ ] delete_canary
+- [ ] delete_group
+- [X] describe_canaries
+- [ ] describe_canaries_last_run
+- [ ] describe_runtime_versions
+- [ ] disassociate_resource
+- [X] get_canary
+- [ ] get_canary_runs
+- [ ] get_group
+- [ ] list_associated_groups
+- [ ] list_group_resources
+- [ ] list_groups
+- [X] list_tags_for_resource
+- [ ] start_canary
+- [ ] start_canary_dry_run
+- [ ] stop_canary
+- [ ] tag_resource
+- [ ] untag_resource
+- [ ] update_canary
+</details>
+
 ## textract
 <details>
 <summary>20% implemented</summary>
@@ -10071,6 +10196,81 @@
 - [ ] update_web_app_customization
 </details>
 
+## vpc-lattice
+<details>
+<summary>13% implemented</summary>
+
+- [ ] batch_update_rule
+- [X] create_access_log_subscription
+- [ ] create_listener
+- [ ] create_resource_configuration
+- [ ] create_resource_gateway
+- [X] create_rule
+- [X] create_service
+- [X] create_service_network
+- [ ] create_service_network_resource_association
+- [ ] create_service_network_service_association
+- [X] create_service_network_vpc_association
+- [ ] create_target_group
+- [X] delete_access_log_subscription
+- [ ] delete_auth_policy
+- [ ] delete_listener
+- [ ] delete_resource_configuration
+- [ ] delete_resource_endpoint_association
+- [ ] delete_resource_gateway
+- [ ] delete_resource_policy
+- [ ] delete_rule
+- [ ] delete_service
+- [ ] delete_service_network
+- [ ] delete_service_network_resource_association
+- [ ] delete_service_network_service_association
+- [ ] delete_service_network_vpc_association
+- [ ] delete_target_group
+- [ ] deregister_targets
+- [X] get_access_log_subscription
+- [ ] get_auth_policy
+- [ ] get_listener
+- [ ] get_resource_configuration
+- [ ] get_resource_gateway
+- [ ] get_resource_policy
+- [ ] get_rule
+- [ ] get_service
+- [ ] get_service_network
+- [ ] get_service_network_resource_association
+- [ ] get_service_network_service_association
+- [ ] get_service_network_vpc_association
+- [ ] get_target_group
+- [X] list_access_log_subscriptions
+- [ ] list_listeners
+- [ ] list_resource_configurations
+- [ ] list_resource_endpoint_associations
+- [ ] list_resource_gateways
+- [ ] list_rules
+- [ ] list_service_network_resource_associations
+- [ ] list_service_network_service_associations
+- [ ] list_service_network_vpc_associations
+- [ ] list_service_network_vpc_endpoint_associations
+- [ ] list_service_networks
+- [ ] list_services
+- [ ] list_tags_for_resource
+- [ ] list_target_groups
+- [ ] list_targets
+- [ ] put_auth_policy
+- [ ] put_resource_policy
+- [ ] register_targets
+- [ ] tag_resource
+- [ ] untag_resource
+- [X] update_access_log_subscription
+- [ ] update_listener
+- [ ] update_resource_configuration
+- [ ] update_resource_gateway
+- [ ] update_rule
+- [ ] update_service
+- [ ] update_service_network
+- [ ] update_service_network_vpc_association
+- [ ] update_target_group
+</details>
+
 ## wafv2
 <details>
 <summary>55% implemented</summary>
@@ -10133,7 +10333,7 @@
 
 ## workspaces
 <details>
-<summary>16% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] accept_account_link_invitation
 - [ ] associate_connection_alias
@@ -10217,7 +10417,7 @@
 - [ ] start_workspaces_pool
 - [ ] stop_workspaces
 - [ ] stop_workspaces_pool
-- [ ] terminate_workspaces
+- [X] terminate_workspaces
 - [ ] terminate_workspaces_pool
 - [ ] terminate_workspaces_pool_session
 - [ ] update_connect_client_add_in
@@ -10465,7 +10665,6 @@
 - lookoutvision
 - m2
 - machinelearning
-- macie2
 - mailmanager
 - managedblockchain-query
 - marketplace-agreement
@@ -10476,7 +10675,6 @@
 - marketplacecommerceanalytics
 - mediaconvert
 - mediapackage-vod
-- mediapackagev2
 - mediatailor
 - medical-imaging
 - mgh
@@ -10498,7 +10696,6 @@
 - observabilityadmin
 - odb
 - omics
-- opsworkscm
 - outposts
 - partnercentral-selling
 - payment-cryptography
@@ -10541,7 +10738,6 @@
 - securitylake
 - serverlessrepo
 - simspaceweaver
-- sms
 - sms-voice
 - snow-device-management
 - snowball
@@ -10556,14 +10752,12 @@
 - storagegateway
 - supplychain
 - support-app
-- synthetics
 - taxsettings
 - tnb
 - translate
 - trustedadvisor
 - verifiedpermissions
 - voice-id
-- vpc-lattice
 - waf
 - waf-regional
 - wellarchitected

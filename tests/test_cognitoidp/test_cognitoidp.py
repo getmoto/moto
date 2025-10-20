@@ -1593,6 +1593,51 @@ def test_group_in_access_token(user_pool=None, user_pool_client=None):
 
 @pytest.mark.aws_verified
 @cognitoidp_aws_verified(
+    read_attributes=["given_name"], explicit_auth_flows=["ADMIN_NO_SRP_AUTH"]
+)
+def test_scope_in_access_token(user_pool=None, user_pool_client=None):
+    conn = boto3.client("cognito-idp", "us-west-2")
+
+    username = str(uuid.uuid4())
+    temporary_password = "P2$Sword"
+    user_pool_id = user_pool["UserPool"]["Id"]
+    user_attribute_value = str(uuid.uuid4())
+    client_id = user_pool_client["UserPoolClient"]["ClientId"]
+
+    conn.admin_create_user(
+        UserPoolId=user_pool_id,
+        Username=username,
+        TemporaryPassword=temporary_password,
+        UserAttributes=[{"Name": "given_name", "Value": user_attribute_value}],
+    )
+
+    result = conn.admin_initiate_auth(
+        UserPoolId=user_pool_id,
+        ClientId=client_id,
+        AuthFlow="ADMIN_NO_SRP_AUTH",
+        AuthParameters={"USERNAME": username, "PASSWORD": temporary_password},
+    )
+
+    # A newly created user is forced to set a new password
+    assert result["ChallengeName"] == "NEW_PASSWORD_REQUIRED"
+    assert result["Session"] is not None
+
+    # This sets a new password and logs the user in (creates tokens)
+    new_password = "P2$Sword"
+    result = conn.admin_respond_to_auth_challenge(
+        UserPoolId=user_pool_id,
+        Session=result["Session"],
+        ClientId=client_id,
+        ChallengeName="NEW_PASSWORD_REQUIRED",
+        ChallengeResponses={"USERNAME": username, "NEW_PASSWORD": new_password},
+    )
+
+    payload = get_jwt_payload(result["AuthenticationResult"]["AccessToken"])
+    assert payload.claims["scope"] == "aws.cognito.signin.user.admin"
+
+
+@pytest.mark.aws_verified
+@cognitoidp_aws_verified(
     generate_secret=True, explicit_auth_flows=["ADMIN_NO_SRP_AUTH"]
 )
 def test_jti_in_tokens(user_pool=None, user_pool_client=None):

@@ -185,22 +185,22 @@ class FakeTargetGroup(CloudFormationModel):
 
     def register(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
-            if instance := self.ec2_backend.get_instance_by_id(target["id"]):
+            if instance := self.ec2_backend.get_instance_by_id(target["Id"]):
                 if instance.state != "running":
-                    raise TargetNotRunning(instance_id=target["id"])
+                    raise TargetNotRunning(instance_id=target["Id"])
 
-            self.targets[target["id"]] = {
-                "id": target["id"],
-                "port": target.get("port", self.port),
+            self.targets[target["Id"]] = {
+                "Id": target["Id"],
+                "Port": target.get("Port", self.port),
             }
-            self.deregistered_targets.pop(target["id"], None)
+            self.deregistered_targets.pop(target["Id"], None)
 
     def deregister(self, targets: List[Dict[str, Any]]) -> None:
         for target in targets:
-            t = self.targets.pop(target["id"], None)
+            t = self.targets.pop(target["Id"], None)
             if not t:
                 raise InvalidTargetError()
-            self.deregistered_targets[target["id"]] = t
+            self.deregistered_targets[target["Id"]] = t
 
     def deregister_terminated_instances(self, instance_ids: List[str]) -> None:
         for target_id in list(self.targets.keys()):
@@ -211,23 +211,23 @@ class FakeTargetGroup(CloudFormationModel):
     def health_for(
         self, target: Dict[str, Any], ec2_backend: EC2Backend
     ) -> FakeHealthStatus:
-        t = self.targets.get(target["id"])
+        t = self.targets.get(target["Id"])
         if t is None:
             port = self.port
-            if "port" in target:
-                port = target["port"]
-            if target["id"] in self.deregistered_targets:
+            if "Port" in target:
+                port = target["Port"]
+            if target["Id"] in self.deregistered_targets:
                 return FakeHealthStatus(
-                    target["id"],
+                    target["Id"],
                     port,
                     self.health_check_port,
                     "unused",
                     "Target.NotRegistered",
                     "Target is not registered to the target group",
                 )
-            if target["id"] in self.terminated_targets:
+            if target["Id"] in self.terminated_targets:
                 return FakeHealthStatus(
-                    target["id"],
+                    target["Id"],
                     port,
                     self.health_check_port,
                     "draining",
@@ -235,9 +235,9 @@ class FakeTargetGroup(CloudFormationModel):
                     "Target deregistration is in progress",
                 )
 
-            if target["id"].startswith("i-"):  # EC2 instance ID
+            if target["Id"].startswith("i-"):  # EC2 instance ID
                 return FakeHealthStatus(
-                    target["id"],
+                    target["Id"],
                     target.get("Port", 80),
                     self.health_check_port,
                     "unused",
@@ -246,25 +246,25 @@ class FakeTargetGroup(CloudFormationModel):
                 )
 
             return FakeHealthStatus(
-                target["id"],
+                target["Id"],
                 port,
                 self.health_check_port,
                 "unavailable",
                 "Target.NotRegistered",
                 "Target is not registered",
             )
-        if t["id"].startswith("i-"):  # EC2 instance ID
-            instance = ec2_backend.get_instance_by_id(t["id"])
+        if t["Id"].startswith("i-"):  # EC2 instance ID
+            instance = ec2_backend.get_instance_by_id(t["Id"])
             if instance and instance.state == "stopped":
                 return FakeHealthStatus(
-                    t["id"],
-                    t["port"],
+                    t["Id"],
+                    t["Port"],
                     self.health_check_port,
                     "unused",
                     "Target.InvalidState",
                     "Target is in the stopped state",
                 )
-        return FakeHealthStatus(t["id"], t["port"], self.health_check_port, "healthy")
+        return FakeHealthStatus(t["Id"], t["Port"], self.health_check_port, "healthy")
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -403,7 +403,7 @@ class FakeListener(CloudFormationModel):
         default_actions = elbv2_backend.convert_and_validate_properties(properties)
         certificates = elbv2_backend.convert_and_validate_certificates(certificates)
         if certificates:
-            certificate = certificates[0].get("certificate_arn")
+            certificate = certificates[0].get("CertificateArn")
         else:
             certificate = None
         listener = elbv2_backend.create_listener(
@@ -582,6 +582,7 @@ class FakeLoadBalancer(CloudFormationModel):
         "routing.http2.enabled",
         "waf.fail_open.enabled",
         "zonal_shift.config.enabled",
+        "secondary_ips.auto_assigned.per_subnet",
     }
 
     def __init__(
@@ -1359,7 +1360,7 @@ Member must satisfy regular expression pattern: {expression}"
     ) -> List[Dict[str, Any]]:
         # transform default certificate to conform with the rest of the code and XML templates
         for cert in certificates or []:
-            cert["certificate_arn"] = cert["CertificateArn"]
+            cert["CertificateArn"] = cert["CertificateArn"]
 
         return certificates
 
@@ -1658,15 +1659,15 @@ Member must satisfy regular expression pattern: {expression}"
         self, rule_priorities: List[Dict[str, Any]]
     ) -> List[FakeRule]:
         # validate
-        priorities = [rule_priority["priority"] for rule_priority in rule_priorities]
+        priorities = [rule_priority["Priority"] for rule_priority in rule_priorities]
         for priority in set(priorities):
             if priorities.count(priority) > 1:
                 raise DuplicatePriorityError(priority)
 
         # validate
         for rule_priority in rule_priorities:
-            given_rule_arn = rule_priority["rule_arn"]
-            priority = rule_priority["priority"]
+            given_rule_arn = rule_priority["RuleArn"]
+            priority = rule_priority["Priority"]
             _given_rules = self.describe_rules(
                 listener_arn=None, rule_arns=[given_rule_arn]
             )
@@ -1681,8 +1682,8 @@ Member must satisfy regular expression pattern: {expression}"
         # modify
         modified_rules = []
         for rule_priority in rule_priorities:
-            given_rule_arn = rule_priority["rule_arn"]
-            priority = rule_priority["priority"]
+            given_rule_arn = rule_priority["RuleArn"]
+            priority = rule_priority["Priority"]
             _given_rules = self.describe_rules(
                 listener_arn=None, rule_arns=[given_rule_arn]
             )
@@ -1868,7 +1869,7 @@ Member must satisfy regular expression pattern: {expression}"
             # Check certificates exist
             if certificates:
                 default_cert = certificates[0]
-                default_cert_arn = default_cert["certificate_arn"]
+                default_cert_arn = default_cert["CertificateArn"]
                 if not self._certificate_exists(certificate_arn=default_cert_arn):
                     raise RESTError(
                         "CertificateNotFound",
@@ -1876,7 +1877,7 @@ Member must satisfy regular expression pattern: {expression}"
                     )
                 listener.certificate = default_cert_arn
                 # TODO: Calling describe_listener_certificates after this operation returns a wrong result
-                listener.certificates = [c["certificate_arn"] for c in certificates]
+                listener.certificates = [c["CertificateArn"] for c in certificates]
             elif len(certificates) == 0 and len(listener.certificates) == 0:  # type: ignore[arg-type]
                 raise RESTError(
                     "CertificateWereNotPassed",
@@ -1949,7 +1950,7 @@ Member must satisfy regular expression pattern: {expression}"
         # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-limits.html
         if len(certificates) + len(listener.certificates) > 25:
             raise TooManyCertificatesError()
-        listener.certificates.extend([c["certificate_arn"] for c in certificates])
+        listener.certificates.extend([c["CertificateArn"] for c in certificates])
         return listener.certificates
 
     def describe_listener_certificates(self, arn: str) -> List[str]:
@@ -1964,7 +1965,7 @@ Member must satisfy regular expression pattern: {expression}"
         listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[
             0
         ]
-        cert_arns = [c["certificate_arn"] for c in certificates]
+        cert_arns = [c["CertificateArn"] for c in certificates]
         listener.certificates = [c for c in listener.certificates if c not in cert_arns]
 
     def add_tags(self, resource_arns: List[str], tags: List[Dict[str, str]]) -> None:

@@ -91,3 +91,17 @@ class ReplicationGroupNotFound(ElastiCacheException):
 
     def __init__(self, replication_group_id: str):
         super().__init__(f"Replication group {replication_group_id} not found.")
+
+
+class SnapshotNotFound(ElastiCacheException):
+    code = "SnapshotNotFoundFault"
+
+    def __init__(self, snapshot_name: str):
+        super().__init__(f"Snapshot {snapshot_name} not found.")
+
+
+class SnapshotAlreadyExists(ElastiCacheException):
+    code = "SnapshotAlreadyExistsFault"
+
+    def __init__(self, snapshot_name: str):
+        super().__init__(f"Snapshot {snapshot_name} already exists.")

@@ -102,7 +102,7 @@ workspaces
 - [ ] start_workspaces_pool
 - [ ] stop_workspaces
 - [ ] stop_workspaces_pool
-- [ ] terminate_workspaces
+- [X] terminate_workspaces
 - [ ] terminate_workspaces_pool
 - [ ] terminate_workspaces_pool_session
 - [ ] update_connect_client_add_in

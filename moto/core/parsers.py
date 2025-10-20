@@ -2,12 +2,14 @@
 import base64
 import json
 from collections import OrderedDict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 from botocore import xform_name
 from botocore.utils import parse_timestamp as botocore_parse_timestamp
+
+from moto.core.model import OperationModel
 
 UNDEFINED = object()  # Sentinel to signal the absence of a field in the input
 
@@ -22,28 +24,36 @@ def parse_timestamp(value: str) -> datetime:
     return as_naive_utc
 
 
-class QueryParser:
-    TIMESTAMP_FORMAT = "iso8601"
+def default_blob_parser(value):
+    # We don't decode this to a str because it's possible that
+    # the blob contains binary data that can't be decoded.
+    return base64.b64decode(value)
 
+
+class RequestParser:
     MAP_TYPE = dict
 
-    def __init__(self, timestamp_parser=None, blob_parser=None, map_type=None):
+    def __init__(
+        self,
+        timestamp_parser=None,
+        blob_parser=None,
+        map_type=None,
+    ):
         if timestamp_parser is None:
             timestamp_parser = parse_timestamp
         self._timestamp_parser = timestamp_parser
         if blob_parser is None:
-            blob_parser = self._default_blob_parser
+            blob_parser = default_blob_parser
         self._blob_parser = blob_parser
         if map_type is not None:
             self.MAP_TYPE = map_type
 
-    def _default_blob_parser(self, value):
-        # Blobs are always returned as bytes type (this matters on python3).
-        # We don't decode this to a str because it's entirely possible that the
-        # blob contains binary data that actually can't be decoded.
-        return base64.b64decode(value)
+    def parse(self, request_dict, operation_model: OperationModel):
+        raise NotImplementedError()
 
-    def parse(self, request_dict, operation_model):
+
+class QueryParser(RequestParser):
+    def parse(self, request_dict, operation_model: OperationModel):
         shape = operation_model.input_shape
         if shape is None:
             return {}
@@ -84,14 +94,13 @@ class QueryParser:
         if node.get(prefix, UNDEFINED) == "":
             return []
 
-        if self._is_shape_flattened(shape):
+        if shape.is_flattened:
             list_prefix = prefix
-            if shape.member.serialization.get("name"):
-                name = self._get_serialized_name(shape.member, default_name="")
-                # Replace '.Original' with '.{name}'.
-                list_prefix = ".".join(prefix.split(".")[:-1] + [name])
+            location_name = self._get_serialized_name(shape.member, None)
+            if location_name is not None:
+                list_prefix = ".".join(prefix.split(".")[:-1] + [location_name])
         else:
-            list_name = shape.member.serialization.get("name", "member")
+            list_name = self._get_serialized_name(shape.member, "member")
             list_prefix = f"{prefix}.{list_name}"
         parsed_list = []
         i = 1
@@ -106,7 +115,7 @@ class QueryParser:
         return parsed_list if parsed_list != [] else UNDEFINED
 
     def _handle_map(self, shape, query_params, prefix=""):
-        if self._is_shape_flattened(shape):
+        if shape.is_flattened:
             full_prefix = prefix
         else:
             full_prefix = f"{prefix}.entry"
@@ -133,7 +142,6 @@ class QueryParser:
         return value if value is UNDEFINED else self._timestamp_parser(value)
 
     def _handle_blob(self, shape, query_params, prefix=""):
-        # Blob args must be base64 encoded.
         value = self._default_handle(shape, query_params, prefix)
         if value is UNDEFINED:
             return value
@@ -163,28 +171,20 @@ class QueryParser:
         return value.get(prefix, default_value)
 
     def _get_serialized_name(self, shape, default_name):
+        serialized_name = shape.serialization.get("locationNameForQueryCompatibility")
+        if serialized_name:
+            return serialized_name
         return shape.serialization.get("name", default_name)
 
     def _parsed_key_name(self, member_name):
         key_name = member_name
         return key_name
 
-    def _is_shape_flattened(self, shape):
-        return shape.serialization.get("flattened")
 
-
-class JSONParser:
+class JSONParser(RequestParser):
     DEFAULT_ENCODING = "utf-8"
-    MAP_TYPE = dict
 
-    def __init__(self, timestamp_parser=None, map_type=None):
-        if timestamp_parser is None:
-            timestamp_parser = parse_timestamp
-        self._timestamp_parser = timestamp_parser
-        if map_type is not None:
-            self.MAP_TYPE = map_type
-
-    def parse(self, request_dict, operation_model):
+    def parse(self, request_dict, operation_model: OperationModel):
         shape = operation_model.input_shape
         parsed = self._do_parse(request_dict, shape)
         return parsed if parsed is not UNDEFINED else {}
@@ -212,6 +212,12 @@ class JSONParser:
 
     def _default_handle(self, _, value):
         return value
+
+    def _handle_blob(self, shape, value):
+        value = self._default_handle(shape, value)
+        if value is UNDEFINED:
+            return value
+        return self._blob_parser(value)
 
     def _handle_float(self, _, value):
         return float(value) if value is not UNDEFINED else value
@@ -258,7 +264,7 @@ PROTOCOL_PARSERS = {
 }
 
 
-class XFormedDict(MutableMapping):
+class XFormedDict(MutableMapping[str, Any]):
     """
     A Pascal/Snake case-insensitive  ``dict``-like object.
 
@@ -268,61 +274,44 @@ class XFormedDict(MutableMapping):
         xfd['db_instance_identifier'] == 'identifier'  # True
         list(xfd) == ['db_instance_identifier']  # True
 
+    ***Do Not Import*** This class is deprecated and will be removed in a future release.
     """
 
     def __init__(
         self, data: Optional[dict[str, Any]] = None, **kwargs: dict[str, Any]
     ) -> None:
-        self._xform_cache = {}
-        self._store = OrderedDict()
+        self._xform_cache: dict[str, Any] = {}
+        self._store: MutableMapping[str, Any] = OrderedDict()
         if data is None:
             data = {}
         self.update(data, **kwargs)
 
-    def _xformed(self, key: str):
+    def _xformed(self, key: str) -> str:
         return xform_name(key, _xform_cache=self._xform_cache)
 
-    def __setitem__(self, key, value):
-        # Use the xformed key for lookups, but store the actual
-        # key alongside the value.
+    def __setitem__(self, key: str, value: Any) -> None:
+        # Use the xformed key for lookups, but store the actual key alongside the value.
         self._store[self._xformed(key)] = (key, value)
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> Any:
         return self._store[self._xformed(key)][1]
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         del self._store[self._xformed(key)]
 
-    def __iter__(self):
+    def __iter__(self) -> Any:
         return (key for key in self._store.keys())
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._store)
 
-    def original_items(self):
+    def original_items(self) -> Any:
         """Like iteritems(), but with all PascalCase keys."""
         return ((keyval[0], keyval[1]) for (_, keyval) in self._store.items())
 
-    def original_dict(self) -> dict[str, Any]:
-        original_dict = {}
-        for _, keyval in self._store.items():
-            key = keyval[0]
-            value = keyval[1]
-            if isinstance(value, XFormedDict):
-                value = value.original_dict()
-            original_dict[key] = value
-        return original_dict
-
-    def __eq__(self, other):
-        if isinstance(other, Mapping):
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, dict):
             other = XFormedDict(other)
         else:
             return NotImplemented
-        # Compare xformed
         return dict(self.items()) == dict(other.items())
-
-    def copy(self):
-        return XFormedDict(self._store.values())
-
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, dict(self.items()))

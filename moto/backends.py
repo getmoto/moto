@@ -93,6 +93,7 @@ if TYPE_CHECKING:
     from moto.lakeformation.models import LakeFormationBackend
     from moto.lexv2models.models import LexModelsV2Backend
     from moto.logs.models import LogsBackend
+    from moto.macie2.models import MacieBackend
     from moto.managedblockchain.models import ManagedBlockchainBackend
     from moto.mediaconnect.models import MediaConnectBackend
     from moto.medialive.models import MediaLiveBackend
@@ -151,12 +152,14 @@ if TYPE_CHECKING:
     from moto.sts.models import STSBackend
     from moto.support.models import SupportBackend
     from moto.swf.models import SWFBackend
+    from moto.synthetics.models import SyntheticsBackend
     from moto.textract.models import TextractBackend
     from moto.timestreaminfluxdb.models import TimestreamInfluxDBBackend
     from moto.timestreamquery.models import TimestreamQueryBackend
     from moto.timestreamwrite.models import TimestreamWriteBackend
     from moto.transcribe.models import TranscribeBackend
     from moto.transfer.models import TransferBackend
+    from moto.vpclattice.models import VPCLatticeBackend
     from moto.wafv2.models import WAFV2Backend
     from moto.workspaces.models import WorkSpacesBackend
     from moto.workspacesweb.models import WorkSpacesWebBackend
@@ -282,6 +285,7 @@ SERVICE_NAMES = Union[
     "Literal['lambda']",
     "Literal['lexv2models']",
     "Literal['logs']",
+    "Literal['macie2']",
     "Literal['managedblockchain']",
     "Literal['mediaconnect']",
     "Literal['medialive']",
@@ -341,6 +345,7 @@ SERVICE_NAMES = Union[
     "Literal['stepfunctions']",
     "Literal['sts']",
     "Literal['support']",
+    "Literal['synthetics']",
     "Literal['swf']",
     "Literal['textract']",
     "Literal['timestream-influxdb']",
@@ -348,6 +353,7 @@ SERVICE_NAMES = Union[
     "Literal['timestream-write']",
     "Literal['transcribe']",
     "Literal['transfer']",
+    "Literal['vpc-lattice']",
     "Literal['wafv2']",
     "Literal['workspaces']",
     "Literal['workspaces-web']",
@@ -590,6 +596,8 @@ def get_backend(
 @overload
 def get_backend(name: "Literal['logs']") -> "BackendDict[LogsBackend]": ...
 @overload
+def get_backend(name: "Literal['macie2']") -> "BackendDict[MacieBackend]": ...
+@overload
 def get_backend(
     name: "Literal['managedblockchain']",
 ) -> "BackendDict[ManagedBlockchainBackend]": ...
@@ -768,6 +776,8 @@ def get_backend(name: "Literal['sts']") -> "BackendDict[STSBackend]": ...
 @overload
 def get_backend(name: "Literal['support']") -> "BackendDict[SupportBackend]": ...
 @overload
+def get_backend(name: "Literal['synthetics']") -> "BackendDict[SyntheticsBackend]": ...
+@overload
 def get_backend(name: "Literal['swf']") -> "BackendDict[SWFBackend]": ...
 @overload
 def get_backend(name: "Literal['textract']") -> "BackendDict[TextractBackend]": ...
@@ -787,6 +797,10 @@ def get_backend(
 def get_backend(name: "Literal['transcribe']") -> "BackendDict[TranscribeBackend]": ...
 @overload
 def get_backend(name: "Literal['transfer']") -> "BackendDict[TransferBackend]": ...
+@overload
+def get_backend(
+    name: "Literal['vpc-lattice']",
+) -> "BackendDict[VPCLatticeBackend]": ...
 @overload
 def get_backend(name: "Literal['wafv2']") -> "BackendDict[WAFV2Backend]": ...
 @overload

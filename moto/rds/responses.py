@@ -1,5 +1,6 @@
 from typing import Any, List, Optional, Tuple
 
+from moto.core.parsers import XFormedDict
 from moto.core.responses import ActionResult, BaseResponse
 from moto.ec2.models import ec2_backends
 
@@ -8,6 +9,8 @@ from .models import RDSBackend, rds_backends
 
 
 class RDSResponse(BaseResponse):
+    PROTOCOL_PARSER_MAP_TYPE = XFormedDict
+
     def __init__(self) -> None:
         super().__init__(service_name="rds")
         self.automated_parameter_parsing = True

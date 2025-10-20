@@ -42,7 +42,7 @@ def test_send_email(ses_v1):
         conn.send_email(**kwargs)
     assert e.value.response["Error"]["Code"] == "MessageRejected"
 
-    ses_v1.verify_domain_identity(Domain="example.com")
+    conn.create_email_identity(EmailIdentity="test@example.com")
     resp = conn.send_email(**kwargs)
     assert resp["MessageId"] is not None
 
@@ -63,7 +63,7 @@ def test_send_email(ses_v1):
 def test_send_html_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
-    ses_v1.verify_domain_identity(Domain="example.com")
+    conn.create_email_identity(EmailIdentity="example.com")
     kwargs = dict(
         FromEmailAddress="test@example.com",
         Destination={
@@ -475,6 +475,41 @@ def test_create_email_identity():
 
 
 @mock_aws
+def test_delete_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    test_email_domain = "example.com"
+    client.create_email_identity(EmailIdentity=test_email_domain)
+    identities = client.list_email_identities()
+
+    assert len(identities["EmailIdentities"]) == 1
+
+    # Execute
+    client.delete_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    identities = client.list_email_identities()
+    assert len(identities["EmailIdentities"]) == 0
+
+
+@mock_aws
+def test_delete_no_email_identity():
+    # Setup
+    client = boto3.client("sesv2", region_name="us-east-1")
+    test_email_domain = "example.com"
+    identities = client.list_email_identities()
+
+    assert len(identities["EmailIdentities"]) == 0
+
+    # Execute
+    client.delete_email_identity(EmailIdentity=test_email_domain)
+
+    # Verify
+    identities = client.list_email_identities()
+    assert len(identities["EmailIdentities"]) == 0
+
+
+@mock_aws
 def test_get_email_identity():
     # Setup
     client = boto3.client("sesv2", region_name="us-east-2")
@@ -656,11 +691,14 @@ def test_get_configuration_set():
     assert config_setv2["Tags"] == tags
     assert config_setv2["DeliveryOptions"] == delivery_options
 
-    # Check for a non-existant config set
+    # Check for a non-existent config set
     with pytest.raises(ClientError) as ex:
         client_v2.get_configuration_set(ConfigurationSetName="invalid")
     err = ex.value.response["Error"]
-    assert err["Code"] == "ConfigurationSetDoesNotExist"
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == "Configuration set <invalid> does not exist."
+    resp_meta = ex.value.response["ResponseMetadata"]
+    assert resp_meta["HTTPStatusCode"] == 404
 
 
 @mock_aws
@@ -763,7 +801,10 @@ def test_delete_configuration_set():
     with pytest.raises(ClientError) as ex:
         client.get_configuration_set(ConfigurationSetName=name)
     err = ex.value.response["Error"]
-    assert err["Code"] == "ConfigurationSetDoesNotExist"
+    assert err["Code"] == "NotFoundException"
+    assert err["Message"] == f"Configuration set <{name}> does not exist."
+    resp_meta = ex.value.response["ResponseMetadata"]
+    assert resp_meta["HTTPStatusCode"] == 404
 
 
 @mock_aws

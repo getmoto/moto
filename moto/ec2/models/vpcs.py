@@ -427,6 +427,8 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
     ) -> Any:
         if filter_name in ("vpc-endpoint-type", "vpc_endpoint_type"):
             return self.vpc_endpoint_type
+        if filter_name in ("vpc-endpoint-state", "vpc_endpoint_state"):
+            return self.state
         else:
             return super().get_filter_value(filter_name, "DescribeVpcs")
 

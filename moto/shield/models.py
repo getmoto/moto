@@ -16,6 +16,7 @@ from moto.shield.exceptions import (
     ResourceNotFoundException,
     ValidationException,
 )
+from moto.utilities.arns import parse_arn
 from moto.utilities.tagging_service import TaggingService
 
 
@@ -146,9 +147,8 @@ class Protection(BaseModel):
         self.name = name
         self.resource_arn = resource_arn
         self.protection_id = str(mock_random.uuid4())
-        self.health_check_ids: List[
-            str
-        ] = []  # value is returned in associate_health_check method.
+        # value is returned in associate_health_check method.
+        self.health_check_ids: List[str] = []
         # value is returned in enable_application_layer_automatic_response and disable_application_layer_automatic_response methods.
         self.application_layer_automatic_response_configuration: Dict[str, Any] = {}
         self.protection_arn = (
@@ -196,17 +196,18 @@ class ShieldBackend(BaseBackend):
 
         # Shield offers protection to only certain services.
         self.valid_resource_types = [
-            "elasticloadbalancing",
-            "cloudfront",
-            "globalaccelerator",
-            "route53",
-            "ec2",
+            ("elasticloadbalancing", "loadbalancer"),
+            ("cloudfront", "distribution"),
+            ("globalaccelerator", "accelerator"),
+            ("route53", "hostedzone"),
+            ("ec2", "eip-allocation"),
         ]
-        resource_type = resource_arn.split(":")[2]
-        if resource_type not in self.valid_resource_types:
-            resource = resource_arn.split(":")[-1]
-            if "/" in resource:
-                msg = f"Unrecognized resource '{resource.split('/')[0]}' of service '{resource_type}'."
+        arn_parts = parse_arn(resource_arn)
+        resource_type = arn_parts.resource_type
+        service = arn_parts.service
+        if (service, resource_type) not in self.valid_resource_types:
+            if resource_type:
+                msg = f"Unrecognized resource '{resource_type}' of service '{service}'."
             else:
                 msg = "Relative ID must be in the form '<resource>/<id>'."
             raise InvalidResourceException(msg)

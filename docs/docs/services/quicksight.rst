@@ -21,12 +21,13 @@ quicksight
 - [ ] cancel_ingestion
 - [ ] create_account_customization
 - [ ] create_account_subscription
+- [ ] create_action_connector
 - [ ] create_analysis
 - [ ] create_brand
 - [ ] create_custom_permissions
 - [X] create_dashboard
 - [X] create_data_set
-- [ ] create_data_source
+- [X] create_data_source
 - [ ] create_folder
 - [ ] create_folder_membership
 - [X] create_group
@@ -43,8 +44,10 @@ quicksight
 - [ ] create_topic
 - [ ] create_topic_refresh_schedule
 - [ ] create_vpc_connection
+- [ ] delete_account_custom_permission
 - [ ] delete_account_customization
 - [ ] delete_account_subscription
+- [ ] delete_action_connector
 - [ ] delete_analysis
 - [ ] delete_brand
 - [ ] delete_brand_assignment
@@ -52,7 +55,7 @@ quicksight
 - [ ] delete_dashboard
 - [ ] delete_data_set
 - [ ] delete_data_set_refresh_properties
-- [ ] delete_data_source
+- [X] delete_data_source
 - [ ] delete_default_q_business_application
 - [ ] delete_folder
 - [ ] delete_folder_membership
@@ -74,9 +77,12 @@ quicksight
 - [ ] delete_user_by_principal_id
 - [ ] delete_user_custom_permission
 - [ ] delete_vpc_connection
+- [ ] describe_account_custom_permission
 - [ ] describe_account_customization
 - [X] describe_account_settings
 - [ ] describe_account_subscription
+- [ ] describe_action_connector
+- [ ] describe_action_connector_permissions
 - [ ] describe_analysis
 - [ ] describe_analysis_definition
 - [ ] describe_analysis_permissions
@@ -95,7 +101,7 @@ quicksight
 - [ ] describe_data_set
 - [ ] describe_data_set_permissions
 - [ ] describe_data_set_refresh_properties
-- [ ] describe_data_source
+- [X] describe_data_source
 - [ ] describe_data_source_permissions
 - [ ] describe_default_q_business_application
 - [ ] describe_folder
@@ -129,7 +135,10 @@ quicksight
 - [ ] generate_embed_url_for_registered_user
 - [ ] generate_embed_url_for_registered_user_with_identity
 - [ ] get_dashboard_embed_url
+- [ ] get_flow_metadata
+- [ ] get_flow_permissions
 - [ ] get_session_embed_url
+- [ ] list_action_connectors
 - [ ] list_analyses
 - [ ] list_asset_bundle_export_jobs
 - [ ] list_asset_bundle_import_jobs
@@ -138,7 +147,8 @@ quicksight
 - [ ] list_dashboard_versions
 - [X] list_dashboards
 - [ ] list_data_sets
-- [ ] list_data_sources
+- [X] list_data_sources
+- [ ] list_flows
 - [ ] list_folder_members
 - [ ] list_folders
 - [ ] list_folders_for_resource
@@ -151,7 +161,7 @@ quicksight
 - [ ] list_namespaces
 - [ ] list_refresh_schedules
 - [ ] list_role_memberships
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] list_template_aliases
 - [ ] list_template_versions
 - [ ] list_templates
@@ -173,10 +183,12 @@ quicksight
         
 
 - [ ] restore_analysis
+- [ ] search_action_connectors
 - [ ] search_analyses
 - [ ] search_dashboards
 - [ ] search_data_sets
 - [ ] search_data_sources
+- [ ] search_flows
 - [ ] search_folders
 - [X] search_groups
 - [ ] search_topics
@@ -184,10 +196,13 @@ quicksight
 - [ ] start_asset_bundle_import_job
 - [ ] start_dashboard_snapshot_job
 - [ ] start_dashboard_snapshot_job_schedule
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
+- [ ] update_account_custom_permission
 - [ ] update_account_customization
 - [X] update_account_settings
+- [ ] update_action_connector
+- [ ] update_action_connector_permissions
 - [ ] update_analysis
 - [ ] update_analysis_permissions
 - [ ] update_application_with_token_exchange_grant
@@ -202,9 +217,10 @@ quicksight
 - [ ] update_dashboards_qa_configuration
 - [ ] update_data_set
 - [ ] update_data_set_permissions
-- [ ] update_data_source
+- [X] update_data_source
 - [ ] update_data_source_permissions
 - [ ] update_default_q_business_application
+- [ ] update_flow_permissions
 - [ ] update_folder
 - [ ] update_folder_permissions
 - [X] update_group

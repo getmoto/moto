@@ -196,7 +196,7 @@ class InvalidCustomerGatewayIdError(EC2ClientError):
     def __init__(self, customer_gateway_id: str):
         super().__init__(
             "InvalidCustomerGatewayID.NotFound",
-            f"The customer gateway ID '{customer_gateway_id}' does not exist",
+            f"The customerGateway ID '{customer_gateway_id}' does not exist",
         )
 
 
@@ -251,6 +251,14 @@ class InvalidPermissionDuplicateError(EC2ClientError):
     def __init__(self) -> None:
         super().__init__(
             "InvalidPermission.Duplicate", "The specified rule already exists"
+        )
+
+
+class DuplicateTransitGatewayAttachmentError(EC2ClientError):
+    def __init__(self, transit_gateway_id: str):
+        super().__init__(
+            "DuplicateTransitGatewayAttachment",
+            f"{transit_gateway_id} has non-deleted Transit Gateway Attachments with same VPC ID.",
         )
 
 
@@ -857,6 +865,14 @@ class InvalidCarrierGatewayID(EC2ClientError):
         super().__init__(
             "InvalidCarrierGatewayID.NotFound",
             f"The CarrierGateway ID '{carrier_gateway_id}' does not exist",
+        )
+
+
+class InvalidTransitGatewayID(EC2ClientError):
+    def __init__(self, transit_gateway_id: str, msg: Optional[str] = None):
+        super().__init__(
+            "InvalidTransitGatewayID.NotFound",
+            msg or f"The transitGateway ID '{transit_gateway_id}' does not exist",
         )
 
 

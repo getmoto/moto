@@ -100,7 +100,7 @@ athena
 - [ ] import_notebook
 - [ ] list_application_dpu_sizes
 - [ ] list_calculation_executions
-- [ ] list_capacity_reservations
+- [X] list_capacity_reservations
 - [X] list_data_catalogs
 - [ ] list_databases
 - [ ] list_engine_versions
@@ -112,7 +112,7 @@ athena
 - [X] list_query_executions
 - [ ] list_sessions
 - [ ] list_table_metadata
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [X] list_work_groups
 - [ ] put_capacity_assignment_configuration
 - [ ] start_calculation_execution
@@ -123,7 +123,7 @@ athena
 - [ ] tag_resource
 - [ ] terminate_session
 - [ ] untag_resource
-- [ ] update_capacity_reservation
+- [X] update_capacity_reservation
 - [ ] update_data_catalog
 - [ ] update_named_query
 - [ ] update_notebook

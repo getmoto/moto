@@ -10,17 +10,17 @@ from .core import TaggedEC2Resource
 
 
 class RouteTableAssociation:
-    def __init__(self) -> None:
-        self.resourceId = ""
-        self.resourceType = ""
-        self.state = ""
-        self.transitGatewayAttachmentId = ""
-
-    def clear(self) -> None:
-        self.resourceId = ""
-        self.resourceType = ""
-        self.state = ""
-        self.transitGatewayAttachmentId = ""
+    def __init__(
+        self,
+        resource_id: str,
+        resource_type: str,
+        state: str,
+        transit_gateway_attachment_id: str,
+    ) -> None:
+        self.resourceId = resource_id
+        self.resourceType = resource_type
+        self.state = state
+        self.transitGatewayAttachmentId = transit_gateway_attachment_id
 
 
 class RouteTablePropagation(RouteTableAssociation):
@@ -47,7 +47,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.state = "available"
         self.routes: Dict[str, Dict[str, Optional[str]]] = {}
         self.add_tags(tags or {})
-        self.route_table_association = RouteTableAssociation()
+        self.route_table_associations: dict[str, RouteTableAssociation] = {}
         self.route_table_propagation: List[RouteTablePropagation] = []
 
     @property
@@ -223,27 +223,30 @@ class TransitGatewayRouteTableBackend:
     ) -> None:
         table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
         attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]  # type: ignore[attr-defined]
-        table.route_table_association.resourceId = attachment.resource_id
-        table.route_table_association.resourceType = attachment.resource_type
-        table.route_table_association.state = "associated"
-        table.route_table_association.transitGatewayAttachmentId = (
-            transit_gateway_attachment_id
+        table.route_table_associations[transit_gateway_attachment_id] = (
+            RouteTableAssociation(
+                resource_id=attachment.resource_id,
+                resource_type=attachment.resource_type,
+                state="associated",
+                transit_gateway_attachment_id=transit_gateway_attachment_id,
+            )
         )
 
-    def unset_route_table_association(self, tgw_rt_id: str) -> None:
+    def unset_route_table_association(self, tgw_rt_id: str, tgw_attach_id: str) -> None:
         tgw_rt = self.transit_gateways_route_tables[tgw_rt_id]
-        tgw_rt.route_table_association.clear()
+        tgw_rt.route_table_associations.pop(tgw_attach_id)
 
     def set_route_table_propagation(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
         route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
         attchment = self.transit_gateway_attachments[transit_gateway_attachment_id]  # type: ignore[attr-defined]
-        propagation = RouteTablePropagation()
-        propagation.resourceId = attchment.resource_id
-        propagation.resourceType = attchment.resource_type
-        propagation.state = "enabled"
-        propagation.transitGatewayAttachmentId = transit_gateway_attachment_id
+        propagation = RouteTablePropagation(
+            resource_id=attchment.resource_id,
+            resource_type=attchment.resource_type,
+            state="enabled",
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
+        )
         route_table.route_table_propagation.append(propagation)
 
     def disable_route_table_propagation(
@@ -277,9 +280,9 @@ class TransitGatewayRouteTableBackend:
             ),
         )
 
-        result = [
-            table.route_table_association for table in transit_gateway_route_tables
-        ]
+        result: list[RouteTableAssociation] = []
+        for table in transit_gateway_route_tables:
+            result.extend(table.route_table_associations.values())
         if filters:
             result = filter_resources(result, filters, attr_pairs)
         return result
@@ -381,7 +384,7 @@ class TransitGatewayRouteTableBackend:
         tgw_association = self.transit_gateway_associations.pop(tgw_attach_id)
         tgw_association.state = "disassociated"
 
-        self.unset_route_table_association(tgw_rt_id)
+        self.unset_route_table_association(tgw_rt_id, tgw_attach_id=tgw_attach_id)
         self.unset_attachment_association(tgw_attach_id)  # type: ignore[attr-defined]
 
         return tgw_association

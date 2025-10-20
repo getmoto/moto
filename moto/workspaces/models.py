@@ -123,7 +123,6 @@ class WorkSpaceDirectory(BaseModel):
         registration_code: str,
         security_group_id: str,
         subnet_ids: List[str],
-        enable_work_docs: bool,
         enable_self_service: bool,
         tenancy: str,
         tags: List[Dict[str, str]],
@@ -156,7 +155,6 @@ class WorkSpaceDirectory(BaseModel):
         self.state = "REGISTERED"
         # Default values for workspace_creation_properties
         workspace_creation_properties = {
-            "EnableWorkDocs": enable_work_docs,
             "EnableInternetAccess": False,
             "DefaultOu": "",
             "CustomSecurityGroupId": "",
@@ -430,11 +428,36 @@ class WorkSpacesBackend(BaseBackend):
         # workspaces = [w.to_dict_pending() for w in workspaces]
         return workspaces
 
+    def terminate_workspaces(
+        self, terminate_workspace_requests: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        failed_requests = []
+        terminated_workspaces = []
+
+        for ws in terminate_workspace_requests:
+            workspace_id = ws["WorkspaceId"]
+            if workspace_id not in self.workspaces:
+                failed_requests.append(
+                    {
+                        "WorkspaceId": workspace_id,
+                        "ErrorCode": "400",
+                        "ErrorMessage": f"WorkSpace {workspace_id} could not be found.",
+                    }
+                )
+                continue
+
+            terminated_workspaces.append({"WorkspaceId": workspace_id})
+
+            self.workspaces.pop(workspace_id)
+
+        return {
+            "FailedRequests": failed_requests,
+        }
+
     def register_workspace_directory(
         self,
         directory_id: str,
         subnet_ids: List[str],
-        enable_work_docs: bool,
         enable_self_service: bool,
         tenancy: str,
         tags: List[Dict[str, str]],
@@ -461,7 +484,6 @@ class WorkSpacesBackend(BaseBackend):
             registration_code=registration_code,
             security_group_id=security_group_id,
             subnet_ids=subnet_ids,
-            enable_work_docs=enable_work_docs,
             enable_self_service=enable_self_service,
             tenancy=tenancy,
             tags=tags,

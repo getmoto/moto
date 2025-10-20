@@ -2,9 +2,11 @@ import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from moto.athena.exceptions import InvalidArgumentException, QueryStillRunning
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.s3.models import s3_backends
 from moto.s3.utils import bucket_and_name_from_url
 from moto.utilities.paginator import paginate
@@ -102,7 +104,7 @@ class DataCatalog(TaggableResourceMixin, BaseModel):
         self.parameters = parameters
 
 
-class Execution(BaseModel):
+class Execution(ManagedState):
     def __init__(
         self,
         query: str,
@@ -111,6 +113,11 @@ class Execution(BaseModel):
         workgroup: Optional[WorkGroup],
         execution_parameters: Optional[List[str]],
     ):
+        ManagedState.__init__(
+            self,
+            model_name="athena::execution",
+            transitions=[("QUEUED", "RUNNING"), ("RUNNING", "SUCCEEDED")],
+        )
         self.id = str(mock_random.uuid4())
         self.query = query
         self.context = context
@@ -119,7 +126,6 @@ class Execution(BaseModel):
         self.execution_parameters = execution_parameters
         self.start_time = time.time()
         self.end_time = time.time()
-        self.status = "SUCCEEDED"
 
         if self.config is not None and "OutputLocation" in self.config:
             if not self.config["OutputLocation"].endswith("/"):
@@ -153,7 +159,7 @@ class CapacityReservation(TaggableResourceMixin, BaseModel):
         super().__init__(
             athena_backend.account_id,
             self.region_name,
-            f"capacityreservation/{name}",
+            f"capacity-reservation/{name}",
             tags,
         )
         self.athena_backend = athena_backend
@@ -239,7 +245,7 @@ class AthenaBackend(BaseBackend):
             return None
         work_group = WorkGroup(self, name, configuration, description, tags)
         self.work_groups[name] = work_group
-        self.tagger.tag_resource(work_group.name, tags)
+        self.tagger.tag_resource(work_group.arn, tags)
         return work_group
 
     def list_work_groups(self) -> List[Dict[str, Any]]:
@@ -296,9 +302,14 @@ class AthenaBackend(BaseBackend):
             self._store_query_result_in_s3(exec_id)
 
     def get_query_execution(self, exec_id: str) -> Execution:
-        return self.executions[exec_id]
+        execution = self.executions[exec_id]
+        execution.advance()
+        return execution
 
     def list_query_executions(self, workgroup: Optional[str]) -> Dict[str, Execution]:
+        # Note: We do not advance the execution status here, only in `get_query_execution`
+        # This method simply returns the QueryExecutionIds to the user
+        # They will always have to call `get_query_execution` to get the status
         if workgroup is not None:
             return {
                 exec_id: execution
@@ -355,6 +366,9 @@ class AthenaBackend(BaseBackend):
         Query results will also be stored in the S3 output location (in CSV format).
 
         """
+        if (exctn := self.executions.get(exec_id)) and exctn.status != "SUCCEEDED":
+            raise QueryStillRunning(current_status=exctn.status)
+
         self._store_predefined_query_results(exec_id)
 
         results = (
@@ -401,11 +415,23 @@ class AthenaBackend(BaseBackend):
     ) -> None:
         cr = CapacityReservation(self, name, target_dpus, tags)
         self.capacity_reservations[cr.name] = cr
-        self.tagger.tag_resource(cr.name, tags)
+        self.tagger.tag_resource(cr.arn, tags)
         return None
 
     def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
         return self.capacity_reservations.get(name)
+
+    def list_capacity_reservations(self) -> List[Dict[str, Any]]:
+        return [
+            {"Name": cr.name, "TargetDpus": cr.target_dpus, "CreationTime": time.time()}
+            for cr in self.capacity_reservations.values()
+        ]
+
+    def update_capacity_reservation(self, name: str, target_dpus: int) -> None:
+        if name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+
+        self.capacity_reservations[name].target_dpus = target_dpus
 
     def create_named_query(
         self,
@@ -459,7 +485,7 @@ class AthenaBackend(BaseBackend):
             self, name, catalog_type, description, parameters, tags
         )
         self.data_catalogs[name] = data_catalog
-        self.tagger.tag_resource(data_catalog.name, tags)
+        self.tagger.tag_resource(data_catalog.arn, tags)
         return data_catalog
 
     @paginate(pagination_model=PAGINATION_MODEL)

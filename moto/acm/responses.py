@@ -129,10 +129,12 @@ class AWSCertificateManagerResponse(BaseResponse):
     def list_certificates(self) -> str:
         certs = []
         statuses = self._get_param("CertificateStatuses")
-        for cert_bundle in self.acm_backend.list_certificates(statuses):
+        includes = self._get_param("Includes")
+        for cert_bundle in self.acm_backend.list_certificates(statuses, includes):
             _cert = cert_bundle.describe()["Certificate"]
             _in_use_by = _cert.pop("InUseBy", [])
             _cert["InUse"] = bool(_in_use_by)
+            _cert["Exported"] = cert_bundle.cert_options["Export"] == "ENABLED"
             certs.append(_cert)
 
         result = {"CertificateSummaryList": certs}
@@ -180,6 +182,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         subject_alt_names = self._get_param("SubjectAlternativeNames")
         tags = self._get_param("Tags")  # Optional
         cert_authority_arn = self._get_param("CertificateAuthorityArn")  # Optional
+        cert_options = self._get_param("Options")
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -197,6 +200,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             subject_alt_names,
             tags,
             cert_authority_arn,
+            cert_options,
         )
 
         return json.dumps({"CertificateArn": arn})

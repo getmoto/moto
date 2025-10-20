@@ -6,7 +6,6 @@ from typing import Any, Dict
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import camelcase_to_underscores
 
-from ..core.parsers import XFormedDict
 from .exceptions import InvalidParameterValue, SNSInvalidParameter, SNSNotFoundError
 from .models import SNSBackend, sns_backends
 from .utils import is_e164
@@ -34,16 +33,15 @@ class SNSResponse(BaseResponse):
         return sns_backends[self.current_account][self.region]
 
     def _get_attributes(self) -> Dict[str, Any]:
-        attributes = self._get_param("Attributes", XFormedDict())
-        return attributes.original_dict()
+        attributes = self._get_param("Attributes", {})
+        return attributes
 
     def _get_tags(self) -> Dict[str, str]:
         tags = self._get_param("Tags", [])
-        return {tag["key"]: tag["value"] for tag in tags}
+        return {tag["Key"]: tag["Value"] for tag in tags}
 
     def _parse_message_attributes(self) -> Dict[str, Any]:
-        message_attributes = self._get_param("MessageAttributes", XFormedDict())
-        message_attributes = message_attributes.original_dict()
+        message_attributes = self._get_param("MessageAttributes", {})
         return self._transform_message_attributes(message_attributes)
 
     def _transform_message_attributes(

@@ -1236,6 +1236,9 @@ def test_get_resources_ssm():
     json_doc = yaml.safe_load(template_file)
 
     ssm = boto3.client("ssm", region_name="us-east-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    # ssm:document
     ssm.create_document(
         Content=json.dumps(json_doc),
         Name="TestDocument",
@@ -1244,13 +1247,47 @@ def test_get_resources_ssm():
         Tags=[{"Key": "testing", "Value": "testingValue"}],
     )
 
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
-    resp = rtapi.get_resources(ResourceTypeFilters=["ssm"])
+    # ssm:parameter
+    ssm.put_parameter(
+        Name="/test/parameter1",
+        Value="value1",
+        Type="String",
+        Tags=[{"Key": "env", "Value": "production"}],
+    )
+    ssm.put_parameter(
+        Name="/test/parameter2",
+        Value="value2",
+        Type="String",
+        Tags=[{"Key": "env", "Value": "staging"}],
+    )
 
+    # Test fetching all supported ssm resources
+    resp = rtapi.get_resources(ResourceTypeFilters=["ssm"])
+    assert len(resp["ResourceTagMappingList"]) == 3
+
+    # Test fetching only ssm:document resources
+    resp = rtapi.get_resources(ResourceTypeFilters=["ssm:document"])
     assert len(resp["ResourceTagMappingList"]) == 1
     assert {"Key": "testing", "Value": "testingValue"} in resp[
         "ResourceTagMappingList"
     ][0]["Tags"]
+
+    # Test fetching only ssm:parameter resources
+    resp = rtapi.get_resources(ResourceTypeFilters=["ssm:parameter"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test filtering parameters by tag
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["ssm:parameter"],
+        TagFilters=[{"Key": "env", "Values": ["production"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "env", "Value": "production"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+    assert (
+        "parameter/test/parameter1" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    )
 
 
 @mock_aws
@@ -1842,3 +1879,222 @@ def test_get_resources_secretsmanager(resource_type):
     # Make sure it works for normal and replicated secrets
     assert_tagging_works("eu-central-1", set(response_keys))
     assert_tagging_works("eu-west-1", set(response_keys))
+
+
+@mock_aws
+def test_get_resources_elasticache():
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    elc = boto3.client("elasticache", region_name="us-east-1")
+
+    cluster = elc.create_cache_cluster(
+        CacheClusterId="cluster1",
+        Engine="redis",
+        CacheNodeType="cache.t3.micro",
+        Tags=[{"Key": "cluster", "Value": "tagged"}],
+    )["CacheCluster"]
+
+    user = elc.create_user(
+        UserId="user1",
+        UserName="user1",
+        Engine="Redis",
+        AccessString="on ~* allcommands allkeys",
+        NoPasswordRequired=True,
+        Tags=[{"Key": "user", "Value": "tagged"}],
+    )
+
+    group = elc.create_replication_group(
+        ReplicationGroupId="replication-group-id",
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        Tags=[{"Key": "repgroup", "Value": "tagged"}],
+    )["ReplicationGroup"]
+
+    subnet = elc.create_cache_subnet_group(
+        CacheSubnetGroupName="subnet1",
+        CacheSubnetGroupDescription="desc",
+        SubnetIds=["subnet-12345678", "subnet-87654321"],
+        Tags=[{"Key": "subnet", "Value": "tagged"}],
+    )["CacheSubnetGroup"]
+
+    snapshot = elc.create_snapshot(
+        CacheClusterId=cluster["CacheClusterId"],
+        SnapshotName="snapshot1",
+        Tags=[{"Key": "snapshot", "Value": "tagged"}],
+    )["Snapshot"]
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["elasticache"])
+    resp_arns = [r["ResourceARN"] for r in resp["ResourceTagMappingList"]]
+    expected_arns = [
+        cluster["ARN"],
+        user["ARN"],
+        group["ARN"],
+        subnet["ARN"],
+        snapshot["ARN"],
+    ]
+
+    for arn in expected_arns:
+        assert arn in resp_arns
+
+    resp = rtapi.get_resources(ResourceTypeFilters=["elasticache:cache_clusters"])
+
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "cluster", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "repgroup", "Values": ["tagged"]}])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "repgroup", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "snapshot", "Values": ["tagged"]}])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "snapshot", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+    resp = rtapi.get_resources(TagFilters=[{"Key": "user", "Values": ["tagged"]}])
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "user", "Value": "tagged"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+
+
+@mock_aws
+def test_tag_resources_elasticache():
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    elc = boto3.client("elasticache", region_name="us-east-1")
+
+    cluster = elc.create_cache_cluster(
+        CacheClusterId="cluster1",
+        Engine="redis",
+        CacheNodeType="cache.t3.micro",
+    )["CacheCluster"]
+
+    user = elc.create_user(
+        UserId="user1",
+        UserName="user1",
+        Engine="Redis",
+        AccessString="on ~* allcommands allkeys",
+        NoPasswordRequired=True,
+    )
+
+    group = elc.create_replication_group(
+        ReplicationGroupId="replication-group-id",
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+    )["ReplicationGroup"]
+
+    subnet = elc.create_cache_subnet_group(
+        CacheSubnetGroupName="subnet1",
+        CacheSubnetGroupDescription="desc",
+        SubnetIds=["subnet-12345678", "subnet-87654321"],
+    )["CacheSubnetGroup"]
+
+    snapshot = elc.create_snapshot(
+        CacheClusterId=cluster["CacheClusterId"],
+        SnapshotName="snapshot1",
+    )["Snapshot"]
+
+    # Tag all resources
+    arns = [cluster["ARN"], user["ARN"], group["ARN"], subnet["ARN"], snapshot["ARN"]]
+    rtapi.tag_resources(
+        ResourceARNList=arns,
+        Tags={"env": "dev", "owner": "test"},
+    )
+
+    resp = elc.list_tags_for_resource(ResourceName=cluster["ARN"])
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+    assert {"Key": "owner", "Value": "test"} in resp["TagList"]
+
+    resp = elc.list_tags_for_resource(ResourceName=group["ARN"])
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+
+    resp = elc.list_tags_for_resource(ResourceName=snapshot["ARN"])
+    assert {"Key": "owner", "Value": "test"} in resp["TagList"]
+
+    resp = elc.list_tags_for_resource(ResourceName=user["ARN"])
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+
+    resp = elc.list_tags_for_resource(ResourceName=subnet["ARN"])
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+
+
+@mock_aws
+def test_untag_resources_elasticache():
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+    elc = boto3.client("elasticache", region_name="us-east-1")
+
+    cluster = elc.create_cache_cluster(
+        CacheClusterId="cluster1",
+        Engine="redis",
+        CacheNodeType="cache.t3.micro",
+        Tags=[{"Key": "env", "Value": "dev"}, {"Key": "owner", "Value": "test"}],
+    )["CacheCluster"]
+
+    user = elc.create_user(
+        UserId="user1",
+        UserName="user1",
+        Engine="Redis",
+        AccessString="on ~* allcommands allkeys",
+        NoPasswordRequired=True,
+        Tags=[{"Key": "env", "Value": "dev"}, {"Key": "owner", "Value": "test"}],
+    )
+
+    group = elc.create_replication_group(
+        ReplicationGroupId="replication-group-id",
+        ReplicationGroupDescription="test replication group",
+        Engine="redis",
+        CacheNodeType="cache.t4g.micro",
+        NumNodeGroups=1,
+        Tags=[{"Key": "env", "Value": "dev"}, {"Key": "owner", "Value": "test"}],
+    )["ReplicationGroup"]
+
+    subnet = elc.create_cache_subnet_group(
+        CacheSubnetGroupName="subnet1",
+        CacheSubnetGroupDescription="desc",
+        SubnetIds=["subnet-12345678", "subnet-87654321"],
+        Tags=[{"Key": "env", "Value": "dev"}, {"Key": "owner", "Value": "test"}],
+    )["CacheSubnetGroup"]
+
+    snapshot = elc.create_snapshot(
+        CacheClusterId=cluster["CacheClusterId"],
+        SnapshotName="snapshot1",
+        Tags=[{"Key": "env", "Value": "dev"}, {"Key": "owner", "Value": "test"}],
+    )["Snapshot"]
+
+    arns = [user["ARN"], group["ARN"], subnet["ARN"], snapshot["ARN"]]
+    rtapi.untag_resources(
+        ResourceARNList=arns,
+        TagKeys=["owner"],
+    )
+
+    resp = elc.list_tags_for_resource(ResourceName=group["ARN"])
+    assert len(resp["TagList"]) == 1
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+
+    resp = elc.list_tags_for_resource(ResourceName=snapshot["ARN"])
+    assert len(resp["TagList"]) == 1
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+
+    resp = elc.list_tags_for_resource(ResourceName=user["ARN"])
+    assert len(resp["TagList"]) == 1
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+
+    resp = elc.list_tags_for_resource(ResourceName=subnet["ARN"])
+    assert len(resp["TagList"]) == 1
+    assert {"Key": "env", "Value": "dev"} in resp["TagList"]
+
+    # Test untagging two keys
+    rtapi.untag_resources(
+        ResourceARNList=[cluster["ARN"]],
+        TagKeys=["env", "owner"],
+    )
+
+    resp = elc.list_tags_for_resource(ResourceName=cluster["ARN"])
+    assert len(resp["TagList"]) == 0

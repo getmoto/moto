@@ -130,6 +130,7 @@ backend_url_patterns = [
     ("lexv2models", re.compile("https?://lex\\.(.+)\\.amazonaws\\.com")),
     ("lexv2models", re.compile("https?://models-v2-lex\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),
+    ("macie2", re.compile("https?://macie2\\.(.+)\\.amazonaws\\.com")),
     (
         "managedblockchain",
         re.compile("https?://managedblockchain\\.(.+)\\.amazonaws.com"),
@@ -137,6 +138,7 @@ backend_url_patterns = [
     ("mediaconnect", re.compile("https?://mediaconnect\\.(.+)\\.amazonaws.com")),
     ("medialive", re.compile("https?://medialive\\.(.+)\\.amazonaws.com")),
     ("mediapackage", re.compile("https?://mediapackage\\.(.+)\\.amazonaws.com")),
+    ("mediapackagev2", re.compile("https?://mediapackagev2\\.(.+)\\.amazonaws\\.com")),
     ("mediastore", re.compile("https?://mediastore\\.(.+)\\.amazonaws\\.com")),
     ("mediastoredata", re.compile("https?://data\\.mediastore\\.(.+)\\.amazonaws.com")),
     ("memorydb", re.compile("https?://memory-db\\.(.+)\\.amazonaws\\.com")),
@@ -233,6 +235,7 @@ backend_url_patterns = [
     ("sts", re.compile("https?://sts\\.(.*\\.)?amazonaws\\.com")),
     ("support", re.compile("https?://support\\.(.+)\\.amazonaws\\.com")),
     ("swf", re.compile("https?://swf\\.(.+)\\.amazonaws\\.com")),
+    ("synthetics", re.compile("https?://synthetics\\.(.+)\\.amazonaws\\.com")),
     ("textract", re.compile("https?://textract\\.(.+)\\.amazonaws\\.com")),
     (
         "timestreaminfluxdb",
@@ -252,6 +255,7 @@ backend_url_patterns = [
     ),
     ("transcribe", re.compile("https?://transcribe\\.(.+)\\.amazonaws\\.com")),
     ("transfer", re.compile("https?://transfer\\.(.+)\\.amazonaws\\.com")),
+    ("vpclattice", re.compile("https?://vpc-lattice\\.(.+)\\.amazonaws\\.com")),
     ("wafv2", re.compile("https?://wafv2\\.(.+)\\.amazonaws.com")),
     ("workspaces", re.compile("https?://workspaces\\.(.+)\\.amazonaws\\.com")),
     ("workspacesweb", re.compile("https?://workspaces-web\\.(.+)\\.amazonaws\\.com")),

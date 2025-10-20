@@ -301,9 +301,9 @@ class FakeKey(BaseModel, ManagedState):
             if self.encryption == "aws:kms" and self.kms_key_id is not None:
                 res["x-amz-server-side-encryption-aws-kms-key-id"] = self.kms_key_id
         if self.encryption == "aws:kms" and self.bucket_key_enabled is not None:
-            res["x-amz-server-side-encryption-bucket-key-enabled"] = (
+            res["x-amz-server-side-encryption-bucket-key-enabled"] = str(
                 self.bucket_key_enabled
-            )
+            ).lower()
         if self._storage_class != "STANDARD":
             res["x-amz-storage-class"] = self._storage_class
         if self._expiry is not None:
@@ -2166,6 +2166,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     def put_bucket_lifecycle(
         self, bucket_name: str, rules: List[Dict[str, Any]]
     ) -> None:
+        # Equivalent operation, just a different name. Holdover from the boto2->boto3 switch
+        return self.put_bucket_lifecycle_configuration(bucket_name, rules)
+
+    def put_bucket_lifecycle_configuration(
+        self, bucket_name: str, rules: List[Dict[str, Any]]
+    ) -> None:
         bucket = self.get_bucket(bucket_name)
         bucket.set_lifecycle(rules)
 
@@ -3043,6 +3049,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         return bucket.cors
 
     def get_bucket_lifecycle(self, bucket_name: str) -> List[LifecycleRule]:
+        # Equivalent operation, just a different name. Holdover from the boto2->boto3 switch
+        return self.get_bucket_lifecycle_configuration(bucket_name)
+
+    def get_bucket_lifecycle_configuration(
+        self, bucket_name: str
+    ) -> list[LifecycleRule]:
         bucket = self.get_bucket(bucket_name)
         return bucket.rules
 

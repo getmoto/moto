@@ -16,7 +16,7 @@ elasticache
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] add_tags_to_resource
+- [X] add_tags_to_resource
 - [ ] authorize_cache_security_group_ingress
 - [ ] batch_apply_update_action
 - [ ] batch_stop_update_action
@@ -31,7 +31,7 @@ elasticache
 - [X] create_replication_group
 - [ ] create_serverless_cache
 - [ ] create_serverless_cache_snapshot
-- [ ] create_snapshot
+- [X] create_snapshot
 - [X] create_user
 - [ ] create_user_group
 - [ ] decrease_node_groups_in_global_replication_group
@@ -41,10 +41,10 @@ elasticache
 - [ ] delete_cache_security_group
 - [ ] delete_cache_subnet_group
 - [ ] delete_global_replication_group
-- [ ] delete_replication_group
+- [X] delete_replication_group
 - [ ] delete_serverless_cache
 - [ ] delete_serverless_cache_snapshot
-- [ ] delete_snapshot
+- [X] delete_snapshot
 - [X] delete_user
 - [ ] delete_user_group
 - [X] describe_cache_clusters
@@ -62,7 +62,7 @@ elasticache
 - [ ] describe_serverless_cache_snapshots
 - [ ] describe_serverless_caches
 - [ ] describe_service_updates
-- [ ] describe_snapshots
+- [X] describe_snapshots
 - [ ] describe_update_actions
 - [ ] describe_user_groups
 - [X] describe_users
@@ -90,7 +90,7 @@ elasticache
 - [ ] purchase_reserved_cache_nodes_offering
 - [ ] rebalance_slots_in_global_replication_group
 - [ ] reboot_cache_cluster
-- [ ] remove_tags_from_resource
+- [X] remove_tags_from_resource
 - [ ] reset_cache_parameter_group
 - [ ] revoke_cache_security_group_ingress
 - [ ] start_migration
