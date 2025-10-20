@@ -149,6 +149,11 @@ def test_create_table_with_gsi():
                 "ReadCapacityUnits": 0,
                 "WriteCapacityUnits": 0,
             },
+            "WarmThroughput": {
+                "ReadUnitsPerSecond": 12000,
+                "Status": "ACTIVE",
+                "WriteUnitsPerSecond": 4000,
+            },
         }
     ]
 
@@ -184,6 +189,11 @@ def test_create_table_with_gsi():
             "ProvisionedThroughput": {
                 "ReadCapacityUnits": 3,
                 "WriteCapacityUnits": 5,
+            },
+            "WarmThroughput": {
+                "ReadUnitsPerSecond": 3,
+                "Status": "ACTIVE",
+                "WriteUnitsPerSecond": 5,
             },
         }
     ]
@@ -508,4 +518,123 @@ def test_create_table__specify_non_key_column():
     assert (
         err["Message"]
         == "1 validation error detected: Value 'SORT' at 'localSecondaryIndexes.1.member.keySchema.2.member.keyType' failed to satisfy constraint: Member must satisfy enum value set: [HASH, RANGE]"
+    )
+
+
+@mock_aws
+def test_create_table_with_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="test_warm",
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        WarmThroughput={
+            "ReadUnitsPerSecond": 15000,
+            "WriteUnitsPerSecond": 5000,
+        },
+    )
+    table = client.describe_table(TableName="test_warm")["Table"]
+    assert table["WarmThroughput"] == {
+        "ReadUnitsPerSecond": 15000,
+        "WriteUnitsPerSecond": 5000,
+        "Status": "ACTIVE",
+    }
+
+
+@mock_aws
+def test_create_table_with_invalid_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_table(
+            TableName="test_invalid_warm",
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+            ],
+            KeySchema=[
+                {"AttributeName": "id", "KeyType": "HASH"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+            WarmThroughput={
+                "ReadUnitsPerSecond": 12000,
+                "WriteUnitsPerSecond": 3000,  # Below deafult 4000
+            },
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        "One or more parameter values were invalid: Requested WriteUnitsPerSecond for WarmThroughput for table is lower than initial throughput for OnDemand"
+        in err["Message"]
+    )
+
+
+@mock_aws
+def test_create_table_with_gsi_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="test_gsi_warm",
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+            {"AttributeName": "gsi_key", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+        GlobalSecondaryIndexes=[
+            {
+                "IndexName": "test_gsi",
+                "KeySchema": [{"AttributeName": "gsi_key", "KeyType": "HASH"}],
+                "Projection": {"ProjectionType": "ALL"},
+                "WarmThroughput": {
+                    "ReadUnitsPerSecond": 15000,
+                    "WriteUnitsPerSecond": 5000,
+                },
+            }
+        ],
+    )
+    table = client.describe_table(TableName="test_gsi_warm")["Table"]
+    gsi = table["GlobalSecondaryIndexes"][0]
+    assert gsi["WarmThroughput"] == {
+        "ReadUnitsPerSecond": 15000,
+        "WriteUnitsPerSecond": 5000,
+        "Status": "ACTIVE",
+    }
+
+
+@mock_aws
+def test_create_table_with_invalid_gsi_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_table(
+            TableName="test_invalid_gsi_warm",
+            AttributeDefinitions=[
+                {"AttributeName": "id", "AttributeType": "S"},
+                {"AttributeName": "gsi_key", "AttributeType": "S"},
+            ],
+            KeySchema=[
+                {"AttributeName": "id", "KeyType": "HASH"},
+            ],
+            BillingMode="PAY_PER_REQUEST",
+            GlobalSecondaryIndexes=[
+                {
+                    "IndexName": "test_gsi",
+                    "KeySchema": [{"AttributeName": "gsi_key", "KeyType": "HASH"}],
+                    "Projection": {"ProjectionType": "ALL"},
+                    "WarmThroughput": {
+                        "ReadUnitsPerSecond": 10000,  # Below default 12000
+                        "WriteUnitsPerSecond": 5000,
+                    },
+                }
+            ],
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"
+    assert (
+        "One or more parameter values were invalid: Requested ReadUnitsPerSecond for WarmThroughput for index test_gsi is lower than initial throughput for OnDemand"
+        in err["Message"]
     )
