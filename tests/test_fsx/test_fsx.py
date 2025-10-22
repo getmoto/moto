@@ -153,6 +153,14 @@ def test_delete_backup():
     assert backup["BackupId"].startswith("backup-")
     assert backup["ResourceARN"].startswith("arn:aws:fsx:")
 
+    resp = client.delete_backup(BackupId=backup["BackupId"])
+    assert resp["BackupId"] == backup["BackupId"]
+    assert resp["Lifecycle"] == "DELETED"
+
+
+@mock_aws
+def test_backup_not_found():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
     with pytest.raises(ClientError) as exc:
         client.delete_backup(BackupId="NONEXISTENTBACKUPID")
 
