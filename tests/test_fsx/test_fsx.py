@@ -5,6 +5,7 @@ import time
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
@@ -99,6 +100,68 @@ def test_delete_file_system():
 
 
 @mock_aws
+def test_create_backup():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    tags = [
+        {"Key": "Moto", "Value": "Hello"},
+        {"Key": "Environment", "Value": "Dev"},
+    ]
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    resp = client.create_backup(
+        FileSystemId=fs["FileSystem"]["FileSystemId"], Tags=tags
+    )
+
+    backup = resp["Backup"]
+    assert backup["BackupId"].startswith("backup-")
+    assert backup["ResourceARN"].startswith("arn:aws:fsx:")
+    assert backup["Tags"] == tags
+
+
+@mock_aws
+def test_nonexistent_file_system():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+
+    with pytest.raises(ClientError) as exc:
+        client.create_backup(
+            FileSystemId="NONEXISTENTFILESYSTEMID",
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "FSx resource, NONEXISTENTFILESYSTEMID does not exist"
+
+
+@mock_aws
+def test_delete_backup():
+    client = boto3.client("fsx", region_name=TEST_REGION_NAME)
+    fs = client.create_file_system(
+        FileSystemType="LUSTRE",
+        StorageCapacity=1200,
+        StorageType="SSD",
+        SubnetIds=[FAKE_SUBNET_ID],
+        SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
+    )
+    resp = client.create_backup(FileSystemId=fs["FileSystem"]["FileSystemId"])
+
+    backup = resp["Backup"]
+    assert backup["BackupId"].startswith("backup-")
+    assert backup["ResourceARN"].startswith("arn:aws:fsx:")
+
+    with pytest.raises(ClientError) as exc:
+        client.delete_backup(BackupId="NONEXISTENTBACKUPID")
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == "FSx resource, NONEXISTENTBACKUPID does not exist"
+
+
+@mock_aws
 def test_tag_resource():
     client = boto3.client("fsx", region_name=TEST_REGION_NAME)
     fs = client.create_file_system(
@@ -119,8 +182,8 @@ def test_tag_resource():
 
     client.tag_resource(ResourceARN=resource_arn, Tags=tags)
 
-    resp = client.describe_file_systems(FileSystemIds=[file_system_id])
-    assert resp["FileSystems"][0]["Tags"] == tags
+    resp = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert resp["Tags"] == tags
 
 
 @mock_aws
@@ -146,6 +209,6 @@ def test_untag_resource():
 
     client.untag_resource(ResourceARN=resource_arn, TagKeys=tag_keys)
 
-    resp = client.describe_file_systems(FileSystemIds=[file_system_id])
-    assert len(resp["FileSystems"][0]["Tags"]) == 1
-    assert resp["FileSystems"][0]["Tags"] == [{"Key": "Environment", "Value": "Dev"}]
+    resp = client.list_tags_for_resource(ResourceARN=resource_arn)
+    assert len(resp["Tags"]) == 1
+    assert resp["Tags"] == [{"Key": "Environment", "Value": "Dev"}]
