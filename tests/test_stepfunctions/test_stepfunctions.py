@@ -540,23 +540,43 @@ def test_state_machine_start_execution_with_custom_name():
 
 
 @mock_aws
-def test_state_machine_start_execution_fails_on_duplicate_execution_name():
+def test_state_machine_start_execution_fails_on_duplicate_execution_name_with_different_input():
     client = boto3.client("stepfunctions", region_name=region)
     #
     sm = client.create_state_machine(
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
     execution_one = client.start_execution(
-        stateMachineArn=sm["stateMachineArn"], name="execution_name"
+        stateMachineArn=sm["stateMachineArn"], name="execution_name", input=json.dumps({"a": "b"})
     )
     #
     with pytest.raises(ClientError) as ex:
         _ = client.start_execution(
-            stateMachineArn=sm["stateMachineArn"], name="execution_name"
+            stateMachineArn=sm["stateMachineArn"], name="execution_name", input=json.dumps({"y": "z"})
         )
     assert ex.value.response["Error"]["Message"] == (
         "Execution Already Exists: '" + execution_one["executionArn"] + "'"
     )
+
+@mock_aws
+def test_state_machine_start_execution_is_idempotent_by_name_and_input():
+    client = boto3.client("stepfunctions", region_name=region)
+    #
+    sm = client.create_state_machine(
+        name="name", definition=str(simple_definition), roleArn=_get_default_role()
+    )
+    execution_one = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], name="execution_name", input='{"a": "b", "c": "d"}'
+    )
+    #
+    execution_two = client.start_execution(
+        stateMachineArn=sm["stateMachineArn"], name="execution_name", input='{"c": "d", "a": "b"}'
+    )
+    assert execution_one["executionArn"] == execution_two["executionArn"]
+    
+    # Check idempotency
+    list_execs = client.list_executions(stateMachineArn=sm["stateMachineArn"])
+    assert len(list_execs["executions"]) == 1
 
 
 @mock_aws
