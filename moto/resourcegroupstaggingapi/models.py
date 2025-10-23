@@ -27,6 +27,7 @@ from moto.elbv2.models import ELBv2Backend, elbv2_backends
 from moto.emr.models import ElasticMapReduceBackend, emr_backends
 from moto.events.models import EventsBackend, events_backends
 from moto.firehose.models import FirehoseBackend, firehose_backends
+from moto.fsx.models import FSxBackend, fsx_backends
 from moto.glacier.models import GlacierBackend, glacier_backends
 from moto.glue.models import GlueBackend, glue_backends
 from moto.kafka.models import KafkaBackend, kafka_backends
@@ -131,6 +132,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def rds_backend(self) -> RDSBackend:
         return rds_backends[self.account_id][self.region_name]
+
+    @property
+    def fsx_backends(self) -> FSxBackend:
+        return fsx_backends[self.account_id][self.region_name]
 
     @property
     def glacier_backend(self) -> GlacierBackend:
@@ -774,6 +779,26 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 ):  # Skip if no tags, or invalid filter
                     continue
                 yield {"ResourceARN": f"{bus.arn}", "Tags": tags}
+
+        # FSx
+        if not resource_type_filters or "fsx" in resource_type_filters:
+            # File system
+            for file_system in self.fsx_backends.file_systems.values():
+                tags = self.fsx_backends.tagger.list_tags_for_resource(
+                    file_system.resource_arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{file_system.resource_arn}", "Tags": tags}
+
+            # Backup
+            for backup in self.fsx_backends.backups.values():
+                tags = self.fsx_backends.tagger.list_tags_for_resource(
+                    backup.resource_arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{backup.resource_arn}", "Tags": tags}
 
         # Glacier Vault
 
