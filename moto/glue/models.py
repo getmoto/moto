@@ -1330,7 +1330,10 @@ class GlueBackend(BaseBackend):
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
 
     def create_connection(
-        self, catalog_id: str, connection_input: Dict[str, Any], tags: Dict[str, str]
+        self,
+        catalog_id: str,
+        connection_input: Dict[str, Any],
+        tags: Dict[str, str],
     ) -> str:
         name = connection_input.get("Name", "")
         if name in self.connections:
@@ -2418,12 +2421,22 @@ class FakeConnection(BaseModel):
         self.status = "READY"
         self.name = self.connection_input.get("Name")
         self.description = self.connection_input.get("Description")
+        self.connection_properties = self.connection_input.get(
+            "ConnectionProperties", {}
+        )
+        self.spark_properties = self.connection_input.get("SparkProperties", {})
+        self.athena_properties = self.connection_input.get("AthenaProperties", {})
+        self.python_properties = self.connection_input.get("PythonProperties", {})
 
     def as_dict(self) -> Dict[str, Any]:
         return {
             "Name": self.name,
             "Description": self.description,
             "Connection": self.connection_input,
+            "ConnectionProperties": self.connection_properties,
+            "AthenaProperties": self.athena_properties,
+            "SparkProperties": self.spark_properties,
+            "PythonProperties": self.python_properties,
             "CreationTime": self.created_time.isoformat(),
             "LastUpdatedTime": self.updated_time.isoformat(),
             "CatalogId": self.catalog_id,
