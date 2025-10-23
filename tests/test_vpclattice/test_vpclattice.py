@@ -21,6 +21,48 @@ def test_create_service():
 
 
 @mock_aws
+def test_get_service():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    service_arn = resp["arn"]
+    service_id = resp["id"]
+
+    # lookup by id
+    service_by_id = client.get_service(serviceIdentifier=service_id)
+    assert service_by_id["id"].startswith("svc-")
+    assert service_by_id["status"] == "ACTIVE"
+    assert service_by_id["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+    assert service_by_id["dnsEntry"]["hostedZoneId"].startswith("Z")
+    assert service_by_id["authType"] == "NONE"
+    assert service_by_id["certificateArn"] == ""
+    assert service_by_id["customDomainName"] == ""
+
+    # lookup by arn
+    service_by_arn = client.get_service(serviceIdentifier=service_arn)
+    assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+
+
+@mock_aws
+def test_get_nonexistent_service():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.get_service(serviceIdentifier="NONEXISTENTSERVICEID")
+
+
+@mock_aws
+def test_list_services():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    client.create_service(name="my-service1", authType="NONE")
+    client.create_service(name="my-service2", authType="NONE")
+
+    services = client.list_services()
+    assert len(services["items"]) == 2
+    assert services["items"][0]["name"] == "my-service1"
+    assert services["items"][1]["name"] == "my-service2"
+
+
+@mock_aws
 def test_create_service_network():
     client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
     resp = client.create_service_network(
@@ -35,6 +77,63 @@ def test_create_service_network():
     assert resp["id"].startswith("sn-")
     assert resp["authType"] == "NONE"
     assert resp["sharingConfig"] == {"enabled": False}
+
+
+@mock_aws
+def test_get_service_network():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    resp = client.create_service_network(
+        name="my-sn",
+        authType="NONE",
+        clientToken="token123",
+        sharingConfig={"enabled": False},
+    )
+
+    service_arn = resp["arn"]
+    service_id = resp["id"]
+
+    # lookup by id
+    service_by_id = client.get_service_network(serviceNetworkIdentifier=service_id)
+    assert service_by_id["name"] == "my-sn"
+    assert service_by_id["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+    assert service_by_id["id"].startswith("sn-")
+    assert service_by_id["authType"] == "NONE"
+    assert service_by_id["sharingConfig"] == {"enabled": False}
+
+    # lookup by arn
+    service_by_arn = client.get_service_network(serviceNetworkIdentifier=service_arn)
+    assert service_by_arn["arn"].startswith("arn:aws:vpc-lattice:ap-southeast-1:")
+
+
+@mock_aws
+def test_get_nonexistent_service_network():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.get_service_network(
+            serviceNetworkIdentifier="NONEXISTENTSERVICENETWORKID"
+        )
+
+
+@mock_aws
+def test_list_service_networks():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+    client.create_service_network(
+        name="my-sn1",
+        authType="NONE",
+        clientToken="token123",
+        sharingConfig={"enabled": False},
+    )
+    client.create_service_network(
+        name="my-sn2",
+        authType="NONE",
+        clientToken="token123",
+        sharingConfig={"enabled": False},
+    )
+
+    service_networks = client.list_service_networks()
+    assert len(service_networks["items"]) == 2
+    assert service_networks["items"][0]["name"] == "my-sn1"
+    assert service_networks["items"][1]["name"] == "my-sn2"
 
 
 @mock_aws
@@ -101,6 +200,45 @@ def test_create_rule():
         == "tg-1234567890abcdef"
     )
     assert resp["match"]["httpMatch"]["pathMatch"]["match"]["exact"] == "/my-path"
+
+
+@mock_aws
+def test_list_tags_for_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    tags = {"tag1": "value1", "tag2": "value2"}
+    resp = client.create_service(name="my-service", authType="NONE", tags=tags)
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+
+@mock_aws
+def test_tag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    tags = {"tag1": "value1", "tag2": "value2"}
+    resp = client.create_service(name="my-service", authType="NONE")
+
+    client.tag_resource(resourceArn=resp["arn"], tags=tags)
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("vpc-lattice", region_name="ap-southeast-1")
+
+    tags = {"tag1": "value1", "tag2": "value2"}
+    resp = client.create_service(name="my-service", authType="NONE", tags=tags)
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == tags
+
+    client.untag_resource(resourceArn=resp["arn"], tagKeys=["tag1"])
+
+    returned_tags = client.list_tags_for_resource(resourceArn=resp["arn"])
+    assert returned_tags["tags"] == {"tag2": "value2"}
 
 
 @mock_aws
