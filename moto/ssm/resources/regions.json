@@ -3593,6 +3593,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -11312,6 +11321,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-northeast-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25361,6 +25379,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
@@ -25689,6 +25716,15 @@
                 "Value": "wickr",
                 "endpoint": {
                   "Value": "api.messaging.wickr.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.ap-southeast-5.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38216,6 +38252,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "polly": {
+                "Value": "polly",
+                "endpoint": {
+                  "Value": "polly.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "privatelink": {
                 "Value": "privatelink"
               },
@@ -44264,6 +44309,15 @@
                 "Value": "waf-regional",
                 "endpoint": {
                   "Value": "waf-regional.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.eu-south-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55109,6 +55163,15 @@
                 "Value": "waf-regional",
                 "endpoint": {
                   "Value": "waf-regional.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.me-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -66160,6 +66223,15 @@
                 "Value": "wellarchitectedtool",
                 "endpoint": {
                   "Value": "wellarchitected.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.us-east-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
