@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
+from moto.core.utils import utcnow
 
 from .exceptions import EntityNotFoundException, InvalidInputException
 from .models import (
@@ -1104,3 +1105,36 @@ class GlueResponse(BaseResponse):
             workflow_name, run_id, run_properties
         )
         return json.dumps({})
+
+    def create_security_configuration(self) -> str:
+        name = self._get_param("Name")
+        configuration = self._get_param("EncryptionConfiguration")
+
+        self.glue_backend.create_security_configuration(name, configuration)
+        return json.dumps({"Name": name, "CreatedTimestamp": utcnow().isoformat()})
+
+    def get_security_configuration(self) -> str:
+        name = self._get_param("Name")
+
+        security_configuration = self.glue_backend.security_configurations.get(name)
+        if not security_configuration:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found.")
+
+        return json.dumps({"SecurityConfiguration": security_configuration.as_dict()})
+
+    def delete_security_configuration(self) -> str:
+        name = self._get_param("Name")
+
+        security_configuration = self.glue_backend.security_configurations.pop(
+            name, None
+        )
+        if not security_configuration:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found.")
+
+        return json.dumps({})
+
+    def get_security_configurations(self) -> str:
+        security_configurations = [
+            sc.as_dict() for sc in self.glue_backend.security_configurations.values()
+        ]
+        return json.dumps({"SecurityConfigurations": security_configurations})
