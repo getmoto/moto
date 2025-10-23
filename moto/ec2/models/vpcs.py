@@ -252,7 +252,6 @@ AWS_ENDPOINT_SERVICES = [
     "private-networks",
     "profile",
     "proton",
-    "qldb.session",
     "rds",
     "rds-data",
     "redshift",
