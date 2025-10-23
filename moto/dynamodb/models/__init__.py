@@ -85,6 +85,7 @@ class DynamoDBBackend(BaseBackend):
         sse_specification: Optional[Dict[str, Any]],
         tags: List[Dict[str, str]],
         deletion_protection_enabled: Optional[bool],
+        warm_throughput: Optional[Dict[str, Any]],
     ) -> Table:
         if name in self.tables:
             raise ResourceInUseException(f"Table already exists: {name}")
@@ -102,6 +103,7 @@ class DynamoDBBackend(BaseBackend):
             sse_specification=sse_specification,
             tags=tags,
             deletion_protection_enabled=deletion_protection_enabled,
+            warm_throughput=warm_throughput,
         )
         self.tables[name] = table
         return table
@@ -180,6 +182,7 @@ class DynamoDBBackend(BaseBackend):
         billing_mode: str,
         stream_spec: Dict[str, Any],
         deletion_protection_enabled: Optional[bool],
+        warm_throughput: Optional[Dict[str, Any]],
     ) -> Table:
         table = self.get_table(name)
         if attr_definitions:
@@ -194,6 +197,9 @@ class DynamoDBBackend(BaseBackend):
             self.update_table_streams(table, stream_spec)
         if deletion_protection_enabled in {True, False}:
             table.deletion_protection_enabled = deletion_protection_enabled
+        if warm_throughput:
+            table.warm_throughput = warm_throughput
+            table.warm_throughput["Status"] = "ACTIVE"
         return table
 
     def update_table_streams(

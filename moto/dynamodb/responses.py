@@ -8,6 +8,10 @@ from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 from moto.dynamodb.comparisons import create_condition_expression_parser
 from moto.dynamodb.models import DynamoDBBackend, Table, dynamodb_backends
+from moto.dynamodb.models.table import (
+    DEFAULT_WARM_THROUGHPUT_RCU,
+    DEFAULT_WARM_THROUGHPUT_WCU,
+)
 from moto.dynamodb.models.utilities import dynamo_json_dump
 from moto.dynamodb.parsing.expressions import (  # type: ignore
     ExpressionAttributeName,
@@ -284,6 +288,7 @@ class DynamoHandler(BaseResponse):
         streams = body.get("StreamSpecification")
         tags = body.get("Tags", [])
         deletion_protection_enabled = body.get("DeletionProtectionEnabled", False)
+        warm_throughput = body.get("WarmThroughput")
 
         self._validate_table_creation(
             billing_mode=billing_mode,
@@ -292,6 +297,7 @@ class DynamoHandler(BaseResponse):
             global_indexes=global_indexes,
             local_secondary_indexes=local_secondary_indexes,
             attr=attr,
+            warm_throughput=warm_throughput,
         )
 
         table = self.dynamodb_backend.create_table(
@@ -306,6 +312,7 @@ class DynamoHandler(BaseResponse):
             sse_specification=sse_spec,
             tags=tags,
             deletion_protection_enabled=deletion_protection_enabled,
+            warm_throughput=warm_throughput,
         )
         return dynamo_json_dump(table.describe())
 
@@ -317,6 +324,7 @@ class DynamoHandler(BaseResponse):
         global_indexes: Optional[List[Dict[str, Any]]],
         local_secondary_indexes: Optional[List[Dict[str, Any]]],
         attr: List[Dict[str, str]],
+        warm_throughput: Optional[Dict[str, Any]],
     ) -> None:
         # Validate Throughput
         if billing_mode == "PAY_PER_REQUEST" and throughput:
@@ -350,6 +358,40 @@ class DynamoHandler(BaseResponse):
                 "One or more parameter values were invalid: List of GlobalSecondaryIndexes is empty"
             )
         for idx, g_idx in enumerate(global_indexes or [], start=1):
+            idx_throughput = g_idx.get("ProvisionedThroughput", None)
+            idx_warm_throughput = g_idx.get("WarmThroughput", None)
+            min_rcu = (
+                idx_throughput["ReadCapacityUnits"]
+                if idx_throughput
+                else DEFAULT_WARM_THROUGHPUT_RCU
+            )
+            min_wcu = (
+                idx_throughput["WriteCapacityUnits"]
+                if idx_throughput
+                else DEFAULT_WARM_THROUGHPUT_WCU
+            )
+
+            if idx_throughput:
+                error_rcu_end = "ReadCapacityUnits of ProvisionedThroughput"
+                error_wcu_end = "WriteCapacityUnits of ProvisionedThroughput"
+            else:
+                error_rcu_end = "initial throughput for OnDemand"
+                error_wcu_end = "initial throughput for OnDemand"
+
+            error_rcu = f"One or more parameter values were invalid: Requested ReadUnitsPerSecond for WarmThroughput for index {g_idx['IndexName']} is lower than {error_rcu_end}"
+            error_wcu = f"One or more parameter values were invalid: Requested WriteUnitsPerSecond for WarmThroughput for index {g_idx['IndexName']} is lower than {error_wcu_end}"
+
+            if (
+                idx_warm_throughput
+                and idx_warm_throughput.get("ReadUnitsPerSecond", min_rcu) < min_rcu
+            ):
+                raise MockValidationException(error_rcu)
+            if (
+                idx_warm_throughput
+                and idx_warm_throughput.get("WriteUnitsPerSecond", min_wcu) < min_wcu
+            ):
+                raise MockValidationException(error_wcu)
+
             for idx2, _key in enumerate(g_idx["KeySchema"], start=1):
                 key_type = _key["KeyType"]
                 if key_type not in ["HASH", "RANGE"]:
@@ -387,6 +429,39 @@ class DynamoHandler(BaseResponse):
         has_index = global_indexes is not None or local_secondary_indexes is not None
         if actual_attrs != expected_attrs:
             self._throw_attr_error(actual_attrs, expected_attrs, has_index)
+
+        # Validate WarmThroughput
+        min_rcu = (
+            throughput["ReadCapacityUnits"]
+            if throughput
+            else DEFAULT_WARM_THROUGHPUT_RCU
+        )
+        min_wcu = (
+            throughput["WriteCapacityUnits"]
+            if throughput
+            else DEFAULT_WARM_THROUGHPUT_WCU
+        )
+
+        if throughput:
+            error_rcu_end = "ReadCapacityUnits of ProvisionedThroughput"
+            error_wcu_end = "WriteCapacityUnits of ProvisionedThroughput"
+        else:
+            error_rcu_end = "initial throughput for OnDemand"
+            error_wcu_end = "initial throughput for OnDemand"
+
+        error_rcu = f"One or more parameter values were invalid: Requested ReadUnitsPerSecond for WarmThroughput for table is lower than {error_rcu_end}"
+        error_wcu = f"One or more parameter values were invalid: Requested WriteUnitsPerSecond for WarmThroughput for table is lower than {error_wcu_end}"
+
+        if (
+            warm_throughput
+            and warm_throughput.get("ReadUnitsPerSecond", min_rcu) < min_rcu
+        ):
+            raise MockValidationException(error_rcu)
+        if (
+            warm_throughput
+            and warm_throughput.get("WriteUnitsPerSecond", min_wcu) < min_wcu
+        ):
+            raise MockValidationException(error_wcu)
 
     def _throw_attr_error(
         self, actual_attrs: List[str], expected_attrs: List[str], indexes: bool
@@ -503,6 +578,7 @@ class DynamoHandler(BaseResponse):
         billing_mode = self.body.get("BillingMode", None)
         stream_spec = self.body.get("StreamSpecification", None)
         deletion_protection_enabled = self.body.get("DeletionProtectionEnabled")
+        warm_throughput = self.body.get("WarmThroughput")
         table = self.dynamodb_backend.update_table(
             name=name,
             attr_definitions=attr_definitions,
@@ -511,6 +587,7 @@ class DynamoHandler(BaseResponse):
             billing_mode=billing_mode,
             stream_spec=stream_spec,
             deletion_protection_enabled=deletion_protection_enabled,
+            warm_throughput=warm_throughput,
         )
         return dynamo_json_dump(table.describe())
 
@@ -1425,6 +1502,7 @@ class DynamoHandler(BaseResponse):
             global_indexes=global_indexes,
             local_secondary_indexes=None,
             attr=table_attrs,
+            warm_throughput=None,
         )
 
         import_table = self.dynamodb_backend.import_table(
