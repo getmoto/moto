@@ -549,14 +549,15 @@ def test_state_machine_start_execution_fails_on_duplicate_execution_name_with_di
     execution_one = client.start_execution(
         stateMachineArn=sm["stateMachineArn"],
         name="execution_name",
-        input=json.dumps({"a": "b"}),
+        input='{"a": "b", "c": "d"}',
     )
     #
     with pytest.raises(ClientError) as ex:
         _ = client.start_execution(
             stateMachineArn=sm["stateMachineArn"],
             name="execution_name",
-            input=json.dumps({"y": "z"}),
+            # Input is different (even though the decoded json is equivalent)
+            input='{"c": "d", "a": "b"}',
         )
     assert ex.value.response["Error"]["Message"] == (
         "Execution Already Exists: '" + execution_one["executionArn"] + "'"
@@ -570,16 +571,17 @@ def test_state_machine_start_execution_is_idempotent_by_name_and_input():
     sm = client.create_state_machine(
         name="name", definition=str(simple_definition), roleArn=_get_default_role()
     )
+    execution_input = '{"a": "b", "c": "d"}'
     execution_one = client.start_execution(
         stateMachineArn=sm["stateMachineArn"],
         name="execution_name",
-        input='{"a": "b", "c": "d"}',
+        input=execution_input,
     )
     #
     execution_two = client.start_execution(
         stateMachineArn=sm["stateMachineArn"],
         name="execution_name",
-        input='{"c": "d", "a": "b"}',
+        input=execution_input,
     )
     assert execution_one["executionArn"] == execution_two["executionArn"]
 

@@ -136,7 +136,7 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             state_machine_name=self.name,
             execution_name=execution_name,
             state_machine_arn=self.arn,
-            execution_input=json.loads(execution_input),
+            execution_input=execution_input,
         )
         self.executions.append(execution)
         return execution
@@ -155,12 +155,10 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
     def _handle_name_input_idempotency(
         self, name: str, execution_input: str
     ) -> Optional["Execution"]:
-        # Note that this considers the inputs equal if their json-decoded values are equal
-        decoded_input = json.loads(execution_input)
         for execution in self.executions:
             if execution.name == name:
                 # Executions with the same name and input are considered idempotent
-                if decoded_input == execution.execution_input:
+                if execution_input == execution.execution_input:
                     return execution
 
                 # If the inputs are different, raise
@@ -329,6 +327,7 @@ class Execution:
         self.name = execution_name
         self.start_date = datetime.now()
         self.state_machine_arn = state_machine_arn
+        assert isinstance(execution_input, str)
         self.execution_input = execution_input
         self.status = (
             "RUNNING"
