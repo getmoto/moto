@@ -115,7 +115,7 @@ class SESV2Backend(BaseBackend):
         self,
         email_identity: str,
         tags: Optional[Dict[str, str]],
-        dkim_signing_attributes: Optional[object],
+        dkim_signing_attributes: Optional[Dict[str, Any]],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
         return self.core_backend.create_email_identity_v2(
