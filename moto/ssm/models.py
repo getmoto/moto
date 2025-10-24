@@ -207,6 +207,7 @@ class ParameterDict(DefaultDict[str, List["Parameter"]]):
 
 PARAMETER_VERSION_LIMIT = 100
 PARAMETER_HISTORY_MAX_RESULTS = 50
+PARAMETER_BY_PATH_MAX_RESULTS = 10
 
 
 class Parameter(CloudFormationModel):
@@ -1822,6 +1823,12 @@ class SimpleSystemManagerBackend(BaseBackend):
         max_results: int = 10,
     ) -> Tuple[List[Parameter], Optional[str]]:
         """Implement the get-parameters-by-path-API in the backend."""
+        if max_results > PARAMETER_BY_PATH_MAX_RESULTS:
+            raise ValidationException(
+                "1 validation error detected: "
+                f"Value {max_results} at 'maxResults' failed to satisfy constraint: "
+                f"Member must have value less than or equal to {PARAMETER_BY_PATH_MAX_RESULTS}"
+            )
 
         self._validate_parameter_filters(filters, by_path=True)
 

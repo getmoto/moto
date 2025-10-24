@@ -10,7 +10,11 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ssm.models import PARAMETER_HISTORY_MAX_RESULTS, PARAMETER_VERSION_LIMIT
+from moto.ssm.models import (
+    PARAMETER_BY_PATH_MAX_RESULTS,
+    PARAMETER_HISTORY_MAX_RESULTS,
+    PARAMETER_VERSION_LIMIT,
+)
 from tests import EXAMPLE_AMI_ID, aws_verified
 
 SSM_REGION = "us-east-1"
@@ -202,6 +206,15 @@ def test_get_parameters_by_path():
     assert client_err.value.response["Error"]["Message"] == (
         "The following filter key is not valid: Tier. "
         "Valid filter keys include: [Type, KeyId]."
+    )
+
+    max_result_value = 23
+    with pytest.raises(ClientError) as client_err:
+        client.get_parameters_by_path(Path="/", MaxResults=max_result_value)
+    assert client_err.value.response["Error"]["Message"] == (
+        "1 validation error detected: "
+        f"Value {max_result_value} at 'maxResults' failed to satisfy constraint: "
+        f"Member must have value less than or equal to {PARAMETER_BY_PATH_MAX_RESULTS}"
     )
 
     # Label filter in get_parameters_by_path
