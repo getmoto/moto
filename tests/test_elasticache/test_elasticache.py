@@ -483,15 +483,18 @@ def test_create_redis_cache_cluster():
 
     cache_cluster_id = "test-cache-cluster"
     cache_cluster_engine = "redis"
+    cache_cluster_node_type = "cache.r6g.large"
     cache_cluster_num_cache_nodes = 5
 
     resp = client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
         NumCacheNodes=cache_cluster_num_cache_nodes,
         AutoMinorVersionUpgrade=True,
         TransitEncryptionEnabled=True,
     )
+
     cache_cluster = resp["CacheCluster"]
 
     if cache_cluster["CacheClusterId"] == cache_cluster_id:
@@ -512,12 +515,14 @@ def test_create_memcached_cache_cluster():
     test_memcached_cache_cluster_exist = False
 
     cache_cluster_id = "test-cache-cluster"
+    cache_cluster_node_type = "cache.t3.micro"
     cache_cluster_engine = "memcached"
     cache_cluster_num_cache_nodes = 5
 
     resp = client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
         NumCacheNodes=cache_cluster_num_cache_nodes,
     )
     cache_cluster = resp["CacheCluster"]
@@ -537,20 +542,44 @@ def test_create_duplicate_cache_cluster():
 
     cache_cluster_id = "test-cache-cluster"
     cache_cluster_engine = "memcached"
+    cache_cluster_node_type = "cache.r6g.large"
 
     client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
     )
 
     with pytest.raises(ClientError) as exc:
         client.create_cache_cluster(
             CacheClusterId=cache_cluster_id,
             Engine=cache_cluster_engine,
+            CacheNodeType=cache_cluster_node_type,
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "CacheClusterAlreadyExists"
     assert err["Message"] == f"Cache cluster {cache_cluster_id} already exists."
+
+
+@mock_aws
+def test_create_cache_cluster_invalid_param_value():
+    client = boto3.client("elasticache", region_name="us-east-2")
+
+    cache_cluster_id = "test-cache-cluster"
+    cache_cluster_engine = "redis"
+
+    with pytest.raises(ClientError) as exc:
+        client.create_cache_cluster(
+            CacheClusterId=cache_cluster_id,
+            Engine=cache_cluster_engine,
+        )
+
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "The parameter CacheNodeType must be provided and must not be null."
+    )
 
 
 @mock_aws
@@ -564,6 +593,7 @@ def test_describe_all_cache_clusters():
         client.create_cache_cluster(
             CacheClusterId=f"test-cache-cluster-{i}",
             Engine="memcached",
+            CacheNodeType="cache.t3.micro",
             NumCacheNodes=5,
         )
 
@@ -590,17 +620,20 @@ def test_describe_specific_cache_clusters():
 
     cache_cluster_id = "test-cache-cluster"
     cache_cluster_engine = "memcached"
+    cache_cluster_node_type = "cache.t3.micro"
     cache_cluster_num_cache_nodes = 5
 
     client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
         NumCacheNodes=cache_cluster_num_cache_nodes,
     )
 
     client.create_cache_cluster(
         CacheClusterId="test-cache-cluster-2",
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
         NumCacheNodes=cache_cluster_num_cache_nodes,
     )
 
@@ -623,11 +656,13 @@ def test_describe_unknown_cache_cluster():
     cache_cluster_id = "test-cache-cluster"
     cache_cluster_id_unknown = "unknown-cache-cluster"
     cache_cluster_engine = "memcached"
+    cache_cluster_node_type = "cache.t3.micro"
     cache_cluster_num_cache_nodes = 5
 
     client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
         NumCacheNodes=cache_cluster_num_cache_nodes,
     )
 
@@ -646,11 +681,13 @@ def test_delete_cache_cluster():
 
     cache_cluster_id = "test-cache-cluster"
     cache_cluster_engine = "memcached"
+    cache_cluster_node_type = "cache.t3.micro"
     cache_cluster_num_cache_nodes = 5
 
     client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
         NumCacheNodes=cache_cluster_num_cache_nodes,
     )
 
@@ -669,11 +706,13 @@ def test_delete_unknown_cache_cluster():
     cache_cluster_id = "test-cache-cluster"
     cache_cluster_id_unknown = "unknown-cache-cluster"
     cache_cluster_engine = "memcached"
+    cache_cluster_node_type = "cache.t3.micro"
     cache_cluster_num_cache_nodes = 5
 
     client.create_cache_cluster(
         CacheClusterId=cache_cluster_id,
         Engine=cache_cluster_engine,
+        CacheNodeType=cache_cluster_node_type,
         NumCacheNodes=cache_cluster_num_cache_nodes,
     )
 
@@ -696,6 +735,7 @@ def test_list_tags_cache_cluster():
     test_instance = conn.create_cache_cluster(
         CacheClusterId="test-cache-cluster",
         Engine="memcached",
+        CacheNodeType="cache.t3.micro",
         NumCacheNodes=2,
         Tags=[{"Key": "foo", "Value": "bar"}, {"Key": "foo1", "Value": "bar1"}],
         SecurityGroupIds=["sg-1234"],
@@ -1514,7 +1554,7 @@ def test_delete_replication_group():
         ReplicationGroupId=replication_group_id,
         ReplicationGroupDescription="test replication group",
         Engine="redis",
-        CacheNodeType="cache.t4g.micro",
+        CacheNodeType="cache.t4g.small",
         NumNodeGroups=1,
         ReplicasPerNodeGroup=2,
         AutomaticFailoverEnabled=True,
@@ -1561,6 +1601,7 @@ def test_create_cache_cluster_with_auth_token():
     client.create_cache_cluster(
         CacheClusterId=cluster_id,
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
         AuthToken="a-very-secure-password-for-testing",
     )
@@ -1578,6 +1619,7 @@ def test_create_cache_cluster_without_auth_token():
     client.create_cache_cluster(
         CacheClusterId=cluster_id,
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
     )
 
@@ -1596,6 +1638,7 @@ def test_create_snapshot():
     client.create_cache_cluster(
         CacheClusterId=cluster_id,
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
     )
 
@@ -1663,6 +1706,7 @@ def test_create_snapshot_with_vpc():
     client.create_cache_cluster(
         CacheClusterId="test-cluster",
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
         CacheSubnetGroupName="test-subnet-group",
     )
@@ -1685,6 +1729,7 @@ def test_create_snapshot_already_exists():
     client.create_cache_cluster(
         CacheClusterId=cluster_id,
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
     )
 
@@ -1774,6 +1819,7 @@ def test_describe_snapshots():
     client.create_cache_cluster(
         CacheClusterId=cluster_id,
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
     )
 
@@ -1856,6 +1902,7 @@ def test_delete_snapshot():
     client.create_cache_cluster(
         CacheClusterId=cluster_id,
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
     )
 
@@ -1895,6 +1942,7 @@ def test_list_tags_snapshot():
     client.create_cache_cluster(
         CacheClusterId=cluster_id,
         Engine="redis",
+        CacheNodeType="cache.t4g.small",
         NumCacheNodes=1,
     )
 
