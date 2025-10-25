@@ -10,6 +10,9 @@ state_manager = _internal.state_manager.StateManager()
 Default transitions across Moto
 """
 state_manager.register_default_transition(
+    model_name="athena::execution", transition={"progression": "immediate"}
+)
+state_manager.register_default_transition(
     "batch::job", transition={"progression": "manual", "times": 1}
 )
 state_manager.register_default_transition(

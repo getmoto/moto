@@ -5,7 +5,7 @@ import re
 from collections import OrderedDict
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, cast
 
 import cryptography
 import requests
@@ -20,6 +20,7 @@ from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import (
     camelcase_to_underscores,
     iso_8601_datetime_with_milliseconds,
+    unix_time,
     utcnow,
 )
 from moto.moto_api._internal import mock_random
@@ -27,6 +28,7 @@ from moto.sqs import sqs_backends
 from moto.sqs.exceptions import MissingParameter, QueueDoesNotExist
 from moto.sqs.models import SQSBackend
 from moto.utilities.arns import parse_arn
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
@@ -52,6 +54,15 @@ from .utils import (
 DEFAULT_PAGE_SIZE = 100
 MAXIMUM_MESSAGE_LENGTH = 262144  # 256 KiB
 MAXIMUM_SMS_MESSAGE_BYTES = 1600  # Amazon limit for a single publish SMS action
+
+PAGINATION_MODEL = {
+    "list_config_service_resources": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "id",
+    }
+}
 
 
 class SMS(BaseModel):
@@ -273,15 +284,15 @@ class Subscription(BaseModel):
             else:
                 raw_message_attributes = {}
                 for key, value in message_attributes.items():  # type: ignore
-                    attr_type = "string_value"
+                    attr_type = "StringValue"
                     type_value = value["Value"]
                     if value["Type"].startswith("Binary"):
-                        attr_type = "binary_value"
+                        attr_type = "BinaryValue"
                     elif value["Type"].startswith("Number"):
                         type_value = str(value["Value"])
 
                     raw_message_attributes[key] = {
-                        "data_type": value["Type"],
+                        "DataType": value["Type"],
                         attr_type: type_value,
                     }
 
@@ -1237,6 +1248,83 @@ class SNSBackend(BaseBackend):
             self.opt_out_numbers.remove(number)
         except ValueError:
             pass
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_config_service_resources(  # type: ignore[misc]
+        self,
+        resource_ids: Optional[List[str]] = None,
+        resource_name: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """List SNS topics for AWS Config."""
+        topics = list(self.topics.values())
+
+        if resource_ids:
+            topics = [t for t in topics if t.arn in resource_ids]
+
+        if resource_name:
+            topics = [t for t in topics if t.name == resource_name]
+
+        config_resources = []
+        for topic in topics:
+            config_resources.append(
+                {
+                    "type": "AWS::SNS::Topic",
+                    "id": topic.arn,
+                    "name": topic.name,
+                    "region": self.region_name,
+                }
+            )
+
+        return config_resources
+
+    def get_config_resource(self, resource_id: str) -> Optional[Dict[str, Any]]:
+        """Get a specific SNS topic configuration for AWS Config."""
+        if resource_id not in self.topics:
+            return None
+
+        topic = self.topics[resource_id]
+
+        config_item = {
+            "version": "1.3",
+            "accountId": self.account_id,
+            "configurationItemCaptureTime": unix_time(),
+            "configurationItemStatus": "ResourceDiscovered",
+            "configurationStateId": "1",
+            "resourceType": "AWS::SNS::Topic",
+            "resourceId": topic.arn,
+            "resourceName": topic.name,
+            "arn": topic.arn,
+            "awsRegion": self.region_name,
+            "availabilityZone": "Not Applicable",
+            "configuration": {
+                "topicArn": topic.arn,
+                "displayName": topic.display_name,
+                "policy": topic._policy_json,
+                "deliveryPolicy": topic.delivery_policy,
+                "effectiveDeliveryPolicy": json.loads(topic.effective_delivery_policy),
+                "subscriptionsConfirmed": topic.subscriptions_confimed,
+                "subscriptionsPending": topic.subscriptions_pending,
+                "subscriptionsDeleted": topic.subscriptions_deleted,
+            },
+            "supplementaryConfiguration": {
+                "Tags": json.dumps(
+                    [{"Key": k, "Value": v} for k, v in topic._tags.items()]
+                )
+            },
+            "configurationItemMD5Hash": "",
+        }
+        configuration = cast(Dict[str, Any], config_item["configuration"])
+
+        if topic.kms_master_key_id:
+            configuration["kmsMasterKeyId"] = topic.kms_master_key_id
+
+        if topic.fifo_topic == "true":
+            configuration["fifoTopic"] = True
+            configuration["contentBasedDeduplication"] = (
+                topic.content_based_deduplication == "true"
+            )
+
+        return config_item
 
     def confirm_subscription(self) -> None:
         pass

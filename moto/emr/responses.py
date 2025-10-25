@@ -1,6 +1,7 @@
 import re
 from typing import Any, List, Pattern
 
+from moto.core.parsers import XFormedDict
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .exceptions import ValidationException
@@ -15,9 +16,11 @@ class ElasticMapReduceResponse(BaseResponse):
         re.compile(r"elasticmapreduce\.(.+?)\.amazonaws\.com"),
         re.compile(r"(.+?)\.elasticmapreduce\.amazonaws\.com"),
     ]
-
+    PROTOCOL_PARSER_MAP_TYPE = XFormedDict
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "Properties": lambda x: x.original_dict() if hasattr(x, "original_dict") else x,
+        "Properties": lambda x: dict(x.original_items())
+        if hasattr(x, "original_items")
+        else x,
     }
 
     def __init__(self) -> None:

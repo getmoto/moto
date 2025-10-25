@@ -362,6 +362,135 @@ def test_describe_user_doesnt_exist():
 
 
 @mock_aws
+def test_get_user_id_by_username():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+    users = {}
+
+    for _ in range(1, 10):
+        user = __create_and_verify_sparse_user(client, identity_store_id)
+        users[user["UserName"]] = user["UserId"]
+
+    for name, user_id in users.items():
+        response = client.get_user_id(
+            IdentityStoreId=identity_store_id,
+            AlternateIdentifier={
+                "UniqueAttribute": {
+                    "AttributePath": "userName",
+                    "AttributeValue": name,
+                }
+            },
+        )
+
+        assert response["IdentityStoreId"] == identity_store_id
+        assert response["UserId"] == user_id
+
+
+@mock_aws
+def test_get_user_id_by_email():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    email = "test@example.com"
+
+    user = client.create_user(
+        IdentityStoreId=identity_store_id,
+        UserName="test_user",
+        DisplayName="Test User",
+        Name={"GivenName": "Test", "FamilyName": "User"},
+        Emails=[{"Value": email, "Type": "work", "Primary": True}],
+    )
+
+    response = client.get_user_id(
+        IdentityStoreId=identity_store_id,
+        AlternateIdentifier={
+            "UniqueAttribute": {
+                "AttributePath": "emails.value",
+                "AttributeValue": email,
+            }
+        },
+    )
+
+    assert response["IdentityStoreId"] == identity_store_id
+    assert response["UserId"] == user["UserId"]
+
+
+@mock_aws
+def test_get_user_id_does_not_exist():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    with pytest.raises(ClientError) as exc:
+        client.get_user_id(
+            IdentityStoreId=identity_store_id,
+            AlternateIdentifier={
+                "UniqueAttribute": {
+                    "AttributePath": "userName",
+                    "AttributeValue": "does-not-exist",
+                }
+            },
+        )
+
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ResourceNotFoundException"
+    assert err.response["Error"]["Message"] == "USER not found."
+    assert err.response["ResponseMetadata"]["HTTPStatusCode"] == 400
+    assert err.response["ResourceType"] == "USER"
+    assert err.response["Message"] == "USER not found."
+    assert "RequestId" in err.response
+
+
+@mock_aws
+def test_get_user_id_empty_attribute_value():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    with pytest.raises(ClientError) as exc:
+        client.get_user_id(
+            IdentityStoreId=identity_store_id,
+            AlternateIdentifier={
+                "UniqueAttribute": {
+                    "AttributePath": "userName",
+                    "AttributeValue": "",
+                }
+            },
+        )
+
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert (
+        err.response["Error"]["Message"]
+        == "attribute value cannot be empty or null for attribute path"
+    )
+
+
+@mock_aws
+def test_get_user_id_invalid_attribute_path():
+    client = boto3.client("identitystore", region_name="us-east-2")
+    identity_store_id = get_identity_store_id()
+
+    invalid_path = "InvalidPath"
+
+    with pytest.raises(ClientError) as exc:
+        client.get_user_id(
+            IdentityStoreId=identity_store_id,
+            AlternateIdentifier={
+                "UniqueAttribute": {
+                    "AttributePath": invalid_path,
+                    "AttributeValue": "some-value",
+                }
+            },
+        )
+
+    err = exc.value
+    assert err.response["Error"]["Code"] == "ValidationException"
+    assert (
+        err.response["Error"]["Message"]
+        == f"The attribute {invalid_path} is not a unique attribute"
+    )
+
+
+@mock_aws
 def test_get_group_id():
     client = boto3.client("identitystore", region_name="us-east-2")
     identity_store_id = get_identity_store_id()

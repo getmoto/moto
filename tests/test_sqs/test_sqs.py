@@ -25,6 +25,8 @@ from moto.utilities.distutils_version import LooseVersion
 from tests import aws_verified
 from tests.test_sqs import sqs_aws_verified
 
+BOTOCORE_VERSION = sys.modules["botocore"].__version__
+
 TEST_POLICY = """
 {
   "Version":"2012-10-17",
@@ -376,9 +378,14 @@ def _verify_unknown_queue_error(e, op_name="GetQueueUrl", status_code=400):
     assert e.value.operation_name == op_name
     assert response["ResponseMetadata"]["HTTPStatusCode"] == status_code
     assert "AWS.SimpleQueueService.NonExistentQueue" == response["Error"]["Code"]
-
-    botocore_version = sys.modules["botocore"].__version__
-    if LooseVersion(botocore_version) >= LooseVersion("1.34.90"):
+    headers = response["ResponseMetadata"]["HTTPHeaders"]
+    if "x-amzn-errortype" in headers:
+        expected_value = "com.amazonaws.sqs#QueueDoesNotExist"
+        assert headers["x-amzn-errortype"] == expected_value
+    if "x-amzn-query-error" in headers:
+        expected_value = "AWS.SimpleQueueService.NonExistentQueue;Sender"
+        assert headers["x-amzn-query-error"] == expected_value
+    if LooseVersion(BOTOCORE_VERSION) >= LooseVersion("1.34.90"):
         assert response["Error"]["Message"] == "The specified queue does not exist."
     else:
         assert (
@@ -490,7 +497,7 @@ def test_message_with_invalid_attributes():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute name 'öther_encodings' is invalid. "
         "Attribute name can contain A-Z, a-z, 0-9, underscore (_), "
@@ -588,7 +595,7 @@ def test_message_with_attributes_invalid_datatype():
             },
         )
     ex = e.value
-    assert ex.response["Error"]["Code"] == "MessageAttributesInvalid"
+    assert ex.response["Error"]["Code"] == "InvalidParameterValue"
     assert ex.response["Error"]["Message"] == (
         "The message attribute 'timestamp' has an invalid message "
         "attribute type, the set of supported type "
@@ -649,8 +656,7 @@ def test_set_queue_attributes():
 def _get_common_url(region):
     # Different versions of botocore return different URLs
     # See https://github.com/boto/botocore/issues/2705
-    boto3_version = sys.modules["botocore"].__version__
-    if LooseVersion(boto3_version) >= LooseVersion("1.29.0"):
+    if LooseVersion(BOTOCORE_VERSION) >= LooseVersion("1.29.0"):
         return f"https://sqs.{region}.amazonaws.com"
     common_name_enabled = (
         os.environ.get("BOTO_DISABLE_COMMONNAME", "false").lower() == "false"
@@ -820,10 +826,6 @@ def test_get_queue_attributes_errors():
 
     with pytest.raises(ClientError) as client_error:
         client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[""])
-    assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
-
-    with pytest.raises(ClientError) as client_error:
-        client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
     assert client_error.value.response["Error"]["Message"] == "Unknown Attribute ."
 
 
@@ -1355,6 +1357,9 @@ def test_get_queue_attributes_no_param():
     queue_url = sqs.create_queue(QueueName=str(uuid4())[0:6])["QueueUrl"]
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url)
+    assert "Attributes" not in queue_attrs
+
+    queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=[])
     assert "Attributes" not in queue_attrs
 
     queue_attrs = sqs.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"])
@@ -1892,7 +1897,10 @@ def test_delete_message_batch_with_duplicates():
     with pytest.raises(ClientError) as e:
         client.delete_message_batch(QueueUrl=queue_url, Entries=entries)
     ex = e.value
-    assert ex.response["Error"]["Code"] == "BatchEntryIdsNotDistinct"
+    assert (
+        ex.response["Error"]["Code"]
+        == "AWS.SimpleQueueService.BatchEntryIdsNotDistinct"
+    )
 
     # no messages are deleted
     messages = client.receive_message(QueueUrl=queue_url, WaitTimeSeconds=0).get(
@@ -3103,9 +3111,16 @@ def test_message_attributes_contains_trace_header():
         },
     )
 
-    messages = conn.receive_message(
-        QueueUrl=queue.url, MaxNumberOfMessages=2, MessageAttributeNames=["All"]
-    )["Messages"]
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = ["All"]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = ["All"]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
 
     assert (
         messages[0]["Attributes"]["AWSTraceHeader"]
@@ -3146,11 +3161,16 @@ def test_message_system_attributes_contains_system_attribute(attribute):
         MessageDeduplicationId="dedup1",
     )
 
-    messages = conn.receive_message(
-        QueueUrl=queue.url,
-        MaxNumberOfMessages=2,
-        MessageSystemAttributeNames=[attribute],
-    )["Messages"]
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = [attribute]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = [attribute]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
 
     assert messages[0]["Attributes"].get(attribute) is not None
 
@@ -3176,11 +3196,16 @@ def test_message_system_attributes_contains_all_attributes():
         MessageDeduplicationId="dedup1",
     )
 
-    messages = conn.receive_message(
-        QueueUrl=queue.url,
-        MaxNumberOfMessages=2,
-        MessageSystemAttributeNames=["All"],
-    )["Messages"]
+    receive_message_request = {
+        "QueueUrl": queue.url,
+        "MaxNumberOfMessages": 2,
+    }
+    if LooseVersion(BOTOCORE_VERSION) <= LooseVersion("1.29.126"):
+        receive_message_request["AttributeNames"] = ["All"]
+    else:
+        receive_message_request["MessageSystemAttributeNames"] = ["All"]
+
+    messages = conn.receive_message(**receive_message_request)["Messages"]
 
     assert messages[0]["Attributes"]["MessageGroupId"] == "group1"
     assert messages[0]["Attributes"]["MessageDeduplicationId"] == "dedup1"

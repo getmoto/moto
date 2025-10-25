@@ -11,7 +11,6 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.utilities.distutils_version import LooseVersion
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from tests.markers import requires_docker
 from tests.test_cloudformation.fixtures import fn_join, single_instance_with_ebs_volume
@@ -26,7 +25,7 @@ def test_create_template_without_required_param_boto3():
     with pytest.raises(ClientError) as ex:
         cf.create_stack(StackName="test_stack", TemplateBody=template_json)
     err = ex.value.response["Error"]
-    assert err["Code"] == "Missing Parameter"
+    assert err["Code"] == "ValidationError"
     assert err["Message"] == "Missing parameter KeyName"
 
 
@@ -288,9 +287,6 @@ def lambda_handler(event, context):
     assert lv["CompatibleRuntimes"] == ["python2.7", "python3.6"]
     assert lv["Description"] == "Test Layer"
     assert lv["LicenseInfo"] == "MIT"
-    if LooseVersion(boto3_version) > LooseVersion("1.29.0"):
-        # "Parameters only available in newer versions"
-        assert lv["CompatibleArchitectures"] == []
 
 
 @mock_aws

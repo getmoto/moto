@@ -1,4 +1,4 @@
-from moto.core.exceptions import ServiceException
+from moto.core.exceptions import JsonRESTError, ServiceException
 
 
 class SesError(ServiceException):
@@ -74,3 +74,10 @@ class MissingRenderingAttributeException(SesError):
 
     def __init__(self, var: str):
         super().__init__(f"Attribute '{var}' is not present in the rendering data.")
+
+
+class NotFoundException(JsonRESTError):
+    code = 404
+
+    def __init__(self, message: str):
+        super().__init__("NotFoundException", message)

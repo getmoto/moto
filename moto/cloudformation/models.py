@@ -823,19 +823,19 @@ class CloudFormationBackend(BaseBackend):
     ) -> Dict[str, str]:
         parameters = dict(
             [
-                (parameter["parameter_key"], parameter["parameter_value"])
+                (parameter["ParameterKey"], parameter["ParameterValue"])
                 for parameter in incoming_params
-                if "parameter_value" in parameter
+                if "ParameterValue" in parameter
             ]
         )
         previous = dict(
             [
                 (
-                    parameter["parameter_key"],
-                    instance.parameters[parameter["parameter_key"]],
+                    parameter["ParameterKey"],
+                    instance.parameters[parameter["ParameterKey"]],
                 )
                 for parameter in incoming_params
-                if parameter.get("use_previous_value", False)
+                if parameter.get("UsePreviousValue", False)
             ]
         )
         parameters.update(previous)

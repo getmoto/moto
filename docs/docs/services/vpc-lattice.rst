@@ -15,7 +15,7 @@ vpc-lattice
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] batch_update_rule
-- [ ] create_access_log_subscription
+- [X] create_access_log_subscription
 - [ ] create_listener
 - [ ] create_resource_configuration
 - [ ] create_resource_gateway
@@ -23,14 +23,14 @@ vpc-lattice
 - [X] create_service
 - [X] create_service_network
   
-WARNING: This method currently does NOT fail if there is a disassociation in progress.
-
+        WARNING: This method currently does NOT fail if there is a disassociation in progress.
+        
 
 - [ ] create_service_network_resource_association
 - [ ] create_service_network_service_association
 - [X] create_service_network_vpc_association
 - [ ] create_target_group
-- [ ] delete_access_log_subscription
+- [X] delete_access_log_subscription
 - [ ] delete_auth_policy
 - [ ] delete_listener
 - [ ] delete_resource_configuration
@@ -45,7 +45,7 @@ WARNING: This method currently does NOT fail if there is a disassociation in pro
 - [ ] delete_service_network_vpc_association
 - [ ] delete_target_group
 - [ ] deregister_targets
-- [ ] get_access_log_subscription
+- [X] get_access_log_subscription
 - [ ] get_auth_policy
 - [ ] get_listener
 - [ ] get_resource_configuration
@@ -58,7 +58,7 @@ WARNING: This method currently does NOT fail if there is a disassociation in pro
 - [ ] get_service_network_service_association
 - [ ] get_service_network_vpc_association
 - [ ] get_target_group
-- [ ] list_access_log_subscriptions
+- [X] list_access_log_subscriptions
 - [ ] list_listeners
 - [ ] list_resource_configurations
 - [ ] list_resource_endpoint_associations
@@ -78,7 +78,7 @@ WARNING: This method currently does NOT fail if there is a disassociation in pro
 - [ ] register_targets
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_access_log_subscription
+- [X] update_access_log_subscription
 - [ ] update_listener
 - [ ] update_resource_configuration
 - [ ] update_resource_gateway

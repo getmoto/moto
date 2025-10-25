@@ -7,6 +7,7 @@ import uuid
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from unittest import SkipTest
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -1037,6 +1038,49 @@ def test_create_stack_with_yaml():
     cf.create_stack(StackName="ts", TemplateBody=dummy_template_yaml)
 
     assert cf.get_template(StackName="ts")["TemplateBody"] == dummy_template_yaml
+
+
+@aws_verified
+@pytest.mark.aws_verified
+def test_create_stack_with_yaml_using_short_func_refs():
+    """Template using !Sub as a key, which is not valid YAML"""
+    s3_client = boto3.client("s3", region_name="us-east-1")
+    cf_client = boto3.client("cloudformation", region_name="us-east-1")
+
+    template = """AWSTemplateFormatVersion: '2010-09-09'
+Description: Test template
+Parameters:
+  BucketName:
+    Type: String
+Resources:
+  TestBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        !Sub "${AWS::StackName}-${BucketName}"
+Outputs:
+  NewBucketName:
+    Value:
+      !Sub "${TestBucket}"
+"""
+    stack_name = f"stack-{str(uuid4())[0:6]}"
+    bucket_name_suffix = str(uuid4())
+    params = [{"ParameterKey": "BucketName", "ParameterValue": bucket_name_suffix}]
+
+    try:
+        cf_client.create_stack(
+            StackName=stack_name, TemplateBody=template, Parameters=params
+        )
+        waiter = cf_client.get_waiter("stack_create_complete")
+        waiter.wait(StackName=stack_name)
+
+        stack_description = cf_client.describe_stacks(StackName=stack_name)["Stacks"][0]
+        bucket_name = stack_description["Outputs"][0]["OutputValue"]
+        assert bucket_name == f"{stack_name}-{bucket_name_suffix}"
+
+        s3_client.head_bucket(Bucket=bucket_name)
+    finally:
+        cf_client.delete_stack(StackName=stack_name)
 
 
 @mock_aws

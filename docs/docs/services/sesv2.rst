@@ -39,7 +39,7 @@ sesv2
 - [X] delete_contact_list
 - [ ] delete_custom_verification_email_template
 - [X] delete_dedicated_ip_pool
-- [ ] delete_email_identity
+- [X] delete_email_identity
 - [X] delete_email_identity_policy
 - [ ] delete_email_template
 - [ ] delete_multi_region_endpoint

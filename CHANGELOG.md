@@ -1,6 +1,102 @@
 Moto Changelog
 ==============
 
+5.1.15
+-----
+Docker Digest for 5.1.15: _sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914_
+
+    General:
+        * Python 3.14 is now officially supported
+
+    New Methods:
+        * IdentityStore:
+            * get_user_id()
+
+        * SESv2:
+            * delete_email_identity()
+
+        * VPCLattice:
+            * create_access_log_subscription()
+            * delete_access_log_subscription()
+            * get_access_log_subscription()
+            * list_access_log_subscriptions()
+            * update_access_log_subscription()
+
+    Miscellaneous:
+        * ACM: request_certificate() now supports the Option-parameter
+        * ACM: list_certificates() now supports the Includes-parameter, supporting Exportable Public Certificates
+        * APIGatewayV2: get_domain_name() now returns the DomainNameArn-attribute
+        * Athena: Executions can now be delayed using state transitions
+        * CloudFormation: validate_template() now supports short function refs (!Sub)
+        * Config: Now supports "AWS::SNS::Topic"-resources
+        * EC2: create_subnet() now supports the Ipv6Native-parameter
+        * EC2: create_transit_gateway_vpc_attachment() now validates that the TransitGateway exists
+        * EC2: create_transit_gateway_vpc_attachment() now validates that no other attachment to this VPC exists
+        * EC2: create_transit_gateway_vpc_attachment() now automatically adds the attachment to the default RouteTable
+        * EC2: create_transit_gateway_vpc_attachment() now correctly creates multiple attachments if called twice (for different VPC's)
+        * EC2: create_vpn_connection() now validates that only one of [VPNGateway|TransitGateway] is provided
+        * EC2: create_vpn_connection() now validates that the provided CustomerGateway and TransitGateway exists
+        * EC2: create/modify/describe_vpc_endpoint_service_configuration now supports the SupportedRegions-param
+        * EC2: describe_transit_gateway_attachments() now returns the correct RouteTableID
+        * EC2: describe_vpc_endpoints() now supports the 'vpc-endpoint-state'-filter
+        * Lambda: list_layer_versions() now returns the layers in the correct order - latest version first.
+        * ResourceGroupsTaggingAPI: get_resources() now supports SSM Parameters
+        * ResourceGroupsTaggingAPI: get_resources() now supports the 'kms:key' type
+        * SESv2: send_email() can now use an email registered by `create_email_identity()`, instead of having the SESv1:verify_domain_identity()-method
+
+
+5.1.14
+-----
+Docker Digest for 5.1.14: _sha256:800719627036dc38dc699e9f314f624f2c98ac3d8bb754db078cb2698f08ee77_
+
+    New Services:
+        * CloudWatch-Synthetics:
+            * create_canary()
+            * get_canary()
+            * describe_canaries()
+            * list_tags_for_resource()
+
+        * MediaPackageV2:
+            * create_channel()
+            * create_channel_group()
+            * delete_channel()
+            * delete_channel_group()
+            * get_channel()
+            * get_channel_group()
+            * list_channel_groups()
+
+        * VPCLattice:
+            * create_service()
+            * create_service_network()
+            * create_service_network_vpc_association()
+            * create_rule()
+
+    New Methods:
+        * Kinesis:
+            * describe_limits()
+
+        * Macie2:
+            * disassociate_member()
+            * enable_organization_admin_account()
+            * list_organization_admin_accounts()
+
+        * SecurityHub:
+            * describe_hub()
+            * disable_security_hub()
+            * enable_security_hub()
+
+        * ServiceHub-AppRegistry:
+            * get_configuration()
+            * put_configuration()
+
+    Miscellaneous:
+        * IOTData: update_thing_shadow() now supports state=None
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now returns ARN's for Athena resources, instead of names
+        * ResourceGroupsTaggingAPI: list_tags_for_resource() now supports Kinesis Firehose resources
+        * S3: put_object() now stores the correct (actual) content when using the Java SDK, and no longer include the checksum headers in the body
+        * Shield: create_protection() now only allows ARN's of Elastic IP Addresses, instead of all EC2 resources
+
+
 5.1.13
 -----
 Docker Digest for 5.1.13: _sha256:0503bdc569e122966fc5fceef43d4a9562ed21e4091cf865801dba90cbb62ea5_

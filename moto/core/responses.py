@@ -27,16 +27,20 @@ from xml.dom.minidom import parseString as parseXML
 
 import boto3
 import requests
-from botocore.model import OperationModel, ServiceModel
 from jinja2 import DictLoader, Environment, Template
 from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
 from moto.core.exceptions import DryRunClientError, ServiceException
-from moto.core.parsers import PROTOCOL_PARSERS, XFormedDict
+from moto.core.model import OperationModel, ServiceModel
+from moto.core.parsers import PROTOCOL_PARSERS
 from moto.core.request import determine_request_protocol, normalize_request
-from moto.core.serialize import SERIALIZERS, ResponseSerializer, XFormedAttributePicker
+from moto.core.serialize import (
+    ResponseSerializer,
+    XFormedAttributePicker,
+    get_serializer_class,
+)
 from moto.core.utils import (
     camelcase_to_underscores,
     get_service_model,
@@ -337,6 +341,8 @@ class EmptyResult(ActionResult):
 
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
+    PROTOCOL_PARSER_MAP_TYPE: Any = dict
+
     default_region = "us-east-1"
     # to extract region, use [^.]
     # Note that the URL region can be anything, thanks to our MOTO_ALLOW_NONEXISTENT_REGION-config - so we can't have a very specific regex
@@ -638,7 +644,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             service_model, normalized_request.content_type
         )
         parser_cls = PROTOCOL_PARSERS[protocol]
-        parser = parser_cls(map_type=XFormedDict)  # type: ignore[no-untyped-call]
+        parser = parser_cls(map_type=self.PROTOCOL_PARSER_MAP_TYPE)  # type: ignore[no-untyped-call]
         parsed = parser.parse(
             {
                 "query_params": normalized_request.values,
@@ -660,7 +666,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         service_model = get_service_model(self.service_name)
         operation_model = service_model.operation_model(self._get_action())
         protocol = self.determine_response_protocol(service_model)
-        serializer_cls = SERIALIZERS[protocol]
+        serializer_cls = get_serializer_class(service_model.service_name, protocol)
         context = ActionContext(
             service_model, operation_model, serializer_cls, self.__class__
         )
@@ -748,21 +754,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             pass
         return headers, body
 
-    def _get_param(
-        self, param_name: str, if_none: Any = None, use_original_dict: bool = False
-    ) -> Any:
-        """
-        Get parameter from body/query/headers
-
-        :param use_original_dict Whether to return the data that was originally provided, or return the normalized (snake-case) dict
-        """
+    def _get_param(self, param_name: str, if_none: Any = None) -> Any:
         if self.automated_parameter_parsing:
-            params_to_use = (
-                self.params.original_dict()
-                if use_original_dict and isinstance(self.params, XFormedDict)
-                else self.params
-            )
-            return get_value(params_to_use, param_name, default=if_none)
+            return get_value(self.params, param_name, default=if_none)
 
         val = self.querystring.get(param_name)
         if val is not None:
@@ -1050,30 +1044,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 break
             results.append(new_items)
             param_index += 1
-        return results
-
-    def _get_map_prefix(
-        self, param_prefix: str, key_end: str = ".key", value_end: str = ".value"
-    ) -> Dict[str, Any]:
-        results = {}
-        param_index = 1
-        while 1:
-            index_prefix = f"{param_prefix}.{param_index}."
-
-            k, v = None, None
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    if key.endswith(key_end):
-                        k = value[0]
-                    elif key.endswith(value_end):
-                        v = value[0]
-
-            if not (k and v is not None):
-                break
-
-            results[k] = v
-            param_index += 1
-
         return results
 
     @property

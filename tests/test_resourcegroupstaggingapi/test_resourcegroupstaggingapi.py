@@ -1236,6 +1236,9 @@ def test_get_resources_ssm():
     json_doc = yaml.safe_load(template_file)
 
     ssm = boto3.client("ssm", region_name="us-east-1")
+    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
+
+    # ssm:document
     ssm.create_document(
         Content=json.dumps(json_doc),
         Name="TestDocument",
@@ -1244,13 +1247,47 @@ def test_get_resources_ssm():
         Tags=[{"Key": "testing", "Value": "testingValue"}],
     )
 
-    rtapi = boto3.client("resourcegroupstaggingapi", region_name="us-east-1")
-    resp = rtapi.get_resources(ResourceTypeFilters=["ssm"])
+    # ssm:parameter
+    ssm.put_parameter(
+        Name="/test/parameter1",
+        Value="value1",
+        Type="String",
+        Tags=[{"Key": "env", "Value": "production"}],
+    )
+    ssm.put_parameter(
+        Name="/test/parameter2",
+        Value="value2",
+        Type="String",
+        Tags=[{"Key": "env", "Value": "staging"}],
+    )
 
+    # Test fetching all supported ssm resources
+    resp = rtapi.get_resources(ResourceTypeFilters=["ssm"])
+    assert len(resp["ResourceTagMappingList"]) == 3
+
+    # Test fetching only ssm:document resources
+    resp = rtapi.get_resources(ResourceTypeFilters=["ssm:document"])
     assert len(resp["ResourceTagMappingList"]) == 1
     assert {"Key": "testing", "Value": "testingValue"} in resp[
         "ResourceTagMappingList"
     ][0]["Tags"]
+
+    # Test fetching only ssm:parameter resources
+    resp = rtapi.get_resources(ResourceTypeFilters=["ssm:parameter"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
+    # Test filtering parameters by tag
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["ssm:parameter"],
+        TagFilters=[{"Key": "env", "Values": ["production"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "env", "Value": "production"} in resp["ResourceTagMappingList"][0][
+        "Tags"
+    ]
+    assert (
+        "parameter/test/parameter1" in resp["ResourceTagMappingList"][0]["ResourceARN"]
+    )
 
 
 @mock_aws

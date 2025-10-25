@@ -76,6 +76,8 @@ ec2
 - [ ] copy_fpga_image
 - [X] copy_image
 - [X] copy_snapshot
+- [ ] copy_volumes
+- [ ] create_capacity_manager_data_export
 - [ ] create_capacity_reservation
 - [ ] create_capacity_reservation_by_splitting
 - [ ] create_capacity_reservation_fleet
@@ -173,6 +175,7 @@ ec2
 - [X] create_vpn_connection
 - [ ] create_vpn_connection_route
 - [X] create_vpn_gateway
+- [ ] delete_capacity_manager_data_export
 - [X] delete_carrier_gateway
 - [ ] delete_client_vpn_endpoint
 - [ ] delete_client_vpn_route
@@ -282,6 +285,7 @@ ec2
 - [ ] describe_capacity_block_offerings
 - [ ] describe_capacity_block_status
 - [ ] describe_capacity_blocks
+- [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
 - [ ] describe_capacity_reservations
@@ -476,6 +480,7 @@ ec2
 - [ ] disable_address_transfer
 - [ ] disable_allowed_images_settings
 - [ ] disable_aws_network_performance_metric_subscription
+- [ ] disable_capacity_manager
 - [X] disable_ebs_encryption_by_default
 - [ ] disable_fast_launch
 - [ ] disable_fast_snapshot_restores
@@ -512,6 +517,7 @@ ec2
 - [ ] enable_address_transfer
 - [ ] enable_allowed_images_settings
 - [ ] enable_aws_network_performance_metric_subscription
+- [ ] enable_capacity_manager
 - [X] enable_ebs_encryption_by_default
 - [ ] enable_fast_launch
 - [ ] enable_fast_snapshot_restores
@@ -539,6 +545,9 @@ ec2
 - [ ] get_associated_enclave_certificate_iam_roles
 - [ ] get_associated_ipv6_pool_cidrs
 - [ ] get_aws_network_performance_data
+- [ ] get_capacity_manager_attributes
+- [ ] get_capacity_manager_metric_data
+- [ ] get_capacity_manager_metric_dimensions
 - [ ] get_capacity_reservation_usage
 - [ ] get_coip_pool_usage
 - [ ] get_console_output
@@ -764,6 +773,7 @@ ec2
 - [ ] unassign_private_nat_gateway_address
 - [ ] unlock_snapshot
 - [ ] unmonitor_instances
+- [ ] update_capacity_manager_organizations_access
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
 - [ ] withdraw_byoip_cidr

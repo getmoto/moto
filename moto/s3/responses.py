@@ -190,10 +190,10 @@ class S3Response(BaseResponse):
         ):
             self.body = self._handle_encoded_body(self.body)
 
-        if (
-            request.headers.get("x-amz-content-sha256")
-            == "STREAMING-AWS4-HMAC-SHA256-PAYLOAD"
-        ):
+        if request.headers.get("x-amz-content-sha256") in [
+            "STREAMING-AWS4-HMAC-SHA256-PAYLOAD",
+            "STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER",
+        ]:
             self.body = self._handle_v4_chunk_signatures(
                 self.raw_body, int(request.headers["x-amz-decoded-content-length"])
             )
@@ -1387,6 +1387,10 @@ class S3Response(BaseResponse):
             # https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-streaming.html#sigv4-chunked-body-definition
             # str(hex(chunk-size)) + ";chunk-signature=" + signature + \r\n + chunk-data + \r\n
             chunk_size = int(line[: line.find(b";")].decode("utf8"), 16)
+            if chunk_size == 0:
+                # Signature 'STREAMING-AWS4-HMAC-SHA256-PAYLOAD-TRAILER' will have trailing parts that define the checksum
+                # We can safely ignore those
+                break
             new_body[pos : pos + chunk_size] = body_io.read(chunk_size)
             pos = pos + chunk_size
             body_io.read(2)  # skip trailing \r\n

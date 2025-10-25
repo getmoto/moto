@@ -1,10 +1,16 @@
 import random
 import uuid
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.utilities.paginator import paginate
 from moto.utilities.tagging_service import TaggingService
+from moto.vpclattice.exceptions import (
+    ResourceNotFoundException,
+    ValidationException,
+)
 
 
 class VPCLatticeService(BaseModel):
@@ -163,7 +169,59 @@ class VPCLatticeDNSEntry:
         return {"domainName": self.domain_name, "hostedZoneId": self.hosted_zone_id}
 
 
+class VPCLatticeAccessLogSubscription(BaseModel):
+    def __init__(
+        self,
+        region: str,
+        account_id: str,
+        destinationArn: str,
+        resourceArn: str,
+        resourceId: str,  # resourceIdentifier
+        serviceNetworkLogType: Optional[str],
+        tags: Optional[Dict[str, str]],
+    ) -> None:
+        self.id: str = f"als-{str(uuid.uuid4())[:17]}"
+        self.arn: str = (
+            f"arn:aws:vpc-lattice:{region}:{account_id}:accesslogsubscription/{self.id}"
+        )
+        self.created_at = datetime.now(timezone.utc).isoformat()
+        self.destinationArn = destinationArn
+        self.last_updated_at = datetime.now(timezone.utc).isoformat()
+        self.resourceArn = resourceArn
+        self.resourceId = resourceId
+        self.serviceNetworkLogType = serviceNetworkLogType or "SERVICE"
+        self.tags = tags or {}
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "arn": self.arn,
+            "createdAt": self.created_at,
+            "destinationArn": self.destinationArn,
+            "id": self.id,
+            "lastUpdatedAt": self.last_updated_at,
+            "resourceArn": self.resourceArn,
+            "resourceId": self.resourceId,
+            "serviceNetworkLogType": self.serviceNetworkLogType,
+            "tags": self.tags,
+        }
+
+
 class VPCLatticeBackend(BaseBackend):
+    PAGINATION_MODEL = {
+        "list_services": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+        "list_service_networks": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 50,
+            "unique_attribute": "id",
+        },
+    }
+
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.services: Dict[str, VPCLatticeService] = {}
@@ -173,6 +231,7 @@ class VPCLatticeBackend(BaseBackend):
         ] = {}
         self.rules: Dict[str, VPCLatticeRule] = {}
         self.tagger: TaggingService = TaggingService()
+        self.access_log_subscriptions: Dict[str, VPCLatticeAccessLogSubscription] = {}
 
     def create_service(
         self,
@@ -194,7 +253,18 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.services[service.id] = service
+        self.tag_resource(service.arn, tags or {})
         return service
+
+    def get_service(self, service_identifier: str) -> VPCLatticeService:
+        service = self.services.get(service_identifier)
+        if not service:
+            raise ResourceNotFoundException(service_identifier)
+        return service
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_services(self) -> List[VPCLatticeService]:
+        return [service for service in self.services.values()]
 
     def create_service_network(
         self,
@@ -217,7 +287,20 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.service_networks[sn.id] = sn
+        self.tag_resource(sn.arn, tags or {})
         return sn
+
+    def get_service_network(
+        self, service_network_identifier: str
+    ) -> VPCLatticeServiceNetwork:
+        service_network = self.service_networks.get(service_network_identifier)
+        if not service_network:
+            raise ResourceNotFoundException(service_network_identifier)
+        return service_network
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_service_networks(self) -> List[VPCLatticeServiceNetwork]:
+        return [service_network for service_network in self.service_networks.values()]
 
     def create_service_network_vpc_association(
         self,
@@ -237,6 +320,7 @@ class VPCLatticeBackend(BaseBackend):
             vpc_identifier,
         )
         self.service_network_vpc_associations[assoc.id] = assoc
+        self.tag_resource(assoc.arn, tags or {})
         return assoc
 
     def create_rule(
@@ -263,7 +347,102 @@ class VPCLatticeBackend(BaseBackend):
             tags,
         )
         self.rules[rule.id] = rule
+        self.tag_resource(rule.arn, tags or {})
         return rule
+
+    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+        tags_input = self.tagger.convert_dict_to_tags_input(tags or {})
+        self.tagger.tag_resource(resource_arn, tags_input)
+
+    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+        if not isinstance(tag_keys, list):
+            tag_keys = [tag_keys]
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def create_access_log_subscription(
+        self,
+        resourceIdentifier: str,
+        destinationArn: str,
+        client_token: Optional[str],
+        serviceNetworkLogType: Optional[str],
+        tags: Optional[Dict[str, str]],
+    ) -> VPCLatticeAccessLogSubscription:
+        resource: Any = None
+        if resourceIdentifier.startswith("sn-"):
+            resource = self.service_networks.get(resourceIdentifier)
+        elif resourceIdentifier.startswith("svc-"):
+            resource = self.services.get(resourceIdentifier)
+        else:
+            raise ValidationException(
+                "Invalid parameter resourceIdentifier, must start with 'sn-' or 'svc-'"
+            )
+
+        if not resource:
+            raise ResourceNotFoundException(f"Resource {resourceIdentifier} not found")
+
+        sub = VPCLatticeAccessLogSubscription(
+            self.region_name,
+            self.account_id,
+            destinationArn,
+            resource.arn,
+            resource.id,
+            serviceNetworkLogType,
+            tags,
+        )
+
+        self.access_log_subscriptions[sub.id] = sub
+        return sub
+
+    def get_access_log_subscription(
+        self, accessLogSubscriptionIdentifier: str
+    ) -> VPCLatticeAccessLogSubscription:
+        sub = self.access_log_subscriptions.get(accessLogSubscriptionIdentifier)
+        if not sub:
+            raise ResourceNotFoundException(
+                f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
+            )
+        return sub
+
+    def list_access_log_subscriptions(
+        self,
+        resourceIdentifier: str,
+        maxResults: Optional[int] = None,
+        nextToken: Optional[str] = None,
+    ) -> List[VPCLatticeAccessLogSubscription]:
+        return [
+            sub
+            for sub in self.access_log_subscriptions.values()
+            if sub.resourceId == resourceIdentifier
+        ][:maxResults]
+
+    def update_access_log_subscription(
+        self,
+        accessLogSubscriptionIdentifier: str,
+        destinationArn: str,
+    ) -> VPCLatticeAccessLogSubscription:
+        sub = self.access_log_subscriptions.get(accessLogSubscriptionIdentifier)
+        if not sub:
+            raise ResourceNotFoundException(
+                f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
+            )
+
+        sub.destinationArn = destinationArn
+        sub.last_updated_at = datetime.now(timezone.utc).isoformat()
+
+        return sub
+
+    def delete_access_log_subscription(
+        self, accessLogSubscriptionIdentifier: str
+    ) -> None:
+        sub = self.access_log_subscriptions.get(accessLogSubscriptionIdentifier)
+        if not sub:
+            raise ResourceNotFoundException(
+                f"Access Log Subscription {accessLogSubscriptionIdentifier} not found"
+            )
+        del self.access_log_subscriptions[accessLogSubscriptionIdentifier]
 
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(

@@ -606,7 +606,8 @@
             },
             "baz": {
               "foo": "bam"
-            }
+            },
+            "null-value-no-output": null
           }
         },
         "response": {

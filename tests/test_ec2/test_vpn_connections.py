@@ -3,23 +3,92 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from tests.test_ec2 import ec2_aws_verified
 
 
 @mock_aws
-def test_create_vpn_connections_boto3():
+def test_create_vpn_connections():
     client = boto3.client("ec2", region_name="us-east-1")
+    customer_gateway_id = client.create_customer_gateway(
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
+    )["CustomerGateway"]["CustomerGatewayId"]
     vpn_connection = client.create_vpn_connection(
-        Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
+        Type="ipsec.1",
+        VpnGatewayId="vgw-0123abcd",
+        CustomerGatewayId=customer_gateway_id,
     )["VpnConnection"]
     assert vpn_connection["VpnConnectionId"].startswith("vpn-")
     assert vpn_connection["Type"] == "ipsec.1"
 
 
+@pytest.mark.aws_verified
+@ec2_aws_verified()
+def test_create_vpn_connection_to_both_vpn_gateway_and_transit_gateway(ec2_client=None):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_vpn_connection(
+            Type="ipsec.1",
+            VpnGatewayId="vgw-0123abcd",
+            CustomerGatewayId="cgw-0123abcd",
+            TransitGatewayId="gateway_id",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
+    assert (
+        err["Message"]
+        == "The request must not contain both parameter vpnGatewayId and transitGatewayId"
+    )
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified()
+def test_create_vpn_connection_to_unknown_customer_gateway(ec2_client=None):
+    with pytest.raises(ClientError) as exc:
+        ec2_client.create_vpn_connection(
+            Type="ipsec.1",
+            CustomerGatewayId="cgw-0123abcd",
+            TransitGatewayId="gateway_id",
+        )
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidCustomerGatewayID.NotFound"
+    assert err["Message"] == "The customerGateway ID 'cgw-0123abcd' does not exist"
+
+
+@pytest.mark.aws_verified
+@ec2_aws_verified()
+def test_create_vpn_connection_to_unknown_transit_gateway(ec2_client=None):
+    customer_gateway_id = None
+    try:
+        customer_gateway_id = ec2_client.create_customer_gateway(
+            Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
+        )["CustomerGateway"]["CustomerGatewayId"]
+
+        with pytest.raises(ClientError) as exc:
+            ec2_client.create_vpn_connection(
+                Type="ipsec.1",
+                CustomerGatewayId=customer_gateway_id,
+                TransitGatewayId="tgw-abcdefghij0123456",
+            )
+        err = exc.value.response["Error"]
+        assert err["Code"] == "InvalidTransitGatewayID.NotFound"
+        assert (
+            err["Message"]
+            == "The transitGateway ID 'tgw-abcdefghij0123456' does not exist"
+        )
+    finally:
+        if customer_gateway_id:
+            ec2_client.delete_customer_gateway(CustomerGatewayId=customer_gateway_id)
+
+
 @mock_aws
-def test_delete_vpn_connections_boto3():
+def test_delete_vpn_connections():
     client = boto3.client("ec2", region_name="us-east-1")
+    customer_gateway_id = client.create_customer_gateway(
+        Type="ipsec.1", PublicIp="205.251.242.54", BgpAsn=65534
+    )["CustomerGateway"]["CustomerGatewayId"]
     vpn_connection = client.create_vpn_connection(
-        Type="ipsec.1", VpnGatewayId="vgw-0123abcd", CustomerGatewayId="cgw-0123abcd"
+        Type="ipsec.1",
+        VpnGatewayId="vgw-0123abcd",
+        CustomerGatewayId=customer_gateway_id,
     )["VpnConnection"]
 
     conns = retrieve_all_vpncs(client)
@@ -36,7 +105,7 @@ def test_delete_vpn_connections_boto3():
 
 
 @mock_aws
-def test_delete_vpn_connections_bad_id_boto3():
+def test_delete_vpn_connections_bad_id():
     client = boto3.client("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.delete_vpn_connection(VpnConnectionId="vpn-0123abcd")
@@ -65,7 +134,7 @@ def test_create_vpn_connection_with_vpn_gateway():
 
 
 @mock_aws
-def test_describe_vpn_connections_boto3():
+def test_describe_vpn_connections():
     client = boto3.client("ec2", region_name="us-east-1")
 
     vpn_gateway = client.create_vpn_gateway(Type="ipsec.1").get("VpnGateway", {})

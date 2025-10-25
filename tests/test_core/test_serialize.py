@@ -14,10 +14,10 @@ that go above and beyond the specification(s) for a number of reasons:
 
 import time
 
-from botocore.model import ServiceModel, ShapeResolver
 from xmltodict import parse
 
 from moto.core.exceptions import ServiceException
+from moto.core.model import ServiceModel, ShapeResolver
 from moto.core.serialize import (
     AttributePickerContext,
     JSONSerializer,

@@ -7,11 +7,12 @@ from uuid import uuid4
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.utilities.distutils_version import LooseVersion
+from tests.test_awslambda import delete_all_layer_versions
+from tests.test_s3 import s3_aws_verified
 
 from .utilities import get_role_name, get_test_zip_file1
 
@@ -52,9 +53,69 @@ def test_publish_layer_with_unknown_s3_file():
     assert content["CodeSize"] == 0
 
 
+@s3_aws_verified
+def test_list_lambda_layers(account_id, bucket_name=None):
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
+    s3_conn = boto3.client("s3", "us-east-1")
+
+    zip_content = get_test_zip_file1()
+    s3_conn.put_object(Bucket=bucket_name, Key="test.zip", Body=zip_content)
+    conn = boto3.client("lambda", "us-east-1")
+    layer_name = str(uuid4())[0:6]
+
+    try:
+        conn.publish_layer_version(
+            LayerName=layer_name,
+            Content={"ZipFile": get_test_zip_file1()},
+            CompatibleRuntimes=["python3.13"],
+            LicenseInfo="MIT",
+        )
+        conn.publish_layer_version(
+            LayerName=layer_name,
+            Content={"S3Bucket": bucket_name, "S3Key": "test.zip"},
+            CompatibleRuntimes=["python3.13"],
+            LicenseInfo="MIT",
+        )
+        conn.publish_layer_version(
+            LayerName=layer_name,
+            Content={"ZipFile": get_test_zip_file1()},
+            CompatibleRuntimes=["python3.14"],
+            LicenseInfo="MIT",
+        )
+
+        result = conn.list_layer_versions(LayerName=layer_name)
+
+        for version in result["LayerVersions"]:
+            version.pop("CreatedDate")
+
+        expected_arn = f"arn:aws:lambda:us-east-1:{account_id}:layer:{layer_name}:"
+        assert result["LayerVersions"] == [
+            {
+                "Version": 3,
+                "LayerVersionArn": expected_arn + "3",
+                "CompatibleRuntimes": ["python3.14"],
+                "LicenseInfo": "MIT",
+            },
+            {
+                "Version": 2,
+                "LayerVersionArn": expected_arn + "2",
+                "CompatibleRuntimes": ["python3.13"],
+                "LicenseInfo": "MIT",
+            },
+            {
+                "Version": 1,
+                "LayerVersionArn": expected_arn + "1",
+                "CompatibleRuntimes": ["python3.13"],
+                "LicenseInfo": "MIT",
+            },
+        ]
+    finally:
+        delete_all_layer_versions(conn, layer_name=layer_name)
+
+
 @mock_aws
-@freeze_time("2015-01-01 00:00:00")
-def test_get_lambda_layers():
+def test_create_function_with_layer():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
         raise SkipTest("Parameters only available in newer versions")
     bucket_name = str(uuid4())
@@ -72,40 +133,16 @@ def test_get_lambda_layers():
     conn.publish_layer_version(
         LayerName=layer_name,
         Content={"ZipFile": get_test_zip_file1()},
-        CompatibleRuntimes=["python3.6"],
+        CompatibleRuntimes=["python3.14"],
         LicenseInfo="MIT",
     )
     conn.publish_layer_version(
         LayerName=layer_name,
         Content={"S3Bucket": bucket_name, "S3Key": "test.zip"},
-        CompatibleRuntimes=["python3.6"],
+        CompatibleRuntimes=["python3.14"],
         LicenseInfo="MIT",
     )
-
-    result = conn.list_layer_versions(LayerName=layer_name)
-
-    for version in result["LayerVersions"]:
-        version.pop("CreatedDate")
-    result["LayerVersions"].sort(key=lambda x: x["Version"])
     expected_arn = f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:layer:{layer_name}:"
-    assert result["LayerVersions"] == [
-        {
-            "Version": 1,
-            "LayerVersionArn": expected_arn + "1",
-            "CompatibleRuntimes": ["python3.6"],
-            "Description": "",
-            "LicenseInfo": "MIT",
-            "CompatibleArchitectures": [],
-        },
-        {
-            "Version": 2,
-            "LayerVersionArn": expected_arn + "2",
-            "CompatibleRuntimes": ["python3.6"],
-            "Description": "",
-            "LicenseInfo": "MIT",
-            "CompatibleArchitectures": [],
-        },
-    ]
 
     function_name = str(uuid4())[0:6]
     conn.create_function(
@@ -114,11 +151,6 @@ def test_get_lambda_layers():
         Role=get_role_name(),
         Handler="lambda_function.lambda_handler",
         Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-        Environment={"Variables": {"test_variable": "test_value"}},
         Layers=[(expected_arn + "1")],
     )
 
@@ -133,12 +165,30 @@ def test_get_lambda_layers():
         {"Arn": (expected_arn + "2"), "CodeSize": len(zip_content)}
     ]
 
-    # Test get layer versions for non existant layer
-    result = conn.list_layer_versions(LayerName=f"{layer_name}2")
+
+@mock_aws
+def test_list_lambda_layers_with_unknown_name():
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    # Test get layer versions for nonexistent layer
+    result = conn.list_layer_versions(LayerName=layer_name)
     assert result["LayerVersions"] == []
 
-    # Test create function with non existant layer version
-    function_name = str(uuid4())[0:6]  # Must be different than above
+
+@mock_aws
+def test_create_function_with_unknown_layer():
+    if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
+        raise SkipTest("Parameters only available in newer versions")
+    bucket_name = str(uuid4())
+
+    conn = boto3.client("lambda", _lambda_region)
+    layer_name = str(uuid4())[0:6]
+
+    unknown_arn = f"arn:aws:lambda:{_lambda_region}:{ACCOUNT_ID}:layer:{layer_name}:1"
+
+    # Test create function with nonexistent layer version
+    function_name = str(uuid4())[0:6]
     with pytest.raises(ClientError) as exc:
         conn.create_function(
             FunctionName=function_name,
@@ -146,15 +196,13 @@ def test_get_lambda_layers():
             Role=get_role_name(),
             Handler="lambda_function.lambda_handler",
             Code={"S3Bucket": bucket_name, "S3Key": "test.zip"},
-            Description="test lambda function",
-            Timeout=3,
-            MemorySize=128,
-            Publish=True,
-            Environment={"Variables": {"test_variable": "test_value"}},
-            Layers=[(expected_arn + "3")],
+            Layers=[unknown_arn],
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ResourceNotFoundException"
+    assert (
+        err["Message"] == f"One or more LayerVersion does not exist ['{unknown_arn}']"
+    )
 
 
 @mock_aws
@@ -183,7 +231,6 @@ def test_get_layer_version():
     layer_version = resp["Version"]
 
     resp = conn.get_layer_version(LayerName=layer_name, VersionNumber=layer_version)
-    assert resp["Description"] == ""
     assert resp["Version"] == 1
     assert resp["CompatibleArchitectures"] == ["x86_64"]
     assert resp["CompatibleRuntimes"] == ["python3.6"]

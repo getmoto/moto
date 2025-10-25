@@ -24,7 +24,9 @@ kinesis
 
 - [X] delete_stream
 - [X] deregister_stream_consumer
-- [ ] describe_limits
+- [X] describe_limits
+  Return fixed Kinesis limits.
+
 - [X] describe_stream
 - [X] describe_stream_consumer
 - [X] describe_stream_summary

@@ -175,10 +175,10 @@ class EmailResponse(BaseResponse):
     def create_template(self) -> ActionResult:
         template_data = self._get_param("Template", {})
         template_info = {}
-        template_info["text_part"] = template_data.get("text_part", "")
-        template_info["html_part"] = template_data.get("html_part", "")
-        template_info["template_name"] = template_data.get("template_name", "")
-        template_info["subject_part"] = template_data.get("subject_part", "")
+        template_info["text_part"] = template_data.get("TextPart", "")
+        template_info["html_part"] = template_data.get("HtmlPart", "")
+        template_info["template_name"] = template_data.get("TemplateName", "")
+        template_info["subject_part"] = template_data.get("SubjectPart", "")
         template_info["Timestamp"] = utcnow()
         self.backend.add_template(template_info=template_info)
         return EmptyResult()
@@ -186,10 +186,10 @@ class EmailResponse(BaseResponse):
     def update_template(self) -> ActionResult:
         template_data = self._get_param("Template", {})
         template_info = {}
-        template_info["text_part"] = template_data.get("text_part", "")
-        template_info["html_part"] = template_data.get("html_part", "")
-        template_info["template_name"] = template_data.get("template_name", "")
-        template_info["subject_part"] = template_data.get("subject_part", "")
+        template_info["text_part"] = template_data.get("TextPart", "")
+        template_info["html_part"] = template_data.get("HtmlPart", "")
+        template_info["template_name"] = template_data.get("TemplateName", "")
+        template_info["subject_part"] = template_data.get("SubjectPart", "")
         template_info["Timestamp"] = utcnow()
         self.backend.update_template(template_info=template_info)
         return EmptyResult()

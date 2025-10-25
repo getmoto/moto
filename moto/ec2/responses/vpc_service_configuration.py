@@ -16,12 +16,14 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
             str(self._get_param("AcceptanceRequired", "true")).lower() == "true"
         )
         private_dns_name = self._get_param("PrivateDnsName")
+        supported_regions = self._get_multi_param("SupportedRegion")
 
         config = self.ec2_backend.create_vpc_endpoint_service_configuration(
             gateway_lbs or network_lbs,
             acceptance_required=acceptance_required,
             private_dns_name=private_dns_name,
             tags=tags,
+            supported_regions=supported_regions,
         )
         template = self.response_template(CREATE_VPC_ENDPOINT_SERVICE_CONFIGURATION)
         return template.render(config=config)
@@ -63,6 +65,8 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
         remove_network_lbs = self._get_multi_param("RemoveNetworkLoadBalancerArn")
         add_gateway_lbs = self._get_multi_param("AddGatewayLoadBalancerArn")
         remove_gateway_lbs = self._get_multi_param("RemoveGatewayLoadBalancerArn")
+        add_supported_regions = self._get_multi_param("AddSupportedRegion")
+        remove_supported_regions = self._get_multi_param("RemoveSupportedRegion")
 
         self.ec2_backend.modify_vpc_endpoint_service_configuration(
             service_id,
@@ -72,6 +76,8 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
             remove_network_lbs=remove_network_lbs,
             add_gateway_lbs=add_gateway_lbs,
             remove_gateway_lbs=remove_gateway_lbs,
+            add_supported_regions=add_supported_regions,
+            remove_supported_regions=remove_supported_regions,
         )
 
         return MODIFY_VPC_ENDPOINT_SERVICE_CONFIGURATION
@@ -123,6 +129,16 @@ CREATE_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
         <name>n</name>
       {% endif %}
       </privateDnsNameConfiguration>
+      {% if config.supported_regions %}
+      <supportedRegionSet>
+          {% for region in config.supported_regions %}
+          <item>
+              <region>{{ region }}</region>
+              <serviceState>Available</serviceState>
+          </item>
+          {% endfor %}
+      </supportedRegionSet>
+      {% endif %}
   </serviceConfiguration>
 </CreateVpcEndpointServiceConfigurationResult>
 """
@@ -172,6 +188,16 @@ DESCRIBE_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
                     </item>
                 {% endfor %}
             </tagSet>
+            {% if config.supported_regions %}
+            <supportedRegionSet>
+                {% for region in config.supported_regions %}
+                <item>
+                    <region>{{ region }}</region>
+                    <serviceState>Available</serviceState>
+                </item>
+                {% endfor %}
+            </supportedRegionSet>
+            {% endif %}
       </item>
     {% endfor %}
   </serviceConfigurationSet>

@@ -143,7 +143,7 @@ class CloudFormationResponse(BaseResponse):
         # Hack dict-comprehension
         return dict(
             [
-                (parameter["parameter_key"], parameter["parameter_value"])
+                (parameter["ParameterKey"], parameter["ParameterValue"])
                 for parameter in parameters_list
             ]
         )
@@ -153,17 +153,17 @@ class CloudFormationResponse(BaseResponse):
     ) -> Dict[str, Any]:
         result = {}
         for parameter in parameters_list:
-            if set(parameter.keys()) >= {"parameter_key", "parameter_value"}:
-                result[parameter["parameter_key"]] = parameter["parameter_value"]
+            if set(parameter.keys()) >= {"ParameterKey", "ParameterValue"}:
+                result[parameter["ParameterKey"]] = parameter["ParameterValue"]
             elif (
-                set(parameter.keys()) >= {"parameter_key", "use_previous_value"}
-                and parameter["parameter_key"] in existing_params
+                set(parameter.keys()) >= {"ParameterKey", "UsePreviousValue"}
+                and parameter["ParameterKey"] in existing_params
             ):
-                result[parameter["parameter_key"]] = existing_params[
-                    parameter["parameter_key"]
+                result[parameter["ParameterKey"]] = existing_params[
+                    parameter["ParameterKey"]
                 ]
             else:
-                raise MissingParameterError(parameter["parameter_key"])
+                raise MissingParameterError(parameter["ParameterKey"])
         return result
 
     def process_cfn_response(self) -> Tuple[int, Dict[str, int], str]:
@@ -189,7 +189,7 @@ class CloudFormationResponse(BaseResponse):
         stack_policy_body = self._get_param("StackPolicyBody")
         parameters_list = self._get_param("Parameters", [])
         tags = dict(
-            (item["key"], item["value"]) for item in self._get_param("Tags", [])
+            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
         )
 
         parameters = self._get_params_from_list(parameters_list)
@@ -244,13 +244,13 @@ class CloudFormationResponse(BaseResponse):
         role_arn = self._get_param("RoleARN")
         parameters_list = self._get_param("Parameters", [])
         tags = dict(
-            (item["key"], item["value"]) for item in self._get_param("Tags", [])
+            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
         )
         parameters = {
-            param["parameter_key"]: (
-                stack.stack_parameters[param["parameter_key"]]
-                if param.get("use_previous_value", False)
-                else param["parameter_value"]
+            param["ParameterKey"]: (
+                stack.stack_parameters[param["ParameterKey"]]
+                if param.get("UsePreviousValue", False)
+                else param["ParameterValue"]
             )
             for param in parameters_list
         }
@@ -433,15 +433,15 @@ class CloudFormationResponse(BaseResponse):
 
         incoming_params = self._get_param("Parameters", [])
         for param in incoming_params:
-            if param.get("use_previous_value") and param.get("parameter_value"):
+            if param.get("UsePreviousValue") and param.get("ParameterValue"):
                 raise ValidationError(
-                    message=f"Invalid input for parameter key {param['parameter_key']}. Cannot specify usePreviousValue as true and non empty value for a parameter"
+                    message=f"Invalid input for parameter key {param['ParameterKey']}. Cannot specify usePreviousValue as true and non empty value for a parameter"
                 )
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.
         tags: Optional[Dict[str, str]] = dict(
-            (item["key"], item["value"]) for item in self._get_param("Tags", [])
+            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
         )
         # so that if we don't pass the parameter, we don't clear all the tags accidentally
         if not tags:
@@ -487,6 +487,7 @@ class CloudFormationResponse(BaseResponse):
         except (ValueError, KeyError):
             pass
         try:
+            yaml.add_multi_constructor("", yaml_tag_constructor)
             description = yaml.load(template_body, Loader=yaml.Loader)["Description"]
         except (ParserError, ScannerError, KeyError):
             pass
@@ -512,13 +513,13 @@ class CloudFormationResponse(BaseResponse):
         exec_role = self._get_param("ExecutionRoleName")
         description = self._get_param("Description")
         tags = dict(
-            (item["key"], item["value"]) for item in self._get_param("Tags", [])
+            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
         )
 
         # Copy-Pasta - Hack dict-comprehension
         parameters = dict(
             [
-                (parameter["parameter_key"], parameter["parameter_value"])
+                (parameter["ParameterKey"], parameter["ParameterValue"])
                 for parameter in parameters_list
             ]
         )
@@ -669,7 +670,7 @@ class CloudFormationResponse(BaseResponse):
         if template_url:
             template_body = self._get_stack_from_s3_url(template_url)
         tags = dict(
-            (item["key"], item["value"]) for item in self._get_param("Tags", [])
+            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
         )
         parameters_list = self._get_param("Parameters", [])
 

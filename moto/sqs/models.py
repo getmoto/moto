@@ -1,4 +1,3 @@
-import base64
 import hashlib
 import json
 import re
@@ -8,11 +7,9 @@ from copy import deepcopy
 from threading import Condition
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import ParseResult
-from xml.sax.saxutils import escape
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.exceptions import RESTError
 from moto.core.utils import (
     camelcase_to_underscores,
     tags_from_cloudformation_tags_list,
@@ -36,6 +33,7 @@ from .exceptions import (
     QueueAlreadyExists,
     QueueDoesNotExist,
     ReceiptHandleIsInvalid,
+    SQSException,
     TooManyEntriesInBatchRequest,
 )
 from .utils import generate_receipt_handle
@@ -79,7 +77,7 @@ class Message(BaseModel):
         system_attributes: Optional[Dict[str, Any]] = None,
     ):
         self.id = message_id
-        self._body = body
+        self.body = body
         self.message_attributes: Dict[str, Any] = {}
         self.receipt_handle: Optional[str] = None
         self._old_receipt_handles: List[str] = []
@@ -97,7 +95,7 @@ class Message(BaseModel):
     @property
     def body_md5(self) -> str:
         md5 = md5_hash()
-        md5.update(self._body.encode("utf-8"))
+        md5.update(self.body.encode("utf-8"))
         return md5.hexdigest()
 
     @property
@@ -110,30 +108,17 @@ class Message(BaseModel):
             # Encode name
             self.update_binary_length_and_value(md5, self.utf8(attrName))
             # Encode type
-            self.update_binary_length_and_value(md5, self.utf8(attrValue["data_type"]))
+            self.update_binary_length_and_value(md5, self.utf8(attrValue["DataType"]))
 
-            if attrValue.get("string_value"):
+            if attrValue.get("StringValue"):
                 md5.update(bytearray([STRING_TYPE_FIELD_INDEX]))
                 self.update_binary_length_and_value(
-                    md5, self.utf8(attrValue.get("string_value"))
+                    md5, self.utf8(attrValue.get("StringValue"))
                 )
-            elif attrValue.get("binary_value"):
+            elif attrValue.get("BinaryValue"):
                 md5.update(bytearray([BINARY_TYPE_FIELD_INDEX]))
-                decoded_binary_value = base64.b64decode(attrValue.get("binary_value"))
+                decoded_binary_value = attrValue.get("BinaryValue")
                 self.update_binary_length_and_value(md5, decoded_binary_value)
-            # string_list_value type is not implemented, reserved for the future use.
-            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
-            elif len(attrValue["string_list_value"]) > 0:
-                md5.update(bytearray([STRING_LIST_TYPE_FIELD_INDEX]))
-                for strListMember in attrValue["string_list_value"]:
-                    self.update_binary_length_and_value(md5, self.utf8(strListMember))
-            # binary_list_value type is not implemented, reserved for the future use.
-            # See https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_MessageAttributeValue.html
-            elif len(attrValue["binary_list_value"]) > 0:
-                md5.update(bytearray([BINARY_LIST_TYPE_FIELD_INDEX]))
-                for strListMember in attrValue["binary_list_value"]:
-                    decoded_binary_value = base64.b64decode(strListMember)
-                    self.update_binary_length_and_value(md5, decoded_binary_value)
 
         return md5.hexdigest()
 
@@ -157,14 +142,6 @@ class Message(BaseModel):
         if isinstance(value, str):
             return value.encode("utf-8")
         return value
-
-    @property
-    def body(self) -> str:
-        return escape(self._body).replace('"', "&quot;").replace("\r", "&#xD;")
-
-    @property
-    def original_body(self) -> str:
-        return self._body
 
     def mark_sent(self, delay_seconds: Optional[int] = None) -> None:
         self.sent_timestamp = int(unix_time_millis())  # type: ignore
@@ -396,24 +373,24 @@ class Queue(CloudFormationModel):
             try:
                 self.redrive_policy = json.loads(policy)
             except ValueError:
-                raise RESTError(
+                raise SQSException(
                     "InvalidParameterValue",
                     "Redrive policy is not a dict or valid json",
                 )
         elif isinstance(policy, dict):
             self.redrive_policy = policy
         else:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue", "Redrive policy is not a dict or valid json"
             )
 
         if "deadLetterTargetArn" not in self.redrive_policy:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Redrive policy does not contain deadLetterTargetArn",
             )
         if "maxReceiveCount" not in self.redrive_policy:
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Redrive policy does not contain maxReceiveCount",
             )
@@ -429,13 +406,13 @@ class Queue(CloudFormationModel):
                 self.dead_letter_queue = queue
 
                 if self.fifo_queue and not queue.fifo_queue:
-                    raise RESTError(
+                    raise SQSException(
                         "InvalidParameterCombination",
                         "Fifo queues cannot use non fifo dead letter queues",
                     )
                 break
         else:
-            raise RESTError(
+            raise SQSException(
                 "AWS.SimpleQueueService.NonExistentQueue",
                 f"Could not find DLQ for {self.redrive_policy['deadLetterTargetArn']}",
             )
@@ -1065,15 +1042,15 @@ class SQSBackend(BaseBackend):
         errors = []
         for receipt_and_id in receipts:
             try:
-                self.delete_message(queue_name, receipt_and_id["receipt_handle"])
-                success.append(receipt_and_id["msg_user_id"])
+                self.delete_message(queue_name, receipt_and_id["ReceiptHandle"])
+                success.append(receipt_and_id["Id"])
             except ReceiptHandleIsInvalid:
                 errors.append(
                     {
-                        "Id": receipt_and_id["msg_user_id"],
+                        "Id": receipt_and_id["Id"],
                         "SenderFault": True,
                         "Code": "ReceiptHandleIsInvalid",
-                        "Message": f'The input receipt handle "{receipt_and_id["receipt_handle"]}" is not a valid receipt handle.',
+                        "Message": f'The input receipt handle "{receipt_and_id["ReceiptHandle"]}" is not a valid receipt handle.',
                     }
                 )
         return success, errors
@@ -1107,13 +1084,13 @@ class SQSBackend(BaseBackend):
         error = []
         for entry in entries:
             try:
-                visibility_timeout = int(entry["visibility_timeout"])
+                visibility_timeout = int(entry["VisibilityTimeout"])
                 assert visibility_timeout <= MAXIMUM_VISIBILITY_TIMEOUT
             except:  # noqa: E722 Do not use bare except
                 error.append(
                     {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
+                        "Id": entry["Id"],
+                        "SenderFault": True,
                         "Code": "InvalidParameterValue",
                         "Message": "Visibility timeout invalid",
                     }
@@ -1123,17 +1100,17 @@ class SQSBackend(BaseBackend):
             try:
                 self.change_message_visibility(
                     queue_name=queue_name,
-                    receipt_handle=entry["receipt_handle"],
+                    receipt_handle=entry["ReceiptHandle"],
                     visibility_timeout=visibility_timeout,
                 )
-                success.append(entry["id"])
+                success.append(entry["Id"])
             except ReceiptHandleIsInvalid as e:
                 error.append(
                     {
-                        "Id": entry["id"],
-                        "SenderFault": "true",
+                        "Id": entry["Id"],
+                        "SenderFault": True,
                         "Code": "ReceiptHandleIsInvalid",
-                        "Message": e.description,
+                        "Message": getattr(e, "message", ""),
                     }
                 )
         return success, error
@@ -1246,7 +1223,7 @@ class SQSBackend(BaseBackend):
         queue = self.get_queue(queue_name)
 
         if not len(tag_keys):
-            raise RESTError(
+            raise SQSException(
                 "InvalidParameterValue",
                 "Tag keys must be between 1 and 128 characters in length.",
             )

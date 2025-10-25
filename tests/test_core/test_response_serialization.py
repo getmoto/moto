@@ -1,5 +1,4 @@
-from botocore.model import ServiceModel
-
+from moto.core.model import ServiceModel
 from moto.core.responses import ActionContext, ActionResult, BaseResponse, EmptyResult
 from moto.core.serialize import QuerySerializer, never_return
 

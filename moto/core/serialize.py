@@ -56,7 +56,7 @@ import abc
 import base64
 import calendar
 import json
-import warnings
+from collections import namedtuple
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
@@ -68,13 +68,15 @@ from typing import (
     Optional,
     TypedDict,
     Union,
-    cast,
 )
 
 import xmltodict
 from botocore import xform_name
 from botocore.compat import formatdate
-from botocore.model import (
+from botocore.utils import is_json_value_header, parse_to_aware_datetime
+
+from moto.core.errors import ErrorShape, get_error_model
+from moto.core.model import (
     ListShape,
     MapShape,
     OperationModel,
@@ -82,23 +84,9 @@ from botocore.model import (
     Shape,
     StructureShape,
 )
-from botocore.utils import is_json_value_header, parse_to_aware_datetime
-
 from moto.core.utils import MISSING, get_value
 
 Serialized = MutableMapping[str, Any]
-
-# These are common error codes that are *not* included in the service definitions.
-# For example:
-# https://docs.aws.amazon.com/emr/latest/APIReference/CommonErrors.html
-# https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/CommonErrors.html
-# TODO: Augment the service definitions with shape models for these errors.
-COMMON_ERROR_CODES = [
-    "InvalidParameterCombination",
-    "InvalidParameterValue",
-    "ValidationError",
-    "ValidationException",
-]
 
 
 class ResponseDict(TypedDict):
@@ -110,47 +98,6 @@ class ResponseDict(TypedDict):
 class SerializationContext:
     def __init__(self, request_id: Optional[str] = None) -> None:
         self.request_id = request_id or "request-id"
-
-
-class ErrorShape(StructureShape):
-    _shape_model: dict[str, Any]
-
-    @property
-    def is_sender_fault(self) -> bool:
-        internal_fault = self._shape_model.get("fault", False)
-        error_info = self.metadata.get("error", {})
-        sender_fault = error_info.get("senderFault", False)
-        return sender_fault or not internal_fault
-
-    # Overriding super class property to keep mypy happy...
-    @property
-    def error_code(self) -> str:
-        code = str(super().error_code)
-        return code
-
-    @classmethod
-    def from_existing_shape(cls, shape: Shape) -> ErrorShape:
-        return cls(shape.name, shape._shape_model, shape._shape_resolver)  # type: ignore[attr-defined]
-
-
-class ShapeHelpersMixin:
-    @staticmethod
-    def get_serialized_name(shape: Shape, default_name: str) -> str:
-        return shape.serialization.get("name", default_name)
-
-    @staticmethod
-    def is_flattened(shape: Shape) -> bool:
-        return shape.serialization.get("flattened", False)
-
-    @staticmethod
-    def is_http_header_trait(shape: Shape) -> bool:
-        return hasattr(shape, "serialization") and shape.serialization.get(
-            "location"
-        ) in ["header", "headers"]
-
-    @staticmethod
-    def is_not_bound_to_body(shape: Shape) -> bool:
-        return hasattr(shape, "serialization") and "location" in shape.serialization
 
 
 class TimestampSerializer:
@@ -199,7 +146,7 @@ class TimestampSerializer:
         return final_value
 
 
-class HeaderSerializer(ShapeHelpersMixin):
+class HeaderSerializer:
     # https://smithy.io/2.0/spec/http-bindings.html#httpheader-serialization-rules
     DEFAULT_ENCODING = "utf-8"
     DEFAULT_TIMESTAMP_FORMAT = TimestampSerializer.TIMESTAMP_FORMAT_RFC822
@@ -237,7 +184,7 @@ class HeaderSerializer(ShapeHelpersMixin):
     def _serialize_type_map(
         self, serialized: Serialized, value: Any, shape: MapShape, _: str
     ) -> None:
-        header_prefix = self.get_serialized_name(shape, "")
+        header_prefix = shape.serialization.get("name", "")
         for key, val in value.items():
             full_key = header_prefix + key
             self._default_serialize(serialized, val, shape, full_key)
@@ -264,7 +211,7 @@ class HeaderSerializer(ShapeHelpersMixin):
         return base64.b64encode(value).strip().decode(self.DEFAULT_ENCODING)
 
 
-class ResponseSerializer(ShapeHelpersMixin):
+class ResponseSerializer:
     CONTENT_TYPE = "text"
     DEFAULT_ENCODING = "utf-8"
     DEFAULT_RESPONSE_CODE = 200
@@ -316,7 +263,7 @@ class ResponseSerializer(ShapeHelpersMixin):
         resp: ResponseDict,
         error: Exception,
     ) -> ResponseDict:
-        error_shape = self._get_error_shape(error)
+        error_shape = get_error_model(error, self.service_model)
         serialized_error = self.MAP_TYPE()
         self._serialize_error_metadata(serialized_error, error, error_shape)
         return self._serialized_error_to_response(
@@ -383,35 +330,6 @@ class ResponseSerializer(ShapeHelpersMixin):
         )
         return self._value_picker(context)
 
-    def _get_error_shape(self, error: Exception) -> ErrorShape:
-        error_code = getattr(error, "code", MISSING)
-        error_name = error.__class__.__name__
-        error_shapes = cast(list[ErrorShape], self.service_model.error_shapes)
-        for error_shape in error_shapes:
-            if error_shape.error_code == error_code:
-                break
-            if error_shape.name in [error_code, error_name]:
-                break
-        else:
-            error_shape = None
-        if error_shape is None:
-            service_id = self.service_model.metadata.get("serviceId")
-            if service_id and error_code not in COMMON_ERROR_CODES:
-                warning = f"{service_id} service model does not contain an error shape that matches code {error_code} from Exception({error_name})"
-                warnings.warn(warning)
-            generic_error_model = {
-                "exception": True,
-                "type": "structure",
-                "members": {},
-                "error": {
-                    "code": error_code,
-                },
-            }
-            error_shape = ErrorShape(error_name, generic_error_model)
-        else:
-            error_shape = ErrorShape.from_existing_shape(error_shape)
-        return error_shape
-
     #
     # Default serializers for the various model Shape types.
     # These can be overridden in subclasses to provide protocol-specific implementations.
@@ -470,7 +388,7 @@ class ResponseSerializer(ShapeHelpersMixin):
             self._serialize(wrapper["__current__"], k, key_shape, "key")
             self._serialize(wrapper["__current__"], v, value_shape, "value")
             map_list.append(wrapper["__current__"])
-        if self.is_flattened(shape):
+        if shape.is_flattened:
             self._default_serialize(serialized, map_list, shape, key)
         else:
             self._default_serialize(serialized, {"entry": map_list}, shape, key)
@@ -505,6 +423,9 @@ class ResponseSerializer(ShapeHelpersMixin):
 
     _serialize_type_double = _serialize_type_float
 
+    def get_serialized_name(self, shape: Shape, default_name: str) -> str:
+        return shape.serialization.get("name", default_name)
+
 
 class BaseJSONSerializer(ResponseSerializer):
     APPLICATION_AMZ_JSON = "application/x-amz-json-{version}"
@@ -533,7 +454,7 @@ class BaseJSONSerializer(ResponseSerializer):
             "httpStatusCode", self.DEFAULT_ERROR_RESPONSE_CODE
         )
         resp["status_code"] = status_code
-        error_code = self._get_protocol_specific_error_code(shape.error_code)
+        error_code = self._get_protocol_specific_error_code(shape)
         resp["headers"]["X-Amzn-Errortype"] = error_code
         resp["headers"]["Content-Type"] = self._get_protocol_specific_content_type()
         self._serialize_query_compatible_error_to_response(resp, shape)
@@ -558,12 +479,17 @@ class BaseJSONSerializer(ResponseSerializer):
 
     def _get_protocol_specific_error_code(
         self,
-        error_code: str,
+        error: ErrorShape,
     ) -> str:
         # https://smithy.io/2.0/aws/protocols/aws-json-1_1-protocol.html#operation-error-serialization
         service_metadata = self.operation_model.service_model.metadata
         json_version = service_metadata.get("jsonVersion")
-        prefix = service_metadata.get("targetPrefix")
+        error_code = error.name
+        prefix = (
+            error.namespace
+            or service_metadata.get("errorNamespace")
+            or service_metadata.get("targetPrefix")
+        )
         if json_version == "1.0" and prefix is not None:
             error_code = prefix + "#" + error_code
         return error_code
@@ -574,7 +500,7 @@ class BaseJSONSerializer(ResponseSerializer):
         error: Exception,
         shape: ErrorShape,
     ) -> None:
-        error_code = self._get_protocol_specific_error_code(shape.error_code)
+        error_code = self._get_protocol_specific_error_code(shape)
         serialized["__type"] = error_code
         message = getattr(error, "message", None) or str(error)
         if shape is not None:
@@ -681,6 +607,8 @@ class BaseXMLSerializer(ResponseSerializer):
         serialized["Type"] = "Sender" if shape.is_sender_fault else "Receiver"
         serialized["Code"] = shape.error_code
         message = getattr(error, "message", None)
+        if shape.query_compatible_error_message:
+            message = shape.query_compatible_error_message
         if message is not None:
             serialized["Message"] = message
         # Serialize any error model attributes.
@@ -733,7 +661,7 @@ class BaseXMLSerializer(ResponseSerializer):
         if not list_obj:  # empty list serialized as "" in XML
             self._default_serialize(serialized, "", shape, key)
             return
-        if self.is_flattened(shape):
+        if shape.is_flattened:
             self._default_serialize(serialized, list_obj, shape.member, key)
         else:
             items_name = self.get_serialized_name(shape.member, "member")
@@ -811,8 +739,8 @@ class BaseRestSerializer(ResponseSerializer):
     def _serialize_structure_member(
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
-        if self.is_not_bound_to_body(shape):
-            if self.is_http_header_trait(shape) and "headers" in serialized:
+        if shape.is_not_bound_to_body:
+            if shape.is_http_header_trait and "headers" in serialized:
                 member_value = self.get_value(value, key, shape)
                 if member_value is not None:
                     key_name = self.get_serialized_name(shape, key)
@@ -885,6 +813,27 @@ class QuerySerializer(BaseXMLSerializer):
         resp["body"] = self._serialize_body(response_wrapper)
         resp["headers"]["Content-Type"] = self.CONTENT_TYPE
         return resp
+
+    def _serialize_type_map(
+        self, serialized: Serialized, value: Any, shape: MapShape, key: str
+    ) -> None:
+        key_shape = shape.key
+        assert isinstance(key_shape, Shape)
+        value_shape = shape.value
+        assert isinstance(value_shape, Shape)
+        map_list = []
+        for k, v in value.items():
+            # Query protocol does not serialize null values
+            if v is None:
+                continue
+            wrapper = {"__current__": {}}
+            self._serialize(wrapper["__current__"], k, key_shape, "key")
+            self._serialize(wrapper["__current__"], v, value_shape, "value")
+            map_list.append(wrapper["__current__"])
+        if shape.is_flattened:
+            self._default_serialize(serialized, map_list, shape, key)
+        else:
+            self._default_serialize(serialized, {"entry": map_list}, shape, key)
 
 
 class QueryJSONSerializer(QuerySerializer):
@@ -1003,6 +952,73 @@ class EC2Serializer(QuerySerializer):
         return resp
 
 
+DoublePassEncoding = namedtuple(
+    "DoublePassEncoding", ["char", "marker", "escape_sequence"]
+)
+
+
+class DoublePassEncoder:
+    """Facilitates double pass encoding of special characters in a string
+    by replacing them with markers in one pass and then replacing the markers
+    with escape sequences in a second pass."""
+
+    def __init__(self, encodings: list[DoublePassEncoding]) -> None:
+        self.encodings = encodings
+
+    def mark(self, value: str) -> str:
+        for item in self.encodings:
+            value = value.replace(item.char, item.marker)
+        return value
+
+    def escape(self, value: str) -> str:
+        for item in self.encodings:
+            value = value.replace(item.marker, item.escape_sequence)
+        return value
+
+
+class SqsQuerySerializer(QuerySerializer):
+    """
+    Special handling of SQS Query protocol responses:
+        * support aws.protocols#awsQueryCompatible trait after switch to JSON protocol
+        * escape HTML entities within XML tag text
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.encoder = DoublePassEncoder(
+            [
+                DoublePassEncoding(
+                    char="\r",
+                    marker="__CARRIAGE_RETURN_MARKER__",
+                    escape_sequence="&#xD;",
+                ),
+                DoublePassEncoding(
+                    char='"', marker="__DOUBLE_QUOTE_MARKER__", escape_sequence="&quot;"
+                ),
+            ]
+        )
+
+    def _default_serialize(
+        self, serialized: Serialized, value: Any, shape: Shape, key: str
+    ) -> None:
+        if isinstance(value, str):
+            value = self.encoder.mark(value)
+        super()._default_serialize(serialized, value, shape, key)
+
+    def _serialize_body(self, body: Serialized) -> str:
+        body_encoded = super()._serialize_body(body)
+        body_escaped = self.encoder.escape(body_encoded)
+        return body_escaped
+
+    def get_serialized_name(self, shape: Shape, default_name: str) -> str:
+        serialized_name = super().get_serialized_name(shape, default_name)
+        if self.service_model.is_query_compatible:
+            serialized_name = shape.serialization.get(
+                "locationNameForQueryCompatibility", serialized_name
+            )
+        return serialized_name
+
+
 SERIALIZERS = {
     "ec2": EC2Serializer,
     "json": JSONSerializer,
@@ -1011,6 +1027,18 @@ SERIALIZERS = {
     "rest-json": RestJSONSerializer,
     "rest-xml": RestXMLSerializer,
 }
+SERVICE_SPECIFIC_SERIALIZERS = {
+    "sqs": {
+        "query": SqsQuerySerializer,
+    }
+}
+
+
+def get_serializer_class(service_name: str, protocol: str) -> type[ResponseSerializer]:
+    if service_name in SERVICE_SPECIFIC_SERIALIZERS:
+        if protocol in SERVICE_SPECIFIC_SERIALIZERS[service_name]:
+            return SERVICE_SPECIFIC_SERIALIZERS[service_name][protocol]
+    return SERIALIZERS[protocol]
 
 
 @dataclass
