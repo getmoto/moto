@@ -316,6 +316,34 @@
   "Location": "apse3-az1"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "apse3-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "apse3-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "apse3-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "apse3-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "apse3-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "apse3-az1"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
+  "Location": "apse3-az1"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "apse3-az1"
  },
@@ -1276,6 +1304,10 @@
   "Location": "apse3-az1"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "apse3-az1"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "apse3-az1"
  },
@@ -1601,6 +1633,34 @@
  },
  {
   "InstanceType": "c7g.xlarge",
+  "Location": "apse3-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "apse3-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "apse3-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "apse3-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "apse3-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "apse3-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "apse3-az2"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
   "Location": "apse3-az2"
  },
  {
@@ -2512,6 +2572,10 @@
   "Location": "apse3-az2"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "apse3-az2"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "apse3-az2"
  },
@@ -2841,6 +2905,34 @@
  },
  {
   "InstanceType": "c7gd.xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "apse3-az3"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
   "Location": "apse3-az3"
  },
  {

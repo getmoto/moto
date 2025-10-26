@@ -2544,6 +2544,10 @@
   "Location": "ap-southeast-4c"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "ap-southeast-4c"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-southeast-4c"
  },

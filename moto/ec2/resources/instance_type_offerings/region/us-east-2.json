@@ -3604,6 +3604,10 @@
   "Location": "us-east-2"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "us-east-2"
+ },
+ {
   "InstanceType": "x1.16xlarge",
   "Location": "us-east-2"
  },
