@@ -316,6 +316,34 @@
   "Location": "ap-southeast-3a"
  },
  {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "ap-southeast-3a"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
   "InstanceType": "c7i.12xlarge",
   "Location": "ap-southeast-3a"
  },
@@ -1276,6 +1304,10 @@
   "Location": "ap-southeast-3a"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "ap-southeast-3a"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-southeast-3a"
  },
@@ -1601,6 +1633,34 @@
  },
  {
   "InstanceType": "c7g.xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "ap-southeast-3b"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
   "Location": "ap-southeast-3b"
  },
  {
@@ -2512,6 +2572,10 @@
   "Location": "ap-southeast-3b"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "ap-southeast-3b"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-southeast-3b"
  },
@@ -2841,6 +2905,34 @@
  },
  {
   "InstanceType": "c7gd.xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "c7i-flex.12xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "c7i-flex.16xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "c7i-flex.2xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "c7i-flex.4xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "c7i-flex.8xlarge",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "c7i-flex.large",
+  "Location": "ap-southeast-3c"
+ },
+ {
+  "InstanceType": "c7i-flex.xlarge",
   "Location": "ap-southeast-3c"
  },
  {

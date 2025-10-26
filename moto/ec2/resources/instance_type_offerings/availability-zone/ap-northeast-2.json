@@ -3468,6 +3468,10 @@
   "Location": "ap-northeast-2b"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "ap-northeast-2b"
+ },
+ {
   "InstanceType": "r5.12xlarge",
   "Location": "ap-northeast-2b"
  },

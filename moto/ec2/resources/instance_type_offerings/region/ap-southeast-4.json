@@ -840,6 +840,10 @@
   "Location": "ap-southeast-4"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "ap-southeast-4"
+ },
+ {
   "InstanceType": "x2idn.16xlarge",
   "Location": "ap-southeast-4"
  },
