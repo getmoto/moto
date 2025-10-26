@@ -12792,6 +12792,46 @@
   "Location": "usw2-az4"
  },
  {
+  "InstanceType": "c8gn.12xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.16xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.24xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.2xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.48xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.4xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.8xlarge",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.large",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.medium",
+  "Location": "usw2-az4"
+ },
+ {
+  "InstanceType": "c8gn.xlarge",
+  "Location": "usw2-az4"
+ },
+ {
   "InstanceType": "c8i-flex.12xlarge",
   "Location": "usw2-az4"
  },
