@@ -1650,21 +1650,6 @@ class GlueBackend(BaseBackend):
     def get_security_configurations(self) -> List["FakeSecurityConfiguration"]:
         return [sc for sc in self.security_configurations.values()]
 
-    def get_security_configuration(self, name: str) -> "FakeSecurityConfiguration":
-        try:
-            return self.security_configurations[name]
-        except KeyError:
-            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
-
-    def delete_security_configuration(self, name: str) -> None:
-        try:
-            del self.security_configurations[name]
-        except KeyError:
-            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
-
-    def get_security_configurations(self) -> List["FakeSecurityConfiguration"]:
-        return [sc for sc in self.security_configurations.values()]
-
 
 class FakeSecurityConfiguration(BaseModel):
     def __init__(self, name: str, configuration: Dict[str, Any]):

@@ -1719,8 +1719,8 @@ def test_create_security_configuration():
         EncryptionConfiguration=encryption_configuration,
     )
 
-    # assert response["Name"] == security_configuration_name
-    # assert "CreatedTimestamp" in response
+    assert response["Name"] == security_configuration_name
+    assert "CreatedTimestamp" in response
 
     get_response = client.get_security_configuration(Name=security_configuration_name)
     assert get_response["SecurityConfiguration"]["Name"] == security_configuration_name
