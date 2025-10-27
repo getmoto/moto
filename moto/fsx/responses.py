@@ -144,4 +144,4 @@ class FSxResponse(BaseResponse):
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
         tags = self.fsx_backend.list_tags_for_resource(resource_arn=resource_arn)
-        return json.dumps(tags)
+        return json.dumps({"Tags": tags})
