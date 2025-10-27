@@ -1216,6 +1216,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
@@ -4093,6 +4096,15 @@
                 "Value": "fsx-windows",
                 "endpoint": {
                   "Value": "fsx.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18722,15 +18734,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -24572,6 +24575,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "chatbot": {
+                "Value": "chatbot"
+              },
               "cloudcontrolapi": {
                 "Value": "cloudcontrolapi",
                 "endpoint": {
@@ -25207,6 +25213,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "managedservices": {
+                "Value": "managedservices"
               },
               "marketplace": {
                 "Value": "marketplace"
@@ -25935,6 +25944,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "datasync": {
                 "Value": "datasync",
                 "endpoint": {
@@ -26174,6 +26192,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -27037,6 +27064,15 @@
               "gamelift": {
                 "Value": "gamelift"
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -27729,6 +27765,15 @@
                 },
                 "protocols": {
                   "Value": "https"
+                }
+              },
+              "ahl": {
+                "Value": "ahl",
+                "endpoint": {
+                  "Value": "healthlake.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "aiq": {
@@ -34579,15 +34624,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -35255,6 +35291,15 @@
                 "Value": "ds",
                 "endpoint": {
                   "Value": "ds.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-central-1.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -44625,6 +44670,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "b2bi": {
+                "Value": "b2bi",
+                "endpoint": {
+                  "Value": "b2bi.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "backup": {
@@ -58269,15 +58323,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.sa-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -60484,15 +60529,6 @@
                 "Value": "appsync",
                 "endpoint": {
                   "Value": "appsync.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
