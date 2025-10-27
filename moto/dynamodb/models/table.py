@@ -22,6 +22,8 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
 RESULT_SIZE_LIMIT = 1000000  # DynamoDB has a 1MB size limit
+DEFAULT_WARM_THROUGHPUT_RCU = 12000
+DEFAULT_WARM_THROUGHPUT_WCU = 4000
 
 
 class SecondaryIndex(BaseModel):
@@ -97,13 +99,26 @@ class GlobalSecondaryIndex(SecondaryIndex):
         table_key_attrs: List[str],
         status: str = "ACTIVE",
         throughput: Optional[Dict[str, Any]] = None,
+        warm_throughput: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(index_name, schema, projection, table_key_attrs)
         self.status = status
-        self.throughput = throughput or {
-            "ReadCapacityUnits": 0,
-            "WriteCapacityUnits": 0,
-        }
+        if throughput:
+            self.throughput = throughput
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": throughput["ReadCapacityUnits"],
+                "WriteUnitsPerSecond": throughput["WriteCapacityUnits"],
+            }
+        else:
+            self.throughput = {
+                "ReadCapacityUnits": 0,
+                "WriteCapacityUnits": 0,
+            }
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_RCU,
+                "WriteUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_WCU,
+            }
+        self.warm_throughput["Status"] = "ACTIVE"
 
     def describe(self) -> Dict[str, Any]:
         return {
@@ -112,6 +127,7 @@ class GlobalSecondaryIndex(SecondaryIndex):
             "Projection": self.projection,
             "IndexStatus": self.status,
             "ProvisionedThroughput": self.throughput,
+            "WarmThroughput": self.warm_throughput,
         }
 
     @staticmethod
@@ -124,6 +140,7 @@ class GlobalSecondaryIndex(SecondaryIndex):
             projection=dct["Projection"],
             table_key_attrs=table_key_attrs,
             throughput=dct.get("ProvisionedThroughput", None),
+            warm_throughput=dct.get("WarmThroughput", None),
         )
 
     def update(self, u: Dict[str, Any]) -> None:
@@ -131,6 +148,8 @@ class GlobalSecondaryIndex(SecondaryIndex):
         self.schema = u.get("KeySchema", self.schema)
         self.projection = u.get("Projection", self.projection)
         self.throughput = u.get("ProvisionedThroughput", self.throughput)
+        self.warm_throughput = u.get("WarmThroughput", self.warm_throughput)
+        self.warm_throughput["Status"] = "ACTIVE"
 
 
 class StreamRecord(BaseModel):
@@ -243,6 +262,7 @@ class Table(CloudFormationModel):
         sse_specification: Optional[Dict[str, Any]] = None,
         tags: Optional[List[Dict[str, str]]] = None,
         deletion_protection_enabled: Optional[bool] = False,
+        warm_throughput: Optional[Dict[str, Any]] = None,
     ):
         self.name = table_name
         self.account_id = account_id
@@ -269,11 +289,23 @@ class Table(CloudFormationModel):
             key for key in (self.hash_key_attr, self.range_key_attr) if key is not None
         ]
         self.billing_mode = billing_mode
-        if throughput is None:
-            self.throughput = {"WriteCapacityUnits": 0, "ReadCapacityUnits": 0}
-        else:
+        if throughput:
             self.throughput = throughput
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": throughput["ReadCapacityUnits"],
+                "WriteUnitsPerSecond": throughput["WriteCapacityUnits"],
+            }
+        else:
+            self.throughput = {
+                "ReadCapacityUnits": 0,
+                "WriteCapacityUnits": 0,
+            }
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_RCU,
+                "WriteUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_WCU,
+            }
         self.throughput["NumberOfDecreasesToday"] = 0
+        self.warm_throughput["Status"] = "ACTIVE"
         self.indexes = [
             LocalSecondaryIndex.create(i, self.table_key_attrs)
             for i in (indexes if indexes else [])
@@ -394,6 +426,7 @@ class Table(CloudFormationModel):
             "DeletionProtectionEnabled", False
         )
         params["sse_specification"] = properties.get("SSESpecification")
+        params["warm_throughput"] = properties.get("WarmThroughput")
 
         billing_mode = (
             "PAY_PER_REQUEST"
@@ -453,6 +486,7 @@ class Table(CloudFormationModel):
                 ],
                 "LocalSecondaryIndexes": [index.describe() for index in self.indexes],
                 "DeletionProtectionEnabled": self.deletion_protection_enabled,
+                "WarmThroughput": self.warm_throughput,
             }
         }
         if self.latest_stream_label:

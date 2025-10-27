@@ -112,3 +112,35 @@ def test_update_table__enable_stream():
     }
     assert "LatestStreamLabel" in resp["TableDescription"]
     assert "LatestStreamArn" in resp["TableDescription"]
+
+
+@mock_aws
+def test_update_table_warm_throughput():
+    client = boto3.client("dynamodb", region_name="us-east-1")
+    client.create_table(
+        TableName="test_update_warm",
+        AttributeDefinitions=[
+            {"AttributeName": "id", "AttributeType": "S"},
+        ],
+        KeySchema=[
+            {"AttributeName": "id", "KeyType": "HASH"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    client.update_table(
+        TableName="test_update_warm",
+        WarmThroughput={
+            "ReadUnitsPerSecond": 15000,
+            "WriteUnitsPerSecond": 5000,
+        },
+    )
+    table = client.describe_table(TableName="test_update_warm")["Table"]
+    assert (
+        table["WarmThroughput"]
+        == {
+            "ReadUnitsPerSecond": 15000,
+            "Status": "ACTIVE",
+            "WriteUnitsPerSecond": 5000,
+        }
+        or table["WarmThroughput"]["Status"] == "UPDATING"
+    )

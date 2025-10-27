@@ -89,6 +89,7 @@ class TableImport(Thread):
             streams=None,
             tags=[],
             deletion_protection_enabled=False,
+            warm_throughput=None,
         )
 
         # Load data from S3
