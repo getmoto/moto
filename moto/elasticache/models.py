@@ -76,11 +76,11 @@ class CacheCluster(BaseModel):
         account_id: str,
         region_name: str,
         cache_cluster_id: str,
+        cache_node_type: str,
         replication_group_id: Optional[str],
         az_mode: Optional[str],
         preferred_availability_zone: Optional[str],
         num_cache_nodes: Optional[int],
-        cache_node_type: Optional[str],
         engine: Optional[str],
         engine_version: Optional[str],
         cache_parameter_group_name: Optional[str],
@@ -817,6 +817,10 @@ class ElastiCacheBackend(BaseBackend):
     ) -> CacheCluster:
         if cache_cluster_id in self.cache_clusters:
             raise CacheClusterAlreadyExists(cache_cluster_id)
+        if cache_node_type is None or cache_node_type == "":
+            raise InvalidParameterValueException(
+                "The parameter CacheNodeType must be provided and must not be null."
+            )
         cache_cluster = CacheCluster(
             account_id=self.account_id,
             region_name=self.region_name,
