@@ -25,6 +25,23 @@ class VPCLatticeResponse(BaseResponse):
         )
         return json.dumps(service.to_dict())
 
+    def get_service(self) -> str:
+        path = unquote(self.path)
+        service = self.backend.get_service(service_identifier=path.split("/")[-1])
+        return json.dumps(service.to_dict())
+
+    def list_services(self) -> str:
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        services, next_token = self.backend.list_services(
+            max_results=max_results, next_token=next_token
+        )
+        response = {
+            "items": [service.to_dict() for service in services],
+            "nextToken": next_token,
+        }
+        return json.dumps(response)
+
     def create_service_network(self) -> str:
         sn = self.backend.create_service_network(
             auth_type=self._get_param("authType"),
@@ -34,6 +51,27 @@ class VPCLatticeResponse(BaseResponse):
             tags=self._get_param("tags"),
         )
         return json.dumps(sn.to_dict())
+
+    def get_service_network(self) -> str:
+        path = unquote(self.path)
+        service_network = self.backend.get_service_network(
+            service_network_identifier=path.split("/")[-1]
+        )
+        return json.dumps(service_network.to_dict())
+
+    def list_service_networks(self) -> str:
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        service_networks, next_token = self.backend.list_service_networks(
+            max_results=max_results, next_token=next_token
+        )
+        response = {
+            "items": [
+                service_network.to_dict() for service_network in service_networks
+            ],
+            "nextToken": next_token,
+        }
+        return json.dumps(response)
 
     def create_service_network_vpc_association(self) -> str:
         assoc = self.backend.create_service_network_vpc_association(
@@ -57,6 +95,23 @@ class VPCLatticeResponse(BaseResponse):
             tags=self._get_param("tags"),
         )
         return json.dumps(rule.to_dict())
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+        tags = self.backend.list_tags_for_resource(resource_arn)
+        return json.dumps(dict(tags=tags))
+
+    def tag_resource(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+        tags = self._get_param("tags")
+        self.backend.tag_resource(resource_arn, tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = unquote(self._get_param("resourceArn"))
+        tag_keys = self._get_param("tagKeys")
+        self.backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        return json.dumps({})
 
     def create_access_log_subscription(self) -> str:
         sub = self.backend.create_access_log_subscription(

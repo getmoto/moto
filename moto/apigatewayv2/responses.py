@@ -681,13 +681,13 @@ class ApiGatewayV2Response(BaseResponse):
 
     def get_stage(self) -> TYPE_RESPONSE:
         api_id = self.path.split("/")[-3]
-        stage_name = self.path.split("/")[-1]
+        stage_name = unquote(self.path.split("/")[-1])
         stage = self.apigatewayv2_backend.get_stage(api_id, stage_name)
         return 200, {}, json.dumps(stage.to_json())
 
     def delete_stage(self) -> TYPE_RESPONSE:
         api_id = self.path.split("/")[-3]
-        stage_name = self.path.split("/")[-1]
+        stage_name = unquote(self.path.split("/")[-1])
         self.apigatewayv2_backend.delete_stage(api_id, stage_name)
         return 200, {}, "{}"
 
