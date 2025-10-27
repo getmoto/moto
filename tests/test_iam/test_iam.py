@@ -1469,7 +1469,7 @@ def test_untag_policy():
 
 
 @mock_aws
-def test_create_user_boto():
+def test_create_user():
     conn = boto3.client("iam", region_name="us-east-1")
     u = conn.create_user(UserName="my-user")["User"]
     assert u["Path"] == "/"

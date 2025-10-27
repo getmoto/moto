@@ -19,7 +19,7 @@ boto3_version = sys.modules["botocore"].__version__
 
 
 @mock_aws
-def test_create_template_without_required_param_boto3():
+def test_create_template_without_required_param():
     template_json = json.dumps(single_instance_with_ebs_volume.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
     with pytest.raises(ClientError) as ex:
@@ -30,7 +30,7 @@ def test_create_template_without_required_param_boto3():
 
 
 @mock_aws
-def test_fn_join_boto3():
+def test_fn_join():
     template_json = json.dumps(fn_join.template)
     cf = boto3.client("cloudformation", region_name="us-west-1")
     cf.create_stack(StackName="test_stack", TemplateBody=template_json)
@@ -43,7 +43,7 @@ def test_fn_join_boto3():
 
 
 @mock_aws
-def test_conditional_resources_boto3():
+def test_conditional_resources():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Parameters": {
@@ -78,7 +78,7 @@ def test_conditional_resources_boto3():
 
 
 @mock_aws
-def test_conditional_if_handling_boto3():
+def test_conditional_if_handling():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Conditions": {"EnvEqualsPrd": {"Fn::Equals": [{"Ref": "ENV"}, "prd"]}},
@@ -121,7 +121,7 @@ def test_conditional_if_handling_boto3():
 
 
 @mock_aws
-def test_cloudformation_mapping_boto3():
+def test_cloudformation_mapping():
     dummy_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Mappings": {
@@ -1185,7 +1185,7 @@ def test_delete_stack_containing_cloudwatch_logs_resource_policy():
 
 
 @mock_aws
-def test_delete_stack_with_deletion_policy_boto3():
+def test_delete_stack_with_deletion_policy():
     sqs_template = {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Resources": {

@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from tests import aws_verified
 
-from .test_kms_boto3 import PLAINTEXT_VECTORS, _get_encoded_value
+from .test_kms import PLAINTEXT_VECTORS, _get_encoded_value
 
 
 @pytest.mark.aws_verified

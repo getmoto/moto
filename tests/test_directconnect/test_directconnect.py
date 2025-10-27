@@ -1,7 +1,5 @@
 """Unit tests for directconnect-supported APIs."""
 
-import time
-
 import boto3
 import pytest
 
@@ -29,14 +27,13 @@ def test_describe_connections(client):
         connectionName="TestConnection1",
         requestMACSec=False,
     )
-    time.sleep(0.1)
     client.create_connection(
         location="EqDC2",
         bandwidth="10Gbps",
         connectionName="TestConnection2",
         requestMACSec=True,
     )
-    time.sleep(0.1)
+
     resp = client.describe_connections()
     connections = resp["connections"]
     assert len(connections) == 2
@@ -46,6 +43,7 @@ def test_describe_connections(client):
     assert len(connections[1]["macSecKeys"]) == 1
     assert connections[0]["encryptionMode"] == "no_encrypt"
     assert connections[1]["encryptionMode"] == "must_encrypt"
+
     resp = client.describe_connections(connectionId=connections[0]["connectionId"])
     assert len(resp["connections"]) == 1
 
@@ -114,14 +112,13 @@ def test_update_connection(client):
         bandwidth="10Gbps",
         connectionName="TestConnection1",
     )
-    time.sleep(0.1)
     client.create_connection(
         location="EqDC2",
         bandwidth="10Gbps",
         connectionName="TestConnection2",
         requestMACSec=True,
     )
-    time.sleep(0.1)
+
     resp = client.describe_connections()
     connection1_id = resp["connections"][0]["connectionId"]
     connection2_id = resp["connections"][1]["connectionId"]
@@ -195,7 +192,6 @@ def test_describe_lags(client):
         numberOfConnections=1,
         requestMACSec=False,
     )
-    time.sleep(0.1)
     client.create_lag(
         location="EqDC2",
         connectionsBandwidth="10Gbps",
@@ -203,7 +199,7 @@ def test_describe_lags(client):
         numberOfConnections=1,
         requestMACSec=True,
     )
-    time.sleep(0.1)
+
     resp = client.describe_lags()
     lags = resp["lags"]
     assert len(lags) == 2

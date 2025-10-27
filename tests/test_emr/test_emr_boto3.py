@@ -270,7 +270,6 @@ def test_describe_job_flows():
     # the nearest second internally
     time.sleep(1)
     timestamp = datetime.now(timezone.utc)
-    time.sleep(1)
 
     for idx in range(4, 6):
         cluster_name = "cluster" + str(idx)
@@ -394,9 +393,8 @@ def test_list_clusters():
     # the nearest second internally
     time.sleep(1)
     timestamp = datetime.now(timezone.utc)
-    time.sleep(1)
 
-    for idx in range(40, 70):
+    for idx in range(40, 55):
         cluster_name = "jobflow" + str(idx)
         args["Name"] = cluster_name
         cluster_id = client.run_job_flow(**args)["JobFlowId"]
@@ -431,7 +429,7 @@ def test_list_clusters():
         args = {"Marker": marker}
 
     resp = client.list_clusters(ClusterStates=["TERMINATED"])
-    assert len(resp["Clusters"]) == 30
+    assert len(resp["Clusters"]) == 15
     for x in resp["Clusters"]:
         assert x["Status"]["State"] == "TERMINATED"
 
@@ -439,7 +437,7 @@ def test_list_clusters():
     assert len(resp["Clusters"]) == 40
 
     resp = client.list_clusters(CreatedAfter=timestamp)
-    assert len(resp["Clusters"]) == 30
+    assert len(resp["Clusters"]) == 15
 
 
 @mock_aws

@@ -10,7 +10,7 @@ from moto import mock_aws
 
 
 @mock_aws
-def test_get_item_without_range_key_boto3():
+def test_get_item_without_range_key():
     client = boto3.resource("dynamodb", region_name="us-east-1")
     table = client.create_table(
         TableName="messages",
@@ -37,7 +37,7 @@ def test_get_item_without_range_key_boto3():
 
 
 @mock_aws
-def test_query_filter_boto3():
+def test_query_filter():
     table_schema = {
         "KeySchema": [
             {"AttributeName": "pk", "KeyType": "HASH"},
@@ -78,7 +78,7 @@ def test_query_filter_boto3():
 
 
 @mock_aws
-def test_boto3_conditions_ignorecase():
+def test_conditions_ignorecase():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
@@ -143,7 +143,7 @@ def test_boto3_conditions_ignorecase():
 
 
 @mock_aws
-def test_boto3_put_item_with_conditions():
+def test_put_item_with_conditions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
@@ -670,7 +670,7 @@ def test_update_item_delete_with_expression():
 
 
 @mock_aws
-def test_boto3_update_table_throughput():
+def test_update_table_throughput():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
@@ -702,7 +702,7 @@ def test_boto3_update_table_throughput():
 
 
 @mock_aws
-def test_boto3_update_table_gsi_throughput():
+def test_update_table_gsi_throughput():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
@@ -851,11 +851,11 @@ def test_update_table_gsi_create():
 
 
 @mock_aws
-def test_update_table_gsi_throughput():
+def test_update_table_delete_gsi():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    table = dynamodb.create_table(
+    dynamodb.create_table(
         TableName="users",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},

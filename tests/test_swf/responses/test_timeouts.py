@@ -6,17 +6,17 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 
-from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow_boto3
+from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow
 
 
 # Activity Task Heartbeat timeout
 # Default value in workflow helpers: 5 mins
 @mock_aws
-def test_activity_task_heartbeat_timeout_boto3():
+def test_activity_task_heartbeat_timeout():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
     with freeze_time("2015-01-01 12:00:00"):
-        client = setup_workflow_boto3()
+        client = setup_workflow()
         decision_token = client.poll_for_decision_task(
             domain="test-domain", taskList={"name": "queue"}
         )["taskToken"]
@@ -55,12 +55,12 @@ def test_activity_task_heartbeat_timeout_boto3():
 # Decision Task Start to Close timeout
 # Default value in workflow helpers: 5 mins
 @mock_aws
-def test_decision_task_start_to_close_timeout_boto3():
+def test_decision_task_start_to_close_timeout():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
 
     with freeze_time("2015-01-01 12:00:00 UTC"):
-        client = setup_workflow_boto3()
+        client = setup_workflow()
         client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
 
     with freeze_time("2015-01-01 12:04:30 UTC"):
@@ -106,11 +106,11 @@ def test_decision_task_start_to_close_timeout_boto3():
 # Workflow Execution Start to Close timeout
 # Default value in workflow helpers: 2 hours
 @mock_aws
-def test_workflow_execution_start_to_close_timeout_boto3():
+def test_workflow_execution_start_to_close_timeout():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Unable to manipulate time in ServerMode")
     with freeze_time("2015-01-01 12:00:00 UTC"):
-        client = setup_workflow_boto3()
+        client = setup_workflow()
 
     with freeze_time("2015-01-01 13:59:30 UTC"):
         resp = client.get_workflow_execution_history(

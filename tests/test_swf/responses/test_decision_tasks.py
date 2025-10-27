@@ -9,14 +9,14 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 
-from ..utils import setup_workflow_boto3
+from ..utils import setup_workflow
 
 # PollForDecisionTask endpoint
 
 
 @mock_aws
-def test_poll_for_decision_task_when_one_boto3():
-    client = setup_workflow_boto3()
+def test_poll_for_decision_task_when_one():
+    client = setup_workflow()
 
     resp = client.get_workflow_execution_history(
         domain="test-domain",
@@ -41,8 +41,8 @@ def test_poll_for_decision_task_when_one_boto3():
 
 
 @mock_aws
-def test_poll_for_decision_task_previous_started_event_id_boto3():
-    client = setup_workflow_boto3()
+def test_poll_for_decision_task_previous_started_event_id():
+    client = setup_workflow()
 
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
@@ -72,7 +72,7 @@ def test_poll_for_decision_task_previous_started_event_id_boto3():
 
 @mock_aws
 def test_poll_for_decision_task_ensure_single_started_task():
-    client = setup_workflow_boto3()
+    client = setup_workflow()
 
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
@@ -139,7 +139,7 @@ def test_poll_for_decision_task_ensure_single_started_task():
 
 @mock_aws
 def test_poll_for_decision_task_exclude_completed_executions():
-    client = setup_workflow_boto3()
+    client = setup_workflow()
 
     resp = client.get_workflow_execution_history(
         domain="test-domain",
@@ -158,8 +158,8 @@ def test_poll_for_decision_task_exclude_completed_executions():
 
 
 @mock_aws
-def test_poll_for_decision_task_when_none_boto3():
-    client = setup_workflow_boto3()
+def test_poll_for_decision_task_when_none():
+    client = setup_workflow()
 
     client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
 
@@ -173,8 +173,8 @@ def test_poll_for_decision_task_when_none_boto3():
 
 
 @mock_aws
-def test_poll_for_decision_task_on_non_existent_queue_boto3():
-    client = setup_workflow_boto3()
+def test_poll_for_decision_task_on_non_existent_queue():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "non-existent-queue"}
     )
@@ -183,8 +183,8 @@ def test_poll_for_decision_task_on_non_existent_queue_boto3():
 
 
 @mock_aws
-def test_poll_for_decision_task_with_reverse_order_boto3():
-    client = setup_workflow_boto3()
+def test_poll_for_decision_task_with_reverse_order():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}, reverseOrder=True
     )
@@ -200,8 +200,8 @@ def test_poll_for_decision_task_with_reverse_order_boto3():
 
 
 @mock_aws
-def test_count_pending_decision_tasks_boto3():
-    client = setup_workflow_boto3()
+def test_count_pending_decision_tasks():
+    client = setup_workflow()
     client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
     resp = client.count_pending_decision_tasks(
         domain="test-domain", taskList={"name": "queue"}
@@ -211,8 +211,8 @@ def test_count_pending_decision_tasks_boto3():
 
 
 @mock_aws
-def test_count_pending_decision_tasks_on_non_existent_task_list_boto3():
-    client = setup_workflow_boto3()
+def test_count_pending_decision_tasks_on_non_existent_task_list():
+    client = setup_workflow()
     resp = client.count_pending_decision_tasks(
         domain="test-domain", taskList={"name": "non-existent"}
     )
@@ -221,8 +221,8 @@ def test_count_pending_decision_tasks_on_non_existent_task_list_boto3():
 
 
 @mock_aws
-def test_count_pending_decision_tasks_after_decision_completes_boto3():
-    client = setup_workflow_boto3()
+def test_count_pending_decision_tasks_after_decision_completes():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -239,8 +239,8 @@ def test_count_pending_decision_tasks_after_decision_completes_boto3():
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_no_decision_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_no_decision():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -276,8 +276,8 @@ def test_respond_decision_task_completed_with_no_decision_boto3():
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_wrong_token_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_wrong_token():
+    client = setup_workflow()
     client.poll_for_decision_task(domain="test-domain", taskList={"name": "queue"})
     with pytest.raises(ClientError) as ex:
         client.respond_decision_task_completed(taskToken="not-a-correct-token")
@@ -287,8 +287,8 @@ def test_respond_decision_task_completed_with_wrong_token_boto3():
 
 
 @mock_aws
-def test_respond_decision_task_completed_on_close_workflow_execution_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_on_close_workflow_execution():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -306,8 +306,8 @@ def test_respond_decision_task_completed_on_close_workflow_execution_boto3():
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_task_already_completed_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_task_already_completed():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -324,8 +324,8 @@ def test_respond_decision_task_completed_with_task_already_completed_boto3():
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_complete_workflow_execution_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_complete_workflow_execution():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -358,8 +358,8 @@ def test_respond_decision_task_completed_with_complete_workflow_execution_boto3(
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_close_decision_not_last_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_close_decision_not_last():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -382,8 +382,8 @@ def test_respond_decision_task_completed_with_close_decision_not_last_boto3():
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_invalid_decision_type_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_invalid_decision_type():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -407,8 +407,8 @@ def test_respond_decision_task_completed_with_invalid_decision_type_boto3():
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_missing_attributes_totally_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_missing_attributes_totally():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -433,8 +433,8 @@ def test_respond_decision_task_completed_with_missing_attributes_totally_boto3()
 
 
 @mock_aws
-def test_respond_decision_task_completed_with_fail_workflow_execution_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_fail_workflow_execution():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -470,8 +470,8 @@ def test_respond_decision_task_completed_with_fail_workflow_execution_boto3():
 
 @mock_aws
 @freeze_time("2015-01-01 12:00:00 UTC")
-def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
-    client = setup_workflow_boto3()
+def test_respond_decision_task_completed_with_schedule_activity_task():
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -524,7 +524,7 @@ def test_respond_decision_task_completed_with_schedule_activity_task_boto3():
 
 @mock_aws
 def test_record_marker_decision():
-    client = setup_workflow_boto3()
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -558,7 +558,7 @@ def test_record_marker_decision():
 
 @mock_aws
 def test_start_and_fire_timer_decision():
-    client = setup_workflow_boto3()
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )
@@ -603,7 +603,7 @@ def test_start_and_fire_timer_decision():
 
 @mock_aws
 def test_cancel_workflow_decision():
-    client = setup_workflow_boto3()
+    client = setup_workflow()
     resp = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}
     )

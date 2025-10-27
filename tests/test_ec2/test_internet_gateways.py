@@ -12,7 +12,7 @@ BAD_IGW = "igw-deadbeef"
 
 
 @mock_aws
-def test_igw_create_boto3():
+def test_igw_create():
     """internet gateway create"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -36,7 +36,7 @@ def test_igw_create_boto3():
 
 
 @mock_aws
-def test_igw_attach_boto3():
+def test_igw_attach():
     """internet gateway attach"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -62,7 +62,7 @@ def test_igw_attach_boto3():
 
 
 @mock_aws
-def test_igw_attach_bad_vpc_boto3():
+def test_igw_attach_bad_vpc():
     """internet gateway fail to attach w/ bad vpc"""
     ec2 = boto3.resource("ec2", "us-west-1")
     igw = ec2.create_internet_gateway()
@@ -75,7 +75,7 @@ def test_igw_attach_bad_vpc_boto3():
 
 
 @mock_aws
-def test_igw_attach_twice_boto3():
+def test_igw_attach_twice():
     """internet gateway fail to attach twice"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -92,7 +92,7 @@ def test_igw_attach_twice_boto3():
 
 
 @mock_aws
-def test_igw_detach_boto3():
+def test_igw_detach():
     """internet gateway detach"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -119,7 +119,7 @@ def test_igw_detach_boto3():
 
 
 @mock_aws
-def test_igw_detach_wrong_vpc_boto3():
+def test_igw_detach_wrong_vpc():
     """internet gateway fail to detach w/ wrong vpc"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -136,7 +136,7 @@ def test_igw_detach_wrong_vpc_boto3():
 
 
 @mock_aws
-def test_igw_detach_invalid_vpc_boto3():
+def test_igw_detach_invalid_vpc():
     """internet gateway fail to detach w/ invalid vpc"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -152,7 +152,7 @@ def test_igw_detach_invalid_vpc_boto3():
 
 
 @mock_aws
-def test_igw_detach_unattached_boto3():
+def test_igw_detach_unattached():
     """internet gateway fail to detach unattached"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -167,7 +167,7 @@ def test_igw_detach_unattached_boto3():
 
 
 @mock_aws
-def test_igw_delete_boto3():
+def test_igw_delete():
     """internet gateway delete"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
@@ -190,7 +190,7 @@ def test_igw_delete_boto3():
 
 
 @mock_aws
-def test_igw_delete_attached_boto3():
+def test_igw_delete_attached():
     """internet gateway fail to delete attached"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -206,7 +206,7 @@ def test_igw_delete_attached_boto3():
 
 
 @mock_aws
-def test_igw_describe_boto3():
+def test_igw_describe():
     """internet gateway fetch by id"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -218,7 +218,7 @@ def test_igw_describe_boto3():
 
 
 @mock_aws
-def test_igw_describe_bad_id_boto3():
+def test_igw_describe_bad_id():
     """internet gateway fail to fetch by bad id"""
     client = boto3.client("ec2", "us-west-1")
     with pytest.raises(ClientError) as ex:
@@ -229,7 +229,7 @@ def test_igw_describe_bad_id_boto3():
 
 
 @mock_aws
-def test_igw_filter_by_vpc_id_boto3():
+def test_igw_filter_by_vpc_id():
     """internet gateway filter by vpc id"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -247,7 +247,7 @@ def test_igw_filter_by_vpc_id_boto3():
 
 
 @mock_aws
-def test_igw_filter_by_tags_boto3():
+def test_igw_filter_by_tags():
     """internet gateway filter by vpc id"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -263,7 +263,7 @@ def test_igw_filter_by_tags_boto3():
 
 
 @mock_aws
-def test_igw_filter_by_internet_gateway_id_boto3():
+def test_igw_filter_by_internet_gateway_id():
     """internet gateway filter by internet gateway id"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
@@ -279,7 +279,7 @@ def test_igw_filter_by_internet_gateway_id_boto3():
 
 
 @mock_aws
-def test_igw_filter_by_attachment_state_boto3():
+def test_igw_filter_by_attachment_state():
     """internet gateway filter by attachment state"""
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")

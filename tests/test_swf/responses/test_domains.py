@@ -8,7 +8,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 # RegisterDomain endpoint
 @mock_aws
-def test_register_domain_boto3():
+def test_register_domain():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="test-domain",
@@ -27,7 +27,7 @@ def test_register_domain_boto3():
 
 
 @mock_aws
-def test_register_already_existing_domain_boto3():
+def test_register_already_existing_domain():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="test-domain",
@@ -48,7 +48,7 @@ def test_register_already_existing_domain_boto3():
 
 # ListDomains endpoint
 @mock_aws
-def test_list_domains_order_boto3():
+def test_list_domains_order():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="b-test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -68,7 +68,7 @@ def test_list_domains_order_boto3():
 
 
 @mock_aws
-def test_list_domains_reverse_order_boto3():
+def test_list_domains_reverse_order():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="b-test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -91,7 +91,7 @@ def test_list_domains_reverse_order_boto3():
 
 # DeprecateDomain endpoint
 @mock_aws
-def test_deprecate_domain_boto3():
+def test_deprecate_domain():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -109,7 +109,7 @@ def test_deprecate_domain_boto3():
 
 
 @mock_aws
-def test_deprecate_already_deprecated_domain_boto3():
+def test_deprecate_already_deprecated_domain():
     client = boto3.client("swf", region_name="us-west-1")
     client.register_domain(
         name="test-domain", workflowExecutionRetentionPeriodInDays="60"
@@ -124,7 +124,7 @@ def test_deprecate_already_deprecated_domain_boto3():
 
 
 @mock_aws
-def test_deprecate_non_existent_domain_boto3():
+def test_deprecate_non_existent_domain():
     client = boto3.client("swf", region_name="us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -183,7 +183,7 @@ def test_undeprecate_non_existent_domain():
 
 # DescribeDomain endpoint
 @mock_aws
-def test_describe_domain_boto3():
+def test_describe_domain():
     client = boto3.client("swf", region_name="us-east-1")
     client.register_domain(
         name="test-domain",
@@ -199,7 +199,7 @@ def test_describe_domain_boto3():
 
 
 @mock_aws
-def test_describe_non_existent_domain_boto3():
+def test_describe_non_existent_domain():
     client = boto3.client("swf", region_name="us-west-1")
 
     with pytest.raises(ClientError) as ex:
