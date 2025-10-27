@@ -1833,6 +1833,8 @@ def test_create_connection_n_props():
     # Test duplicate name
     with pytest.raises(client.exceptions.AlreadyExistsException):
         client.create_connection(ConnectionInput=connection_input)
+
+
 def test_create_security_configuration():
     client = create_glue_client()
     security_configuration_name = "test-security-configuration"
@@ -1877,7 +1879,7 @@ def test_get_security_configuration_not_found():
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
     assert (
         exc.value.response["Error"]["Message"]
-        == f"SecurityConfiguration {security_configuration_name} not found."
+        == f"SecurityConfiguration {security_configuration_name} not found"
     )
 
 
@@ -1912,7 +1914,7 @@ def test_delete_security_configuration():
     assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
     assert (
         exc.value.response["Error"]["Message"]
-        == f"SecurityConfiguration {security_configuration_name} not found."
+        == f"SecurityConfiguration {security_configuration_name} not found"
     )
 
 

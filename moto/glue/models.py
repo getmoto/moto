@@ -1628,11 +1628,27 @@ class GlueBackend(BaseBackend):
 
     def create_security_configuration(
         self, name: str, configuration: Dict[str, Any]
-    ) -> None:
+    ) -> "FakeSecurityConfiguration":
         if name in self.security_configurations:
             raise AlreadyExistsException(f"SecurityConfiguration {name} already exists")
         security_configuration = FakeSecurityConfiguration(name, configuration)
         self.security_configurations[name] = security_configuration
+        return security_configuration
+
+    def get_security_configuration(self, name: str) -> "FakeSecurityConfiguration":
+        try:
+            return self.security_configurations[name]
+        except KeyError:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
+
+    def delete_security_configuration(self, name: str) -> None:
+        try:
+            del self.security_configurations[name]
+        except KeyError:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
+
+    def get_security_configurations(self) -> List["FakeSecurityConfiguration"]:
+        return [sc for sc in self.security_configurations.values()]
 
     def get_security_configuration(self, name: str) -> "FakeSecurityConfiguration":
         try:
