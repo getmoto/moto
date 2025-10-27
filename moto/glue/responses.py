@@ -1117,7 +1117,7 @@ class GlueResponse(BaseResponse):
     def get_security_configuration(self) -> str:
         name = self._get_param("Name")
         security_configuration = self.glue_backend.get_security_configuration(name)
-        return json.dumps(security_configuration.as_dict())
+        return json.dumps({"SecurityConfiguration": security_configuration.as_dict()})
 
     def delete_security_configuration(self) -> str:
         name = self._get_param("Name")

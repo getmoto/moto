@@ -1697,6 +1697,7 @@ def test_create_connection_n_props():
         client.create_connection(ConnectionInput=connection_input)
 
 
+@mock_aws
 def test_create_security_configuration():
     client = create_glue_client()
     security_configuration_name = "test-security-configuration"
