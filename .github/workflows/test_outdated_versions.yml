@@ -65,7 +65,7 @@ jobs:
         docker stop motoserver
     - name: Archive TF logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: test-${{ matrix.responses-version }}-${{ matrix.werkzeug-version }}-${{ matrix.werkzeug-version }}-${{ matrix.openapi-spec-validator-version }}-${{ matrix.botocore }}
         path: |
