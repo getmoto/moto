@@ -1764,3 +1764,72 @@ def test_get_security_configurations():
         "test-security-configuration-2",
     }
     assert "NextToken" not in response
+
+
+def test_create_connection_properties():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection-props",
+        "Description": "Test Connection for connection properties",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {
+            "USER_NAME": "moto_user",
+            "PASSWORD": "my_secret_moto_pass",
+        },
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    resp = client.create_connection(ConnectionInput=connection_input)
+    assert resp["CreateConnectionStatus"] == "READY"
+    connection = client.get_connection(Name="test-connection-props")["Connection"]
+    assert connection["ConnectionProperties"]["USER_NAME"] == "moto_user"
+    assert connection["ConnectionProperties"]["PASSWORD"] == "my_secret_moto_pass"
+
+    # Test duplicate name
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.create_connection(ConnectionInput=connection_input)
+
+
+@mock_aws
+def test_create_connection_n_props():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection-athena-props",
+        "Description": "Test Connection for athena properties",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {"key": "value"},
+        "AthenaProperties": {
+            "WorkGroup": "primary",
+            "EncryptionOption": "SSE_S3",
+            "S3OutputLocation": "s3://my-athena-query-results/",
+        },
+        "PythonProperties": {"APP_ID": "test_app_id"},
+        "SparkProperties": {"test": "test-value"},
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    resp = client.create_connection(ConnectionInput=connection_input)
+    assert resp["CreateConnectionStatus"] == "READY"
+    connection = client.get_connection(Name="test-connection-athena-props")[
+        "Connection"
+    ]
+    assert connection["AthenaProperties"]["WorkGroup"] == "primary"
+    assert connection["AthenaProperties"]["EncryptionOption"] == "SSE_S3"
+    assert (
+        connection["AthenaProperties"]["S3OutputLocation"]
+        == "s3://my-athena-query-results/"
+    )
+    assert connection["PythonProperties"]["APP_ID"] == "test_app_id"
+    assert connection["SparkProperties"]["test"] == "test-value"
+
+    # Test duplicate name
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.create_connection(ConnectionInput=connection_input)

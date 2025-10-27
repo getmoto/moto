@@ -1124,17 +1124,17 @@ class GlueResponse(BaseResponse):
 
     def delete_security_configuration(self) -> str:
         name = self._get_param("Name")
-
-        security_configuration = self.glue_backend.security_configurations.pop(
-            name, None
-        )
-        if not security_configuration:
-            raise EntityNotFoundException(f"SecurityConfiguration {name} not found.")
-
-        return json.dumps({})
+        self.glue_backend.delete_security_configuration(name)
+        return ""
 
     def get_security_configurations(self) -> str:
-        security_configurations = [
-            sc.as_dict() for sc in self.glue_backend.security_configurations.values()
-        ]
-        return json.dumps({"SecurityConfigurations": security_configurations})
+        next_token = self._get_param("NextToken")
+
+        security_configurations = self.glue_backend.get_security_configurations()
+
+        return json.dumps(
+            dict(
+                SecurityConfigurations=[sc.as_dict() for sc in security_configurations],
+                NextToken=next_token,
+            )
+        )
