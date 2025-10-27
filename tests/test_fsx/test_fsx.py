@@ -1,7 +1,6 @@
 """Unit tests for fsx-supported APIs."""
 
 import re
-import time
 
 import boto3
 import pytest
@@ -49,8 +48,6 @@ def test_describe_filesystems():
         SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
 
-    time.sleep(1)
-
     # Create another WINDOWS file system
     client.create_file_system(
         FileSystemType="WINDOWS",
@@ -59,8 +56,6 @@ def test_describe_filesystems():
         SubnetIds=[FAKE_SUBNET_ID],
         SecurityGroupIds=FAKE_SECURITY_GROUP_IDS,
     )
-
-    time.sleep(1)
 
     resp = client.describe_file_systems()
     file_systems = resp["FileSystems"]

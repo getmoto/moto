@@ -48,7 +48,7 @@ def test_put_object_acl_using_grant(readwrite, type_key, value, has_quotes):
 
 
 @mock_aws
-def test_acl_switching_boto3():
+def test_acl_switching():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")
@@ -281,7 +281,7 @@ def test_object_acl_with_presigned_post():
 
 
 @mock_aws
-def test_acl_setting_boto3():
+def test_acl_setting():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")
@@ -304,7 +304,7 @@ def test_acl_setting_boto3():
 
 
 @mock_aws
-def test_acl_setting_via_headers_boto3():
+def test_acl_setting_via_headers():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("foobar")

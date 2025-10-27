@@ -235,7 +235,7 @@ def delete_tg_attachments(ec2_client, tg_id):
                     )
                 except ClientError as exc:
                     # If we run tests in parallel, the attachment may have already been deleted
-                    err = exc.value.response["Error"]
+                    err = exc.response["Error"]
                     assert err["Code"] == "InvalidTransitGatewayAttachmentID.NotFound"
 
         if set(a["State"] for a in attachments) == {"deleted"}:

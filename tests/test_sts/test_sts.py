@@ -16,7 +16,7 @@ from moto.sts.responses import MAX_FEDERATION_TOKEN_POLICY_LENGTH, MAX_ROLE_NAME
 
 @freeze_time("2012-01-01 12:00:00")
 @mock_aws
-def test_get_session_token_boto3():
+def test_get_session_token():
     client = boto3.client("sts", region_name="us-east-1")
     creds = client.get_session_token(DurationSeconds=903)["Credentials"]
 
@@ -37,7 +37,7 @@ def test_get_session_token_boto3():
 
 @freeze_time("2012-01-01 12:00:00")
 @mock_aws
-def test_get_federation_token_boto3():
+def test_get_federation_token():
     client = boto3.client("sts", region_name="us-east-1")
     token_name = "Bob"
     fed_token = client.get_federation_token(DurationSeconds=903, Name=token_name)
@@ -609,7 +609,7 @@ def test_assume_role_with_saml_when_saml_attribute_not_provided():
 @pytest.mark.parametrize(
     "region,partition", [("us-east-1", "aws"), ("cn-north-1", "aws-cn")]
 )
-def test_assume_role_with_web_identity_boto3(region, partition):
+def test_assume_role_with_web_identity(region, partition):
     client = boto3.client("sts", region_name=region)
 
     policy = json.dumps(

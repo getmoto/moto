@@ -10,16 +10,16 @@ from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 from .test_instances import retrieve_all_instances
 
 
-def add_servers_to_region_boto3(ami_id, count, region):
+def add_servers_to_region(ami_id, count, region):
     ec2 = boto3.resource("ec2", region_name=region)
     return ec2.create_instances(ImageId=ami_id, MinCount=count, MaxCount=count)
 
 
 @mock_aws
-def test_add_servers_to_a_single_region_boto3():
+def test_add_servers_to_a_single_region():
     region = "ap-northeast-1"
-    id_1 = add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region)[0].id
-    id_2 = add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region)[0].id
+    id_1 = add_servers_to_region(EXAMPLE_AMI_ID, 1, region)[0].id
+    id_2 = add_servers_to_region(EXAMPLE_AMI_ID2, 1, region)[0].id
 
     client = boto3.client("ec2", region_name=region)
     instances = retrieve_all_instances(client)
@@ -31,11 +31,11 @@ def test_add_servers_to_a_single_region_boto3():
 
 
 @mock_aws
-def test_add_servers_to_multiple_regions_boto3():
+def test_add_servers_to_multiple_regions():
     region1 = "us-east-1"
     region2 = "ap-northeast-1"
-    us_id = add_servers_to_region_boto3(EXAMPLE_AMI_ID, 1, region1)[0].id
-    ap_id = add_servers_to_region_boto3(EXAMPLE_AMI_ID2, 1, region2)[0].id
+    us_id = add_servers_to_region(EXAMPLE_AMI_ID, 1, region1)[0].id
+    ap_id = add_servers_to_region(EXAMPLE_AMI_ID2, 1, region2)[0].id
 
     us_client = boto3.client("ec2", region_name=region1)
     ap_client = boto3.client("ec2", region_name=region2)
@@ -58,7 +58,7 @@ def test_add_servers_to_multiple_regions_boto3():
 
 
 @mock_aws
-def test_create_autoscaling_group_boto3():
+def test_create_autoscaling_group():
     regions = [("us-east-1", "c"), ("ap-northeast-1", "a")]
     for region, zone in regions:
         a_zone = f"{region}{zone}"

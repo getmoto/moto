@@ -2,7 +2,7 @@ import boto3
 
 from moto import mock_aws
 
-from .test_ecs_boto3 import setup_ecs_cluster_with_ec2_instance
+from .test_ecs import setup_ecs_cluster_with_ec2_instance
 
 
 @mock_aws

@@ -12,7 +12,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 
 @mock_aws
-def test_create_cluster_boto3():
+def test_create_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     response = client.create_cluster(
         DBName="test",
@@ -220,7 +220,7 @@ def test_create_cluster_all_attributes():
 
 
 @mock_aws
-def test_create_single_node_cluster_boto3():
+def test_create_single_node_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
 
@@ -271,32 +271,7 @@ def test_create_cluster_in_subnet_group():
 
 
 @mock_aws
-def test_create_cluster_in_subnet_group_boto3():
-    ec2 = boto3.resource("ec2", region_name="us-east-1")
-    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
-    subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/24")
-    client = boto3.client("redshift", region_name="us-east-1")
-    client.create_cluster_subnet_group(
-        ClusterSubnetGroupName="my_subnet_group",
-        Description="This is my subnet group",
-        SubnetIds=[subnet.id],
-    )
-
-    client.create_cluster(
-        ClusterIdentifier="my_cluster",
-        NodeType="dw.hs1.xlarge",
-        MasterUsername="username",
-        MasterUserPassword="password",
-        ClusterSubnetGroupName="my_subnet_group",
-    )
-
-    cluster_response = client.describe_clusters(ClusterIdentifier="my_cluster")
-    cluster = cluster_response["Clusters"][0]
-    assert cluster["ClusterSubnetGroupName"] == "my_subnet_group"
-
-
-@mock_aws
-def test_create_cluster_with_security_group_boto3():
+def test_create_cluster_with_security_group():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster_security_group(
         ClusterSecurityGroupName="security_group1",
@@ -324,7 +299,7 @@ def test_create_cluster_with_security_group_boto3():
 
 
 @mock_aws
-def test_create_cluster_with_vpc_security_groups_boto3():
+def test_create_cluster_with_vpc_security_groups():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     client = boto3.client("redshift", region_name="us-east-1")
@@ -413,7 +388,7 @@ def test_describe_cluster_params():
 
 
 @mock_aws
-def test_create_cluster_with_parameter_group_boto3():
+def test_create_cluster_with_parameter_group():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_id = "my-cluster"
     group = client.create_cluster_parameter_group(
@@ -450,7 +425,7 @@ def test_create_cluster_with_parameter_group_boto3():
 
 
 @mock_aws
-def test_describe_non_existent_cluster_boto3():
+def test_describe_non_existent_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.describe_clusters(ClusterIdentifier="not-a-cluster")
@@ -515,7 +490,7 @@ def test_modify_cluster_vpc_routing():
 
 
 @mock_aws
-def test_modify_cluster_boto3():
+def test_modify_cluster():
     client = boto3.client("redshift", region_name="us-east-1")
     cluster_identifier = "my_cluster"
     client.create_cluster_security_group(
@@ -647,7 +622,7 @@ def test_authorize_security_group_ingress():
 
 
 @mock_aws
-def test_create_invalid_cluster_subnet_group_boto3():
+def test_create_invalid_cluster_subnet_group():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.create_cluster_subnet_group(
@@ -661,7 +636,7 @@ def test_create_invalid_cluster_subnet_group_boto3():
 
 
 @mock_aws
-def test_describe_non_existent_subnet_group_boto3():
+def test_describe_non_existent_subnet_group():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.describe_cluster_subnet_groups(ClusterSubnetGroupName="my_subnet")
@@ -699,7 +674,7 @@ def test_delete_cluster_subnet_group():
 
 
 @mock_aws
-def test_create_cluster_security_group_boto3():
+def test_create_cluster_security_group():
     client = boto3.client("redshift", region_name="us-east-1")
     group = client.create_cluster_security_group(
         ClusterSecurityGroupName="my_security_group",
@@ -725,7 +700,7 @@ def test_create_cluster_security_group_boto3():
 
 
 @mock_aws
-def test_describe_non_existent_security_group_boto3():
+def test_describe_non_existent_security_group():
     client = boto3.client("redshift", region_name="us-east-1")
 
     with pytest.raises(ClientError) as ex:
@@ -736,7 +711,7 @@ def test_describe_non_existent_security_group_boto3():
 
 
 @mock_aws
-def test_delete_cluster_security_group_boto3():
+def test_delete_cluster_security_group():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster_security_group(
         ClusterSecurityGroupName="my_security_group",
@@ -762,7 +737,7 @@ def test_delete_cluster_security_group_boto3():
 
 
 @mock_aws
-def test_create_cluster_parameter_group_boto3():
+def test_create_cluster_parameter_group():
     client = boto3.client("redshift", region_name="us-east-1")
     group = client.create_cluster_parameter_group(
         ParameterGroupName="my-parameter-group",
@@ -785,7 +760,7 @@ def test_create_cluster_parameter_group_boto3():
 
 
 @mock_aws
-def test_describe_non_existent_parameter_group_boto3():
+def test_describe_non_existent_parameter_group():
     client = boto3.client("redshift", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         client.describe_cluster_parameter_groups(
@@ -797,7 +772,7 @@ def test_describe_non_existent_parameter_group_boto3():
 
 
 @mock_aws
-def test_delete_parameter_group_boto3():
+def test_delete_parameter_group():
     client = boto3.client("redshift", region_name="us-east-1")
     client.create_cluster_parameter_group(
         ParameterGroupName="my-parameter-group",

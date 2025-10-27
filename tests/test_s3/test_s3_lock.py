@@ -321,7 +321,7 @@ def test_put_object_lock():
 
     bucket_name = "put-lock-bucket-test"
     key_name = "file.txt"
-    seconds_lock = 2
+    seconds_lock = 1
 
     s3_client.create_bucket(Bucket=bucket_name, ObjectLockEnabledForBucket=True)
 
@@ -338,14 +338,9 @@ def test_put_object_lock():
         Retention={"Mode": "COMPLIANCE", "RetainUntilDate": until},
     )
 
-    deleted = False
-    try:
+    with pytest.raises(ClientError) as exc:
         s3_client.delete_object(Bucket=bucket_name, Key=key_name, VersionId=version_id)
-        deleted = True
-    except ClientError as exc:
-        assert exc.response["Error"]["Code"] == "AccessDenied"
-
-    assert deleted is False
+    assert exc.value.response["Error"]["Code"] == "AccessDenied"
 
     # cleaning
     time.sleep(seconds_lock)

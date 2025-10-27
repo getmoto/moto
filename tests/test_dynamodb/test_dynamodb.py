@@ -25,7 +25,7 @@ from . import dynamodb_aws_verified
     [[], ["TestTable"], ["TestTable1", "TestTable2"]],
     ids=["no-table", "one-table", "multiple-tables"],
 )
-def test_list_tables_boto3(names):
+def test_list_tables(names):
     conn = boto3.client("dynamodb", region_name="us-west-2")
     for name in names:
         conn.create_table(
@@ -62,7 +62,7 @@ def test_list_tables_paginated():
 
 
 @mock_aws
-def test_describe_missing_table_boto3():
+def test_describe_missing_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
         conn.describe_table(TableName="messages")
