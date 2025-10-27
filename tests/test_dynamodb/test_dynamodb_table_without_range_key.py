@@ -52,6 +52,11 @@ def test_create_table():
                 "ReadCapacityUnits": 1,
                 "WriteCapacityUnits": 1,
             },
+            "WarmThroughput": {
+                "ReadUnitsPerSecond": 1,
+                "Status": "ACTIVE",
+                "WriteUnitsPerSecond": 1,
+            },
         }
     ]
     assert actual["LocalSecondaryIndexes"] == []
