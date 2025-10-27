@@ -164,6 +164,8 @@ class DomainDispatcherApplication:
             path.startswith("/v20180820/") or "s3-control" in environ["HTTP_HOST"]
         ):
             host = "s3control"
+        elif service == "s3vectors":
+            host = f"{service}.{region}.api.aws"
         elif service == "ses" and path.startswith("/v2/"):
             host = "sesv2"
         elif service == "memorydb":
