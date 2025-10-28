@@ -96,6 +96,30 @@ class FSxResponse(BaseResponse):
             )
         )
 
+    def create_backup(self) -> str:
+        params = json.loads(self.body)
+        file_system_id = params.get("FileSystemId")
+        client_request_token = params.get("ClientRequestToken")
+        tags = params.get("Tags")
+        volume_id = params.get("VolumeId")
+
+        backup = self.fsx_backend.create_backup(
+            file_system_id=file_system_id,
+            client_request_token=client_request_token,
+            tags=tags,
+            volume_id=volume_id,
+        )
+        return json.dumps(dict(Backup=backup.to_dict()))
+
+    def delete_backup(self) -> str:
+        params = json.loads(self.body)
+        backup_id = params.get("BackupId")
+        client_request_token = params.get("ClientRequestToken")
+        resp = self.fsx_backend.delete_backup(
+            backup_id=backup_id, client_request_token=client_request_token
+        )
+        return json.dumps(resp)
+
     def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")
@@ -115,3 +139,9 @@ class FSxResponse(BaseResponse):
             tag_keys=tag_keys,
         )
         return 200, {}, json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceARN")
+        tags = self.fsx_backend.list_tags_for_resource(resource_arn=resource_arn)
+        return json.dumps({"Tags": tags})
