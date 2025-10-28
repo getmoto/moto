@@ -260,7 +260,6 @@ AWS_ENDPOINT_SERVICES = [
     "refactor-spaces",
     "rekognition",
     "rekognition-fips",
-    "robomaker",
     "rolesanywhere",
     "rum",
     "rum-dataplane",

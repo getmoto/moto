@@ -123,7 +123,6 @@ if TYPE_CHECKING:
     from moto.resiliencehub.models import ResilienceHubBackend
     from moto.resourcegroups.models import ResourceGroupsBackend
     from moto.resourcegroupstaggingapi.models import ResourceGroupsTaggingAPIBackend
-    from moto.robomaker.models import RoboMakerBackend
     from moto.route53.models import Route53Backend
     from moto.route53domains.models import Route53DomainsBackend
     from moto.route53resolver.models import Route53ResolverBackend
@@ -316,7 +315,6 @@ SERVICE_NAMES = Union[
     "Literal['resiliencehub']",
     "Literal['resource-groups']",
     "Literal['resourcegroupstaggingapi']",
-    "Literal['robomaker']",
     "Literal['route53']",
     "Literal['route53resolver']",
     "Literal['route53domains']",
@@ -695,8 +693,6 @@ def get_backend(
 def get_backend(
     name: "Literal['resourcegroupstaggingapi']",
 ) -> "BackendDict[ResourceGroupsTaggingAPIBackend]": ...
-@overload
-def get_backend(name: "Literal['robomaker']") -> "BackendDict[RoboMakerBackend]": ...
 @overload
 def get_backend(name: "Literal['route53']") -> "BackendDict[Route53Backend]": ...
 @overload
