@@ -8490,6 +8490,28 @@
 - [X] update_table_metadata_location
 </details>
 
+## s3vectors
+<details>
+<summary>25% implemented</summary>
+
+- [ ] create_index
+- [X] create_vector_bucket
+- [ ] delete_index
+- [X] delete_vector_bucket
+- [ ] delete_vector_bucket_policy
+- [ ] delete_vectors
+- [ ] get_index
+- [X] get_vector_bucket
+- [ ] get_vector_bucket_policy
+- [ ] get_vectors
+- [ ] list_indexes
+- [X] list_vector_buckets
+- [ ] list_vectors
+- [ ] put_vector_bucket_policy
+- [ ] put_vectors
+- [ ] query_vectors
+</details>
+
 ## sagemaker
 <details>
 <summary>30% implemented</summary>
@@ -10727,7 +10749,6 @@
 - route53profiles
 - rum
 - s3outposts
-- s3vectors
 - sagemaker-a2i-runtime
 - sagemaker-edge
 - sagemaker-featurestore-runtime
