@@ -35,17 +35,36 @@ class VolumeModification:
         volume: "Volume",
         target_size: Optional[int] = None,
         target_volume_type: Optional[str] = None,
+        target_iops: Optional[int] = None,
+        target_throughput: Optional[int] = None,
+        target_multi_attach_enabled: Optional[bool] = None,
     ):
-        if not any([target_size, target_volume_type]):
+        if not any(
+            [
+                target_size,
+                target_volume_type,
+                target_iops,
+                target_throughput,
+                target_multi_attach_enabled,
+            ]
+        ):
             raise InvalidParameterValueError(
-                "Invalid input: Must specify at least one of size or type"
+                "Invalid input: Must specify at least one of size, type, iops, throughput, multi_attach_enabled"
             )
 
         self.volume = volume
         self.original_size = volume.size
         self.original_volume_type = volume.volume_type
+        self.original_iops = volume.iops
+        self.original_throughput = volume.throughput
+        self.original_multi_attach_enabled = volume.multi_attach_enabled
         self.target_size = target_size or volume.size
         self.target_volume_type = target_volume_type or volume.volume_type
+        self.target_iops = volume.iops = target_iops or volume.iops
+        self.target_throughput = target_throughput or volume.throughput
+        self.target_multi_attach_enabled = (
+            target_multi_attach_enabled or volume.multi_attach_enabled
+        )
 
         self.start_time = utc_date_and_time()
         self.end_time = utc_date_and_time()
@@ -117,6 +136,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         volume_type: Optional[str] = None,
         iops: Optional[int] = None,
         throughput: Optional[int] = None,
+        multi_attach_enabled: Optional[bool] = None,
     ):
         self.id = volume_id
         self.volume_type = volume_type or "gp2"
@@ -131,19 +151,31 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.modifications: List[VolumeModification] = []
         self.iops = iops
         self.throughput = throughput
+        self.multi_attach_enabled = multi_attach_enabled
 
     def modify(
         self,
         target_size: Optional[int] = None,
         target_volume_type: Optional[str] = None,
+        target_iops: Optional[int] = None,
+        target_throughput: Optional[int] = None,
+        target_multi_attach_enabled: Optional[bool] = None,
     ) -> None:
         modification = VolumeModification(
-            volume=self, target_size=target_size, target_volume_type=target_volume_type
+            volume=self,
+            target_size=target_size,
+            target_volume_type=target_volume_type,
+            target_iops=target_iops,
+            target_throughput=target_throughput,
+            target_multi_attach_enabled=target_multi_attach_enabled,
         )
         self.modifications.append(modification)
 
         self.size = modification.target_size
         self.volume_type = modification.target_volume_type
+        self.iops = modification.target_iops
+        self.throughput = modification.target_throughput
+        self.multi_attach_enabled = modification.target_multi_attach_enabled
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -282,6 +314,7 @@ class EBSBackend:
         volume_type: Optional[str] = None,
         iops: Optional[int] = None,
         throughput: Optional[int] = None,
+        multi_attach_enabled: Optional[bool] = None,
     ) -> Volume:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -321,6 +354,7 @@ class EBSBackend:
             volume_type=volume_type,
             iops=iops,
             throughput=throughput,
+            multi_attach_enabled=multi_attach_enabled,
         )
         self.volumes[volume_id] = volume
         return volume
@@ -343,9 +377,18 @@ class EBSBackend:
         volume_id: str,
         target_size: Optional[int] = None,
         target_volume_type: Optional[str] = None,
+        target_iops: Optional[int] = None,
+        target_throughput: Optional[int] = None,
+        target_multi_attach_enabled: Optional[bool] = None,
     ) -> Volume:
         volume = self.get_volume(volume_id)
-        volume.modify(target_size=target_size, target_volume_type=target_volume_type)
+        volume.modify(
+            target_size=target_size,
+            target_volume_type=target_volume_type,
+            target_iops=target_iops,
+            target_throughput=target_throughput,
+            target_multi_attach_enabled=target_multi_attach_enabled,
+        )
         return volume
 
     def describe_volumes_modifications(

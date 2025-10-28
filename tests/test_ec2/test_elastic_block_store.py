@@ -56,9 +56,23 @@ def test_modify_volumes():
 
     old_size = 80
     new_size = 160
+    old_type = "gp3"
     new_type = "io2"
+    old_iops = 3000
+    new_iops = 4000
+    old_throughput = 100
+    new_throughput = 150
+    old_multi_attach_enabled = False
+    new_multi_attach_enabled = True
 
-    volume_id = ec2.create_volume(Size=old_size, AvailabilityZone="us-east-1a").id
+    volume_id = ec2.create_volume(
+        Size=old_size,
+        AvailabilityZone="us-east-1a",
+        Iops=old_iops,
+        Throughput=old_throughput,
+        VolumeType=old_type,
+        MultiAttachEnabled=old_multi_attach_enabled,
+    ).id
 
     # Ensure no modification records exist
     modifications = client.describe_volumes_modifications()
@@ -74,16 +88,52 @@ def test_modify_volumes():
 
     # Ensure volume type can be modified
     response = client.modify_volume(VolumeId=volume_id, VolumeType=new_type)
-    assert response["VolumeModification"]["OriginalVolumeType"] == "gp2"
+    assert response["VolumeModification"]["OriginalVolumeType"] == old_type
     assert response["VolumeModification"]["TargetVolumeType"] == new_type
     assert (
         client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["VolumeType"]
         == new_type
     )
 
+    # Ensure volume iops can be modified
+    response = client.modify_volume(VolumeId=volume_id, Iops=new_iops)
+    assert response["VolumeModification"]["OriginalIops"] == old_iops
+    assert response["VolumeModification"]["TargetIops"] == new_iops
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Iops"] == new_iops
+    )
+
+    # Ensure volume throughput can be modified
+    response = client.modify_volume(VolumeId=volume_id, Throughput=new_throughput)
+    assert response["VolumeModification"]["OriginalThroughput"] == old_throughput
+    assert response["VolumeModification"]["TargetThroughput"] == new_throughput
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Throughput"]
+        == new_throughput
+    )
+
+    # Ensure volume multi attach enabled can be modified
+    response = client.modify_volume(
+        VolumeId=volume_id, MultiAttachEnabled=new_multi_attach_enabled
+    )
+    assert (
+        response["VolumeModification"]["OriginalMultiAttachEnabled"]
+        == old_multi_attach_enabled
+    )
+    assert (
+        response["VolumeModification"]["TargetMultiAttachEnabled"]
+        == new_multi_attach_enabled
+    )
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0][
+            "MultiAttachEnabled"
+        ]
+        == new_multi_attach_enabled
+    )
+
     # Ensure volume modifications are tracked
     modifications = client.describe_volumes_modifications()
-    assert len(modifications["VolumesModifications"]) == 2
+    assert len(modifications["VolumesModifications"]) == 5
 
 
 @mock_aws
