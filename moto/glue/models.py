@@ -243,6 +243,9 @@ class GlueBackend(BaseBackend):
         self.triggers: Dict[str, FakeTrigger] = OrderedDict()
         self.registries: Dict[str, FakeRegistry] = OrderedDict()
         self.workflows: Dict[str, FakeWorkflow] = OrderedDict()
+        self.security_configurations: Dict[str, FakeSecurityConfiguration] = (
+            OrderedDict()
+        )
         self.num_schemas = 0
         self.num_schema_versions = 0
         self.dev_endpoints: Dict[str, FakeDevEndpoint] = OrderedDict()
@@ -1622,6 +1625,44 @@ class GlueBackend(BaseBackend):
         if not workflow:
             raise EntityNotFoundException("Entity not found")
         workflow.get_run(run_id).properties.update(properties)
+
+    def create_security_configuration(
+        self, name: str, configuration: Dict[str, Any]
+    ) -> "FakeSecurityConfiguration":
+        if name in self.security_configurations:
+            raise AlreadyExistsException(f"SecurityConfiguration {name} already exists")
+        security_configuration = FakeSecurityConfiguration(name, configuration)
+        self.security_configurations[name] = security_configuration
+        return security_configuration
+
+    def get_security_configuration(self, name: str) -> "FakeSecurityConfiguration":
+        try:
+            return self.security_configurations[name]
+        except KeyError:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
+
+    def delete_security_configuration(self, name: str) -> None:
+        try:
+            del self.security_configurations[name]
+        except KeyError:
+            raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
+
+    def get_security_configurations(self) -> List["FakeSecurityConfiguration"]:
+        return [sc for sc in self.security_configurations.values()]
+
+
+class FakeSecurityConfiguration(BaseModel):
+    def __init__(self, name: str, configuration: Dict[str, Any]):
+        self.name = name
+        self.configuration = configuration
+        self.created_time = utcnow()
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {
+            "Name": self.name,
+            "CreatedTime": unix_time(self.created_time),
+            "EncryptionConfiguration": self.configuration,
+        }
 
 
 class FakeDatabase(BaseModel):

@@ -1104,3 +1104,34 @@ class GlueResponse(BaseResponse):
             workflow_name, run_id, run_properties
         )
         return json.dumps({})
+
+    def create_security_configuration(self) -> str:
+        name = self._get_param("Name")
+        configuration = self._get_param("EncryptionConfiguration")
+
+        sc = self.glue_backend.create_security_configuration(name, configuration)
+        return json.dumps(
+            {"Name": sc.name, "CreatedTimestamp": sc.created_time.isoformat()}
+        )
+
+    def get_security_configuration(self) -> str:
+        name = self._get_param("Name")
+        security_configuration = self.glue_backend.get_security_configuration(name)
+        return json.dumps({"SecurityConfiguration": security_configuration.as_dict()})
+
+    def delete_security_configuration(self) -> str:
+        name = self._get_param("Name")
+        self.glue_backend.delete_security_configuration(name)
+        return ""
+
+    def get_security_configurations(self) -> str:
+        next_token = self._get_param("NextToken")
+
+        security_configurations = self.glue_backend.get_security_configurations()
+
+        return json.dumps(
+            dict(
+                SecurityConfigurations=[sc.as_dict() for sc in security_configurations],
+                NextToken=next_token,
+            )
+        )
