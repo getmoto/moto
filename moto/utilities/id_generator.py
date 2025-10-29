@@ -1,14 +1,14 @@
 import abc
 import logging
 import threading
-from typing import Any, Callable, Dict, List, TypedDict, Union
+from typing import Any, Callable, TypedDict, Union
 
 from moto.moto_api._internal import mock_random
 
 log = logging.getLogger(__name__)
 
-ExistingIds = Union[List[str], None]
-Tags = Union[Dict[str, str], List[Dict[str, str]], None]
+ExistingIds = Union[list[str], None]
+Tags = Union[dict[str, str], list[dict[str, str]], None]
 
 # Custom resource tag to override the generated resource ID.
 TAG_KEY_CUSTOM_ID = "_custom_id_"
@@ -55,8 +55,8 @@ class MotoIdManager:
     """class to manage custom ids. Do not create instance and instead
     use the `id_manager` instance created below."""
 
-    _custom_ids: Dict[str, str]
-    _id_sources: List[Callable[[IdSourceContext], Union[str, None]]]
+    _custom_ids: dict[str, str]
+    _id_sources: list[Callable[[IdSourceContext], Union[str, None]]]
 
     _lock: threading.RLock
 
@@ -157,7 +157,7 @@ def moto_id(fn: Callable[..., str]) -> Callable[..., str]:
         resource_identifier: ResourceIdentifier,
         existing_ids: ExistingIds = None,
         tags: Tags = None,
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, Any],
     ) -> str:
         if resource_identifier and (
             found_id := moto_id_manager.find_id_from_sources(

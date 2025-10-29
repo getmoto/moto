@@ -4,7 +4,7 @@ import http
 import json
 import logging
 from json import JSONDecodeError
-from typing import Any, Dict, Final, Optional, Set, TypedDict, Union
+from typing import Any, Final, Optional, TypedDict, Union
 from urllib.parse import urlencode, urljoin
 
 import requests
@@ -30,7 +30,7 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 
 LOG = logging.getLogger(__name__)
 
-_SUPPORTED_INTEGRATION_PATTERNS: Set[ResourceCondition] = {
+_SUPPORTED_INTEGRATION_PATTERNS: set[ResourceCondition] = {
     ResourceCondition.WaitForTaskToken,
 }
 
@@ -99,12 +99,12 @@ class SfnGatewayException(Exception):
 
 
 class StateTaskServiceApiGateway(StateTaskServiceCallback):
-    _SUPPORTED_API_PARAM_BINDINGS: Final[Dict[str, Set[str]]] = {
+    _SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {
         SupportedApiCalls.invoke: {"ApiEndpoint", "Method"}
     }
 
-    _FORBIDDEN_HTTP_HEADERS_PREFIX: Final[Set[str]] = {"X-Forwarded", "X-Amz", "X-Amzn"}
-    _FORBIDDEN_HTTP_HEADERS: Final[Set[str]] = {
+    _FORBIDDEN_HTTP_HEADERS_PREFIX: Final[set[str]] = {"X-Forwarded", "X-Amz", "X-Amzn"}
+    _FORBIDDEN_HTTP_HEADERS: Final[set[str]] = {
         "Authorization",
         "Connection",
         "Content-md5",
@@ -124,12 +124,12 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[Set[str]]:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return self._SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _normalise_parameters(
         self,
-        parameters: Dict[str, Any],
+        parameters: dict[str, Any],
         boto_service_name: Optional[str] = None,
         service_action_name: Optional[str] = None,
     ) -> None:

@@ -1,5 +1,5 @@
 import os
-from typing import Any, Tuple
+from typing import Any
 from unittest import SkipTest, mock
 from uuid import uuid4
 
@@ -191,7 +191,7 @@ def test_submit_job_fail_bad_int() -> None:
         assert job["status"] == "FAILED"
 
 
-def setup_common_batch_simple(job_definition_name: str) -> Tuple[Any, str, str]:
+def setup_common_batch_simple(job_definition_name: str) -> tuple[Any, str, str]:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("No point in testing batch_simple in ServerMode")
 

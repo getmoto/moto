@@ -4,7 +4,7 @@ import random
 import string
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -25,7 +25,7 @@ class Limit:
     type: str
     max: int
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+    def to_dict(self) -> dict[str, Any]:  # type: ignore
         return {"Type": self.type, "Max": self.max}
 
 
@@ -33,7 +33,7 @@ class Limit:
 class ArbitraryPatternLimits:
     max_members: int
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+    def to_dict(self) -> dict[str, Any]:  # type: ignore
         return {"MaxMembers": self.max_members}
 
 
@@ -41,7 +41,7 @@ class ArbitraryPatternLimits:
 class PatternTypeLimits:
     arbitrary_pattern_limits: ArbitraryPatternLimits
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+    def to_dict(self) -> dict[str, Any]:  # type: ignore
         return {"ArbitraryPatternLimits": self.arbitrary_pattern_limits.to_dict()}
 
 
@@ -50,7 +50,7 @@ class ProtectionGroupLimits:
     max_protection_groups: int
     pattern_type_limits: PatternTypeLimits
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+    def to_dict(self) -> dict[str, Any]:  # type: ignore
         return {
             "MaxProtectionGroups": self.max_protection_groups,
             "PatternTypeLimits": self.pattern_type_limits.to_dict(),
@@ -59,9 +59,9 @@ class ProtectionGroupLimits:
 
 @dataclass
 class ProtectionLimits:
-    protected_resource_type_limits: List[Limit]
+    protected_resource_type_limits: list[Limit]
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+    def to_dict(self) -> dict[str, Any]:  # type: ignore
         return {
             "ProtectedResourceTypeLimits": [
                 limit.to_dict() for limit in self.protected_resource_type_limits
@@ -74,7 +74,7 @@ class SubscriptionLimits:
     protection_limits: ProtectionLimits
     protection_group_limits: ProtectionGroupLimits
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+    def to_dict(self) -> dict[str, Any]:  # type: ignore
         return {
             "ProtectionLimits": self.protection_limits.to_dict(),
             "ProtectionGroupLimits": self.protection_group_limits.to_dict(),
@@ -108,7 +108,7 @@ class Subscription:
         default_factory=lambda: datetime.now() + timedelta(days=365)
     )
     auto_renew: str = field(default="ENABLED")
-    limits: List[Limit] = field(
+    limits: list[Limit] = field(
         default_factory=lambda: [Limit(type="MitigationCapacityUnits", max=10000)]
     )
     proactive_engagement_status: str = field(default="ENABLED")
@@ -127,7 +127,7 @@ class Subscription:
             self.subscription_arn = f"arn:aws:shield::{self.account_id}:subscription/{subscription_id_formatted}"
         return
 
-    def to_dict(self) -> Dict[str, Any]:  # type: ignore
+    def to_dict(self) -> dict[str, Any]:  # type: ignore
         return {
             "StartTime": self.start_time.strftime("%d/%m/%Y, %H:%M:%S"),
             "EndTime": self.end_time.strftime("%d/%m/%Y, %H:%M:%S"),
@@ -142,15 +142,15 @@ class Subscription:
 
 class Protection(BaseModel):
     def __init__(
-        self, account_id: str, name: str, resource_arn: str, tags: List[Dict[str, str]]
+        self, account_id: str, name: str, resource_arn: str, tags: list[dict[str, str]]
     ):
         self.name = name
         self.resource_arn = resource_arn
         self.protection_id = str(mock_random.uuid4())
         # value is returned in associate_health_check method.
-        self.health_check_ids: List[str] = []
+        self.health_check_ids: list[str] = []
         # value is returned in enable_application_layer_automatic_response and disable_application_layer_automatic_response methods.
-        self.application_layer_automatic_response_configuration: Dict[str, Any] = {}
+        self.application_layer_automatic_response_configuration: dict[str, Any] = {}
         self.protection_arn = (
             f"arn:aws:shield::{account_id}:protection/{self.protection_id}"
         )
@@ -170,7 +170,7 @@ class Protection(BaseModel):
         else:
             self.resource_type = resource_types[res_type]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "Id": self.protection_id,
             "Name": self.name,
@@ -187,7 +187,7 @@ class ShieldBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.protections: Dict[str, Protection] = dict()
+        self.protections: dict[str, Protection] = dict()
         self.subscription: Optional[Subscription] = None
         self.tagger = TaggingService()
 
@@ -213,7 +213,7 @@ class ShieldBackend(BaseBackend):
             raise InvalidResourceException(msg)
 
     def create_protection(
-        self, name: str, resource_arn: str, tags: List[Dict[str, str]]
+        self, name: str, resource_arn: str, tags: list[dict[str, str]]
     ) -> str:
         for protection in self.protections.values():
             if protection.resource_arn == resource_arn:
@@ -246,7 +246,7 @@ class ShieldBackend(BaseBackend):
                 )
             return self.protections[protection_id]
 
-    def list_protections(self, inclusion_filters: Dict[str, str]) -> List[Protection]:
+    def list_protections(self, inclusion_filters: dict[str, str]) -> list[Protection]:
         """
         Pagination has not yet been implemented
         """
@@ -314,13 +314,13 @@ class ShieldBackend(BaseBackend):
             return
         raise ResourceNotFoundException("The referenced protection does not exist.")
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_subscription(self) -> None:

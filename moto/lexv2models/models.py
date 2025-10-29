@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 
@@ -10,7 +10,7 @@ from ..utilities.tagging_service import TaggingService
 
 
 class FakeBot:
-    failure_reasons: List[str]
+    failure_reasons: list[str]
 
     def __init__(
         self,
@@ -19,10 +19,10 @@ class FakeBot:
         bot_name: str,
         description: str,
         role_arn: str,
-        data_privacy: Optional[Dict[str, Any]],
+        data_privacy: Optional[dict[str, Any]],
         idle_session_ttl_in_seconds: int,
         bot_type: str,
-        bot_members: Optional[Dict[str, Any]],
+        bot_members: Optional[dict[str, Any]],
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -47,8 +47,8 @@ class FakeBot:
 
 
 class FakeBotAlias:
-    parent_bot_networks: List[str]
-    history_events: List[str]
+    parent_bot_networks: list[str]
+    history_events: list[str]
 
     def __init__(
         self,
@@ -57,9 +57,9 @@ class FakeBotAlias:
         bot_alias_name: str,
         description: str,
         bot_version: str,
-        bot_alias_locale_settings: Optional[Dict[str, Any]],
-        conversation_log_settings: Optional[Dict[str, Any]],
-        sentiment_analysis_settings: Optional[Dict[str, Any]],
+        bot_alias_locale_settings: Optional[dict[str, Any]],
+        conversation_log_settings: Optional[dict[str, Any]],
+        sentiment_analysis_settings: Optional[dict[str, Any]],
         bot_id: str,
     ):
         self.account_id = account_id
@@ -97,9 +97,9 @@ class LexModelsV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.bots: Dict[str, FakeBot] = {}
-        self.bot_aliases: Dict[str, FakeBotAlias] = {}
-        self.resource_policies: Dict[str, FakeResourcePolicy] = {}
+        self.bots: dict[str, FakeBot] = {}
+        self.bot_aliases: dict[str, FakeBotAlias] = {}
+        self.resource_policies: dict[str, FakeResourcePolicy] = {}
         self.tagger = TaggingService()
 
     def create_bot(
@@ -107,13 +107,13 @@ class LexModelsV2Backend(BaseBackend):
         bot_name: str,
         description: str,
         role_arn: str,
-        data_privacy: Optional[Dict[str, Any]],
+        data_privacy: Optional[dict[str, Any]],
         idle_session_ttl_in_seconds: int,
-        bot_tags: Optional[Dict[str, str]],
-        test_bot_alias_tags: Optional[Dict[str, str]],
+        bot_tags: Optional[dict[str, str]],
+        test_bot_alias_tags: Optional[dict[str, str]],
         bot_type: str,
-        bot_members: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        bot_members: Optional[dict[str, Any]],
+    ) -> dict[str, Any]:
         bot = FakeBot(
             account_id=self.account_id,
             region_name=self.region_name,
@@ -159,7 +159,7 @@ class LexModelsV2Backend(BaseBackend):
             "botMembers": bot.bot_members,
         }
 
-    def describe_bot(self, bot_id: str) -> Dict[str, Any]:
+    def describe_bot(self, bot_id: str) -> dict[str, Any]:
         bot = self.bots[bot_id]
 
         return {
@@ -183,11 +183,11 @@ class LexModelsV2Backend(BaseBackend):
         bot_name: str,
         description: str,
         role_arn: str,
-        data_privacy: Optional[Dict[str, Any]],
+        data_privacy: Optional[dict[str, Any]],
         idle_session_ttl_in_seconds: int,
         bot_type: str,
-        bot_members: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        bot_members: Optional[dict[str, Any]],
+    ) -> dict[str, Any]:
         bot = self.bots[bot_id]
 
         bot.bot_name = bot_name
@@ -213,7 +213,7 @@ class LexModelsV2Backend(BaseBackend):
             "botMembers": bot.bot_members,
         }
 
-    def list_bots(self) -> List[Dict[str, Any]]:
+    def list_bots(self) -> list[dict[str, Any]]:
         bot_summaries = [
             {
                 "botId": bot.id,
@@ -230,7 +230,7 @@ class LexModelsV2Backend(BaseBackend):
 
     def delete_bot(
         self, bot_id: str, skip_resource_in_use_check: bool
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         bot = self.bots.pop(bot_id)
         return bot.id, bot.status
 
@@ -239,12 +239,12 @@ class LexModelsV2Backend(BaseBackend):
         bot_alias_name: str,
         description: str,
         bot_version: str,
-        bot_alias_locale_settings: Optional[Dict[str, Any]],
-        conversation_log_settings: Optional[Dict[str, Any]],
-        sentiment_analysis_settings: Optional[Dict[str, Any]],
+        bot_alias_locale_settings: Optional[dict[str, Any]],
+        conversation_log_settings: Optional[dict[str, Any]],
+        sentiment_analysis_settings: Optional[dict[str, Any]],
         bot_id: str,
-        tags: Optional[Dict[str, str]],
-    ) -> Dict[str, Any]:
+        tags: Optional[dict[str, str]],
+    ) -> dict[str, Any]:
         bot_alias = FakeBotAlias(
             self.account_id,
             self.region_name,
@@ -276,7 +276,7 @@ class LexModelsV2Backend(BaseBackend):
             "tags": self.list_tags_for_resource(bot_alias.arn),
         }
 
-    def describe_bot_alias(self, bot_alias_id: str, bot_id: str) -> Dict[str, Any]:
+    def describe_bot_alias(self, bot_alias_id: str, bot_id: str) -> dict[str, Any]:
         ba = self.bot_aliases[bot_alias_id]
 
         return {
@@ -301,11 +301,11 @@ class LexModelsV2Backend(BaseBackend):
         bot_alias_name: str,
         description: str,
         bot_version: str,
-        bot_alias_locale_settings: Optional[Dict[str, Any]],
-        conversation_log_settings: Optional[Dict[str, Any]],
-        sentiment_analysis_settings: Optional[Dict[str, Any]],
+        bot_alias_locale_settings: Optional[dict[str, Any]],
+        conversation_log_settings: Optional[dict[str, Any]],
+        sentiment_analysis_settings: Optional[dict[str, Any]],
         bot_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         ba = self.bot_aliases[bot_alias_id]
 
         ba.bot_alias_name = bot_alias_name
@@ -333,7 +333,7 @@ class LexModelsV2Backend(BaseBackend):
 
     def list_bot_aliases(
         self, bot_id: str, max_results: int
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         bot_alias_summaries = [
             {
                 "botAliasId": ba.id,
@@ -351,22 +351,22 @@ class LexModelsV2Backend(BaseBackend):
 
     def delete_bot_alias(
         self, bot_alias_id: str, bot_id: str, skip_resource_in_use_check: bool
-    ) -> Tuple[str, str, str]:
+    ) -> tuple[str, str, str]:
         ba = self.bot_aliases.pop(bot_alias_id)
         return ba.id, ba.bot_id, ba.status
 
-    def create_resource_policy(self, resource_arn: str, policy: str) -> Tuple[str, str]:
+    def create_resource_policy(self, resource_arn: str, policy: str) -> tuple[str, str]:
         rp = FakeResourcePolicy(resource_arn, policy)
         self.resource_policies[rp.resource_arn] = rp
         return rp.resource_arn, rp.revision_id
 
-    def describe_resource_policy(self, resource_arn: str) -> Tuple[str, str, str]:
+    def describe_resource_policy(self, resource_arn: str) -> tuple[str, str, str]:
         rp = self.resource_policies[resource_arn]
         return rp.resource_arn, rp.policy, rp.revision_id
 
     def update_resource_policy(
         self, resource_arn: str, policy: str, expected_revision_id: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         rp = self.resource_policies[resource_arn]
         if expected_revision_id != rp.revision_id:
             raise Exception("Revision ID mismatch")
@@ -376,21 +376,21 @@ class LexModelsV2Backend(BaseBackend):
 
     def delete_resource_policy(
         self, resource_arn: str, expected_revision_id: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         rp = self.resource_policies[resource_arn]
         if expected_revision_id != rp.revision_id:
             raise Exception("Revision ID mismatch")
         rp = self.resource_policies.pop(resource_arn)
         return rp.resource_arn, rp.revision_id
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
         self.tagger.tag_resource(resource_arn, tags_list)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
 

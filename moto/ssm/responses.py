@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Union
 
 from moto.core.responses import BaseResponse
 
@@ -147,7 +147,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
         return "{}"
 
-    def delete_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def delete_parameter(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         result = self.ssm_backend.delete_parameter(name)
         if result is None:
@@ -162,7 +162,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         names = self._get_param("Names")
         result = self.ssm_backend.delete_parameters(names)
 
-        response: Dict[str, Any] = {"DeletedParameters": [], "InvalidParameters": []}
+        response: dict[str, Any] = {"DeletedParameters": [], "InvalidParameters": []}
 
         for name in names:
             if name in result:
@@ -171,7 +171,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 response["InvalidParameters"].append(name)
         return json.dumps(response)
 
-    def get_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_parameter(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
 
@@ -201,7 +201,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result = self.ssm_backend.get_parameters(names)
 
-        response: Dict[str, Any] = {"Parameters": [], "InvalidParameters": []}
+        response: dict[str, Any] = {"Parameters": [], "InvalidParameters": []}
 
         for parameter in result.values():
             param_data = parameter.response_object(with_decryption, self.region)
@@ -229,7 +229,7 @@ class SimpleSystemManagerResponse(BaseResponse):
             max_results=max_results,
         )
 
-        response: Dict[str, Any] = {"Parameters": [], "NextToken": next_token}
+        response: dict[str, Any] = {"Parameters": [], "NextToken": next_token}
 
         for parameter in result:
             param_data = parameter.response_object(with_decryption, self.region)
@@ -250,7 +250,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         result = self.ssm_backend.describe_parameters(filters, parameter_filters)
 
-        response: Dict[str, Any] = {"Parameters": []}
+        response: dict[str, Any] = {"Parameters": []}
 
         end = token + page_size
         for parameter in result[token:]:
@@ -263,7 +263,7 @@ class SimpleSystemManagerResponse(BaseResponse):
 
         return json.dumps(response)
 
-    def put_parameter(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def put_parameter(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         description = self._get_param("Description")
         value = self._get_param("Value")
@@ -293,7 +293,7 @@ class SimpleSystemManagerResponse(BaseResponse):
         response = {"Version": param.version}
         return json.dumps(response)
 
-    def get_parameter_history(self) -> Union[str, Tuple[str, Dict[str, int]]]:
+    def get_parameter_history(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
         with_decryption = self._get_param("WithDecryption")
         next_token = self._get_param("NextToken")

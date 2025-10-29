@@ -1,11 +1,11 @@
 import json
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Union
 
 from moto.core.responses import BaseResponse
 
 from .models import EFSBackend, efs_backends
 
-TYPE_RESPONSE = Tuple[str, Dict[str, Union[str, int]]]
+TYPE_RESPONSE = tuple[str, dict[str, Union[str, int]]]
 
 
 class EFSResponse(BaseResponse):
@@ -55,7 +55,7 @@ class EFSResponse(BaseResponse):
             creation_token=creation_token,
             file_system_id=file_system_id,
         )
-        resp_json: Dict[str, Any] = {
+        resp_json: dict[str, Any] = {
             "FileSystems": [fs.info_json() for fs in file_systems]
         }
         if marker:
@@ -93,7 +93,7 @@ class EFSResponse(BaseResponse):
             access_point_id=access_point_id,
             marker=marker,
         )
-        resp_json: Dict[str, Any] = {
+        resp_json: dict[str, Any] = {
             "MountTargets": [mt.info_json() for mt in mount_targets]
         }
         if marker:

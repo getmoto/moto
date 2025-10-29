@@ -1,5 +1,5 @@
 import gzip
-from typing import Iterable
+from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
 import boto3

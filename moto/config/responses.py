@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -270,7 +270,7 @@ class ConfigResponse(BaseResponse):
             next_token=next_token,
         )
 
-        response: Dict[str, Any] = {"Results": results}
+        response: dict[str, Any] = {"Results": results}
         if query_info:
             response["QueryInfo"] = query_info
 
@@ -287,7 +287,7 @@ class ConfigResponse(BaseResponse):
         resource_name: str = params.get("ResourceName", "")
         configuration = params.get("Configuration", {})
         configuration_str: str = json.dumps(configuration) if configuration else ""
-        tags: Dict[str, str] = params.get("Tags", {})
+        tags: dict[str, str] = params.get("Tags", {})
         self.config_backend.put_resource_config(
             resource_type=resource_type,
             schema_version_id=schema_version_id,

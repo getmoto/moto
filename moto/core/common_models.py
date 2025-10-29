@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Dict, Generic, List, Optional, Tuple
+from typing import Any, Generic, Optional
 
 from .base_backend import SERVICE_BACKEND, BackendDict, InstanceTrackerMeta
 
@@ -10,7 +10,7 @@ class BaseModel(metaclass=InstanceTrackerMeta):
         *args: Any,
         **kwargs: Any,
     ) -> "BaseModel":
-        instance = super(BaseModel, cls).__new__(cls)
+        instance = super().__new__(cls)
         cls.instances_tracked.append(instance)  # type: ignore[attr-defined]
         return instance
 
@@ -45,7 +45,7 @@ class CloudFormationModel(BaseModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -62,7 +62,7 @@ class CloudFormationModel(BaseModel):
         cls,
         original_resource: Any,
         new_resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> Any:
@@ -78,7 +78,7 @@ class CloudFormationModel(BaseModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -105,14 +105,14 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
         self,
         account_id: str,
         partition: str,
-        resource_ids: Optional[List[str]],
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-        aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
         This supports both aggregated and non-aggregated listing. The following notes the difference:
@@ -170,7 +170,7 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """For AWS Config. This will query the backend for the specific resource type configuration.
 
         This supports both aggregated, and non-aggregated fetching -- for batched fetching -- the Config batching requests

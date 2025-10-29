@@ -1,5 +1,5 @@
 import itertools
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..exceptions import (
     DependencyViolationError,
@@ -15,10 +15,10 @@ class DHCPOptionsSet(TaggedEC2Resource):
     def __init__(
         self,
         ec2_backend: Any,
-        domain_name_servers: Optional[List[str]] = None,
+        domain_name_servers: Optional[list[str]] = None,
         domain_name: Optional[str] = None,
-        ntp_servers: Optional[List[str]] = None,
-        netbios_name_servers: Optional[List[str]] = None,
+        ntp_servers: Optional[list[str]] = None,
+        netbios_name_servers: Optional[list[str]] = None,
         netbios_node_type: Optional[str] = None,
     ):
         self.ec2_backend = ec2_backend
@@ -58,13 +58,13 @@ class DHCPOptionsSet(TaggedEC2Resource):
             return super().get_filter_value(filter_name, "DescribeDhcpOptions")
 
     @property
-    def options(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def options(self) -> dict[str, Any]:  # type: ignore[misc]
         return self._options
 
 
 class DHCPOptionsSetBackend:
     def __init__(self) -> None:
-        self.dhcp_options_sets: Dict[str, DHCPOptionsSet] = {}
+        self.dhcp_options_sets: dict[str, DHCPOptionsSet] = {}
 
     def associate_dhcp_options(self, dhcp_options: DHCPOptionsSet, vpc: Any) -> None:
         dhcp_options.vpc = vpc
@@ -77,10 +77,10 @@ class DHCPOptionsSetBackend:
 
     def create_dhcp_options(
         self,
-        domain_name_servers: Optional[List[str]] = None,
+        domain_name_servers: Optional[list[str]] = None,
         domain_name: Optional[str] = None,
-        ntp_servers: Optional[List[str]] = None,
-        netbios_name_servers: Optional[List[str]] = None,
+        ntp_servers: Optional[list[str]] = None,
+        netbios_name_servers: Optional[list[str]] = None,
         netbios_node_type: Optional[str] = None,
     ) -> DHCPOptionsSet:
         NETBIOS_NODE_TYPES = [1, 2, 4, 8]
@@ -115,8 +115,8 @@ class DHCPOptionsSetBackend:
             raise InvalidDHCPOptionsIdError(options_id)
 
     def describe_dhcp_options(
-        self, dhcp_options_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[DHCPOptionsSet]:
+        self, dhcp_options_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[DHCPOptionsSet]:
         dhcp_options_sets = list(self.dhcp_options_sets.copy().values())
 
         if dhcp_options_ids:

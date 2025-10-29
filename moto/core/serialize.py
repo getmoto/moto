@@ -57,14 +57,12 @@ import base64
 import calendar
 import json
 from collections import namedtuple
+from collections.abc import Generator, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Any,
     Callable,
-    Generator,
-    Mapping,
-    MutableMapping,
     Optional,
     TypedDict,
     Union,
@@ -140,7 +138,7 @@ class TimestampSerializer:
         self, value: Union[int, str, datetime], timestamp_format: str
     ) -> str:
         timestamp_format = timestamp_format.lower()
-        converter = getattr(self, "_timestamp_%s" % timestamp_format)
+        converter = getattr(self, f"_timestamp_{timestamp_format}")
         datetime_obj = parse_to_aware_datetime(value)  # type: ignore
         final_value = converter(datetime_obj)
         return final_value
@@ -159,7 +157,7 @@ class HeaderSerializer:
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
         method = getattr(
-            self, "_serialize_type_%s" % shape.type_name, self._default_serialize
+            self, f"_serialize_type_{shape.type_name}", self._default_serialize
         )
         method(serialized, value, shape, key)
 
@@ -338,7 +336,7 @@ class ResponseSerializer:
         self, serialized: Serialized, value: Any, shape: Shape, key: str
     ) -> None:
         method = getattr(
-            self, "_serialize_type_%s" % shape.type_name, self._default_serialize
+            self, f"_serialize_type_{shape.type_name}", self._default_serialize
         )
         if not key:
             self.path.append(shape.name)

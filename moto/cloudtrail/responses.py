@@ -1,7 +1,7 @@
 """Handles incoming cloudtrail requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -190,7 +190,7 @@ class CloudTrailResponse(BaseResponse):
         trail_arn, insight_selectors = self.cloudtrail_backend.get_insight_selectors(
             trail_name=trail_name
         )
-        resp: Dict[str, Any] = {"TrailARN": trail_arn}
+        resp: dict[str, Any] = {"TrailARN": trail_arn}
         if insight_selectors:
             resp["InsightSelectors"] = insight_selectors
         return json.dumps(resp)

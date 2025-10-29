@@ -1,5 +1,5 @@
 import json
-from typing import Any, List
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -64,7 +64,7 @@ class SWFResponse(BaseResponse):
         reverse_order = self._params.get("reverseOrder", None)
         self._check_string(domain_name)
         self._check_string(status)
-        types: List[GenericType] = self.swf_backend.list_types(
+        types: list[GenericType] = self.swf_backend.list_types(
             kind, domain_name, status, reverse_order=reverse_order
         )
         return json.dumps({"typeInfos": [_type.to_medium_dict() for _type in types]})

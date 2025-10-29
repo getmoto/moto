@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.core.utils import camelcase_to_underscores
@@ -161,7 +161,7 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_task_definition(self) -> str:
         task_definition_str = self._get_param("taskDefinition")
         data = self.ecs_backend.describe_task_definition(task_definition_str)
-        resp: Dict[str, Any] = data.response_object
+        resp: dict[str, Any] = data.response_object
         resp["failures"] = []
         if "TAGS" in self._get_param("include", []):
             resp["tags"] = self.ecs_backend.list_tags_for_resource(data.arn)

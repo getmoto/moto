@@ -1,5 +1,5 @@
 import json
-from typing import List, Optional
+from typing import Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -19,7 +19,7 @@ class PipelineAlreadyExistsException(OpensearchIngestionExceptions):
 
 class PipelineInvalidStateException(OpensearchIngestionExceptions):
     def __init__(
-        self, action: str, valid_states: List[str], current_state: Optional[str]
+        self, action: str, valid_states: list[str], current_state: Optional[str]
     ):
         super().__init__(
             "ConflictException",

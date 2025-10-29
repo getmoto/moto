@@ -1,7 +1,7 @@
 import inspect
 from copy import deepcopy
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
 
 from botocore.paginate import TokenDecoder, TokenEncoder
 
@@ -20,14 +20,14 @@ T = TypeVar("T")
 
 class GenericFunction(Protocol):
     def __call__(
-        self, func: "Callable[P1, List[T]]"
-    ) -> "Callable[P2, Tuple[List[T], Optional[str]]]": ...
+        self, func: "Callable[P1, list[T]]"
+    ) -> "Callable[P2, tuple[list[T], Optional[str]]]": ...
 
 
-def paginate(pagination_model: Dict[str, Any]) -> GenericFunction:
+def paginate(pagination_model: dict[str, Any]) -> GenericFunction:
     def pagination_decorator(
-        func: Callable[..., List[T]],
-    ) -> Callable[..., Tuple[List[T], Optional[str]]]:
+        func: Callable[..., list[T]],
+    ) -> Callable[..., tuple[list[T], Optional[str]]]:
         @wraps(func)
         def pagination_wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore
             method = func.__name__
@@ -100,7 +100,7 @@ class Paginator:
         self._param_checksum = self._calculate_parameter_checksum()
         self._parsed_token = self._parse_starting_token()
 
-    def _parse_starting_token(self) -> Optional[Dict[str, Any]]:
+    def _parse_starting_token(self) -> Optional[dict[str, Any]]:
         if self._starting_token is None:
             return None
         # The starting token is a dict passed as a base64 encoded string.
@@ -157,7 +157,7 @@ class Paginator:
         return True
 
     def _build_next_token(self, next_item: Any) -> str:
-        token_dict: Dict[str, Any] = {}
+        token_dict: dict[str, Any] = {}
         if self._param_checksum:
             token_dict["parameterChecksum"] = self._param_checksum
         range_keys = []
@@ -169,7 +169,7 @@ class Paginator:
         token_dict["uniqueAttributes"] = "|".join(range_keys)
         return self._token_encoder.encode(token_dict)
 
-    def paginate(self, results: List[Any]) -> Tuple[List[Any], Optional[str]]:
+    def paginate(self, results: list[Any]) -> tuple[list[Any], Optional[str]]:
         index_start = 0
         if self._starting_token:
             try:

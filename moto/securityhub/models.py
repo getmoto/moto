@@ -1,7 +1,7 @@
 """SecurityHubBackend class with methods for supported APIs."""
 
 import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -13,11 +13,11 @@ from moto.utilities.paginator import paginate
 
 
 class Finding(BaseModel):
-    def __init__(self, finding_id: str, finding_data: Dict[str, Any]):
+    def __init__(self, finding_id: str, finding_data: dict[str, Any]):
         self.id = finding_id
         self.data = finding_data
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return self.data
 
 
@@ -34,17 +34,17 @@ class SecurityHubBackend(BaseBackend):
         }
     }
 
-    _org_configs: Dict[str, Dict[str, Any]] = {}
+    _org_configs: dict[str, dict[str, Any]] = {}
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.findings: List[Finding] = []
+        self.findings: list[Finding] = []
         self.region_name = region_name
         self.org_backend = organizations_backends[self.account_id]["aws"]
         self.enabled_at: Optional[str] = None
         self.enabled = False
 
-    def _get_org_config(self) -> Dict[str, Any]:
+    def _get_org_config(self) -> dict[str, Any]:
         """Get organization config for the current account."""
         try:
             org = self.org_backend.describe_organization()
@@ -68,8 +68,8 @@ class SecurityHubBackend(BaseBackend):
     def enable_security_hub(
         self,
         enable_default_standards: bool = True,
-        tags: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
         if self.enabled:
             return {}
 
@@ -82,7 +82,7 @@ class SecurityHubBackend(BaseBackend):
 
         return {}
 
-    def disable_security_hub(self) -> Dict[str, Any]:
+    def disable_security_hub(self) -> dict[str, Any]:
         if not self.enabled:
             raise RESTError(
                 "InvalidAccessException",
@@ -95,7 +95,7 @@ class SecurityHubBackend(BaseBackend):
 
         return {}
 
-    def describe_hub(self, hub_arn: Optional[str] = None) -> Dict[str, Any]:
+    def describe_hub(self, hub_arn: Optional[str] = None) -> dict[str, Any]:
         if not self.enabled:
             raise RESTError(
                 "InvalidAccessException",
@@ -122,11 +122,11 @@ class SecurityHubBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_findings(
         self,
-        filters: Optional[Dict[str, Any]] = None,
-        sort_criteria: Optional[List[Dict[str, str]]] = None,
+        filters: Optional[dict[str, Any]] = None,
+        sort_criteria: Optional[list[dict[str, str]]] = None,
         max_results: Optional[int] = None,
         next_token: Optional[str] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """
         Returns findings based on optional filters and sort criteria.
         """
@@ -151,8 +151,8 @@ class SecurityHubBackend(BaseBackend):
         return [f.as_dict() for f in findings]
 
     def batch_import_findings(
-        self, findings: List[Dict[str, Any]]
-    ) -> Tuple[int, int, List[Dict[str, Any]]]:
+        self, findings: list[dict[str, Any]]
+    ) -> tuple[int, int, list[dict[str, Any]]]:
         """
         Import findings in batch to SecurityHub.
 
@@ -234,7 +234,7 @@ class SecurityHubBackend(BaseBackend):
         self,
         auto_enable: bool,
         auto_enable_standards: Optional[str] = None,
-        organization_configuration: Optional[Dict[str, Any]] = None,
+        organization_configuration: Optional[dict[str, Any]] = None,
     ) -> None:
         try:
             self.org_backend.describe_organization()
@@ -304,7 +304,7 @@ class SecurityHubBackend(BaseBackend):
                 )
             org_config["auto_enable_standards"] = auto_enable_standards
 
-    def get_administrator_account(self) -> Dict[str, Any]:
+    def get_administrator_account(self) -> dict[str, Any]:
         try:
             org = self.org_backend.describe_organization()
             management_account_id = org["Organization"]["MasterAccountId"]
@@ -332,7 +332,7 @@ class SecurityHubBackend(BaseBackend):
             }
         }
 
-    def describe_organization_configuration(self) -> Dict[str, Any]:
+    def describe_organization_configuration(self) -> dict[str, Any]:
         try:
             self.org_backend.describe_organization()
         except RESTError:

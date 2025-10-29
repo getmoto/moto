@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import List
 from unittest import SkipTest
 
 import boto3
@@ -315,7 +314,7 @@ def test_list_device_max_result_and_next_token() -> None:
     ],
 )
 @mock_aws
-def test_list_devices_sort_order(sort_order: str, indexes: List[int]) -> None:
+def test_list_devices_sort_order(sort_order: str, indexes: list[int]) -> None:
     client = boto3.client("panorama", region_name="eu-west-1")
     resp_1 = client.provision_device(
         Description="test device description 1",
@@ -345,7 +344,7 @@ def test_list_devices_sort_order(sort_order: str, indexes: List[int]) -> None:
     ],
 )
 @mock_aws
-def test_list_devices_sort_by(sort_by: str, indexes: List[int]) -> None:
+def test_list_devices_sort_by(sort_by: str, indexes: list[int]) -> None:
     if settings.TEST_SERVER_MODE:
         raise SkipTest("Can't freeze time in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")

@@ -6,7 +6,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from botocore.utils import merge_dicts
 
@@ -49,7 +49,7 @@ class DbInstanceEngine(str, Enum):
     SQLSERVER_WEB = "sqlserver-web"
 
     @classmethod
-    def valid_db_instance_engine(self) -> List[str]:
+    def valid_db_instance_engine(self) -> list[str]:
         return sorted([item.value for item in DbInstanceEngine])
 
 
@@ -61,11 +61,11 @@ class ClusterEngine(str, Enum):
     RDS_MYSQL = "mysql"
 
     @classmethod
-    def list_cluster_engines(self) -> List[str]:
+    def list_cluster_engines(self) -> list[str]:
         return sorted([item.value for item in ClusterEngine])
 
     @classmethod
-    def serverless_engines(self) -> List[str]:
+    def serverless_engines(self) -> list[str]:
         return [ClusterEngine.AURORA_MYSQL, ClusterEngine.AURORA_POSTGRESQL]
 
 
@@ -95,8 +95,8 @@ def get_object_value(obj: Any, attr: str) -> Any:
 
 
 def merge_filters(
-    filters_to_update: Optional[Dict[str, Any]], filters_to_merge: Dict[str, Any]
-) -> Dict[str, Any]:
+    filters_to_update: Optional[dict[str, Any]], filters_to_merge: dict[str, Any]
+) -> dict[str, Any]:
     """Given two groups of filters, merge the second into the first.
 
     List values are appended instead of overwritten:
@@ -126,7 +126,7 @@ def merge_filters(
 
 
 def validate_filters(
-    filters: Dict[str, Any], filter_defs: Dict[str, FilterDef]
+    filters: dict[str, Any], filter_defs: dict[str, FilterDef]
 ) -> None:
     """Validates filters against a set of filter definitions.
 
@@ -199,7 +199,7 @@ def apply_filter(
 
 def get_start_date_end_date(
     base_date: str, window: str
-) -> Tuple[datetime.datetime, datetime.datetime]:
+) -> tuple[datetime.datetime, datetime.datetime]:
     """Gets the start date and end date given DDD:HH24:MM-DDD:HH24:MM.
 
     :param base_date:
@@ -223,7 +223,7 @@ def get_start_date_end_date(
 
 def get_start_date_end_date_from_time(
     base_date: str, window: str
-) -> Tuple[datetime.datetime, datetime.datetime, bool]:
+) -> tuple[datetime.datetime, datetime.datetime, bool]:
     """Gets the start date and end date given HH24:MM-HH24:MM.
 
     :param window:
@@ -373,7 +373,7 @@ ORDERABLE_DB_INSTANCE_DECODING = {
 }
 
 
-def encode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
+def encode_orderable_db_instance(db: dict[str, Any]) -> dict[str, Any]:
     encoded = copy.deepcopy(db)
     if "AvailabilityZones" in encoded:
         encoded["AvailabilityZones"] = [
@@ -385,7 +385,7 @@ def encode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def decode_orderable_db_instance(db: Dict[str, Any]) -> Dict[str, Any]:
+def decode_orderable_db_instance(db: dict[str, Any]) -> dict[str, Any]:
     decoded = copy.deepcopy(db)
     decoded_az = ORDERABLE_DB_INSTANCE_ENCODING.get(
         "AvailabilityZones", "AvailabilityZones"

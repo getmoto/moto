@@ -1,11 +1,10 @@
 from collections import defaultdict
-from typing import Dict
 
 """
 Storage of all instances that extend BaseModel
 This allows us to easily expose all internal state using the MotoServer dashboard
 """
-model_data: Dict[str, Dict[str, object]] = defaultdict(dict)
+model_data: dict[str, dict[str, object]] = defaultdict(dict)
 
 
 def reset_model_data() -> None:

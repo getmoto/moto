@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Final, List, Optional, TypedDict
+from typing import Any, Final, Optional, TypedDict
 
 from botocore.client import BaseClient
 from botocore.exceptions import ClientError
@@ -224,7 +224,7 @@ class CloudWatchLoggingSession:
         )
         self._publish_history_log_or_setup(log_events=log_events)
 
-    def _publish_history_log_or_setup(self, log_events: List[Any]):
+    def _publish_history_log_or_setup(self, log_events: list[Any]):
         # Attempts to put the events into the given log group and stream, and attempts to create the stream if
         # this does not already exist.
         is_events_put = self._put_events(log_events=log_events)
@@ -242,7 +242,7 @@ class CloudWatchLoggingSession:
 
         self._put_events(log_events=log_events)
 
-    def _put_events(self, log_events: List[Any]) -> bool:
+    def _put_events(self, log_events: list[Any]) -> bool:
         # Puts the events to the targe log group and stream, and returns false if the LogGroup or LogStream could
         # not be found, true otherwise.
         try:

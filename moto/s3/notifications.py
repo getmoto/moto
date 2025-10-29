@@ -2,7 +2,7 @@ import copy
 import json
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 from urllib.parse import quote_plus
 
 from moto.core.utils import unix_time
@@ -53,7 +53,7 @@ class S3NotificationEvent(str, Enum):
     OBJECT_TAGGING_DELETE_EVENT = "s3:ObjectTagging:Delete"
 
     @classmethod
-    def events(self) -> List[str]:
+    def events(self) -> list[str]:
         return sorted([item.value for item in S3NotificationEvent])
 
     @classmethod
@@ -69,7 +69,7 @@ class S3NotificationEvent(str, Enum):
 
 def _get_s3_event(
     event_name: str, bucket: "FakeBucket", key: Any, notification_id: str
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> dict[str, list[dict[str, Any]]]:
     etag = key.etag.replace('"', "")
     # s3:ObjectCreated:Put --> ObjectCreated:Put
     event_name = event_name[3:]
@@ -278,7 +278,7 @@ def _invoke_awslambda(
         pass
 
 
-def _get_test_event(bucket_name: str) -> Dict[str, Any]:
+def _get_test_event(bucket_name: str) -> dict[str, Any]:
     event_time = datetime.now().strftime(_EVENT_TIME_FORMAT)
     return {
         "Service": "Amazon S3",

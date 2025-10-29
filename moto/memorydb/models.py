@@ -3,7 +3,7 @@
 import copy
 import random
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -39,7 +39,7 @@ class MemoryDBCluster(BaseModel):
         port: int,
         sns_topic_arn: str,
         kms_key_id: str,
-        snapshot_arns: List[str],
+        snapshot_arns: list[str],
         snapshot_name: str,
         snapshot_retention_limit: int,
         snapshot_window: str,
@@ -47,7 +47,7 @@ class MemoryDBCluster(BaseModel):
         engine_version: str,
         region: str,
         account_id: str,
-        security_group_ids: List[str],
+        security_group_ids: list[str],
         auto_minor_version_upgrade: bool,
         data_tiering: bool,
         tls_enabled: bool,
@@ -95,7 +95,7 @@ class MemoryDBCluster(BaseModel):
             # Set to 'available', other options are 'creating', 'Updating'.
             "available"
         )
-        self.pending_updates: Dict[Any, Any] = {}  # TODO
+        self.pending_updates: dict[Any, Any] = {}  # TODO
         self.shards = self.get_shard_details()
 
         self.availability_mode = (
@@ -113,7 +113,7 @@ class MemoryDBCluster(BaseModel):
         self.arn = f"arn:aws:memorydb:{region}:{account_id}:cluster/{self.cluster_name}"
         self.sns_topic_status = "active" if self.sns_topic_arn else ""
 
-    def get_shard_details(self) -> List[Dict[str, Any]]:
+    def get_shard_details(self) -> list[dict[str, Any]]:
         shards = []
         for i in range(self.num_shards):
             shard_name = f"{i + 1:04}"
@@ -150,7 +150,7 @@ class MemoryDBCluster(BaseModel):
     def update(
         self,
         description: Optional[str],
-        security_group_ids: Optional[List[str]],
+        security_group_ids: Optional[list[str]],
         maintenance_window: Optional[str],
         sns_topic_arn: Optional[str],
         sns_topic_status: Optional[str],
@@ -159,8 +159,8 @@ class MemoryDBCluster(BaseModel):
         snapshot_retention_limit: Optional[int],
         node_type: Optional[str],
         engine_version: Optional[str],
-        replica_configuration: Optional[Dict[str, int]],
-        shard_configuration: Optional[Dict[str, int]],
+        replica_configuration: Optional[dict[str, int]],
+        shard_configuration: Optional[dict[str, int]],
         acl_name: Optional[str],
     ) -> None:
         if description is not None:
@@ -192,7 +192,7 @@ class MemoryDBCluster(BaseModel):
         if acl_name is not None:
             self.acl_name = acl_name
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "Name": self.cluster_name,
             "Description": self.description,
@@ -223,7 +223,7 @@ class MemoryDBCluster(BaseModel):
         dct_items["SnapshotRetentionLimit"] = self.snapshot_retention_limit
         return dct_items
 
-    def to_desc_dict(self) -> Dict[str, Any]:
+    def to_desc_dict(self) -> dict[str, Any]:
         dct = self.to_dict()
         dct["Shards"] = self.shards
         return dct
@@ -237,8 +237,8 @@ class MemoryDBSubnetGroup(BaseModel):
         ec2_backend: Any,
         subnet_group_name: str,
         description: str,
-        subnet_ids: List[str],
-        tags: Optional[List[Dict[str, str]]] = None,
+        subnet_ids: list[str],
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.subnet_group_name = subnet_group_name
@@ -256,7 +256,7 @@ class MemoryDBSubnetGroup(BaseModel):
     def vpc_id(self) -> str:
         return self.subnets[0].vpc_id
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Name": self.subnet_group_name,
             "Description": self.description,
@@ -280,7 +280,7 @@ class MemoryDBSnapshot(BaseModel):
         cluster: MemoryDBCluster,
         snapshot_name: str,
         kms_key_id: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         source: Optional[str],
     ):
         self.cluster = copy.copy(cluster)
@@ -308,7 +308,7 @@ class MemoryDBSnapshot(BaseModel):
             }
             self.shards.append(shard)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "Name": self.snapshot_name,
             "Status": self.status,
@@ -334,7 +334,7 @@ class MemoryDBSnapshot(BaseModel):
         }
         return {k: v for k, v in dct.items() if v}
 
-    def to_desc_dict(self) -> Dict[str, Any]:
+    def to_desc_dict(self) -> dict[str, Any]:
         dct = self.to_dict()
         dct["ClusterConfiguration"]["Shards"] = self.shards
         return dct
@@ -347,8 +347,8 @@ class MemoryDBBackend(BaseBackend):
         super().__init__(region_name, account_id)
 
         self.ec2_backend = ec2_backends[account_id][region_name]
-        self.clusters: Dict[str, MemoryDBCluster] = dict()
-        self.subnet_groups: Dict[str, MemoryDBSubnetGroup] = {
+        self.clusters: dict[str, MemoryDBCluster] = dict()
+        self.subnet_groups: dict[str, MemoryDBSubnetGroup] = {
             "default": MemoryDBSubnetGroup(
                 region_name,
                 account_id,
@@ -358,17 +358,17 @@ class MemoryDBBackend(BaseBackend):
                 self.get_default_subnets(),
             )
         }
-        self.snapshots: Dict[str, MemoryDBSnapshot] = dict()
+        self.snapshots: dict[str, MemoryDBSnapshot] = dict()
         self.tagger = TaggingService()
 
-    def get_default_subnets(self) -> List[str]:
+    def get_default_subnets(self) -> list[str]:
         default_subnets = self.ec2_backend.describe_subnets(
             filters={"default-for-az": "true"}
         )
         default_subnet_ids = [i.id for i in default_subnets]
         return default_subnet_ids
 
-    def _list_arns(self) -> List[str]:
+    def _list_arns(self) -> list[str]:
         cluster_arns = [cluster.arn for cluster in self.clusters.values()]
         snapshot_arns = [snapshot.arn for snapshot in self.snapshots.values()]
         subnet_group_arns = [subnet.arn for subnet in self.subnet_groups.values()]
@@ -381,16 +381,16 @@ class MemoryDBBackend(BaseBackend):
         parameter_group_name: str,
         description: str,
         subnet_group_name: str,
-        security_group_ids: List[str],
+        security_group_ids: list[str],
         maintenance_window: str,
         port: int,
         sns_topic_arn: str,
         tls_enabled: bool,
         kms_key_id: str,
-        snapshot_arns: List[str],
+        snapshot_arns: list[str],
         snapshot_name: str,
         snapshot_retention_limit: int,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         snapshot_window: str,
         acl_name: str,
         engine_version: str,
@@ -441,8 +441,8 @@ class MemoryDBBackend(BaseBackend):
         self,
         subnet_group_name: str,
         description: str,
-        subnet_ids: List[str],
-        tags: Optional[List[Dict[str, str]]] = None,
+        subnet_ids: list[str],
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> MemoryDBSubnetGroup:
         if subnet_group_name in self.subnet_groups:
             raise SubnetGroupAlreadyExistsFault(
@@ -467,7 +467,7 @@ class MemoryDBBackend(BaseBackend):
         cluster_name: str,
         snapshot_name: str,
         kms_key_id: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         source: str = "manual",
     ) -> MemoryDBSnapshot:
         if cluster_name not in self.clusters:
@@ -494,7 +494,7 @@ class MemoryDBBackend(BaseBackend):
 
     def describe_clusters(
         self, cluster_name: Optional[str] = None
-    ) -> List[MemoryDBCluster]:
+    ) -> list[MemoryDBCluster]:
         if cluster_name:
             if cluster_name in self.clusters:
                 cluster = self.clusters[cluster_name]
@@ -509,7 +509,7 @@ class MemoryDBBackend(BaseBackend):
         cluster_name: Optional[str] = None,
         snapshot_name: Optional[str] = None,
         source: Optional[str] = None,
-    ) -> List[MemoryDBSnapshot]:
+    ) -> list[MemoryDBSnapshot]:
         sources = ["automated", "manual"] if source is None else [source]
 
         if cluster_name and snapshot_name:
@@ -555,7 +555,7 @@ class MemoryDBBackend(BaseBackend):
 
     def describe_subnet_groups(
         self, subnet_group_name: str
-    ) -> List[MemoryDBSubnetGroup]:
+    ) -> list[MemoryDBSubnetGroup]:
         if subnet_group_name:
             if subnet_group_name in self.subnet_groups:
                 return list([self.subnet_groups[subnet_group_name]])
@@ -566,7 +566,7 @@ class MemoryDBBackend(BaseBackend):
         subnet_groups = list(self.subnet_groups.values())
         return subnet_groups
 
-    def list_tags(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags(self, resource_arn: str) -> list[dict[str, str]]:
         if resource_arn not in self._list_arns():
             # Get the resource name from the resource_arn
             resource_name = resource_arn.split("/")[-1]
@@ -579,8 +579,8 @@ class MemoryDBBackend(BaseBackend):
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
 
     def tag_resource(
-        self, resource_arn: str, tags: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:
+        self, resource_arn: str, tags: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
         if resource_arn not in self._list_arns():
             resource_name = resource_arn.split("/")[-1]
             if "subnetgroup" in resource_arn:
@@ -593,8 +593,8 @@ class MemoryDBBackend(BaseBackend):
         return self.tagger.list_tags_for_resource(arn=resource_arn)["Tags"]
 
     def untag_resource(
-        self, resource_arn: str, tag_keys: List[str]
-    ) -> List[Dict[str, str]]:
+        self, resource_arn: str, tag_keys: list[str]
+    ) -> list[dict[str, str]]:
         if resource_arn not in self._list_arns():
             resource_name = resource_arn.split("/")[-1]
             if "subnetgroup" in resource_arn:
@@ -615,7 +615,7 @@ class MemoryDBBackend(BaseBackend):
         self,
         cluster_name: str,
         description: Optional[str],
-        security_group_ids: Optional[List[str]],
+        security_group_ids: Optional[list[str]],
         maintenance_window: Optional[str],
         sns_topic_arn: Optional[str],
         sns_topic_status: Optional[str],
@@ -624,8 +624,8 @@ class MemoryDBBackend(BaseBackend):
         snapshot_retention_limit: Optional[int],
         node_type: Optional[str],
         engine_version: Optional[str],
-        replica_configuration: Optional[Dict[str, int]],
-        shard_configuration: Optional[Dict[str, int]],
+        replica_configuration: Optional[dict[str, int]],
+        shard_configuration: Optional[dict[str, int]],
         acl_name: Optional[str],
     ) -> MemoryDBCluster:
         if cluster_name in self.clusters:

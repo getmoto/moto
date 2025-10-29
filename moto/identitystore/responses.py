@@ -1,7 +1,7 @@
 """Handles incoming identitystore requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional
 
 from moto.core.responses import BaseResponse
 
@@ -254,7 +254,7 @@ class IdentityStoreResponse(BaseResponse):
 
     def named_tuple_to_dict(
         self, value: Optional[NamedTuple]
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         if value:
             return value._asdict()
         return None

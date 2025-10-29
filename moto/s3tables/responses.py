@@ -1,7 +1,7 @@
 """Handles incoming s3tables requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
@@ -40,7 +40,7 @@ class S3TablesResponse(BaseResponse):
             max_buckets=int(max_buckets) if max_buckets else None,
         )
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "tableBuckets": [
                 {
                     "arn": b.arn,
@@ -117,7 +117,7 @@ class S3TablesResponse(BaseResponse):
             max_namespaces=int(max_namespaces) if max_namespaces else None,
         )
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "namespaces": [
                 {
                     "namespace": [ns.name],
@@ -227,7 +227,7 @@ class S3TablesResponse(BaseResponse):
             continuation_token=continuation_token,
             max_tables=int(max_tables) if max_tables else None,
         )
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "tables": [
                 {
                     "namespace": [table.namespace],

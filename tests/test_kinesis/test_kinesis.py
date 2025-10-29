@@ -293,7 +293,7 @@ def test_get_records_at_sequence_number():
     for index in range(1, 5):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 
@@ -332,7 +332,7 @@ def test_get_records_after_sequence_number():
     for index in range(1, 5):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 
@@ -372,7 +372,7 @@ def test_get_records_latest():
     for index in range(1, 5):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 
@@ -802,13 +802,13 @@ def test_merge_shards():
     for index in range(1, 50):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
     for index in range(51, 100):
         client.put_record(
             StreamARN=stream_arn,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 

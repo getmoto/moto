@@ -4,12 +4,12 @@ Note that ValidationExceptions are accumulative.
 """
 
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.route53resolver.exceptions import RRValidationException
 
 
-def validate_args(validators: List[Tuple[str, Any]]) -> None:
+def validate_args(validators: list[tuple[str, Any]]) -> None:
     """Raise exception if any of the validations fails.
 
     validators is a list of tuples each containing the following:
@@ -119,7 +119,7 @@ def validate_rule_type(value: Optional[str]) -> str:
     return ""
 
 
-def validate_security_group_ids(value: List[str]) -> str:
+def validate_security_group_ids(value: list[str]) -> str:
     """Raise exception if IPs fail to match length constraint."""
     # Too many security group IDs is an InvalidParameterException.
     for group_id in value:
@@ -131,7 +131,7 @@ def validate_security_group_ids(value: List[str]) -> str:
     return ""
 
 
-def validate_subnets(value: List[Dict[str, Any]]) -> str:
+def validate_subnets(value: list[dict[str, Any]]) -> str:
     """Raise exception if subnets fail to match length constraint."""
     for subnet_id in [x["SubnetId"] for x in value]:
         if len(subnet_id) > 32:
@@ -139,7 +139,7 @@ def validate_subnets(value: List[Dict[str, Any]]) -> str:
     return ""
 
 
-def validate_target_port(value: Optional[Dict[str, int]]) -> str:
+def validate_target_port(value: Optional[dict[str, int]]) -> str:
     """Raise exception if target port fails to match length constraint."""
     if value and value["Port"] > 65535:
         return "have value less than or equal to 65535"

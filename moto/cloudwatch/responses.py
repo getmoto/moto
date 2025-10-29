@@ -1,5 +1,5 @@
 import json
-from typing import Iterable, List
+from collections.abc import Iterable
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
@@ -236,7 +236,7 @@ class CloudWatchResponse(BaseResponse):
     @staticmethod
     def filter_alarms(
         alarms: Iterable[Alarm], metric_name: str, namespace: str
-    ) -> List[Alarm]:
+    ) -> list[Alarm]:
         metric_filtered_alarms = []
 
         for alarm in alarms:

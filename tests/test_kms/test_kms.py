@@ -52,10 +52,10 @@ def test_create_key_with_invalid_key_spec():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert err["Message"] == (
-        "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+        f"1 validation error detected: Value '{unsupported_key_spec}' at 'KeySpec' failed "
         "to satisfy constraint: Member must satisfy enum value set: "
         "['ECC_NIST_P256', 'ECC_NIST_P384', 'ECC_NIST_P521', 'ECC_SECG_P256K1', 'HMAC_224', 'HMAC_256', 'HMAC_384', 'HMAC_512', 'RSA_2048', 'RSA_3072', 'RSA_4096', 'SM2', 'SYMMETRIC_DEFAULT']"
-    ).format(key_spec=unsupported_key_spec)
+    )
 
 
 @mock_aws
@@ -1451,12 +1451,9 @@ def test_invalid_signing_algorithm_for_key_spec_type_ECDSA(
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert err["Message"] == (
-        "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+        f"1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
         "to satisfy constraint: Member must satisfy enum value set: "
-        "{valid_sign_algorithms}"
-    ).format(
-        signing_algorithm=signing_algorithm,
-        valid_sign_algorithms=valid_signing_algorithms,
+        f"{valid_signing_algorithms}"
     )
 
 

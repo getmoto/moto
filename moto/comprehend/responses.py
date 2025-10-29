@@ -1,7 +1,7 @@
 """Handles incoming comprehend requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -349,7 +349,7 @@ class ComprehendResponse(BaseResponse):
 
         return json.dumps(dict(DesiredModelArn=desired_model_arn))
 
-    def _job_to_dict_resp(self, job_properties: Dict[str, Any]) -> str:
+    def _job_to_dict_resp(self, job_properties: dict[str, Any]) -> str:
         job_type_key = job_properties.pop("job_type")
 
         if job_properties.get("SubmitTime"):
@@ -361,7 +361,7 @@ class ComprehendResponse(BaseResponse):
         return json.dumps({key_name: job_properties})
 
     def _list_jobs_to_dict_resp(
-        self, job_list: List[Dict[str, Any]], job_type: str
+        self, job_list: list[dict[str, Any]], job_type: str
     ) -> str:
         for job_properties in job_list:
             job_properties.pop("job_type")

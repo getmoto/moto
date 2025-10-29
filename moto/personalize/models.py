@@ -1,4 +1,5 @@
-from typing import Any, Dict, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -14,7 +15,7 @@ class Schema(BaseModel):
         account_id: str,
         region: str,
         name: str,
-        schema: Dict[str, Any],
+        schema: dict[str, Any],
         domain: str,
     ):
         self.name = name
@@ -23,8 +24,8 @@ class Schema(BaseModel):
         self.arn = f"arn:{get_partition(region)}:personalize:{region}:{account_id}:schema/{name}"
         self.created = unix_time()
 
-    def to_dict(self, full: bool = True) -> Dict[str, Any]:
-        d: Dict[str, Any] = {
+    def to_dict(self, full: bool = True) -> dict[str, Any]:
+        d: dict[str, Any] = {
             "name": self.name,
             "schemaArn": self.arn,
             "domain": self.domain,
@@ -41,9 +42,9 @@ class PersonalizeBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.schemas: Dict[str, Schema] = dict()
+        self.schemas: dict[str, Schema] = dict()
 
-    def create_schema(self, name: str, schema_dict: Dict[str, Any], domain: str) -> str:
+    def create_schema(self, name: str, schema_dict: dict[str, Any], domain: str) -> str:
         schema = Schema(
             region=self.region_name,
             account_id=self.account_id,

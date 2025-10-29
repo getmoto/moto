@@ -1,7 +1,7 @@
 """FSxBackend class with methods for supported APIs."""
 
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -30,14 +30,14 @@ class FileSystem(BaseModel):
         file_system_type: str,
         storage_capacity: int,
         storage_type: str,
-        subnet_ids: List[str],
-        security_group_ids: List[str],
-        tags: Optional[List[Dict[str, str]]],
+        subnet_ids: list[str],
+        security_group_ids: list[str],
+        tags: Optional[list[dict[str, str]]],
         kms_key_id: Optional[str],
-        windows_configuration: Optional[Dict[str, Any]],
-        lustre_configuration: Optional[Dict[str, Any]],
-        ontap_configuration: Optional[Dict[str, Any]],
-        open_zfs_configuration: Optional[Dict[str, Any]],
+        windows_configuration: Optional[dict[str, Any]],
+        lustre_configuration: Optional[dict[str, Any]],
+        ontap_configuration: Optional[dict[str, Any]],
+        open_zfs_configuration: Optional[dict[str, Any]],
         backend: "FSxBackend",
     ) -> None:
         self.file_system_id = f"fs-{uuid4().hex[:8]}"
@@ -61,7 +61,7 @@ class FileSystem(BaseModel):
         if tags:
             self.backend.tag_resource(self.resource_arn, tags)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "FileSystemId": self.file_system_id,
             "FileSystemType": self.file_system_type,
@@ -89,7 +89,7 @@ class Backup(BaseModel):
         file_system_id: str,
         client_request_token: Optional[str],
         volume_id: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         backend: "FSxBackend",
     ) -> None:
         self.backup_id = f"backup-{uuid4().hex[:8]}"
@@ -105,7 +105,7 @@ class Backup(BaseModel):
         if tags:
             self.backend.tag_resource(self.resource_arn, tags)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "BackupId": self.backup_id,
             "FileSystemId": self.file_system_id,
@@ -124,8 +124,8 @@ class FSxBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.file_systems: Dict[str, FileSystem] = {}
-        self.backups: Dict[str, Backup] = {}
+        self.file_systems: dict[str, FileSystem] = {}
+        self.backups: dict[str, Backup] = {}
         self.tagger = TaggingService()
 
     def create_file_system(
@@ -134,15 +134,15 @@ class FSxBackend(BaseBackend):
         file_system_type: str,
         storage_capacity: int,
         storage_type: str,
-        subnet_ids: List[str],
-        security_group_ids: List[str],
-        tags: Optional[List[Dict[str, str]]],
+        subnet_ids: list[str],
+        security_group_ids: list[str],
+        tags: Optional[list[dict[str, str]]],
         kms_key_id: Optional[str],
-        windows_configuration: Optional[Dict[str, Any]],
-        lustre_configuration: Optional[Dict[str, Any]],
-        ontap_configuration: Optional[Dict[str, Any]],
+        windows_configuration: Optional[dict[str, Any]],
+        lustre_configuration: Optional[dict[str, Any]],
+        ontap_configuration: Optional[dict[str, Any]],
         file_system_type_version: Optional[str],
-        open_zfs_configuration: Optional[Dict[str, Any]],
+        open_zfs_configuration: Optional[dict[str, Any]],
     ) -> FileSystem:
         file_system = FileSystem(
             account_id=self.account_id,
@@ -169,7 +169,7 @@ class FSxBackend(BaseBackend):
         return file_system
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def describe_file_systems(self, file_system_ids: List[str]) -> List[FileSystem]:
+    def describe_file_systems(self, file_system_ids: list[str]) -> list[FileSystem]:
         file_systems = []
         if not file_system_ids:
             file_systems = list(self.file_systems.values())
@@ -183,15 +183,15 @@ class FSxBackend(BaseBackend):
         self,
         file_system_id: str,
         client_request_token: str,
-        windows_configuration: Optional[Dict[str, Any]],
-        lustre_configuration: Optional[Dict[str, Any]],
-        open_zfs_configuration: Optional[Dict[str, Any]],
-    ) -> Tuple[
+        windows_configuration: Optional[dict[str, Any]],
+        lustre_configuration: Optional[dict[str, Any]],
+        open_zfs_configuration: Optional[dict[str, Any]],
+    ) -> tuple[
         str,
         str,
-        Optional[Dict[str, Any]],
-        Optional[Dict[str, Any]],
-        Optional[Dict[str, Any]],
+        Optional[dict[str, Any]],
+        Optional[dict[str, Any]],
+        Optional[dict[str, Any]],
     ]:
         response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
 
@@ -224,7 +224,7 @@ class FSxBackend(BaseBackend):
         file_system_id: str,
         client_request_token: Optional[str],
         volume_id: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
     ) -> Backup:
         backup = Backup(
             account_id=self.account_id,
@@ -246,7 +246,7 @@ class FSxBackend(BaseBackend):
 
     def delete_backup(
         self, backup_id: str, client_request_token: Optional[str]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if backup_id not in self.backups:
             raise ResourceNotFoundException(
                 msg=f"FSx resource, {backup_id} does not exist"
@@ -255,13 +255,13 @@ class FSxBackend(BaseBackend):
 
         return {"BackupId": backup_id, "Lifecycle": "DELETED"}
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         """
         Pagination is not yet implemented
         """

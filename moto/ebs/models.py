@@ -1,6 +1,6 @@
 """EBSBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -34,7 +34,7 @@ class EBSSnapshot(BaseModel):
         ]
         self.description = snapshot.description
 
-        self.blocks: Dict[str, Block] = dict()
+        self.blocks: dict[str, Block] = dict()
 
     def put_block(
         self,
@@ -47,7 +47,7 @@ class EBSSnapshot(BaseModel):
         block = Block(block_data, checksum, checksum_algorithm, data_length)
         self.blocks[block_idx] = block
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "SnapshotId": self.snapshot_id,
             "OwnerId": self.account_id,
@@ -65,14 +65,14 @@ class EBSBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.snapshots: Dict[str, EBSSnapshot] = dict()
+        self.snapshots: dict[str, EBSSnapshot] = dict()
 
     @property
     def ec2_backend(self) -> EC2Backend:
         return ec2_backends[self.account_id][self.region_name]
 
     def start_snapshot(
-        self, volume_size: int, tags: Optional[List[Dict[str, str]]], description: str
+        self, volume_size: int, tags: Optional[list[dict[str, str]]], description: str
     ) -> EBSSnapshot:
         """
         The following parameters are not yet implemented: ParentSnapshotId, ClientToken, Encrypted, KmsKeyArn, Timeout
@@ -88,7 +88,7 @@ class EBSBackend(BaseBackend):
         self.snapshots[ebs_snapshot.snapshot_id] = ebs_snapshot
         return ebs_snapshot
 
-    def complete_snapshot(self, snapshot_id: str) -> Dict[str, str]:
+    def complete_snapshot(self, snapshot_id: str) -> dict[str, str]:
         """
         The following parameters are not yet supported: ChangedBlocksCount, Checksum, ChecksumAlgorithm, ChecksumAggregationMethod
         """
@@ -103,7 +103,7 @@ class EBSBackend(BaseBackend):
         checksum: str,
         checksum_algorithm: str,
         data_length: str,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """
         The following parameters are currently not taken into account: DataLength, Progress.
         The Checksum and ChecksumAlgorithm are taken at face-value, but no validation takes place.
@@ -123,14 +123,14 @@ class EBSBackend(BaseBackend):
 
     def list_changed_blocks(
         self, first_snapshot_id: str, second_snapshot_id: str
-    ) -> Tuple[Dict[str, Tuple[str, Optional[str]]], EBSSnapshot]:
+    ) -> tuple[dict[str, tuple[str, Optional[str]]], EBSSnapshot]:
         """
         The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
         """
         snapshot1 = self.snapshots[first_snapshot_id]
         snapshot2 = self.snapshots[second_snapshot_id]
-        changed_blocks: Dict[
-            str, Tuple[str, Optional[str]]
+        changed_blocks: dict[
+            str, tuple[str, Optional[str]]
         ] = {}  # {idx: (token1, token2), ..}
         for idx in snapshot1.blocks:
             block1 = snapshot1.blocks[idx]

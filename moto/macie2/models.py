@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,7 +16,7 @@ class Invitation(BaseModel):
         self.relationship_status = "Invited"
         self.arn = f"arn:aws:macie2:{region_name}:{admin_account_id}:invitation/{self.invitation_id}"
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "accountId": self.account_id,
             "invitationId": self.invitation_id,
@@ -42,7 +42,7 @@ class Member(BaseModel):
         self.administrator_account_id = admin_account_id
         self.invited_at = invitation.invited_at
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "accountId": self.account_id,
             "administratorAccountId": self.administrator_account_id,
@@ -58,11 +58,11 @@ class Member(BaseModel):
 class MacieBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.invitations: Dict[str, Invitation] = {}
-        self.members: Dict[str, Member] = {}
+        self.invitations: dict[str, Invitation] = {}
+        self.members: dict[str, Member] = {}
         self.administrator_account: Optional[Member] = None
         self.organization_admin_account_id: Optional[str] = None
-        self.macie_session: Optional[Dict[str, Any]] = {
+        self.macie_session: Optional[dict[str, Any]] = {
             "createdAt": datetime.utcnow(),
             "findingPublishingFrequency": "FIFTEEN_MINUTES",
             "serviceRole": f"arn:aws:iam::{account_id}:role/aws-service-role/macie.amazonaws.com/AWSServiceRoleForAmazonMacie",
@@ -70,7 +70,7 @@ class MacieBackend(BaseBackend):
             "updatedAt": datetime.utcnow(),
         }
 
-    def create_invitations(self, account_ids: List[str]) -> None:
+    def create_invitations(self, account_ids: list[str]) -> None:
         for account_id in account_ids:
             invitation = Invitation(
                 account_id=account_id,
@@ -79,10 +79,10 @@ class MacieBackend(BaseBackend):
             )
             self.invitations[account_id] = invitation
 
-    def list_invitations(self) -> List[Invitation]:
+    def list_invitations(self) -> list[Invitation]:
         return list(self.invitations.values())
 
-    def decline_invitations(self, account_ids: List[str]) -> None:
+    def decline_invitations(self, account_ids: list[str]) -> None:
         for account_id in account_ids:
             for backend_dict in macie2_backends.values():
                 backend = backend_dict.get(self.region_name)
@@ -114,7 +114,7 @@ class MacieBackend(BaseBackend):
                 backend.invitations.pop(self.account_id)
                 return
 
-    def list_members(self) -> List[Member]:
+    def list_members(self) -> list[Member]:
         return list(self.members.values())
 
     def get_administrator_account(self) -> Optional[Member]:
@@ -148,7 +148,7 @@ class MacieBackend(BaseBackend):
                 backend.administrator_account = None
                 break
 
-    def get_macie_session(self) -> Dict[str, Any]:
+    def get_macie_session(self) -> dict[str, Any]:
         if not self.macie_session:
             raise ResourceNotFoundException(
                 "The request failed because the specified resource doesn't exist."

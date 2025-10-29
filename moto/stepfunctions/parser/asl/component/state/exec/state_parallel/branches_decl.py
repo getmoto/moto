@@ -1,6 +1,6 @@
 import datetime
 import threading
-from typing import Final, List, Optional
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import ExecutionFailedEventDetails, HistoryEventType
 from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name import (
@@ -59,8 +59,8 @@ class BranchWorkerPool(BranchWorker.BranchWorkerComm):
 
 
 class BranchesDecl(EvalComponent):
-    def __init__(self, programs: List[Program]):
-        self.programs: Final[List[Program]] = programs
+    def __init__(self, programs: list[Program]):
+        self.programs: Final[list[Program]] = programs
 
     def _eval_body(self, env: Environment) -> None:
         # Input value for every state_parallel process.
@@ -68,7 +68,7 @@ class BranchesDecl(EvalComponent):
 
         branch_worker_pool = BranchWorkerPool(workers_num=len(self.programs))
 
-        branch_workers: List[BranchWorker] = list()
+        branch_workers: list[BranchWorker] = list()
         for program in self.programs:
             # Environment frame for this sub process.
             env_frame: Environment = env.open_inner_frame()

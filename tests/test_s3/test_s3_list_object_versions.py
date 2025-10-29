@@ -86,7 +86,7 @@ def test_list_object_versions_with_delimiter(bucket_name=None):
     enable_versioning(bucket_name, s3_client)
     for key_index in list(range(1, 5)) + list(range(10, 14)):
         for version_index in range(1, 4):
-            body = f"data-{version_index}".encode("UTF-8")
+            body = f"data-{version_index}".encode()
             s3_client.put_object(
                 Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
             )
@@ -206,27 +206,27 @@ def test_list_object_versions_with_delimiter_for_deleted_objects():
     # Create a history of objects
     for pos in range(2):
         client.put_object(
-            Bucket=bucket_name, Key=f"obj_{pos}", Body=f"object {pos}".encode("utf-8")
+            Bucket=bucket_name, Key=f"obj_{pos}", Body=f"object {pos}".encode()
         )
 
     for pos in range(2):
         client.put_object(
             Bucket=bucket_name,
             Key=f"hist_obj_{pos}",
-            Body=f"history object {pos}".encode("utf-8"),
+            Body=f"history object {pos}".encode(),
         )
         for hist_pos in range(2):
             client.put_object(
                 Bucket=bucket_name,
                 Key=f"hist_obj_{pos}",
-                Body=f"object {pos} {hist_pos}".encode("utf-8"),
+                Body=f"object {pos} {hist_pos}".encode(),
             )
 
     for pos in range(2):
         client.put_object(
             Bucket=bucket_name,
             Key=f"del_obj_{pos}",
-            Body=f"deleted object {pos}".encode("utf-8"),
+            Body=f"deleted object {pos}".encode(),
         )
         client.delete_object(Bucket=bucket_name, Key=f"del_obj_{pos}")
 
@@ -440,7 +440,7 @@ def test_list_object_versions_with_paging_and_delimiter(bucket_name=None):
     # Copied from test_list_object_versions_with_delimiter.
     for key_index in list(range(1, 5)) + list(range(10, 14)):
         for version_index in range(1, 4):
-            body = f"data-{version_index}".encode("UTF-8")
+            body = f"data-{version_index}".encode()
             s3_client.put_object(
                 Bucket=bucket_name, Key=f"key{key_index}-with-data", Body=body
             )

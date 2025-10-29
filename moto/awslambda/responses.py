@@ -1,7 +1,7 @@
 import json
 import re
 import sys
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Union
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -18,7 +18,7 @@ class LambdaResponse(BaseResponse):
         super().__init__(service_name="awslambda")
 
     @property
-    def json_body(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def json_body(self) -> dict[str, Any]:  # type: ignore[misc]
         return json.loads(self.body)
 
     @property
@@ -48,8 +48,8 @@ class LambdaResponse(BaseResponse):
             return 404, {"status": 404}, "{}"
 
     @amz_crc32
-    def invoke(self) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
-        response_headers: Dict[str, str] = {}
+    def invoke(self) -> tuple[int, dict[str, str], Union[str, bytes]]:
+        response_headers: dict[str, str] = {}
 
         # URL Decode in case it's a ARN:
         function_name = unquote(self.path.rsplit("/", 2)[-2])
@@ -88,8 +88,8 @@ class LambdaResponse(BaseResponse):
             return 404, response_headers, "{}"
 
     @amz_crc32
-    def invoke_async(self) -> Tuple[int, Dict[str, str], Union[str, bytes]]:
-        response_headers: Dict[str, Any] = {}
+    def invoke_async(self) -> tuple[int, dict[str, str], Union[str, bytes]]:
+        response_headers: dict[str, Any] = {}
 
         function_index = -3 if self.path.endswith("/") else -2
         function_name = unquote(self.path.rsplit("/", 3)[function_index])
@@ -103,7 +103,7 @@ class LambdaResponse(BaseResponse):
     def list_functions(self) -> str:
         querystring = self.querystring
         func_version = querystring.get("FunctionVersion", [None])[0]
-        result: Dict[str, List[Dict[str, Any]]] = {"Functions": []}
+        result: dict[str, list[dict[str, Any]]] = {"Functions": []}
 
         for fn in self.backend.list_functions(func_version):
             json_data = fn.get_configuration()
@@ -113,7 +113,7 @@ class LambdaResponse(BaseResponse):
 
     def list_versions_by_function(self) -> str:
         function_name = self.path.split("/")[-2]
-        result: Dict[str, Any] = {"Versions": []}
+        result: dict[str, Any] = {"Versions": []}
 
         functions = self.backend.list_versions_by_function(function_name)
         for fn in functions:
@@ -125,7 +125,7 @@ class LambdaResponse(BaseResponse):
     def list_aliases(self) -> TYPE_RESPONSE:
         path = self.path
         function_name = path.split("/")[-2]
-        result: Dict[str, Any] = {"Aliases": []}
+        result: dict[str, Any] = {"Aliases": []}
 
         aliases = self.backend.list_aliases(function_name)
         for alias in aliases:
@@ -224,8 +224,8 @@ class LambdaResponse(BaseResponse):
 
     @staticmethod
     def _set_configuration_qualifier(  # type: ignore[misc]
-        configuration: Dict[str, Any], function_name: str, qualifier: str
-    ) -> Dict[str, Any]:
+        configuration: dict[str, Any], function_name: str, qualifier: str
+    ) -> dict[str, Any]:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
         if re.match(ARN_PARTITION_REGEX, function_name):
             # Extract from ARN

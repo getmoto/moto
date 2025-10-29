@@ -2,7 +2,8 @@ import gzip
 import hashlib
 import json
 import pkgutil
-from typing import Any, Dict, Iterator, List, MutableMapping, Optional, Tuple, TypeVar
+from collections.abc import Iterator, MutableMapping
+from typing import Any, Optional, TypeVar
 from uuid import UUID
 
 from requests.structures import CaseInsensitiveDict as _CaseInsensitiveDict
@@ -63,7 +64,7 @@ def load_resource_as_bytes(package: str, resource: str) -> bytes:
     return pkgutil.get_data(package, resource)  # type: ignore
 
 
-def merge_multiple_dicts(*args: Any) -> Dict[str, Any]:
+def merge_multiple_dicts(*args: Any) -> dict[str, Any]:
     result = {}
     for d in args:
         result.update(d)
@@ -82,10 +83,10 @@ RESOURCE_TYPE = TypeVar("RESOURCE_TYPE")
 
 
 def filter_resources(
-    resources: List[RESOURCE_TYPE],
+    resources: list[RESOURCE_TYPE],
     filters: Any,
-    attr_pairs: Tuple[Tuple[str, ...], ...],
-) -> List[RESOURCE_TYPE]:
+    attr_pairs: tuple[tuple[str, ...], ...],
+) -> list[RESOURCE_TYPE]:
     """
     Used to filter resources. Usually in get and describe apis.
     """
@@ -120,7 +121,7 @@ class LowercaseDict(MutableMapping[str, Any]):
     """A dictionary that lowercases all keys"""
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.store: Dict[str, Any] = dict()
+        self.store: dict[str, Any] = dict()
         self.update(dict(*args, **kwargs))  # use the free update to set keys
 
     def __getitem__(self, key: str) -> Any:
@@ -158,7 +159,7 @@ class CamelToUnderscoresWalker:
             return CamelToUnderscoresWalker.parse_scalar(x)
 
     @staticmethod
-    def parse_dict(x: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+    def parse_dict(x: dict[str, Any]) -> dict[str, Any]:  # type: ignore[misc]
         from moto.core.utils import camelcase_to_underscores
 
         temp = {}
