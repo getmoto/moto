@@ -1,7 +1,7 @@
 import types
 from http.client import responses as http_responses
 from io import BytesIO
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 import responses
@@ -72,7 +72,7 @@ class CallbackResponse(responses.CallbackResponse):
             decode_content=False,
         )
 
-    def matches(self, request: "responses.PreparedRequest") -> Tuple[bool, str]:
+    def matches(self, request: "responses.PreparedRequest") -> tuple[bool, str]:
         if request.method != self.method:
             return False, "Method does not match"
 
@@ -108,7 +108,7 @@ class CallbackResponse(responses.CallbackResponse):
 
 def not_implemented_callback(request: Any) -> TYPE_RESPONSE:
     status = 400
-    headers: Dict[str, str] = {}
+    headers: dict[str, str] = {}
     response = "The method is not implemented"
 
     return status, headers, response
@@ -124,7 +124,7 @@ def not_implemented_callback(request: Any) -> TYPE_RESPONSE:
 # This method should be used for Responses 0.12.1 < .. < 0.17.0
 def _find_first_match(
     self: Any, request: Any
-) -> Tuple[Optional[responses.BaseResponse], List[str]]:
+) -> tuple[Optional[responses.BaseResponse], list[str]]:
     matches = []
     match_failed_reasons = []
     all_possibles = self._matches + responses._default_mock._matches  # type: ignore[attr-defined]

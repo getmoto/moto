@@ -1,6 +1,7 @@
 """DAXBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, Iterable, List
+from collections.abc import Iterable
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -20,7 +21,7 @@ class DaxParameterGroup(BaseModel):
         self.name = "default.dax1.0"
         self.status = "in-sync"
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "ParameterGroupName": self.name,
             "ParameterApplyStatus": self.status,
@@ -42,7 +43,7 @@ class DaxNode:
         self.status = "available"
         self.parameter_status = "in-sync"
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "NodeId": self.node_id,
             "Endpoint": self.node_endpoint,
@@ -60,8 +61,8 @@ class DaxEndpoint:
         self.region = region
         self.port = 8111
 
-    def to_json(self, full: bool = False) -> Dict[str, Any]:
-        dct: Dict[str, Any] = {"Port": self.port}
+    def to_json(self, full: bool = False) -> dict[str, Any]:
+        dct: dict[str, Any] = {"Port": self.port}
         if full:
             dct["Address"] = (
                 f"{self.name}.{self.cluster_hex}.dax-clusters.{self.region}.amazonaws.com"
@@ -80,7 +81,7 @@ class DaxCluster(BaseModel, ManagedState):
         node_type: str,
         replication_factor: int,
         iam_role_arn: str,
-        sse_specification: Dict[str, Any],
+        sse_specification: dict[str, Any],
         encryption_type: str,
     ):
         # Configure ManagedState
@@ -123,7 +124,7 @@ class DaxCluster(BaseModel, ManagedState):
         self.replication_factor = new_replication_factor
 
     def decrease_replication_factor(
-        self, new_replication_factor: int, node_ids_to_remove: List[str]
+        self, new_replication_factor: int, node_ids_to_remove: list[str]
     ) -> None:
         if node_ids_to_remove:
             self.nodes = [n for n in self.nodes if n.node_id not in node_ids_to_remove]
@@ -137,7 +138,7 @@ class DaxCluster(BaseModel, ManagedState):
     def is_deleted(self) -> bool:
         return self.status == "deleted"
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         use_full_repr = self.status == "available"
         dct = {
             "ClusterName": self.name,
@@ -168,11 +169,11 @@ class DaxCluster(BaseModel, ManagedState):
 class DAXBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._clusters: Dict[str, DaxCluster] = dict()
+        self._clusters: dict[str, DaxCluster] = dict()
         self._tagger = TaggingService()
 
     @property
-    def clusters(self) -> Dict[str, DaxCluster]:
+    def clusters(self) -> dict[str, DaxCluster]:
         self._clusters = {
             name: cluster
             for name, cluster in self._clusters.items()
@@ -187,8 +188,8 @@ class DAXBackend(BaseBackend):
         description: str,
         replication_factor: int,
         iam_role_arn: str,
-        tags: List[Dict[str, str]],
-        sse_specification: Dict[str, Any],
+        tags: list[dict[str, str]],
+        sse_specification: dict[str, Any],
         encryption_type: str,
     ) -> DaxCluster:
         """
@@ -217,7 +218,7 @@ class DAXBackend(BaseBackend):
         return self.clusters[cluster_name]
 
     @paginate(PAGINATION_MODEL)
-    def describe_clusters(self, cluster_names: Iterable[str]) -> List[DaxCluster]:
+    def describe_clusters(self, cluster_names: Iterable[str]) -> list[DaxCluster]:
         clusters = self.clusters
         if not cluster_names:
             cluster_names = clusters.keys()
@@ -233,7 +234,7 @@ class DAXBackend(BaseBackend):
                 raise ClusterNotFoundFault(name)
         return [cluster for name, cluster in clusters.items() if name in cluster_names]
 
-    def list_tags(self, resource_name: str) -> Dict[str, List[Dict[str, str]]]:
+    def list_tags(self, resource_name: str) -> dict[str, list[dict[str, str]]]:
         """
         Pagination is not yet implemented
         """
@@ -258,7 +259,7 @@ class DAXBackend(BaseBackend):
         self,
         cluster_name: str,
         new_replication_factor: int,
-        node_ids_to_remove: List[str],
+        node_ids_to_remove: list[str],
     ) -> DaxCluster:
         """
         The AvailabilityZones-parameter is not yet implemented

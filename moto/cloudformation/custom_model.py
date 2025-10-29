@@ -1,6 +1,6 @@
 import json
 import threading
-from typing import Any, Dict
+from typing import Any
 
 from moto import settings
 from moto.awslambda import lambda_backends
@@ -16,10 +16,10 @@ class CustomModel(CloudFormationModel):
         self.request_id = request_id
         self.logical_id = logical_id
         self.resource_name = resource_name
-        self.data: Dict[str, Any] = dict()
+        self.data: dict[str, Any] = dict()
         self._finished = False
 
-    def set_data(self, data: Dict[str, Any]) -> None:
+    def set_data(self, data: dict[str, Any]) -> None:
         self.data = data
         self._finished = True
 
@@ -38,7 +38,7 @@ class CustomModel(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,

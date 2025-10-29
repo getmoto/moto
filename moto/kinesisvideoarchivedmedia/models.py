@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.kinesisvideo.models import KinesisVideoBackend, kinesisvideo_backends
 from moto.sts.utils import random_session_token
@@ -33,7 +31,7 @@ class KinesisVideoArchivedMediaBackend(BaseBackend):
         api_name = "GET_DASH_STREAMING_SESSION_URL"
         return self._get_streaming_url(stream_name, stream_arn, api_name)
 
-    def get_clip(self, stream_name: str, stream_arn: str) -> Tuple[str, bytes]:
+    def get_clip(self, stream_name: str, stream_arn: str) -> tuple[str, bytes]:
         self.backend._get_stream(stream_name, stream_arn)
         content_type = "video/mp4"  # Fixed content_type as it depends on input stream
         payload = b"sample-mp4-video"

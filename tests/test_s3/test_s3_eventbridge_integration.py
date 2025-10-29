@@ -1,6 +1,6 @@
 import json
 from io import BytesIO
-from typing import Any, Dict, List
+from typing import Any
 from unittest import SkipTest
 from uuid import uuid4
 
@@ -26,7 +26,7 @@ def _seteup_bucket_notification_eventbridge(
     rule_name: str = "test-rule",
     log_group_name: str = "/test-group",
     region: str = REGION_NAME,
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """Setups S3, EventBridge and CloudWatchLogs"""
     # Setup S3
     s3_res = boto3.resource("s3", region_name=region)
@@ -72,7 +72,7 @@ def _seteup_bucket_notification_eventbridge(
 
 def _get_send_events(
     log_group_name: str = "/test-group", region: str = REGION_NAME
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     logs_client = boto3.client("logs", region_name=region)
     return sorted(
         logs_client.filter_log_events(logGroupName=log_group_name)["events"],
@@ -108,7 +108,7 @@ def test_put_object_notification_ObjectCreated_PUT(region, partition):
 @reduced_min_part_size
 def test_put_object_notification_ObjectCreated_POST():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(("Doesn't quite work right with the Proxy or Server"))
+        raise SkipTest("Doesn't quite work right with the Proxy or Server")
 
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]

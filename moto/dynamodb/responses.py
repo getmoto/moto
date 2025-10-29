@@ -2,7 +2,7 @@ import copy
 import itertools
 import json
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -92,7 +92,7 @@ def include_consumed_capacity(
 
 
 def validate_put_has_empty_keys(
-    field_updates: Dict[str, Any], table: Table, custom_error_msg: Optional[str] = None
+    field_updates: dict[str, Any], table: Table, custom_error_msg: Optional[str] = None
 ) -> None:
     """
     Error if any keys have an empty value. Checks Global index attributes as well
@@ -132,9 +132,9 @@ def validate_put_has_empty_keys(
             raise MockValidationException(msg.format(empty_key))
 
 
-def validate_put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) -> None:
+def validate_put_has_empty_attrs(field_updates: dict[str, Any], table: Table) -> None:
     # Example invalid attribute: [{'M': {'SS': {'NS': []}}}]
-    def _validate_attr(attr: Dict[str, Any]) -> None:
+    def _validate_attr(attr: dict[str, Any]) -> None:
         for set_type, error in [("NS", "number"), ("SS", "string")]:
             if set_type in attr and attr[set_type] == []:
                 raise MockValidationException(
@@ -152,7 +152,7 @@ def validate_put_has_empty_attrs(field_updates: Dict[str, Any], table: Table) ->
                 _validate_attr(val)
 
 
-def validate_put_has_gsi_keys_set_to_none(item: Dict[str, Any], table: Table) -> None:
+def validate_put_has_gsi_keys_set_to_none(item: dict[str, Any], table: Table) -> None:
     for gsi in table.global_indexes:
         for attr in gsi.schema:
             attr_name = attr["AttributeName"]
@@ -163,8 +163,8 @@ def validate_put_has_gsi_keys_set_to_none(item: Dict[str, Any], table: Table) ->
 
 
 def validate_attributes_used(
-    attribute_names: Optional[Dict[str, Any]],
-    names_used: List[str],
+    attribute_names: Optional[dict[str, Any]],
+    names_used: list[str],
     provided_attr: str = "Names",
 ) -> None:
     for name in attribute_names or []:
@@ -193,16 +193,16 @@ class ProjectionExpressionParser:
     def __init__(
         self,
         projection_expression: Optional[str],
-        expression_attribute_names: Optional[Dict[str, str]],
+        expression_attribute_names: Optional[dict[str, str]],
     ):
         self.projection_expression = projection_expression
         self.expression_attribute_names = (
             expression_attribute_names if expression_attribute_names else {}
         )
 
-        self.expr_attr_names_found: List[str] = []
+        self.expr_attr_names_found: list[str] = []
 
-    def parse(self) -> List[List[str]]:
+    def parse(self) -> list[list[str]]:
         """
         lvl1.lvl2.attr1,lvl1.attr2 --> [["lvl1", "lvl2", "attr1"], ["lvl1", "attr2]]
         """
@@ -265,7 +265,7 @@ class DynamoHandler(BaseResponse):
             limit, exclusive_start_table_name
         )
 
-        response: Dict[str, Any] = {"TableNames": tables}
+        response: dict[str, Any] = {"TableNames": tables}
         if last_eval:
             response["LastEvaluatedTableName"] = last_eval
 
@@ -319,12 +319,12 @@ class DynamoHandler(BaseResponse):
     def _validate_table_creation(
         self,
         billing_mode: str,
-        throughput: Optional[Dict[str, Any]],
-        key_schema: List[Dict[str, str]],
-        global_indexes: Optional[List[Dict[str, Any]]],
-        local_secondary_indexes: Optional[List[Dict[str, Any]]],
-        attr: List[Dict[str, str]],
-        warm_throughput: Optional[Dict[str, Any]],
+        throughput: Optional[dict[str, Any]],
+        key_schema: list[dict[str, str]],
+        global_indexes: Optional[list[dict[str, Any]]],
+        local_secondary_indexes: Optional[list[dict[str, Any]]],
+        attr: list[dict[str, str]],
+        warm_throughput: Optional[dict[str, Any]],
     ) -> None:
         # Validate Throughput
         if billing_mode == "PAY_PER_REQUEST" and throughput:
@@ -464,9 +464,9 @@ class DynamoHandler(BaseResponse):
             raise MockValidationException(error_wcu)
 
     def _throw_attr_error(
-        self, actual_attrs: List[str], expected_attrs: List[str], indexes: bool
+        self, actual_attrs: list[str], expected_attrs: list[str], indexes: bool
     ) -> None:
-        def dump_list(list_: List[str]) -> str:
+        def dump_list(list_: list[str]) -> str:
             return str(list_).replace("'", "")
 
         err_head = "One or more parameter values were invalid: "
@@ -760,7 +760,7 @@ class DynamoHandler(BaseResponse):
     def batch_get_item(self) -> str:
         table_batches = self.body["RequestItems"]
 
-        results: Dict[str, Any] = {
+        results: dict[str, Any] = {
             "ConsumedCapacity": [],
             "Responses": {},
             "UnprocessedKeys": {},
@@ -827,7 +827,7 @@ class DynamoHandler(BaseResponse):
             )
         return dynamo_json_dump(results)
 
-    def _contains_duplicates(self, keys: List[str]) -> bool:
+    def _contains_duplicates(self, keys: list[str]) -> bool:
         unique_keys = []
         for k in keys:
             if k in unique_keys:
@@ -944,7 +944,7 @@ class DynamoHandler(BaseResponse):
             **filter_kwargs,
         )
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "Count": len(items),
             "ScannedCount": scanned_count,
         }
@@ -1215,7 +1215,7 @@ class DynamoHandler(BaseResponse):
             )
         return dynamo_json_dump(item_dict)
 
-    def _get_expr_attr_values(self) -> Dict[str, Dict[str, str]]:
+    def _get_expr_attr_values(self) -> dict[str, dict[str, str]]:
         values = self.body.get("ExpressionAttributeValues")
         if values is None:
             return {}
@@ -1283,7 +1283,7 @@ class DynamoHandler(BaseResponse):
 
     def transact_get_items(self) -> str:
         transact_items = self.body["TransactItems"]
-        responses: List[Dict[str, Any]] = list()
+        responses: list[dict[str, Any]] = list()
 
         if len(transact_items) > TRANSACTION_MAX_ITEMS:
             msg = "1 validation error detected: Value '["
@@ -1293,20 +1293,18 @@ class DynamoHandler(BaseResponse):
                 request_id += 1
                 hex_request_id = format(request_id, "x")
                 err_list.append(
-                    "com.amazonaws.dynamodb.v20120810.TransactGetItem@%s"
-                    % hex_request_id
+                    f"com.amazonaws.dynamodb.v20120810.TransactGetItem@{hex_request_id}"
                 )
             msg += ", ".join(err_list)
             msg += (
                 "'] at 'transactItems' failed to satisfy constraint: "
-                "Member must have length less than or equal to %s"
-                % TRANSACTION_MAX_ITEMS
+                f"Member must have length less than or equal to {TRANSACTION_MAX_ITEMS}"
             )
 
             raise MockValidationException(msg)
 
         ret_consumed_capacity = self.body.get("ReturnConsumedCapacity", "NONE")
-        consumed_capacity: Dict[str, Any] = dict()
+        consumed_capacity: dict[str, Any] = dict()
 
         for transact_item in transact_items:
             table_name = transact_item["Get"]["TableName"]
@@ -1397,7 +1395,7 @@ class DynamoHandler(BaseResponse):
             )
 
         self.dynamodb_backend.transact_write_items(transact_items)
-        response: Dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
+        response: dict[str, Any] = {"ConsumedCapacity": [], "ItemCollectionMetrics": {}}
         return dynamo_json_dump(response)
 
     def describe_continuous_backups(self) -> str:

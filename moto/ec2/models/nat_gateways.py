@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
@@ -13,13 +13,13 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         backend: Any,
         subnet_id: str,
         allocation_id: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         connectivity_type: str = "public",
     ):
         # public properties
         self.id = random_nat_gateway_id()
         self.subnet_id = subnet_id
-        self.address_set: List[Dict[str, Any]] = []
+        self.address_set: list[dict[str, Any]] = []
         self.state = "available"
         self.private_ip = random_private_ip()
         self.connectivity_type = connectivity_type
@@ -78,11 +78,11 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
 
 class NatGatewayBackend:
     def __init__(self) -> None:
-        self.nat_gateways: Dict[str, NatGateway] = {}
+        self.nat_gateways: dict[str, NatGateway] = {}
 
     def describe_nat_gateways(
-        self, filters: Any, nat_gateway_ids: Optional[List[str]]
-    ) -> List[NatGateway]:
+        self, filters: Any, nat_gateway_ids: Optional[list[str]]
+    ) -> list[NatGateway]:
         nat_gateways = list(self.nat_gateways.values())
 
         if nat_gateway_ids:
@@ -120,13 +120,13 @@ class NatGatewayBackend:
         self,
         subnet_id: str,
         allocation_id: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         connectivity_type: str = "public",
     ) -> NatGateway:
         nat_gateway = NatGateway(
             self, subnet_id, allocation_id, tags, connectivity_type
         )
-        address_set: Dict[str, Any] = {}
+        address_set: dict[str, Any] = {}
         if allocation_id:
             eips = self.address_by_allocation([allocation_id])  # type: ignore[attr-defined]
             eip = eips[0] if len(eips) > 0 else None

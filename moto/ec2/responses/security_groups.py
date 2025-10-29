@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from moto.core.responses import ActionResult, EmptyResult
 
@@ -12,12 +12,12 @@ def try_parse_int(value: Any, default: Any = None) -> Any:
         return default
 
 
-def parse_sg_attributes_from_dict(sg_attributes: Dict[str, Any]) -> Tuple[Any, ...]:
+def parse_sg_attributes_from_dict(sg_attributes: dict[str, Any]) -> tuple[Any, ...]:
     ip_protocol = sg_attributes.get("IpProtocol", [None])[0]
     from_port = sg_attributes.get("FromPort", [None])[0]
     to_port = sg_attributes.get("ToPort", [None])[0]
 
-    ip_ranges: List[Dict[str, Any]] = []
+    ip_ranges: list[dict[str, Any]] = []
     ip_ranges_tree = sg_attributes.get("IpRanges") or {}
     for ip_range_idx in sorted(ip_ranges_tree.keys()):
         ip_range = {"CidrIp": ip_ranges_tree[ip_range_idx]["CidrIp"][0]}
@@ -26,7 +26,7 @@ def parse_sg_attributes_from_dict(sg_attributes: Dict[str, Any]) -> Tuple[Any, .
 
         ip_ranges.append(ip_range)
 
-    ip_ranges_tree: Dict[str, Any] = sg_attributes.get("Ipv6Ranges") or {}  # type: ignore[no-redef]
+    ip_ranges_tree: dict[str, Any] = sg_attributes.get("Ipv6Ranges") or {}  # type: ignore[no-redef]
     for ip_range_idx in sorted(ip_ranges_tree.keys()):
         ip_range = {"CidrIpv6": ip_ranges_tree[ip_range_idx]["CidrIpv6"][0]}
         if ip_ranges_tree[ip_range_idx].get("Description"):
@@ -42,8 +42,8 @@ def parse_sg_attributes_from_dict(sg_attributes: Dict[str, Any]) -> Tuple[Any, .
         cidr_ipv6 = sg_attributes.get("CidrIpv6")[0]  # type: ignore
         ip_ranges.append({"CidrIpv6": cidr_ipv6})
 
-    source_groups: List[Dict[str, Any]] = []
-    groups_tree: Dict[str, Any] = sg_attributes.get("Groups") or {}
+    source_groups: list[dict[str, Any]] = []
+    groups_tree: dict[str, Any] = sg_attributes.get("Groups") or {}
     for group_idx in sorted(groups_tree.keys()):
         group_dict = groups_tree[group_idx]
         source_group = {}
@@ -57,8 +57,8 @@ def parse_sg_attributes_from_dict(sg_attributes: Dict[str, Any]) -> Tuple[Any, .
             source_group["OwnerId"] = group_dict["OwnerId"][0]
         source_groups.append(source_group)
 
-    prefix_list_ids: List[Dict[str, Any]] = []
-    pl_tree: Dict[str, Any] = sg_attributes.get("PrefixListIds") or {}
+    prefix_list_ids: list[dict[str, Any]] = []
+    pl_tree: dict[str, Any] = sg_attributes.get("PrefixListIds") or {}
     for pl_index in sorted(pl_tree):
         pl_dict = pl_tree.get(pl_index, {})
         pl_item = {}
@@ -76,7 +76,7 @@ class SecurityGroups(EC2BaseResponse):
         group_name_or_id = self._get_param("GroupName") or self._get_param("GroupId")
         security_rule_ids = self._get_multi_param("SecurityGroupRuleId")
 
-        querytree: Dict[str, Any] = {}
+        querytree: dict[str, Any] = {}
         for key, value in self.querystring.items():
             key_splitted = key.split(".")
             key_splitted = [try_parse_int(e, e) for e in key_splitted]

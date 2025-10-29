@@ -46,7 +46,7 @@ class ResilienceHubResponse(BaseResponse):
 
         required_policy_types = ["Software", "Hardware", "AZ"]
         all_policy_types = required_policy_types + ["Region"]
-        if any((p_type not in all_policy_types for p_type in policy.keys())):
+        if any(p_type not in all_policy_types for p_type in policy.keys()):
             raise ValidationException(
                 "1 validation error detected: Value at 'policy' failed to satisfy constraint: Map keys must satisfy constraint: [Member must satisfy enum value set: [Software, Hardware, Region, AZ]]"
             )

@@ -1,6 +1,7 @@
 import re
 import string
-from typing import Pattern, Union
+from re import Pattern
+from typing import Union
 
 from moto.moto_api._internal import mock_random as random
 

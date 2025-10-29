@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.appmesh.dataclasses.route import (
     GrcpRouteRetryPolicy,
@@ -68,7 +68,7 @@ from moto.appmesh.exceptions import (
 )
 
 
-def port_mappings_from_router_spec(spec: Any) -> List[RouterPortMapping]:  # type: ignore[misc]
+def port_mappings_from_router_spec(spec: Any) -> list[RouterPortMapping]:  # type: ignore[misc]
     return [
         RouterPortMapping(
             port=(listener.get("portMapping") or {}).get("port"),
@@ -90,7 +90,7 @@ def get_action_from_route(route: Any) -> RouteAction:  # type: ignore[misc]
     return RouteAction(weighted_targets=weighted_targets)
 
 
-def get_route_match_metadata(metadata: List[Any]) -> List[GrpcMetadatum]:  # type: ignore[misc]
+def get_route_match_metadata(metadata: list[Any]) -> list[GrpcMetadatum]:  # type: ignore[misc]
     output = []
     for _metadatum in metadata:
         _match = _metadatum.get("match")
@@ -251,7 +251,7 @@ def get_tls_for_client_policy(tls: Any) -> TLSClientPolicy:  # type: ignore[misc
     )
 
 
-def build_route_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
+def build_route_spec(spec: dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     _grpc_route = spec.get("grpcRoute")
     _http_route = spec.get("httpRoute")
     _http2_route = spec.get("http2Route")
@@ -332,7 +332,7 @@ def build_route_spec(spec: Dict[str, Any]) -> RouteSpec:  # type: ignore[misc]
     )
 
 
-def build_virtual_node_spec(spec: Dict[str, Any]) -> VirtualNodeSpec:  # type: ignore[misc]
+def build_virtual_node_spec(spec: dict[str, Any]) -> VirtualNodeSpec:  # type: ignore[misc]
     _backend_defaults = spec.get("backendDefaults")
     _backends = spec.get("backends")
     _listeners = spec.get("listeners")

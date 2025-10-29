@@ -4,8 +4,9 @@ import json
 import os
 import re
 import string
+from collections.abc import Iterable
 from datetime import date, datetime
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from urllib import parse
 
 from cryptography import x509
@@ -130,7 +131,7 @@ class VirtualMfaDevice:
         self.qr_code_png = os.urandom(64)  # this would be a generated PNG
 
         self.enable_date: Optional[datetime] = None
-        self.user_attribute: Optional[Dict[str, Any]] = None
+        self.user_attribute: Optional[dict[str, Any]] = None
         self.user: Optional[User] = None
 
 
@@ -151,7 +152,7 @@ class Policy(CloudFormationModel):
         path: Optional[str] = None,
         create_date: Optional[datetime] = None,
         update_date: Optional[datetime] = None,
-        tags: Optional[Dict[str, Dict[str, str]]] = None,
+        tags: Optional[dict[str, dict[str, str]]] = None,
     ):
         self.name = name
         self.account_id = account_id
@@ -190,7 +191,7 @@ class Policy(CloudFormationModel):
         self.default_version_id = new_default_version_id
 
     @property
-    def policy_version_list(self) -> List[Dict[str, bool | str | datetime | None]]:
+    def policy_version_list(self) -> list[dict[str, bool | str | datetime | None]]:
         return [
             {
                 "Document": parse.quote(version.document),
@@ -201,7 +202,7 @@ class Policy(CloudFormationModel):
             for version in self.versions
         ]
 
-    def get_tags(self) -> List[Dict[str, str]]:
+    def get_tags(self) -> list[dict[str, str]]:
         return [self.tags[tag] for tag in self.tags]
 
     @property
@@ -235,11 +236,11 @@ class OpenIDConnectProvider(BaseModel):
         account_id: str,
         region_name: str,
         url: str,
-        thumbprint_list: List[str],
-        client_id_list: List[str],
-        tags: Dict[str, Dict[str, str]],
+        thumbprint_list: list[str],
+        client_id_list: list[str],
+        tags: dict[str, dict[str, str]],
     ):
-        self._errors: List[str] = []
+        self._errors: list[str] = []
         self._validate(url, thumbprint_list, client_id_list)
 
         self.account_id = account_id
@@ -263,7 +264,7 @@ class OpenIDConnectProvider(BaseModel):
         return f"arn:{get_partition(self.region_name)}:iam::{self.account_id}:oidc-provider/{self.url}"
 
     def _validate(
-        self, url: str, thumbprint_list: List[str], client_id_list: List[str]
+        self, url: str, thumbprint_list: list[str], client_id_list: list[str]
     ) -> None:
         if any(len(client_id) > 255 for client_id in client_id_list):
             self._errors.append(
@@ -324,7 +325,7 @@ class OpenIDConnectProvider(BaseModel):
                 f"{count} validation error{plural} detected: {errors}"
             )
 
-    def get_tags(self) -> List[Dict[str, str]]:
+    def get_tags(self) -> list[dict[str, str]]:
         return [self.tags[tag] for tag in self.tags]
 
 
@@ -353,16 +354,16 @@ class ManagedPolicy(Policy, CloudFormationModel):
     """Managed policy."""
 
     @property
-    def backend(self) -> "IAMBackend":
+    def backend(self) -> IAMBackend:
         return iam_backends[self.account_id][self.partition]
 
     is_attachable = True
 
-    def attach_to(self, obj: Union["Role", "Group", "User"]) -> None:
+    def attach_to(self, obj: Union[Role, Group, User]) -> None:
         self.attachment_count += 1
         obj.managed_policies[self.arn] = self
 
-    def detach_from(self, obj: Union["Role", "Group", "User"]) -> None:
+    def detach_from(self, obj: Union[Role, Group, User]) -> None:
         self.attachment_count -= 1
         del obj.managed_policies[self.arn]
 
@@ -372,7 +373,7 @@ class ManagedPolicy(Policy, CloudFormationModel):
             f"arn:{self.partition}:iam::{self.account_id}:policy{self.path}{self.name}"
         )
 
-    def to_config_dict(self) -> Dict[str, Any]:
+    def to_config_dict(self) -> dict[str, Any]:
         return {
             "version": "1.3",
             "configurationItemCaptureTime": str(self.create_date),
@@ -431,11 +432,11 @@ class ManagedPolicy(Policy, CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "ManagedPolicy":
+    ) -> ManagedPolicy:
         properties = cloudformation_json.get("Properties", {})
         policy_document = json.dumps(properties.get("PolicyDocument"))
         name = properties.get("ManagedPolicyName", resource_name)
@@ -484,8 +485,8 @@ class AWSManagedPolicy(ManagedPolicy):
 
     @classmethod
     def from_data(  # type: ignore[misc]
-        cls, name: str, account_id: str, region_name: str, data: Dict[str, Any]
-    ) -> "AWSManagedPolicy":
+        cls, name: str, account_id: str, region_name: str, data: dict[str, Any]
+    ) -> AWSManagedPolicy:
         return cls(
             name,
             account_id=account_id,
@@ -509,9 +510,9 @@ class InlinePolicy(CloudFormationModel):
         resource_name: str,
         policy_name: str,
         policy_document: str,
-        group_names: List[str],
-        role_names: List[str],
-        user_names: List[str],
+        group_names: list[str],
+        role_names: list[str],
+        user_names: list[str],
     ):
         self.name = resource_name
         self.policy_name = policy_name
@@ -525,9 +526,9 @@ class InlinePolicy(CloudFormationModel):
         self,
         policy_name: str,
         policy_document: str,
-        group_names: List[str],
-        role_names: List[str],
-        user_names: List[str],
+        group_names: list[str],
+        role_names: list[str],
+        user_names: list[str],
     ) -> None:
         self.policy_name = policy_name
         self.policy_document = (
@@ -551,11 +552,11 @@ class InlinePolicy(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "InlinePolicy":
+    ) -> InlinePolicy:
         properties = cloudformation_json.get("Properties", {})
         policy_document = properties.get("PolicyDocument")
         policy_name = properties.get("PolicyName")
@@ -577,12 +578,12 @@ class InlinePolicy(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "InlinePolicy",
+        original_resource: InlinePolicy,
         new_resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
-    ) -> "InlinePolicy":
+    ) -> InlinePolicy:
         properties = cloudformation_json["Properties"]
 
         if cls.is_replacement_update(properties):
@@ -624,7 +625,7 @@ class InlinePolicy(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -633,8 +634,8 @@ class InlinePolicy(CloudFormationModel):
         )
 
     @staticmethod
-    def is_replacement_update(properties: List[str]) -> bool:
-        properties_requiring_replacement_update: List[str] = []
+    def is_replacement_update(properties: list[str]) -> bool:
+        properties_requiring_replacement_update: list[str] = []
         return any(
             [
                 property_requiring_replacement in properties
@@ -646,7 +647,7 @@ class InlinePolicy(CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.name
 
-    def apply_policy(self, backend: "IAMBackend") -> None:
+    def apply_policy(self, backend: IAMBackend) -> None:
         if self.user_names:
             for user_name in self.user_names:
                 backend.put_user_policy(
@@ -663,7 +664,7 @@ class InlinePolicy(CloudFormationModel):
                     group_name, self.policy_name, self.policy_document
                 )
 
-    def unapply_policy(self, backend: "IAMBackend") -> None:
+    def unapply_policy(self, backend: IAMBackend) -> None:
         if self.user_names:
             for user_name in self.user_names:
                 backend.delete_user_policy(user_name, self.policy_name)
@@ -686,7 +687,7 @@ class Role(CloudFormationModel):
         path: str,
         permissions_boundary: Optional[str],
         description: str,
-        tags: list[Dict[str, str]],
+        tags: list[dict[str, str]],
         max_session_duration: Optional[str],
         linked_service: Optional[str] = None,
     ):
@@ -696,8 +697,8 @@ class Role(CloudFormationModel):
         self.name = name
         self.assume_role_policy_document = assume_role_policy_document
         self.path = path or "/"
-        self.policies: Dict[str, str] = {}
-        self.managed_policies: Dict[str, ManagedPolicy] = {}
+        self.policies: dict[str, str] = {}
+        self.managed_policies: dict[str, ManagedPolicy] = {}
         self.create_date = utcnow()
         self.tags = tags
         # last_used should be treated as part of the public API
@@ -731,7 +732,7 @@ class Role(CloudFormationModel):
         return instance_profiles
 
     @property
-    def role_policy_list(self) -> List[Dict[str, str]]:
+    def role_policy_list(self) -> list[dict[str, str]]:
         policy_list = [
             {"PolicyName": name, "PolicyDocument": parse.quote(policy)}
             for name, policy in self.policies.items()
@@ -768,11 +769,11 @@ class Role(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Role":
+    ) -> Role:
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", resource_name)
 
@@ -804,12 +805,12 @@ class Role(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "Role",
+        original_resource: Role,
         new_resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
-    ) -> "Role":
+    ) -> Role:
         iam_backend = iam_backends[account_id][get_partition(region_name)]
         properties = cloudformation_json["Properties"]
         role_name = properties.get("RoleName", original_resource.name)
@@ -823,7 +824,7 @@ class Role(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -850,7 +851,7 @@ class Role(CloudFormationModel):
             return f"arn:{self.partition}:iam::{self.account_id}:role/aws-service-role/{self._linked_service}/{self.name}"
         return f"arn:{self.partition}:iam::{self.account_id}:role{self.path}{self.name}"
 
-    def to_config_dict(self) -> Dict[str, Any]:
+    def to_config_dict(self) -> dict[str, Any]:
         _managed_policies = []
         for key in self.managed_policies.keys():
             _managed_policies.append(
@@ -957,8 +958,8 @@ class InstanceProfile(CloudFormationModel):
         instance_profile_id: str,
         name: str,
         path: str,
-        roles: List[Role],
-        tags: Optional[List[Dict[str, str]]] = None,
+        roles: list[Role],
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.id = instance_profile_id
         self.account_id = account_id
@@ -982,11 +983,11 @@ class InstanceProfile(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "InstanceProfile":
+    ) -> InstanceProfile:
         properties = cloudformation_json["Properties"]
 
         role_names = properties["Roles"]
@@ -1002,7 +1003,7 @@ class InstanceProfile(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -1032,7 +1033,7 @@ class InstanceProfile(CloudFormationModel):
             return self.arn
         raise UnformattedGetAttTemplateException()
 
-    def to_embedded_config_dict(self) -> Dict[str, Any]:
+    def to_embedded_config_dict(self) -> dict[str, Any]:
         # Instance Profiles aren't a config item itself, but they are returned in IAM roles with
         # a "config like" json structure. It's also different than Role.to_config_dict()
         roles = []
@@ -1175,11 +1176,11 @@ class AccessKey(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "AccessKey":
+    ) -> AccessKey:
         properties = cloudformation_json.get("Properties", {})
         user_name = properties.get("UserName")
         status = properties.get("Status", "Active")
@@ -1191,12 +1192,12 @@ class AccessKey(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "AccessKey",
+        original_resource: AccessKey,
         new_resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
-    ) -> "AccessKey":
+    ) -> AccessKey:
         properties = cloudformation_json["Properties"]
 
         if cls.is_replacement_update(properties):
@@ -1226,7 +1227,7 @@ class AccessKey(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -1235,7 +1236,7 @@ class AccessKey(CloudFormationModel):
         )
 
     @staticmethod
-    def is_replacement_update(properties: List[str]) -> bool:
+    def is_replacement_update(properties: list[str]) -> bool:
         properties_requiring_replacement_update = ["Serial", "UserName"]
         return any(
             [
@@ -1268,12 +1269,12 @@ class Group(BaseModel):
         self.path = path
         self.create_date = utcnow()
 
-        self.users: List[User] = []
-        self.managed_policies: Dict[str, ManagedPolicy] = {}
-        self.policies: Dict[str, str] = {}
+        self.users: list[User] = []
+        self.managed_policies: dict[str, ManagedPolicy] = {}
+        self.policies: dict[str, str] = {}
 
     @property
-    def group_policy_list(self) -> List[Dict[str, str]]:
+    def group_policy_list(self) -> list[dict[str, str]]:
         policy_list = [
             {"PolicyName": name, "PolicyDocument": parse.quote(policy)}
             for name, policy in self.policies.items()
@@ -1281,7 +1282,7 @@ class Group(BaseModel):
         return policy_list
 
     @property
-    def attached_managed_policies(self) -> List[Dict[str, str]]:
+    def attached_managed_policies(self) -> list[dict[str, str]]:
         attached_policies = []
         for policy in self.managed_policies.values():
             attached_policies.append(
@@ -1311,7 +1312,7 @@ class Group(BaseModel):
             # The path must by definition end and start with a forward slash. So we don't have to add more slashes to the ARN
             return f"arn:{self.partition}:iam::{self.account_id}:group{self.path}{self.name}"
 
-    def get_policy(self, policy_name: str) -> Dict[str, str]:
+    def get_policy(self, policy_name: str) -> dict[str, str]:
         try:
             policy_json = self.policies[policy_name]
         except KeyError:
@@ -1326,7 +1327,7 @@ class Group(BaseModel):
     def put_policy(self, policy_name: str, policy_json: str) -> None:
         self.policies[policy_name] = policy_json
 
-    def list_policies(self) -> List[str]:
+    def list_policies(self) -> list[str]:
         return list(self.policies.keys())
 
     def delete_policy(self, policy_name: str) -> None:
@@ -1346,17 +1347,17 @@ class User(CloudFormationModel):
         self.id = random_resource_id()
         self.path = path if path else "/"
         self.create_date = utcnow()
-        self.mfa_devices: Dict[str, MFADevice] = {}
-        self.policies: Dict[str, str] = {}
-        self.managed_policies: Dict[str, ManagedPolicy] = {}
-        self.access_keys: List[AccessKey] = []
-        self.ssh_public_keys: List[SshPublicKey] = []
+        self.mfa_devices: dict[str, MFADevice] = {}
+        self.policies: dict[str, str] = {}
+        self.managed_policies: dict[str, ManagedPolicy] = {}
+        self.access_keys: list[AccessKey] = []
+        self.ssh_public_keys: list[SshPublicKey] = []
         self.password: Optional[str] = None
         # last_used should be treated as part of the public API
         # https://github.com/getmoto/moto/issues/5927
         self.password_last_used = None
         self.password_reset_required = False
-        self.signing_certificates: Dict[str, SigningCertificate] = {}
+        self.signing_certificates: dict[str, SigningCertificate] = {}
 
     @property
     def attached_managed_policies(self) -> list[dict[str, str]]:
@@ -1371,7 +1372,7 @@ class User(CloudFormationModel):
         return managed_policies
 
     @property
-    def user_policy_list(self) -> List[Dict[str, str]]:
+    def user_policy_list(self) -> list[dict[str, str]]:
         policy_list = [
             {"PolicyName": name, "PolicyDocument": parse.quote(policy)}
             for name, policy in self.policies.items()
@@ -1395,7 +1396,7 @@ class User(CloudFormationModel):
         partition = get_partition(self.region_name)
         return f"arn:{partition}:iam::{self.account_id}:user{self.path}{self.name}"
 
-    def get_policy(self, policy_name: str) -> Dict[str, str]:
+    def get_policy(self, policy_name: str) -> dict[str, str]:
         try:
             policy_json = self.policies[policy_name]
         except KeyError:
@@ -1433,7 +1434,7 @@ class User(CloudFormationModel):
             serial_number, authentication_code_1, authentication_code_2
         )
 
-    def get_all_access_keys(self) -> List[AccessKey]:
+    def get_all_access_keys(self) -> list[AccessKey]:
         return self.access_keys
 
     def delete_access_key(self, access_key_id: str) -> None:
@@ -1480,7 +1481,7 @@ class User(CloudFormationModel):
             f"The SSH Public Key with id {ssh_public_key_id} cannot be found"
         )
 
-    def get_all_ssh_public_keys(self) -> List[SshPublicKey]:
+    def get_all_ssh_public_keys(self) -> list[SshPublicKey]:
         return self.ssh_public_keys
 
     def update_ssh_public_key(self, ssh_public_key_id: str, status: str) -> None:
@@ -1606,11 +1607,11 @@ class User(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "User":
+    ) -> User:
         properties = cloudformation_json.get("Properties", {})
         path = properties.get("Path")
         return iam_backends[account_id][get_partition(region_name)].create_user(
@@ -1620,12 +1621,12 @@ class User(CloudFormationModel):
     @classmethod
     def update_from_cloudformation_json(  # type: ignore[misc]
         cls,
-        original_resource: "User",
+        original_resource: User,
         new_resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
-    ) -> "User":
+    ) -> User:
         properties = cloudformation_json["Properties"]
 
         if cls.is_replacement_update(properties):
@@ -1653,14 +1654,14 @@ class User(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
         iam_backends[account_id][get_partition(region_name)].delete_user(resource_name)
 
     @staticmethod
-    def is_replacement_update(properties: List[str]) -> bool:
+    def is_replacement_update(properties: list[str]) -> bool:
         properties_requiring_replacement_update = ["UserName"]
         return any(
             [
@@ -1687,7 +1688,7 @@ class AccountPasswordPolicy(BaseModel):
         require_symbols: bool,
         require_uppercase_characters: bool,
     ):
-        self._errors: List[str] = []
+        self._errors: list[str] = []
         self._validate(
             max_password_age, minimum_password_length, password_reuse_prevention
         )
@@ -1757,7 +1758,7 @@ class AccountPasswordPolicy(BaseModel):
 
 
 class AccountSummary(BaseModel):
-    def __init__(self, iam_backend: "IAMBackend"):
+    def __init__(self, iam_backend: IAMBackend):
         self._iam_backend = iam_backend
 
         self._group_policy_size_quota = 5120
@@ -1787,7 +1788,7 @@ class AccountSummary(BaseModel):
         self._groups_quota = 300
 
     @property
-    def summary_map(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def summary_map(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "GroupPolicySizeQuota": self._group_policy_size_quota,
             "InstanceProfilesQuota": self._instance_profiles_quota,
@@ -1892,31 +1893,31 @@ def filter_items_with_path_prefix(
 class IAMBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name=region_name, account_id=account_id)
-        self.instance_profiles: Dict[str, InstanceProfile] = {}
-        self.roles: Dict[str, Role] = {}
-        self.certificates: Dict[str, Certificate] = {}
-        self.groups: Dict[str, Group] = {}
-        self.users: Dict[str, User] = {}
+        self.instance_profiles: dict[str, InstanceProfile] = {}
+        self.roles: dict[str, Role] = {}
+        self.certificates: dict[str, Certificate] = {}
+        self.groups: dict[str, Group] = {}
+        self.users: dict[str, User] = {}
         self.credential_report: Optional[bool] = None
         self.aws_managed_policies = self._init_aws_policies()
         self.managed_policies = self._init_managed_policies()
-        self.account_aliases: List[str] = []
-        self.saml_providers: Dict[str, SAMLProvider] = {}
-        self.open_id_providers: Dict[str, OpenIDConnectProvider] = {}
+        self.account_aliases: list[str] = []
+        self.saml_providers: dict[str, SAMLProvider] = {}
+        self.open_id_providers: dict[str, OpenIDConnectProvider] = {}
         self.policy_arn_regex = re.compile(
             ARN_PARTITION_REGEX + r":iam::(aws|[0-9]*):policy/.*$"
         )
-        self.virtual_mfa_devices: Dict[str, VirtualMfaDevice] = {}
+        self.virtual_mfa_devices: dict[str, VirtualMfaDevice] = {}
         self.account_password_policy: Optional[AccountPasswordPolicy] = None
         self.account_summary = AccountSummary(self)
-        self.inline_policies: Dict[str, InlinePolicy] = {}
-        self.access_keys: Dict[str, AccessKey] = {}
+        self.inline_policies: dict[str, InlinePolicy] = {}
+        self.access_keys: dict[str, AccessKey] = {}
 
         self.tagger = TaggingService()
 
         self.initialize_service_roles()
 
-    def _init_aws_policies(self) -> List[ManagedPolicy]:
+    def _init_aws_policies(self) -> list[ManagedPolicy]:
         if not load_iam_aws_managed_policies():
             return []
         # AWS defines some of its own managed policies
@@ -1927,7 +1928,7 @@ class IAMBackend(BaseBackend):
             for name, d in aws_managed_policies_data_parsed.items()
         ]
 
-    def _init_managed_policies(self) -> Dict[str, ManagedPolicy]:
+    def _init_managed_policies(self) -> dict[str, ManagedPolicy]:
         return dict((p.arn, p) for p in self.aws_managed_policies)
 
     def initialize_service_roles(self) -> None:
@@ -2038,7 +2039,7 @@ class IAMBackend(BaseBackend):
         path: str,
         policy_document: str,
         policy_name: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
     ) -> ManagedPolicy:
         iam_policy_document_validator = IAMPolicyDocumentValidator(policy_document)
         iam_policy_document_validator.validate()
@@ -2071,7 +2072,7 @@ class IAMBackend(BaseBackend):
         marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> Tuple[Iterable[ManagedPolicy], Optional[str]]:
+    ) -> tuple[Iterable[ManagedPolicy], Optional[str]]:
         policies = self.get_role(role_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
@@ -2081,7 +2082,7 @@ class IAMBackend(BaseBackend):
         marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> Tuple[Iterable[Any], Optional[str]]:
+    ) -> tuple[Iterable[Any], Optional[str]]:
         policies = self.get_group(group_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
@@ -2091,7 +2092,7 @@ class IAMBackend(BaseBackend):
         marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> Tuple[Iterable[Any], Optional[str]]:
+    ) -> tuple[Iterable[Any], Optional[str]]:
         policies = self.get_user(user_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
@@ -2102,7 +2103,7 @@ class IAMBackend(BaseBackend):
         only_attached: bool,
         path_prefix: str,
         scope: str,
-    ) -> Tuple[Iterable[ManagedPolicy], Optional[str]]:
+    ) -> tuple[Iterable[ManagedPolicy], Optional[str]]:
         policies = list(self.managed_policies.values())
 
         if only_attached:
@@ -2138,7 +2139,7 @@ class IAMBackend(BaseBackend):
         marker: Optional[str],
         max_items: int,
         path_prefix: str,
-    ) -> Tuple[Iterable[Any], Optional[str]]:
+    ) -> tuple[Iterable[Any], Optional[str]]:
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
 
@@ -2161,7 +2162,7 @@ class IAMBackend(BaseBackend):
         path: str,
         permissions_boundary: Optional[str],
         description: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         max_session_duration: Optional[str],
         linked_service: Optional[str] = None,
     ) -> Role:
@@ -2248,7 +2249,7 @@ class IAMBackend(BaseBackend):
         role = self.get_role(role_name)
         role.delete_policy(policy_name)
 
-    def get_role_policy(self, role_name: str, policy_name: str) -> Tuple[str, str]:
+    def get_role_policy(self, role_name: str, policy_name: str) -> tuple[str, str]:
         role = self.get_role(role_name)
         for p, d in role.policies.items():
             if p == policy_name:
@@ -2257,17 +2258,17 @@ class IAMBackend(BaseBackend):
             f"Policy Document {policy_name} not attached to role {role_name}"
         )
 
-    def list_role_policies(self, role_name: str) -> List[str]:
+    def list_role_policies(self, role_name: str) -> list[str]:
         role = self.get_role(role_name)
         return list(role.policies.keys())
 
     def _tag_verification(
-        self, tags: List[Dict[str, str]]
-    ) -> Dict[str, Dict[str, str]]:
+        self, tags: list[dict[str, str]]
+    ) -> dict[str, dict[str, str]]:
         if len(tags) > 50:
             raise TooManyTags(tags)
 
-        tag_keys: Dict[str, Dict[str, str]] = {}
+        tag_keys: dict[str, dict[str, str]] = {}
         for tag in tags:
             # Need to index by the lowercase tag key since the keys are case insensitive, but their case is retained.
             ref_key = tag["Key"].lower()
@@ -2302,7 +2303,7 @@ class IAMBackend(BaseBackend):
             raise InvalidTagCharacters(tag_key, param=exception_param)
 
     def _check_tag_duplicate(
-        self, all_tags: Dict[str, Dict[str, str]], tag_key: str
+        self, all_tags: dict[str, dict[str, str]], tag_key: str
     ) -> None:
         """Validates that a tag key is not a duplicate
 
@@ -2315,7 +2316,7 @@ class IAMBackend(BaseBackend):
 
     def list_role_tags(
         self, role_name: str, marker: Optional[str], max_items: int = 100
-    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         role = self.get_role(role_name)
 
         max_items = int(max_items)
@@ -2331,7 +2332,7 @@ class IAMBackend(BaseBackend):
 
         return tag_index, marker
 
-    def tag_role(self, role_name: str, tags: List[Dict[str, str]]) -> None:
+    def tag_role(self, role_name: str, tags: list[dict[str, str]]) -> None:
         self._tag_verification(tags)
         role = self.get_role(role_name)
         new_keys = [tag["Key"] for tag in tags]
@@ -2339,7 +2340,7 @@ class IAMBackend(BaseBackend):
         updated_tags.extend(tags)
         role.tags = updated_tags
 
-    def untag_role(self, role_name: str, tag_keys: List[str]) -> None:
+    def untag_role(self, role_name: str, tag_keys: list[str]) -> None:
         if len(tag_keys) > 50:
             raise TooManyTags(tag_keys, param="tagKeys")
 
@@ -2352,7 +2353,7 @@ class IAMBackend(BaseBackend):
 
     def list_policy_tags(
         self, policy_arn: str, marker: Optional[str], max_items: int = 100
-    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         policy = self.get_policy(policy_arn)
 
         max_items = int(max_items)
@@ -2371,12 +2372,12 @@ class IAMBackend(BaseBackend):
 
         return tags, marker
 
-    def tag_policy(self, policy_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_policy(self, policy_arn: str, tags: list[dict[str, str]]) -> None:
         clean_tags = self._tag_verification(tags)
         policy = self.get_policy(policy_arn)
         policy.tags.update(clean_tags)
 
-    def untag_policy(self, policy_arn: str, tag_keys: List[str]) -> None:
+    def untag_policy(self, policy_arn: str, tag_keys: list[str]) -> None:
         if len(tag_keys) > 50:
             raise TooManyTags(tag_keys, param="tagKeys")
 
@@ -2418,7 +2419,7 @@ class IAMBackend(BaseBackend):
                 return version
         raise NotFoundException("Policy version not found")
 
-    def list_policy_versions(self, policy_arn: str) -> List[PolicyVersion]:
+    def list_policy_versions(self, policy_arn: str) -> list[PolicyVersion]:
         policy = self.get_policy(policy_arn)
         if not policy:
             raise NotFoundException("Policy not found")
@@ -2442,8 +2443,8 @@ class IAMBackend(BaseBackend):
         self,
         name: str,
         path: str,
-        role_names: List[str],
-        tags: Optional[List[Dict[str, str]]] = None,
+        role_names: list[str],
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> InstanceProfile:
         if self.instance_profiles.get(name):
             raise EntityAlreadyExists(
@@ -2492,7 +2493,7 @@ class IAMBackend(BaseBackend):
     def get_instance_profiles(self) -> Iterable[InstanceProfile]:
         return self.instance_profiles.values()
 
-    def get_instance_profiles_for_role(self, role_name: str) -> List[InstanceProfile]:
+    def get_instance_profiles_for_role(self, role_name: str) -> list[InstanceProfile]:
         found_profiles = []
 
         for profile in self.get_instance_profiles():
@@ -2595,7 +2596,7 @@ class IAMBackend(BaseBackend):
     def list_groups(self) -> Iterable[Group]:
         return self.groups.values()
 
-    def get_groups_for_user(self, user_name: str) -> List[Group]:
+    def get_groups_for_user(self, user_name: str) -> list[Group]:
         user = self.get_user(user_name)
         groups = []
         for group in self.list_groups():
@@ -2613,7 +2614,7 @@ class IAMBackend(BaseBackend):
         iam_policy_document_validator.validate()
         group.put_policy(policy_name, policy_json)
 
-    def list_group_policies(self, group_name: str) -> List[str]:
+    def list_group_policies(self, group_name: str) -> list[str]:
         """
         Pagination is not yet implemented
         """
@@ -2624,7 +2625,7 @@ class IAMBackend(BaseBackend):
         group = self.get_group(group_name)
         group.delete_policy(policy_name)
 
-    def get_group_policy(self, group_name: str, policy_name: str) -> Dict[str, str]:
+    def get_group_policy(self, group_name: str, policy_name: str) -> dict[str, str]:
         group = self.get_group(group_name)
         return group.get_policy(policy_name)
 
@@ -2664,7 +2665,7 @@ class IAMBackend(BaseBackend):
         region_name: str,
         user_name: str,
         path: str = "/",
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> User:
         if user_name in self.users:
             raise EntityAlreadyExists(f"User {user_name} already exists")
@@ -2722,7 +2723,7 @@ class IAMBackend(BaseBackend):
         path_prefix: Optional[str] = None,
         marker: Optional[str] = None,
         max_items: Optional[int] = None,
-    ) -> Tuple[List[Role], Optional[str]]:
+    ) -> tuple[list[Role], Optional[str]]:
         path_prefix = path_prefix if path_prefix else "/"
         max_items = int(max_items) if max_items else 100
         start_index = int(marker) if marker else 0
@@ -2778,7 +2779,7 @@ class IAMBackend(BaseBackend):
                 f"The Certificate with id {cert_id} cannot be found."
             )
 
-    def list_signing_certificates(self, user_name: str) -> List[SigningCertificate]:
+    def list_signing_certificates(self, user_name: str) -> list[SigningCertificate]:
         user = self.get_user(user_name)
 
         return list(user.signing_certificates.values())
@@ -2841,7 +2842,7 @@ class IAMBackend(BaseBackend):
         except ValueError:
             raise NotFoundException(f"User {user_name} not in group {group_name}")
 
-    def get_user_policy(self, user_name: str, policy_name: str) -> Dict[str, str]:
+    def get_user_policy(self, user_name: str, policy_name: str) -> dict[str, str]:
         user = self.get_user(user_name)
         return user.get_policy(policy_name)
 
@@ -2849,7 +2850,7 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         return user.policies.keys()
 
-    def list_user_tags(self, user_name: str) -> List[Dict[str, str]]:
+    def list_user_tags(self, user_name: str) -> list[dict[str, str]]:
         user = self.get_user(user_name)
         return self.tagger.list_tags_for_resource(user.arn)["Tags"]
 
@@ -2896,7 +2897,7 @@ class IAMBackend(BaseBackend):
         user = self.get_user(user_name)
         return user.update_access_key(access_key_id, status)
 
-    def get_access_key_last_used(self, access_key_id: str) -> Dict[str, Any]:
+    def get_access_key_last_used(self, access_key_id: str) -> dict[str, Any]:
         access_keys_list = self.get_all_access_keys_for_all_users()
         for key in access_keys_list:
             if key.access_key_id == access_key_id:
@@ -2906,14 +2907,14 @@ class IAMBackend(BaseBackend):
             f"The Access Key with id {access_key_id} cannot be found"
         )
 
-    def get_all_access_keys_for_all_users(self) -> List[AccessKey]:
+    def get_all_access_keys_for_all_users(self) -> list[AccessKey]:
         access_keys_list = []
         for account in iam_backends.values():
             for user_name in account[self.partition].users:
                 access_keys_list += account[self.partition].list_access_keys(user_name)
         return access_keys_list
 
-    def list_access_keys(self, user_name: str) -> List[AccessKey]:
+    def list_access_keys(self, user_name: str) -> list[AccessKey]:
         """
         Pagination is not yet implemented
         """
@@ -3059,7 +3060,7 @@ class IAMBackend(BaseBackend):
 
     def list_virtual_mfa_devices(
         self, assignment_status: str, marker: Optional[str], max_items: int
-    ) -> Tuple[List[VirtualMfaDevice], Optional[str]]:
+    ) -> tuple[list[VirtualMfaDevice], Optional[str]]:
         devices = list(self.virtual_mfa_devices.values())
 
         if assignment_status == "Assigned":
@@ -3111,7 +3112,7 @@ class IAMBackend(BaseBackend):
             report += self.users[user].to_csv()
         return report
 
-    def list_account_aliases(self) -> List[str]:
+    def list_account_aliases(self) -> list[str]:
         return self.account_aliases
 
     def create_account_alias(self, alias: str) -> None:
@@ -3122,8 +3123,8 @@ class IAMBackend(BaseBackend):
         self.account_aliases = []
 
     def get_account_authorization_details(
-        self, policy_filter: List[str]
-    ) -> Dict[str, Any]:
+        self, policy_filter: list[str]
+    ) -> dict[str, Any]:
         policies = self.managed_policies.values()
         local_policies = set(policies) - set(self.aws_managed_policies)
         returned_policies = []
@@ -3197,9 +3198,9 @@ class IAMBackend(BaseBackend):
     def create_open_id_connect_provider(
         self,
         url: str,
-        thumbprint_list: List[str],
-        client_id_list: List[str],
-        tags: List[Dict[str, str]],
+        thumbprint_list: list[str],
+        client_id_list: list[str],
+        tags: list[dict[str, str]],
     ) -> OpenIDConnectProvider:
         clean_tags = self._tag_verification(tags)
         open_id_provider = OpenIDConnectProvider(
@@ -3218,19 +3219,19 @@ class IAMBackend(BaseBackend):
         return open_id_provider
 
     def update_open_id_connect_provider_thumbprint(
-        self, arn: str, thumbprint_list: List[str]
+        self, arn: str, thumbprint_list: list[str]
     ) -> None:
         open_id_provider = self.get_open_id_connect_provider(arn)
         open_id_provider.thumbprint_list = thumbprint_list
 
     def tag_open_id_connect_provider(
-        self, arn: str, tags: List[Dict[str, str]]
+        self, arn: str, tags: list[dict[str, str]]
     ) -> None:
         open_id_provider = self.get_open_id_connect_provider(arn)
         clean_tags = self._tag_verification(tags)
         open_id_provider.tags.update(clean_tags)
 
-    def untag_open_id_connect_provider(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_open_id_connect_provider(self, arn: str, tag_keys: list[str]) -> None:
         open_id_provider = self.get_open_id_connect_provider(arn)
 
         for key in tag_keys:
@@ -3240,7 +3241,7 @@ class IAMBackend(BaseBackend):
 
     def list_open_id_connect_provider_tags(
         self, arn: str, marker: Optional[str], max_items: int = 100
-    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         open_id_provider = self.get_open_id_connect_provider(arn)
 
         max_items = int(max_items)
@@ -3268,7 +3269,7 @@ class IAMBackend(BaseBackend):
 
         return open_id_provider
 
-    def list_open_id_connect_providers(self) -> List[str]:
+    def list_open_id_connect_providers(self) -> list[str]:
         return list(self.open_id_providers.keys())
 
     def update_account_password_policy(
@@ -3319,9 +3320,9 @@ class IAMBackend(BaseBackend):
         resource_name: str,
         policy_name: str,
         policy_document: str,
-        group_names: List[str],
-        role_names: List[str],
-        user_names: List[str],
+        group_names: list[str],
+        role_names: list[str],
+        user_names: list[str],
     ) -> InlinePolicy:
         if resource_name in self.inline_policies:
             raise EntityAlreadyExists(f"Inline Policy {resource_name} already exists")
@@ -3349,9 +3350,9 @@ class IAMBackend(BaseBackend):
         resource_name: str,
         policy_name: str,
         policy_document: str,
-        group_names: List[str],
-        role_names: List[str],
-        user_names: List[str],
+        group_names: list[str],
+        role_names: list[str],
+        user_names: list[str],
     ) -> InlinePolicy:
         inline_policy = self.get_inline_policy(resource_name)
         inline_policy.unapply_policy(self)
@@ -3366,12 +3367,12 @@ class IAMBackend(BaseBackend):
         inline_policy.unapply_policy(self)
         del self.inline_policies[policy_id]
 
-    def tag_user(self, name: str, tags: List[Dict[str, str]]) -> None:
+    def tag_user(self, name: str, tags: list[dict[str, str]]) -> None:
         user = self.get_user(name)
 
         self.tagger.tag_resource(user.arn, tags)
 
-    def untag_user(self, name: str, tag_keys: List[str]) -> None:
+    def untag_user(self, name: str, tag_keys: list[str]) -> None:
         user = self.get_user(name)
 
         self.tagger.untag_resource_using_names(user.arn, tag_keys)
@@ -3425,7 +3426,7 @@ class IAMBackend(BaseBackend):
         return True
 
     def tag_instance_profile(
-        self, instance_profile_name: str, tags: List[Dict[str, str]]
+        self, instance_profile_name: str, tags: list[dict[str, str]]
     ) -> None:
         profile = self.get_instance_profile(profile_name=instance_profile_name)
         new_keys = [tag["Key"] for tag in tags]
@@ -3434,7 +3435,7 @@ class IAMBackend(BaseBackend):
         profile.tags = updated_tags
 
     def untag_instance_profile(
-        self, instance_profile_name: str, tagKeys: List[str]
+        self, instance_profile_name: str, tagKeys: list[str]
     ) -> None:
         profile = self.get_instance_profile(profile_name=instance_profile_name)
         profile.tags = [tag for tag in profile.tags if tag["Key"] not in tagKeys]

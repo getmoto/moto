@@ -73,7 +73,7 @@ class CertificateCreator:
             certpath = f"{self.certdir.rstrip('/')}/{wildcard_filename}.crt"
             if not os.path.isfile(certpath):
                 # Create a Config-file that contains the wildcard-name
-                with open(f"{self.certdir.rstrip('/')}/req.conf.tmpl", "r") as f:
+                with open(f"{self.certdir.rstrip('/')}/req.conf.tmpl") as f:
                     config_template = f.read()
                 config_template = config_template.replace("{{full_name}}", full_name)
                 config_template = config_template.replace(

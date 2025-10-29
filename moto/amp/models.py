@@ -1,6 +1,6 @@
 """PrometheusServiceBackend class with methods for supported APIs."""
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -22,7 +22,7 @@ class RuleGroupNamespace(BaseModel):
         workspace_id: str,
         name: str,
         data: str,
-        tag_fn: Callable[[str], Dict[str, str]],
+        tag_fn: Callable[[str], dict[str, str]],
     ):
         self.name = name
         self.data = data
@@ -35,7 +35,7 @@ class RuleGroupNamespace(BaseModel):
         self.data = new_data
         self.modified_at = unix_time()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "arn": self.arn,
@@ -53,7 +53,7 @@ class Workspace(BaseModel):
         account_id: str,
         region: str,
         alias: str,
-        tag_fn: Callable[[str], Dict[str, str]],
+        tag_fn: Callable[[str], dict[str, str]],
     ):
         self.alias = alias
         self.workspace_id = f"ws-{mock_random.uuid4()}"
@@ -62,10 +62,10 @@ class Workspace(BaseModel):
         self.status = {"statusCode": "ACTIVE"}
         self.created_at = unix_time()
         self.tag_fn = tag_fn
-        self.rule_group_namespaces: Dict[str, RuleGroupNamespace] = dict()
-        self.logging_config: Optional[Dict[str, Any]] = None
+        self.rule_group_namespaces: dict[str, RuleGroupNamespace] = dict()
+        self.logging_config: Optional[dict[str, Any]] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "alias": self.alias,
             "arn": self.arn,
@@ -82,10 +82,10 @@ class PrometheusServiceBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.workspaces: Dict[str, Workspace] = dict()
+        self.workspaces: dict[str, Workspace] = dict()
         self.tagger = TaggingService()
 
-    def create_workspace(self, alias: str, tags: Dict[str, str]) -> Workspace:
+    def create_workspace(self, alias: str, tags: dict[str, str]) -> Workspace:
         """
         The ClientToken-parameter is not yet implemented
         """
@@ -104,7 +104,7 @@ class PrometheusServiceBackend(BaseBackend):
             raise WorkspaceNotFound(workspace_id)
         return self.workspaces[workspace_id]
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
     def update_workspace_alias(self, alias: str, workspace_id: str) -> None:
@@ -120,20 +120,20 @@ class PrometheusServiceBackend(BaseBackend):
         self.workspaces.pop(workspace_id, None)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_workspaces(self, alias: str) -> List[Workspace]:
+    def list_workspaces(self, alias: str) -> list[Workspace]:
         if alias:
             return [w for w in self.workspaces.values() if w.alias == alias]
         return list(self.workspaces.values())
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tag_list = self.tagger.convert_dict_to_tags_input(tags)
         self.tagger.tag_resource(resource_arn, tag_list)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_rule_groups_namespace(
-        self, data: str, name: str, tags: Dict[str, str], workspace_id: str
+        self, data: str, name: str, tags: dict[str, str], workspace_id: str
     ) -> RuleGroupNamespace:
         """
         The ClientToken-parameter is not yet implemented
@@ -179,7 +179,7 @@ class PrometheusServiceBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_rule_groups_namespaces(
         self, name: str, workspace_id: str
-    ) -> List[RuleGroupNamespace]:
+    ) -> list[RuleGroupNamespace]:
         ws = self.describe_workspace(workspace_id)
         if name:
             return [
@@ -191,7 +191,7 @@ class PrometheusServiceBackend(BaseBackend):
 
     def create_logging_configuration(
         self, workspace_id: str, log_group_arn: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         ws = self.describe_workspace(workspace_id)
         ws.logging_config = {
             "logGroupArn": log_group_arn,
@@ -201,7 +201,7 @@ class PrometheusServiceBackend(BaseBackend):
         }
         return ws.logging_config["status"]
 
-    def describe_logging_configuration(self, workspace_id: str) -> Dict[str, Any]:
+    def describe_logging_configuration(self, workspace_id: str) -> dict[str, Any]:
         ws = self.describe_workspace(workspace_id)
         if ws.logging_config is None:
             return {}
@@ -213,7 +213,7 @@ class PrometheusServiceBackend(BaseBackend):
 
     def update_logging_configuration(
         self, workspace_id: str, log_group_arn: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         ws = self.describe_workspace(workspace_id)
         ws.logging_config["logGroupArn"] = log_group_arn  # type: ignore[index]
         ws.logging_config["modifiedAt"] = unix_time()  # type: ignore[index]

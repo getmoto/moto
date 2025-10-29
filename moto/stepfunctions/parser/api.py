@@ -1,6 +1,7 @@
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from typing import IO, Dict, Iterable, List, Optional, TypedDict, Union
+from typing import IO, Optional, TypedDict, Union
 
 from ..exceptions import AWSError as ServiceException
 
@@ -445,7 +446,7 @@ class ActivityListItem(TypedDict, total=False):
     creationDate: Timestamp
 
 
-ActivityList = List[ActivityListItem]
+ActivityList = list[ActivityListItem]
 
 
 class ActivityScheduleFailedEventDetails(TypedDict, total=False):
@@ -482,7 +483,7 @@ class ActivityTimedOutEventDetails(TypedDict, total=False):
     cause: Optional[SensitiveCause]
 
 
-AssignedVariables = Dict[VariableName, VariableValue]
+AssignedVariables = dict[VariableName, VariableValue]
 
 
 class AssignedVariablesDetails(TypedDict, total=False):
@@ -506,15 +507,10 @@ class CloudWatchLogsLogGroup(TypedDict, total=False):
     logGroupArn: Optional[Arn]
 
 
-EncryptionConfiguration = TypedDict(
-    "EncryptionConfiguration",
-    {
-        "kmsKeyId": Optional[KmsKeyId],
-        "kmsDataKeyReusePeriodSeconds": Optional[KmsDataKeyReusePeriodSeconds],
-        "type": EncryptionType,
-    },
-    total=False,
-)
+class EncryptionConfiguration(TypedDict, total=False):
+    kmsKeyId: Optional[KmsKeyId]
+    kmsDataKeyReusePeriodSeconds: Optional[KmsDataKeyReusePeriodSeconds]
+    type: EncryptionType
 
 
 class Tag(TypedDict, total=False):
@@ -522,7 +518,7 @@ class Tag(TypedDict, total=False):
     value: Optional[TagValue]
 
 
-TagList = List[Tag]
+TagList = list[Tag]
 
 
 class CreateActivityOutput(TypedDict, total=False):
@@ -535,7 +531,7 @@ class RoutingConfigurationListItem(TypedDict, total=False):
     weight: VersionWeight
 
 
-RoutingConfigurationList = List[RoutingConfigurationListItem]
+RoutingConfigurationList = list[RoutingConfigurationListItem]
 
 
 class CreateStateMachineAliasOutput(TypedDict, total=False):
@@ -551,7 +547,7 @@ class LogDestination(TypedDict, total=False):
     cloudWatchLogsLogGroup: Optional[CloudWatchLogsLogGroup]
 
 
-LogDestinationList = List[LogDestination]
+LogDestinationList = list[LogDestination]
 
 
 class LoggingConfiguration(TypedDict, total=False):
@@ -560,22 +556,17 @@ class LoggingConfiguration(TypedDict, total=False):
     destinations: Optional[LogDestinationList]
 
 
-CreateStateMachineInput = TypedDict(
-    "CreateStateMachineInput",
-    {
-        "name": Name,
-        "definition": Definition,
-        "roleArn": Arn,
-        "type": Optional[StateMachineType],
-        "loggingConfiguration": Optional[LoggingConfiguration],
-        "tags": Optional[TagList],
-        "tracingConfiguration": Optional[TracingConfiguration],
-        "publish": Optional[Publish],
-        "versionDescription": Optional[VersionDescription],
-        "encryptionConfiguration": Optional[EncryptionConfiguration],
-    },
-    total=False,
-)
+class CreateStateMachineInput(TypedDict, total=False):
+    name: Name
+    definition: Definition
+    roleArn: Arn
+    type: Optional[StateMachineType]
+    loggingConfiguration: Optional[LoggingConfiguration]
+    tags: Optional[TagList]
+    tracingConfiguration: Optional[TracingConfiguration]
+    publish: Optional[Publish]
+    versionDescription: Optional[VersionDescription]
+    encryptionConfiguration: Optional[EncryptionConfiguration]
 
 
 class CreateStateMachineOutput(TypedDict, total=False):
@@ -687,8 +678,8 @@ class DescribeStateMachineAliasOutput(TypedDict, total=False):
     updateDate: Optional[Timestamp]
 
 
-VariableNameList = List[VariableName]
-VariableReferences = Dict[StateName, VariableNameList]
+VariableNameList = list[VariableName]
+VariableReferences = dict[StateName, VariableNameList]
 
 
 class DescribeStateMachineForExecutionOutput(TypedDict, total=False):
@@ -706,26 +697,21 @@ class DescribeStateMachineForExecutionOutput(TypedDict, total=False):
     variableReferences: Optional[VariableReferences]
 
 
-DescribeStateMachineOutput = TypedDict(
-    "DescribeStateMachineOutput",
-    {
-        "stateMachineArn": Arn,
-        "name": Name,
-        "status": Optional[StateMachineStatus],
-        "definition": Definition,
-        "roleArn": Arn,
-        "type": StateMachineType,
-        "creationDate": Timestamp,
-        "loggingConfiguration": Optional[LoggingConfiguration],
-        "tracingConfiguration": Optional[TracingConfiguration],
-        "label": Optional[MapRunLabel],
-        "revisionId": Optional[RevisionId],
-        "description": Optional[VersionDescription],
-        "encryptionConfiguration": Optional[EncryptionConfiguration],
-        "variableReferences": Optional[VariableReferences],
-    },
-    total=False,
-)
+class DescribeStateMachineOutput(TypedDict, total=False):
+    stateMachineArn: Arn
+    name: Name
+    status: Optional[StateMachineStatus]
+    definition: Definition
+    roleArn: Arn
+    type: StateMachineType
+    creationDate: Timestamp
+    loggingConfiguration: Optional[LoggingConfiguration]
+    tracingConfiguration: Optional[TracingConfiguration]
+    label: Optional[MapRunLabel]
+    revisionId: Optional[RevisionId]
+    description: Optional[VersionDescription]
+    encryptionConfiguration: Optional[EncryptionConfiguration]
+    variableReferences: Optional[VariableReferences]
 
 
 class EvaluationFailedEventDetails(TypedDict, total=False):
@@ -763,7 +749,7 @@ class ExecutionListItem(TypedDict, total=False):
     redriveDate: Optional[Timestamp]
 
 
-ExecutionList = List[ExecutionListItem]
+ExecutionList = list[ExecutionListItem]
 
 
 class ExecutionRedrivenEventDetails(TypedDict, total=False):
@@ -924,66 +910,55 @@ class TaskFailedEventDetails(TypedDict, total=False):
     cause: Optional[SensitiveCause]
 
 
-HistoryEvent = TypedDict(
-    "HistoryEvent",
-    {
-        "timestamp": Timestamp,
-        "type": HistoryEventType,
-        "id": EventId,
-        "previousEventId": Optional[EventId],
-        "activityFailedEventDetails": Optional[ActivityFailedEventDetails],
-        "activityScheduleFailedEventDetails": Optional[
-            ActivityScheduleFailedEventDetails
-        ],
-        "activityScheduledEventDetails": Optional[ActivityScheduledEventDetails],
-        "activityStartedEventDetails": Optional[ActivityStartedEventDetails],
-        "activitySucceededEventDetails": Optional[ActivitySucceededEventDetails],
-        "activityTimedOutEventDetails": Optional[ActivityTimedOutEventDetails],
-        "taskFailedEventDetails": Optional[TaskFailedEventDetails],
-        "taskScheduledEventDetails": Optional[TaskScheduledEventDetails],
-        "taskStartFailedEventDetails": Optional[TaskStartFailedEventDetails],
-        "taskStartedEventDetails": Optional[TaskStartedEventDetails],
-        "taskSubmitFailedEventDetails": Optional[TaskSubmitFailedEventDetails],
-        "taskSubmittedEventDetails": Optional[TaskSubmittedEventDetails],
-        "taskSucceededEventDetails": Optional[TaskSucceededEventDetails],
-        "taskTimedOutEventDetails": Optional[TaskTimedOutEventDetails],
-        "executionFailedEventDetails": Optional[ExecutionFailedEventDetails],
-        "executionStartedEventDetails": Optional[ExecutionStartedEventDetails],
-        "executionSucceededEventDetails": Optional[ExecutionSucceededEventDetails],
-        "executionAbortedEventDetails": Optional[ExecutionAbortedEventDetails],
-        "executionTimedOutEventDetails": Optional[ExecutionTimedOutEventDetails],
-        "executionRedrivenEventDetails": Optional[ExecutionRedrivenEventDetails],
-        "mapStateStartedEventDetails": Optional[MapStateStartedEventDetails],
-        "mapIterationStartedEventDetails": Optional[MapIterationEventDetails],
-        "mapIterationSucceededEventDetails": Optional[MapIterationEventDetails],
-        "mapIterationFailedEventDetails": Optional[MapIterationEventDetails],
-        "mapIterationAbortedEventDetails": Optional[MapIterationEventDetails],
-        "lambdaFunctionFailedEventDetails": Optional[LambdaFunctionFailedEventDetails],
-        "lambdaFunctionScheduleFailedEventDetails": Optional[
-            LambdaFunctionScheduleFailedEventDetails
-        ],
-        "lambdaFunctionScheduledEventDetails": Optional[
-            LambdaFunctionScheduledEventDetails
-        ],
-        "lambdaFunctionStartFailedEventDetails": Optional[
-            LambdaFunctionStartFailedEventDetails
-        ],
-        "lambdaFunctionSucceededEventDetails": Optional[
-            LambdaFunctionSucceededEventDetails
-        ],
-        "lambdaFunctionTimedOutEventDetails": Optional[
-            LambdaFunctionTimedOutEventDetails
-        ],
-        "stateEnteredEventDetails": Optional[StateEnteredEventDetails],
-        "stateExitedEventDetails": Optional[StateExitedEventDetails],
-        "mapRunStartedEventDetails": Optional[MapRunStartedEventDetails],
-        "mapRunFailedEventDetails": Optional[MapRunFailedEventDetails],
-        "mapRunRedrivenEventDetails": Optional[MapRunRedrivenEventDetails],
-        "evaluationFailedEventDetails": Optional[EvaluationFailedEventDetails],
-    },
-    total=False,
-)
-HistoryEventList = List[HistoryEvent]
+class HistoryEvent(TypedDict, total=False):
+    timestamp: Timestamp
+    type: HistoryEventType
+    id: EventId
+    previousEventId: Optional[EventId]
+    activityFailedEventDetails: Optional[ActivityFailedEventDetails]
+    activityScheduleFailedEventDetails: Optional[ActivityScheduleFailedEventDetails]
+    activityScheduledEventDetails: Optional[ActivityScheduledEventDetails]
+    activityStartedEventDetails: Optional[ActivityStartedEventDetails]
+    activitySucceededEventDetails: Optional[ActivitySucceededEventDetails]
+    activityTimedOutEventDetails: Optional[ActivityTimedOutEventDetails]
+    taskFailedEventDetails: Optional[TaskFailedEventDetails]
+    taskScheduledEventDetails: Optional[TaskScheduledEventDetails]
+    taskStartFailedEventDetails: Optional[TaskStartFailedEventDetails]
+    taskStartedEventDetails: Optional[TaskStartedEventDetails]
+    taskSubmitFailedEventDetails: Optional[TaskSubmitFailedEventDetails]
+    taskSubmittedEventDetails: Optional[TaskSubmittedEventDetails]
+    taskSucceededEventDetails: Optional[TaskSucceededEventDetails]
+    taskTimedOutEventDetails: Optional[TaskTimedOutEventDetails]
+    executionFailedEventDetails: Optional[ExecutionFailedEventDetails]
+    executionStartedEventDetails: Optional[ExecutionStartedEventDetails]
+    executionSucceededEventDetails: Optional[ExecutionSucceededEventDetails]
+    executionAbortedEventDetails: Optional[ExecutionAbortedEventDetails]
+    executionTimedOutEventDetails: Optional[ExecutionTimedOutEventDetails]
+    executionRedrivenEventDetails: Optional[ExecutionRedrivenEventDetails]
+    mapStateStartedEventDetails: Optional[MapStateStartedEventDetails]
+    mapIterationStartedEventDetails: Optional[MapIterationEventDetails]
+    mapIterationSucceededEventDetails: Optional[MapIterationEventDetails]
+    mapIterationFailedEventDetails: Optional[MapIterationEventDetails]
+    mapIterationAbortedEventDetails: Optional[MapIterationEventDetails]
+    lambdaFunctionFailedEventDetails: Optional[LambdaFunctionFailedEventDetails]
+    lambdaFunctionScheduleFailedEventDetails: Optional[
+        LambdaFunctionScheduleFailedEventDetails
+    ]
+    lambdaFunctionScheduledEventDetails: Optional[LambdaFunctionScheduledEventDetails]
+    lambdaFunctionStartFailedEventDetails: Optional[
+        LambdaFunctionStartFailedEventDetails
+    ]
+    lambdaFunctionSucceededEventDetails: Optional[LambdaFunctionSucceededEventDetails]
+    lambdaFunctionTimedOutEventDetails: Optional[LambdaFunctionTimedOutEventDetails]
+    stateEnteredEventDetails: Optional[StateEnteredEventDetails]
+    stateExitedEventDetails: Optional[StateExitedEventDetails]
+    mapRunStartedEventDetails: Optional[MapRunStartedEventDetails]
+    mapRunFailedEventDetails: Optional[MapRunFailedEventDetails]
+    mapRunRedrivenEventDetails: Optional[MapRunRedrivenEventDetails]
+    evaluationFailedEventDetails: Optional[EvaluationFailedEventDetails]
+
+
+HistoryEventList = list[HistoryEvent]
 
 
 class GetExecutionHistoryOutput(TypedDict, total=False):
@@ -1028,7 +1003,7 @@ class MapRunListItem(TypedDict, total=False):
     stopDate: Optional[Timestamp]
 
 
-MapRunList = List[MapRunListItem]
+MapRunList = list[MapRunListItem]
 
 
 class ListMapRunsOutput(TypedDict, total=False):
@@ -1041,7 +1016,7 @@ class StateMachineAliasListItem(TypedDict, total=False):
     creationDate: Timestamp
 
 
-StateMachineAliasList = List[StateMachineAliasListItem]
+StateMachineAliasList = list[StateMachineAliasListItem]
 
 
 class ListStateMachineAliasesOutput(TypedDict, total=False):
@@ -1054,7 +1029,7 @@ class StateMachineVersionListItem(TypedDict, total=False):
     creationDate: Timestamp
 
 
-StateMachineVersionList = List[StateMachineVersionListItem]
+StateMachineVersionList = list[StateMachineVersionListItem]
 
 
 class ListStateMachineVersionsOutput(TypedDict, total=False):
@@ -1062,17 +1037,14 @@ class ListStateMachineVersionsOutput(TypedDict, total=False):
     nextToken: Optional[PageToken]
 
 
-StateMachineListItem = TypedDict(
-    "StateMachineListItem",
-    {
-        "stateMachineArn": Arn,
-        "name": Name,
-        "type": StateMachineType,
-        "creationDate": Timestamp,
-    },
-    total=False,
-)
-StateMachineList = List[StateMachineListItem]
+class StateMachineListItem(TypedDict, total=False):
+    stateMachineArn: Arn
+    name: Name
+    type: StateMachineType
+    creationDate: Timestamp
+
+
+StateMachineList = list[StateMachineListItem]
 
 
 class ListStateMachinesOutput(TypedDict, total=False):
@@ -1131,7 +1103,7 @@ class StopExecutionOutput(TypedDict, total=False):
     stopDate: Timestamp
 
 
-TagKeyList = List[TagKey]
+TagKeyList = list[TagKey]
 
 
 class TagResourceOutput(TypedDict, total=False):
@@ -1172,19 +1144,16 @@ class ValidateStateMachineDefinitionDiagnostic(TypedDict, total=False):
     location: Optional[ValidateStateMachineDefinitionLocation]
 
 
-ValidateStateMachineDefinitionDiagnosticList = List[
+ValidateStateMachineDefinitionDiagnosticList = list[
     ValidateStateMachineDefinitionDiagnostic
 ]
-ValidateStateMachineDefinitionInput = TypedDict(
-    "ValidateStateMachineDefinitionInput",
-    {
-        "definition": Definition,
-        "type": Optional[StateMachineType],
-        "severity": Optional[ValidateStateMachineDefinitionSeverity],
-        "maxResults": Optional[ValidateStateMachineDefinitionMaxResult],
-    },
-    total=False,
-)
+
+
+class ValidateStateMachineDefinitionInput(TypedDict, total=False):
+    definition: Definition
+    type: Optional[StateMachineType]
+    severity: Optional[ValidateStateMachineDefinitionSeverity]
+    maxResults: Optional[ValidateStateMachineDefinitionMaxResult]
 
 
 class ValidateStateMachineDefinitionOutput(TypedDict, total=False):

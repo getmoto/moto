@@ -1,13 +1,13 @@
 import base64
 import json
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 from moto.core.responses import BaseResponse
 
 from .exceptions import AWSValidationException
 from .models import AWSCertificateManagerBackend, acm_backends
 
-GENERIC_RESPONSE_TYPE = Union[str, Tuple[str, Dict[str, int]]]
+GENERIC_RESPONSE_TYPE = Union[str, tuple[str, dict[str, int]]]
 
 
 class AWSCertificateManagerResponse(BaseResponse):
@@ -151,7 +151,7 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         cert_bundle = self.acm_backend.get_certificate(arn)
 
-        result: Dict[str, List[Dict[str, str]]] = {"Tags": []}
+        result: dict[str, list[dict[str, str]]] = {"Tags": []}
         # Tag "objects" can not contain the Value part
         for key, value in cert_bundle.tags.items():
             tag_dict = {"Key": key}

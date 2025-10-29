@@ -3,7 +3,7 @@
 import datetime
 import re
 from hashlib import md5
-from typing import Dict, List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -154,7 +154,7 @@ class Namespace:
         self.account_id = account_id
         self.created_by = created_by
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
-        self.tables: Dict[str, Table] = {}
+        self.tables: dict[str, Table] = {}
 
 
 class FakeTableBucket:
@@ -164,7 +164,7 @@ class FakeTableBucket:
         self.region_name = region_name
         self.partition = get_partition(region_name)
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
-        self.namespaces: Dict[str, Namespace] = {}
+        self.namespaces: dict[str, Namespace] = {}
 
     @property
     def arn(self) -> str:
@@ -176,7 +176,7 @@ class S3TablesBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.table_buckets: Dict[str, FakeTableBucket] = {}
+        self.table_buckets: dict[str, FakeTableBucket] = {}
 
     def create_table_bucket(self, name: str) -> FakeTableBucket:
         _validate_table_bucket_name(name)
@@ -195,7 +195,7 @@ class S3TablesBackend(BaseBackend):
     def list_table_buckets(
         self,
         prefix: Optional[str] = None,
-    ) -> List[FakeTableBucket]:
+    ) -> list[FakeTableBucket]:
         all_buckets = list(
             bucket
             for bucket in self.table_buckets.values()
@@ -239,7 +239,7 @@ class S3TablesBackend(BaseBackend):
         self,
         table_bucket_arn: str,
         prefix: Optional[str] = None,
-    ) -> List[Namespace]:
+    ) -> list[Namespace]:
         bucket = self.get_table_bucket(table_bucket_arn)
 
         all_namespaces = list(
@@ -313,7 +313,7 @@ class S3TablesBackend(BaseBackend):
         table_bucket_arn: str,
         namespace: Optional[str] = None,
         prefix: Optional[str] = None,
-    ) -> List[Table]:
+    ) -> list[Table]:
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket or (namespace and namespace not in bucket.namespaces):
             raise NotFoundException(

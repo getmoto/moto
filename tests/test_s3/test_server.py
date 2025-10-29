@@ -224,7 +224,7 @@ def test_s3_server_post_unicode_bucket_key():
     backend_app = dispatcher.get_application(
         {
             "HTTP_HOST": "s3.amazonaws.com",
-            "PATH_INFO": "/test-bucket/test-object-てすと".encode("utf-8"),
+            "PATH_INFO": "/test-bucket/test-object-てすと".encode(),
         }
     )
     assert backend_app

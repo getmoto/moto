@@ -47,5 +47,5 @@ class TaggedEC2Object(EC2Object):
     """
 
     def __init__(self, connection: Any = None):
-        super(TaggedEC2Object, self).__init__(connection)
+        super().__init__(connection)
         self.tags = TagSet()  # type: ignore

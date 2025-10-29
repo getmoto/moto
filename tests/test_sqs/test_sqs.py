@@ -2999,7 +2999,7 @@ def test_fifo_queue_send_deduplicationid_same_as_sha256_of_old_message():
     msg_queue.send_message(MessageBody="first", MessageGroupId="1")
 
     sha256 = hashlib.sha256()
-    sha256.update("first".encode("utf-8"))
+    sha256.update(b"first")
     deduplicationid = sha256.hexdigest()
 
     msg_queue.send_message(

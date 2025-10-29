@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -89,20 +89,20 @@ class Inspector2Response(BaseResponse):
         account_ids = self._get_param("accountIds")
         resource_types = self._get_param("resourceTypes")
         accounts = self.inspector2_backend.enable(account_ids, resource_types)
-        failed: List[Dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
         return json.dumps({"accounts": accounts, "failedAccounts": failed})
 
     def disable(self) -> str:
         account_ids = self._get_param("accountIds")
         resource_types = self._get_param("resourceTypes")
         accounts = self.inspector2_backend.disable(account_ids, resource_types)
-        failed: List[Dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
         return json.dumps({"accounts": accounts, "failedAccounts": failed})
 
     def batch_get_account_status(self) -> str:
         account_ids = self._get_param("accountIds")
         accounts = self.inspector2_backend.batch_get_account_status(account_ids)
-        failed: List[Dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
         return json.dumps({"accounts": accounts, "failedAccounts": failed})
 
     def list_members(self) -> str:

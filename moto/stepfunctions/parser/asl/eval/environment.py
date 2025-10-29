@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import threading
-from typing import Any, Final, List, Optional
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -54,11 +54,11 @@ class Environment:
     activity_store: Final[dict[Arn, Activity]]
     mock_test_case: Optional[MockTestCase] = None
 
-    _frames: Final[List[Environment]]
+    _frames: Final[list[Environment]]
     _is_frame: bool = False
 
     heap: dict[str, Any] = dict()
-    stack: List[Any] = list()
+    stack: list[Any] = list()
     states: Final[States]
     variable_store: Final[VariableStore]
 
@@ -73,7 +73,7 @@ class Environment:
         variable_store: Optional[VariableStore] = None,
         mock_test_case: Optional[MockTestCase] = None,
     ):
-        super(Environment, self).__init__()
+        super().__init__()
         self._state_mutex = threading.RLock()
         self._program_state = None
         self.program_state_event = threading.Event()

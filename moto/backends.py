@@ -1,6 +1,7 @@
 import importlib
 import os
-from typing import TYPE_CHECKING, Iterable, Optional, Union, overload
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 import moto
 

@@ -1,15 +1,15 @@
-from typing import Any, Dict, List
+from typing import Any
 
 DEFAULT_TRANSITION = {"progression": "immediate"}
 
 
 class StateManager:
     def __init__(self) -> None:
-        self._default_transitions: Dict[str, Dict[str, Any]] = dict()
-        self._transitions: Dict[str, Dict[str, Any]] = dict()
+        self._default_transitions: dict[str, dict[str, Any]] = dict()
+        self._transitions: dict[str, dict[str, Any]] = dict()
 
     def register_default_transition(
-        self, model_name: str, transition: Dict[str, Any]
+        self, model_name: str, transition: dict[str, Any]
     ) -> None:
         """
         Register the default transition for a specific model.
@@ -17,7 +17,7 @@ class StateManager:
         """
         self._default_transitions[model_name] = transition
 
-    def set_transition(self, model_name: str, transition: Dict[str, Any]) -> None:
+    def set_transition(self, model_name: str, transition: dict[str, Any]) -> None:
         """
         Set a transition for a specific model. Any transition added here will take precedence over the default transition that was registered.
 
@@ -32,7 +32,7 @@ class StateManager:
         """
         self._transitions.pop(model_name, None)
 
-    def get_transition(self, model_name: str) -> Dict[str, Any]:
+    def get_transition(self, model_name: str) -> dict[str, Any]:
         """
         Return the configuration for a specific model. This will return a user-specified configuration, a default configuration of none exists, or the default transition if none exists.
         """
@@ -42,5 +42,5 @@ class StateManager:
             return self._default_transitions[model_name]
         return DEFAULT_TRANSITION
 
-    def get_registered_models(self) -> List[str]:
+    def get_registered_models(self) -> list[str]:
         return list(self._default_transitions.keys())

@@ -1,5 +1,3 @@
-from typing import Type
-
 PAGINATION_MODEL = {
     "describe_log_groups": {
         "input_token": "next_token",
@@ -42,7 +40,7 @@ class UnsupportedFilterPattern(FilterPattern):
 class EventMessageFilter:
     def __init__(self, pattern: str):
         current_phrase = ""
-        current_type: Type[FilterPattern] = None  # type: ignore
+        current_type: type[FilterPattern] = None  # type: ignore
         if pattern:
             for char in pattern:
                 if not current_type:

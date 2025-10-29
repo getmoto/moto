@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from moto.core.responses import BaseResponse
 from moto.core.serialize import return_if_not_empty
@@ -23,7 +23,7 @@ class EC2BaseResponse(BaseResponse):
 
         return ec2_backends[self.current_account][self.region]
 
-    def _filters_from_querystring(self) -> Dict[str, str]:
+    def _filters_from_querystring(self) -> dict[str, str]:
         # [{"Name": x1, "Value": y1}, ..]
         _filters = self._get_multi_param("Filter.", skip_result_conversion=True)
         # return {x1: y1, ...}
@@ -36,7 +36,7 @@ class EC2BaseResponse(BaseResponse):
 
     def _parse_tag_specification(
         self, expected_type: Optional[str] = None
-    ) -> Dict[str, Dict[str, str]]:
+    ) -> dict[str, dict[str, str]]:
         # [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
         tag_spec_set = self._get_multi_param(
             "TagSpecification", skip_result_conversion=True

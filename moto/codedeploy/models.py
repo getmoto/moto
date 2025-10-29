@@ -2,7 +2,7 @@
 
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -22,7 +22,7 @@ from .exceptions import (
 
 class Application(BaseModel):
     def __init__(
-        self, application_name: str, compute_platform: str, tags: List[Dict[str, str]]
+        self, application_name: str, compute_platform: str, tags: list[dict[str, str]]
     ):
         self.id = str(uuid.uuid4())
         self.application_name = application_name
@@ -37,7 +37,7 @@ class Application(BaseModel):
         # self.github_account_name = ""
         # self.linked_to_github = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "applicationId": self.id,
             "applicationName": self.application_name,
@@ -59,7 +59,7 @@ class CodeDeployDefault(str, Enum):
 class AlarmConfiguration(BaseModel):
     def __init__(
         self,
-        alarms: Optional[List[Dict[str, Any]]] = None,
+        alarms: Optional[list[dict[str, Any]]] = None,
         enabled: Optional[bool] = False,
         ignore_poll_alarm_failure: bool = False,
     ):
@@ -74,21 +74,21 @@ class DeploymentGroup(BaseModel):
         application: Application,
         deployment_group_name: str,
         deployment_config_name: Optional[str],
-        ec2_tag_filters: Optional[List[Any]],
-        on_premises_instance_tag_filters: Optional[List[Any]],
-        auto_scaling_groups: Optional[List[str]],
+        ec2_tag_filters: Optional[list[Any]],
+        on_premises_instance_tag_filters: Optional[list[Any]],
+        auto_scaling_groups: Optional[list[str]],
         service_role_arn: str,
-        trigger_configurations: Optional[List[Any]],
+        trigger_configurations: Optional[list[Any]],
         alarm_configuration: Optional[AlarmConfiguration],
-        auto_rollback_configuration: Optional[Dict[str, Any]],
+        auto_rollback_configuration: Optional[dict[str, Any]],
         outdated_instances_strategy: Optional[str],
         deployment_style: Optional[Any],
         blue_green_deployment_configuration: Optional[Any],
         load_balancer_info: Optional[Any],
         ec2_tag_set: Optional[Any],
-        ecs_services: Optional[List[Any]],
+        ecs_services: Optional[list[Any]],
         on_premises_tag_set: Optional[Any],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         termination_hook_enabled: Optional[bool],
     ):
         self.application = application
@@ -114,7 +114,7 @@ class DeploymentGroup(BaseModel):
         self.termination_hook_enabled = termination_hook_enabled
         self.deployment_group_id = str(uuid.uuid4())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "applicationName": self.application.application_name,
             "deploymentGroupId": self.deployment_group_id,
@@ -151,8 +151,8 @@ class DeploymentInfo(BaseModel):
         deployment_config_name: Optional[str],
         description: Optional[str],
         ignore_application_stop_failures: Optional[bool],
-        targetInstances: Optional[Dict[str, Any]],
-        auto_rollback_configuration: Optional[Dict[str, Any]],
+        targetInstances: Optional[dict[str, Any]],
+        auto_rollback_configuration: Optional[dict[str, Any]],
         update_outdated_instances_only: Optional[bool],
         file_exists_behavior: Optional[str],
         override_alarm_configuration: Optional[AlarmConfiguration],
@@ -198,10 +198,10 @@ class DeploymentInfo(BaseModel):
         self.file_exists_behavior = file_exists_behavior
         self.deployment_status_messages: list[str] = []
         self.external_id = ""
-        self.related_deployments: Dict[str, Any] = {}
+        self.related_deployments: dict[str, Any] = {}
         self.override_alarm_configuration = override_alarm_configuration
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "applicationName": self.application_name,
             "deploymentGroupName": self.deployment_group_name,
@@ -241,9 +241,9 @@ class CodeDeployBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.applications: Dict[str, Application] = {}
-        self.deployments: Dict[str, DeploymentInfo] = {}
-        self.deployment_groups: Dict[str, Dict[str, DeploymentGroup]] = {}
+        self.applications: dict[str, Application] = {}
+        self.deployments: dict[str, DeploymentInfo] = {}
+        self.deployment_groups: dict[str, dict[str, DeploymentGroup]] = {}
         self.tagger = TaggingService()
 
     def get_application(self, application_name: str) -> Application:
@@ -253,7 +253,7 @@ class CodeDeployBackend(BaseBackend):
             )
         return self.applications[application_name]
 
-    def batch_get_applications(self, application_names: List[str]) -> List[Application]:
+    def batch_get_applications(self, application_names: list[str]) -> list[Application]:
         applications_info = []
         for app_name in application_names:
             app_info = self.get_application(app_name)
@@ -286,7 +286,7 @@ class CodeDeployBackend(BaseBackend):
             )
         return self.deployment_groups[application_name][deployment_group_name]
 
-    def batch_get_deployments(self, deployment_ids: List[str]) -> List[DeploymentInfo]:
+    def batch_get_deployments(self, deployment_ids: list[str]) -> list[DeploymentInfo]:
         deployments = []
         for id in deployment_ids:
             if id in self.deployments:
@@ -296,7 +296,7 @@ class CodeDeployBackend(BaseBackend):
         return deployments
 
     def create_application(
-        self, application_name: str, compute_platform: str, tags: List[Dict[str, str]]
+        self, application_name: str, compute_platform: str, tags: list[dict[str, str]]
     ) -> str:
         if application_name in self.applications:
             raise ApplicationAlreadyExistsException(
@@ -386,21 +386,21 @@ class CodeDeployBackend(BaseBackend):
         application_name: str,
         deployment_group_name: str,
         deployment_config_name: Optional[str],
-        ec2_tag_filters: Optional[List[Dict[str, str]]],
-        on_premises_instance_tag_filters: Optional[List[Dict[str, str]]],
-        auto_scaling_groups: Optional[List[str]],
+        ec2_tag_filters: Optional[list[dict[str, str]]],
+        on_premises_instance_tag_filters: Optional[list[dict[str, str]]],
+        auto_scaling_groups: Optional[list[str]],
         service_role_arn: str,
-        trigger_configurations: Optional[List[Dict[str, Any]]] = None,
+        trigger_configurations: Optional[list[dict[str, Any]]] = None,
         alarm_configuration: Optional[AlarmConfiguration] = None,
-        auto_rollback_configuration: Optional[Dict[str, Any]] = None,
+        auto_rollback_configuration: Optional[dict[str, Any]] = None,
         outdated_instances_strategy: Optional[str] = None,
-        deployment_style: Optional[Dict[str, str]] = None,
-        blue_green_deployment_configuration: Optional[Dict[str, Any]] = None,
-        load_balancer_info: Optional[Dict[str, Any]] = None,
-        ec2_tag_set: Optional[Dict[str, Any]] = None,
-        ecs_services: Optional[List[Dict[str, str]]] = None,
-        on_premises_tag_set: Optional[Dict[str, Any]] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        deployment_style: Optional[dict[str, str]] = None,
+        blue_green_deployment_configuration: Optional[dict[str, Any]] = None,
+        load_balancer_info: Optional[dict[str, Any]] = None,
+        ec2_tag_set: Optional[dict[str, Any]] = None,
+        ecs_services: Optional[list[dict[str, str]]] = None,
+        on_premises_tag_set: Optional[dict[str, Any]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         termination_hook_enabled: Optional[bool] = None,
     ) -> str:
         if application_name not in self.applications:
@@ -450,7 +450,7 @@ class CodeDeployBackend(BaseBackend):
         return dg.deployment_group_id
 
     # TODO: implement pagination
-    def list_applications(self) -> List[str]:
+    def list_applications(self) -> list[str]:
         return list(self.applications.keys())
 
     # TODO: implement pagination and complete filtering
@@ -459,9 +459,9 @@ class CodeDeployBackend(BaseBackend):
         application_name: str,
         deployment_group_name: str,
         external_id: str,
-        include_only_statuses: List[str],
-        create_time_range: Dict[str, Any],
-    ) -> List[str]:
+        include_only_statuses: list[str],
+        create_time_range: dict[str, Any],
+    ) -> list[str]:
         # Ensure if applicationName is specified, then deploymentGroupName must be specified.
         # If deploymentGroupName is specified, application must be specified else error.
         if application_name and not deployment_group_name:
@@ -503,7 +503,7 @@ class CodeDeployBackend(BaseBackend):
     # TODO: implement pagination
     def list_deployment_groups(
         self, application_name: str, next_token: str
-    ) -> List[str]:
+    ) -> list[str]:
         if application_name not in self.deployment_groups:
             return []
 
@@ -514,16 +514,16 @@ class CodeDeployBackend(BaseBackend):
 
     def list_tags_for_resource(
         self, resource_arn: str
-    ) -> Dict[str, List[Dict[str, str]]]:
+    ) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource_arn)
 
     def tag_resource(
-        self, resource_arn: str, tags: List[Dict[str, str]]
-    ) -> Dict[str, Any]:
+        self, resource_arn: str, tags: list[dict[str, str]]
+    ) -> dict[str, Any]:
         self.tagger.tag_resource(resource_arn, tags)
         return {}
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> Dict[str, Any]:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return {}
 

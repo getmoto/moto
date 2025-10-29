@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
 
 if TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -15,7 +15,7 @@ class GenericFunction(Protocol):
     def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
-def gen_amz_crc32(response: Any, headerdict: Optional[Dict[str, Any]] = None) -> int:
+def gen_amz_crc32(response: Any, headerdict: Optional[dict[str, Any]] = None) -> int:
     if not isinstance(response, bytes):
         response = response.encode("utf-8")
 
@@ -27,7 +27,7 @@ def gen_amz_crc32(response: Any, headerdict: Optional[Dict[str, Any]] = None) ->
     return crc
 
 
-def gen_amzn_requestid_long(headerdict: Optional[Dict[str, Any]] = None) -> str:
+def gen_amzn_requestid_long(headerdict: Optional[dict[str, Any]] = None) -> str:
     from moto.moto_api._internal import mock_random as random
 
     req_id = random.get_random_string(length=52)

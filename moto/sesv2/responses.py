@@ -2,7 +2,6 @@
 
 import base64
 import json
-from typing import List
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -29,7 +28,7 @@ class SESV2Response(BaseResponse):
         destination = params.get("Destination", {})
         content = params.get("Content")
         if "Raw" in content:
-            all_destinations: List[str] = []
+            all_destinations: list[str] = []
             if "ToAddresses" in destination:
                 all_destinations = all_destinations + destination["ToAddresses"]
             if "CcAddresses" in destination:

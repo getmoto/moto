@@ -1,7 +1,7 @@
 """CloudHSMV2Backend class with methods for supported APIs."""
 
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
@@ -13,12 +13,12 @@ from .exceptions import ResourceNotFoundException
 class Cluster:
     def __init__(
         self,
-        backup_retention_policy: Optional[Dict[str, str]],
+        backup_retention_policy: Optional[dict[str, str]],
         hsm_type: str,
         source_backup_id: Optional[str],
-        subnet_ids: List[str],
+        subnet_ids: list[str],
         network_type: str = "IPV4",
-        tag_list: Optional[List[Dict[str, str]]] = None,
+        tag_list: Optional[list[dict[str, str]]] = None,
         mode: str = "DEFAULT",
         region_name: str = "us-east-1",
     ):
@@ -26,7 +26,7 @@ class Cluster:
         self.backup_policy = "DEFAULT"
         self.backup_retention_policy = backup_retention_policy
         self.create_timestamp = utcnow()
-        self.hsms: List[Dict[str, Any]] = []
+        self.hsms: list[dict[str, Any]] = []
         self.hsm_type = hsm_type
         self.source_backup_id = source_backup_id
         self.state = "ACTIVE"
@@ -47,7 +47,7 @@ class Cluster:
         self.tag_list = tag_list or []
         self.mode = mode
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "BackupPolicy": self.backup_policy,
             "BackupRetentionPolicy": self.backup_retention_policy,
@@ -73,7 +73,7 @@ class Backup:
         cluster_id: str,
         hsm_type: str,
         mode: str,
-        tag_list: Optional[List[Dict[str, str]]],
+        tag_list: Optional[list[dict[str, str]]],
         source_backup: Optional[str] = None,
         source_cluster: Optional[str] = None,
         source_region: Optional[str] = None,
@@ -97,7 +97,7 @@ class Backup:
         self.hsm_type = hsm_type
         self.mode = mode
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = {
             "BackupId": self.backup_id,
             "BackupArn": self.backup_arn,
@@ -146,14 +146,14 @@ class CloudHSMV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.tags: Dict[str, List[Dict[str, str]]] = {}
-        self.clusters: Dict[str, Cluster] = {}
-        self.resource_policies: Dict[str, str] = {}
-        self.backups: Dict[str, Backup] = {}
+        self.tags: dict[str, list[dict[str, str]]] = {}
+        self.clusters: dict[str, Cluster] = {}
+        self.resource_policies: dict[str, str] = {}
+        self.backups: dict[str, Backup] = {}
 
     def list_tags(
         self, resource_id: str, next_token: str, max_results: int
-    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         """
         Pagination is not yet implemented
         """
@@ -165,8 +165,8 @@ class CloudHSMV2Backend(BaseBackend):
         return tags, None
 
     def tag_resource(
-        self, resource_id: str, tag_list: List[Dict[str, str]]
-    ) -> Dict[str, Any]:
+        self, resource_id: str, tag_list: list[dict[str, str]]
+    ) -> dict[str, Any]:
         if resource_id not in self.tags:
             self.tags[resource_id] = []
 
@@ -183,8 +183,8 @@ class CloudHSMV2Backend(BaseBackend):
         return {}
 
     def untag_resource(
-        self, resource_id: str, tag_key_list: List[str]
-    ) -> Dict[str, Any]:
+        self, resource_id: str, tag_key_list: list[str]
+    ) -> dict[str, Any]:
         if resource_id in self.tags:
             self.tags[resource_id] = [
                 tag for tag in self.tags[resource_id] if tag["Key"] not in tag_key_list
@@ -194,14 +194,14 @@ class CloudHSMV2Backend(BaseBackend):
 
     def create_cluster(
         self,
-        backup_retention_policy: Optional[Dict[str, str]],
+        backup_retention_policy: Optional[dict[str, str]],
         hsm_type: str,
         source_backup_id: Optional[str],
-        subnet_ids: List[str],
+        subnet_ids: list[str],
         network_type: Optional[str],
-        tag_list: Optional[List[Dict[str, str]]],
+        tag_list: Optional[list[dict[str, str]]],
         mode: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         cluster = Cluster(
             backup_retention_policy=backup_retention_policy,
             hsm_type=hsm_type,
@@ -225,7 +225,7 @@ class CloudHSMV2Backend(BaseBackend):
 
         return cluster.to_dict()
 
-    def delete_cluster(self, cluster_id: str) -> Dict[str, Any]:
+    def delete_cluster(self, cluster_id: str) -> dict[str, Any]:
         if cluster_id not in self.clusters:
             raise ResourceNotFoundException(f"Cluster {cluster_id} not found")
 
@@ -237,8 +237,8 @@ class CloudHSMV2Backend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_clusters(
-        self, filters: Optional[Dict[str, List[str]]] = None
-    ) -> List[Dict[str, str]]:
+        self, filters: Optional[dict[str, list[str]]] = None
+    ) -> list[dict[str, str]]:
         clusters = list(self.clusters.values())
 
         if filters:
@@ -259,10 +259,10 @@ class CloudHSMV2Backend(BaseBackend):
     @paginate(PAGINATION_MODEL)
     def describe_backups(
         self,
-        filters: Optional[Dict[str, List[str]]],
+        filters: Optional[dict[str, list[str]]],
         shared: Optional[bool],
         sort_ascending: Optional[bool],
-    ) -> List[Backup]:
+    ) -> list[Backup]:
         backups = list(self.backups.values())
 
         if filters:
@@ -285,7 +285,7 @@ class CloudHSMV2Backend(BaseBackend):
         )
         return backups
 
-    def put_resource_policy(self, resource_arn: str, policy: str) -> Dict[str, str]:
+    def put_resource_policy(self, resource_arn: str, policy: str) -> dict[str, str]:
         self.resource_policies[resource_arn] = policy
         return {"ResourceArn": resource_arn, "Policy": policy}
 

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Tuple
+from typing import TYPE_CHECKING, Any, NamedTuple, Optional
 
 from botocore.exceptions import ParamValidationError
 
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class Group(NamedTuple):
     GroupId: str
     DisplayName: str
-    ExternalIds: List[Optional[Dict[str, str]]]
+    ExternalIds: list[Optional[dict[str, str]]]
     Description: str
     IdentityStoreId: str
 
@@ -34,7 +34,7 @@ class Name(NamedTuple):
     HonorificSuffix: Optional[str]
 
     @classmethod
-    def from_dict(cls, name_dict: Dict[str, str]) -> "Optional[Self]":
+    def from_dict(cls, name_dict: dict[str, str]) -> "Optional[Self]":
         if not name_dict:
             return None
         return cls(
@@ -55,9 +55,9 @@ class User(NamedTuple):
     DisplayName: str
     NickName: str
     ProfileUrl: str
-    Emails: List[Dict[str, str]]
-    Addresses: List[Dict[str, str]]
-    PhoneNumbers: List[Dict[str, str]]
+    Emails: list[dict[str, str]]
+    Addresses: list[dict[str, str]]
+    PhoneNumbers: list[dict[str, str]]
     UserType: str
     Title: str
     PreferredLanguage: str
@@ -67,9 +67,9 @@ class User(NamedTuple):
 
 class IdentityStoreData:
     def __init__(self) -> None:
-        self.groups: Dict[str, Group] = {}
-        self.users: Dict[str, User] = {}
-        self.group_memberships: Dict[str, Any] = {}
+        self.groups: dict[str, Group] = {}
+        self.users: dict[str, User] = {}
+        self.group_memberships: dict[str, Any] = {}
 
 
 class IdentityStoreBackend(BaseBackend):
@@ -104,11 +104,11 @@ class IdentityStoreBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.identity_stores: Dict[str, IdentityStoreData] = {}
+        self.identity_stores: dict[str, IdentityStoreData] = {}
 
     def create_group(
         self, identity_store_id: str, display_name: str, description: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         matching = [
@@ -132,8 +132,8 @@ class IdentityStoreBackend(BaseBackend):
         return group_id, identity_store_id
 
     def get_group_id(
-        self, identity_store_id: str, alternate_identifier: Dict[str, Any]
-    ) -> Tuple[str, str]:
+        self, identity_store_id: str, alternate_identifier: dict[str, Any]
+    ) -> tuple[str, str]:
         """
         The ExternalId alternate identifier is not yet implemented
         """
@@ -160,7 +160,7 @@ class IdentityStoreBackend(BaseBackend):
         if group_id in identity_store.groups:
             g = identity_store.groups[group_id]
             # External Ids are not implemented
-            external_ids: List[Any] = []
+            external_ids: list[Any] = []
             return Group(
                 g.GroupId,
                 g.DisplayName,
@@ -181,19 +181,19 @@ class IdentityStoreBackend(BaseBackend):
         self,
         identity_store_id: str,
         user_name: str,
-        name: Dict[str, str],
+        name: dict[str, str],
         display_name: str,
         nick_name: str,
         profile_url: str,
-        emails: List[Dict[str, Any]],
-        addresses: List[Dict[str, Any]],
-        phone_numbers: List[Dict[str, Any]],
+        emails: list[dict[str, Any]],
+        addresses: list[dict[str, Any]],
+        phone_numbers: list[dict[str, Any]],
         user_type: str,
         title: str,
         preferred_language: str,
         locale: str,
         timezone: str,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         identity_store = self.__get_identity_store(identity_store_id)
         user_id = str(mock_random.uuid4())
 
@@ -221,8 +221,8 @@ class IdentityStoreBackend(BaseBackend):
         return user_id, identity_store_id
 
     def get_user_id(
-        self, identity_store_id: str, alternate_identifier: Dict[str, Any]
-    ) -> Tuple[str, str]:
+        self, identity_store_id: str, alternate_identifier: dict[str, Any]
+    ) -> tuple[str, str]:
         """
         The ExternalId alternate identifier is not yet implemented
         """
@@ -267,8 +267,8 @@ class IdentityStoreBackend(BaseBackend):
             del identity_store.users[user_id]
 
     def create_group_membership(
-        self, identity_store_id: str, group_id: str, member_id: Dict[str, str]
-    ) -> Tuple[str, str]:
+        self, identity_store_id: str, group_id: str, member_id: dict[str, str]
+    ) -> tuple[str, str]:
         identity_store = self.__get_identity_store(identity_store_id)
         user_id = member_id["UserId"]
         if user_id not in identity_store.users:
@@ -294,7 +294,7 @@ class IdentityStoreBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_group_memberships(  # type: ignore[misc]
         self, identity_store_id: str, group_id: str
-    ) -> List[Any]:
+    ) -> list[Any]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         return [
@@ -305,8 +305,8 @@ class IdentityStoreBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_group_memberships_for_member(  # type: ignore[misc]
-        self, identity_store_id: str, member_id: Dict[str, str]
-    ) -> List[Any]:
+        self, identity_store_id: str, member_id: dict[str, str]
+    ) -> list[Any]:
         identity_store = self.__get_identity_store(identity_store_id)
         user_id = member_id["UserId"]
 
@@ -318,8 +318,8 @@ class IdentityStoreBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_groups(
-        self, identity_store_id: str, filters: List[Dict[str, str]]
-    ) -> List[Group]:
+        self, identity_store_id: str, filters: list[dict[str, str]]
+    ) -> list[Group]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         if filters:
@@ -335,8 +335,8 @@ class IdentityStoreBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(
-        self, identity_store_id: str, filters: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:
+        self, identity_store_id: str, filters: list[dict[str, str]]
+    ) -> list[dict[str, str]]:
         identity_store = self.__get_identity_store(identity_store_id)
 
         users = []

@@ -1,20 +1,20 @@
 import pathlib
 from os import listdir
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.utilities.utils import load_resource
 
 from ..exceptions import InvalidFilter, InvalidInstanceTypeError
 from ..utils import generic_filter
 
-INSTANCE_TYPES: Dict[str, Any] = load_resource(
+INSTANCE_TYPES: dict[str, Any] = load_resource(
     __name__, "../resources/instance_types.json"
 )
 INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
 
 root = pathlib.Path(__file__).parent
 offerings_path = "../resources/instance_type_offerings"
-INSTANCE_TYPE_OFFERINGS: Dict[str, Any] = {}
+INSTANCE_TYPE_OFFERINGS: dict[str, Any] = {}
 for _location_type in listdir(root / offerings_path):
     INSTANCE_TYPE_OFFERINGS[_location_type] = {}
     for data_file in listdir(root / offerings_path / _location_type):
@@ -28,7 +28,7 @@ for _location_type in listdir(root / offerings_path):
         INSTANCE_TYPE_OFFERINGS[_location_type][_region] = res
 
 
-class InstanceType(Dict[str, Any]):
+class InstanceType(dict[str, Any]):
     _filter_attributes = {
         "auto-recovery-supported": ["AutoRecoverySupported"],
         "bare-metal": ["BareMetal"],
@@ -144,8 +144,8 @@ class InstanceTypeBackend:
     instance_types = list(map(InstanceType, INSTANCE_TYPES.keys()))
 
     def describe_instance_types(
-        self, instance_types: Optional[List[str]] = None, filters: Any = None
-    ) -> List[InstanceType]:
+        self, instance_types: Optional[list[str]] = None, filters: Any = None
+    ) -> list[InstanceType]:
         matches = self.instance_types
         if instance_types:
             matches = [t for t in matches if t.get("InstanceType") in instance_types]
@@ -165,8 +165,8 @@ class InstanceTypeOfferingBackend:
     def describe_instance_type_offerings(
         self,
         location_type: Optional[str] = None,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> List[Any]:
+        filters: Optional[dict[str, Any]] = None,
+    ) -> list[Any]:
         location_type = location_type or "region"
         matches = INSTANCE_TYPE_OFFERINGS[location_type]
         matches = matches.get(self.region_name, [])  # type: ignore[attr-defined]
@@ -176,9 +176,9 @@ class InstanceTypeOfferingBackend:
         return matches
 
     def matches_filters(
-        self, offering: Dict[str, Any], filters: Any, location_type: str
+        self, offering: dict[str, Any], filters: Any, location_type: str
     ) -> bool:
-        def matches_filter(key: str, values: List[str]) -> bool:
+        def matches_filter(key: str, values: list[str]) -> bool:
             if key == "location":
                 if location_type in ("availability-zone", "availability-zone-id"):
                     return offering.get("Location") in values

@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, TypedDict
+from typing import Optional, TypedDict
 
 
 class _docker_config(TypedDict, total=False):
@@ -7,15 +7,15 @@ class _docker_config(TypedDict, total=False):
 
 
 class _passthrough_config(TypedDict, total=False):
-    services: List[str]
-    urls: List[str]
+    services: list[str]
+    urls: list[str]
 
 
 class _core_config(TypedDict, total=False):
     mock_credentials: bool
     passthrough: _passthrough_config
     reset_boto3_session: bool
-    service_whitelist: Optional[List[str]]
+    service_whitelist: Optional[list[str]]
 
 
 class _iam_config(TypedDict, total=False):

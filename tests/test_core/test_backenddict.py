@@ -1,7 +1,7 @@
 import random
 import time
 from threading import Thread
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import pytest
 
@@ -79,7 +79,7 @@ class TestMultiThreadedAccess:
         def __init__(self, region_name: str, account_id: str):
             super().__init__(region_name, account_id)
             time.sleep(0.1)
-            self.data: List[int] = []
+            self.data: list[int] = []
 
     def setup_method(self) -> None:
         self.backend = BackendDict(TestMultiThreadedAccess.SlowExampleBackend, "ec2")
@@ -143,7 +143,7 @@ def _create_asb(
     account_id: str,
     backend: Any = None,
     use_boto3_regions: bool = False,
-    regions: Optional[List[str]] = None,
+    regions: Optional[list[str]] = None,
 ) -> Any:
     return AccountSpecificBackend(
         service_name="ec2",

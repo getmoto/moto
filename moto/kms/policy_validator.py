@@ -1,6 +1,6 @@
 import json
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any
 
 from .exceptions import AccessDeniedException
 from .models import Key
@@ -30,13 +30,13 @@ def validate_policy(key: Key, action: str) -> None:
             )
 
 
-def check_statement(statement: Dict[str, Any], resource: str, action: str) -> bool:
+def check_statement(statement: dict[str, Any], resource: str, action: str) -> bool:
     return action_matches(statement.get("Action", []), action) and resource_matches(
         statement.get("Resource", ""), resource
     )
 
 
-def action_matches(applicable_actions: List[str], action: str) -> bool:
+def action_matches(applicable_actions: list[str], action: str) -> bool:
     alternatives = ALTERNATIVE_ACTIONS[action]
     if any(alt in applicable_actions for alt in alternatives):
         return True

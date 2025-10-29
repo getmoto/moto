@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -18,19 +18,19 @@ class FakeKafkaCluster(BaseModel):
         account_id: str,
         region_name: str,
         cluster_type: str,
-        tags: Optional[Dict[str, str]] = None,
-        broker_node_group_info: Optional[Dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+        broker_node_group_info: Optional[dict[str, Any]] = None,
         kafka_version: Optional[str] = None,
         number_of_broker_nodes: Optional[int] = None,
-        configuration_info: Optional[Dict[str, Any]] = None,
-        serverless_config: Optional[Dict[str, Any]] = None,
-        encryption_info: Optional[Dict[str, Any]] = None,
+        configuration_info: Optional[dict[str, Any]] = None,
+        serverless_config: Optional[dict[str, Any]] = None,
+        encryption_info: Optional[dict[str, Any]] = None,
         enhanced_monitoring: str = "DEFAULT",
-        open_monitoring: Optional[Dict[str, Any]] = None,
-        logging_info: Optional[Dict[str, Any]] = None,
+        open_monitoring: Optional[dict[str, Any]] = None,
+        logging_info: Optional[dict[str, Any]] = None,
         storage_mode: str = "LOCAL",
         current_version: str = "1.0",
-        client_authentication: Optional[Dict[str, Any]] = None,
+        client_authentication: Optional[dict[str, Any]] = None,
         state: str = "CREATING",
         active_operation_arn: Optional[str] = None,
         zookeeper_connect_string: Optional[str] = None,
@@ -79,16 +79,16 @@ class KafkaBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.clusters: Dict[str, FakeKafkaCluster] = {}
+        self.clusters: dict[str, FakeKafkaCluster] = {}
         self.tagger = TaggingService()
 
     def create_cluster_v2(
         self,
         cluster_name: str,
-        tags: Optional[Dict[str, str]],
-        provisioned: Optional[Dict[str, Any]],
-        serverless: Optional[Dict[str, Any]],
-    ) -> Tuple[str, str, str, str]:
+        tags: Optional[dict[str, str]],
+        provisioned: Optional[dict[str, Any]],
+        serverless: Optional[dict[str, Any]],
+    ) -> tuple[str, str, str, str]:
         if provisioned:
             cluster_type = "PROVISIONED"
             broker_node_group_info = provisioned.get("brokerNodeGroupInfo")
@@ -131,10 +131,10 @@ class KafkaBackend(BaseBackend):
             new_cluster.cluster_type,
         )
 
-    def describe_cluster_v2(self, cluster_arn: str) -> Dict[str, Any]:
+    def describe_cluster_v2(self, cluster_arn: str) -> dict[str, Any]:
         cluster = self.clusters[cluster_arn]
 
-        cluster_info: Dict[str, Any] = {
+        cluster_info: dict[str, Any] = {
             "activeOperationArn": "arn:aws:kafka:region:account-id:operation/active-operation",
             "clusterArn": cluster.arn,
             "clusterName": cluster.cluster_name,
@@ -203,7 +203,7 @@ class KafkaBackend(BaseBackend):
         cluster_type_filter: Optional[str],
         max_results: Optional[int],
         next_token: Optional[str],
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         cluster_info_list = []
         for cluster_arn in self.clusters.keys():
             cluster_info = self.describe_cluster_v2(cluster_arn)
@@ -213,19 +213,19 @@ class KafkaBackend(BaseBackend):
 
     def create_cluster(
         self,
-        broker_node_group_info: Dict[str, Any],
-        client_authentication: Optional[Dict[str, Any]],
+        broker_node_group_info: dict[str, Any],
+        client_authentication: Optional[dict[str, Any]],
         cluster_name: str,
-        configuration_info: Optional[Dict[str, Any]] = None,
-        encryption_info: Optional[Dict[str, Any]] = None,
+        configuration_info: Optional[dict[str, Any]] = None,
+        encryption_info: Optional[dict[str, Any]] = None,
         enhanced_monitoring: str = "DEFAULT",
-        open_monitoring: Optional[Dict[str, Any]] = None,
+        open_monitoring: Optional[dict[str, Any]] = None,
         kafka_version: str = "2.8.1",
-        logging_info: Optional[Dict[str, Any]] = None,
+        logging_info: Optional[dict[str, Any]] = None,
         number_of_broker_nodes: int = 1,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         storage_mode: str = "LOCAL",
-    ) -> Tuple[str, str, str]:
+    ) -> tuple[str, str, str]:
         new_cluster = FakeKafkaCluster(
             cluster_name=cluster_name,
             account_id=self.account_id,
@@ -250,7 +250,7 @@ class KafkaBackend(BaseBackend):
 
         return new_cluster.arn, new_cluster.cluster_name, new_cluster.state
 
-    def describe_cluster(self, cluster_arn: str) -> Dict[str, Any]:
+    def describe_cluster(self, cluster_arn: str) -> dict[str, Any]:
         cluster = self.clusters[cluster_arn]
 
         return {
@@ -294,7 +294,7 @@ class KafkaBackend(BaseBackend):
         cluster_name_filter: Optional[str],
         max_results: Optional[int],
         next_token: Optional[str],
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         cluster_info_list = [
             {
                 "clusterArn": cluster.arn,
@@ -308,18 +308,18 @@ class KafkaBackend(BaseBackend):
 
         return cluster_info_list
 
-    def delete_cluster(self, cluster_arn: str, current_version: str) -> Tuple[str, str]:
+    def delete_cluster(self, cluster_arn: str, current_version: str) -> tuple[str, str]:
         cluster = self.clusters.pop(cluster_arn)
         return cluster_arn, cluster.state
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tags_list = [{"Key": k, "Value": v} for k, v in tags.items()]
         self.tagger.tag_resource(resource_arn, tags_list)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 

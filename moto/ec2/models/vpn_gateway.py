@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -64,7 +64,7 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
         gateway_type: str,
         amazon_side_asn: Optional[str],
         availability_zone: Optional[str],
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         state: str = "available",
     ):
         self.ec2_backend = ec2_backend
@@ -74,7 +74,7 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
         self.availability_zone = availability_zone
         self.state = state
         self.add_tags(tags or {})
-        self.attachments: Dict[str, VPCGatewayAttachment] = {}
+        self.attachments: dict[str, VPCGatewayAttachment] = {}
         super().__init__()
 
     @staticmethod
@@ -124,14 +124,14 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
 
 class VpnGatewayBackend:
     def __init__(self) -> None:
-        self.vpn_gateways: Dict[str, VpnGateway] = {}
+        self.vpn_gateways: dict[str, VpnGateway] = {}
 
     def create_vpn_gateway(
         self,
         gateway_type: str = "ipsec.1",
         amazon_side_asn: Optional[str] = None,
         availability_zone: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> VpnGateway:
         vpn_gateway_id = random_vpn_gateway_id()
         vpn_gateway = VpnGateway(
@@ -141,8 +141,8 @@ class VpnGatewayBackend:
         return vpn_gateway
 
     def describe_vpn_gateways(
-        self, filters: Any = None, vpn_gw_ids: Optional[List[str]] = None
-    ) -> List[VpnGateway]:
+        self, filters: Any = None, vpn_gw_ids: Optional[list[str]] = None
+    ) -> list[VpnGateway]:
         vpn_gateways = list(self.vpn_gateways.values() or [])
         if vpn_gw_ids:
             vpn_gateways = [item for item in vpn_gateways if item.id in vpn_gw_ids]

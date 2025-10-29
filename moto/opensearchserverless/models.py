@@ -1,7 +1,7 @@
 """OpenSearchServiceServerlessBackend class with methods for supported APIs."""
 
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -46,7 +46,7 @@ class SecurityPolicy(BaseModel):
                 for res in rule["Resource"]
             ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "createdDate": self.created_date,
             "description": self.description,
@@ -58,7 +58,7 @@ class SecurityPolicy(BaseModel):
         }
         return {k: v for k, v in dct.items() if v}
 
-    def to_dict_list(self) -> Dict[str, Any]:
+    def to_dict_list(self) -> dict[str, Any]:
         dct = self.to_dict()
         dct.pop("policy")
         return {k: v for k, v in dct.items() if v}
@@ -71,7 +71,7 @@ class Collection(BaseModel):
         description: str,
         name: str,
         standby_replicas: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         type: str,
         policy: Any,
         region: str,
@@ -94,7 +94,7 @@ class Collection(BaseModel):
             f"https://{self.id}.{region}.aoss.amazonaws.com/_dashboards"
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {
             "arn": self.arn,
             "createdDate": self.created_date,
@@ -109,11 +109,11 @@ class Collection(BaseModel):
         }
         return {k: v for k, v in dct.items() if v}
 
-    def to_dict_list(self) -> Dict[str, Any]:
+    def to_dict_list(self) -> dict[str, Any]:
         dct = {"arn": self.arn, "id": self.id, "name": self.name, "status": self.status}
         return {k: v for k, v in dct.items() if v}
 
-    def to_dict_batch(self) -> Dict[str, Any]:
+    def to_dict_batch(self) -> dict[str, Any]:
         dct = self.to_dict()
         dct_options = {
             "collectionEndpoint": self.collection_endpoint,
@@ -130,8 +130,8 @@ class OSEndpoint(BaseModel):
         self,
         client_token: str,
         name: str,
-        security_group_ids: List[str],
-        subnet_ids: List[str],
+        security_group_ids: list[str],
+        subnet_ids: list[str],
         vpc_id: str,
     ):
         self.client_token = client_token
@@ -142,7 +142,7 @@ class OSEndpoint(BaseModel):
         self.id = f"vpce-0{mock_random.get_random_string(length=16, lower_case=True)}"
         self.status = "ACTIVE"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         dct = {"id": self.id, "name": self.name, "status": self.status}
         return {k: v for k, v in dct.items() if v}
 
@@ -153,9 +153,9 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
 
-        self.collections: Dict[str, Collection] = dict()
-        self.security_policies: Dict[str, SecurityPolicy] = dict()
-        self.os_endpoints: Dict[str, OSEndpoint] = dict()
+        self.collections: dict[str, Collection] = dict()
+        self.security_policies: dict[str, SecurityPolicy] = dict()
+        self.os_endpoints: dict[str, OSEndpoint] = dict()
         self.tagger = TaggingService(
             tag_name="tags", key_name="key", value_name="value"
         )
@@ -196,8 +196,8 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         )
 
     def list_security_policies(
-        self, resource: List[str], type: str
-    ) -> List[SecurityPolicy]:
+        self, resource: list[str], type: str
+    ) -> list[SecurityPolicy]:
         """
         Pagination is not yet implemented
         """
@@ -260,7 +260,7 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         description: str,
         name: str,
         standby_replicas: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         type: str,
     ) -> Collection:
         policy = ""
@@ -290,7 +290,7 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         self.tag_resource(collection.arn, tags)
         return collection
 
-    def list_collections(self, collection_filters: Dict[str, str]) -> List[Collection]:
+    def list_collections(self, collection_filters: dict[str, str]) -> list[Collection]:
         """
         Pagination is not yet implemented
         """
@@ -311,8 +311,8 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         self,
         client_token: str,
         name: str,
-        security_group_ids: List[str],
-        subnet_ids: List[str],
+        security_group_ids: list[str],
+        subnet_ids: list[str],
         vpc_id: str,
     ) -> OSEndpoint:
         if not client_token:
@@ -344,18 +344,18 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
             return self.collections.pop(id)
         raise ResourceNotFoundException(f"Collection with ID {id} cannot be found.")
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["tags"]
 
     def batch_get_collection(
-        self, ids: List[str], names: List[str]
-    ) -> Tuple[List[Any], List[Dict[str, str]]]:
+        self, ids: list[str], names: list[str]
+    ) -> tuple[list[Any], list[dict[str, str]]]:
         collection_details = []
         collection_error_details = []
         collection_error_detail = {
