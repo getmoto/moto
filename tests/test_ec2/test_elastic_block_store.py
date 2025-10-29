@@ -71,7 +71,6 @@ def test_modify_volumes():
         Iops=old_iops,
         Throughput=old_throughput,
         VolumeType=old_type,
-        MultiAttachEnabled=old_multi_attach_enabled,
     ).id
 
     # Ensure no modification records exist
@@ -1195,6 +1194,40 @@ def test_create_volume_with_throughput_fails():
         )
     assert ex.value.response["Error"]["Code"] == "InvalidParameterDependency"
     assert "Throughput" in ex.value.response["Error"]["Message"]
+
+
+@mock_aws
+def test_create_volume_with_multi_attach_enabled():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    for volume_type in ["io1", "io2"]:
+        volume = ec2.create_volume(
+            AvailabilityZone="us-east-1a",
+            Size=10,
+            VolumeType=volume_type,
+            Iops=300,
+            MultiAttachEnabled=True,
+        )
+        assert volume["MultiAttachEnabled"]
+
+        volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
+        assert volume["MultiAttachEnabled"]
+
+
+@mock_aws
+def test_create_volume_with_multi_attach_enabled_fails():
+    resource = boto3.resource("ec2", region_name="us-east-1")
+
+    for volume_type in ["standard", "gp2", "gp3", "sc1", "sc2"]:
+        with pytest.raises(ClientError) as ex:
+            resource.create_volume(
+                AvailabilityZone="us-east-1a",
+                Size=10,
+                VolumeType=volume_type,
+                MultiAttachEnabled=True,
+            )
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterDependency"
+        assert "MultiAttachEnabled" in ex.value.response["Error"]["Message"]
 
 
 @mock_aws

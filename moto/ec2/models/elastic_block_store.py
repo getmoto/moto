@@ -53,18 +53,28 @@ class VolumeModification:
             )
 
         self.volume = volume
-        self.original_size = volume.size
-        self.original_volume_type = volume.volume_type
-        self.original_iops = volume.iops
-        self.original_throughput = volume.throughput
-        self.original_multi_attach_enabled = volume.multi_attach_enabled
-        self.target_size = target_size or volume.size
-        self.target_volume_type = target_volume_type or volume.volume_type
-        self.target_iops = volume.iops = target_iops or volume.iops
-        self.target_throughput = target_throughput or volume.throughput
-        self.target_multi_attach_enabled = (
-            target_multi_attach_enabled or volume.multi_attach_enabled
-        )
+
+        if target_size:
+            self.original_size = volume.size
+            self.target_size = target_size or volume.size
+
+        if target_volume_type:
+            self.original_volume_type = volume.volume_type
+            self.target_volume_type = target_volume_type or volume.volume_type
+
+        if target_iops:
+            self.original_iops = volume.iops
+            self.target_iops = volume.iops = target_iops or volume.iops
+
+        if target_throughput:
+            self.original_throughput = volume.throughput
+            self.target_throughput = target_throughput or volume.throughput
+
+        if target_multi_attach_enabled:
+            self.original_multi_attach_enabled = volume.multi_attach_enabled or False
+            self.target_multi_attach_enabled = (
+                target_multi_attach_enabled or volume.multi_attach_enabled
+            )
 
         self.start_time = utc_date_and_time()
         self.end_time = utc_date_and_time()
@@ -171,11 +181,16 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         )
         self.modifications.append(modification)
 
-        self.size = modification.target_size
-        self.volume_type = modification.target_volume_type
-        self.iops = modification.target_iops
-        self.throughput = modification.target_throughput
-        self.multi_attach_enabled = modification.target_multi_attach_enabled
+        if target_size:
+            self.size = modification.target_size
+        if target_volume_type:
+            self.volume_type = modification.target_volume_type
+        if target_iops:
+            self.iops = modification.target_iops
+        if target_throughput:
+            self.throughput = modification.target_throughput
+        if target_multi_attach_enabled:
+            self.multi_attach_enabled = modification.target_multi_attach_enabled
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -330,6 +345,8 @@ class EBSBackend:
             raise InvalidParameterDependency("VolumeType", "Iops")
         if volume_type not in THROUGHPUT_SUPPORTED_VOLUME_TYPES and throughput:
             raise InvalidParameterDependency("VolumeType", "Throughput")
+        if multi_attach_enabled and volume_type not in IOPS_REQUIRED_VOLUME_TYPES:
+            raise InvalidParameterDependency("MultiAttachEnabled", "VolumeType")
 
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)  # type: ignore[attr-defined]
