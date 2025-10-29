@@ -446,18 +446,16 @@ class PanoramaBackend(BaseBackend):
                 self.devices_memory.values(),
             )
         )
-        devices_list = list(
-            sorted(
-                devices_list,
-                key={
-                    "DEVICE_ID": lambda x: x.device_id,
-                    "CREATED_TIME": lambda x: x.created_time,
-                    "NAME": lambda x: x.name,
-                    "DEVICE_AGGREGATED_STATUS": lambda x: x.device_aggregated_status,
-                    None: lambda x: x.created_time,
-                }[sort_by],
-                reverse=sort_order == "DESCENDING",
-            )
+        devices_list = sorted(
+            devices_list,
+            key={
+                "DEVICE_ID": lambda x: x.device_id,
+                "CREATED_TIME": lambda x: x.created_time,
+                "NAME": lambda x: x.name,
+                "DEVICE_AGGREGATED_STATUS": lambda x: x.device_aggregated_status,
+                None: lambda x: x.created_time,
+            }[sort_by],
+            reverse=sort_order == "DESCENDING",
         )
         return devices_list
 

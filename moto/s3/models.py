@@ -409,7 +409,9 @@ class FakeKey(BaseModel, ManagedState):
         if garbage and not self.disposed:
             import warnings
 
-            warnings.warn("S3 key was not disposed of in time", ResourceWarning)
+            warnings.warn(
+                "S3 key was not disposed of in time", ResourceWarning, stacklevel=2
+            )
         try:
             self._value_buffer.close()
             if self.multipart:
@@ -661,7 +663,7 @@ def get_canned_acl(acl: str) -> FakeAcl:
             FakeGrant([LOG_DELIVERY_GRANTEE], [PERMISSION_READ_ACP, PERMISSION_WRITE])
         )
     else:
-        assert False, f"Unknown canned acl: {acl}"
+        raise AssertionError(f"Unknown canned acl: {acl}")
     return FakeAcl(grants=grants)
 
 

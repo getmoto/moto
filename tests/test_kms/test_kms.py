@@ -1,4 +1,5 @@
 import base64
+import binascii
 import itertools
 import json
 import os
@@ -493,10 +494,10 @@ def test_generate_data_key():
     response = kms.generate_data_key(KeyId=key_id, NumberOfBytes=32)
 
     # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(response["CiphertextBlob"], validate=True)
     # Plaintext must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(response["Plaintext"], validate=True)
 
     assert response["KeyId"] == key_arn

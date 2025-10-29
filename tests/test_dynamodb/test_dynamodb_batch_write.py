@@ -68,7 +68,7 @@ def test_batch_write_item_to_multiple_tables():
             }
         )
 
-        for idx, name in enumerate(tables):
+        for name in tables:
             assert conn.Table(name).scan()["Count"] == 0
     finally:
         for name in tables:

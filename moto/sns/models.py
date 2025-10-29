@@ -325,7 +325,7 @@ class Subscription(BaseModel):
                 qualifier = arr[-1]
                 function_name = arr[-2]
             else:
-                assert False
+                raise AssertionError()
 
             from moto.awslambda.utils import get_backend
 

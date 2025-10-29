@@ -734,7 +734,7 @@ def test_get_parameter_with_version_and_labels():
 def test_get_parameters_errors():
     client = boto3.client("ssm", region_name=SSM_REGION)
 
-    ssm_parameters = {name: "value" for name in string.ascii_lowercase[:11]}
+    ssm_parameters = dict.fromkeys(string.ascii_lowercase[:11], "value")
 
     for name, value in ssm_parameters.items():
         client.put_parameter(Name=name, Value=value, Type="String")

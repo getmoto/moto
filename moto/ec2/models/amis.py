@@ -54,7 +54,7 @@ class Ami(TaggedEC2Resource):
         sriov: str = "simple",
         region_name: str = "us-east-1a",
         snapshot_description: Optional[str] = None,
-        product_codes: Set[str] = set(),
+        product_codes: Optional[Set[str]] = None,
         boot_mode: str = "uefi",
         tags: Optional[Dict[str, Any]] = None,
     ):
@@ -76,7 +76,7 @@ class Ami(TaggedEC2Resource):
         self.root_device_type = root_device_type
         self.sriov = sriov
         self.creation_date = creation_date or utc_date_and_time()
-        self.product_codes = product_codes
+        self.product_codes = product_codes or set()
         self.boot_mode = boot_mode
         self.instance_id: Optional[str] = None
 

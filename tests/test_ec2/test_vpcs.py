@@ -161,12 +161,12 @@ def test_vpc_state_available_filter():
     assert vpc2.id in [v["VpcId"] for v in available]
 
 
-def retrieve_all_vpcs(client, filters=[]):
-    resp = client.describe_vpcs(Filters=filters)
+def retrieve_all_vpcs(client, filters=None):
+    resp = client.describe_vpcs(Filters=filters or [])
     all_vpcs = resp["Vpcs"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_vpcs(Filters=filters, NextToken=token)
+        resp = client.describe_vpcs(Filters=filters or [], NextToken=token)
         all_vpcs.extend(resp["Vpcs"])
         token = resp.get("NextToken")
     return all_vpcs

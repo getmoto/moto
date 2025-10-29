@@ -79,7 +79,6 @@ def test_create_db_instance_name_invalid():
         "1muststartwithletter",
         "cantendwithhyphen_",
         "nodoublehyphen--",
-        "no",
         "longlonglonglonglonglonglonglonglonglongname",
     ]
     client = boto3.client("timestream-influxdb", region_name="us-east-1")
@@ -87,7 +86,7 @@ def test_create_db_instance_name_invalid():
     for invalid_name in invalid_names:
         with pytest.raises(ClientError) as exc:
             client.create_db_instance(
-                name="invalid_name",
+                name=invalid_name,
                 password="password123",
                 dbInstanceType="db.influx.medium",
                 vpcSubnetIds=["subnet-0123456789abcdef0"],

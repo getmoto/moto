@@ -61,7 +61,7 @@ def get_template_summary_response_from_template(template_body: str) -> Dict[str,
                 resources = value
 
         resource_types = []
-        for key, value in resources.items():
+        for value in resources.values():
             resource_types.append(value["Type"])
         return resource_types
 

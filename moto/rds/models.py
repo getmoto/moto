@@ -1465,7 +1465,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     def db_parameter_group_status_list(self) -> Any:  # type: ignore[misc]
         groups = self.db_parameter_groups()
         for group in groups:
-            setattr(group, "ParameterApplyStatus", "in-sync")
+            group.ParameterApplyStatus = "in-sync"  # type: ignore[attr-defined]
         return groups
 
     @property
@@ -3360,10 +3360,10 @@ class RDSBackend(BaseBackend):
                     global_cluster.members.append(cluster)
                     if len(global_cluster.members) == 1:
                         # primary cluster
-                        setattr(cluster, "is_writer", True)
+                        cluster.is_writer = True
                     else:
                         # secondary cluster(s)
-                        setattr(cluster, "is_writer", False)
+                        cluster.is_writer = False
 
         if cluster.replication_source_identifier:
             cluster_identifier = cluster.replication_source_identifier

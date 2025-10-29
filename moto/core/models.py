@@ -155,7 +155,7 @@ class MockAWS(ContextManager["MockAWS"]):
                 continue
 
             attr_value = getattr(klass, attr)
-            if not hasattr(attr_value, "__call__"):
+            if not callable(attr_value):
                 continue
             if not hasattr(attr_value, "__name__"):
                 continue

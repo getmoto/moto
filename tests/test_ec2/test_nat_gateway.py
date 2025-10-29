@@ -260,12 +260,12 @@ def test_describe_nat_gateway_filter_vpc_id():
     )
 
 
-def retrieve_all_gateways(client, filters=[]):
-    resp = client.describe_nat_gateways(Filters=filters)
+def retrieve_all_gateways(client, filters=None):
+    resp = client.describe_nat_gateways(Filters=filters or [])
     all_gws = resp["NatGateways"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_nat_gateways(Filters=filters, NextToken=token)
+        resp = client.describe_nat_gateways(Filters=filters or [], NextToken=token)
         all_gws.extend(resp["NatGateways"])
         token = resp.get("NextToken")
     return all_gws

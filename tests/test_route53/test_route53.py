@@ -429,7 +429,7 @@ def test_create_delete_create():
             },
         ]
 
-    for i in range(10):
+    for _ in range(10):
         conn.change_resource_record_sets(
             HostedZoneId=zone_id,
             ChangeBatch={"Changes": _build_change_payload("create")},

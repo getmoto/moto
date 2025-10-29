@@ -11,7 +11,8 @@ except ImportError:
     import warnings
 
     warnings.warn(
-        "When using MotoServer, ensure that you install moto[server] to have all dependencies!\n"
+        "When using MotoServer, ensure that you install moto[server] to have all dependencies!\n",
+        stacklevel=2,
     )
     raise
 

@@ -46,7 +46,7 @@ class SecurityGroupRule(TaggedEC2Resource):
         source_group: Optional[Dict[str, str]] = None,
         prefix_list_id: Optional[Dict[str, str]] = None,
         is_egress: bool = True,
-        tags: Dict[str, str] = {},
+        tags: Optional[Dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_security_group_rule_id()
@@ -84,7 +84,7 @@ class SecurityGroupRule(TaggedEC2Resource):
             else None
         )
         self.ip_protocol = proto if proto else self.ip_protocol
-        self.add_tags(tags)
+        self.add_tags(tags or {})
         self.filters = {
             "group-id": self.filter_group_id,
             "security-group-rule-id": self.filter_id,
@@ -788,7 +788,7 @@ class SecurityGroupBackend:
         source_groups: List[Dict[str, Any]],
         prefix_list_ids: List[Dict[str, str]],
         is_egress: bool = False,
-        tags: Dict[str, str] = {},
+        tags: Optional[Dict[str, str]] = None,
     ) -> Iterator[SecurityGroupRule]:
         for ip_range in ip_ranges:
             yield SecurityGroupRule(
@@ -801,7 +801,7 @@ class SecurityGroupBackend:
                 None,
                 None,
                 is_egress=is_egress,
-                tags=tags,
+                tags=tags or {},
             )
 
         for source_group in source_groups:
@@ -815,7 +815,7 @@ class SecurityGroupBackend:
                 source_group,
                 None,
                 is_egress=is_egress,
-                tags=tags,
+                tags=tags or {},
             )
 
         for prefix_list_id in prefix_list_ids:
@@ -829,7 +829,7 @@ class SecurityGroupBackend:
                 None,
                 prefix_list_id,
                 is_egress=is_egress,
-                tags=tags,
+                tags=tags or {},
             )
 
     def modify_security_group_rules(
@@ -902,7 +902,7 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: List[Any],
-        sgrule_tags: Dict[str, str] = {},
+        sgrule_tags: Optional[Dict[str, str]] = None,
         source_groups: Optional[List[Dict[str, str]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         security_rule_ids: Optional[List[str]] = None,
@@ -949,7 +949,7 @@ class SecurityGroupBackend:
             _source_groups,
             prefix_list_ids or [],
             is_egress=False,
-            tags=sgrule_tags,
+            tags=sgrule_tags or {},
         ):
             if security_rule in group.ingress_rules:
                 raise InvalidPermissionDuplicateError()
@@ -1022,7 +1022,7 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: List[Any],
-        sgrule_tags: Dict[str, str] = {},
+        sgrule_tags: Optional[Dict[str, str]] = None,
         source_groups: Optional[List[Dict[str, Any]]] = None,
         prefix_list_ids: Optional[List[Dict[str, str]]] = None,
         security_rule_ids: Optional[List[str]] = None,
@@ -1072,7 +1072,7 @@ class SecurityGroupBackend:
             _source_groups,
             prefix_list_ids or [],
             is_egress=True,
-            tags=sgrule_tags,
+            tags=sgrule_tags or {},
         ):
             if security_rule in group.egress_rules:
                 raise InvalidPermissionDuplicateError()

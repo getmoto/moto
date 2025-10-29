@@ -31,7 +31,10 @@ class Cluster:
         self.source_backup_id = source_backup_id
         self.state = "ACTIVE"
         self.state_message = "The cluster is ready for use."
-        self.subnet_mapping = {region_name: subnet_id for subnet_id in subnet_ids}
+        # XXX - This should map the availability zone to subnet in that zone
+        # Mapping it to the region is wrong, as this map will only have a single item
+        # Note: AWS probably has validation that each subnet_id *has* to be in a unique zone
+        self.subnet_mapping = {region_name: subnet_id for subnet_id in subnet_ids}  # noqa: B035
         self.vpc_id = "vpc-" + str(uuid.uuid4())[:8]
         self.network_type = network_type
         self.certificates = {

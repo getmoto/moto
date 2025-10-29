@@ -392,7 +392,8 @@ def test_cloudformation_container_definition_validation():
         },
     }
     invalid_json = json.dumps(invalid_definition)
-    with pytest.raises(Exception):
+    # Currently throws a JSON exception, but we expect an XML exception here
+    with pytest.raises(Exception):  # noqa: B017 Do not assert blind exception: `Exception`
         cfn_conn.create_stack(StackName="invalid-stack", TemplateBody=invalid_json)
 
     # No task memory, has container memory

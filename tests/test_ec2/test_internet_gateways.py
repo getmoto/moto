@@ -311,12 +311,12 @@ def test_create_internet_gateway_with_tags():
     assert igw.tags == [{"Key": "test", "Value": "TestRouteTable"}]
 
 
-def retrieve_all(client, filters=[]):
-    resp = client.describe_internet_gateways(Filters=filters)
+def retrieve_all(client, filters=None):
+    resp = client.describe_internet_gateways(Filters=filters or [])
     all_igws = resp["InternetGateways"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_internet_gateways(NextToken=token, Filters=filters)
+        resp = client.describe_internet_gateways(NextToken=token, Filters=filters or [])
         all_igws.extend(resp["InternetGateways"])
         token = resp.get("NextToken")
     return all_igws

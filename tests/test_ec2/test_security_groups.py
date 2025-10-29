@@ -1377,12 +1377,12 @@ def test_security_group_filter_ip_permission():
     assert describe[0]["GroupName"] == sg_name
 
 
-def retrieve_all_sgs(conn, filters=[]):
-    res = conn.describe_security_groups(Filters=filters)
+def retrieve_all_sgs(conn, filters=None):
+    res = conn.describe_security_groups(Filters=filters or [])
     all_groups = res["SecurityGroups"]
     next_token = res.get("NextToken")
     while next_token:
-        res = conn.describe_security_groups(Filters=filters)
+        res = conn.describe_security_groups(Filters=filters or [])
         all_groups.extend(res["SecurityGroups"])
         next_token = res.get("NextToken")
     return all_groups

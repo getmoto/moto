@@ -604,10 +604,7 @@ def test_describe_all_cache_clusters():
         if cache_cluster["CacheClusterId"] == f"test-cache-cluster-{i}":
             match_number = match_number + 1
 
-    if match_number == (num_clusters):
-        assert True
-    else:
-        assert False
+    assert match_number == num_clusters
 
 
 @mock_aws
@@ -1229,11 +1226,7 @@ def test_create_replication_group_cluster_enabled():
     )
 
     assert len(replication_group["MemberClustersOutpostArns"]) == 3
-
-    if replication_group["ClusterEnabled"]:
-        assert True
-    else:
-        assert False
+    assert replication_group["ClusterEnabled"]
 
 
 @mock_aws
@@ -1401,10 +1394,7 @@ def test_describe_replication_groups_cluster_disabled():
     assert replication_group["SnapshottingClusterId"] == f"{replication_group_id}-002"
     assert replication_group["MultiAZ"] == "enabled"
     assert replication_group["SnapshotRetentionLimit"] == 1
-    if not replication_group["ClusterEnabled"]:
-        assert True
-    else:
-        assert False
+    assert not replication_group["ClusterEnabled"]
     assert replication_group["CacheNodeType"] == "cache.t4g.micro"
     assert (
         replication_group["ARN"]

@@ -316,7 +316,7 @@ def test_get_paginated_instances():
     client = boto3.client("ec2", region_name="us-east-1")
     conn = boto3.resource("ec2", "us-east-1")
     instances = []
-    for i in range(12):
+    for _ in range(12):
         instances.extend(
             conn.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
         )
@@ -2803,18 +2803,18 @@ def test_instance_iam_instance_profile():
     assert retrieve_all_instances(ec2_client, filters) == []
 
 
-def retrieve_all_reservations(client, filters=[]):
-    resp = client.describe_instances(Filters=filters)
+def retrieve_all_reservations(client, filters=None):
+    resp = client.describe_instances(Filters=filters or [])
     all_reservations = resp["Reservations"]
     next_token = resp.get("NextToken")
     while next_token:
-        resp = client.describe_instances(Filters=filters, NextToken=next_token)
+        resp = client.describe_instances(Filters=filters or [], NextToken=next_token)
         all_reservations.extend(resp["Reservations"])
         next_token = resp.get("NextToken")
     return all_reservations
 
 
-def retrieve_all_instances(client, filters=[]):
+def retrieve_all_instances(client, filters=None):
     reservations = retrieve_all_reservations(client, filters)
     return [i for r in reservations for i in r["Instances"]]
 

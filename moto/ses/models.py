@@ -166,24 +166,24 @@ class ConfigurationSet(BaseModel):
     def __init__(
         self,
         configuration_set_name: str,
-        tracking_options: Optional[Dict[str, str]] = {},
-        delivery_options: Optional[Dict[str, Any]] = {},
-        reputation_options: Optional[Dict[str, Any]] = {},
-        sending_options: Optional[Dict[str, bool]] = {},
-        tags: Optional[List[Dict[str, str]]] = [],
-        suppression_options: Optional[Dict[str, List[str]]] = {},
-        vdm_options: Optional[Dict[str, Dict[str, str]]] = {},
+        tracking_options: Optional[Dict[str, str]] = None,
+        delivery_options: Optional[Dict[str, Any]] = None,
+        reputation_options: Optional[Dict[str, Any]] = None,
+        sending_options: Optional[Dict[str, bool]] = None,
+        tags: Optional[List[Dict[str, str]]] = None,
+        suppression_options: Optional[Dict[str, List[str]]] = None,
+        vdm_options: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> None:
         # Shared between SES and SESv2
         self.configuration_set_name = configuration_set_name
-        self.tracking_options = tracking_options
-        self.delivery_options = delivery_options
-        self.reputation_options = reputation_options
-        self.enabled = sending_options  # Enabled in v1, SendingOptions in v2
+        self.tracking_options = tracking_options or {}
+        self.delivery_options = delivery_options or {}
+        self.reputation_options = reputation_options or {}
+        self.enabled = sending_options or {}  # Enabled in v1, SendingOptions in v2
         # SESv2 specific fields
-        self.tags = tags
-        self.suppression_options = suppression_options
-        self.vdm_options = vdm_options
+        self.tags = tags or []
+        self.suppression_options = suppression_options or {}
+        self.vdm_options = vdm_options or {}
 
     def to_dict_v2(self) -> Dict[str, Any]:
         return {

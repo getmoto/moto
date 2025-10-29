@@ -247,7 +247,9 @@ class _DockerDataVolumeLayerContext:
                         layer_tar = zip2tar(layer_zip)
                         container.put_archive("/opt", layer_tar)
                     except zipfile.BadZipfile as e:
-                        warnings.warn(f"Error extracting layer to Lambda: {e}")
+                        warnings.warn(
+                            f"Error extracting layer to Lambda: {e}", stacklevel=2
+                        )
             finally:
                 container.remove(force=True)
 

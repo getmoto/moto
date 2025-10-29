@@ -323,10 +323,12 @@ def test_ip_set_crud():
             Addresses=["10.0.0.0/8"],
             LockToken="aaaaaaaaaaaaaaaaaa",  # invalid lock token
         )
-    e.value.response["Error"]["Code"] == "WAFOptimisticLockException"
-    e.value.response["Error"][
-        "Message"
-    ] == "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes."
+    err = e.value.response["Error"]
+    assert err["Code"] == "WAFOptimisticLockException"
+    assert (
+        err["Message"]
+        == "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes."
+    )
 
     update_response = client.update_ip_set(
         Name="test-ip-set",
@@ -369,10 +371,12 @@ def test_ip_set_crud():
 
     with pytest.raises(ClientError) as e:
         client.get_ip_set(Name=summary["Name"], Scope="CLOUDFRONT", Id=summary["Id"])
-    e.value.response["Error"]["Code"] == "WAFNonexistentItemException"
-    e.value.response["Error"][
-        "Message"
-    ] == "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
+    err = e.value.response["Error"]
+    assert err["Code"] == "WAFNonexistentItemException"
+    assert (
+        err["Message"]
+        == "AWS WAF couldn’t perform the operation because your resource doesn’t exist."
+    )
 
 
 @mock_aws

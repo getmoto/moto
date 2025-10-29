@@ -231,7 +231,7 @@ class SecurityGroups(EC2BaseResponse):
 
         rules = {}
         security_group_rules_param = self._get_params()["SecurityGroupRule"]
-        for idx, sgr in security_group_rules_param.items():
+        for sgr in security_group_rules_param.values():
             rules[sgr["SecurityGroupRuleId"]] = sgr["SecurityGroupRule"]
 
         group_id = self._get_param("GroupId")

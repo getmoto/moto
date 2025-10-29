@@ -245,8 +245,8 @@ class Rule(CloudFormationModel):
             )
             if queue_attr["ContentBasedDeduplication"] == "false":
                 warnings.warn(
-                    "To let EventBridge send messages to your SQS FIFO queue, "
-                    "you must enable content-based deduplication."
+                    "To let EventBridge send messages to your SQS FIFO queue, you must enable content-based deduplication.",
+                    stacklevel=2,
                 )
                 return
 
@@ -1005,7 +1005,8 @@ class EventPattern:
             return all(numeric_matches)
         else:
             warnings.warn(
-                f"'{filter_name}' filter logic unimplemented. defaulting to True"
+                f"'{filter_name}' filter logic unimplemented. defaulting to True",
+                stacklevel=2,
             )
             return True
 
@@ -1362,7 +1363,8 @@ class EventsBackend(BaseBackend):
                     detail = json.loads(event["Detail"])
                     if not isinstance(detail, dict):
                         warnings.warn(
-                            f"EventDetail should be of type dict - types such as {type(detail)} are ignored by AWS"
+                            f"EventDetail should be of type dict - types such as {type(detail)} are ignored by AWS",
+                            stacklevel=2,
                         )
                 except ValueError:  # json.JSONDecodeError exists since Python 3.5
                     entries.append(

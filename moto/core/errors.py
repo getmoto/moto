@@ -125,7 +125,7 @@ def get_error_model(
     if error is None:
         if services_checked and code not in COMMON_ERROR_CODES:
             warning = f"Exception({exception.__class__.__name__}) with code {code} does not match an eror shape in service models(s): {services_checked}"  # pragma: no cover
-            warn(warning)  # pragma: no cover
+            warn(warning, stacklevel=2)  # pragma: no cover
         error = ErrorShape(
             shape_name=exception.__class__.__name__,
             shape_model={
