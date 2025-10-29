@@ -224,7 +224,10 @@ class FirehoseBackend(BaseBackend):
 
         # Rule out situations that are not yet implemented.
         if destination_name == "Splunk":
-            warnings.warn("A Splunk destination delivery stream is not yet implemented")
+            warnings.warn(
+                "A Splunk destination delivery stream is not yet implemented",
+                stacklevel=2,
+            )
 
         if (
             kinesis_stream_source_configuration
@@ -613,7 +616,10 @@ class FirehoseBackend(BaseBackend):
             )
 
         if dest_name == "Splunk":
-            warnings.warn("A Splunk destination delivery stream is not yet implemented")
+            warnings.warn(
+                "A Splunk destination delivery stream is not yet implemented",
+                stacklevel=2,
+            )
 
         if delivery_stream.version_id != current_delivery_stream_version_id:
             raise ConcurrentModificationException(

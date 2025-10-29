@@ -566,7 +566,6 @@ class FakeAutoScalingGroup(CloudFormationModel):
         mixed_instances_policy: Optional[Dict[str, Any]],
         capacity_rebalance: bool,
         new_instances_protected_from_scale_in: bool = False,
-        created_time: datetime = datetime.now(),
     ):
         self.autoscaling_backend = autoscaling_backend
         self.ec2_backend = ec2_backend
@@ -613,7 +612,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.metrics: List[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
-        self.created_time = created_time.isoformat()
+        self.created_time = datetime.now().isoformat()
 
     @property
     def launch_template(self) -> Optional[dict[str, Any]]:

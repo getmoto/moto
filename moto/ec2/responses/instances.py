@@ -344,7 +344,7 @@ class InstanceResponse(EC2BaseResponse):
 
     def _dot_value_instance_attribute_handler(self) -> Optional[str]:
         attribute_key = None
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if ".Value" in key:
                 attribute_key = key
                 break

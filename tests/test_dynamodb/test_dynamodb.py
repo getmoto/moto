@@ -3242,7 +3242,7 @@ def test_non_existing_attribute_should_raise_exception():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = no_attr + MyStr",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,
@@ -3269,7 +3269,7 @@ def test_update_expression_with_plus_in_attribute_name():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = my+Num",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,
@@ -3296,7 +3296,7 @@ def test_update_expression_with_minus_in_attribute_name():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = my-Num",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,
@@ -3343,7 +3343,7 @@ def test_summing_up_2_strings_raises_exception():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = MyStr + MyStr",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,

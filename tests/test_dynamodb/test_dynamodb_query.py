@@ -592,7 +592,7 @@ def test_query_lsi_pagination_with_numerical_local_range_key(table_name=None):
         KeyConditionExpression=Key("pk").eq("the-key") & Key("lsi_sk").eq(Decimal("1")),
         IndexName="test_lsi",
     )["Items"]
-    items == [{"pk": "the-key", "sk": "1", "lsi_sk": Decimal("1")}]
+    assert items == [{"pk": "the-key", "sk": "1", "lsi_sk": Decimal("1")}]
 
     # Verify pagination when getting all items with a specific hash
     page1 = table.query(

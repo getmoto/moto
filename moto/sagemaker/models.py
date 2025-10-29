@@ -3138,7 +3138,7 @@ class SageMakerModelBackend(BaseBackend):
 
                     elif f["Name"] == "Parents.TrialName":
                         trial_name = f["Value"]
-                        if getattr(item, "trial_name") != trial_name:
+                        if item.trial_name != trial_name:
                             return False
 
                     elif hasattr(item, prop_key):
@@ -4455,16 +4455,14 @@ class SageMakerModelBackend(BaseBackend):
                 self.model_package_groups.values(),
             )
         )
-        model_package_group_summary_list = list(
-            sorted(
-                model_package_group_summary_list,
-                key={
-                    "Name": lambda x: x.model_package_group_name,
-                    "CreationTime": lambda x: x.creation_time,
-                    None: lambda x: x.creation_time,
-                }[sort_by],
-                reverse=sort_order == "Descending",
-            )
+        model_package_group_summary_list = sorted(
+            model_package_group_summary_list,
+            key={
+                "Name": lambda x: x.model_package_group_name,
+                "CreationTime": lambda x: x.creation_time,
+                None: lambda x: x.creation_time,
+            }[sort_by],
+            reverse=sort_order == "Descending",
         )
         return model_package_group_summary_list
 
@@ -4536,16 +4534,14 @@ class SageMakerModelBackend(BaseBackend):
                 self.model_packages.values(),
             )
         )
-        model_package_summary_list = list(
-            sorted(
-                model_package_summary_list,
-                key={
-                    "Name": lambda x: x.model_package_name,
-                    "CreationTime": lambda x: x.creation_time,
-                    None: lambda x: x.creation_time,
-                }[sort_by],
-                reverse=sort_order == "Descending",
-            )
+        model_package_summary_list = sorted(
+            model_package_summary_list,
+            key={
+                "Name": lambda x: x.model_package_name,
+                "CreationTime": lambda x: x.creation_time,
+                None: lambda x: x.creation_time,
+            }[sort_by],
+            reverse=sort_order == "Descending",
         )
         return model_package_summary_list
 
@@ -4856,7 +4852,7 @@ class SageMakerModelBackend(BaseBackend):
         self,
         account_id: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[List[Dict[str, str]]] = None,
         role_arn: str = "",
         job_resources: Optional[Dict[str, Any]] = None,
         stopping_condition: Optional[Dict[str, Any]] = None,
@@ -4871,7 +4867,7 @@ class SageMakerModelBackend(BaseBackend):
             account_id=account_id,
             region_name=self.region_name,
             job_definition_name=job_definition_name,
-            tags=tags,
+            tags=tags or [],
             role_arn=role_arn,
             job_resources=job_resources,
             stopping_condition=stopping_condition,
@@ -5714,7 +5710,7 @@ class SageMakerModelBackend(BaseBackend):
         self,
         account_id: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[List[Dict[str, str]]] = None,
         role_arn: str = "",
         job_resources: Optional[Dict[str, Any]] = None,
         stopping_condition: Optional[Dict[str, Any]] = None,
@@ -5729,7 +5725,7 @@ class SageMakerModelBackend(BaseBackend):
             account_id=account_id,
             region_name=self.region_name,
             job_definition_name=job_definition_name,
-            tags=tags,
+            tags=tags or [],
             role_arn=role_arn,
             job_resources=job_resources,
             stopping_condition=stopping_condition,
@@ -5770,7 +5766,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         account_id: str,
         region_name: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[List[Dict[str, str]]] = None,
         role_arn: str = "",
         job_resources: Optional[Dict[str, Any]] = None,
         stopping_condition: Optional[Dict[str, Any]] = None,
@@ -5785,7 +5781,7 @@ class FakeDataQualityJobDefinition(BaseObject):
         self.arn = FakeDataQualityJobDefinition.arn_formatter(
             job_definition_name, account_id, region_name
         )
-        self.tags = tags
+        self.tags = tags or []
         self.role_arn = role_arn
         self.job_resources = job_resources or {}
         self.stopping_condition = stopping_condition or {}
@@ -6000,7 +5996,7 @@ class FakeModelBiasJobDefinition(BaseObject):
         account_id: str,
         region_name: str,
         job_definition_name: str,
-        tags: List[Dict[str, str]] = [],
+        tags: Optional[List[Dict[str, str]]] = None,
         role_arn: str = "",
         job_resources: Optional[Dict[str, Any]] = None,
         stopping_condition: Optional[Dict[str, Any]] = None,
@@ -6015,7 +6011,7 @@ class FakeModelBiasJobDefinition(BaseObject):
         self.arn = FakeModelBiasJobDefinition.arn_formatter(
             job_definition_name, account_id, region_name
         )
-        self.tags = tags
+        self.tags = tags or []
         self.role_arn = role_arn
         self.job_resources = job_resources or {}
         self.stopping_condition = stopping_condition or {}

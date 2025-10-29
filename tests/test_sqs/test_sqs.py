@@ -202,7 +202,7 @@ def test_create_queue(q_name):
     sqs = boto3.resource("sqs", region_name=REGION)
 
     new_queue = sqs.create_queue(QueueName=q_name)
-    assert q_name in getattr(new_queue, "url")
+    assert q_name in new_queue.url
 
     queue = sqs.get_queue_by_name(QueueName=q_name)
     assert queue.attributes.get("QueueArn").split(":")[-1] == q_name
@@ -1043,11 +1043,11 @@ def test_send_receive_message_timestamps():
     try:
         int(sent_timestamp)
     except ValueError:
-        assert False, "sent_timestamp not an int"
+        raise AssertionError("sent_timestamp not an int")
     try:
         int(approximate_first_receive_timestamp)
     except ValueError:
-        assert False, "aproximate_first_receive_timestamp not an int"
+        raise AssertionError("aproximate_first_receive_timestamp not an int")
 
 
 @mock_aws

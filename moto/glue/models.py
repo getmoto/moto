@@ -542,7 +542,7 @@ class GlueBackend(BaseBackend):
                     return crawl_value != field_value
 
             def filter_function(crawl: FakeCrawl) -> bool:
-                return compare(get_field(crawl), filter.field_value)
+                return compare(get_field(crawl), filter.field_value)  # noqa: B023
 
             filter_functions.append(filter_function)
 

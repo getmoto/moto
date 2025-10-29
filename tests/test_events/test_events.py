@@ -2509,7 +2509,9 @@ def test_kms_key_is_created(auth_type, auth_parameters, with_headers):
                 secret_deleted = err["Code"] == "ResourceNotFoundException"
 
         if not secret_deleted:
-            assert False, f"Should have automatically deleted secret {secret_arn}"
+            raise AssertionError(
+                f"Should have automatically deleted secret {secret_arn}"
+            )
     finally:
         if not connection_deleted:
             client.delete_connection(Name=name)

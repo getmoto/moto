@@ -361,7 +361,7 @@ def get_object_value(obj: Any, attr: str) -> Any:
                 if item_val:
                     return item_val
         elif key == "owner_id" and hasattr(val, "account_id"):
-            val = getattr(val, "account_id")
+            val = val.account_id
         else:
             return None
     return val

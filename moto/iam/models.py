@@ -870,7 +870,7 @@ class Role(CloudFormationModel):
 
         _instance_profiles = []
         backend = iam_backends[self.account_id][self.partition]
-        for key, instance_profile in backend.instance_profiles.items():
+        for instance_profile in backend.instance_profiles.values():
             for _ in instance_profile.roles:
                 _instance_profiles.append(instance_profile.to_embedded_config_dict())
                 break
@@ -3425,7 +3425,7 @@ class IAMBackend(BaseBackend):
         return True
 
     def tag_instance_profile(
-        self, instance_profile_name: str, tags: List[Dict[str, str]] = []
+        self, instance_profile_name: str, tags: List[Dict[str, str]]
     ) -> None:
         profile = self.get_instance_profile(profile_name=instance_profile_name)
         new_keys = [tag["Key"] for tag in tags]
@@ -3434,7 +3434,7 @@ class IAMBackend(BaseBackend):
         profile.tags = updated_tags
 
     def untag_instance_profile(
-        self, instance_profile_name: str, tagKeys: List[str] = []
+        self, instance_profile_name: str, tagKeys: List[str]
     ) -> None:
         profile = self.get_instance_profile(profile_name=instance_profile_name)
         profile.tags = [tag for tag in profile.tags if tag["Key"] not in tagKeys]

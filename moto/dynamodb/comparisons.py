@@ -332,23 +332,18 @@ class ConditionExpressionParser:
             match = pattern.match(remaining_expression)
             if match:
                 match_text = match.group()
-                break
-        else:  # pragma: no cover
-            raise ValueError(
-                f"Cannot parse condition starting at:{remaining_expression}"
-            )
+                node = self.Node(
+                    nonterminal=nonterminal,
+                    kind=self.Kind.LITERAL,
+                    text=match_text,
+                    value=match_text,
+                    children=[],
+                )
 
-        node = self.Node(
-            nonterminal=nonterminal,
-            kind=self.Kind.LITERAL,
-            text=match_text,
-            value=match_text,
-            children=[],
-        )
+                remaining_expression = remaining_expression[len(match_text) :]
 
-        remaining_expression = remaining_expression[len(match_text) :]
-
-        return node, remaining_expression
+                return node, remaining_expression
+        raise ValueError(f"Cannot parse condition starting at:{remaining_expression}")
 
     def _parse_paths(self, nodes: Deque[Node]) -> Deque[Node]:
         output: Deque[ConditionExpressionParser.Node] = deque()

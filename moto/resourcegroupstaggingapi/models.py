@@ -1574,7 +1574,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 )
             else:
                 missing_resources.append(arn)
-        return {arn: missing_error for arn in missing_resources}
+        return dict.fromkeys(missing_resources, missing_error)
 
     def untag_resources(
         self, resource_arn_list: List[str], tag_keys: List[str]
@@ -1605,7 +1605,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             else:
                 missing_resources.append(arn)
 
-        return {arn: missing_error for arn in missing_resources}
+        return dict.fromkeys(missing_resources, missing_error)
 
 
 resourcegroupstaggingapi_backends = BackendDict(

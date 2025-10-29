@@ -328,7 +328,8 @@ def parse_resource(
     resource_class = resource_class_from_type(resource_type)
     if not resource_class:
         warnings.warn(
-            f"Tried to parse {resource_type} but it's not supported by moto's CloudFormation implementation"
+            f"Tried to parse {resource_type} but it's not supported by moto's CloudFormation implementation",
+            stacklevel=2,
         )
         return None  # type: ignore[return-value]
 
@@ -853,7 +854,8 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
                     else:
                         # Resource wasn't created in the first place
                         warnings.warn(
-                            f"Unable to delete {logical_name}, as it was never created"
+                            f"Unable to delete {logical_name}, as it was never created",
+                            stacklevel=2,
                         )
                 except Exception as e:
                     # skip over dependency violations, and try again in another pass

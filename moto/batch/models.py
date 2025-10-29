@@ -846,7 +846,7 @@ class Job(threading.Thread, BaseModel, DockerModel, ManagedState):
                 container.reload()
                 containers.append(container)
 
-            for i, container in enumerate(containers):
+            for container in containers:
                 try:
                     container.reload()
 

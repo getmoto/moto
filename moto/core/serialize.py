@@ -363,7 +363,7 @@ class ResponseSerializer:
         else:
             wrapper = serialized
         for member_key, member_shape in shape.members.items():
-            setattr(member_shape, "parent", shape)
+            member_shape.parent = shape  # type: ignore[attr-defined]
             self._serialize_structure_member(wrapper, value, member_shape, member_key)
         if key:
             self._default_serialize(serialized, wrapper, shape, key)

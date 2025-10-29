@@ -573,7 +573,7 @@ def test_lifecycle_multi():
             )
             assert rule["Transitions"][0]["StorageClass"] == storage_class
         else:
-            assert False, "Invalid rule id"
+            raise AssertionError("Invalid rule id")
 
 
 @mock_aws

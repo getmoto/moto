@@ -881,7 +881,7 @@ class InstanceBackend:
         new_group_list = []
         for new_group_id in new_group_id_list:
             new_group_list.append(self.get_security_group_from_id(new_group_id))  # type: ignore[attr-defined]
-        setattr(instance, "security_groups", new_group_list)
+        instance.security_groups = new_group_list
         return instance
 
     def describe_instance_attribute(

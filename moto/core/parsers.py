@@ -233,9 +233,9 @@ class JSONParser(RequestParser):
         parsed = self.MAP_TYPE()
         key_shape = shape.key
         value_shape = shape.value
-        for key, value in value.items():
+        for key, item_value in value.items():
             actual_key = self._parse_shape(key_shape, key)
-            actual_value = self._parse_shape(value_shape, value)
+            actual_value = self._parse_shape(value_shape, item_value)
             parsed[actual_key] = actual_value
         return parsed
 
