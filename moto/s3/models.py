@@ -127,6 +127,8 @@ class FakeKey(BaseModel, ManagedState):
         lock_legal_status: Optional[str] = None,
         lock_until: Optional[str] = None,
         checksum_value: Optional[str] = None,
+        checksum_type: Optional[str] = None,
+        checksum_parts: Optional[int] = None,
     ):
         ManagedState.__init__(
             self,
@@ -169,6 +171,8 @@ class FakeKey(BaseModel, ManagedState):
         self.lock_legal_status = lock_legal_status
         self.lock_until = lock_until
         self.checksum_value = checksum_value
+        self.checksum_type = checksum_type
+        self.checksum_parts = checksum_parts
 
         # Default metadata values
         self._metadata["Content-Type"] = "binary/octet-stream"
@@ -453,12 +457,14 @@ class FakeMultipart(BaseModel):
 
     def complete(
         self, body: Iterator[Tuple[int, str]]
-    ) -> Tuple[bytes, str, Optional[str]]:
-        checksum_algo = self.metadata.get("x-amz-checksum-algorithm")
+    ) -> Tuple[bytearray, str, Optional[Tuple[str, str, int]]]:
+        checksum_algo: Optional[str] = self.metadata.get("x-amz-checksum-algorithm")
+        checksum_type: Optional[str] = self.metadata.get("x-amz-checksum-type")
         decode_hex = codecs.getdecoder("hex_codec")
         total = bytearray()
         md5s = bytearray()
-        checksum = bytearray()
+
+        checksum_builder = MultipartChecksumBuilder(checksum_algo, checksum_type)
 
         last = None
         count = 0
@@ -474,10 +480,7 @@ class FakeMultipart(BaseModel):
                 raise EntityTooSmall()
             md5s.extend(decode_hex(part_etag)[0])  # type: ignore
             total.extend(part.value)
-            if checksum_algo:
-                checksum.extend(
-                    compute_checksum(part.value, checksum_algo, encode_base64=False)
-                )
+            checksum_builder.addPart(part.value)
             last = part
             count += 1
 
@@ -486,11 +489,7 @@ class FakeMultipart(BaseModel):
 
         full_etag = md5_hash()
         full_etag.update(bytes(md5s))
-        if checksum_algo:
-            encoded_checksum = compute_checksum(checksum, checksum_algo).decode("utf-8")
-        else:
-            encoded_checksum = None
-        return total, f"{full_etag.hexdigest()}-{count}", encoded_checksum
+        return total, f"{full_etag.hexdigest()}-{count}", checksum_builder.build()
 
     def set_part(self, part_id: int, value: bytes) -> FakeKey:
         if part_id < 1:
@@ -520,6 +519,52 @@ class FakeMultipart(BaseModel):
     def dispose(self) -> None:
         for part in self.parts.values():
             part.dispose()
+
+
+class MultipartChecksumBuilder:
+    def __init__(self, checksum_algorithm: Optional[str], checksum_type: Optional[str]):
+        self.complete_object = bytearray()
+        self.checksum = bytearray()
+
+        self.part_count = 0
+
+        # Checksum algorithm defaults to CRC64NVME when none specified
+        self.checksum_algorithm: str = checksum_algorithm or "CRC64NVME"
+
+        # Checksum type defaults to COMPOSITE except for CRC64NVME which only supports FULL_OBJECT
+        self.checksum_type: str = checksum_type or ""
+        if not self.checksum_type:
+            self.checksum_type = (
+                "FULL_OBJECT" if self.checksum_algorithm == "CRC64NVME" else "COMPOSITE"
+            )
+
+    def addPart(self, part: bytes) -> None:
+        if self.checksum_type == "COMPOSITE":
+            self.checksum.extend(
+                compute_checksum(part, self.checksum_algorithm, encode_base64=False)
+            )
+        else:
+            self.complete_object.extend(part)
+
+        self.part_count += 1
+
+    def build(self) -> Optional[Tuple[str, str, int]]:
+        if self.checksum_type == "COMPOSITE":
+            return (
+                self.checksum_type,
+                compute_checksum(self.checksum, self.checksum_algorithm).decode(
+                    "utf-8"
+                ),
+                self.part_count,
+            )
+
+        return (
+            self.checksum_type,
+            compute_checksum(self.complete_object, self.checksum_algorithm).decode(
+                "utf-8"
+            ),
+            1,
+        )
 
 
 class FakeGrantee(BaseModel):
@@ -2350,6 +2395,8 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             response_keys["etag"] = key.etag.replace('"', "")
         if "Checksum" in attributes_to_get and key.checksum_value is not None:
             response_keys["checksum"] = {key.checksum_algorithm: key.checksum_value}
+            if key.checksum_type:
+                response_keys["checksum"]["type"] = key.checksum_type
         if "ObjectSize" in attributes_to_get:
             response_keys["size"] = key.size
         if "StorageClass" in attributes_to_get:
@@ -2631,7 +2678,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
     ) -> Optional[FakeKey]:
         bucket = self.get_bucket(bucket_name)
         multipart = bucket.multiparts[multipart_id]
-        value, etag, checksum = multipart.complete(body)
+        value, etag, checksum_details = multipart.complete(body)
         if value is not None:
             del bucket.multiparts[multipart_id]
 
@@ -2650,9 +2697,11 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         )
         key.set_metadata(multipart.metadata)
 
-        if checksum:
+        if checksum_details:
             key.checksum_algorithm = multipart.metadata.get("x-amz-checksum-algorithm")
-            key.checksum_value = checksum
+            key.checksum_type = checksum_details[0]
+            key.checksum_value = checksum_details[1]
+            key.checksum_parts = checksum_details[2]
 
         self.put_object_tagging(key, multipart.tags)
         self.put_object_acl(
