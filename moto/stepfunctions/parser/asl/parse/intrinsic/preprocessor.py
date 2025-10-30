@@ -98,7 +98,7 @@ class Preprocessor(ASLIntrinsicParserVisitor):
     def visitFunc_arg_list(
         self, ctx: ASLIntrinsicParser.Func_arg_listContext
     ) -> ArgumentList:
-        arguments: list[Argument] = list()
+        arguments: list[Argument] = []
         for child in ctx.children:
             cmp: Optional[Component] = self.visit(child)
             if isinstance(cmp, Argument):

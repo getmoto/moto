@@ -109,7 +109,7 @@ class AthenaResponse(BaseResponse):
         target_dpus = self._get_param("TargetDpus")
         tags = self._get_param("Tags")
         self.athena_backend.create_capacity_reservation(name, target_dpus, tags)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def get_capacity_reservation(self) -> Union[str, tuple[str, dict[str, int]]]:
         name = self._get_param("Name")
@@ -144,7 +144,7 @@ class AthenaResponse(BaseResponse):
     def list_query_executions(self) -> str:
         workgroup = self._get_param("WorkGroup")
         executions = self.athena_backend.list_query_executions(workgroup)
-        return json.dumps({"QueryExecutionIds": [i for i in executions.keys()]})
+        return json.dumps({"QueryExecutionIds": list(executions.keys())})
 
     def stop_query_execution(self) -> str:
         exec_id = self._get_param("QueryExecutionId")
@@ -154,7 +154,7 @@ class AthenaResponse(BaseResponse):
     def error(self, msg: str, status: int) -> tuple[str, dict[str, int]]:
         return (
             json.dumps({"__type": "InvalidRequestException", "Message": msg}),
-            dict(status=status),
+            {"status": status},
         )
 
     def create_named_query(self) -> Union[tuple[str, dict[str, int]], str]:
@@ -245,7 +245,7 @@ class AthenaResponse(BaseResponse):
             query_statement=query_statement,
             description=description,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def get_prepared_statement(self) -> str:
         statement_name = self._get_param("StatementName")

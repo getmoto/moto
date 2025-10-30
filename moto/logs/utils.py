@@ -29,7 +29,7 @@ class QuotedTermFilterPattern(FilterPattern):
 class SingleTermFilterPattern(FilterPattern):
     def matches(self, message: str) -> bool:
         required_words = self.term.split(" ")
-        return all([word in message for word in required_words])
+        return all(word in message for word in required_words)
 
 
 class UnsupportedFilterPattern(FilterPattern):

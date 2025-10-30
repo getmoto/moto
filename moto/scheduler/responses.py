@@ -46,7 +46,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
             target=target,
             action_after_completion=action_after_completion,
         )
-        return json.dumps(dict(ScheduleArn=schedule.arn))
+        return json.dumps({"ScheduleArn": schedule.arn})
 
     def get_schedule(self) -> str:
         group_name = self._get_param("groupName")
@@ -86,7 +86,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
             state=state,
             target=target,
         )
-        return json.dumps(dict(ScheduleArn=schedule.arn))
+        return json.dumps({"ScheduleArn": schedule.arn})
 
     def list_schedules(self) -> str:
         group_names = self.querystring.get("ScheduleGroup")
@@ -101,7 +101,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
             name=name,
             tags=tags,
         )
-        return json.dumps(dict(ScheduleGroupArn=schedule_group.arn))
+        return json.dumps({"ScheduleGroupArn": schedule_group.arn})
 
     def get_schedule_group(self) -> str:
         group_name = self.uri.split("?")[0].split("/")[-1]
@@ -115,7 +115,7 @@ class EventBridgeSchedulerResponse(BaseResponse):
 
     def list_schedule_groups(self) -> str:
         schedule_groups = self.scheduler_backend.list_schedule_groups()
-        return json.dumps(dict(ScheduleGroups=[sg.to_dict() for sg in schedule_groups]))
+        return json.dumps({"ScheduleGroups": [sg.to_dict() for sg in schedule_groups]})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.uri.split("/tags/")[-1])

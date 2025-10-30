@@ -559,7 +559,7 @@ def test_list_deployment_groups():
     assert len(resp["deploymentGroups"]) == 2
 
     # ensure both deployment group names are in the response
-    assert set([deployment_group_name, deployment_group_name2]) == set(
+    assert {deployment_group_name, deployment_group_name2} == set(
         resp["deploymentGroups"]
     )
 

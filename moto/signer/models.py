@@ -163,7 +163,7 @@ class SignerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.signing_profiles: dict[str, SigningProfile] = dict()
+        self.signing_profiles: dict[str, SigningProfile] = {}
         self.tagger = TaggingService()
 
     def cancel_signing_profile(self, profile_name: str) -> None:

@@ -505,7 +505,7 @@ def test_update_settype_item_with_conditions():
     table.update_item(
         Key={"username": "johndoe"},
         UpdateExpression="SET foo=:new_value",
-        ExpressionAttributeValues={":new_value": set(["baz"])},
+        ExpressionAttributeValues={":new_value": {"baz"}},
         Expected={
             "foo": {
                 "ComparisonOperator": "EQ",
@@ -516,7 +516,7 @@ def test_update_settype_item_with_conditions():
         },
     )
     returned_item = table.get_item(Key={"username": "johndoe"})
-    assert returned_item["Item"]["foo"] == set(["baz"])
+    assert returned_item["Item"]["foo"] == {"baz"}
 
 
 @pytest.mark.aws_verified

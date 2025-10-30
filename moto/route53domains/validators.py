@@ -1093,26 +1093,22 @@ class DomainsFilter:
         return self.__filter_by_expiry_date(domain)
 
     def __filter_by_domain_name(self, domain: Route53Domain) -> bool:
-        return any([domain.domain_name.startswith(value) for value in self.values])
+        return any(domain.domain_name.startswith(value) for value in self.values)
 
     def __filter_by_expiry_date(self, domain: Route53Domain) -> bool:
         return (
             any(
-                [
-                    value
-                    for value in self.values
-                    if domain.expiration_date
-                    >= datetime.fromtimestamp(float(value), tz=timezone.utc)
-                ]
+                value
+                for value in self.values
+                if domain.expiration_date
+                >= datetime.fromtimestamp(float(value), tz=timezone.utc)
             )
             if self.operator == DomainFilterOperator.GE
             else any(
-                [
-                    value
-                    for value in self.values
-                    if domain.expiration_date
-                    <= datetime.fromtimestamp(float(value), tz=timezone.utc)
-                ]
+                value
+                for value in self.values
+                if domain.expiration_date
+                <= datetime.fromtimestamp(float(value), tz=timezone.utc)
             )
         )
 

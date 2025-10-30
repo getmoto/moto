@@ -2898,9 +2898,10 @@ def test_modify_db_snapshot_attribute(client):
 def test_delete_db_instance_with_skip_final_snapshot_param(client, skip_final_snapshot):
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    deletion_kwargs = dict(
-        DBInstanceIdentifier="db-primary-1", SkipFinalSnapshot=skip_final_snapshot
-    )
+    deletion_kwargs = {
+        "DBInstanceIdentifier": "db-primary-1",
+        "SkipFinalSnapshot": skip_final_snapshot,
+    }
     if not skip_final_snapshot:
         deletion_kwargs["FinalDBSnapshotIdentifier"] = "final-snapshot"
     client.delete_db_instance(**deletion_kwargs)

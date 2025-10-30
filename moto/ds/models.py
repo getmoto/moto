@@ -777,9 +777,7 @@ class DirectoryServiceBackend(BaseBackend):
             else:
                 log_subscriptions = []
         else:
-            log_subscriptions = [
-                log_subscription for log_subscription in self.log_subscriptions.values()
-            ]
+            log_subscriptions = list(self.log_subscriptions.values())
         return log_subscriptions
 
     def delete_log_subscription(self, directory_id: str) -> None:

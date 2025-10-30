@@ -71,7 +71,7 @@ class AppMeshBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.meshes: dict[str, Mesh] = dict()
+        self.meshes: dict[str, Mesh] = {}
 
     def _validate_mesh(self, mesh_name: str, mesh_owner: Optional[str]) -> None:
         if mesh_name not in self.meshes:
@@ -207,7 +207,7 @@ class AppMeshBackend(BaseBackend):
             spec=spec,
             status={"status": "ACTIVE"},
             metadata=metadata,
-            tags=tags or list(),
+            tags=tags or [],
         )
         self.meshes[mesh_name] = mesh
         return mesh
@@ -333,7 +333,7 @@ class AppMeshBackend(BaseBackend):
             metadata=metadata,
             status={"status": "ACTIVE"},
             spec=spec,
-            tags=tags or list(),
+            tags=tags or [],
         )
         self.meshes[mesh_name].virtual_routers[virtual_router_name] = virtual_router
         return virtual_router
@@ -429,7 +429,7 @@ class AppMeshBackend(BaseBackend):
             metadata=metadata,
             route_name=route_name,
             spec=spec,
-            tags=tags or list(),
+            tags=tags or [],
             virtual_router_name=virtual_router_name,
         )
         self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[
@@ -559,7 +559,7 @@ class AppMeshBackend(BaseBackend):
             mesh_owner=owner,
             metadata=metadata,
             spec=spec,
-            tags=tags or list(),
+            tags=tags or [],
             virtual_node_name=virtual_node_name,
         )
         self.meshes[mesh_name].virtual_nodes[virtual_node_name] = virtual_node

@@ -64,7 +64,7 @@ class CertificateAuthority(BaseModel):
 
         self.certificate_bytes: bytes = b""
         self.certificate_chain: Optional[bytes] = None
-        self.issued_certificates: dict[str, bytes] = dict()
+        self.issued_certificates: dict[str, bytes] = {}
 
         self.subject = self.certificate_authority_configuration.get("Subject", {})
 
@@ -352,7 +352,7 @@ class ACMPCABackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.certificate_authorities: dict[str, CertificateAuthority] = dict()
+        self.certificate_authorities: dict[str, CertificateAuthority] = {}
         self.tagger = TaggingService()
 
     def create_certificate_authority(

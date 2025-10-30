@@ -560,7 +560,7 @@ class Route53Backend(BaseBackend):
         self.health_checks: dict[str, HealthCheck] = {}
         self.resource_tags: dict[str, Any] = defaultdict(dict)
         self.query_logging_configs: dict[str, QueryLoggingConfig] = {}
-        self.delegation_sets: dict[str, DelegationSet] = dict()
+        self.delegation_sets: dict[str, DelegationSet] = {}
 
     def _has_prev_conflicting_domain(
         self, name: str, delegation_set_id: Optional[str]

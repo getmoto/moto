@@ -485,9 +485,9 @@ class OrganizationsBackend(BaseBackend):
 
     def list_roots(self) -> dict[str, Any]:
         if self.org:
-            return dict(
-                Roots=[ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)]
-            )
+            return {
+                "Roots": [ou.describe() for ou in self.ou if isinstance(ou, FakeRoot)]
+            }
 
         if self.account_id in organizations_backends.master_accounts:
             master_account_id, partition = organizations_backends.master_accounts[
@@ -593,7 +593,7 @@ class OrganizationsBackend(BaseBackend):
 
     def describe_account(self, **kwargs: Any) -> dict[str, Any]:
         account = self.get_account_by_id(kwargs["AccountId"])
-        return dict(Account=account.describe())
+        return {"Account": account.describe()}
 
     def describe_create_account_status(self, **kwargs: Any) -> dict[str, Any]:
         account = self.get_account_by_attr(
@@ -620,7 +620,7 @@ class OrganizationsBackend(BaseBackend):
         next_token = None
         if max_results and len(accountStatuses) > (start + max_results):
             next_token = str(len(accounts_resp))
-        return dict(CreateAccountStatuses=accounts_resp, NextToken=next_token)
+        return {"CreateAccountStatuses": accounts_resp, "NextToken": next_token}
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_accounts(self) -> list[FakeAccount]:
@@ -647,13 +647,13 @@ class OrganizationsBackend(BaseBackend):
             child_object: Any = self.get_account_by_id(kwargs["ChildId"])
         else:
             child_object = self.get_organizational_unit_by_id(kwargs["ChildId"])
-        return dict(
-            Parents=[
+        return {
+            "Parents": [
                 {"Id": ou.id, "Type": ou.type}
                 for ou in self.ou
                 if ou.id == child_object.parent_id
             ]
-        )
+        }
 
     def list_children(self, **kwargs: Any) -> dict[str, Any]:
         parent_id = self.validate_parent_id(kwargs["ParentId"])
@@ -663,13 +663,13 @@ class OrganizationsBackend(BaseBackend):
             obj_list = self.ou
         else:
             raise InvalidInputException("You specified an invalid value.")
-        return dict(
-            Children=[
+        return {
+            "Children": [
                 {"Id": obj.id, "Type": kwargs["ChildType"]}
                 for obj in obj_list
                 if obj.parent_id == parent_id
             ]
-        )
+        }
 
     def create_policy(self, **kwargs: Any) -> dict[str, Any]:
         new_policy = FakePolicy(self.org, **kwargs)  # type: ignore
@@ -738,9 +738,9 @@ class OrganizationsBackend(BaseBackend):
             raise InvalidInputException("You specified an invalid value.")
 
     def list_policies(self) -> dict[str, Any]:
-        return dict(
-            Policies=[p.describe()["Policy"]["PolicySummary"] for p in self.policies]
-        )
+        return {
+            "Policies": [p.describe()["Policy"]["PolicySummary"] for p in self.policies]
+        }
 
     def delete_policy(self, **kwargs: Any) -> None:
         for idx, policy in enumerate(self.policies):
@@ -789,13 +789,13 @@ class OrganizationsBackend(BaseBackend):
                 f"The {_filter} policy type has not been implemented"
             )
 
-        return dict(
-            Policies=[
+        return {
+            "Policies": [
                 p.describe()["Policy"]["PolicySummary"]
                 for p in obj.attached_policies
                 if p.type == _filter
             ]
-        )
+        }
 
     def _get_resource_for_tagging(self, resource_id: str) -> Any:
         if utils.fullmatch(
@@ -831,7 +831,7 @@ class OrganizationsBackend(BaseBackend):
             {"TargetId": obj.id, "Arn": obj.arn, "Name": obj.name, "Type": obj.type}
             for obj in policy.attachments
         ]
-        return dict(Targets=objects)
+        return {"Targets": objects}
 
     def tag_resource(self, **kwargs: Any) -> None:
         resource = self._get_resource_for_tagging(kwargs["ResourceId"])
@@ -841,7 +841,7 @@ class OrganizationsBackend(BaseBackend):
     def list_tags_for_resource(self, **kwargs: str) -> dict[str, Any]:
         resource = self._get_resource_for_tagging(kwargs["ResourceId"])
         tags = [{"Key": key, "Value": value} for key, value in resource.tags.items()]
-        return dict(Tags=tags)
+        return {"Tags": tags}
 
     def untag_resource(self, **kwargs: Any) -> None:
         resource = self._get_resource_for_tagging(kwargs["ResourceId"])
@@ -861,7 +861,7 @@ class OrganizationsBackend(BaseBackend):
         self.services.append(service.describe())
 
     def list_aws_service_access_for_organization(self) -> dict[str, Any]:
-        return dict(EnabledServicePrincipals=self.services)
+        return {"EnabledServicePrincipals": self.services}
 
     def disable_aws_service_access(self, **kwargs: str) -> None:
         if not FakeServiceAccess.trusted_service(kwargs["ServicePrincipal"]):
@@ -914,7 +914,7 @@ class OrganizationsBackend(BaseBackend):
 
         delegated_admins = [admin.describe() for admin in admins]
 
-        return dict(DelegatedAdministrators=delegated_admins)
+        return {"DelegatedAdministrators": delegated_admins}
 
     def list_delegated_services_for_account(self, **kwargs: str) -> dict[str, Any]:
         admin = next(
@@ -935,9 +935,9 @@ class OrganizationsBackend(BaseBackend):
 
             raise AWSOrganizationsNotInUseException
 
-        services = [service for service in admin.services.values()]
+        services = list(admin.services.values())
 
-        return dict(DelegatedServices=services)
+        return {"DelegatedServices": services}
 
     def deregister_delegated_administrator(self, **kwargs: str) -> None:
         account_id = kwargs["AccountId"]
@@ -976,14 +976,14 @@ class OrganizationsBackend(BaseBackend):
 
         root.add_policy_type(kwargs["PolicyType"])
 
-        return dict(Root=root.describe())
+        return {"Root": root.describe()}
 
     def disable_policy_type(self, **kwargs: str) -> dict[str, Any]:
         root = self._get_root_by_id(kwargs["RootId"])
 
         root.remove_policy_type(kwargs["PolicyType"])
 
-        return dict(Root=root.describe())
+        return {"Root": root.describe()}
 
     def detach_policy(self, **kwargs: str) -> None:
         policy = self.get_policy_by_id(kwargs["PolicyId"])

@@ -215,7 +215,7 @@ class Integration(BaseModel):
         else:
             self.timeout_in_millis = self.timeout_in_millis or 30000
 
-        self.responses: dict[str, IntegrationResponse] = dict()
+        self.responses: dict[str, IntegrationResponse] = {}
 
     def create_response(
         self,
@@ -473,7 +473,7 @@ class Route(BaseModel):
         self.route_response_selection_expression = route_response_selection_expression
         self.target = target
 
-        self.route_responses: dict[str, RouteResponse] = dict()
+        self.route_responses: dict[str, RouteResponse] = {}
 
     def create_route_response(
         self,
@@ -590,11 +590,11 @@ class Api(BaseModel):
         )
         self.version = version
 
-        self.authorizers: dict[str, Authorizer] = dict()
-        self.integrations: dict[str, Integration] = dict()
-        self.models: dict[str, Model] = dict()
-        self.routes: dict[str, Route] = dict()
-        self.stages: dict[str, Stage] = dict()
+        self.authorizers: dict[str, Authorizer] = {}
+        self.integrations: dict[str, Integration] = {}
+        self.models: dict[str, Model] = {}
+        self.routes: dict[str, Route] = {}
+        self.stages: dict[str, Stage] = {}
 
         self.arn = (
             f"arn:{get_partition(region)}:apigateway:{region}::/apis/{self.api_id}"
@@ -1142,10 +1142,10 @@ class ApiGatewayV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.apis: dict[str, Api] = dict()
-        self.vpc_links: dict[str, VpcLink] = dict()
-        self.domain_names: dict[str, DomainName] = dict()
-        self.api_mappings: dict[str, ApiMapping] = dict()
+        self.apis: dict[str, Api] = {}
+        self.vpc_links: dict[str, VpcLink] = {}
+        self.domain_names: dict[str, DomainName] = {}
+        self.api_mappings: dict[str, ApiMapping] = {}
         self.tagger = TaggingService()
 
     def create_api(

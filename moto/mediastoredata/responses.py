@@ -33,4 +33,4 @@ class MediaStoreDataResponse(BaseResponse):
 
     def list_items(self) -> str:
         items = self.mediastoredata_backend.list_items()
-        return json.dumps(dict(Items=items))
+        return json.dumps({"Items": items})

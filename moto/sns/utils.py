@@ -240,13 +240,13 @@ class FilterPolicyMatcher:
                 anything_but_val = list(filter_value.values())[0]
                 if anything_but_key != "prefix":
                     return False
-                if all([not v.startswith(anything_but_val) for v in actual_values]):
+                if all(not v.startswith(anything_but_val) for v in actual_values):
                     return True
             else:
                 undesired_values = (
                     [filter_value] if isinstance(filter_value, str) else filter_value
                 )
-                if all([v not in undesired_values for v in actual_values]):
+                if all(v not in undesired_values for v in actual_values):
                     return True
 
             return False
@@ -374,14 +374,14 @@ class FilterPolicyMatcher:
                             if attr["Type"] == "String":
                                 actual_values = [attr["Value"]]
                             else:
-                                actual_values = [v for v in attr["Value"]]
+                                actual_values = list(attr["Value"])
                         else:
                             if attr["Type"] == "Number":
                                 actual_values = [float(attr["Value"])]
                             elif attr["Type"] == "String":
                                 actual_values = [attr["Value"]]
                             else:
-                                actual_values = [v for v in attr["Value"]]
+                                actual_values = list(attr["Value"])
 
                         if _anything_but_match(value, actual_values):
                             return True
@@ -427,10 +427,8 @@ class FilterPolicyMatcher:
 
             if field == "$or" and isinstance(rules, list):
                 return any(
-                    [
-                        FilterPolicyMatcher._attributes_based_match(dict_body, rule)
-                        for rule in rules
-                    ]
+                    FilterPolicyMatcher._attributes_based_match(dict_body, rule)
+                    for rule in rules
                 )
 
         return False

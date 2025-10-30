@@ -336,7 +336,7 @@ class OpenSearchServiceBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.domains: dict[str, OpenSearchDomain] = dict()
+        self.domains: dict[str, OpenSearchDomain] = {}
         self.tagger = TaggingService()
 
     def create_domain(

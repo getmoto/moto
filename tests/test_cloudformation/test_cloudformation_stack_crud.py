@@ -2358,12 +2358,12 @@ def test_stack_tags():
     stack = cf.create_stack(
         StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json, Tags=tags
     )
-    observed_tag_items = set(
+    observed_tag_items = {
         item for items in [tag.items() for tag in stack.tags] for item in items
-    )
-    expected_tag_items = set(
+    }
+    expected_tag_items = {
         item for items in [tag.items() for tag in tags] for item in items
-    )
+    }
     assert observed_tag_items == expected_tag_items
 
 

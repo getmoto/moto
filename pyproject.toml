@@ -23,5 +23,5 @@ ignore = [
     "E501",  # Line length
     "UP007",  # Use X | Y for type annotations - should only be enabled when we support Python >= 3.10
 ]
-extend-select = ["B", "I", "T201", "T203", "UP"]
+extend-select = ["B", "C4", "I", "T201", "T203", "UP"]
 

@@ -161,7 +161,7 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
 
     @staticmethod
     def _headers_of(parameters: TaskParameters) -> Optional[dict]:
-        headers = parameters.get("Headers", dict())
+        headers = parameters.get("Headers", {})
         if headers:
             for key in headers.keys():
                 # TODO: the following check takes place at parse time.
@@ -210,8 +210,8 @@ class StateTaskServiceApiGateway(StateTaskServiceCallback):
             response_body = response.json()
         except JSONDecodeError:
             response_body = response.text
-            if response_body == json.dumps(dict()):
-                response_body = dict()
+            if response_body == json.dumps({}):
+                response_body = {}
 
         headers.pop("server", None)
         if "date" in headers:

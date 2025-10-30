@@ -296,7 +296,7 @@ class ConfigResponse(BaseResponse):
             configuration=configuration_str,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_resource_config(self) -> str:
         params = json.loads(self.body)
@@ -308,4 +308,4 @@ class ConfigResponse(BaseResponse):
             resource_id=resource_id,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})

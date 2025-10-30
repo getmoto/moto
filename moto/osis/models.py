@@ -289,7 +289,7 @@ class OpenSearchIngestionBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._pipelines: dict[str, Pipeline] = dict()
+        self._pipelines: dict[str, Pipeline] = {}
         self.tagger = TaggingService()
 
     @property
@@ -463,7 +463,7 @@ class OpenSearchIngestionBackend(BaseBackend):
     def list_pipelines(self) -> list[Pipeline]:
         for pipeline in self.pipelines.values():
             pipeline.advance()
-        return [p for p in self.pipelines.values()]
+        return list(self.pipelines.values())
 
     def list_tags_for_resource(self, arn: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(arn)

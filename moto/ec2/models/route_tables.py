@@ -283,7 +283,7 @@ class RouteBackend:
             if len(route_tables) != len(route_table_ids):
                 invalid_id = list(
                     set(route_table_ids).difference(
-                        set([route_table.id for route_table in route_tables])
+                        {route_table.id for route_table in route_tables}
                     )
                 )[0]
                 raise InvalidRouteTableIdError(invalid_id)

@@ -148,7 +148,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             resource_id=resource_id,
             scalable_dimension=scalable_dimension,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def put_scheduled_action(self) -> str:
         params = json.loads(self.body)
@@ -172,7 +172,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             end_time=end_time,
             scalable_target_action=scalable_target_action,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_scheduled_actions(self) -> str:
         params = json.loads(self.body)

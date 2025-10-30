@@ -242,10 +242,10 @@ def test_update_item_range_key_set():
         },
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "username": "johndoe2",
         "forum_name": "the-key",
@@ -272,10 +272,10 @@ def test_update_item_does_not_exist_is_created():
 
     assert not result.get("Attributes")
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "username": "johndoe2",
         "forum_name": "the-key",
@@ -299,10 +299,10 @@ def test_update_item_add_value():
         AttributeUpdates={"numeric_field": {"Action": "ADD", "Value": Decimal("2")}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "numeric_field": "1",
         "forum_name": "the-key",
@@ -318,22 +318,22 @@ def test_update_item_add_value_string_set():
         Item={
             "forum_name": "the-key",
             "subject": "123",
-            "string_set": set(["str1", "str2"]),
+            "string_set": {"str1", "str2"},
         }
     )
 
     item_key = {"forum_name": "the-key", "subject": "123"}
     table.update_item(
         Key=item_key,
-        AttributeUpdates={"string_set": {"Action": "ADD", "Value": set(["str3"])}},
+        AttributeUpdates={"string_set": {"Action": "ADD", "Value": {"str3"}}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
-        "string_set": set(["str1", "str2", "str3"]),
+        "string_set": {"str1", "str2", "str3"},
         "forum_name": "the-key",
         "subject": "123",
     }
@@ -347,22 +347,22 @@ def test_update_item_delete_value_string_set():
         Item={
             "forum_name": "the-key",
             "subject": "123",
-            "string_set": set(["str1", "str2"]),
+            "string_set": {"str1", "str2"},
         }
     )
 
     item_key = {"forum_name": "the-key", "subject": "123"}
     table.update_item(
         Key=item_key,
-        AttributeUpdates={"string_set": {"Action": "DELETE", "Value": set(["str2"])}},
+        AttributeUpdates={"string_set": {"Action": "DELETE", "Value": {"str2"}}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
-        "string_set": set(["str1"]),
+        "string_set": {"str1"},
         "forum_name": "the-key",
         "subject": "123",
     }
@@ -378,10 +378,10 @@ def test_update_item_add_value_does_not_exist_is_created():
         AttributeUpdates={"numeric_field": {"Action": "ADD", "Value": Decimal("2")}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "numeric_field": "2",
         "forum_name": "the-key",

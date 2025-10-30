@@ -1202,7 +1202,7 @@ class SNSBackend(BaseBackend):
         fifo_topic = topic.fifo_topic == "true"
         if fifo_topic:
             if not all(
-                ["MessageGroupId" in entry for entry in publish_batch_request_entries]
+                "MessageGroupId" in entry for entry in publish_batch_request_entries
             ):
                 raise SNSInvalidParameter(
                     "Invalid parameter: The MessageGroupId parameter is required for FIFO topics"

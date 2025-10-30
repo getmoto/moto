@@ -249,7 +249,7 @@ def test_ds_connect_directory_describe():
     assert directory["ConnectSettings"]["CustomerUserName"] == "Admin"
     assert len(directory["ConnectSettings"]["ConnectIps"]) == 2
     assert directory["Size"] == "Small"
-    assert set(directory["DnsIpAddrs"]) == set(["1.2.3.4", "5.6.7.8"])
+    assert set(directory["DnsIpAddrs"]) == {"1.2.3.4", "5.6.7.8"}
     assert "NextToken" not in result
 
 

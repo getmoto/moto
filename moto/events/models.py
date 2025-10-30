@@ -550,13 +550,13 @@ class EventBusPolicyStatement:
         self.condition = condition
 
     def describe(self) -> dict[str, Any]:
-        statement: dict[str, Any] = dict(
-            Sid=self.sid,
-            Effect=self.effect,
-            Principal=self.principal,
-            Action=self.action,
-            Resource=self.resource,
-        )
+        statement: dict[str, Any] = {
+            "Sid": self.sid,
+            "Effect": self.effect,
+            "Principal": self.principal,
+            "Action": self.action,
+            "Resource": self.resource,
+        }
 
         if self.condition:
             statement["Condition"] = self.condition
@@ -564,13 +564,13 @@ class EventBusPolicyStatement:
 
     @classmethod
     def from_dict(cls, statement_dict: dict[str, Any]) -> "EventBusPolicyStatement":  # type: ignore[misc]
-        params = dict(
-            sid=statement_dict["Sid"],
-            effect=statement_dict["Effect"],
-            principal=statement_dict["Principal"],
-            action=statement_dict["Action"],
-            resource=statement_dict["Resource"],
-        )
+        params = {
+            "sid": statement_dict["Sid"],
+            "effect": statement_dict["Effect"],
+            "principal": statement_dict["Principal"],
+            "action": statement_dict["Action"],
+            "resource": statement_dict["Resource"],
+        }
         condition = statement_dict.get("Condition")
         if condition:
             params["condition"] = condition
@@ -1041,7 +1041,7 @@ class EventPatternParser:
 
     def parse(self) -> dict[str, Any]:
         try:
-            parsed_pattern = json.loads(self.pattern) if self.pattern else dict()
+            parsed_pattern = json.loads(self.pattern) if self.pattern else {}
             self._validate_event_pattern(parsed_pattern)
             return parsed_pattern
         except JSONDecodeError:
@@ -1159,7 +1159,7 @@ class EventsBackend(BaseBackend):
 
         event_bus = self._get_event_bus(event_bus_name)
         existing_rule = event_bus.rules.get(name)
-        targets = existing_rule.targets if existing_rule else list()
+        targets = existing_rule.targets if existing_rule else []
         rule = Rule(
             name,
             self.account_id,

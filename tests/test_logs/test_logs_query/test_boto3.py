@@ -71,7 +71,7 @@ def test_get_query_results():
     assert resp["status"] == "Complete"
     assert len(resp["results"]) == 5
 
-    fields = set([row["field"] for field in resp["results"] for row in field])
+    fields = {row["field"] for field in resp["results"] for row in field}
     assert fields == {"@ptr", "@message"}
 
     messages = [

@@ -16,7 +16,7 @@ def test_create_job():
     client = create_glue_client()
     job_name = str(uuid4())
     response = client.create_job(
-        Name=job_name, Role="test_role", Command=dict(Name="test_command")
+        Name=job_name, Role="test_role", Command={"Name": "test_command"}
     )
     assert response["Name"] == job_name
 
@@ -257,7 +257,7 @@ def create_test_job(client, tags=None):
     client.create_job(
         Name=job_name,
         Role="test_role",
-        Command=dict(Name="test_command"),
+        Command={"Name": "test_command"},
         Tags=tags or {},
     )
     return job_name

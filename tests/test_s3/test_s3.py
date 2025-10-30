@@ -480,7 +480,7 @@ def test_delete_missing_key(bucket_name=None):
     assert "Errors" not in result
 
     objects = list(bucket.objects.all())
-    assert {o.key for o in objects} == set(["key2", "key4"])
+    assert {o.key for o in objects} == {"key2", "key4"}
 
 
 @mock_aws
@@ -3177,7 +3177,7 @@ def test_delete_objects_percent_encoded(bucket_name=None):
         },
     )
     assert len(delete_objects["Deleted"]) == 2
-    deleted_keys = [o for o in delete_objects["Deleted"]]
+    deleted_keys = list(delete_objects["Deleted"])
     assert {"Key": object_key_1} in deleted_keys
     assert {"Key": object_key_2} in deleted_keys
     assert "Contents" not in client.list_objects(Bucket=bucket_name)
@@ -3291,9 +3291,7 @@ def test_prefix_encoding():
     client.put_object(Bucket=bucket_name, Key="foo/bar/data", Body=b"")
 
     data = client.list_objects_v2(Bucket=bucket_name, Delimiter="/")
-    folders = list(
-        map(lambda common_prefix: common_prefix["Prefix"], data["CommonPrefixes"])
-    )
+    folders = [common_prefix["Prefix"] for common_prefix in data["CommonPrefixes"]]
     assert ["foo%2Fbar/", "foo/"] == folders
 
 

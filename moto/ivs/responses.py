@@ -37,7 +37,7 @@ class IVSResponse(BaseResponse):
             tags=tags,
             channel_type=channel_type,
         )
-        return json.dumps(dict(channel=channel, streamKey=stream_key))
+        return json.dumps({"channel": channel, "streamKey": stream_key})
 
     def list_channels(self) -> str:
         filter_by_name = self._get_param("filterByName")
@@ -52,21 +52,21 @@ class IVSResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        return json.dumps(dict(channels=channels, nextToken=next_token))
+        return json.dumps({"channels": channels, "nextToken": next_token})
 
     def get_channel(self) -> str:
         arn = self._get_param("arn")
         channel = self.ivs_backend.get_channel(
             arn=arn,
         )
-        return json.dumps(dict(channel=channel))
+        return json.dumps({"channel": channel})
 
     def batch_get_channel(self) -> str:
         arns = self._get_param("arns")
         channels, errors = self.ivs_backend.batch_get_channel(
             arns=arns,
         )
-        return json.dumps(dict(channels=channels, errors=errors))
+        return json.dumps({"channels": channels, "errors": errors})
 
     def update_channel(self) -> str:
         arn = self._get_param("arn")
@@ -87,7 +87,7 @@ class IVSResponse(BaseResponse):
             recording_configuration_arn=recording_configuration_arn,
             channel_type=channel_type,
         )
-        return json.dumps(dict(channel=channel))
+        return json.dumps({"channel": channel})
 
     def delete_channel(self) -> None:
         arn = self._get_param("arn")

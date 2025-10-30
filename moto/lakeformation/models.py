@@ -270,7 +270,7 @@ def default_settings() -> dict[str, Any]:
 class LakeFormationBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.resources: dict[str, Resource] = dict()
+        self.resources: dict[str, Resource] = {}
         self.settings: dict[str, dict[str, Any]] = defaultdict(default_settings)
         self.grants: dict[str, PermissionCatalog] = {}
         self.tagger = TaggingService()

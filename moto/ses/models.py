@@ -492,7 +492,7 @@ class SESBackend(BaseBackend):
             raise MessageRejectedError("Too many destinations.")
 
         total_recipient_count = sum(
-            map(lambda d: sum(map(len, d["Destination"].values())), destinations)
+            sum(map(len, d["Destination"].values())) for d in destinations
         )
         if total_recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many destinations.")
@@ -513,7 +513,7 @@ class SESBackend(BaseBackend):
         self.sent_messages.append(message)
         self.sent_message_count += total_recipient_count
 
-        ids = list(map(lambda x: get_random_message_id(), range(len(destinations))))
+        ids = [get_random_message_id() for x in range(len(destinations))]
         return BulkTemplateMessage(ids, source, template, template_data, destinations)
 
     def send_templated_email(

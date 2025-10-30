@@ -226,7 +226,7 @@ class AgentsforBedrockBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_agents(self) -> list[Agent]:
-        return [agent for agent in self.agents.values()]
+        return list(self.agents.values())
 
     def delete_agent(
         self, agent_id: str, skip_resource_in_use_check: Optional[bool]
@@ -272,7 +272,7 @@ class AgentsforBedrockBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_knowledge_bases(self) -> list[KnowledgeBase]:
-        return [knowledge_base for knowledge_base in self.knowledge_bases.values()]
+        return list(self.knowledge_bases.values())
 
     def delete_knowledge_base(self, knowledge_base_id: str) -> tuple[str, str]:
         if knowledge_base_id in self.knowledge_bases:

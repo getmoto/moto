@@ -552,7 +552,7 @@ class SpotRequestBackend:
                 else:
                     return False
 
-            return all([matches_filter(key, values) for key, values in filters.items()])
+            return all(matches_filter(key, values) for key, values in filters.items())
 
         matches = [o for o in matches if matches_filters(o, filters)]
 

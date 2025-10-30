@@ -215,7 +215,7 @@ class DynamoDBBackend(BaseBackend):
     def update_table_global_indexes(
         self, table: Table, global_index_updates: list[dict[str, Any]]
     ) -> None:
-        gsis_by_name = dict((i.name, i) for i in table.global_indexes)
+        gsis_by_name = {i.name: i for i in table.global_indexes}
         for gsi_update in global_index_updates:
             gsi_to_create = gsi_update.get("Create")
             gsi_to_update = gsi_update.get("Update")
@@ -319,7 +319,7 @@ class DynamoDBBackend(BaseBackend):
         table = self.get_table(table_name)
         if index_name:
             all_indexes = (table.global_indexes or []) + (table.indexes or [])
-            indexes_by_name = dict((i.name, i) for i in all_indexes)
+            indexes_by_name = {i.name: i for i in all_indexes}
             if index_name not in indexes_by_name:
                 all_index_names = ", ".join(indexes_by_name.keys())
                 raise ResourceNotFoundException(
@@ -694,7 +694,7 @@ class DynamoDBBackend(BaseBackend):
                 # For other exceptions, capture their details
                 errors.append((type(e).__name__, str(e), original_item))  # type: ignore
 
-        if any([code is not None for code, _, _ in errors]):
+        if any(code is not None for code, _, _ in errors):
             # Rollback to the original state, and reraise the errors
             self.tables = original_table_state
             raise TransactionCanceledException(errors)
@@ -836,7 +836,7 @@ class DynamoDBBackend(BaseBackend):
         """
         # We need to execute a statement - but we don't know which table
         # Just pass all tables to PartiQL
-        source_data: dict[str, list[Any]] = dict()
+        source_data: dict[str, list[Any]] = {}
         for table in self.tables.values():
             source_data[table.name] = [  # type: ignore
                 item.to_json()["Attributes"] for item in table.all_items()

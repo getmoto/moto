@@ -39,12 +39,12 @@ class DAXResponse(BaseResponse):
             sse_specification=sse_specification,
             encryption_type=encryption_type,
         )
-        return json.dumps(dict(Cluster=cluster.to_json()))
+        return json.dumps({"Cluster": cluster.to_json()})
 
     def delete_cluster(self) -> str:
         cluster_name = json.loads(self.body).get("ClusterName")
         cluster = self.dax_backend.delete_cluster(cluster_name)
-        return json.dumps(dict(Cluster=cluster.to_json()))
+        return json.dumps({"Cluster": cluster.to_json()})
 
     def describe_clusters(self) -> str:
         params = json.loads(self.body)

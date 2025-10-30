@@ -3179,7 +3179,7 @@ def assert_correct_client_error(
         match_result = re_msg.match(client_error.response["Error"]["Message"])
         assert match_result is not None
         values_string = match_result.groupdict()["values"]
-        values = [key for key in values_string.split(", ")]
+        values = list(values_string.split(", "))
         assert len(message_values) == len(values)
         for value in message_values:
             assert value in values

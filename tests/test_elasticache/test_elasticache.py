@@ -1339,7 +1339,7 @@ def test_describe_replication_groups_pagination():
         + page2["ReplicationGroups"]
         + page3["ReplicationGroups"]
     )
-    assert len(set([group["ReplicationGroupId"] for group in whole_book])) == 10
+    assert len({group["ReplicationGroupId"] for group in whole_book}) == 10
 
 
 @mock_aws

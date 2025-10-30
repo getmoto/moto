@@ -39,7 +39,7 @@ class QuickSightResponse(BaseResponse):
             aws_account_id=aws_account_id,
             namespace=namespace,
         )
-        return json.dumps(dict(Group=group.to_json()))
+        return json.dumps({"Group": group.to_json()})
 
     def create_group_membership(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
@@ -143,7 +143,7 @@ class QuickSightResponse(BaseResponse):
             user_name=user_name,
             tags=tags,
         )
-        return json.dumps(dict(User=user.to_json(), UserInvitationUrl="TBD"))
+        return json.dumps({"User": user.to_json(), "UserInvitationUrl": "TBD"})
 
     def update_user(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
@@ -156,7 +156,7 @@ class QuickSightResponse(BaseResponse):
         user = self.quicksight_backend.update_user(
             aws_account_id, namespace, user_name, email, user_role
         )
-        return json.dumps(dict(User=user.to_json()))
+        return json.dumps({"User": user.to_json()})
 
     def describe_group(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
@@ -166,7 +166,7 @@ class QuickSightResponse(BaseResponse):
         group = self.quicksight_backend.describe_group(
             aws_account_id, namespace, group_name
         )
-        return json.dumps(dict(Group=group.to_json()))
+        return json.dumps({"Group": group.to_json()})
 
     def describe_user(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
@@ -176,7 +176,7 @@ class QuickSightResponse(BaseResponse):
         user = self.quicksight_backend.describe_user(
             aws_account_id, namespace, user_name
         )
-        return json.dumps(dict(User=user.to_json()))
+        return json.dumps({"User": user.to_json()})
 
     def delete_group(self) -> TYPE_RESPONSE:
         aws_account_id = self._get_param("AwsAccountId")
@@ -203,7 +203,7 @@ class QuickSightResponse(BaseResponse):
         group = self.quicksight_backend.update_group(
             aws_account_id, namespace, group_name, description
         )
-        return json.dumps(dict(Group=group.to_json()))
+        return json.dumps({"Group": group.to_json()})
 
     def search_groups(self) -> str:
         max_results = self._get_int_param("max-results")
@@ -258,12 +258,12 @@ class QuickSightResponse(BaseResponse):
             link_entities=link_entities,
         )
         return json.dumps(
-            dict(
-                Arn=dashboard.arn,
-                VersionArn=dashboard.version_number,
-                DashboardId=dashboard.dashboard_id,
-                CreationStatus=dashboard.status,
-            )
+            {
+                "Arn": dashboard.arn,
+                "VersionArn": dashboard.version_number,
+                "DashboardId": dashboard.dashboard_id,
+                "CreationStatus": dashboard.status,
+            }
         )
 
     def describe_dashboard(self) -> str:
@@ -278,7 +278,7 @@ class QuickSightResponse(BaseResponse):
             alias_name=alias_name,
         )
         return json.dumps(
-            dict(Dashboard=dashboard.to_dict(), Status=200, RequestId="request_id")
+            {"Dashboard": dashboard.to_dict(), "Status": 200, "RequestId": "request_id"}
         )
 
     def list_dashboards(self) -> str:
@@ -288,11 +288,11 @@ class QuickSightResponse(BaseResponse):
             aws_account_id=aws_account_id,
         )
         return json.dumps(
-            dict(
-                DashboardSummaryList=dashboard_summary_list,
-                Next_token=next_token,
-                Status=200,
-            )
+            {
+                "DashboardSummaryList": dashboard_summary_list,
+                "Next_token": next_token,
+                "Status": 200,
+            }
         )
 
     def describe_account_settings(self) -> str:
@@ -309,7 +309,7 @@ class QuickSightResponse(BaseResponse):
             "TerminationProtectionEnabled": settings.termination_protection_enabled,
         }
 
-        return json.dumps(dict(AccountSettings=resp, Status=200))
+        return json.dumps({"AccountSettings": resp, "Status": 200})
 
     def update_account_settings(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
@@ -322,7 +322,7 @@ class QuickSightResponse(BaseResponse):
             notification_email=notification_email,
             termination_protection_enabled=termination_protection_enabled,
         )
-        return json.dumps(dict(Status=200))
+        return json.dumps({"Status": 200})
 
     def update_public_sharing_settings(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
@@ -331,7 +331,7 @@ class QuickSightResponse(BaseResponse):
             aws_account_id=aws_account_id,
             public_sharing_enabled=public_sharing_enabled,
         )
-        return json.dumps(dict(Status=200))
+        return json.dumps({"Status": 200})
 
     def create_data_source(self) -> str:
         aws_account_id = self._get_param("AwsAccountId")
@@ -443,7 +443,7 @@ class QuickSightResponse(BaseResponse):
 
         self.quicksight_backend.tag_resource(resource_arn, tags)
 
-        return json.dumps(dict(RequestId="request_id", Status=200))
+        return json.dumps({"RequestId": "request_id", "Status": 200})
 
     def untag_resource(self) -> str:
         resource_arn = unquote(self._get_param("ResourceArn"))
@@ -451,10 +451,10 @@ class QuickSightResponse(BaseResponse):
 
         self.quicksight_backend.untag_resource(resource_arn, tag_keys)
 
-        return json.dumps(dict(RequestId="request_id", Status=200))
+        return json.dumps({"RequestId": "request_id", "Status": 200})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self._get_param("ResourceArn"))
         tags = self.quicksight_backend.list_tags_for_resource(arn=resource_arn)
 
-        return json.dumps(dict(Tags=tags, RequestId="request_id", Status=200))
+        return json.dumps({"Tags": tags, "RequestId": "request_id", "Status": 200})

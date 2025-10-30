@@ -160,7 +160,7 @@ class ConnectCampaignServiceResponse(BaseResponse):
             arn=arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         arn = self._get_param("arn")
@@ -169,11 +169,11 @@ class ConnectCampaignServiceResponse(BaseResponse):
             arn=arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         arn = self._get_param("arn")
         tags = self.connectcampaigns_backend.list_tags_for_resource(
             arn=arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})

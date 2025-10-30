@@ -30,12 +30,12 @@ class Inspector2Response(BaseResponse):
             reason=reason,
             tags=tags,
         )
-        return json.dumps(dict(arn=arn))
+        return json.dumps({"arn": arn})
 
     def delete_filter(self) -> str:
         arn = self._get_param("arn")
         self.inspector2_backend.delete_filter(arn=arn)
-        return json.dumps(dict(arn=arn))
+        return json.dumps({"arn": arn})
 
     def list_filters(self) -> str:
         action = self._get_param("action")
@@ -54,7 +54,7 @@ class Inspector2Response(BaseResponse):
             next_token=next_token,
             sort_criteria=sort_criteria,
         )
-        return json.dumps(dict(findings=findings))
+        return json.dumps({"findings": findings})
 
     def list_delegated_admin_accounts(self) -> str:
         accounts = self.inspector2_backend.list_delegated_admin_accounts()

@@ -1266,7 +1266,7 @@ def test_put_item_empty_set(table_name=None):
 
     table = dynamodb.Table(table_name)
     with pytest.raises(ClientError) as exc:
-        table.put_item(Item={"pk": "some-irrelevant_key", "attr2": {"SS": set([])}})
+        table.put_item(Item={"pk": "some-irrelevant_key", "attr2": {"SS": set()}})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (

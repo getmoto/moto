@@ -209,8 +209,8 @@ def test_create_diversified_spot_fleet():
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     assert len(instances) == 2
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.small", "t2.large"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.small", "t2.large"}
     assert "i-" in instances[0]["InstanceId"]
 
 
@@ -266,8 +266,8 @@ def test_request_fleet_using_launch_template_config__name(
     instance_res = conn.describe_fleet_instances(FleetId=fleet_id)
     instances = instance_res["ActiveInstances"]
     assert len(instances) == 3
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.medium"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.medium"}
     assert "i-" in instances[0]["InstanceId"]
 
 

@@ -1272,7 +1272,7 @@ class GlueBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_dev_endpoints(self) -> list["FakeDevEndpoint"]:
-        return [endpoint for endpoint in self.dev_endpoints.values()]
+        return list(self.dev_endpoints.values())
 
     def create_dev_endpoint(
         self,
@@ -1363,7 +1363,7 @@ class GlueBackend(BaseBackend):
         self, catalog_id: str, filter: dict[str, Any], hide_password: bool
     ) -> list["FakeConnection"]:
         # TODO: Implement filtering
-        return [connection for connection in self.connections.values()]
+        return list(self.connections.values())
 
     def put_data_catalog_encryption_settings(
         self,
@@ -1648,7 +1648,7 @@ class GlueBackend(BaseBackend):
             raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
 
     def get_security_configurations(self) -> list["FakeSecurityConfiguration"]:
-        return [sc for sc in self.security_configurations.values()]
+        return list(self.security_configurations.values())
 
 
 class FakeSecurityConfiguration(BaseModel):

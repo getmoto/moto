@@ -245,7 +245,7 @@ def test_get_all_tags_value_filter():
     def filter_by_value(query, expected):
         filters = [{"Name": "value", "Values": [query]}]
         tags = retrieve_all_tagged(client, filters)
-        actual = set([t["ResourceId"] for t in tags])
+        actual = {t["ResourceId"] for t in tags}
         for e in expected:
             assert e in actual
 

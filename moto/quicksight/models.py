@@ -28,14 +28,14 @@ class QuickSightBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.dashboards: dict[str, QuicksightDashboard] = dict()
-        self.groups: dict[str, QuicksightGroup] = dict()
-        self.users: dict[str, QuicksightUser] = dict()
+        self.dashboards: dict[str, QuicksightDashboard] = {}
+        self.groups: dict[str, QuicksightGroup] = {}
+        self.users: dict[str, QuicksightUser] = {}
         self.account_settings: QuicksightAccountSettings = QuicksightAccountSettings(
             account_id=account_id
         )
-        self.data_sources: dict[str, QuickSightDataSource] = dict()
-        self.data_sets: dict[str, QuicksightDataSet] = dict()
+        self.data_sources: dict[str, QuickSightDataSource] = {}
+        self.data_sets: dict[str, QuicksightDataSet] = {}
         self.tagger = TaggingService()
 
     def create_data_set(

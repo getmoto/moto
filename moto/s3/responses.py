@@ -239,7 +239,7 @@ class S3Response(BaseResponse):
         if (
             host
             and custom_endpoints
-            and any([host in endpoint for endpoint in custom_endpoints])
+            and any(host in endpoint for endpoint in custom_endpoints)
         ):
             # Default to path-based buckets for S3-compatible SDKs (Ceph, DigitalOcean Spaces, etc)
             return False
@@ -389,7 +389,7 @@ class S3Response(BaseResponse):
         # Flask's Request has the querystring already parsed
         # In ServerMode, we can use this, instead of manually parsing this
         if hasattr(request, "args"):
-            query_dict = dict()
+            query_dict = {}
             for key, val in dict(request.args).items():
                 # The parse_qs-method returns List[str, List[Any]]
                 # Ensure that we confirm to the same response-type here
@@ -487,7 +487,7 @@ class S3Response(BaseResponse):
         Should be used for non-OPTIONS requests only
         Applicable if the 'Origin' header matches one of a CORS-rules - returns an empty dictionary otherwise
         """
-        response_headers: dict[str, Any] = dict()
+        response_headers: dict[str, Any] = {}
         try:
             origin = self.headers.get("Origin")
             if not origin:
@@ -688,9 +688,7 @@ class S3Response(BaseResponse):
 
         if encoding_type == "url":
             prefix = urllib.parse.quote(prefix) if prefix else ""
-            result_folders = list(
-                map(lambda folder: urllib.parse.quote(folder), result_folders)
-            )
+            result_folders = [urllib.parse.quote(folder) for folder in result_folders]
 
         return template.render(
             bucket=bucket,
@@ -2355,7 +2353,7 @@ class S3Response(BaseResponse):
         parsed_xml = xmltodict.parse(self.body)
 
         if isinstance(parsed_xml["CORSConfiguration"]["CORSRule"], list):
-            return [cors for cors in parsed_xml["CORSConfiguration"]["CORSRule"]]
+            return list(parsed_xml["CORSConfiguration"]["CORSRule"])
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
 

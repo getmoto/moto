@@ -116,10 +116,10 @@ class Member(BaseModel):
 class Inspector2Backend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.filters: dict[str, FilterResource] = dict()
-        self.admin_accounts: dict[str, str] = dict()
-        self.account_status: dict[str, AccountStatus] = dict()
-        self.members: dict[str, Member] = dict()
+        self.filters: dict[str, FilterResource] = {}
+        self.admin_accounts: dict[str, str] = {}
+        self.account_status: dict[str, AccountStatus] = {}
+        self.members: dict[str, Member] = {}
         self.org_config = {
             "ec2": False,
             "ecr": False,

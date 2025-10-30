@@ -141,12 +141,10 @@ class CloudFormationResponse(BaseResponse):
         self, parameters_list: list[dict[str, Any]]
     ) -> dict[str, Any]:
         # Hack dict-comprehension
-        return dict(
-            [
-                (parameter["ParameterKey"], parameter["ParameterValue"])
-                for parameter in parameters_list
-            ]
-        )
+        return {
+            parameter["ParameterKey"]: parameter["ParameterValue"]
+            for parameter in parameters_list
+        }
 
     def _get_param_values(
         self, parameters_list: list[dict[str, str]], existing_params: dict[str, str]
@@ -188,9 +186,7 @@ class CloudFormationResponse(BaseResponse):
         timeout_in_mins = self._get_param("TimeoutInMinutes")
         stack_policy_body = self._get_param("StackPolicyBody")
         parameters_list = self._get_param("Parameters", [])
-        tags = dict(
-            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
-        )
+        tags = {item["Key"]: item["Value"] for item in self._get_param("Tags", [])}
 
         parameters = self._get_params_from_list(parameters_list)
 
@@ -243,9 +239,7 @@ class CloudFormationResponse(BaseResponse):
         description = self._get_param("Description")
         role_arn = self._get_param("RoleARN")
         parameters_list = self._get_param("Parameters", [])
-        tags = dict(
-            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
-        )
+        tags = {item["Key"]: item["Value"] for item in self._get_param("Tags", [])}
         parameters = {
             param["ParameterKey"]: (
                 stack.stack_parameters[param["ParameterKey"]]
@@ -440,9 +434,9 @@ class CloudFormationResponse(BaseResponse):
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.
-        tags: Optional[dict[str, str]] = dict(
-            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
-        )
+        tags: Optional[dict[str, str]] = {
+            item["Key"]: item["Value"] for item in self._get_param("Tags", [])
+        }
         # so that if we don't pass the parameter, we don't clear all the tags accidentally
         if not tags:
             tags = None
@@ -512,17 +506,13 @@ class CloudFormationResponse(BaseResponse):
         admin_role = self._get_param("AdministrationRoleARN")
         exec_role = self._get_param("ExecutionRoleName")
         description = self._get_param("Description")
-        tags = dict(
-            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
-        )
+        tags = {item["Key"]: item["Value"] for item in self._get_param("Tags", [])}
 
         # Copy-Pasta - Hack dict-comprehension
-        parameters = dict(
-            [
-                (parameter["ParameterKey"], parameter["ParameterValue"])
-                for parameter in parameters_list
-            ]
-        )
+        parameters = {
+            parameter["ParameterKey"]: parameter["ParameterValue"]
+            for parameter in parameters_list
+        }
         if template_url:
             stack_body = self._get_stack_from_s3_url(template_url)
 
@@ -669,9 +659,7 @@ class CloudFormationResponse(BaseResponse):
         template_url = self._get_param("TemplateURL")
         if template_url:
             template_body = self._get_stack_from_s3_url(template_url)
-        tags = dict(
-            (item["Key"], item["Value"]) for item in self._get_param("Tags", [])
-        )
+        tags = {item["Key"]: item["Value"] for item in self._get_param("Tags", [])}
         parameters_list = self._get_param("Parameters", [])
 
         operation = self.cloudformation_backend.update_stack_set(

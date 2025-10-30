@@ -247,10 +247,10 @@ class EMRServerlessBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.region_name = region_name
         self.partition = get_partition(region_name)
-        self.applications: dict[str, FakeApplication] = dict()
-        self.job_runs: dict[str, list[FakeJobRun]] = (
-            dict()
-        )  # {application_id: [job_run1, job_run2]}
+        self.applications: dict[str, FakeApplication] = {}
+        self.job_runs: dict[
+            str, list[FakeJobRun]
+        ] = {}  # {application_id: [job_run1, job_run2]}
 
     def create_application(
         self,

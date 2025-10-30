@@ -326,7 +326,7 @@ def test_get_links():
             Bandwidth={"UploadSpeed": 100, "DownloadSpeed": 100},
         )["Link"]["LinkId"]
         ids.append(id)
-    resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
+    resources_to_get = list(ids[0:NUM_TO_TEST])
     resp = client.get_links(GlobalNetworkId=gn_id, LinkIds=resources_to_get)["Links"]
     assert len(resp) == NUM_TO_TEST
 
@@ -387,7 +387,7 @@ def test_get_devices():
             Description=f"Test device #{idx}",
         )["Device"]["DeviceId"]
         ids.append(id)
-    resources_to_get = [id for id in ids[0:NUM_TO_TEST]]
+    resources_to_get = list(ids[0:NUM_TO_TEST])
     resp = client.get_devices(GlobalNetworkId=gn_id, DeviceIds=resources_to_get)[
         "Devices"
     ]
