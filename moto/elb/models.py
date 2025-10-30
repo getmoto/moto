@@ -530,7 +530,9 @@ class ELBBackend(BaseBackend):
             for idx, listener in enumerate(balancer.listeners):
                 if lb_port == listener.load_balancer_port:
                     balancer.listeners[idx].ssl_certificate_id = ssl_certificate_id
-                    if ssl_certificate_id:
+                    if ssl_certificate_id and not re.search(
+                        f"{ARN_PARTITION_REGEX}:iam:", ssl_certificate_id
+                    ):
                         register_certificate(
                             self.account_id,
                             self.region_name,
