@@ -377,7 +377,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Instance":
+    ) -> Instance:
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]

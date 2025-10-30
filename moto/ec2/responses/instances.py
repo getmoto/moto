@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.responses import ActionResult, EmptyResult
 from moto.core.utils import camelcase_to_underscores
