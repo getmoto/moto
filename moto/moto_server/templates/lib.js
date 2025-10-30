@@ -1,5 +1,30 @@
-$(document).ready(function () {
+window.addEventListener('DOMContentLoaded', function () {
   refreshTable();
+
+  const fold = document.getElementById('btn-fold');
+  const unfold = document.getElementById('btn-unfold');
+
+
+
+  unfold.addEventListener('click', function () {
+    collapseElementList = document.querySelectorAll('.collapsed-content')
+    collapseElementList.forEach(collapseEl => {
+      el = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+      if (el) {
+        el.show();
+      }
+    });
+  });
+
+  fold.addEventListener('click', function () {
+    collapseElementList = document.querySelectorAll('.collapsed-content')
+    collapseElementList.forEach(collapseEl => {
+      el = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+      if (el) {
+        el.hide();
+      }
+    });
+  });
 });
 
 const refreshData = async () => {
