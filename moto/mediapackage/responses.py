@@ -24,7 +24,7 @@ class MediaPackageResponse(BaseResponse):
 
     def list_channels(self) -> str:
         channels = self.mediapackage_backend.list_channels()
-        return json.dumps(dict(channels=channels))
+        return json.dumps({"channels": channels})
 
     def describe_channel(self) -> str:
         channel_id = self._get_param("id")
@@ -71,7 +71,7 @@ class MediaPackageResponse(BaseResponse):
 
     def list_origin_endpoints(self) -> str:
         origin_endpoints = self.mediapackage_backend.list_origin_endpoints()
-        return json.dumps(dict(originEndpoints=origin_endpoints))
+        return json.dumps({"originEndpoints": origin_endpoints})
 
     def describe_origin_endpoint(self) -> str:
         endpoint_id = self._get_param("id")

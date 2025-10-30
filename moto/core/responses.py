@@ -680,7 +680,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         try:
             self._authenticate_and_authorize_normal_action(resource)
         except HTTPException as http_error:
-            response = http_error.description, dict(status=http_error.code)
+            response = http_error.description, {"status": http_error.code}
             status, headers, body = self._transform_response(headers, response)
             headers, body = self._enrich_response(headers, body)
 
@@ -816,7 +816,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         skip_result_conversion: bool = False,
         tracked_prefixes: Optional[set[str]] = None,
     ) -> Any:
-        value_dict: Any = dict()
+        value_dict: Any = {}
         tracked_prefixes = (
             tracked_prefixes or set()
         )  # prefixes which have already been processed

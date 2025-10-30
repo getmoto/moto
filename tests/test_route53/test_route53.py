@@ -132,7 +132,7 @@ def test_get_hosted_zone_count_one_zone():
     conn.create_hosted_zone(
         Name=zone_name,
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment=f"test {zone} com"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": f"test {zone} com"},
     )
     zone_count = conn.get_hosted_zone_count()
     assert zone_count["HostedZoneCount"] == 1
@@ -155,7 +155,7 @@ def test_get_hosted_zone_count_many_zones():
         zones[zone] = conn.create_hosted_zone(
             Name=zone_name,
             CallerReference=str(hash("foo")),
-            HostedZoneConfig=dict(PrivateZone=False, Comment=f"test {zone} com"),
+            HostedZoneConfig={"PrivateZone": False, "Comment": f"test {zone} com"},
         )
     zone_count = conn.get_hosted_zone_count()
     assert zone_count["HostedZoneCount"] == len(zone_indexes)
@@ -748,7 +748,7 @@ def test_list_hosted_zones_by_name():
     zone_b = conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="test com"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "test com"},
         VPC={"VPCRegion": region, "VPCId": vpc_id},
     )
 
@@ -776,12 +776,12 @@ def test_list_hosted_zones_by_name():
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org"},
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org 2"},
     )
 
     # Now makes sure the other zones we created above are NOT private...
@@ -807,22 +807,22 @@ def test_list_hosted_zones_by_dns_name():
     conn.create_hosted_zone(
         Name="test.b.com.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test com"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test com"},
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org"},
     )
     conn.create_hosted_zone(
         Name="test.a.org.",
         CallerReference=str(hash("bar")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test org 2"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test org 2"},
     )
     conn.create_hosted_zone(
         Name="my.test.net.",
         CallerReference=str(hash("baz")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="test net"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "test net"},
     )
 
     # test lookup
@@ -896,7 +896,7 @@ def test_change_resource_record_sets_crud_valid():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1024,7 +1024,7 @@ def test_change_resource_record_sets_crud_valid_with_special_xml_chars(
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1361,7 +1361,7 @@ def test_change_resource_record_invalid():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1422,7 +1422,7 @@ def test_change_resource_record_invalid_action_value():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1545,7 +1545,7 @@ def test_list_resource_record_sets_name_type_filters():
     create_hosted_zone_response = conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
     hosted_zone_id = create_hosted_zone_response["HostedZone"]["Id"]
 
@@ -1614,7 +1614,7 @@ def test_change_resource_record_sets_records_limit():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=False, Comment="db"),
+        HostedZoneConfig={"PrivateZone": False, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")
@@ -1734,7 +1734,7 @@ def test_list_resource_recordset_pagination():
     conn.create_hosted_zone(
         Name="db.",
         CallerReference=str(hash("foo")),
-        HostedZoneConfig=dict(PrivateZone=True, Comment="db"),
+        HostedZoneConfig={"PrivateZone": True, "Comment": "db"},
     )
 
     zones = conn.list_hosted_zones_by_name(DNSName="db.")

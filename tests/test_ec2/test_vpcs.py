@@ -200,7 +200,7 @@ def test_vpc_get_by_id():
 
     vpcs = client.describe_vpcs(VpcIds=[vpc1.id, vpc2.id])["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -224,7 +224,7 @@ def test_vpc_get_by_cidr_block():
     vpcs = client.describe_vpcs(Filters=[{"Name": "cidr", "Values": [random_cidr]}])[
         "Vpcs"
     ]
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -248,7 +248,7 @@ def test_vpc_get_by_dhcp_options_id():
         Filters=[{"Name": "dhcp-options-id", "Values": [dhcp_options.id]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -270,7 +270,7 @@ def test_vpc_get_by_tag():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -292,7 +292,7 @@ def test_vpc_get_by_tag_key_superset():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -315,7 +315,7 @@ def test_vpc_get_by_tag_key_subset():
         Filters=[{"Name": "tag-key", "Values": [tag_key1, tag_key2]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -337,7 +337,7 @@ def test_vpc_get_by_tag_value_superset():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -359,7 +359,7 @@ def test_vpc_get_by_tag_value_subset():
         Filters=[{"Name": "tag-value", "Values": [value1, value2]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 

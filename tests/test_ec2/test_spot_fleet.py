@@ -166,8 +166,8 @@ def test_create_diversified_spot_fleet():
 
     instances = get_active_instances(conn, spot_fleet_id)
     assert len(instances) == 2
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.small", "t2.large"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.small", "t2.large"}
     assert "i-" in instances[0]["InstanceId"]
 
 
@@ -212,8 +212,8 @@ def test_request_spot_fleet_using_launch_template_config__name(allocation_strate
 
     instances = get_active_instances(conn, spot_fleet_id)
     assert len(instances) == 1
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.medium"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.medium"}
     assert "i-" in instances[0]["InstanceId"]
 
 
@@ -253,8 +253,8 @@ def test_request_spot_fleet_using_launch_template_config__id():
 
     instances = get_active_instances(conn, spot_fleet_id)
     assert len(instances) == 1
-    instance_types = set([instance["InstanceType"] for instance in instances])
-    assert instance_types == set(["t2.medium"])
+    instance_types = {instance["InstanceType"] for instance in instances}
+    assert instance_types == {"t2.medium"}
     assert "i-" in instances[0]["InstanceId"]
 
 

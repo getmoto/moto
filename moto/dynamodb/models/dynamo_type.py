@@ -71,7 +71,7 @@ class DynamoType:
         if self.is_list():
             self.value = [DynamoType(val) for val in self.value]
         elif self.is_map():
-            self.value = dict((k, DynamoType(v)) for k, v in self.value.items())
+            self.value = {k: DynamoType(v) for k, v in self.value.items()}
 
     def __hash__(self) -> int:
         return hash((self.type, self.value))
@@ -163,11 +163,11 @@ class DynamoType:
                 return float(self.value)
         elif self.is_set():
             sub_type = self.type[0]
-            return set([DynamoType({sub_type: v}).cast_value for v in self.value])
+            return {DynamoType({sub_type: v}).cast_value for v in self.value}
         elif self.is_list():
             return [DynamoType(v).cast_value for v in self.value]
         elif self.is_map():
-            return dict([(k, DynamoType(v).cast_value) for k, v in self.value.items()])
+            return {k: DynamoType(v).cast_value for k, v in self.value.items()}
         else:
             return self.value
 
@@ -383,32 +383,32 @@ class Item(BaseModel):
             new_value = list(update_action["Value"].values())[0]
             if action == "PUT":
                 # TODO deal with other types
-                if set(update_action["Value"].keys()) == set(["SS"]):
+                if set(update_action["Value"].keys()) == {"SS"}:
                     self.attrs[attribute_name] = DynamoType({"SS": new_value})
-                elif set(update_action["Value"].keys()) == set(["NS"]):
+                elif set(update_action["Value"].keys()) == {"NS"}:
                     self.attrs[attribute_name] = DynamoType({"NS": new_value})
                 elif isinstance(new_value, list):
                     self.attrs[attribute_name] = DynamoType({"L": new_value})
                 elif isinstance(new_value, dict):
                     self.attrs[attribute_name] = DynamoType({"M": new_value})
-                elif set(update_action["Value"].keys()) == set(["N"]):
+                elif set(update_action["Value"].keys()) == {"N"}:
                     self.attrs[attribute_name] = DynamoType({"N": new_value})
-                elif set(update_action["Value"].keys()) == set(["NULL"]):
+                elif set(update_action["Value"].keys()) == {"NULL"}:
                     if attribute_name in self.attrs:
                         del self.attrs[attribute_name]
                 else:
                     self.attrs[attribute_name] = DynamoType({"S": new_value})
             elif action == "ADD":
-                if set(update_action["Value"].keys()) == set(["N"]):
+                if set(update_action["Value"].keys()) == {"N"}:
                     existing = self.attrs.get(attribute_name, DynamoType({"N": "0"}))
                     self.attrs[attribute_name] = DynamoType(
                         {"N": str(Decimal(existing.value) + Decimal(new_value))}
                     )
-                elif set(update_action["Value"].keys()) == set(["SS"]):
+                elif set(update_action["Value"].keys()) == {"SS"}:
                     existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
                     new_set = set(existing.value).union(set(new_value))
                     self.attrs[attribute_name] = DynamoType({"SS": list(new_set)})
-                elif set(update_action["Value"].keys()) == set(["NS"]):
+                elif set(update_action["Value"].keys()) == {"NS"}:
                     existing = self.attrs.get(attribute_name, DynamoType({"NS": {}}))
                     new_set = set(existing.value).union(set(new_value))
                     self.attrs[attribute_name] = DynamoType({"NS": list(new_set)})
@@ -424,11 +424,11 @@ class Item(BaseModel):
                         )
                     )
             elif action == "DELETE":
-                if set(update_action["Value"].keys()) == set(["SS"]):
+                if set(update_action["Value"].keys()) == {"SS"}:
                     existing = self.attrs.get(attribute_name, DynamoType({"SS": {}}))
                     new_set = set(existing.value).difference(set(new_value))
                     self.attrs[attribute_name] = DynamoType({"SS": list(new_set)})
-                elif set(update_action["Value"].keys()) == set(["NS"]):
+                elif set(update_action["Value"].keys()) == {"NS"}:
                     existing = self.attrs.get(attribute_name, DynamoType({"NS": {}}))
                     new_set = set(existing.value).difference(set(new_value))
                     self.attrs[attribute_name] = DynamoType({"NS": list(new_set)})
@@ -446,7 +446,7 @@ class Item(BaseModel):
     def project(self, projection_expressions: list[list[str]]) -> "Item":
         # Returns a new Item with only the dictionary-keys that match the provided projection_expression
         # Will return an empty Item if the expression does not match anything
-        result: dict[str, Any] = dict()
+        result: dict[str, Any] = {}
         for expr in projection_expressions:
             x = find_nested_key(expr, self.to_regular_json())
             merge_dicts(result, x)

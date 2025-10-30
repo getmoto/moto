@@ -105,7 +105,7 @@ class Key(CloudFormationModel):
         self.arn = (
             f"arn:{get_partition(region)}:kms:{region}:{account_id}:key/{self.id}"
         )
-        self.grants: dict[str, Grant] = dict()
+        self.grants: dict[str, Grant] = {}
 
         self.rotations: list[dict[str, Any]] = []
 

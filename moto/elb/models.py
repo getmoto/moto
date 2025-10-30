@@ -298,7 +298,7 @@ class LoadBalancer(CloudFormationModel):
 
     @classmethod
     def get_default_attributes(cls) -> dict[str, Any]:  # type: ignore[misc]
-        attributes: dict[str, Any] = dict()
+        attributes: dict[str, Any] = {}
         attributes["cross_zone_load_balancing"] = {"enabled": False}
         attributes["connection_draining"] = {"enabled": False}
         attributes["access_log"] = {"enabled": False}
@@ -678,7 +678,7 @@ class ELBBackend(BaseBackend):
     ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.availability_zones = sorted(
-            list(set(load_balancer.availability_zones + availability_zones))
+            set(load_balancer.availability_zones + availability_zones)
         )
         return load_balancer.availability_zones
 
@@ -687,15 +687,11 @@ class ELBBackend(BaseBackend):
     ) -> list[str]:
         load_balancer = self.get_load_balancer(load_balancer_name)
         load_balancer.availability_zones = sorted(
-            list(
-                set(
-                    [
-                        az
-                        for az in load_balancer.availability_zones
-                        if az not in availability_zones
-                    ]
-                )
-            )
+            {
+                az
+                for az in load_balancer.availability_zones
+                if az not in availability_zones
+            }
         )
         return load_balancer.availability_zones
 

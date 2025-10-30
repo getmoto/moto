@@ -239,12 +239,10 @@ def test_list_account_assignments_pagination():
     # ensure 3 unique assignments returned
     assert (
         len(
-            set(
-                [
-                    account_assignment["PrincipalId"]
-                    for account_assignment in account_assignments
-                ]
-            )
+            {
+                account_assignment["PrincipalId"]
+                for account_assignment in account_assignments
+            }
         )
         == 3
     )
@@ -379,9 +377,9 @@ def test_list_account_assignments_for_principal_pagination():
     assert len(response["AccountAssignments"]) == 1
     account_assignments.extend(response["AccountAssignments"])
 
-    assert set(
-        [account_assignment["AccountId"] for account_assignment in account_assignments]
-    ) == set(["000000000000", "111111111111", "222222222222"])
+    assert {
+        account_assignment["AccountId"] for account_assignment in account_assignments
+    } == {"000000000000", "111111111111", "222222222222"}
 
 
 @mock_aws

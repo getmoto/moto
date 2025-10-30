@@ -80,12 +80,12 @@ def test_scan_with_alternating_hash_keys(table_name=None):
     table = ddb.Table(table_name)
 
     # Insert Data
-    data = [dict(pk="A" if i % 2 else "B", sk=str(i)) for i in range(8)]
+    data = [{"pk": "A" if i % 2 else "B", "sk": str(i)} for i in range(8)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
     # Also add some range keys in reverse, to verify they come back in a natural order
-    data = [dict(pk="A", sk=str(i)) for i in range(20, 15, -1)]
+    data = [{"pk": "A", "sk": str(i)} for i in range(20, 15, -1)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
@@ -130,12 +130,12 @@ def test_scan_with_numeric_range_key(table_name=None):
     table = ddb.Table(table_name)
 
     # Insert Data
-    data = [dict(pk="A" if i % 2 else "B", sk=i) for i in range(8)]
+    data = [{"pk": "A" if i % 2 else "B", "sk": i} for i in range(8)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
     # Also add some range keys in reverse, to verify they come back in a natural order
-    data = [dict(pk="A", sk=i) for i in range(20, 15, -1)]
+    data = [{"pk": "A", "sk": i} for i in range(20, 15, -1)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
@@ -181,12 +181,12 @@ def test_scan_by_global_index(table_name=None):
     table = resource.Table(table_name)
 
     # Insert Data
-    data = [dict(pk=f"A{i}", gsi_pk=f"gsi{i}") for i in range(5)]
+    data = [{"pk": f"A{i}", "gsi_pk": f"gsi{i}"} for i in range(5)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
     # Also add some range keys in reverse, to verify they come back in a natural order
-    data = [dict(pk=f"A{i}", gsi_pk=f"gsi{i}") for i in range(20, 15, -1)]
+    data = [{"pk": f"A{i}", "gsi_pk": f"gsi{i}"} for i in range(20, 15, -1)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
@@ -393,7 +393,7 @@ def test_scan_gsi_pagination_with_string_gsi_range(table_name=None):
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["sk"]) for r in results])
+    subjects = {int(r["sk"]) for r in results}
     assert subjects == set(range(10))
 
 
@@ -428,7 +428,7 @@ def test_scan_gsi_pagination_with_string_gsi_range_and_empty_gsi_pk(table_name=N
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    assert set([r["sk"] for r in results]) == {"3", "4", "5", "6", "7", "8", "9"}
+    assert {r["sk"] for r in results} == {"3", "4", "5", "6", "7", "8", "9"}
 
 
 @pytest.mark.aws_verified
@@ -462,7 +462,7 @@ def test_scan_gsi_pagination_with_string_gsi_range_and_empty_gsi_sk(table_name=N
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    assert set([r["sk"] for r in results]) == {"0", "1", "2", "7", "8", "9"}
+    assert {r["sk"] for r in results} == {"0", "1", "2", "7", "8", "9"}
 
 
 @pytest.mark.aws_verified
@@ -496,7 +496,7 @@ def test_scan_gsi_pagination_with_string_gsi_range_no_sk(table_name=None):
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["pk"]) for r in results])
+    subjects = {int(r["pk"]) for r in results}
     assert subjects == set(range(10))
 
 

@@ -1050,8 +1050,8 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.account_settings: dict[str, AccountSetting] = dict()
-        self.capacity_providers: dict[str, CapacityProvider] = dict()
+        self.account_settings: dict[str, AccountSetting] = {}
+        self.capacity_providers: dict[str, CapacityProvider] = {}
         self.clusters: dict[str, Cluster] = {}
         self.task_definitions: dict[str, dict[int, TaskDefinition]] = {}
         self.tasks: dict[str, dict[str, Task]] = {}

@@ -420,9 +420,7 @@ class NetworkInterfaceBackend:
         if eni_ids:
             enis = [eni for eni in enis if eni.id in eni_ids]
             if len(enis) != len(eni_ids):
-                invalid_id = list(
-                    set(eni_ids).difference(set([eni.id for eni in enis]))
-                )[0]
+                invalid_id = list(set(eni_ids).difference({eni.id for eni in enis}))[0]
                 raise InvalidNetworkInterfaceIdError(invalid_id)
 
         return generic_filter(filters, enis)

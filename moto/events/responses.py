@@ -462,12 +462,12 @@ class EventsHandler(BaseResponse):
         return json.dumps(result), self.response_headers
 
     def update_connection(self) -> tuple[str, dict[str, Any]]:
-        updates = dict(
-            name=self._get_param("Name"),
-            description=self._get_param("Description"),
-            authorization_type=self._get_param("AuthorizationType"),
-            auth_parameters=self._get_param("AuthParameters"),
-        )
+        updates = {
+            "name": self._get_param("Name"),
+            "description": self._get_param("Description"),
+            "authorization_type": self._get_param("AuthorizationType"),
+            "auth_parameters": self._get_param("AuthParameters"),
+        }
         result = self.events_backend.update_connection(**updates)
         return self._create_response(result)
 
@@ -521,16 +521,16 @@ class EventsHandler(BaseResponse):
         return self._create_response(result)
 
     def update_api_destination(self) -> tuple[str, dict[str, Any]]:
-        updates = dict(
-            connection_arn=self._get_param("ConnectionArn"),
-            description=self._get_param("Description"),
-            http_method=self._get_param("HttpMethod"),
-            invocation_endpoint=self._get_param("InvocationEndpoint"),
-            invocation_rate_limit_per_second=self._get_param(
+        updates = {
+            "connection_arn": self._get_param("ConnectionArn"),
+            "description": self._get_param("Description"),
+            "http_method": self._get_param("HttpMethod"),
+            "invocation_endpoint": self._get_param("InvocationEndpoint"),
+            "invocation_rate_limit_per_second": self._get_param(
                 "InvocationRateLimitPerSecond"
             ),
-            name=self._get_param("Name"),
-        )
+            "name": self._get_param("Name"),
+        }
 
         result = self.events_backend.update_api_destination(**updates)
         return self._create_response(result)

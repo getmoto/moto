@@ -210,7 +210,7 @@ def delete_transit_gateway_dependencies(ec2_client, tg_id):
                     TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
                 )
 
-        if set(rt["State"] for rt in route_tables) == {"deleted"}:
+        if {rt["State"] for rt in route_tables} == {"deleted"}:
             return
 
         sleep(5 * idx)
@@ -238,7 +238,7 @@ def delete_tg_attachments(ec2_client, tg_id):
                     err = exc.response["Error"]
                     assert err["Code"] == "InvalidTransitGatewayAttachmentID.NotFound"
 
-        if set(a["State"] for a in attachments) == {"deleted"}:
+        if {a["State"] for a in attachments} == {"deleted"}:
             return
 
         sleep(5 * idx)

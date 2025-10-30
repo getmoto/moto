@@ -62,7 +62,7 @@ class SecretsManagerResponse(BaseResponse):
             next_token=next_token,
         )
         return json.dumps(
-            dict(SecretValues=secret_values, Errors=errors, NextToken=next_token)
+            {"SecretValues": secret_values, "Errors": errors, "NextToken": next_token}
         )
 
     def create_secret(self) -> str:
@@ -184,7 +184,7 @@ class SecretsManagerResponse(BaseResponse):
             next_token=next_token,
             include_planned_deletion=include_planned_deletion,
         )
-        return json.dumps(dict(SecretList=secret_list, NextToken=next_token))
+        return json.dumps({"SecretList": secret_list, "NextToken": next_token})
 
     def delete_secret(self) -> str:
         secret_id = self._get_param("SecretId")
@@ -195,12 +195,12 @@ class SecretsManagerResponse(BaseResponse):
             recovery_window_in_days=recovery_window_in_days,
             force_delete_without_recovery=force_delete_without_recovery,
         )
-        return json.dumps(dict(ARN=arn, Name=name, DeletionDate=deletion_date))
+        return json.dumps({"ARN": arn, "Name": name, "DeletionDate": deletion_date})
 
     def restore_secret(self) -> str:
         secret_id = self._get_param("SecretId")
         arn, name = self.backend.restore_secret(secret_id=secret_id)
-        return json.dumps(dict(ARN=arn, Name=name))
+        return json.dumps({"ARN": arn, "Name": name})
 
     def get_resource_policy(self) -> str:
         secret_id = self._get_param("SecretId")
@@ -210,12 +210,12 @@ class SecretsManagerResponse(BaseResponse):
         secret_id = self._get_param("SecretId")
         policy = self._get_param("ResourcePolicy")
         arn, name = self.backend.put_resource_policy(secret_id, policy)
-        return json.dumps(dict(ARN=arn, Name=name))
+        return json.dumps({"ARN": arn, "Name": name})
 
     def delete_resource_policy(self) -> str:
         secret_id = self._get_param("SecretId")
         arn, name = self.backend.delete_resource_policy(secret_id)
-        return json.dumps(dict(ARN=arn, Name=name))
+        return json.dumps({"ARN": arn, "Name": name})
 
     def tag_resource(self) -> str:
         secret_id = self._get_param("SecretId")

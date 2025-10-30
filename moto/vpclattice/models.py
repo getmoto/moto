@@ -264,7 +264,7 @@ class VPCLatticeBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_services(self) -> list[VPCLatticeService]:
-        return [service for service in self.services.values()]
+        return list(self.services.values())
 
     def create_service_network(
         self,
@@ -300,7 +300,7 @@ class VPCLatticeBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_service_networks(self) -> list[VPCLatticeServiceNetwork]:
-        return [service_network for service_network in self.service_networks.values()]
+        return list(self.service_networks.values())
 
     def create_service_network_vpc_association(
         self,

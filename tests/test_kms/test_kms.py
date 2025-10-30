@@ -705,11 +705,11 @@ def test_list_resource_tags_after_untagging():
 @pytest.mark.parametrize(
     "kwargs,expected_key_length",
     (
-        (dict(KeySpec="AES_256"), 32),
-        (dict(KeySpec="AES_128"), 16),
-        (dict(NumberOfBytes=64), 64),
-        (dict(NumberOfBytes=1), 1),
-        (dict(NumberOfBytes=1024), 1024),
+        ({"KeySpec": "AES_256"}, 32),
+        ({"KeySpec": "AES_128"}, 16),
+        ({"NumberOfBytes": 64}, 64),
+        ({"NumberOfBytes": 1}, 1),
+        ({"NumberOfBytes": 1024}, 1024),
     ),
 )
 @mock_aws
@@ -738,10 +738,10 @@ def test_generate_data_key_decrypt():
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(KeySpec="AES_257"),
-        dict(KeySpec="AES_128", NumberOfBytes=16),
-        dict(NumberOfBytes=2048),
-        dict(),
+        {"KeySpec": "AES_257"},
+        {"KeySpec": "AES_128", "NumberOfBytes": 16},
+        {"NumberOfBytes": 2048},
+        {},
     ],
 )
 @mock_aws
@@ -1753,7 +1753,7 @@ def test_ensure_key_can_be_verified_manually():
     )
 
     raw_signature = response["Signature"]
-    sign_kwargs = dict(signature_algorithm=ec.ECDSA(hashes.SHA256()))
+    sign_kwargs = {"signature_algorithm": ec.ECDSA(hashes.SHA256())}
 
     public_key = serialization.load_der_public_key(public_key_data)
     public_key.verify(signature=raw_signature, data=message, **sign_kwargs)

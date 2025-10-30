@@ -582,10 +582,10 @@ class WAFV2Backend(BaseBackend):
 
     @paginate(PAGINATION_MODEL)  # type: ignore
     def list_web_acls(self) -> list[FakeWebACL]:
-        return [wacl for wacl in self.wacls.values()]
+        return list(self.wacls.values())
 
     def _is_duplicate_name(self, name: str) -> bool:
-        all_wacl_names = set(wacl.name for wacl in self.wacls.values())
+        all_wacl_names = {wacl.name for wacl in self.wacls.values()}
         return name in all_wacl_names
 
     @paginate(PAGINATION_MODEL)  # type: ignore
@@ -795,7 +795,7 @@ class WAFV2Backend(BaseBackend):
         arn = make_arn_for_rule_group(
             name, self.account_id, self.region_name, id, scope
         )
-        if name in set(group.name for group in self.rule_groups.values()):
+        if name in {group.name for group in self.rule_groups.values()}:
             raise WAFV2DuplicateItemException()
         rules_objs = (
             [

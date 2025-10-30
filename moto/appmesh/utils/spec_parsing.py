@@ -630,7 +630,7 @@ def build_virtual_node_spec(spec: dict[str, Any]) -> VirtualNodeSpec:  # type: i
                     _json = _format.get("json")
                     json = None
                     if _json is not None:
-                        json = list()
+                        json = []
                         for item in _json:
                             json.append(
                                 KeyValue(key=item.get("key"), value=item.get("value"))

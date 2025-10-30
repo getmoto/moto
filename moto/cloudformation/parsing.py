@@ -469,17 +469,13 @@ def parse_condition(  # type: ignore[return]
         return not parse_condition(condition_values[0], resources_map, condition_map)
     elif condition_operator == "Fn::And":
         return all(
-            [
-                parse_condition(condition_value, resources_map, condition_map)
-                for condition_value in condition_values
-            ]
+            parse_condition(condition_value, resources_map, condition_map)
+            for condition_value in condition_values
         )
     elif condition_operator == "Fn::Or":
         return any(
-            [
-                parse_condition(condition_value, resources_map, condition_map)
-                for condition_value in condition_values
-            ]
+            parse_condition(condition_value, resources_map, condition_map)
+            for condition_value in condition_values
         )
 
 
@@ -900,11 +896,11 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
 
     def delete(self) -> None:
         # Only try to delete resources without a Retain DeletionPolicy
-        remaining_resources = set(
+        remaining_resources = {
             key
             for key, value in self._resource_json_map.items()
             if not value.get("DeletionPolicy") == "Retain"
-        )
+        }
         # Keep track of how many resources we deleted before
         # (set to current + 1 to pretend the number of resources is already going down)
         previous_remaining_resources = len(remaining_resources) + 1
@@ -972,7 +968,7 @@ class OutputMap(collections_abc.Mapping):  # type: ignore[type-arg]
 
         # Create the default resources
         self._resource_map = resources
-        self._parsed_outputs: dict[str, Output] = dict()
+        self._parsed_outputs: dict[str, Output] = {}
 
     def __getitem__(self, key: str) -> Optional[Output]:
         output_logical_id = key

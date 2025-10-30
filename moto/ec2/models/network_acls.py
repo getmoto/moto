@@ -209,7 +209,7 @@ class NetworkAclBackend:
             if len(network_acls) != len(network_acl_ids):
                 invalid_id = list(
                     set(network_acl_ids).difference(
-                        set([network_acl.id for network_acl in network_acls])
+                        {network_acl.id for network_acl in network_acls}
                     )
                 )[0]
                 raise InvalidRouteTableIdError(invalid_id)

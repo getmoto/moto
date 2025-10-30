@@ -25,7 +25,7 @@ class WorkSpacesResponse(BaseResponse):
             workspaces=workspaces,
         )
         return json.dumps(
-            dict(FailedRequests=failed_requests, PendingRequests=pending_requests)
+            {"FailedRequests": failed_requests, "PendingRequests": pending_requests}
         )
 
     def describe_workspaces(self) -> str:
@@ -40,7 +40,7 @@ class WorkSpacesResponse(BaseResponse):
             user_name=user_name,
             bundle_id=bundle_id,
         )
-        return json.dumps(dict(Workspaces=[x.to_dict_pending() for x in workspaces]))
+        return json.dumps({"Workspaces": [x.to_dict_pending() for x in workspaces]})
 
     def describe_workspace_directories(self) -> str:
         params = json.loads(self.body)
@@ -48,7 +48,7 @@ class WorkSpacesResponse(BaseResponse):
         directories = self.workspaces_backend.describe_workspace_directories(
             directory_ids=directory_ids,
         )
-        return json.dumps(dict(Directories=[d.to_dict() for d in directories]))
+        return json.dumps({"Directories": [d.to_dict() for d in directories]})
 
     def terminate_workspaces(self) -> str:
         params = json.loads(self.body)
@@ -74,7 +74,7 @@ class WorkSpacesResponse(BaseResponse):
             tenancy=tenancy,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def modify_workspace_creation_properties(self) -> str:
         params = json.loads(self.body)
@@ -102,7 +102,7 @@ class WorkSpacesResponse(BaseResponse):
         tag_list = self.workspaces_backend.describe_tags(
             resource_id=resource_id,
         )
-        return json.dumps(dict(TagList=tag_list))
+        return json.dumps({"TagList": tag_list})
 
     def describe_client_properties(self) -> str:
         params = json.loads(self.body)
@@ -110,7 +110,7 @@ class WorkSpacesResponse(BaseResponse):
         client_properties_list = self.workspaces_backend.describe_client_properties(
             resource_ids=resource_ids,
         )
-        return json.dumps(dict(ClientPropertiesList=client_properties_list))
+        return json.dumps({"ClientPropertiesList": client_properties_list})
 
     def modify_client_properties(self) -> str:
         params = json.loads(self.body)
@@ -144,7 +144,7 @@ class WorkSpacesResponse(BaseResponse):
             image_ids=image_ids,
             image_type=image_type,
         )
-        return json.dumps(dict(Images=images))
+        return json.dumps({"Images": images})
 
     def update_workspace_image_permission(self) -> str:
         params = json.loads(self.body)
@@ -167,7 +167,7 @@ class WorkSpacesResponse(BaseResponse):
         ) = self.workspaces_backend.describe_workspace_image_permissions(
             image_id=image_id,
         )
-        return json.dumps(dict(ImageId=image_id, ImagePermissions=image_permissions))
+        return json.dumps({"ImageId": image_id, "ImagePermissions": image_permissions})
 
     def deregister_workspace_directory(self) -> str:
         params = json.loads(self.body)

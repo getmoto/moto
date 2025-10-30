@@ -32,7 +32,7 @@ class RDSDataServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.results_queue: list[QueryResults] = []
-        self.sql_results: dict[tuple[str, str], QueryResults] = dict()
+        self.sql_results: dict[tuple[str, str], QueryResults] = {}
 
     def execute_statement(self, resource_arn: str, sql: str) -> QueryResults:
         """

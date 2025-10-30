@@ -54,12 +54,12 @@ class CloudDirectoryResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                DirectoryArn=directory.directory_arn,
-                Name=name,
-                ObjectIdentifier=directory.object_identifier,
-                AppliedSchemaArn=directory.schema_arn,
-            )
+            {
+                "DirectoryArn": directory.directory_arn,
+                "Name": name,
+                "ObjectIdentifier": directory.object_identifier,
+                "AppliedSchemaArn": directory.schema_arn,
+            }
         )
 
     def create_schema(self) -> str:
@@ -67,7 +67,7 @@ class CloudDirectoryResponse(BaseResponse):
         schema = self.clouddirectory_backend.create_schema(
             name=name,
         )
-        return json.dumps(dict(SchemaArn=schema))
+        return json.dumps({"SchemaArn": schema})
 
     def list_directories(self) -> str:
         next_token = self._get_param("NextToken")
@@ -77,7 +77,7 @@ class CloudDirectoryResponse(BaseResponse):
             state=state, next_token=next_token, max_results=max_results
         )
         directory_list = [directory.to_dict() for directory in directories]
-        return json.dumps(dict(Directories=directory_list, NextToken=next_token))
+        return json.dumps({"Directories": directory_list, "NextToken": next_token})
 
     def tag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
@@ -86,7 +86,7 @@ class CloudDirectoryResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
@@ -95,7 +95,7 @@ class CloudDirectoryResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_directory(self) -> str:
         # Retrieve arn from headers
@@ -104,7 +104,7 @@ class CloudDirectoryResponse(BaseResponse):
         directory_arn = self.clouddirectory_backend.delete_directory(
             directory_arn=arn,
         )
-        return json.dumps(dict(DirectoryArn=directory_arn))
+        return json.dumps({"DirectoryArn": directory_arn})
 
     def delete_schema(self) -> str:
         # Retrieve arn from headers
@@ -113,7 +113,7 @@ class CloudDirectoryResponse(BaseResponse):
         self.clouddirectory_backend.delete_schema(
             schema_arn=arn,
         )
-        return json.dumps(dict(SchemaArn=arn))
+        return json.dumps({"SchemaArn": arn})
 
     def list_development_schema_arns(self) -> str:
         next_token = self._get_param("NextToken")
@@ -122,7 +122,7 @@ class CloudDirectoryResponse(BaseResponse):
             next_token=next_token,
             max_results=max_results,
         )
-        return json.dumps(dict(SchemaArns=schemas, NextToken=next_token))
+        return json.dumps({"SchemaArns": schemas, "NextToken": next_token})
 
     def list_published_schema_arns(self) -> str:
         next_token = self._get_param("NextToken")
@@ -131,7 +131,7 @@ class CloudDirectoryResponse(BaseResponse):
             next_token=next_token,
             max_results=max_results,
         )
-        return json.dumps(dict(SchemaArns=schemas, NextToken=next_token))
+        return json.dumps({"SchemaArns": schemas, "NextToken": next_token})
 
     def get_directory(self) -> str:
         # Retrieve arn from headers
@@ -140,7 +140,7 @@ class CloudDirectoryResponse(BaseResponse):
         directory = self.clouddirectory_backend.get_directory(
             directory_arn=arn,
         )
-        return json.dumps(dict(Directory=directory.to_dict()))
+        return json.dumps({"Directory": directory.to_dict()})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
@@ -151,4 +151,4 @@ class CloudDirectoryResponse(BaseResponse):
             next_token=next_token,
             max_results=max_results,
         )
-        return json.dumps(dict(Tags=tags, NextToken=next_token))
+        return json.dumps({"Tags": tags, "NextToken": next_token})

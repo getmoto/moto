@@ -100,7 +100,7 @@ def test_request_spot_instances():
     security_group_names = [
         group["GroupName"] for group in launch_spec["SecurityGroups"]
     ]
-    assert set(security_group_names) == set([sec_name_1, sec_name_2])
+    assert set(security_group_names) == {sec_name_1, sec_name_2}
 
     assert launch_spec["ImageId"] == EXAMPLE_AMI_ID
     assert launch_spec["KeyName"] == "test"

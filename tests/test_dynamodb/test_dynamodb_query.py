@@ -186,7 +186,7 @@ def test_query_pagination(table_name=None):
     assert [i["sk"] for i in page2["Items"]] == ["6", "7", "8", "9"]
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["sk"]) for r in results])
+    subjects = {int(r["sk"]) for r in results}
     assert subjects == set(range(10))
 
 
@@ -276,7 +276,7 @@ def test_query_gsi_pagination_with_string_range(table_name=None):
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["sk"]) for r in results])
+    subjects = {int(r["sk"]) for r in results}
     assert subjects == set(range(10))
 
 
@@ -322,7 +322,7 @@ def test_query_gsi_pagination_with_string_gsi_range(table_name=None):
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["sk"]) for r in results])
+    subjects = {int(r["sk"]) for r in results}
     assert subjects == set(range(10))
 
 
@@ -419,7 +419,7 @@ def test_query_gsi_pagination_with_string_gsi_range_and_empty_gsi_pk(table_name=
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    assert set([r["sk"] for r in results]) == {"3", "4", "5", "6", "7", "8", "9"}
+    assert {r["sk"] for r in results} == {"3", "4", "5", "6", "7", "8", "9"}
 
 
 @pytest.mark.aws_verified
@@ -458,7 +458,7 @@ def test_query_gsi_pagination_with_string_gsi_range_and_empty_gsi_sk(table_name=
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    assert set([r["sk"] for r in results]) == {"0", "1", "2", "7", "8", "9"}
+    assert {r["sk"] for r in results} == {"0", "1", "2", "7", "8", "9"}
 
 
 @pytest.mark.aws_verified
@@ -520,7 +520,7 @@ def test_query_gsi_pagination_with_numeric_range(table_name=None):
     assert [i["sk"] for i in page2["Items"]] == ["6", "7", "8", "9"]
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["sk"]) for r in results])
+    subjects = {int(r["sk"]) for r in results}
     assert subjects == set(range(10))
 
 
@@ -865,7 +865,7 @@ def test_query_gsi_pagination_with_string_gsi_range_no_sk(table_name=None):
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["pk"]) for r in results])
+    subjects = {int(r["pk"]) for r in results}
     assert subjects == set(range(10))
 
 

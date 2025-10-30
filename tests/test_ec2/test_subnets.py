@@ -311,7 +311,7 @@ def test_subnet_get_by_id():
         "Subnets"
     ]
     assert len(subnets_by_id) == 2
-    subnets_by_id = tuple(map(lambda s: s["SubnetId"], subnets_by_id))
+    subnets_by_id = tuple(s["SubnetId"] for s in subnets_by_id)
     assert subnetA.id in subnets_by_id
     assert subnetB1.id in subnets_by_id
 
@@ -354,7 +354,7 @@ def test_get_subnets_filtering():
         Filters=[{"Name": "vpc-id", "Values": [vpcB.id]}]
     )["Subnets"]
     assert len(subnets_by_vpc) == 2
-    assert set([subnet["SubnetId"] for subnet in subnets_by_vpc]) == {
+    assert {subnet["SubnetId"] for subnet in subnets_by_vpc} == {
         subnetB1.id,
         subnetB2.id,
     }

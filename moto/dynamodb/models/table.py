@@ -709,7 +709,7 @@ class Table(CloudFormationModel):
         # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()
-            indexes_by_name = dict((i.name, i) for i in all_indexes)
+            indexes_by_name = {i.name: i for i in all_indexes}
             if index_name not in indexes_by_name:
                 all_names = ", ".join(indexes_by_name.keys())
                 raise MockValidationException(
@@ -888,7 +888,7 @@ class Table(CloudFormationModel):
 
     def get_index(self, index_name: str, error_if_not: bool = False) -> SecondaryIndex:
         all_indexes = self.all_indexes()
-        indexes_by_name = dict((i.name, i) for i in all_indexes)
+        indexes_by_name = {i.name: i for i in all_indexes}
         if error_if_not and index_name not in indexes_by_name:
             raise InvalidIndexNameError(
                 f"The table does not have the specified index: {index_name}"
@@ -897,7 +897,7 @@ class Table(CloudFormationModel):
 
     def has_idx_items(self, index_name: str) -> list[Item]:
         idx = self.get_index(index_name)
-        idx_col_set = set([i["AttributeName"] for i in idx.schema])
+        idx_col_set = {i["AttributeName"] for i in idx.schema}
 
         items: list[Item] = []
 

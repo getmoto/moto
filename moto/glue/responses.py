@@ -296,10 +296,10 @@ class GlueResponse(BaseResponse):
         )
         filtered_crawler_names = self.filter_crawlers_by_tags(crawlers, tags)
         return json.dumps(
-            dict(
-                CrawlerNames=[crawler_name for crawler_name in filtered_crawler_names],
-                NextToken=next_token,
-            )
+            {
+                "CrawlerNames": list(filtered_crawler_names),
+                "NextToken": next_token,
+            }
         )
 
     def filter_crawlers_by_tags(
@@ -381,7 +381,7 @@ class GlueResponse(BaseResponse):
             execution_class=execution_class,
             source_control_details=source_control_details,
         )
-        return json.dumps(dict(Name=name))
+        return json.dumps({"Name": name})
 
     def get_job(self) -> str:
         name = self.parameters.get("JobName")
@@ -395,10 +395,10 @@ class GlueResponse(BaseResponse):
             next_token=next_token, max_results=max_results
         )
         return json.dumps(
-            dict(
-                Jobs=[job.as_dict() for job in jobs],
-                NextToken=next_token,
-            )
+            {
+                "Jobs": [job.as_dict() for job in jobs],
+                "NextToken": next_token,
+            }
         )
 
     def start_job_run(self) -> str:
@@ -448,10 +448,10 @@ class GlueResponse(BaseResponse):
             max_results=max_results,
         )
         return json.dumps(
-            dict(
-                JobRuns=[job_run.as_dict() for job_run in job_runs],
-                NextToken=next_token,
-            )
+            {
+                "JobRuns": [job_run.as_dict() for job_run in job_runs],
+                "NextToken": next_token,
+            }
         )
 
     def list_jobs(self) -> str:
@@ -463,10 +463,10 @@ class GlueResponse(BaseResponse):
         )
         filtered_job_names = self.filter_jobs_by_tags(jobs, tags)
         return json.dumps(
-            dict(
-                JobNames=[job_name for job_name in filtered_job_names],
-                NextToken=next_token,
-            )
+            {
+                "JobNames": list(filtered_job_names),
+                "NextToken": next_token,
+            }
         )
 
     def delete_job(self) -> str:
@@ -645,14 +645,14 @@ class GlueResponse(BaseResponse):
         filtered_session_ids = self._filter_sessions_by_tags(sessions, tags)
 
         return json.dumps(
-            dict(
-                Ids=[session_id for session_id in filtered_session_ids],
-                Sessions=[
+            {
+                "Ids": list(filtered_session_ids),
+                "Sessions": [
                     self.glue_backend.get_session(session_id).as_dict()
                     for session_id in filtered_session_ids
                 ],
-                NextToken=next_token,
-            )
+                "NextToken": next_token,
+            }
         )
 
     def _filter_sessions_by_tags(
@@ -680,7 +680,7 @@ class GlueResponse(BaseResponse):
         crawler_names = self._get_param("CrawlerNames")
         crawlers = self.glue_backend.batch_get_crawlers(crawler_names)
         crawlers_not_found = list(
-            set(crawler_names) - set(map(lambda crawler: crawler["Name"], crawlers))
+            set(crawler_names) - {crawler["Name"] for crawler in crawlers}
         )
         return json.dumps(
             {
@@ -692,7 +692,7 @@ class GlueResponse(BaseResponse):
     def batch_get_jobs(self) -> str:
         job_names = self._get_param("JobNames")
         jobs = self.glue_backend.batch_get_jobs(job_names)
-        jobs_not_found = list(set(job_names) - set(map(lambda job: job["Name"], jobs)))
+        jobs_not_found = list(set(job_names) - {job["Name"] for job in jobs})
         return json.dumps(
             {
                 "Jobs": jobs,
@@ -757,10 +757,10 @@ class GlueResponse(BaseResponse):
             max_results=max_results,
         )
         return json.dumps(
-            dict(
-                Triggers=[trigger.as_dict() for trigger in triggers],
-                NextToken=next_token,
-            )
+            {
+                "Triggers": [trigger.as_dict() for trigger in triggers],
+                "NextToken": next_token,
+            }
         )
 
     def list_triggers(self) -> str:
@@ -775,17 +775,17 @@ class GlueResponse(BaseResponse):
         )
         filtered_trigger_names = self.filter_triggers_by_tags(triggers, tags)
         return json.dumps(
-            dict(
-                TriggerNames=[trigger_name for trigger_name in filtered_trigger_names],
-                NextToken=next_token,
-            )
+            {
+                "TriggerNames": list(filtered_trigger_names),
+                "NextToken": next_token,
+            }
         )
 
     def batch_get_triggers(self) -> str:
         trigger_names = self._get_param("TriggerNames")
         triggers = self.glue_backend.batch_get_triggers(trigger_names)
         triggers_not_found = list(
-            set(trigger_names) - set(map(lambda trigger: trigger["Name"], triggers))
+            set(trigger_names) - {trigger["Name"] for trigger in triggers}
         )
         return json.dumps(
             {
@@ -818,10 +818,10 @@ class GlueResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                DevEndpoints=[endpoint.as_dict() for endpoint in endpoints],
-                NextToken=next_token,
-            )
+            {
+                "DevEndpoints": [endpoint.as_dict() for endpoint in endpoints],
+                "NextToken": next_token,
+            }
         )
 
     def create_dev_endpoint(self) -> str:
@@ -880,7 +880,7 @@ class GlueResponse(BaseResponse):
             connection_input=connection_input,
             tags=tags,
         )
-        return json.dumps(dict(CreateConnectionStatus=create_connection_status))
+        return json.dumps({"CreateConnectionStatus": create_connection_status})
 
     def get_connection(self) -> str:
         catalog_id = self._get_param("CatalogId")
@@ -895,7 +895,7 @@ class GlueResponse(BaseResponse):
             hide_password=hide_password,
             apply_override_for_compute_environment=apply_override_for_compute_environment,
         )
-        return json.dumps(dict(Connection=connection.as_dict()))
+        return json.dumps({"Connection": connection.as_dict()})
 
     def get_connections(self) -> str:
         catalog_id = self._get_param("CatalogId")
@@ -911,7 +911,7 @@ class GlueResponse(BaseResponse):
             max_results=max_results,
         )
         connection_list = [connection.as_dict() for connection in connections]
-        return json.dumps(dict(ConnectionList=connection_list, NextToken=next_token))
+        return json.dumps({"ConnectionList": connection_list, "NextToken": next_token})
 
     def put_data_catalog_encryption_settings(self) -> str:
         params = self.parameters
@@ -1130,8 +1130,10 @@ class GlueResponse(BaseResponse):
         security_configurations = self.glue_backend.get_security_configurations()
 
         return json.dumps(
-            dict(
-                SecurityConfigurations=[sc.as_dict() for sc in security_configurations],
-                NextToken=next_token,
-            )
+            {
+                "SecurityConfigurations": [
+                    sc.as_dict() for sc in security_configurations
+                ],
+                "NextToken": next_token,
+            }
         )

@@ -925,14 +925,12 @@ def test_add_remove_tags():
 
     client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "a", "Value": "b"}])
 
-    tags = dict(
-        [
-            (d["Key"], d["Value"])
-            for d in client.describe_tags(LoadBalancerNames=["my-lb"])[
-                "TagDescriptions"
-            ][0]["Tags"]
-        ]
-    )
+    tags = {
+        d["Key"]: d["Value"]
+        for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
+            0
+        ]["Tags"]
+    }
     assert tags["a"] == "b"
 
     client.add_tags(
@@ -956,14 +954,12 @@ def test_add_remove_tags():
 
     client.add_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "j", "Value": "c"}])
 
-    tags = dict(
-        [
-            (d["Key"], d["Value"])
-            for d in client.describe_tags(LoadBalancerNames=["my-lb"])[
-                "TagDescriptions"
-            ][0]["Tags"]
-        ]
-    )
+    tags = {
+        d["Key"]: d["Value"]
+        for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
+            0
+        ]["Tags"]
+    }
 
     assert tags["a"] == "b"
     assert tags["b"] == "b"
@@ -979,14 +975,12 @@ def test_add_remove_tags():
 
     client.remove_tags(LoadBalancerNames=["my-lb"], Tags=[{"Key": "a"}])
 
-    tags = dict(
-        [
-            (d["Key"], d["Value"])
-            for d in client.describe_tags(LoadBalancerNames=["my-lb"])[
-                "TagDescriptions"
-            ][0]["Tags"]
-        ]
-    )
+    tags = {
+        d["Key"]: d["Value"]
+        for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
+            0
+        ]["Tags"]
+    }
 
     assert "a" not in tags
     assert tags["b"] == "b"
@@ -1009,14 +1003,12 @@ def test_add_remove_tags():
         LoadBalancerNames=["other-lb"], Tags=[{"Key": "other", "Value": "something"}]
     )
 
-    lb_tags = dict(
-        [
-            (lb["LoadBalancerName"], dict([(d["Key"], d["Value"]) for d in lb["Tags"]]))
-            for lb in client.describe_tags(LoadBalancerNames=["my-lb", "other-lb"])[
-                "TagDescriptions"
-            ]
+    lb_tags = {
+        lb["LoadBalancerName"]: {d["Key"]: d["Value"] for d in lb["Tags"]}
+        for lb in client.describe_tags(LoadBalancerNames=["my-lb", "other-lb"])[
+            "TagDescriptions"
         ]
-    )
+    }
 
     assert "my-lb" in lb_tags
     assert "other-lb" in lb_tags
@@ -1036,12 +1028,12 @@ def test_create_with_tags():
         Tags=[{"Key": "k", "Value": "v"}],
     )
 
-    tags = dict(
-        (d["Key"], d["Value"])
+    tags = {
+        d["Key"]: d["Value"]
         for d in client.describe_tags(LoadBalancerNames=["my-lb"])["TagDescriptions"][
             0
         ]["Tags"]
-    )
+    }
     assert tags["k"] == "v"
 
 

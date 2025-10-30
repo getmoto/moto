@@ -65,7 +65,7 @@ class ElastiCacheResponse(BaseResponse):
             # if passwords is empty, then we can use the authentication_passwords
             passwords = passwords if passwords else authentication_passwords
 
-        if any([len(p) < 16 for p in passwords]):
+        if any(len(p) < 16 for p in passwords):
             raise PasswordTooShort
 
         access_string = params.get("AccessString")

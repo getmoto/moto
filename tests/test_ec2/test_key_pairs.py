@@ -141,7 +141,7 @@ def test_key_pairs_create(key_type: str, fingerprint_len: int):
     assert kp.key_material != kp2["KeyMaterial"]
 
     kps = client.describe_key_pairs()["KeyPairs"]
-    all_names = set([k["KeyName"] for k in kps])
+    all_names = {k["KeyName"] for k in kps}
     assert key_name in all_names
     assert key_name2 in all_names
 
@@ -315,12 +315,12 @@ def test_key_pair_filters():
     kp_by_name = client.describe_key_pairs(
         Filters=[{"Name": "key-name", "Values": [key_name_2]}]
     )["KeyPairs"]
-    assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp2.name])
+    assert {kp["KeyName"] for kp in kp_by_name} == {kp2.name}
 
     kp_by_name = client.describe_key_pairs(
         Filters=[{"Name": "fingerprint", "Values": [kp3.key_fingerprint]}]
     )["KeyPairs"]
-    assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp3.name])
+    assert {kp["KeyName"] for kp in kp_by_name} == {kp3.name}
 
 
 @mock_aws

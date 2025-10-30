@@ -183,8 +183,8 @@ class Policy(BaseModel):
 class ResilienceHubBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.apps: dict[str, App] = dict()
-        self.policies: dict[str, Policy] = dict()
+        self.apps: dict[str, App] = {}
+        self.policies: dict[str, Policy] = {}
         self.tagger = TaggingService()
 
         self.app_assessments_queue: list[list[dict[str, Any]]] = []

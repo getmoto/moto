@@ -222,7 +222,7 @@ def wait_for_log_msg(expected_msg, log_group, wait_time=30):
                 [event["message"] for event in result.get("events")]
             )
         for line in received_messages:
-            if any([msg in line for msg in expected_msgs]):
+            if any(msg in line for msg in expected_msgs):
                 return True, set(received_messages)
         time.sleep(1)
     return False, set(received_messages)

@@ -629,7 +629,7 @@ class KmsResponse(BaseResponse):
             dry_run=dry_run,
         )
 
-        return json.dumps(dict(Mac=mac, MacAlgorithm=mac_algorithm, KeyId=key_id))
+        return json.dumps({"Mac": mac, "MacAlgorithm": mac_algorithm, "KeyId": key_id})
 
     def generate_random(self) -> str:
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateRandom.html"""
@@ -758,7 +758,9 @@ class KmsResponse(BaseResponse):
             dry_run=dry_run,
         )
 
-        return json.dumps(dict(KeyId=key_id, MacValid=True, MacAlgorithm=mac_algorithm))
+        return json.dumps(
+            {"KeyId": key_id, "MacValid": True, "MacAlgorithm": mac_algorithm}
+        )
 
     def get_public_key(self) -> str:
         key_id = self._get_param("KeyId")
@@ -784,7 +786,7 @@ class KmsResponse(BaseResponse):
         key_id = self.kms_backend.rotate_key_on_demand(
             key_id=key_id,
         )
-        return json.dumps(dict(KeyId=key_id))
+        return json.dumps({"KeyId": key_id})
 
     def list_key_rotations(self) -> str:
         key_id = self._get_param("KeyId")

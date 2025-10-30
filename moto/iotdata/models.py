@@ -192,7 +192,7 @@ class FakeShadow(BaseModel):
 class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.published_payloads: list[tuple[str, bytes]] = list()
+        self.published_payloads: list[tuple[str, bytes]] = []
 
     @property
     def iot_backend(self) -> IoTBackend:
@@ -220,7 +220,7 @@ class IoTDataPlaneBackend(BaseBackend):
             if not isinstance(_payload["state"], dict):
                 raise InvalidRequestException("state node must be an Object")
             acceptable = ["reported", "desired"]
-            if any(map(lambda v: v not in acceptable, _payload["state"].keys())):
+            if any(v not in acceptable for v in _payload["state"].keys()):
                 raise InvalidRequestException("State contains an invalid node")
 
         thing_shadow = thing.thing_shadows.get(shadow_name)

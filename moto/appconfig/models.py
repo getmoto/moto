@@ -66,7 +66,7 @@ class ConfigurationProfile(BaseModel):
         self.retrieval_role_arn = retrieval_role_arn
         self.validators = validators
         self._type = _type
-        self.config_versions: dict[int, HostedConfigurationVersion] = dict()
+        self.config_versions: dict[int, HostedConfigurationVersion] = {}
 
     def create_version(
         self,
@@ -122,7 +122,7 @@ class Application(BaseModel):
         self.name = name
         self.description = description
 
-        self.config_profiles: dict[str, ConfigurationProfile] = dict()
+        self.config_profiles: dict[str, ConfigurationProfile] = {}
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -137,7 +137,7 @@ class AppConfigBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.applications: dict[str, Application] = dict()
+        self.applications: dict[str, Application] = {}
         self.tagger = TaggingService()
 
     def create_application(

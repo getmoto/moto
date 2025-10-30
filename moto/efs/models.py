@@ -424,7 +424,7 @@ class EFSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.creation_tokens: set[str] = set()
-        self.access_points: dict[str, AccessPoint] = dict()
+        self.access_points: dict[str, AccessPoint] = {}
         self.file_systems_by_id: dict[str, FileSystem] = {}
         self.mount_targets_by_id: dict[str, MountTarget] = {}
         self.next_markers: dict[str, Union[list[MountTarget], list[FileSystem]]] = {}
@@ -527,7 +527,7 @@ class EFSBackend(BaseBackend):
             corpus = self.next_markers[marker]  # type: ignore[assignment]
         else:
             # Handle the vanilla case.
-            corpus = [fs for fs in self.file_systems_by_id.values()]
+            corpus = list(self.file_systems_by_id.values())
 
         # Handle the max_items parameter.
         file_systems = corpus[:max_items]
@@ -602,10 +602,7 @@ class EFSBackend(BaseBackend):
             # Handle the case that a file_system_id is given.
             if file_system_id not in self.file_systems_by_id:
                 raise FileSystemNotFound(file_system_id)
-            corpus = [
-                mt
-                for mt in self.file_systems_by_id[file_system_id].iter_mount_targets()
-            ]
+            corpus = list(self.file_systems_by_id[file_system_id].iter_mount_targets())
         elif mount_target_id:
             if mount_target_id not in self.mount_targets_by_id:
                 raise MountTargetNotFound(mount_target_id)

@@ -153,9 +153,9 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
 
-        self.collections: dict[str, Collection] = dict()
-        self.security_policies: dict[str, SecurityPolicy] = dict()
-        self.os_endpoints: dict[str, OSEndpoint] = dict()
+        self.collections: dict[str, Collection] = {}
+        self.security_policies: dict[str, SecurityPolicy] = {}
+        self.os_endpoints: dict[str, OSEndpoint] = {}
         self.tagger = TaggingService(
             tag_name="tags", key_name="key", value_name="value"
         )
@@ -166,9 +166,9 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         if not client_token:
             client_token = mock_random.get_random_string(10)
 
-        if (name, type) in list(
+        if (name, type) in [
             (sp.name, sp.type) for sp in list(self.security_policies.values())
-        ):
+        ]:
             raise ConflictException(
                 msg=f"Policy with name {name} and type {type} already exists"
             )
@@ -302,9 +302,7 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
                 if collection.name == collection_filters["name"]
             ]
         else:
-            collection_summaries = [
-                collection for collection in list(self.collections.values())
-            ]
+            collection_summaries = list(self.collections.values())
         return collection_summaries
 
     def create_vpc_endpoint(
@@ -319,7 +317,7 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
             client_token = mock_random.get_random_string(10)
 
         # Only 1 endpoint should exists under each VPC
-        if vpc_id in list(ose.vpc_id for ose in list(self.os_endpoints.values())):
+        if vpc_id in [ose.vpc_id for ose in list(self.os_endpoints.values())]:
             raise ConflictException(
                 msg=f"Failed to create a VpcEndpoint {name} for AccountId {self.account_id} :: There is already a VpcEndpoint exist under VpcId {vpc_id}"
             )

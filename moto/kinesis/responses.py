@@ -177,11 +177,11 @@ class KinesisResponse(BaseResponse):
             target_shard_count=target_shard_count,
         )
         return json.dumps(
-            dict(
-                StreamName=stream_name,
-                CurrentShardCount=current_shard_count,
-                TargetShardCount=target_shard_count,
-            )
+            {
+                "StreamName": stream_name,
+                "CurrentShardCount": current_shard_count,
+                "TargetShardCount": target_shard_count,
+            }
         )
 
     def increase_stream_retention_period(self) -> str:
@@ -236,12 +236,12 @@ class KinesisResponse(BaseResponse):
             shard_level_metrics=shard_level_metrics,
         )
         return json.dumps(
-            dict(
-                StreamName=name,
-                CurrentShardLevelMetrics=current,
-                DesiredShardLevelMetrics=desired,
-                StreamARN=arn,
-            )
+            {
+                "StreamName": name,
+                "CurrentShardLevelMetrics": current,
+                "DesiredShardLevelMetrics": desired,
+                "StreamARN": arn,
+            }
         )
 
     def disable_enhanced_monitoring(self) -> str:
@@ -254,18 +254,18 @@ class KinesisResponse(BaseResponse):
             to_be_disabled=shard_level_metrics,
         )
         return json.dumps(
-            dict(
-                StreamName=name,
-                CurrentShardLevelMetrics=current,
-                DesiredShardLevelMetrics=desired,
-                StreamARN=arn,
-            )
+            {
+                "StreamName": name,
+                "CurrentShardLevelMetrics": current,
+                "DesiredShardLevelMetrics": desired,
+                "StreamARN": arn,
+            }
         )
 
     def list_stream_consumers(self) -> str:
         stream_arn = self._get_param("StreamARN")
         consumers = self.kinesis_backend.list_stream_consumers(stream_arn=stream_arn)
-        return json.dumps(dict(Consumers=[c.to_json() for c in consumers]))
+        return json.dumps({"Consumers": [c.to_json() for c in consumers]})
 
     def register_stream_consumer(self) -> str:
         stream_arn = self._get_param("StreamARN")
@@ -273,7 +273,7 @@ class KinesisResponse(BaseResponse):
         consumer = self.kinesis_backend.register_stream_consumer(
             stream_arn=stream_arn, consumer_name=consumer_name
         )
-        return json.dumps(dict(Consumer=consumer.to_json()))
+        return json.dumps({"Consumer": consumer.to_json()})
 
     def describe_stream_consumer(self) -> str:
         stream_arn = self._get_param("StreamARN")
@@ -285,7 +285,7 @@ class KinesisResponse(BaseResponse):
             consumer_arn=consumer_arn,
         )
         return json.dumps(
-            dict(ConsumerDescription=consumer.to_json(include_stream_arn=True))
+            {"ConsumerDescription": consumer.to_json(include_stream_arn=True)}
         )
 
     def deregister_stream_consumer(self) -> str:
@@ -297,7 +297,7 @@ class KinesisResponse(BaseResponse):
             consumer_name=consumer_name,
             consumer_arn=consumer_arn,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def start_stream_encryption(self) -> str:
         stream_arn = self._get_param("StreamARN")
@@ -310,7 +310,7 @@ class KinesisResponse(BaseResponse):
             encryption_type=encryption_type,
             key_id=key_id,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def stop_stream_encryption(self) -> str:
         stream_arn = self._get_param("StreamARN")
@@ -318,7 +318,7 @@ class KinesisResponse(BaseResponse):
         self.kinesis_backend.stop_stream_encryption(
             stream_arn=stream_arn, stream_name=stream_name
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def update_stream_mode(self) -> str:
         stream_arn = self._get_param("StreamARN")
@@ -333,7 +333,7 @@ class KinesisResponse(BaseResponse):
             resource_arn=resource_arn,
             policy_doc=policy,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def get_resource_policy(self) -> str:
         resource_arn = self._get_param("ResourceARN")
@@ -345,7 +345,7 @@ class KinesisResponse(BaseResponse):
         self.kinesis_backend.delete_resource_policy(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_limits(self) -> str:
         limits = self.kinesis_backend.describe_limits()

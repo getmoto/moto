@@ -91,7 +91,7 @@ class Workspace(BaseModel):
 
     def filter_empty_values(self, d: dict[str, Any]) -> dict[str, Any]:
         if isinstance(d, Mapping):
-            return dict((k, self.filter_empty_values(v)) for k, v in d.items() if v)
+            return {k: self.filter_empty_values(v) for k, v in d.items() if v}
         else:
             return d
 
@@ -312,9 +312,9 @@ class WorkSpacesBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.workspaces: dict[str, Workspace] = dict()
-        self.workspace_directories: dict[str, WorkSpaceDirectory] = dict()
-        self.workspace_images: dict[str, WorkspaceImage] = dict()
+        self.workspaces: dict[str, Workspace] = {}
+        self.workspace_directories: dict[str, WorkSpaceDirectory] = {}
+        self.workspace_images: dict[str, WorkspaceImage] = {}
         self.directories: list[Directory]
 
     def validate_directory_id(self, value: str, msg: str) -> None:

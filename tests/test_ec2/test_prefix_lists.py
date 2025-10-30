@@ -66,7 +66,7 @@ def test_describe_managed_prefix_lists_with_prefix():
     default_lists = ec2.describe_managed_prefix_lists()["PrefixLists"]
     if not settings.TEST_SERVER_MODE:
         # ServerMode is not guaranteed to only have AWS prefix lists
-        assert set([pl["OwnerId"] for pl in default_lists]) == {"AWS"}
+        assert {pl["OwnerId"] for pl in default_lists} == {"AWS"}
 
     random_list_id = default_lists[0]["PrefixListId"]
 
@@ -170,7 +170,7 @@ def test_delete_managed_prefix_list():
     ]
     assert len(lists_by_id) == 2
 
-    assert set([pl["State"] for pl in lists_by_id]) == {
+    assert {pl["State"] for pl in lists_by_id} == {
         "create-complete",
         "delete-complete",
     }

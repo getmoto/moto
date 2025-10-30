@@ -10,7 +10,7 @@ from ..utils import generic_filter
 INSTANCE_TYPES: dict[str, Any] = load_resource(
     __name__, "../resources/instance_types.json"
 )
-INSTANCE_FAMILIES = list(set([i.split(".")[0] for i in INSTANCE_TYPES.keys()]))
+INSTANCE_FAMILIES = list({i.split(".")[0] for i in INSTANCE_TYPES.keys()})
 
 root = pathlib.Path(__file__).parent
 offerings_path = "../resources/instance_type_offerings"
@@ -150,9 +150,9 @@ class InstanceTypeBackend:
         if instance_types:
             matches = [t for t in matches if t.get("InstanceType") in instance_types]
             if len(instance_types) > len(matches):
-                unknown_ids = set(instance_types) - set(
+                unknown_ids = set(instance_types) - {
                     t.get("InstanceType") for t in matches
-                )
+                }
                 raise InvalidInstanceTypeError(
                     unknown_ids, error_type="InvalidInstanceType"
                 )
@@ -191,4 +191,4 @@ class InstanceTypeOfferingBackend:
             else:
                 return False
 
-        return all([matches_filter(key, values) for key, values in filters.items()])
+        return all(matches_filter(key, values) for key, values in filters.items())

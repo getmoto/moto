@@ -15,7 +15,7 @@ class XRayResponse(BaseResponse):
         super().__init__(service_name="xray")
 
     def _error(self, code: str, message: str) -> tuple[str, dict[str, int]]:
-        return json.dumps({"__type": code, "message": message}), dict(status=400)
+        return json.dumps({"__type": code, "message": message}), {"status": 400}
 
     @property
     def xray_backend(self) -> XRayBackend:
@@ -51,7 +51,7 @@ class XRayResponse(BaseResponse):
             msg = "Parameter TraceSegmentDocuments is missing"
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         # Raises an exception that contains info about a bad segment,
@@ -65,7 +65,7 @@ class XRayResponse(BaseResponse):
             except Exception as err:
                 return (
                     json.dumps({"__type": "InternalFailure", "message": str(err)}),
-                    dict(status=500),
+                    {"status": 500},
                 )
 
         result = {"UnprocessedTraceSegments": [x.to_dict() for x in bad_segments]}
@@ -79,13 +79,13 @@ class XRayResponse(BaseResponse):
             msg = "Parameter StartTime is missing"
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
         if end_time is None:
             msg = "Parameter EndTime is missing"
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         filter_expression = self._get_param("FilterExpression")
@@ -97,12 +97,12 @@ class XRayResponse(BaseResponse):
             msg = "start_time and end_time are not integers"
             return (
                 json.dumps({"__type": "InvalidParameterValue", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),
-                dict(status=500),
+                {"status": 500},
             )
 
         try:
@@ -116,7 +116,7 @@ class XRayResponse(BaseResponse):
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),
-                dict(status=500),
+                {"status": 500},
             )
 
         return json.dumps(result)
@@ -129,7 +129,7 @@ class XRayResponse(BaseResponse):
             msg = "Parameter TraceIds is missing"
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         try:
@@ -139,7 +139,7 @@ class XRayResponse(BaseResponse):
         except Exception as err:
             return (
                 json.dumps({"__type": "InternalFailure", "message": str(err)}),
-                dict(status=500),
+                {"status": 500},
             )
 
         return json.dumps(result)
@@ -154,13 +154,13 @@ class XRayResponse(BaseResponse):
             msg = "Parameter StartTime is missing"
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
         if end_time is None:
             msg = "Parameter EndTime is missing"
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         result = {"StartTime": start_time, "EndTime": end_time, "Services": []}
@@ -175,7 +175,7 @@ class XRayResponse(BaseResponse):
             msg = "Parameter TraceIds is missing"
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         result: dict[str, Any] = {"Services": []}
