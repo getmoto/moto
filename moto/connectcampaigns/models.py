@@ -1,7 +1,7 @@
 """ConnectCampaignServiceBackend class with methods for supported APIs."""
 
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 from urllib.parse import unquote
 
 from moto.core import DEFAULT_ACCOUNT_ID
@@ -28,10 +28,10 @@ class ConnectCampaign(BaseModel):
         self,
         name: str,
         connect_instance_id: str,
-        dialer_config: Dict[str, Any],
-        outbound_call_config: Dict[str, Any],
+        dialer_config: dict[str, Any],
+        outbound_call_config: dict[str, Any],
         region: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> None:
         self.id = str(uuid.uuid4())
         self.name = name
@@ -43,7 +43,7 @@ class ConnectCampaign(BaseModel):
         self.tags = tags or {}
         self.arn = f"arn:aws:connectcampaigns:{self.region}:{DEFAULT_ACCOUNT_ID}:campaign/{self.id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "arn": self.arn,
@@ -73,7 +73,7 @@ class ConnectInstanceConfig(BaseModel):
                 f"arn:aws:kms:{region}:{DEFAULT_ACCOUNT_ID}:key/1234abcd-12ab-34cd-56ef-1234567890ab"
             )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "connectInstanceId": self.connect_instance_id,
             "serviceLinkedRoleArn": self.service_linked_role_arn,
@@ -92,7 +92,7 @@ class ConnectInstanceOnboardingJobStatus(BaseModel):
         self.status = status
         self.failure_code = failure_code
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = {"connectInstanceId": self.connect_instance_id, "status": self.status}
 
         if self.failure_code and self.status == "FAILED":
@@ -104,19 +104,19 @@ class ConnectInstanceOnboardingJobStatus(BaseModel):
 class ConnectCampaignServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.campaigns: Dict[str, ConnectCampaign] = {}
-        self.instance_configs: Dict[str, ConnectInstanceConfig] = {}
-        self.onboarding_jobs: Dict[str, ConnectInstanceOnboardingJobStatus] = {}
+        self.campaigns: dict[str, ConnectCampaign] = {}
+        self.instance_configs: dict[str, ConnectInstanceConfig] = {}
+        self.onboarding_jobs: dict[str, ConnectInstanceOnboardingJobStatus] = {}
         self.tagger = TaggingService()
 
     def create_campaign(
         self,
         name: str,
         connect_instance_id: str,
-        dialer_config: Dict[str, Any],
-        outbound_call_config: Dict[str, Any],
-        tags: Optional[Dict[str, str]],
-    ) -> Tuple[str, str, Dict[str, str]]:
+        dialer_config: dict[str, Any],
+        outbound_call_config: dict[str, Any],
+        tags: Optional[dict[str, str]],
+    ) -> tuple[str, str, dict[str, str]]:
         campaign = ConnectCampaign(
             name=name,
             connect_instance_id=connect_instance_id,
@@ -131,14 +131,14 @@ class ConnectCampaignServiceBackend(BaseBackend):
     def delete_campaign(self, id: str) -> None:
         del self.campaigns[id]
 
-    def describe_campaign(self, id: str) -> Dict[str, Any]:
+    def describe_campaign(self, id: str) -> dict[str, Any]:
         if id not in self.campaigns:
             raise ResourceNotFoundException(f"Campaign with id {id} not found")
 
         campaign = self.campaigns[id]
         return campaign.to_dict()
 
-    def get_connect_instance_config(self, connect_instance_id: str) -> Dict[str, Any]:
+    def get_connect_instance_config(self, connect_instance_id: str) -> dict[str, Any]:
         if not connect_instance_id:
             raise ValidationException("connectInstanceId is a required parameter")
 
@@ -158,8 +158,8 @@ class ConnectCampaignServiceBackend(BaseBackend):
         return instance_config.to_dict()
 
     def start_instance_onboarding_job(
-        self, connect_instance_id: str, encryption_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, connect_instance_id: str, encryption_config: dict[str, Any]
+    ) -> dict[str, Any]:
         if not connect_instance_id:
             raise ValidationException("connectInstanceId is a required parameter")
 
@@ -230,10 +230,10 @@ class ConnectCampaignServiceBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_campaigns(
         self,
-        filters: Optional[Dict[str, Dict[str, str]]],
+        filters: Optional[dict[str, dict[str, str]]],
         max_results: Optional[int],
         next_token: Optional[str],
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         filtered_campaigns = list(self.campaigns.values())
 
         if filters and "instanceIdFilter" in filters:
@@ -268,7 +268,7 @@ class ConnectCampaignServiceBackend(BaseBackend):
         ]
         return campaign_summary_list
 
-    def tag_resource(self, arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
         arn = unquote(arn)
         campaign = None
         for c in self.campaigns.values():
@@ -284,7 +284,7 @@ class ConnectCampaignServiceBackend(BaseBackend):
         self.tagger.tag_resource(arn, tag_list)
         return
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         arn = unquote(arn)
         campaign = None
         for c in self.campaigns.values():
@@ -305,7 +305,7 @@ class ConnectCampaignServiceBackend(BaseBackend):
         self.tagger.untag_resource_using_names(arn, tag_keys)
         return
 
-    def list_tags_for_resource(self, arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, arn: str) -> dict[str, str]:
         arn = unquote(arn)
         campaign = None
         for c in self.campaigns.values():

@@ -6,7 +6,7 @@ import re
 import string
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from jinja2 import Template
 
@@ -81,7 +81,7 @@ class DelegationSet(BaseModel):
     def __init__(
         self,
         caller_reference: str,
-        name_servers: Optional[List[str]],
+        name_servers: Optional[list[str]],
         delegation_set_id: Optional[str],
     ):
         self.caller_reference = caller_reference
@@ -102,7 +102,7 @@ class HealthCheck(CloudFormationModel):
         self,
         health_check_id: str,
         caller_reference: str,
-        health_check_args: Dict[str, Any],
+        health_check_args: dict[str, Any],
     ):
         self.id = health_check_id
         self.ip_address = health_check_args.get("ip_address")
@@ -226,7 +226,7 @@ class HealthCheck(CloudFormationModel):
 
 
 class RecordSet(CloudFormationModel):
-    def __init__(self, kwargs: Dict[str, Any]):
+    def __init__(self, kwargs: dict[str, Any]):
         self.name = kwargs.get("Name", "")
         self.type_ = kwargs.get("Type")
         self.ttl = kwargs.get("TTL", 0)
@@ -332,7 +332,7 @@ def reverse_domain_name(domain_name: str) -> str:
     return ".".join(reversed(domain_name.split(".")))
 
 
-class ChangeList(List[Dict[str, Any]]):
+class ChangeList(list[dict[str, Any]]):
     """
     Contains a 'clean' list of ResourceRecordChangeSets
     """
@@ -345,7 +345,7 @@ class ChangeList(List[Dict[str, Any]]):
         item["ResourceRecordSet"]["Name"] = item["ResourceRecordSet"]["Name"].strip(".")
         return super().__contains__(item)
 
-    def has_insert_or_update(self, new_rr_set: Dict[str, Any]) -> bool:
+    def has_insert_or_update(self, new_rr_set: dict[str, Any]) -> bool:
         """
         Check if a CREATE or UPSERT record exists where the name and type is the same as the provided record
         If the existing record has TTL/ResourceRecords, the new TTL should have the same
@@ -379,21 +379,21 @@ class FakeZone(CloudFormationModel):
     ):
         self.name = name
         self.id = id_
-        self.vpcs: List[Dict[str, Any]] = []
+        self.vpcs: list[dict[str, Any]] = []
         if comment is not None:
             self.comment = comment
         self.caller_reference = caller_reference
         self.private_zone = private_zone
-        self.rrsets: List[RecordSet] = []
+        self.rrsets: list[RecordSet] = []
         self.delegation_set = delegation_set
         self.rr_changes = ChangeList()
 
-    def add_rrset(self, record_set: Dict[str, Any]) -> RecordSet:
+    def add_rrset(self, record_set: dict[str, Any]) -> RecordSet:
         record_set_obj = RecordSet(record_set)
         self.rrsets.append(record_set_obj)
         return record_set_obj
 
-    def upsert_rrset(self, record_set: Dict[str, Any]) -> RecordSet:
+    def upsert_rrset(self, record_set: dict[str, Any]) -> RecordSet:
         new_rrset = RecordSet(record_set)
         for i, rrset in enumerate(self.rrsets):
             if (
@@ -407,7 +407,7 @@ class FakeZone(CloudFormationModel):
             self.rrsets.append(new_rrset)
         return new_rrset
 
-    def delete_rrset(self, rrset: Dict[str, Any]) -> None:
+    def delete_rrset(self, rrset: dict[str, Any]) -> None:
         self.rrsets = [
             record_set
             for record_set in self.rrsets
@@ -424,7 +424,7 @@ class FakeZone(CloudFormationModel):
 
     def add_vpc(
         self, vpc_id: Optional[str], vpc_region: Optional[str]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         vpc = {}
         if vpc_id is not None:
             vpc["vpc_id"] = vpc_id
@@ -437,7 +437,7 @@ class FakeZone(CloudFormationModel):
     def delete_vpc(self, vpc_id: str) -> None:
         self.vpcs = [vpc for vpc in self.vpcs if vpc["vpc_id"] != vpc_id]
 
-    def get_record_sets(self, start_type: str, start_name: str) -> List[RecordSet]:
+    def get_record_sets(self, start_type: str, start_name: str) -> list[RecordSet]:
         def predicate(rrset: RecordSet) -> bool:
             rrset_name_reversed = reverse_domain_name(rrset.name)
             start_name_reversed = reverse_domain_name(start_name)
@@ -485,7 +485,7 @@ class FakeZone(CloudFormationModel):
 
 
 class RecordSetGroup(CloudFormationModel):
-    def __init__(self, region_name: str, hosted_zone_id: str, record_sets: List[str]):
+    def __init__(self, region_name: str, hosted_zone_id: str, record_sets: list[str]):
         self.region_name = region_name
         self.hosted_zone_id = hosted_zone_id
         self.record_sets = record_sets
@@ -556,11 +556,11 @@ class QueryLoggingConfig(BaseModel):
 class Route53Backend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.zones: Dict[str, FakeZone] = {}
-        self.health_checks: Dict[str, HealthCheck] = {}
-        self.resource_tags: Dict[str, Any] = defaultdict(dict)
-        self.query_logging_configs: Dict[str, QueryLoggingConfig] = {}
-        self.delegation_sets: Dict[str, DelegationSet] = dict()
+        self.zones: dict[str, FakeZone] = {}
+        self.health_checks: dict[str, HealthCheck] = {}
+        self.resource_tags: dict[str, Any] = defaultdict(dict)
+        self.query_logging_configs: dict[str, QueryLoggingConfig] = {}
+        self.delegation_sets: dict[str, DelegationSet] = dict()
 
     def _has_prev_conflicting_domain(
         self, name: str, delegation_set_id: Optional[str]
@@ -677,12 +677,12 @@ class Route53Backend(BaseBackend):
                 else:
                     del self.resource_tags[resource_id][tags["Key"]]
 
-    def list_tags_for_resource(self, resource_id: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_id: str) -> dict[str, str]:
         if resource_id in self.resource_tags:
             return self.resource_tags[resource_id]
         return {}
 
-    def list_tags_for_resources(self, resource_ids: List[str]) -> List[Dict[str, Any]]:
+    def list_tags_for_resources(self, resource_ids: list[str]) -> list[dict[str, Any]]:
         resources = []
         for id in resource_ids:
             resource_set = {"ResourceId": id, "Tags": {}}
@@ -692,7 +692,7 @@ class Route53Backend(BaseBackend):
 
     def list_resource_record_sets(
         self, zone_id: str, start_type: str, start_name: str, max_items: int
-    ) -> Tuple[List[RecordSet], Optional[str], Optional[str], bool]:
+    ) -> tuple[list[RecordSet], Optional[str], Optional[str], bool]:
         """
         The StartRecordIdentifier-parameter is not yet implemented
         """
@@ -708,7 +708,7 @@ class Route53Backend(BaseBackend):
         return records, next_start_name, next_start_type, is_truncated
 
     def change_resource_record_sets(
-        self, zoneid: str, change_list: List[Dict[str, Any]]
+        self, zoneid: str, change_list: list[dict[str, Any]]
     ) -> None:
         the_zone = self.get_hosted_zone(zoneid)
 
@@ -777,15 +777,15 @@ class Route53Backend(BaseBackend):
             the_zone.rr_changes.append(original_change)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_hosted_zones(self) -> List[FakeZone]:
+    def list_hosted_zones(self) -> list[FakeZone]:
         """
         The parameters DelegationSetId and HostedZoneType are not yet implemented
         """
         return list(self.zones.values())
 
     def list_hosted_zones_by_name(
-        self, dnsnames: Optional[List[str]]
-    ) -> Tuple[Optional[str], List[FakeZone]]:
+        self, dnsnames: Optional[list[str]]
+    ) -> tuple[Optional[str], list[FakeZone]]:
         if dnsnames:
             dnsname = dnsnames[0]
             if dnsname[-1] != ".":
@@ -805,7 +805,7 @@ class Route53Backend(BaseBackend):
             zones = sorted(self.zones.values(), key=sort_key)
         return dnsname, zones
 
-    def list_hosted_zones_by_vpc(self, vpc_id: str) -> List[Dict[str, Any]]:
+    def list_hosted_zones_by_vpc(self, vpc_id: str) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -855,7 +855,7 @@ class Route53Backend(BaseBackend):
         return zone
 
     def create_health_check(
-        self, caller_reference: str, health_check_args: Dict[str, Any]
+        self, caller_reference: str, health_check_args: dict[str, Any]
     ) -> HealthCheck:
         health_check_id = str(random.uuid4())
         health_check = HealthCheck(health_check_id, caller_reference, health_check_args)
@@ -865,7 +865,7 @@ class Route53Backend(BaseBackend):
         return health_check
 
     def update_health_check(
-        self, health_check_id: str, health_check_args: Dict[str, Any]
+        self, health_check_id: str, health_check_args: dict[str, Any]
     ) -> HealthCheck:
         health_check = self.health_checks.get(health_check_id)
         if not health_check:
@@ -900,7 +900,7 @@ class Route53Backend(BaseBackend):
 
         return health_check
 
-    def list_health_checks(self) -> List[HealthCheck]:
+    def list_health_checks(self) -> list[HealthCheck]:
         return list(self.health_checks.values())
 
     def delete_health_check(self, health_check_id: str) -> None:
@@ -982,7 +982,7 @@ class Route53Backend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_query_logging_configs(
         self, hosted_zone_id: Optional[str] = None
-    ) -> List[QueryLoggingConfig]:
+    ) -> list[QueryLoggingConfig]:
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?
@@ -1001,7 +1001,7 @@ class Route53Backend(BaseBackend):
         delegation_set_id: Optional[str] = None,
         hosted_zone_id: Optional[str] = None,
     ) -> DelegationSet:
-        name_servers: Optional[List[str]] = None
+        name_servers: Optional[list[str]] = None
         if hosted_zone_id:
             hosted_zone = self.get_hosted_zone(hosted_zone_id)
             name_servers = hosted_zone.delegation_set.name_servers  # type: ignore
@@ -1011,7 +1011,7 @@ class Route53Backend(BaseBackend):
         self.delegation_sets[delegation_set.id] = delegation_set
         return delegation_set
 
-    def list_reusable_delegation_sets(self) -> List[DelegationSet]:
+    def list_reusable_delegation_sets(self) -> list[DelegationSet]:
         """
         Pagination is not yet implemented
         """

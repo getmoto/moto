@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.secretsmanager.exceptions import (
@@ -11,7 +11,7 @@ from moto.secretsmanager.exceptions import (
 from .models import SecretsManagerBackend, filter_keys, secretsmanager_backends
 
 
-def _validate_filters(filters: List[Dict[str, Any]]) -> None:
+def _validate_filters(filters: list[dict[str, Any]]) -> None:
     for idx, f in enumerate(filters):
         filter_key = f.get("Key", None)
         filter_values = f.get("Values", None)

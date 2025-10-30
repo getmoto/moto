@@ -1,5 +1,4 @@
 import json
-from typing import Dict, Tuple
 
 from moto.core.responses import BaseResponse
 
@@ -14,7 +13,7 @@ class MediaStoreDataResponse(BaseResponse):
     def mediastoredata_backend(self) -> MediaStoreDataBackend:
         return mediastoredata_backends[self.current_account][self.region]
 
-    def get_object(self) -> Tuple[str, Dict[str, str]]:
+    def get_object(self) -> tuple[str, dict[str, str]]:
         path = self._get_param("Path")
         result = self.mediastoredata_backend.get_object(path=path)
         headers = {"Path": result.path}

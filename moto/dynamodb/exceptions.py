@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
@@ -208,7 +208,7 @@ class ConditionalCheckFailed(DynamodbException):
     error_type = ERROR_TYPE_PREFIX + "ConditionalCheckFailedException"
 
     def __init__(
-        self, msg: Optional[str] = None, item: Optional[Dict[str, Any]] = None
+        self, msg: Optional[str] = None, item: Optional[dict[str, Any]] = None
     ):
         _msg = msg or "The conditional request failed"
         super().__init__(ConditionalCheckFailed.error_type, _msg)
@@ -238,7 +238,7 @@ class TransactionCanceledException(DynamodbException):
     cancel_reason_msg = "Transaction cancelled, please refer cancellation reasons for specific reasons [{}]"
     error_type = "com.amazonaws.dynamodb.v20120810#TransactionCanceledException"
 
-    def __init__(self, errors: List[Any]):
+    def __init__(self, errors: list[Any]):
         msg = self.cancel_reason_msg.format(
             ", ".join([str(code) for code, _, _ in errors])
         )

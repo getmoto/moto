@@ -2,7 +2,7 @@ import base64
 import json
 import os
 import re
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.kms.utils import RESERVED_ALIASE_TARGET_KEY_IDS, RESERVED_ALIASES
@@ -177,7 +177,7 @@ class KmsResponse(BaseResponse):
         key_id = self._get_param("KeyId")
         self._validate_cmk_id(key_id)
 
-        tags: Dict[str, Any] = self.kms_backend.list_resource_tags(key_id)
+        tags: dict[str, Any] = self.kms_backend.list_resource_tags(key_id)
         tags.update({"NextMarker": None, "Truncated": False})
         return json.dumps(tags)
 
@@ -555,20 +555,16 @@ class KmsResponse(BaseResponse):
 
         if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
-                    "to satisfy constraint: Member must have value less than or "
-                    "equal to 1024"
-                ).format(number_of_bytes=number_of_bytes)
+                f"1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
+                "to satisfy constraint: Member must have value less than or "
+                "equal to 1024"
             )
 
         if key_spec and key_spec not in ("AES_256", "AES_128"):
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{key_spec}' at 'keySpec' failed "
-                    "to satisfy constraint: Member must satisfy enum value set: "
-                    "[AES_256, AES_128]"
-                ).format(key_spec=key_spec)
+                f"1 validation error detected: Value '{key_spec}' at 'keySpec' failed "
+                "to satisfy constraint: Member must satisfy enum value set: "
+                "[AES_256, AES_128]"
             )
         if not key_spec and not number_of_bytes:
             raise ValidationException(
@@ -641,11 +637,9 @@ class KmsResponse(BaseResponse):
 
         if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
             raise ValidationException(
-                (
-                    "1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
-                    "to satisfy constraint: Member must have value less than or "
-                    "equal to 1024"
-                ).format(number_of_bytes=number_of_bytes)
+                f"1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
+                "to satisfy constraint: Member must have value less than or "
+                "equal to 1024"
             )
 
         entropy = os.urandom(number_of_bytes)

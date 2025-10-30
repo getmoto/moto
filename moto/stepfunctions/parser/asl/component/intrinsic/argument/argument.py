@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Final, List, Optional
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
     StringVariableSample,
@@ -91,10 +91,10 @@ class ArgumentVar(Argument):
 
 
 class ArgumentList(Argument):
-    arguments: Final[List[Argument]]
+    arguments: Final[list[Argument]]
     size: Final[int]
 
-    def __init__(self, arguments: List[Argument]):
+    def __init__(self, arguments: list[Argument]):
         self.arguments = arguments
         self.size = len(arguments)
 

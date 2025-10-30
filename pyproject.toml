@@ -15,6 +15,13 @@ markers = [
 ]
 
 [tool.ruff.lint]
-ignore = ["E501"]
-extend-select = ["I", "T201", "T203"]
+ignore = [
+    "B019",  # Use of `functools.lru_cache` or `functools.cache` on methods can lead to memory leaks
+    "B024",  # `ContinueWith` is an abstract base class, but it has no abstract methods or properties
+    "B027",  # `ResourceEval.eval_resource` is an empty method in an abstract base class, but has no abstract decorator
+    "B904",  # Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling
+    "E501",  # Line length
+    "UP007",  # Use X | Y for type annotations - should only be enabled when we support Python >= 3.10
+]
+extend-select = ["B", "I", "T201", "T203", "UP"]
 

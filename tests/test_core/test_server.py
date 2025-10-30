@@ -1,5 +1,5 @@
 import gzip
-from typing import Iterable
+from collections.abc import Iterable
 from unittest.mock import Mock, patch
 
 import boto3
@@ -12,7 +12,7 @@ from moto.server import ThreadedMotoServer, main
 def test_wrong_arguments() -> None:
     try:
         main(["test1", "test2", "test3"])
-        assert False, (
+        raise AssertionError(
             "main() when called with the incorrect number of args"
             " should raise a system exit"
         )

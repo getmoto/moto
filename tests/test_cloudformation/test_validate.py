@@ -44,7 +44,7 @@ dummy_bad_template_json = json.dumps(json_bad_template)
 
 
 @mock_aws
-def test_boto3_json_validate_successful():
+def test_json_validate_successful():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.validate_template(TemplateBody=dummy_template_json)
     assert response["Description"] == "Stack 1"
@@ -53,7 +53,7 @@ def test_boto3_json_validate_successful():
 
 
 @mock_aws
-def test_boto3_json_with_tabs_validate_successful():
+def test_json_with_tabs_validate_successful():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.validate_template(TemplateBody=json_valid_template_with_tabs)
     assert response["Description"] == "Stack 2"
@@ -62,7 +62,7 @@ def test_boto3_json_with_tabs_validate_successful():
 
 
 @mock_aws
-def test_boto3_json_invalid_missing_resource():
+def test_json_invalid_missing_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     with pytest.raises(botocore.exceptions.ClientError) as exc:
         cf_conn.validate_template(TemplateBody=dummy_bad_template_json)
@@ -93,7 +93,7 @@ yaml_bad_template = """
 
 
 @mock_aws
-def test_boto3_yaml_validate_successful():
+def test_yaml_validate_successful():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     response = cf_conn.validate_template(TemplateBody=yaml_template)
     assert response["Description"] == "Simple CloudFormation Test Template"
@@ -102,7 +102,7 @@ def test_boto3_yaml_validate_successful():
 
 
 @mock_aws
-def test_boto3_yaml_validate_template_url_successful():
+def test_yaml_validate_template_url_successful():
     s3 = boto3.client("s3", region_name="us-east-1")
     s3_conn = boto3.resource("s3", region_name="us-east-1")
     s3_conn.create_bucket(Bucket="foobar")
@@ -120,7 +120,7 @@ def test_boto3_yaml_validate_template_url_successful():
 
 
 @mock_aws
-def test_boto3_yaml_invalid_missing_resource():
+def test_yaml_invalid_missing_resource():
     cf_conn = boto3.client("cloudformation", region_name="us-east-1")
     with pytest.raises(botocore.exceptions.ClientError) as exc:
         cf_conn.validate_template(TemplateBody=yaml_bad_template)

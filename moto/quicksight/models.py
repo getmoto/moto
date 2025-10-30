@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
@@ -28,21 +28,21 @@ class QuickSightBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.dashboards: Dict[str, QuicksightDashboard] = dict()
-        self.groups: Dict[str, QuicksightGroup] = dict()
-        self.users: Dict[str, QuicksightUser] = dict()
+        self.dashboards: dict[str, QuicksightDashboard] = dict()
+        self.groups: dict[str, QuicksightGroup] = dict()
+        self.users: dict[str, QuicksightUser] = dict()
         self.account_settings: QuicksightAccountSettings = QuicksightAccountSettings(
             account_id=account_id
         )
-        self.data_sources: Dict[str, QuickSightDataSource] = dict()
-        self.data_sets: Dict[str, QuicksightDataSet] = dict()
+        self.data_sources: dict[str, QuickSightDataSource] = dict()
+        self.data_sets: dict[str, QuicksightDataSet] = dict()
         self.tagger = TaggingService()
 
     def create_data_set(
         self,
         data_set_id: str,
         name: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> QuicksightDataSet:
         dataset = QuicksightDataSet(
             self.account_id, self.region_name, data_set_id, name=name
@@ -124,7 +124,7 @@ class QuickSightBackend(BaseBackend):
         return self.users[_id]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_groups(self, aws_account_id: str, namespace: str) -> List[QuicksightGroup]:
+    def list_groups(self, aws_account_id: str, namespace: str) -> list[QuicksightGroup]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [
             group for _id, group in self.groups.items() if _id.startswith(id_for_ns)
@@ -132,8 +132,8 @@ class QuickSightBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def search_groups(
-        self, aws_account_id: str, namespace: str, filters: List[Dict[str, str]]
-    ) -> List[QuicksightGroup]:
+        self, aws_account_id: str, namespace: str, filters: list[dict[str, str]]
+    ) -> list[QuicksightGroup]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         filter_list = QuicksightSearchFilterFactory.validate_and_create_filter(
             model_type=QuicksightGroup, input=filters
@@ -147,21 +147,21 @@ class QuickSightBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_group_memberships(
         self, aws_account_id: str, namespace: str, group_name: str
-    ) -> List[QuicksightMembership]:
+    ) -> list[QuicksightMembership]:
         group = self.describe_group(aws_account_id, namespace, group_name)
         return group.list_members()
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_users(self, aws_account_id: str, namespace: str) -> List[QuicksightUser]:
+    def list_users(self, aws_account_id: str, namespace: str) -> list[QuicksightUser]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
         return [user for _id, user in self.users.items() if _id.startswith(id_for_ns)]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_user_groups(
         self, aws_account_id: str, namespace: str, user_name: str
-    ) -> List[QuicksightGroup]:
+    ) -> list[QuicksightGroup]:
         id_for_ns = _create_id(aws_account_id, namespace, _id="")
-        group_list: Dict[str, QuicksightGroup] = {}
+        group_list: dict[str, QuicksightGroup] = {}
         # Loop through all groups and check if the user is member.
         for id, group in self.groups.items():
             if group.get_member(user_name):
@@ -176,7 +176,7 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         namespace: str,
         user_name: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> QuicksightUser:
         """
         The following parameters are not yet implemented:
@@ -226,18 +226,18 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         dashboard_id: str,
         name: str,
-        parameters: Dict[str, Any],
-        permissions: List[Dict[str, Any]],
-        source_entity: Dict[str, Any],
-        tags: List[Dict[str, str]],
+        parameters: dict[str, Any],
+        permissions: list[dict[str, Any]],
+        source_entity: dict[str, Any],
+        tags: list[dict[str, str]],
         version_description: str,
-        dashboard_publish_options: Dict[str, Any],
+        dashboard_publish_options: dict[str, Any],
         theme_arn: str,
-        definition: Dict[str, Any],
-        validation_strategy: Dict[str, str],
-        folder_arns: List[str],
-        link_sharing_configuration: Dict[str, Any],
-        link_entities: List[str],
+        definition: dict[str, Any],
+        validation_strategy: dict[str, str],
+        folder_arns: list[str],
+        link_sharing_configuration: dict[str, Any],
+        link_entities: list[str],
     ) -> QuicksightDashboard:
         dashboard = QuicksightDashboard(
             account_id=aws_account_id,
@@ -279,9 +279,9 @@ class QuickSightBackend(BaseBackend):
             raise ResourceNotFoundException(f"Dashboard {dashboard_id} not found")
         return dashboard
 
-    def list_dashboards(self, aws_account_id: str) -> List[Dict[str, Any]]:
+    def list_dashboards(self, aws_account_id: str) -> list[dict[str, Any]]:
         dashboards = self.dashboards.values()
-        dashboard_list: List[Dict[str, Any]] = []
+        dashboard_list: list[dict[str, Any]] = []
         for dashboard in dashboards:
             d_dict = {
                 "Arn": dashboard.arn,
@@ -326,10 +326,10 @@ class QuickSightBackend(BaseBackend):
         data_source_id: str,
         name: str,
         data_source_type: str,
-        data_source_parameters: Optional[Dict[str, Dict[str, Any]]] = None,
-        vpc_connection_properties: Optional[Dict[str, Any]] = None,
-        ssl_properties: Optional[Dict[str, Any]] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        data_source_parameters: Optional[dict[str, dict[str, Any]]] = None,
+        vpc_connection_properties: Optional[dict[str, Any]] = None,
+        ssl_properties: Optional[dict[str, Any]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> QuickSightDataSource:
         data_source = QuickSightDataSource(
             account_id=aws_account_id,
@@ -358,9 +358,9 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         data_source_id: str,
         name: str,
-        data_source_parameters: Optional[Dict[str, Any]] = None,
-        vpc_connection_properties: Optional[Dict[str, Any]] = None,
-        ssl_properties: Optional[Dict[str, Any]] = None,
+        data_source_parameters: Optional[dict[str, Any]] = None,
+        vpc_connection_properties: Optional[dict[str, Any]] = None,
+        ssl_properties: Optional[dict[str, Any]] = None,
     ) -> QuickSightDataSource:
         data_source = self.data_sources.get(data_source_id)
 
@@ -393,28 +393,28 @@ class QuickSightBackend(BaseBackend):
 
         return data_source
 
-    def list_data_sources(self, aws_account_id: str) -> List[Dict[str, Any]]:
+    def list_data_sources(self, aws_account_id: str) -> list[dict[str, Any]]:
         data_sources = self.data_sources.values()
-        data_source_list: List[Dict[str, Any]] = []
+        data_source_list: list[dict[str, Any]] = []
 
         for data_source in data_sources:
             data_source_list.append(data_source.to_json())
 
         return data_source_list
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(
             arn=resource_arn,
             tags=tags,
         )
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(
             resource_arn,
             tag_keys,
         )
 
-    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, arn: str) -> list[dict[str, str]]:
         tags = self.tagger.list_tags_for_resource(arn)
         return tags.get("Tags", [])
 

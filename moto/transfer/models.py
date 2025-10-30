@@ -1,6 +1,6 @@
 """TransferBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import unix_time
@@ -22,27 +22,27 @@ class TransferBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.servers: Dict[str, Server] = {}
+        self.servers: dict[str, Server] = {}
 
     def create_server(
         self,
         certificate: Optional[str],
         domain: Optional[ServerDomain],
-        endpoint_details: Optional[Dict[str, Any]],
+        endpoint_details: Optional[dict[str, Any]],
         endpoint_type: Optional[ServerEndpointType],
         host_key: str,
-        identity_provider_details: Optional[Dict[str, Any]],
+        identity_provider_details: Optional[dict[str, Any]],
         identity_provider_type: Optional[ServerIdentityProviderType],
         logging_role: Optional[str],
         post_authentication_login_banner: Optional[str],
         pre_authentication_login_banner: Optional[str],
-        protocols: Optional[List[ServerProtocols]],
-        protocol_details: Optional[Dict[str, Any]],
+        protocols: Optional[list[ServerProtocols]],
+        protocol_details: Optional[dict[str, Any]],
         security_policy_name: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
-        workflow_details: Optional[Dict[str, Any]],
-        structured_log_destinations: Optional[List[str]],
-        s3_storage_options: Optional[Dict[str, Optional[str]]],
+        tags: Optional[list[dict[str, str]]],
+        workflow_details: Optional[dict[str, Any]],
+        structured_log_destinations: Optional[list[str]],
+        s3_storage_options: Optional[dict[str, Optional[str]]],
     ) -> str:
         server = Server(
             certificate=certificate,
@@ -131,15 +131,15 @@ class TransferBackend(BaseBackend):
         self,
         home_directory: Optional[str],
         home_directory_type: Optional[UserHomeDirectoryType],
-        home_directory_mappings: Optional[List[Dict[str, Optional[str]]]],
+        home_directory_mappings: Optional[list[dict[str, Optional[str]]]],
         policy: Optional[str],
-        posix_profile: Optional[Dict[str, Any]],
+        posix_profile: Optional[dict[str, Any]],
         role: str,
         server_id: str,
         ssh_public_key_body: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         user_name: str,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         if server_id not in self.servers:
             ServerNotFound(server_id=server_id)
         user = User(
@@ -180,7 +180,7 @@ class TransferBackend(BaseBackend):
         self.servers[server_id].user_count += 1
         return server_id, user_name
 
-    def describe_user(self, server_id: str, user_name: str) -> Tuple[str, User]:
+    def describe_user(self, server_id: str, user_name: str) -> tuple[str, User]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for user in self.servers[server_id]._users:
@@ -200,7 +200,7 @@ class TransferBackend(BaseBackend):
 
     def import_ssh_public_key(
         self, server_id: str, ssh_public_key_body: str, user_name: str
-    ) -> Tuple[str, str, str]:
+    ) -> tuple[str, str, str]:
         if server_id not in self.servers:
             raise ServerNotFound(server_id=server_id)
         for user in self.servers[server_id]._users:

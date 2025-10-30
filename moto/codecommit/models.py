@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -39,11 +39,11 @@ class CodeCommit(BaseModel):
 class CodeCommitBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.repositories: Dict[str, CodeCommit] = {}
+        self.repositories: dict[str, CodeCommit] = {}
 
     def create_repository(
         self, repository_name: str, repository_description: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         repository = self.repositories.get(repository_name)
         if repository:
             raise RepositoryNameExistsException(repository_name)
@@ -54,7 +54,7 @@ class CodeCommitBackend(BaseBackend):
 
         return self.repositories[repository_name].repository_metadata
 
-    def get_repository(self, repository_name: str) -> Dict[str, str]:
+    def get_repository(self, repository_name: str) -> dict[str, str]:
         repository = self.repositories.get(repository_name)
         if not repository:
             raise RepositoryDoesNotExistException(repository_name)

@@ -1,5 +1,6 @@
 import re
-from typing import Any, List, Pattern
+from re import Pattern
+from typing import Any
 
 from moto.core.parsers import XFormedDict
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
@@ -12,7 +13,7 @@ from .utils import ReleaseLabel
 class ElasticMapReduceResponse(BaseResponse):
     # EMR end points are inconsistent in the placement of region name
     # in the URL, so parsing it out needs to be handled differently
-    emr_region_regex: List[Pattern[str]] = [
+    emr_region_regex: list[Pattern[str]] = [
         re.compile(r"elasticmapreduce\.(.+?)\.amazonaws\.com"),
         re.compile(r"(.+?)\.elasticmapreduce\.amazonaws\.com"),
     ]
@@ -237,8 +238,8 @@ class ElasticMapReduceResponse(BaseResponse):
             if ami_version:
                 message = (
                     "Only one AMI version and release label may be specified. "
-                    "Provided AMI: {0}, release label: {1}."
-                ).format(ami_version, release_label)
+                    f"Provided AMI: {ami_version}, release label: {release_label}."
+                )
                 raise ValidationException(message)
         else:
             if ami_version:

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Final, List
+from typing import Final
 
 from moto.stepfunctions.parser.api import (
     StateName,
@@ -25,7 +25,7 @@ class VariableReferencesStaticAnalyser(StaticAnalyser):
         analyser.analyse(definition=definition)
         return analyser.get_variable_references()
 
-    _fringe_state_names: Final[List[StateName]]
+    _fringe_state_names: Final[list[StateName]]
     _variable_references: Final[VariableReferences]
 
     def __init__(self):

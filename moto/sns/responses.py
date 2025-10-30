@@ -1,7 +1,7 @@
 import base64
 import re
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import camelcase_to_underscores
@@ -32,21 +32,21 @@ class SNSResponse(BaseResponse):
     def backend(self) -> SNSBackend:
         return sns_backends[self.current_account][self.region]
 
-    def _get_attributes(self) -> Dict[str, Any]:
+    def _get_attributes(self) -> dict[str, Any]:
         attributes = self._get_param("Attributes", {})
         return attributes
 
-    def _get_tags(self) -> Dict[str, str]:
+    def _get_tags(self) -> dict[str, str]:
         tags = self._get_param("Tags", [])
         return {tag["Key"]: tag["Value"] for tag in tags}
 
-    def _parse_message_attributes(self) -> Dict[str, Any]:
+    def _parse_message_attributes(self) -> dict[str, Any]:
         message_attributes = self._get_param("MessageAttributes", {})
         return self._transform_message_attributes(message_attributes)
 
     def _transform_message_attributes(
-        self, message_attributes: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, message_attributes: dict[str, Any]
+    ) -> dict[str, Any]:
         # SNS converts some key names before forwarding messages
         # DataType -> Type, StringValue -> Value, BinaryValue -> Value
         transformed_message_attributes = {}
@@ -342,7 +342,7 @@ class SNSResponse(BaseResponse):
         # attributes.entry.1.value
         # to
         # 1: {key:X, value:Y}
-        temp_dict: Dict[str, Any] = defaultdict(dict)
+        temp_dict: dict[str, Any] = defaultdict(dict)
         for key, value in self.querystring.items():
             match = self.SMS_ATTR_REGEX.match(key)
             if match is not None:

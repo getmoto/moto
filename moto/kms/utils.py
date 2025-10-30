@@ -7,7 +7,7 @@ import struct
 from abc import ABCMeta, abstractmethod
 from collections import namedtuple
 from enum import Enum
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
@@ -74,19 +74,19 @@ class KeySpec(str, Enum):
     HMAC_512 = "HMAC_512"
 
     @classmethod
-    def key_specs(self) -> List[str]:
+    def key_specs(self) -> list[str]:
         return sorted([item.value for item in KeySpec])
 
     @classmethod
-    def rsa_key_specs(self) -> List[str]:
+    def rsa_key_specs(self) -> list[str]:
         return [spec for spec in self.key_specs() if spec.startswith("RSA")]
 
     @classmethod
-    def ecc_key_specs(self) -> List[str]:
+    def ecc_key_specs(self) -> list[str]:
         return [spec for spec in self.key_specs() if spec.startswith("ECC")]
 
     @classmethod
-    def hmac_key_specs(self) -> List[str]:
+    def hmac_key_specs(self) -> list[str]:
         return [spec for spec in self.key_specs() if spec.startswith("HMAC")]
 
 
@@ -108,15 +108,15 @@ class SigningAlgorithm(str, Enum):
     SM2DSA = "SM2DSA"
 
     @classmethod
-    def signing_algorithms(self) -> List[str]:
+    def signing_algorithms(self) -> list[str]:
         return sorted([item.value for item in SigningAlgorithm])
 
     @classmethod
-    def rsa_signing_algorithms(self) -> List[str]:
+    def rsa_signing_algorithms(self) -> list[str]:
         return [algo for algo in self.signing_algorithms() if algo.startswith("RSASSA")]
 
     @classmethod
-    def ecc_signing_algorithms(self) -> List[str]:
+    def ecc_signing_algorithms(self) -> list[str]:
         return [algo for algo in self.signing_algorithms() if algo.startswith("ECDSA")]
 
 
@@ -156,24 +156,20 @@ class AbstractPrivateKey(metaclass=ABCMeta):
 
 
 def validate_signing_algorithm(
-    target_algorithm: str, valid_algorithms: List[str]
+    target_algorithm: str, valid_algorithms: list[str]
 ) -> None:
     if target_algorithm not in valid_algorithms:
         raise ValidationException(
-            (
-                "1 validation error detected: Value at 'signing_algorithm' failed"
-                "to satisfy constraint: Member must satisfy enum value set: {valid_signing_algorithms}"
-            ).format(valid_signing_algorithms=valid_algorithms)
+            "1 validation error detected: Value at 'signing_algorithm' failed"
+            f"to satisfy constraint: Member must satisfy enum value set: {valid_algorithms}"
         )
 
 
-def validate_key_spec(target_key_spec: str, valid_key_specs: List[str]) -> None:
+def validate_key_spec(target_key_spec: str, valid_key_specs: list[str]) -> None:
     if target_key_spec not in valid_key_specs:
         raise ValidationException(
-            (
-                "1 validation error detected: Value at 'key_spec' failed "
-                "to satisfy constraint: Member must satisfy enum value set: {valid_key_specs}"
-            ).format(valid_key_specs=valid_key_specs)
+            "1 validation error detected: Value at 'key_spec' failed "
+            f"to satisfy constraint: Member must satisfy enum value set: {valid_key_specs}"
         )
 
 
@@ -184,10 +180,8 @@ class RSAPrivateKey(AbstractPrivateKey):
     def __init__(self, key_size: int):
         if key_size not in self.__supported_key_sizes:
             raise ValidationException(
-                (
-                    "1 validation error detected: Value at 'key_size' failed "
-                    "to satisfy constraint: Member must satisfy enum value set: {supported_key_sizes}"
-                ).format(supported_key_sizes=self.__supported_key_sizes)
+                "1 validation error detected: Value at 'key_size' failed "
+                f"to satisfy constraint: Member must satisfy enum value set: {self.__supported_key_sizes}"
             )
         self.key_size = key_size
         self.private_key = rsa.generate_private_key(
@@ -196,7 +190,7 @@ class RSAPrivateKey(AbstractPrivateKey):
 
     def __padding_and_hash_algorithm(
         self, signing_algorithm: str
-    ) -> Tuple[AsymmetricPadding, hashes.HashAlgorithm]:
+    ) -> tuple[AsymmetricPadding, hashes.HashAlgorithm]:
         if signing_algorithm == SigningAlgorithm.RSASSA_PSS_SHA_256:
             pad = padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
@@ -255,7 +249,7 @@ class ECDSAPrivateKey(AbstractPrivateKey):
 
         if key_spec == KeySpec.ECC_NIST_P256:
             curve = ec.SECP256R1()  # type: ec.EllipticCurve
-            valid_signing_algorithms = ["ECDSA_SHA_256"]  # type: List[str]
+            valid_signing_algorithms = ["ECDSA_SHA_256"]
         elif key_spec == KeySpec.ECC_SECG_P256K1:
             curve = ec.SECP256K1()
             valid_signing_algorithms = ["ECDSA_SHA_256"]
@@ -341,7 +335,7 @@ def _deserialize_ciphertext_blob(ciphertext_blob: bytes) -> Ciphertext:
     )
 
 
-def _serialize_encryption_context(encryption_context: Dict[str, str]) -> bytes:
+def _serialize_encryption_context(encryption_context: dict[str, str]) -> bytes:
     """Serialize encryption context for use a AAD.
 
     NOTE: This is not necessarily what KMS does, but it retains the same properties.
@@ -354,10 +348,10 @@ def _serialize_encryption_context(encryption_context: Dict[str, str]) -> bytes:
 
 
 def encrypt(
-    master_keys: Dict[str, Any],
+    master_keys: dict[str, Any],
     key_id: str,
     plaintext: bytes,
-    encryption_context: Dict[str, str],
+    encryption_context: dict[str, str],
 ) -> bytes:
     """Encrypt data using a master key material.
 
@@ -403,10 +397,10 @@ def encrypt(
 
 
 def decrypt(
-    master_keys: Dict[str, Any],
+    master_keys: dict[str, Any],
     ciphertext_blob: bytes,
-    encryption_context: Dict[str, str],
-) -> Tuple[bytes, str]:
+    encryption_context: dict[str, str],
+) -> tuple[bytes, str]:
     """Decrypt a ciphertext blob using a master key material.
 
     NOTE: This is not necessarily what KMS does, but it retains the same properties.

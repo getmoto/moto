@@ -92,7 +92,7 @@ moto@github.com"""
 
 
 @mock_aws
-def test_key_pairs_empty_boto3():
+def test_key_pairs_empty():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", "us-west-1")
@@ -100,7 +100,7 @@ def test_key_pairs_empty_boto3():
 
 
 @mock_aws
-def test_key_pairs_invalid_id_boto3():
+def test_key_pairs_invalid_id():
     client = boto3.client("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -111,7 +111,7 @@ def test_key_pairs_invalid_id_boto3():
 
 
 @mock_aws
-def test_key_pairs_create_dryrun_boto3():
+def test_key_pairs_create_dryrun():
     ec2 = boto3.resource("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -126,7 +126,7 @@ def test_key_pairs_create_dryrun_boto3():
 
 @mock_aws
 @pytest.mark.parametrize("key_type, fingerprint_len", [("rsa", 59), ("ed25519", 95)])
-def test_key_pairs_create_boto3(key_type: str, fingerprint_len: int):
+def test_key_pairs_create(key_type: str, fingerprint_len: int):
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
@@ -158,7 +158,7 @@ def test_key_pairs_create_boto3(key_type: str, fingerprint_len: int):
 
 
 @mock_aws
-def test_key_pairs_create_exist_boto3():
+def test_key_pairs_create_exist():
     client = boto3.client("ec2", "us-west-1")
     key_name = str(uuid4())[0:6]
     client.create_key_pair(KeyName=key_name)
@@ -171,13 +171,13 @@ def test_key_pairs_create_exist_boto3():
 
 
 @mock_aws
-def test_key_pairs_delete_no_exist_boto3():
+def test_key_pairs_delete_no_exist():
     client = boto3.client("ec2", "us-west-1")
     client.delete_key_pair(KeyName=str(uuid4())[0:6])
 
 
 @mock_aws
-def test_key_pairs_delete_exist_boto3():
+def test_key_pairs_delete_exist():
     client = boto3.client("ec2", "us-west-1")
     key_name = str(uuid4())[0:6]
     client.create_key_pair(KeyName=key_name)
@@ -217,7 +217,7 @@ def test_key_pairs_delete_exist_boto3():
         "ed25519",
     ],
 )
-def test_key_pairs_import_boto3(public_key, fingerprint):
+def test_key_pairs_import(public_key, fingerprint):
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
@@ -256,7 +256,7 @@ def test_key_pairs_import_invalid_key():
 
 
 @mock_aws
-def test_key_pairs_import_exist_boto3():
+def test_key_pairs_import_exist():
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
@@ -275,7 +275,7 @@ def test_key_pairs_import_exist_boto3():
 
 
 @mock_aws
-def test_key_pairs_invalid_boto3():
+def test_key_pairs_invalid():
     client = boto3.client("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -301,7 +301,7 @@ def test_key_pairs_invalid_boto3():
 
 
 @mock_aws
-def test_key_pair_filters_boto3():
+def test_key_pair_filters():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 

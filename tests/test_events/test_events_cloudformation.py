@@ -275,7 +275,7 @@ def test_create_rule_with_targets():
         resources = cfn_client.list_stack_resources(StackName=stack_name)[
             "StackResourceSummaries"
         ]
-        queue = next((r for r in resources if r["LogicalResourceId"] == "DestQueue"))
+        queue = next(r for r in resources if r["LogicalResourceId"] == "DestQueue")
         q_url = queue["PhysicalResourceId"]
 
         entry = dict(

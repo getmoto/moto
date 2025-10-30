@@ -2,7 +2,7 @@
 
 import datetime
 import uuid
-from typing import Dict, List, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -17,20 +17,20 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
         name: str,
-        code: Dict[str, object],
+        code: dict[str, object],
         artifact_s3_location: str,
         execution_role_arn: str,
-        schedule: Dict[str, object],
-        run_config: Dict[str, object],
+        schedule: dict[str, object],
+        run_config: dict[str, object],
         success_retention_period_in_days: int,
         failure_retention_period_in_days: int,
         runtime_version: str,
-        vpc_config: Optional[Dict[str, object]],
-        resources_to_replicate_tags: Optional[List[str]],
+        vpc_config: Optional[dict[str, object]],
+        resources_to_replicate_tags: Optional[list[str]],
         provisioned_resource_cleanup: Optional[str],
-        browser_configs: Optional[List[Dict[str, object]]],
-        tags: Optional[Dict[str, str]],
-        artifact_config: Optional[Dict[str, object]],
+        browser_configs: Optional[list[dict[str, object]]],
+        tags: Optional[dict[str, str]],
+        artifact_config: Optional[dict[str, object]],
     ):
         self.name = name
         self.id = str(uuid.uuid4())
@@ -58,7 +58,7 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
             "LastStopped": None,
         }
 
-    def to_dict(self) -> Dict[str, object]:
+    def to_dict(self) -> dict[str, object]:
         """
         Convert the Canary object to a dictionary representation.
         """
@@ -104,25 +104,25 @@ class SyntheticsBackend(BaseBackend):
         Initialize the SyntheticsBackend with region and account.
         """
         super().__init__(region_name, account_id)
-        self.canaries: Dict[str, Canary] = {}
+        self.canaries: dict[str, Canary] = {}
 
     def create_canary(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
         self,
         name: str,
-        code: Dict[str, object],
+        code: dict[str, object],
         artifact_s3_location: str,
         execution_role_arn: str,
-        schedule: Dict[str, object],
-        run_config: Dict[str, object],
+        schedule: dict[str, object],
+        run_config: dict[str, object],
         success_retention_period_in_days: int,
         failure_retention_period_in_days: int,
         runtime_version: str,
-        vpc_config: Optional[Dict[str, object]],
-        resources_to_replicate_tags: Optional[List[str]],
+        vpc_config: Optional[dict[str, object]],
+        resources_to_replicate_tags: Optional[list[str]],
         provisioned_resource_cleanup: Optional[str],
-        browser_configs: Optional[List[Dict[str, object]]],
-        tags: Optional[Dict[str, str]],
-        artifact_config: Optional[Dict[str, object]],
+        browser_configs: Optional[list[dict[str, object]]],
+        tags: Optional[dict[str, str]],
+        artifact_config: Optional[dict[str, object]],
     ) -> Canary:
         canary = Canary(
             name,
@@ -155,7 +155,7 @@ class SyntheticsBackend(BaseBackend):
         self,
         next_token: Optional[str],  # pylint: disable=unused-argument
         max_results: Optional[int],  # pylint: disable=unused-argument
-        names: Optional[List[str]],
+        names: Optional[list[str]],
     ) -> tuple[list[Canary], None]:
         """
         Pagination is not yet supported
@@ -166,7 +166,7 @@ class SyntheticsBackend(BaseBackend):
 
         return canaries, None
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         # Simplified: assume resource_arn is actually the canary name
         canary = self.canaries.get(resource_arn)
         return canary.tags if canary else {}

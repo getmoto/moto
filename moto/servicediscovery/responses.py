@@ -1,7 +1,7 @@
 """Handles incoming servicediscovery requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -258,7 +258,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         page, new_token = self.servicediscovery_backend.paginate(
             status_records, max_results=max_results, next_token=next_token
         )
-        result: Dict[str, Any] = {"Status": {}}
+        result: dict[str, Any] = {"Status": {}}
         for record in page:
             result["Status"][record[0]] = record[1]
         if new_token:
@@ -286,7 +286,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         page, new_token = self.servicediscovery_backend.paginate(
             instances, max_results=max_results, next_token=next_token
         )
-        result: Dict[str, Any] = {"Instances": []}
+        result: dict[str, Any] = {"Instances": []}
         for instance in page:
             result["Instances"].append(instance.to_json())
         if new_token:
@@ -313,7 +313,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         page, new_token = self.servicediscovery_backend.paginate(
             instances, max_results=max_results
         )
-        result_instances: List[Dict[str, Any]] = []
+        result_instances: list[dict[str, Any]] = []
         instances_revision_total = 0
         for instance in page:
             result_instances.append(

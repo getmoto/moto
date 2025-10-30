@@ -539,12 +539,12 @@ def get_filter(tag_val):
     ]
 
 
-def retrieve_all_tagged(client, filters=[]):
-    resp = client.describe_tags(Filters=filters)
+def retrieve_all_tagged(client, filters=None):
+    resp = client.describe_tags(Filters=filters or [])
     tags = resp["Tags"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_tags(Filters=filters, NextToken=token)
+        resp = client.describe_tags(Filters=filters or [], NextToken=token)
         tags.extend(resp["Tags"])
         token = resp.get("Token")
     return tags

@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any
 
 from moto.stepfunctions.parser.asl.component.intrinsic.argument.argument import (
     ArgumentList,
@@ -24,7 +24,7 @@ class StatesFunctionArray(StatesFunction):
 
     def _eval_body(self, env: Environment) -> None:
         self.argument_list.eval(env=env)
-        values: List[Any] = list()
+        values: list[Any] = list()
         for _ in range(self.argument_list.size):
             values.append(env.stack.pop())
         values.reverse()

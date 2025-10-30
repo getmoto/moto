@@ -1,4 +1,4 @@
-from typing import Any, Final, List
+from typing import Any, Final
 
 from moto.stepfunctions.parser.asl.component.common.assign.assign_decl_binding import (
     AssignDeclBinding,
@@ -8,9 +8,9 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class AssignDecl(EvalComponent):
-    declaration_bindings: Final[List[AssignDeclBinding]]
+    declaration_bindings: Final[list[AssignDeclBinding]]
 
-    def __init__(self, declaration_bindings: List[AssignDeclBinding]):
+    def __init__(self, declaration_bindings: list[AssignDeclBinding]):
         super().__init__()
         self.declaration_bindings = declaration_bindings
 

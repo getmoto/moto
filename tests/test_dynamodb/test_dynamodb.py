@@ -25,7 +25,7 @@ from . import dynamodb_aws_verified
     [[], ["TestTable"], ["TestTable1", "TestTable2"]],
     ids=["no-table", "one-table", "multiple-tables"],
 )
-def test_list_tables_boto3(names):
+def test_list_tables(names):
     conn = boto3.client("dynamodb", region_name="us-west-2")
     for name in names:
         conn.create_table(
@@ -62,7 +62,7 @@ def test_list_tables_paginated():
 
 
 @mock_aws
-def test_describe_missing_table_boto3():
+def test_describe_missing_table():
     conn = boto3.client("dynamodb", region_name="us-west-2")
     with pytest.raises(ClientError) as ex:
         conn.describe_table(TableName="messages")
@@ -3242,7 +3242,7 @@ def test_non_existing_attribute_should_raise_exception():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = no_attr + MyStr",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,
@@ -3269,7 +3269,7 @@ def test_update_expression_with_plus_in_attribute_name():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = my+Num",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,
@@ -3296,7 +3296,7 @@ def test_update_expression_with_minus_in_attribute_name():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = my-Num",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,
@@ -3343,7 +3343,7 @@ def test_summing_up_2_strings_raises_exception():
             Key={"id": {"S": "1"}},
             UpdateExpression="SET MyStr = MyStr + MyStr",
         )
-        assert False, "Validation exception not thrown"
+        raise AssertionError("Validation exception not thrown")
     except dynamodb.exceptions.ClientError as e:
         assert_correct_client_error(
             e,

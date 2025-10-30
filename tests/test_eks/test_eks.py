@@ -1461,7 +1461,6 @@ def test_update_cluster_config(ClusterBuilder):
 @mock_aws
 def test_update_cluster_config_not_found(ClusterBuilder):
     client, generated_cluster = ClusterBuilder(BatchCountSize.SINGLE)
-    generated_cluster.existing_cluster_name
 
     expected_exception = ResourceNotFoundException
     expected_msg = CLUSTER_NOT_FOUND_MSG.format(

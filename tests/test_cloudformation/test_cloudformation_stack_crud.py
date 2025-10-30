@@ -2409,7 +2409,7 @@ def test_stack_events():
                 if reason_to_look_for is not None:
                     assert event.resource_status_reason == reason_to_look_for
     except StopIteration:
-        assert False, "Too many stack events"
+        raise AssertionError("Too many stack events")
 
     assert list(stack_events_to_look_for) == []
 

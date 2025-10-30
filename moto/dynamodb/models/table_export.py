@@ -1,6 +1,6 @@
 import json
 from threading import Thread
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Optional
 from uuid import uuid4
 
 from moto.core.utils import gzip_compress
@@ -76,7 +76,7 @@ class TableExport(Thread):
 
         self.status = "COMPLETED" if self.error_count == 0 else "FAILED"
 
-    def response(self) -> Dict[str, Any]:
+    def response(self) -> dict[str, Any]:
         return {
             "ExportArn": self.arn,
             "ExportStatus": self.status,

@@ -3,7 +3,8 @@ from __future__ import annotations
 import contextlib
 import copy
 from collections import OrderedDict
-from typing import Any, Dict, ItemsView, List, Optional, Set, Tuple
+from collections.abc import ItemsView
+from typing import Any, Optional
 
 from moto import settings
 from moto.core.common_models import CloudFormationModel
@@ -60,7 +61,7 @@ class StateReason:
 
 
 class MetadataOptions:
-    def __init__(self, options: Optional[Dict[str, Any]] = None):
+    def __init__(self, options: Optional[dict[str, Any]] = None):
         options = options or {}
         self.state = options.get("State", "applied")
         self.http_tokens = options.get("HttpTokens", "optional")
@@ -95,7 +96,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         ec2_backend: Any,
         image_id: str,
         user_data: Any,
-        security_groups: List[SecurityGroup],
+        security_groups: list[SecurityGroup],
         **kwargs: Any,
     ):
         super().__init__()
@@ -189,7 +190,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         self.block_device_mapping: BlockDeviceMapping = BlockDeviceMapping()
 
-        self._private_ips: Set[str] = set()
+        self._private_ips: set[str] = set()
         self.prep_nics(
             nics,
             private_ip=kwargs.get("private_ip"),
@@ -548,10 +549,10 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.state_reason = StateReason()
 
     @property
-    def dynamic_group_list(self) -> List[SecurityGroup]:
+    def dynamic_group_list(self) -> list[SecurityGroup]:
         return self.security_groups
 
-    def _get_private_ip_from_nic(self, nic: Dict[str, Any]) -> Optional[str]:
+    def _get_private_ip_from_nic(self, nic: dict[str, Any]) -> Optional[str]:
         private_ip = nic.get("PrivateIpAddress")
         if private_ip:
             return private_ip
@@ -562,13 +563,13 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
     def prep_nics(
         self,
-        nic_spec: List[Dict[str, Any]],
+        nic_spec: list[dict[str, Any]],
         private_ip: Optional[str] = None,
         associate_public_ip: Optional[bool] = None,
-        security_groups: Optional[List[SecurityGroup]] = None,
+        security_groups: Optional[list[SecurityGroup]] = None,
         ipv6_address_count: Optional[int] = None,
     ) -> None:
-        self.nics: Dict[int, NetworkInterface] = {}
+        self.nics: dict[int, NetworkInterface] = {}
         for nic in nic_spec:
             if int(nic.get("DeviceIndex")) == 0:  # type: ignore[arg-type]
                 nic_associate_public_ip = nic.get("AssociatePublicIpAddress")
@@ -708,7 +709,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             return self.public_ip
         raise UnformattedGetAttTemplateException()
 
-    def applies(self, filters: List[Dict[str, Any]]) -> bool:
+    def applies(self, filters: list[dict[str, Any]]) -> bool:
         if filters:
             # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/ec2/client/describe_instances.html
             # Filters Section in the boto3 documentation
@@ -728,7 +729,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
 class InstanceBackend:
     def __init__(self) -> None:
-        self.reservations: Dict[str, Reservation] = OrderedDict()
+        self.reservations: dict[str, Reservation] = OrderedDict()
 
     def get_instance(self, instance_id: str) -> Instance:
         for instance in self.all_instances():
@@ -741,7 +742,7 @@ class InstanceBackend:
         image_id: str,
         count: int,
         user_data: Optional[str],
-        security_group_names: List[str],
+        security_group_names: list[str],
         **kwargs: Any,
     ) -> Reservation:
         """
@@ -865,8 +866,8 @@ class InstanceBackend:
         return new_reservation
 
     def start_instances(
-        self, instance_ids: List[str]
-    ) -> List[Tuple[Instance, InstanceState]]:
+        self, instance_ids: list[str]
+    ) -> list[tuple[Instance, InstanceState]]:
         started_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
             previous_state = instance.start()
@@ -875,8 +876,8 @@ class InstanceBackend:
         return started_instances
 
     def stop_instances(
-        self, instance_ids: List[str]
-    ) -> List[Tuple[Instance, InstanceState]]:
+        self, instance_ids: list[str]
+    ) -> list[tuple[Instance, InstanceState]]:
         stopped_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
             if instance.disable_api_stop == "true":
@@ -887,8 +888,8 @@ class InstanceBackend:
         return stopped_instances
 
     def terminate_instances(
-        self, instance_ids: List[str]
-    ) -> List[Tuple[Instance, InstanceState]]:
+        self, instance_ids: list[str]
+    ) -> list[tuple[Instance, InstanceState]]:
         terminated_instances = []
         if not instance_ids:
             raise InvalidParameterCombination("No instances specified")
@@ -900,7 +901,7 @@ class InstanceBackend:
 
         return terminated_instances
 
-    def reboot_instances(self, instance_ids: List[str]) -> List[Instance]:
+    def reboot_instances(self, instance_ids: list[str]) -> list[Instance]:
         rebooted_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
             instance.reboot()
@@ -939,18 +940,18 @@ class InstanceBackend:
         return metadata_options
 
     def modify_instance_security_groups(
-        self, instance_id: str, new_group_id_list: List[str]
+        self, instance_id: str, new_group_id_list: list[str]
     ) -> Instance:
         instance = self.get_instance(instance_id)
         new_group_list = []
         for new_group_id in new_group_id_list:
             new_group_list.append(self.get_security_group_from_id(new_group_id))  # type: ignore[attr-defined]
-        setattr(instance, "security_groups", new_group_list)
+        instance.security_groups = new_group_list
         return instance
 
     def describe_instance_attribute(
         self, instance_id: str, attribute: str
-    ) -> Tuple[Instance, Any]:
+    ) -> tuple[Instance, Any]:
         if attribute not in Instance.VALID_ATTRIBUTES:
             raise InvalidParameterValueErrorUnknownAttribute(attribute)
 
@@ -963,14 +964,14 @@ class InstanceBackend:
         return instance, value
 
     def describe_instance_credit_specifications(
-        self, instance_ids: List[str]
-    ) -> List[Instance]:
+        self, instance_ids: list[str]
+    ) -> list[Instance]:
         queried_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
             queried_instances.append(instance)
         return queried_instances
 
-    def all_instances(self, filters: Any = None) -> List[Instance]:
+    def all_instances(self, filters: Any = None) -> list[Instance]:
         instances = []
         for reservation in self.all_reservations():
             for instance in reservation.instances:
@@ -978,7 +979,7 @@ class InstanceBackend:
                     instances.append(instance)
         return instances
 
-    def all_running_instances(self, filters: Any = None) -> List[Instance]:
+    def all_running_instances(self, filters: Any = None) -> list[Instance]:
         instances = []
         for reservation in self.all_reservations():
             for instance in reservation.instances:
@@ -987,8 +988,8 @@ class InstanceBackend:
         return instances
 
     def get_multi_instances_by_id(
-        self, instance_ids: List[str], filters: Any = None
-    ) -> List[Instance]:
+        self, instance_ids: list[str], filters: Any = None
+    ) -> list[Instance]:
         """
         :param instance_ids: A string list with instance ids
         :return: A list with instance objects
@@ -1018,8 +1019,8 @@ class InstanceBackend:
         return None
 
     def get_reservations_by_instance_ids(
-        self, instance_ids: List[str], filters: Any = None
-    ) -> List[Reservation]:
+        self, instance_ids: list[str], filters: Any = None
+    ) -> list[Reservation]:
         """Go through all of the reservations and filter to only return those
         associated with the given instance_ids.
         """
@@ -1050,12 +1051,12 @@ class InstanceBackend:
             reservations = filter_reservations(reservations, filters)
         return reservations
 
-    def describe_instances(self, filters: Any = None) -> List[Reservation]:
+    def describe_instances(self, filters: Any = None) -> list[Reservation]:
         return self.all_reservations(filters)
 
     def describe_instance_status(
-        self, instance_ids: List[str], include_all_instances: bool, filters: Any
-    ) -> List[Instance]:
+        self, instance_ids: list[str], include_all_instances: bool, filters: Any
+    ) -> list[Instance]:
         if instance_ids:
             instances = self.get_multi_instances_by_id(instance_ids, filters)
             if include_all_instances:
@@ -1066,7 +1067,7 @@ class InstanceBackend:
         else:
             return self.all_running_instances(filters)
 
-    def all_reservations(self, filters: Any = None) -> List[Reservation]:
+    def all_reservations(self, filters: Any = None) -> list[Reservation]:
         reservations = [
             copy.copy(reservation) for reservation in self.reservations.copy().values()
         ]
@@ -1075,7 +1076,7 @@ class InstanceBackend:
         return reservations
 
     def _get_template_from_args(
-        self, launch_template_arg: Dict[str, Any]
+        self, launch_template_arg: dict[str, Any]
     ) -> LaunchTemplateVersion:
         template = (
             self.describe_launch_templates(  # type: ignore[attr-defined]

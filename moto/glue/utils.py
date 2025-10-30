@@ -4,7 +4,7 @@ import re
 from datetime import date, datetime
 from enum import Enum
 from itertools import repeat
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from pyparsing import (
     CaselessKeyword,
@@ -61,7 +61,7 @@ class CrawlState(str, Enum):
 
 
 class Condition:
-    def __init__(self, inputs: Dict[str, str], index: int) -> None:
+    def __init__(self, inputs: dict[str, str], index: int) -> None:
         # if there's a job name present, the API creates a job trigger, even if crawler trigger args are provided
         self.job_name = inputs.get("JobName")
         self.crawler_name = inputs.get("CrawlerName")
@@ -102,7 +102,7 @@ class Condition:
         if self.logical_operator != "EQUALS":
             raise InvalidLogicalOperatorException(self.logical_operator, index + 1)
 
-    def as_dict(self) -> Dict[str, str]:
+    def as_dict(self) -> dict[str, str]:
         return_dict = {
             "LogicalOperator": self.logical_operator,
         }
@@ -118,16 +118,16 @@ class Condition:
 
 
 class Predicate:
-    def __init__(self, inputs: Dict[str, Any]) -> None:
+    def __init__(self, inputs: dict[str, Any]) -> None:
         self.logical = Logical(inputs.get("Logical"))
 
-        self.conditions: List[Condition] = [
+        self.conditions: list[Condition] = [
             Condition(condition, index)
             for index, condition in enumerate(inputs.get("Conditions", []))
         ]
 
-    def as_dict(self) -> Dict[str, Union[str, List[Dict[str, str]]]]:
-        return_dict: Dict[str, Union[str, List[Dict[str, str]]]] = {}
+    def as_dict(self) -> dict[str, Union[str, list[dict[str, str]]]]:
+        return_dict: dict[str, Union[str, list[dict[str, str]]]] = {}
         if self.logical:
             return_dict["Logical"] = self.logical.value
         if self.conditions:
@@ -138,7 +138,7 @@ class Predicate:
 
 
 class Action:
-    def __init__(self, inputs: Dict[str, Union[str, Dict[str, str], int]]) -> None:
+    def __init__(self, inputs: dict[str, Union[str, dict[str, str], int]]) -> None:
         self.arguments = inputs.get("Arguments")
         self.crawler_name = inputs.get("CrawlerName")
         self.job_name = inputs.get("JobName")
@@ -152,8 +152,8 @@ class Action:
                 "Both JobName and CrawlerName cannot be set together in an action",
             )
 
-    def as_dict(self) -> Dict[str, Union[str, Dict[str, str], int]]:
-        return_dict: Dict[str, Union[str, Dict[str, str], int]] = {}
+    def as_dict(self) -> dict[str, Union[str, dict[str, str], int]]:
+        return_dict: dict[str, Union[str, dict[str, str], int]] = {}
         if self.arguments:
             return_dict["Arguments"] = self.arguments
         if self.crawler_name:
@@ -204,8 +204,8 @@ class CrawlFilter:
                 )
 
 
-def validate_crawl_filters(filters: List[Dict[str, str]]) -> List[CrawlFilter]:
-    filter_objects: List[CrawlFilter] = []
+def validate_crawl_filters(filters: list[dict[str, str]]) -> list[CrawlFilter]:
+    filter_objects: list[CrawlFilter] = []
     for index, filter in enumerate(filters):
         field_name_input = filter.get("FieldName")
         operator_input = filter.get("FilterOperator")
@@ -301,7 +301,7 @@ def _escape_regex(pattern: str) -> str:
 
 class _Expr(abc.ABC):
     @abc.abstractmethod
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:  # type: ignore[misc]
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> Any:  # type: ignore[misc]
         raise NotImplementedError()
 
 
@@ -309,14 +309,14 @@ class _Ident(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: str = tokens[0]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> Any:
         try:
             return self._eval(part_keys, part_input)
         except ValueError as e:
             # existing partition values cannot be cast to current schema
             raise InvalidStateException("GetPartitions", str(e))
 
-    def leval(self, part_keys: List[Dict[str, str]], literal: Any) -> Any:
+    def leval(self, part_keys: list[dict[str, str]], literal: Any) -> Any:
         # evaluate literal by simulating partition input
         try:
             return self._eval(part_keys, part_input={"Values": repeat(literal)})
@@ -324,7 +324,7 @@ class _Ident(_Expr):
             # expression literal cannot be cast to current schema
             raise InvalidInputException("GetPartitions", str(e))
 
-    def type_(self, part_keys: List[Dict[str, str]]) -> str:
+    def type_(self, part_keys: list[dict[str, str]]) -> str:
         for key in part_keys:
             if self.ident == key["Name"]:
                 return key["Type"]
@@ -332,7 +332,7 @@ class _Ident(_Expr):
         # not a partition column
         raise InvalidInputException("GetPartitions", "Invalid partition expression!")
 
-    def _eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> Any:
+    def _eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> Any:
         for key, value in zip(part_keys, part_input["Values"]):
             if self.ident == key["Name"]:
                 return _cast(key["Type"], value)
@@ -345,12 +345,12 @@ class _IsNull(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         return self.ident.eval(part_keys, part_input) is None
 
 
 class _IsNotNull(_IsNull):
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         return not super().eval(part_keys, part_input)
 
 
@@ -360,7 +360,7 @@ class _BinOp(_Expr):
         self.bin_op: str = tokens[1]
         self.literal: Any = tokens[2]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         ident = self.ident.eval(part_keys, part_input)
 
         # simulate partition input for the lateral
@@ -381,7 +381,7 @@ class _Like(_Expr):
         self.ident: _Ident = tokens[0]
         self.literal: str = tokens[2]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         type_ = self.ident.type_(part_keys)
         if type_ in ("bigint", "int", "smallint", "tinyint"):
             raise InvalidInputException(
@@ -413,16 +413,16 @@ class _Like(_Expr):
 
 
 class _NotLike(_Like):
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         return not super().eval(part_keys, part_input)
 
 
 class _In(_Expr):
     def __init__(self, tokens: ParseResults):
         self.ident: _Ident = tokens[0]
-        self.values: List[Any] = tokens[2:]
+        self.values: list[Any] = tokens[2:]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         ident = self.ident.eval(part_keys, part_input)
         values = (self.ident.leval(part_keys, value) for value in self.values)
 
@@ -430,7 +430,7 @@ class _In(_Expr):
 
 
 class _NotIn(_In):
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         return not super().eval(part_keys, part_input)
 
 
@@ -440,7 +440,7 @@ class _Between(_Expr):
         self.left: Any = tokens[2]
         self.right: Any = tokens[4]
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         ident = self.ident.eval(part_keys, part_input)
         left = self.ident.leval(part_keys, self.left)
         right = self.ident.leval(part_keys, self.right)
@@ -449,23 +449,23 @@ class _Between(_Expr):
 
 
 class _NotBetween(_Between):
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         return not super().eval(part_keys, part_input)
 
 
 class _BoolAnd(_Expr):
     def __init__(self, tokens: ParseResults) -> None:
-        self.operands: List[_Expr] = tokens[0][0::2]  # skip 'and' between tokens
+        self.operands: list[_Expr] = tokens[0][0::2]  # skip 'and' between tokens
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         return all(operand.eval(part_keys, part_input) for operand in self.operands)
 
 
 class _BoolOr(_Expr):
     def __init__(self, tokens: ParseResults) -> None:
-        self.operands: List[_Expr] = tokens[0][0::2]  # skip 'or' between tokens
+        self.operands: list[_Expr] = tokens[0][0::2]  # skip 'or' between tokens
 
-    def eval(self, part_keys: List[Dict[str, str]], part_input: Dict[str, Any]) -> bool:
+    def eval(self, part_keys: list[dict[str, str]], part_input: dict[str, Any]) -> bool:
         return any(operand.eval(part_keys, part_input) for operand in self.operands)
 
 
@@ -524,7 +524,7 @@ class _PartitionFilterExpressionCache:
         )
         self._expr = expr.set_name("expr")
 
-        self._cache: Dict[str, _Expr] = {}
+        self._cache: dict[str, _Expr] = {}
 
     def get(self, expression: Optional[str]) -> Optional[_Expr]:
         if expression is None:

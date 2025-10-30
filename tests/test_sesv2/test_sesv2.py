@@ -8,7 +8,7 @@ from moto import mock_aws, settings
 from moto.ses.models import Message, RawMessage, ses_backends
 from tests import DEFAULT_ACCOUNT_ID
 
-from ..test_ses.test_ses_boto3 import get_raw_email
+from ..test_ses.test_ses import get_raw_email
 
 
 @pytest.fixture(scope="function")

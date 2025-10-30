@@ -201,7 +201,8 @@ def register_schema_version(client):
     )
 
 
-def set_transition(model_name, transition={"progression": "immediate"}):
+def set_transition(model_name, transition=None):
+    transition = transition or {"progression": "immediate"}
     if settings.TEST_DECORATOR_MODE:
         state_manager.set_transition(model_name=model_name, transition=transition)
     else:

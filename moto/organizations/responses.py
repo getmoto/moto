@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -15,7 +15,7 @@ class OrganizationsResponse(BaseResponse):
         return organizations_backends[self.current_account][self.partition]
 
     @property
-    def request_params(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def request_params(self) -> dict[str, Any]:  # type: ignore[misc]
         try:
             return json.loads(self.body)
         except ValueError:

@@ -1,6 +1,6 @@
 import base64
 import re
-from typing import Dict, List, Set, Type, Union
+from typing import Union
 from uuid import uuid4
 
 TMP_THREADS = []
@@ -10,7 +10,7 @@ def is_list_or_tuple(obj) -> bool:
     return isinstance(obj, (list, tuple))
 
 
-def select_attributes(obj: Dict, attributes: List[str]) -> Dict:
+def select_attributes(obj: dict, attributes: list[str]) -> dict:
     """Select a subset of attributes from the given dict (returns a copy)"""
     attributes = attributes if is_list_or_tuple(attributes) else [attributes]
     return {k: v for k, v in obj.items() if k in attributes}
@@ -20,7 +20,7 @@ class SubtypesInstanceManager:
     """Simple instance manager base class that scans the subclasses of a base type for concrete named
     implementations, and lazily creates and returns (singleton) instances on demand."""
 
-    _instances: Dict[str, "SubtypesInstanceManager"]
+    _instances: dict[str, "SubtypesInstanceManager"]
 
     @classmethod
     def get(cls, subtype_name: str, raise_if_missing: bool = False):
@@ -37,7 +37,7 @@ class SubtypesInstanceManager:
         return instance
 
     @classmethod
-    def instances(cls) -> Dict[str, "SubtypesInstanceManager"]:
+    def instances(cls) -> dict[str, "SubtypesInstanceManager"]:
         base_type = cls.get_base_type()
         if not hasattr(base_type, "_instances"):
             base_type._instances = {}
@@ -49,7 +49,7 @@ class SubtypesInstanceManager:
         raise NotImplementedError
 
     @classmethod
-    def get_base_type(cls) -> Type:
+    def get_base_type(cls) -> type:
         """Get the base class for which instances are being managed - can be customized by subtypes."""
         return cls
 
@@ -80,7 +80,7 @@ def snake_to_camel_case(string: str, capitalize_first: bool = True) -> str:
     return "".join(components)
 
 
-def get_all_subclasses(clazz: Type) -> Set[Type]:
+def get_all_subclasses(clazz: type) -> set[type]:
     """Recursively get all subclasses of the given class."""
     result = set()
     subs = clazz.__subclasses__()

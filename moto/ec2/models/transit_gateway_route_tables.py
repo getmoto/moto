@@ -1,6 +1,6 @@
 import itertools
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.utils import utcnow
 from moto.utilities.utils import filter_resources
@@ -32,7 +32,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self,
         backend: Any,
         transit_gateway_id: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         default_association_route_table: bool = False,
         default_propagation_route_table: bool = False,
     ):
@@ -45,10 +45,10 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.default_association_route_table = default_association_route_table
         self.default_propagation_route_table = default_propagation_route_table
         self.state = "available"
-        self.routes: Dict[str, Dict[str, Optional[str]]] = {}
+        self.routes: dict[str, dict[str, Optional[str]]] = {}
         self.add_tags(tags or {})
         self.route_table_associations: dict[str, RouteTableAssociation] = {}
-        self.route_table_propagation: List[RouteTablePropagation] = []
+        self.route_table_propagation: list[RouteTablePropagation] = []
 
     @property
     def physical_resource_id(self) -> str:
@@ -86,14 +86,14 @@ class TransitGatewayRelations:
 
 class TransitGatewayRouteTableBackend:
     def __init__(self) -> None:
-        self.transit_gateways_route_tables: Dict[str, TransitGatewayRouteTable] = {}
-        self.transit_gateway_associations: Dict[str, TransitGatewayRelations] = {}
-        self.transit_gateway_propagations: Dict[str, TransitGatewayRelations] = {}
+        self.transit_gateways_route_tables: dict[str, TransitGatewayRouteTable] = {}
+        self.transit_gateway_associations: dict[str, TransitGatewayRelations] = {}
+        self.transit_gateway_propagations: dict[str, TransitGatewayRelations] = {}
 
     def create_transit_gateway_route_table(
         self,
         transit_gateway_id: str,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
         default_association_route_table: bool = False,
         default_propagation_route_table: bool = False,
     ) -> TransitGatewayRouteTable:
@@ -111,7 +111,7 @@ class TransitGatewayRouteTableBackend:
 
     def get_all_transit_gateway_route_tables(
         self, transit_gateway_route_table_ids: Optional[str] = None, filters: Any = None
-    ) -> List[TransitGatewayRouteTable]:
+    ) -> list[TransitGatewayRouteTable]:
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         attr_pairs = (
@@ -149,7 +149,7 @@ class TransitGatewayRouteTableBackend:
         destination_cidr_block: str,
         transit_gateway_attachment_id: Optional[str] = None,
         blackhole: bool = False,
-    ) -> Dict[str, Optional[str]]:
+    ) -> dict[str, Optional[str]]:
         transit_gateways_route_table = self.transit_gateways_route_tables[
             transit_gateway_route_table_id
         ]
@@ -190,7 +190,7 @@ class TransitGatewayRouteTableBackend:
         transit_gateway_route_table_id: str,
         filters: Any,
         max_results: Optional[int] = None,
-    ) -> list[Dict[str, Optional[str]]]:
+    ) -> list[dict[str, Optional[str]]]:
         """
         The following filters are currently supported: type, state, route-search.exact-match
         """
@@ -260,7 +260,7 @@ class TransitGatewayRouteTableBackend:
         ]
 
     def get_transit_gateway_route_table_associations(
-        self, transit_gateway_route_table_id: List[str], filters: Any = None
+        self, transit_gateway_route_table_id: list[str], filters: Any = None
     ) -> list[RouteTableAssociation]:
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
@@ -289,7 +289,7 @@ class TransitGatewayRouteTableBackend:
 
     def get_transit_gateway_route_table_propagations(
         self, transit_gateway_route_table_id: str, filters: Any = None
-    ) -> List[RouteTablePropagation]:
+    ) -> list[RouteTablePropagation]:
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
         if transit_gateway_route_tables:

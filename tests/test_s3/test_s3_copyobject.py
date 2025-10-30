@@ -23,7 +23,7 @@ from . import s3_aws_verified
     ],
 )
 @mock_aws
-def test_copy_key_boto3(key_name):
+def test_copy_key(key_name):
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource.create_bucket(Bucket="foobar")
@@ -42,7 +42,7 @@ def test_copy_key_boto3(key_name):
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_copy_key_boto3_with_args(bucket_name=None):
+def test_copy_key_with_args(bucket_name=None):
     # Setup
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -90,7 +90,7 @@ def test_copy_key_boto3_with_args(bucket_name=None):
 
 @pytest.mark.aws_verified
 @s3_aws_verified
-def test_copy_key_boto3_with_args__using_multipart(bucket_name=None):
+def test_copy_key_with_args__using_multipart(bucket_name=None):
     # Setup
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
@@ -126,7 +126,7 @@ def test_copy_key_boto3_with_args__using_multipart(bucket_name=None):
 
 
 @mock_aws
-def test_copy_key_with_version_boto3():
+def test_copy_key_with_version():
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_resource.create_bucket(Bucket="foobar")
@@ -851,7 +851,7 @@ def test_copy_object_in_place_with_versioning(bucket_name=None):
     "algorithm",
     ["CRC32", "SHA1", "SHA256"],
 )
-def test_copy_key_boto3_with_both_sha256_checksum(algorithm):
+def test_copy_key_with_both_sha256_checksum(algorithm):
     """Validate that moto S3 checksum calculations are correct.
 
     We first create an object with a Checksum calculated by boto, by

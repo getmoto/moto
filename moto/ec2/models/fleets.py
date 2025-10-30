@@ -1,6 +1,6 @@
 import datetime
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.ec2.models.spot_requests import SpotFleetLaunchSpec, SpotInstanceRequest
 
@@ -16,17 +16,17 @@ class Fleet(TaggedEC2Resource):
         self,
         ec2_backend: Any,
         fleet_id: str,
-        on_demand_options: Dict[str, Any],
-        spot_options: Dict[str, Any],
-        target_capacity_specification: Dict[str, Any],
-        launch_template_configs: List[Dict[str, Any]],
+        on_demand_options: dict[str, Any],
+        spot_options: dict[str, Any],
+        target_capacity_specification: dict[str, Any],
+        launch_template_configs: list[dict[str, Any]],
         excess_capacity_termination_policy: str,
         replace_unhealthy_instances: bool,
         terminate_instances_with_expiration: bool,
         fleet_type: str,
         valid_from: str,
         valid_until: str,
-        tag_specifications: List[Dict[str, Any]],
+        tag_specifications: list[dict[str, Any]],
     ):
         self.ec2_backend = ec2_backend
         self.id = fleet_id
@@ -57,9 +57,9 @@ class Fleet(TaggedEC2Resource):
         self.fulfilled_on_demand_capacity = 0.0
         self.fulfilled_spot_capacity = 0.0
 
-        self.launch_specs: List[SpotFleetLaunchSpec] = []
+        self.launch_specs: list[SpotFleetLaunchSpec] = []
 
-        launch_specs_from_config: List[Dict[str, Any]] = []
+        launch_specs_from_config: list[dict[str, Any]] = []
         for config in launch_template_configs or []:
             launch_spec = config["LaunchTemplateSpecification"]
             if "LaunchTemplateId" in launch_spec:
@@ -100,8 +100,8 @@ class Fleet(TaggedEC2Resource):
                 )
             )
 
-        self.spot_requests: List[SpotInstanceRequest] = []
-        self.on_demand_instances: List[Dict[str, Any]] = []
+        self.spot_requests: list[SpotInstanceRequest] = []
+        self.on_demand_instances: list[dict[str, Any]] = []
         default_capacity = (
             target_capacity_specification.get("DefaultTargetCapacityType")
             or "on-demand"
@@ -133,7 +133,7 @@ class Fleet(TaggedEC2Resource):
     def physical_resource_id(self) -> str:
         return self.id
 
-    def create_spot_requests(self, weight_to_add: float) -> List[SpotInstanceRequest]:
+    def create_spot_requests(self, weight_to_add: float) -> list[SpotInstanceRequest]:
         weight_map, added_weight = self.get_launch_spec_counts(weight_to_add)
         for launch_spec, count in weight_map.items():
             requests = self.ec2_backend.request_spot_instances(
@@ -193,8 +193,8 @@ class Fleet(TaggedEC2Resource):
 
     def get_launch_spec_counts(
         self, weight_to_add: float
-    ) -> Tuple[Dict[SpotFleetLaunchSpec, int], float]:
-        weight_map: Dict[SpotFleetLaunchSpec, int] = defaultdict(int)
+    ) -> tuple[dict[SpotFleetLaunchSpec, int], float]:
+        weight_map: dict[SpotFleetLaunchSpec, int] = defaultdict(int)
 
         weight_so_far = 0.0
         if (
@@ -259,21 +259,21 @@ class Fleet(TaggedEC2Resource):
 
 class FleetsBackend:
     def __init__(self) -> None:
-        self.fleets: Dict[str, Fleet] = {}
+        self.fleets: dict[str, Fleet] = {}
 
     def create_fleet(
         self,
-        on_demand_options: Dict[str, Any],
-        spot_options: Dict[str, Any],
-        target_capacity_specification: Dict[str, Any],
-        launch_template_configs: List[Dict[str, Any]],
+        on_demand_options: dict[str, Any],
+        spot_options: dict[str, Any],
+        target_capacity_specification: dict[str, Any],
+        launch_template_configs: list[dict[str, Any]],
         excess_capacity_termination_policy: str,
         replace_unhealthy_instances: bool,
         terminate_instances_with_expiration: bool,
         fleet_type: str,
         valid_from: str,
         valid_until: str,
-        tag_specifications: List[Dict[str, Any]],
+        tag_specifications: list[dict[str, Any]],
     ) -> Fleet:
         fleet_id = random_fleet_id()
         fleet = Fleet(
@@ -297,13 +297,13 @@ class FleetsBackend:
     def get_fleet(self, fleet_id: str) -> Optional[Fleet]:
         return self.fleets.get(fleet_id)
 
-    def describe_fleet_instances(self, fleet_id: str) -> List[Any]:
+    def describe_fleet_instances(self, fleet_id: str) -> list[Any]:
         fleet = self.get_fleet(fleet_id)
         if not fleet:
             return []
         return fleet.spot_requests + fleet.on_demand_instances
 
-    def describe_fleets(self, fleet_ids: Optional[List[str]]) -> List[Fleet]:
+    def describe_fleets(self, fleet_ids: Optional[list[str]]) -> list[Fleet]:
         fleets = list(self.fleets.values())
 
         if fleet_ids:
@@ -312,8 +312,8 @@ class FleetsBackend:
         return fleets
 
     def delete_fleets(
-        self, fleet_ids: List[str], terminate_instances: bool
-    ) -> List[Fleet]:
+        self, fleet_ids: list[str], terminate_instances: bool
+    ) -> list[Fleet]:
         fleets = []
         for fleet_id in fleet_ids:
             fleet = self.fleets[fleet_id]

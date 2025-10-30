@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any, Optional
 
 from moto.core.responses import ActionResult, EmptyResult
 from moto.core.utils import camelcase_to_underscores
@@ -187,8 +187,8 @@ class InstanceResponse(EC2BaseResponse):
         return ActionResult(result)
 
     def _get_list_of_dict_params(
-        self, param_prefix: str, _dct: Dict[str, Any]
-    ) -> List[Any]:
+        self, param_prefix: str, _dct: dict[str, Any]
+    ) -> list[Any]:
         """
         Simplified version of _get_dict_param
         Allows you to pass in a custom dict instead of using self.querystring by default
@@ -350,7 +350,7 @@ class InstanceResponse(EC2BaseResponse):
 
     def _dot_value_instance_attribute_handler(self) -> bool:
         attribute_key = None
-        for key, value in self.querystring.items():
+        for key in self.querystring:
             if ".Value" in key:
                 attribute_key = key
                 break
@@ -398,12 +398,12 @@ class InstanceResponse(EC2BaseResponse):
         )
         return True
 
-    def _parse_block_device_mapping(self) -> List[Dict[str, Any]]:
+    def _parse_block_device_mapping(self) -> list[dict[str, Any]]:
         device_mappings = self._get_list_prefix("BlockDeviceMapping")
         mappings = []
         for device_mapping in device_mappings:
             self._validate_block_device_mapping(device_mapping)
-            device_template: Dict[str, Any] = deepcopy(BLOCK_DEVICE_MAPPING_TEMPLATE)
+            device_template: dict[str, Any] = deepcopy(BLOCK_DEVICE_MAPPING_TEMPLATE)
             device_template["VirtualName"] = device_mapping.get("virtual_name")
             device_template["DeviceName"] = device_mapping.get("device_name")
             device_template["Ebs"]["SnapshotId"] = device_mapping.get(
@@ -429,7 +429,7 @@ class InstanceResponse(EC2BaseResponse):
         return mappings
 
     @staticmethod
-    def _validate_block_device_mapping(device_mapping: Dict[str, Any]) -> None:  # type: ignore[misc]
+    def _validate_block_device_mapping(device_mapping: dict[str, Any]) -> None:  # type: ignore[misc]
         from botocore import __version__ as botocore_version
 
         if "no_device" in device_mapping:

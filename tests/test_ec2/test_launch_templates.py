@@ -670,12 +670,14 @@ def test_delete_launch_template__by_id():
     )
 
 
-def retrieve_all_templates(client, filters=[]):
-    resp = client.describe_launch_templates(Filters=filters)
+def retrieve_all_templates(client, filters=None):
+    resp = client.describe_launch_templates(Filters=filters or [])
     all_templates = resp["LaunchTemplates"]
     next_token = resp.get("NextToken")
     while next_token:
-        resp = client.describe_launch_templates(Filters=filters, NextToken=next_token)
+        resp = client.describe_launch_templates(
+            Filters=filters or [], NextToken=next_token
+        )
         all_templates.extend(resp["LaunchTemplates"])
         next_token = resp.get("NextToken")
     return all_templates

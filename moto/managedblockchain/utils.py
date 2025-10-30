@@ -1,7 +1,7 @@
 import json
 import re
 import string
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
 from moto.moto_api._internal import mock_random as random
@@ -21,7 +21,7 @@ def get_network_id() -> str:
     )
 
 
-def memberid_from_managedblockchain_request(full_url: str, body: Dict[str, Any]) -> str:
+def memberid_from_managedblockchain_request(full_url: str, body: dict[str, Any]) -> str:
     id_search = re.search(r"\/m-[A-Z0-9]{26}", full_url, re.IGNORECASE)
     return_id = None
     if id_search:
@@ -73,7 +73,7 @@ def get_invitation_id() -> str:
 
 
 def member_name_exist_in_network(
-    members: Dict[str, Any], networkid: str, membername: str
+    members: dict[str, Any], networkid: str, membername: str
 ) -> bool:
     for member in members.values():
         if member.network_id == networkid:
@@ -83,7 +83,7 @@ def member_name_exist_in_network(
 
 
 def number_of_members_in_network(
-    members: Dict[str, Any], networkid: str, member_status: Optional[str] = None
+    members: dict[str, Any], networkid: str, member_status: Optional[str] = None
 ) -> int:
     return len(
         [
@@ -123,7 +123,7 @@ def get_node_id() -> str:
 
 
 def number_of_nodes_in_member(
-    nodes: Dict[str, Any], memberid: str, node_status: Optional[str] = None
+    nodes: dict[str, Any], memberid: str, node_status: Optional[str] = None
 ) -> int:
     return len(
         [
@@ -135,5 +135,5 @@ def number_of_nodes_in_member(
     )
 
 
-def nodes_in_member(nodes: Dict[str, Any], memberid: str) -> List[str]:
+def nodes_in_member(nodes: dict[str, Any], memberid: str) -> list[str]:
     return [nodid for nodid in nodes if nodes[nodid].member_id == memberid]

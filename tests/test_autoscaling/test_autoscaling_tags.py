@@ -121,7 +121,7 @@ def test_describe_tags_no_filter():
     create_asgs(client, subnet)
 
     response = client.describe_tags()
-    len(response["Tags"]) == 4
+    assert len(response["Tags"]) == 4
     assert {
         "ResourceId": "test_asg",
         "ResourceType": "auto-scaling-group",

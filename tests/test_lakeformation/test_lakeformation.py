@@ -1,6 +1,6 @@
 """Unit tests for lakeformation-supported APIs."""
 
-from typing import Dict, Optional
+from typing import Optional
 
 import boto3
 import pytest
@@ -257,7 +257,7 @@ def grant_data_location_permissions(
     )
 
 
-def db_response(principal: str, catalog_id: str, db: str) -> Dict:
+def db_response(principal: str, catalog_id: str, db: str) -> dict:
     return {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {
@@ -271,7 +271,7 @@ def db_response(principal: str, catalog_id: str, db: str) -> Dict:
     }
 
 
-def table_response(principal: str, catalog_id: str, db: str, table: str) -> Dict:
+def table_response(principal: str, catalog_id: str, db: str, table: str) -> dict:
     return {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {
@@ -287,7 +287,7 @@ def table_response(principal: str, catalog_id: str, db: str, table: str) -> Dict
     }
 
 
-def catalog_response(principal: str) -> Dict:
+def catalog_response(principal: str) -> dict:
     return {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {"Catalog": {}},
@@ -298,7 +298,7 @@ def catalog_response(principal: str) -> Dict:
 
 def data_location_response(
     principal: str, resource_arn: str, catalog_id: Optional[str] = None
-) -> Dict:
+) -> dict:
     response = {
         "Principal": {"DataLakePrincipalIdentifier": principal},
         "Resource": {"DataLocation": {"ResourceArn": resource_arn}},

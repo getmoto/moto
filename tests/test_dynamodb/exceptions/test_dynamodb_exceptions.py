@@ -1324,13 +1324,13 @@ def test_batch_items_should_throw_exception_for_duplicate_request(
     # Execute
     with pytest.raises(ClientError) as ex:
         with table.batch_writer() as batch:
-            for i in range(0, 5):
-                batch.put_item(Item=test_item)
+            batch.put_item(Item=test_item)
+            batch.put_item(Item=test_item)
 
     with pytest.raises(ClientError) as ex2:
         with table.batch_writer() as batch:
-            for i in range(0, 5):
-                batch.delete_item(Key=test_item)
+            batch.delete_item(Key=test_item)
+            batch.delete_item(Key=test_item)
 
     # Verify
     err = ex.value.response["Error"]

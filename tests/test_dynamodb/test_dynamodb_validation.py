@@ -56,7 +56,7 @@ def test_validation_of_update_expression_with_keyword(table):
             item=item,
             table=table,
         ).validate()
-        assert False, "No exception raised"
+        raise AssertionError("No exception raised")
     except AttributeIsReservedKeyword as e:
         assert e.keyword == "path"
 
@@ -115,7 +115,7 @@ def test_validation_of_update_expression_with_attribute_that_does_not_exist_in_i
             item=item,
             table=table,
         ).validate()
-        assert False, "No exception raised"
+        raise AssertionError("No exception raised")
     except AttributeDoesNotExist:
         assert True
 
@@ -144,7 +144,7 @@ def test_validation_of_update_expression_with_attribute_name_that_is_not_defined
             item=item,
             table=table,
         ).validate()
-        assert False, "No exception raised"
+        raise AssertionError("No exception raised")
     except ExpressionAttributeNameNotDefined as e:
         assert e.not_defined_attribute_name == "#c"
 
@@ -165,7 +165,7 @@ def test_validation_of_if_not_exists_not_existing_invalid_replace_value(table):
             item=item,
             table=table,
         ).validate()
-        assert False, "No exception raised"
+        raise AssertionError("No exception raised")
     except AttributeDoesNotExist:
         assert True
 
@@ -425,7 +425,7 @@ def test_cannot_index_into_a_string(table):
             item=item,
             table=table,
         ).validate()
-        assert False, "Must raise exception"
+        raise AssertionError("Must raise exception")
     except InvalidUpdateExpressionInvalidDocumentPath:
         assert True
 
@@ -470,6 +470,6 @@ def test_validation_set_path_does_not_need_to_be_resolvable_but_must_be_creatabl
             item=item,
             table=table,
         ).validate()
-        assert False, "Must raise exception"
+        raise AssertionError("Must raise exception")
     except InvalidUpdateExpressionInvalidDocumentPath:
         assert True

@@ -1,7 +1,7 @@
 """TimestreamInfluxDBBackend class with methods for supported APIs."""
 
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -75,7 +75,7 @@ class ParameterGroup(BaseModel):
         self,
         name: str,
         description: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
+        parameters: Optional[dict[str, Any]] = None,
         region_name: str = "",
         account_id: str = "",
     ):
@@ -85,7 +85,7 @@ class ParameterGroup(BaseModel):
         self.parameters = parameters or {}
         self.arn = f"arn:aws:timestream-influxdb:{region_name}:{account_id}:db-parameter-group/{self.id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -94,7 +94,7 @@ class ParameterGroup(BaseModel):
             "parameters": self.parameters,
         }
 
-    def to_summary_dict(self) -> Dict[str, str]:
+    def to_summary_dict(self) -> dict[str, str]:
         return {
             "id": self.id,
             "name": self.name,
@@ -118,11 +118,11 @@ class Cluster(BaseModel):
         allocated_storage: Optional[int] = None,
         network_type: Optional[str] = None,
         publicly_accessible: Optional[bool] = None,
-        vpc_subnet_ids: Optional[List[str]] = None,
-        vpc_security_group_ids: Optional[List[str]] = None,
+        vpc_subnet_ids: Optional[list[str]] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
         deployment_type: Optional[str] = None,
         failover_mode: Optional[str] = None,
-        log_delivery_configuration: Optional[Dict[str, Any]] = None,
+        log_delivery_configuration: Optional[dict[str, Any]] = None,
         region_name: str = "",
         account_id: str = "",
         endpoint_id: str = "",
@@ -155,7 +155,7 @@ class Cluster(BaseModel):
         self.influx_auth_parameters_secret_arn = f"arn:aws:secretsmanager:{region_name}:{account_id}:secret:timestream-influxdb/{self.id}/auth-params-{random_id(6)}"
         self.status = "CREATING"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -178,7 +178,7 @@ class Cluster(BaseModel):
             "failoverMode": self.failover_mode,
         }
 
-    def to_summary_dict(self) -> Dict[str, Any]:
+    def to_summary_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -204,15 +204,15 @@ class DBInstance(BaseModel):
         organization: str,
         bucket: str,
         dbInstanceType: str,
-        vpcSubnetIds: List[str],
-        vpcSecurityGroupIds: List[str],
+        vpcSubnetIds: list[str],
+        vpcSecurityGroupIds: list[str],
         publiclyAccessible: bool,
         dbStorageType: str,
         allocatedStorage: int,
         dbParameterGroupIdentifier: Optional[str],
         deploymentType: str,
-        logDeliveryConfiguration: Optional[Dict[str, Any]],
-        tags: Optional[Dict[str, Any]],
+        logDeliveryConfiguration: Optional[dict[str, Any]],
+        tags: Optional[dict[str, Any]],
         port: int,
         networkType: str,
         region_name: str,
@@ -251,7 +251,7 @@ class DBInstance(BaseModel):
         self.availability_zone = ""  # TODO implement this
         self.secondary_availability_zone = ""  # TODO implement this
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -284,9 +284,9 @@ class TimestreamInfluxDBBackend(BaseBackend):
         # the endpoint identifier is unique per account and per region
         # https://docs.aws.amazon.com/timestream/latest/developerguide/timestream-for-influxdb.html
         self.endpoint_id: str = random_id(10)
-        self.db_instances: Dict[str, DBInstance] = {}
-        self.db_parameter_groups: Dict[str, ParameterGroup] = {}
-        self.db_clusters: Dict[str, Cluster] = {}
+        self.db_instances: dict[str, DBInstance] = {}
+        self.db_parameter_groups: dict[str, ParameterGroup] = {}
+        self.db_clusters: dict[str, Cluster] = {}
         self.tagger = TaggingService()
 
     def create_db_instance(
@@ -297,15 +297,15 @@ class TimestreamInfluxDBBackend(BaseBackend):
         organization: str,
         bucket: str,
         db_instance_type: str,
-        vpc_subnet_ids: List[str],
-        vpc_security_group_ids: List[str],
+        vpc_subnet_ids: list[str],
+        vpc_security_group_ids: list[str],
         db_storage_type: str,
         publicly_accessible: bool,
         allocated_storage: int,
         db_parameter_group_identifier: str,
         deployment_type: str,
-        log_delivery_configuration: Optional[Dict[str, Any]],
-        tags: Optional[Dict[str, str]],
+        log_delivery_configuration: Optional[dict[str, Any]],
+        tags: Optional[dict[str, str]],
         port: int,
         network_type: str,
     ) -> DBInstance:
@@ -379,7 +379,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
 
         return self.db_instances[id]
 
-    def list_db_instances(self) -> List[Dict[str, Any]]:
+    def list_db_instances(self) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
@@ -400,25 +400,25 @@ class TimestreamInfluxDBBackend(BaseBackend):
             for instance in self.db_instances.values()
         ]
 
-    def tag_resource(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tag_list = self.tagger.convert_dict_to_tags_input(tags)
         errmsg = self.tagger.validate_tags(tag_list)
         if errmsg:
             raise ValidationException(errmsg)
         self.tagger.tag_resource(resource_arn, tag_list)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
     def create_db_parameter_group(
         self,
         name: str,
         description: Optional[str] = None,
-        parameters: Optional[Dict[str, Any]] = None,
-        tags: Optional[Dict[str, str]] = None,
+        parameters: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> ParameterGroup:
         validate_name(name)
 
@@ -453,7 +453,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
         return param_group
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_db_parameter_groups(self) -> List[Dict[str, str]]:
+    def list_db_parameter_groups(self) -> list[dict[str, str]]:
         if not self.db_parameter_groups:
             return []
 
@@ -463,7 +463,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
         ]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_db_clusters(self) -> List[Dict[str, object]]:
+    def list_db_clusters(self) -> list[dict[str, object]]:
         if not self.db_clusters:
             return []
 
@@ -496,13 +496,13 @@ class TimestreamInfluxDBBackend(BaseBackend):
         allocated_storage: Optional[int] = None,
         network_type: Optional[str] = None,
         publicly_accessible: Optional[bool] = None,
-        vpc_subnet_ids: Optional[List[str]] = None,
-        vpc_security_group_ids: Optional[List[str]] = None,
+        vpc_subnet_ids: Optional[list[str]] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
         deployment_type: Optional[str] = None,
         failover_mode: Optional[str] = None,
-        log_delivery_configuration: Optional[Dict[str, Any]] = None,
-        tags: Optional[Dict[str, str]] = None,
-    ) -> Tuple[str, str]:
+        log_delivery_configuration: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> tuple[str, str]:
         validate_name(name)
 
         for cluster in self.db_clusters.values():

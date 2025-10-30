@@ -1,4 +1,4 @@
-from typing import Final, List
+from typing import Final
 
 from moto.stepfunctions.parser.asl.component.common.jsonata.jsonata_template_value import (
     JSONataTemplateValue,
@@ -7,9 +7,9 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class JSONataTemplateValueArray(JSONataTemplateValue):
-    values: Final[List[JSONataTemplateValue]]
+    values: Final[list[JSONataTemplateValue]]
 
-    def __init__(self, values: List[JSONataTemplateValue]):
+    def __init__(self, values: list[JSONataTemplateValue]):
         self.values = values
 
     def _eval_body(self, env: Environment) -> None:

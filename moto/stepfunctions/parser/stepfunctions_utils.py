@@ -1,6 +1,5 @@
 import base64
 import logging
-from typing import Tuple
 
 from moto.stepfunctions.parser.api import ValidationException
 from moto.stepfunctions.parser.utils import to_bytes, to_str
@@ -26,7 +25,7 @@ def assert_pagination_parameters_valid(
     next_token: str,
     next_token_length_limit: int = 1024,
     max_results_upper_limit: int = 1000,
-) -> Tuple[int, str]:
+) -> tuple[int, str]:
     validation_errors = []
 
     if isinstance(max_results, int) and max_results > max_results_upper_limit:

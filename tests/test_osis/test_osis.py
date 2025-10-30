@@ -749,7 +749,8 @@ def test_untag_resource():
     assert resp["Tags"] == []
 
 
-def set_transition(transition={"progression": "immediate"}):
+def set_transition(transition=None):
+    transition = transition or {"progression": "immediate"}
     if settings.TEST_DECORATOR_MODE:
         state_manager.set_transition(model_name="osis::pipeline", transition=transition)
     else:

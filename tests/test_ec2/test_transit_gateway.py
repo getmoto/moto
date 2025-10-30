@@ -1171,7 +1171,8 @@ def test_disable_transit_gateway_route_table_propagation_without_enabling_first(
         TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],
     )
 
-    with pytest.raises(Exception):
+    # Currently throws a KeyError
+    with pytest.raises(Exception):  # noqa: B017 Do not assert blind exception: `Exception`
         ec2.disable_transit_gateway_route_table_propagation(
             TransitGatewayAttachmentId=attchmnt["TransitGatewayAttachmentId"],
             TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"],

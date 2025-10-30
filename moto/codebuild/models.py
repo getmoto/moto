@@ -1,6 +1,6 @@
 import datetime
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from dateutil import parser
 
@@ -18,12 +18,12 @@ class CodeBuildProjectMetadata(BaseModel):
         region_name: str,
         project_name: str,
         source_version: Optional[str],
-        artifacts: Optional[Dict[str, Any]],
+        artifacts: Optional[dict[str, Any]],
         build_id: str,
         service_role: str,
     ):
         current_date = iso_8601_datetime_with_milliseconds()
-        self.build_metadata: Dict[str, Any] = dict()
+        self.build_metadata: dict[str, Any] = dict()
 
         self.build_metadata["id"] = build_id
         self.build_metadata["arn"] = (
@@ -99,23 +99,23 @@ class CodeBuild(BaseModel):
         region: str,
         project_name: str,
         description: Optional[str],
-        project_source: Dict[str, Any],
-        artifacts: Dict[str, Any],
-        environment: Dict[str, Any],
+        project_source: dict[str, Any],
+        artifacts: dict[str, Any],
+        environment: dict[str, Any],
         serviceRole: str = "some_role",
-        tags: Optional[List[Dict[str, str]]] = None,
-        cache: Optional[Dict[str, Any]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        cache: Optional[dict[str, Any]] = None,
         timeout: Optional[int] = 0,
         queued_timeout: Optional[int] = 0,
         source_version: Optional[str] = None,
-        logs_config: Optional[Dict[str, Any]] = None,
-        vpc_config: Optional[Dict[str, Any]] = None,
+        logs_config: Optional[dict[str, Any]] = None,
+        vpc_config: Optional[dict[str, Any]] = None,
     ):
         self.arn = f"arn:{get_partition(region)}:codebuild:{region}:{account_id}:project/{project_name}"
         self.service_role = serviceRole
         self.tags = tags
         current_date = unix_time()
-        self.project_metadata: Dict[str, Any] = dict()
+        self.project_metadata: dict[str, Any] = dict()
 
         self.project_metadata["name"] = project_name
         if description:
@@ -154,27 +154,27 @@ class CodeBuild(BaseModel):
 class CodeBuildBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.codebuild_projects: Dict[str, CodeBuild] = dict()
-        self.build_history: Dict[str, List[str]] = dict()
-        self.build_metadata: Dict[str, CodeBuildProjectMetadata] = dict()
-        self.build_metadata_history: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self.codebuild_projects: dict[str, CodeBuild] = dict()
+        self.build_history: dict[str, list[str]] = dict()
+        self.build_metadata: dict[str, CodeBuildProjectMetadata] = dict()
+        self.build_metadata_history: dict[str, list[dict[str, Any]]] = defaultdict(list)
 
     def create_project(
         self,
         project_name: str,
         description: Optional[str],
-        project_source: Dict[str, Any],
-        artifacts: Dict[str, Any],
-        environment: Dict[str, Any],
+        project_source: dict[str, Any],
+        artifacts: dict[str, Any],
+        environment: dict[str, Any],
         service_role: str,
-        tags: Optional[List[Dict[str, str]]],
-        cache: Optional[Dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
+        cache: Optional[dict[str, Any]],
         timeout: Optional[int],
         queued_timeout: Optional[int],
         source_version: Optional[str],
-        logs_config: Optional[Dict[str, Any]],
-        vpc_config: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        logs_config: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
+    ) -> dict[str, Any]:
         self.codebuild_projects[project_name] = CodeBuild(
             self.account_id,
             self.region_name,
@@ -198,7 +198,7 @@ class CodeBuildBackend(BaseBackend):
 
         return self.codebuild_projects[project_name].project_metadata
 
-    def list_projects(self) -> List[str]:
+    def list_projects(self) -> list[str]:
         projects = []
 
         for project in self.codebuild_projects.keys():
@@ -206,7 +206,7 @@ class CodeBuildBackend(BaseBackend):
 
         return projects
 
-    def batch_get_projects(self, names: List[str]) -> List[Dict[str, Any]]:
+    def batch_get_projects(self, names: list[str]) -> list[dict[str, Any]]:
         result = []
         for name in names:
             if name in self.codebuild_projects:
@@ -221,8 +221,8 @@ class CodeBuildBackend(BaseBackend):
         self,
         project_name: str,
         source_version: Optional[str] = None,
-        artifact_override: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        artifact_override: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         project = self.codebuild_projects[project_name]
         build_id = f"{project_name}:{mock_random.uuid4()}"
 
@@ -246,7 +246,7 @@ class CodeBuildBackend(BaseBackend):
 
         return self.build_metadata[project_name].build_metadata
 
-    def _set_phases(self, phases: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _set_phases(self, phases: list[dict[str, Any]]) -> list[dict[str, Any]]:
         current_date = iso_8601_datetime_with_milliseconds()
         # No phaseStatus for QUEUED on first start
         for existing_phase in phases:
@@ -266,7 +266,7 @@ class CodeBuildBackend(BaseBackend):
         ]
 
         for status in statuses:
-            phase: Dict[str, Any] = dict()
+            phase: dict[str, Any] = dict()
             phase["phaseType"] = status
             phase["phaseStatus"] = "SUCCEEDED"
             phase["startTime"] = current_date
@@ -276,8 +276,8 @@ class CodeBuildBackend(BaseBackend):
 
         return phases
 
-    def batch_get_builds(self, ids: List[str]) -> List[Dict[str, Any]]:
-        batch_build_metadata: List[Dict[str, Any]] = []
+    def batch_get_builds(self, ids: list[str]) -> list[dict[str, Any]]:
+        batch_build_metadata: list[dict[str, Any]] = []
 
         for metadata in self.build_metadata_history.values():
             for build in metadata:
@@ -294,13 +294,13 @@ class CodeBuildBackend(BaseBackend):
 
         return batch_build_metadata
 
-    def list_builds_for_project(self, project_name: str) -> List[str]:
+    def list_builds_for_project(self, project_name: str) -> list[str]:
         try:
             return self.build_history[project_name]
         except KeyError:
             return list()
 
-    def list_builds(self) -> List[str]:
+    def list_builds(self) -> list[str]:
         ids = []
 
         for build_ids in self.build_history.values():
@@ -311,7 +311,7 @@ class CodeBuildBackend(BaseBackend):
         self.build_metadata.pop(project_name, None)
         self.codebuild_projects.pop(project_name, None)
 
-    def stop_build(self, build_id: str) -> Optional[Dict[str, Any]]:  # type: ignore[return]
+    def stop_build(self, build_id: str) -> Optional[dict[str, Any]]:  # type: ignore[return]
         for metadata in self.build_metadata_history.values():
             for build in metadata:
                 if build["id"] == build_id:
