@@ -22,7 +22,7 @@ class InstanceResponse(EC2BaseResponse):
                 "The parameter instancesSet cannot be used with the parameter maxResults"
             )
         filter_dict = self._filters_from_querystring()
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
         token = self._get_param("NextToken")
         if instance_ids:
             reservations = self.ec2_backend.get_reservations_by_instance_ids(

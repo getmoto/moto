@@ -6,10 +6,10 @@ from ._base_response import EC2BaseResponse
 
 class AmisResponse(EC2BaseResponse):
     def create_image(self) -> ActionResult:
-        name = self.querystring.get("Name")[0]  # type: ignore[index]
-        description = self._get_param("Description", if_none="")
+        name = self._get_param("Name")
+        description = self._get_param("Description", "")
         instance_id = self._get_param("InstanceId")
-        tag_specifications = self._get_multi_param("TagSpecification")
+        tag_specifications = self._get_param("TagSpecifications", [])
 
         self.error_on_dryrun()
 
@@ -47,10 +47,10 @@ class AmisResponse(EC2BaseResponse):
 
     def describe_images(self) -> ActionResult:
         self.error_on_dryrun()
-        ami_ids = self._get_multi_param("ImageId")
+        ami_ids = self._get_param("ImageIds", [])
         filters = self._filters_from_querystring()
-        owners = self._get_multi_param("Owner")
-        exec_users = self._get_multi_param("ExecutableBy")
+        owners = self._get_param("Owners", [])
+        exec_users = self._get_param("ExecutableUsers", [])
         images = self.ec2_backend.describe_images(
             ami_ids=ami_ids, filters=filters, exec_users=exec_users, owners=owners
         )
@@ -149,8 +149,8 @@ class AmisResponse(EC2BaseResponse):
         return EmptyResult()
 
     def register_image(self) -> ActionResult:
-        name = self.querystring.get("Name")[0]  # type: ignore[index]
-        description = self._get_param("Description", if_none="")
+        name = self._get_param("Name")
+        description = self._get_param("Description", "")
 
         self.error_on_dryrun()
 
