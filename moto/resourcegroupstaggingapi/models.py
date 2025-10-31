@@ -1,4 +1,5 @@
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from collections.abc import Iterator
+from typing import Any, Optional
 
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
@@ -67,7 +68,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
 
-        self._pages: Dict[str, Any] = {}
+        self._pages: dict[str, Any] = {}
         # Like 'someuuid': {'gen': <generator>, 'misc': None}
         # Misc is there for peeking from a generator and it cant
         # fit in the current request. As we only store generators
@@ -265,9 +266,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     def _get_resources_generator(
         self,
-        tag_filters: Optional[List[Dict[str, Any]]] = None,
-        resource_type_filters: Optional[List[str]] = None,
-    ) -> Iterator[Dict[str, Any]]:
+        tag_filters: Optional[list[dict[str, Any]]] = None,
+        resource_type_filters: Optional[list[str]] = None,
+    ) -> Iterator[dict[str, Any]]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
 
@@ -291,7 +292,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     and v in vl
                 )
 
-        def tag_filter(tag_list: List[Dict[str, Any]]) -> bool:
+        def tag_filter(tag_list: list[dict[str, Any]]) -> bool:
             result = []
             if tag_filters:
                 for f in filters:
@@ -304,15 +305,15 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             else:
                 return True
 
-        def format_tags(tags: Dict[str, Any]) -> List[Dict[str, Any]]:
+        def format_tags(tags: dict[str, Any]) -> list[dict[str, Any]]:
             result = []
             for key, value in tags.items():
                 result.append({"Key": key, "Value": value})
             return result
 
         def format_tag_keys(
-            tags: List[Dict[str, Any]], keys: List[str]
-        ) -> List[Dict[str, Any]]:
+            tags: list[dict[str, Any]], keys: list[str]
+        ) -> list[dict[str, Any]]:
             result = []
             for tag in tags:
                 result.append({"Key": tag[keys[0]], "Value": tag[keys[1]]})
@@ -484,7 +485,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": f"{dist.arn}", "Tags": tags}
 
         if self.cloudwatch_backend:
-            cloudwatch_resource_map: Dict[str, Dict[str, Any]] = {
+            cloudwatch_resource_map: dict[str, dict[str, Any]] = {
                 "cloudwatch:alarm": self.cloudwatch_backend.alarms,
                 "cloudwatch:insight-rule": self.cloudwatch_backend.insight_rules,
             }
@@ -860,7 +861,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # LexV2
         if self.lexv2_backend:
-            lex_v2_resource_map: Dict[str, Dict[str, Any]] = {
+            lex_v2_resource_map: dict[str, dict[str, Any]] = {
                 "lexv2:bot": self.lexv2_backend.bots,
                 "lexv2:bot-alias": self.lexv2_backend.bot_aliases,
             }
@@ -1187,7 +1188,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 }
 
         # sagemaker cluster, automljob, compilation-job, domain, model-explainability-job-definition, model-quality-job-definition, and hyper-parameter-tuning-job currently supported
-        sagemaker_resource_map: Dict[str, Dict[str, Any]] = {
+        sagemaker_resource_map: dict[str, dict[str, Any]] = {
             "sagemaker:cluster": self.sagemaker_backend.clusters,
             "sagemaker:automl-job": self.sagemaker_backend.auto_ml_jobs,
             "sagemaker:compilation-job": self.sagemaker_backend.compilation_jobs,
@@ -1241,7 +1242,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield key
 
         # EC2 tags
-        def get_ec2_keys(res_id: str) -> List[Dict[str, str]]:
+        def get_ec2_keys(res_id: str) -> list[dict[str, str]]:
             result = []
             for key in self.ec2_backend.tags.get(res_id, {}):
                 result.append(key)
@@ -1285,8 +1286,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # Glue
         for tag_dict in self.glue_backend.tagger.tags.values():
-            for tag_key in tag_dict.keys():
-                yield tag_key
+            yield from tag_dict.keys()
 
     def _get_tag_values_generator(self, tag_key: str) -> Iterator[str]:
         # Look at
@@ -1300,7 +1300,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     yield value
 
         # EC2 tags
-        def get_ec2_values(res_id: str) -> List[Dict[str, str]]:
+        def get_ec2_values(res_id: str) -> list[dict[str, str]]:
             result = []
             for key, value in self.ec2_backend.tags.get(res_id, {}).items():
                 if key == tag_key:
@@ -1354,9 +1354,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         pagination_token: Optional[str] = None,
         resources_per_page: int = 50,
         tags_per_page: int = 100,
-        tag_filters: Optional[List[Dict[str, Any]]] = None,
-        resource_type_filters: Optional[List[str]] = None,
-    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
+        tag_filters: Optional[list[dict[str, Any]]] = None,
+        resource_type_filters: Optional[list[str]] = None,
+    ) -> tuple[Optional[str], list[dict[str, Any]]]:
         # Simple range checking
         if 100 >= tags_per_page >= 500:
             raise RESTError(
@@ -1421,7 +1421,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     def get_tag_keys(
         self, pagination_token: Optional[str] = None
-    ) -> Tuple[Optional[str], List[str]]:
+    ) -> tuple[Optional[str], list[str]]:
         if pagination_token:
             if pagination_token not in self._pages:
                 raise RESTError(
@@ -1468,7 +1468,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     def get_tag_values(
         self, pagination_token: Optional[str], key: str
-    ) -> Tuple[Optional[str], List[str]]:
+    ) -> tuple[Optional[str], list[str]]:
         if pagination_token:
             if pagination_token not in self._pages:
                 raise RESTError(
@@ -1514,13 +1514,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return new_token, result
 
     def tag_resources(
-        self, resource_arns: List[str], tags: Dict[str, str]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, resource_arns: list[str], tags: dict[str, str]
+    ) -> dict[str, dict[str, Any]]:
         """
         Only DynamoDB, EFS, Elasticache, Lambda Logs, Quicksight RDS, and SageMaker resources are currently supported
         """
         missing_resources = []
-        missing_error: Dict[str, Any] = {
+        missing_error: dict[str, Any] = {
             "StatusCode": 404,
             "ErrorCode": "InternalServiceException",
             "ErrorMessage": "Service not yet supported",
@@ -1574,16 +1574,16 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 )
             else:
                 missing_resources.append(arn)
-        return {arn: missing_error for arn in missing_resources}
+        return dict.fromkeys(missing_resources, missing_error)
 
     def untag_resources(
-        self, resource_arn_list: List[str], tag_keys: List[str]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, resource_arn_list: list[str], tag_keys: list[str]
+    ) -> dict[str, dict[str, Any]]:
         """
         Only EFS, Elasticache, Lambda, and Quicksight resources are currently supported
         """
         missing_resources = []
-        missing_error: Dict[str, Any] = {
+        missing_error: dict[str, Any] = {
             "StatusCode": 404,
             "ErrorCode": "InternalServiceException",
             "ErrorMessage": "Service not yet supported",
@@ -1605,7 +1605,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
             else:
                 missing_resources.append(arn)
 
-        return {arn: missing_error for arn in missing_resources}
+        return dict.fromkeys(missing_resources, missing_error)
 
 
 resourcegroupstaggingapi_backends = BackendDict(

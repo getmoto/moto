@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random as random
@@ -14,7 +14,7 @@ class QuicksightDataSet(BaseModel):
         self.region = region
         self.account_id = account_id
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "DataSetId": self._id,
@@ -29,7 +29,7 @@ class QuicksightIngestion(BaseModel):
         self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:data-set/{data_set_id}/ingestions/{ingestion_id}"
         self.ingestion_id = ingestion_id
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "IngestionId": self.ingestion_id,
@@ -43,7 +43,7 @@ class QuicksightMembership(BaseModel):
         self.user = user
         self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:group/default/{group}/{user}"
 
-    def to_json(self) -> Dict[str, str]:
+    def to_json(self) -> dict[str, str]:
         return {"Arn": self.arn, "MemberName": self.user}
 
 
@@ -63,7 +63,7 @@ class QuicksightGroup(BaseModel):
         self.namespace = namespace
         self.region = region
 
-        self.members: Dict[str, QuicksightMembership] = dict()
+        self.members: dict[str, QuicksightMembership] = {}
 
     def add_member(self, member_name: str) -> QuicksightMembership:
         membership = QuicksightMembership(
@@ -78,10 +78,10 @@ class QuicksightGroup(BaseModel):
     def get_member(self, user_name: str) -> Union[QuicksightMembership, None]:
         return self.members.get(user_name, None)
 
-    def list_members(self) -> List[QuicksightMembership]:
+    def list_members(self) -> list[QuicksightMembership]:
         return list(self.members.values())
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "GroupName": self.group_name,
@@ -109,7 +109,7 @@ class QuicksightUser(BaseModel):
         self.active = False
         self.principal_id = random.get_random_hex(10)
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "Email": self.email,
@@ -129,19 +129,19 @@ class QuicksightDashboard(BaseModel):
         account_id: str,
         region: str,
         dashboard_id: str,
-        dashboard_publish_options: Dict[str, Any],
+        dashboard_publish_options: dict[str, Any],
         name: str,
-        definition: Dict[str, Any],
-        folder_arns: List[str],
-        link_entities: List[str],
-        link_sharing_configuration: Dict[str, Any],
-        parameters: Dict[str, Any],
-        permissions: List[Dict[str, Any]],
-        source_entity: Dict[str, Any],
-        tags: List[Dict[str, Any]],
+        definition: dict[str, Any],
+        folder_arns: list[str],
+        link_entities: list[str],
+        link_sharing_configuration: dict[str, Any],
+        parameters: dict[str, Any],
+        permissions: list[dict[str, Any]],
+        source_entity: dict[str, Any],
+        tags: list[dict[str, Any]],
         theme_arn: str,
         version_description: str,
-        validation_strategy: Dict[str, str],
+        validation_strategy: dict[str, str],
     ) -> None:
         self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:dashboard/{dashboard_id}"
         self.dashboard_id = dashboard_id
@@ -167,7 +167,7 @@ class QuicksightDashboard(BaseModel):
         self.last_updated_time = datetime.datetime.now()
         self.last_published_time = datetime.datetime.now()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "DashboardId": self.dashboard_id,
@@ -209,13 +209,13 @@ class QuickSightDataSource(BaseModel):
         region: str,
         data_source_id: str,
         name: str,
-        data_source_parameters: Optional[Dict[str, Dict[str, Any]]] = None,
-        alternate_data_source_parameters: Optional[List[Dict[str, Any]]] = None,
-        ssl_properties: Optional[Dict[str, Any]] = None,
+        data_source_parameters: Optional[dict[str, dict[str, Any]]] = None,
+        alternate_data_source_parameters: Optional[list[dict[str, Any]]] = None,
+        ssl_properties: Optional[dict[str, Any]] = None,
         status: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         data_source_type: Optional[str] = None,
-        vpc_connection_properties: Optional[Dict[str, Any]] = None,
+        vpc_connection_properties: Optional[dict[str, Any]] = None,
     ) -> None:
         self.account_id = account_id
         self.region = region
@@ -232,7 +232,7 @@ class QuickSightDataSource(BaseModel):
         self.ssl_properties = ssl_properties
         self.vpc_connection_properties = vpc_connection_properties
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "AlternateDataSourceParameters": self.alternate_data_source_parameters,
             "Arn": self.arn,

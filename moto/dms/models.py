@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -19,9 +20,9 @@ from .utils import filter_tasks, random_id
 class DatabaseMigrationServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.replication_tasks: Dict[str, "FakeReplicationTask"] = {}
-        self.replication_instances: Dict[str, "FakeReplicationInstance"] = {}
-        self.endpoints: Dict[str, "Endpoint"] = {}
+        self.replication_tasks: dict[str, FakeReplicationTask] = {}
+        self.replication_instances: dict[str, FakeReplicationInstance] = {}
+        self.endpoints: dict[str, Endpoint] = {}
         self.tagger = TaggingService()
 
     def create_replication_task(
@@ -90,7 +91,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         return task
 
     def describe_replication_tasks(
-        self, filters: List[Dict[str, Any]], max_records: int
+        self, filters: list[dict[str, Any]], max_records: int
     ) -> Iterable["FakeReplicationTask"]:
         """
         The parameter WithoutSettings has not yet been implemented
@@ -107,20 +108,20 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         replication_instance_identifier: str,
         replication_instance_class: str,
         allocated_storage: Optional[int] = None,
-        vpc_security_group_ids: Optional[List[str]] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
         availability_zone: Optional[str] = None,
         replication_subnet_group_identifier: Optional[str] = None,
         preferred_maintenance_window: Optional[str] = None,
         multi_az: Optional[bool] = False,
         engine_version: Optional[str] = None,
         auto_minor_version_upgrade: Optional[bool] = True,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         kms_key_id: Optional[str] = None,
         publicly_accessible: Optional[bool] = True,
         dns_name_servers: Optional[str] = None,
         resource_identifier: Optional[str] = None,
         network_type: Optional[str] = None,
-        kerberos_authentication_settings: Optional[Dict[str, str]] = None,
+        kerberos_authentication_settings: Optional[dict[str, str]] = None,
     ) -> "FakeReplicationInstance":
         replication_instance = FakeReplicationInstance(
             replication_instance_identifier=replication_instance_identifier,
@@ -157,10 +158,10 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
     def describe_replication_instances(
         self,
-        filters: Optional[List[Dict[str, Any]]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
         max_records: Optional[int] = None,
         marker: Optional[str] = None,
-    ) -> List["FakeReplicationInstance"]:
+    ) -> list["FakeReplicationInstance"]:
         """Get information about replication instances with optional filtering"""
         ### TODO: Implement pagination
 
@@ -210,31 +211,31 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         database_name: str,
         extra_connection_attributes: str,
         kms_key_id: str,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         certificate_arn: str,
         ssl_mode: str,
         service_access_role_arn: str,
         external_table_definition: str,
-        dynamo_db_settings: Optional[Dict[str, Any]],
-        s3_settings: Optional[Dict[str, Any]],
-        dms_transfer_settings: Optional[Dict[str, Any]],
-        mongo_db_settings: Optional[Dict[str, Any]],
-        kinesis_settings: Optional[Dict[str, Any]],
-        kafka_settings: Optional[Dict[str, Any]],
-        elasticsearch_settings: Optional[Dict[str, Any]],
-        neptune_settings: Optional[Dict[str, Any]],
-        redshift_settings: Optional[Dict[str, Any]],
-        postgre_sql_settings: Optional[Dict[str, Any]],
-        my_sql_settings: Optional[Dict[str, Any]],
-        oracle_settings: Optional[Dict[str, Any]],
-        sybase_settings: Optional[Dict[str, Any]],
-        microsoft_sql_server_settings: Optional[Dict[str, Any]],
-        ibm_db2_settings: Optional[Dict[str, Any]],
+        dynamo_db_settings: Optional[dict[str, Any]],
+        s3_settings: Optional[dict[str, Any]],
+        dms_transfer_settings: Optional[dict[str, Any]],
+        mongo_db_settings: Optional[dict[str, Any]],
+        kinesis_settings: Optional[dict[str, Any]],
+        kafka_settings: Optional[dict[str, Any]],
+        elasticsearch_settings: Optional[dict[str, Any]],
+        neptune_settings: Optional[dict[str, Any]],
+        redshift_settings: Optional[dict[str, Any]],
+        postgre_sql_settings: Optional[dict[str, Any]],
+        my_sql_settings: Optional[dict[str, Any]],
+        oracle_settings: Optional[dict[str, Any]],
+        sybase_settings: Optional[dict[str, Any]],
+        microsoft_sql_server_settings: Optional[dict[str, Any]],
+        ibm_db2_settings: Optional[dict[str, Any]],
         resource_identifier: Optional[str],
-        doc_db_settings: Optional[Dict[str, Any]],
-        redis_settings: Optional[Dict[str, Any]],
-        gcp_my_sql_settings: Optional[Dict[str, Any]],
-        timestream_settings: Optional[Dict[str, Any]],
+        doc_db_settings: Optional[dict[str, Any]],
+        redis_settings: Optional[dict[str, Any]],
+        gcp_my_sql_settings: Optional[dict[str, Any]],
+        timestream_settings: Optional[dict[str, Any]],
     ) -> "Endpoint":
         if endpoint_type not in ["source", "target"]:
             raise ValidationError("Invalid endpoint type")
@@ -290,10 +291,10 @@ class DatabaseMigrationServiceBackend(BaseBackend):
     # TODO implement pagination
     def describe_endpoints(
         self,
-        filters: List[Dict[str, Any]],
+        filters: list[dict[str, Any]],
         max_records: Optional[int],
         marker: Optional[str],
-    ) -> List["Endpoint"]:
+    ) -> list["Endpoint"]:
         endpoints = list(self.endpoints.values())
         filter_map = {
             "endpoint-arn": "endpoint_arn",
@@ -318,8 +319,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         return endpoints
 
     def list_tags_for_resource(
-        self, resource_arn_list: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, resource_arn_list: list[str]
+    ) -> list[dict[str, Any]]:
         result = []
         for resource_arn in resource_arn_list:
             tags = self.tagger.get_tag_dict_for_resource(resource_arn)
@@ -348,26 +349,26 @@ class Endpoint(BaseModel):
         service_access_role_arn: Optional[str],
         external_table_definition: Optional[str],
         external_id: Optional[str],
-        dynamo_db_settings: Optional[Dict[str, Any]],
-        s3_settings: Optional[Dict[str, Any]],
-        dms_transfer_settings: Optional[Dict[str, Any]],
-        mongo_db_settings: Optional[Dict[str, Any]],
-        kinesis_settings: Optional[Dict[str, Any]],
-        kafka_settings: Optional[Dict[str, Any]],
-        elasticsearch_settings: Optional[Dict[str, Any]],
-        neptune_settings: Optional[Dict[str, Any]],
-        redshift_settings: Optional[Dict[str, Any]],
-        postgre_sql_settings: Optional[Dict[str, Any]],
-        my_sql_settings: Optional[Dict[str, Any]],
-        oracle_settings: Optional[Dict[str, Any]],
-        sybase_settings: Optional[Dict[str, Any]],
-        microsoft_sql_server_settings: Optional[Dict[str, Any]],
-        ibm_db2_settings: Optional[Dict[str, Any]],
+        dynamo_db_settings: Optional[dict[str, Any]],
+        s3_settings: Optional[dict[str, Any]],
+        dms_transfer_settings: Optional[dict[str, Any]],
+        mongo_db_settings: Optional[dict[str, Any]],
+        kinesis_settings: Optional[dict[str, Any]],
+        kafka_settings: Optional[dict[str, Any]],
+        elasticsearch_settings: Optional[dict[str, Any]],
+        neptune_settings: Optional[dict[str, Any]],
+        redshift_settings: Optional[dict[str, Any]],
+        postgre_sql_settings: Optional[dict[str, Any]],
+        my_sql_settings: Optional[dict[str, Any]],
+        oracle_settings: Optional[dict[str, Any]],
+        sybase_settings: Optional[dict[str, Any]],
+        microsoft_sql_server_settings: Optional[dict[str, Any]],
+        ibm_db2_settings: Optional[dict[str, Any]],
         resource_identifier: Optional[str],
-        doc_db_settings: Optional[Dict[str, Any]],
-        redis_settings: Optional[Dict[str, Any]],
-        gcp_my_sql_settings: Optional[Dict[str, Any]],
-        timestream_settings: Optional[Dict[str, Any]],
+        doc_db_settings: Optional[dict[str, Any]],
+        redis_settings: Optional[dict[str, Any]],
+        gcp_my_sql_settings: Optional[dict[str, Any]],
+        timestream_settings: Optional[dict[str, Any]],
         account_id: str,
         region_name: str,
     ):
@@ -415,7 +416,7 @@ class Endpoint(BaseModel):
         self.gcp_my_sql_settings = gcp_my_sql_settings
         self.timestream_settings = timestream_settings
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "EndpointIdentifier": self.endpoint_identifier,
             "EndpointType": self.endpoint_type,
@@ -485,7 +486,7 @@ class FakeReplicationTask(BaseModel):
         self.start_date: Optional[datetime] = None
         self.stop_date: Optional[datetime] = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         start_date = self.start_date.isoformat() if self.start_date else None
         stop_date = self.stop_date.isoformat() if self.stop_date else None
 
@@ -551,20 +552,20 @@ class FakeReplicationInstance(BaseModel):
         account_id: str,
         region_name: str,
         allocated_storage: Optional[int] = None,
-        vpc_security_group_ids: Optional[List[str]] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
         availability_zone: Optional[str] = None,
         replication_subnet_group_identifier: Optional[str] = None,
         preferred_maintenance_window: Optional[str] = None,
         multi_az: Optional[bool] = False,
         engine_version: Optional[str] = None,
         auto_minor_version_upgrade: Optional[bool] = True,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         kms_key_id: Optional[str] = None,
         publicly_accessible: Optional[bool] = True,
         dns_name_servers: Optional[str] = None,
         resource_identifier: Optional[str] = None,
         network_type: Optional[str] = None,
-        kerberos_authentication_settings: Optional[Dict[str, str]] = None,
+        kerberos_authentication_settings: Optional[dict[str, str]] = None,
     ):
         self.id = replication_instance_identifier
         self.replication_instance_class = replication_instance_class
@@ -592,9 +593,9 @@ class FakeReplicationInstance(BaseModel):
         self.creation_date = utcnow()
         self.private_ip_addresses = ["10.0.0.1"]
         self.public_ip_addresses = ["54.0.0.1"] if publicly_accessible else []
-        self.ipv6_addresses: List[str] = []
+        self.ipv6_addresses: list[str] = []
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         kerberos_settings = None
         if self.kerberos_authentication_settings:
             kerberos_settings = {

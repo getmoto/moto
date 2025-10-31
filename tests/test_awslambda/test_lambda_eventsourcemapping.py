@@ -224,7 +224,7 @@ def test_invoke_function_from_dynamodb_put():
         expected_msg + " was not found after a DDB insert. All logs: " + str(all_logs)
     )
     assert any(
-        [json.dumps(item_to_create, separators=(",", ":")) in msg for msg in all_logs]
+        json.dumps(item_to_create, separators=(",", ":")) in msg for msg in all_logs
     )
 
 
@@ -348,7 +348,7 @@ def test_invoke_function_from_sqs_exception():
                 return
         time.sleep(1)
 
-    assert False, "Test Failed"
+    raise AssertionError("Test Failed")
 
 
 @pytest.mark.network
@@ -405,7 +405,7 @@ def test_invoke_function_from_sns():
 
         time.sleep(1)
 
-    assert False, "Expected message not found in logs:" + str(events)
+    raise AssertionError("Expected message not found in logs:" + str(events))
 
 
 @pytest.mark.network
@@ -461,7 +461,7 @@ def test_invoke_function_from_kinesis():
 
         time.sleep(0.5)
 
-    assert False, "Expected message not found in logs:" + str(events)
+    raise AssertionError("Expected message not found in logs:" + str(events))
 
 
 @mock_aws

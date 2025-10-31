@@ -566,7 +566,7 @@ def test_create_cluster_subnet_group():
     assert my_subnet["ClusterSubnetGroupName"] == "my_subnet_group"
     assert my_subnet["Description"] == "This is my subnet group"
     subnet_ids = [subnet["SubnetIdentifier"] for subnet in my_subnet["Subnets"]]
-    assert set(subnet_ids) == set([subnet1.id, subnet2.id])
+    assert set(subnet_ids) == {subnet1.id, subnet2.id}
 
 
 @mock_aws

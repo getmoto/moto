@@ -1,6 +1,6 @@
 import re
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -82,13 +82,13 @@ class FakeRule(BaseModel):
         self,
         name: str,
         priority: int,
-        statement: Dict[str, Any],
-        visibility_config: Dict[str, Union[str, bool]],
-        action: Optional[Dict[str, Any]] = None,
-        captcha_config: Optional[Dict[str, Dict[str, int]]] = None,
-        challenge_config: Optional[Dict[str, Dict[str, int]]] = None,
-        override_action: Optional[Dict[str, Any]] = None,
-        rule_labels: Optional[List[Dict[str, str]]] = None,
+        statement: dict[str, Any],
+        visibility_config: dict[str, Union[str, bool]],
+        action: Optional[dict[str, Any]] = None,
+        captcha_config: Optional[dict[str, dict[str, int]]] = None,
+        challenge_config: Optional[dict[str, dict[str, int]]] = None,
+        override_action: Optional[dict[str, Any]] = None,
+        rule_labels: Optional[list[dict[str, str]]] = None,
     ):
         self.name = name
         self.priority = priority
@@ -103,10 +103,10 @@ class FakeRule(BaseModel):
     def get_consumed_label(self) -> Optional[str]:
         return self.statement.get("LabelMatchStatement", {}).get("Key")
 
-    def get_available_labels(self) -> Optional[List[str]]:
+    def get_available_labels(self) -> Optional[list[str]]:
         return [r["Name"] for r in self.rule_labels] if self.rule_labels else None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Action": self.action,
@@ -131,15 +131,15 @@ class FakeWebACL(BaseModel):
         account: str,
         arn: str,
         wacl_id: str,
-        visibility_config: Dict[str, Any],
-        default_action: Dict[str, Any],
+        visibility_config: dict[str, Any],
+        default_action: dict[str, Any],
         description: Optional[str],
-        rules: Optional[List[FakeRule]],
-        association_config: Optional[Dict[str, Any]] = None,
-        captcha_config: Optional[Dict[str, Any]] = None,
-        challenge_config: Optional[Dict[str, Any]] = None,
-        custom_response_bodies: Optional[Dict[str, Any]] = None,
-        token_domains: Optional[List[str]] = None,
+        rules: Optional[list[FakeRule]],
+        association_config: Optional[dict[str, Any]] = None,
+        captcha_config: Optional[dict[str, Any]] = None,
+        challenge_config: Optional[dict[str, Any]] = None,
+        custom_response_bodies: Optional[dict[str, Any]] = None,
+        token_domains: Optional[list[str]] = None,
     ):
         self.name = name
         self.account = account
@@ -152,7 +152,7 @@ class FakeWebACL(BaseModel):
         self.visibility_config = visibility_config
         self.default_action = default_action
         self.lock_token = self._generate_lock_token()
-        self.associated_resources: List[str] = []
+        self.associated_resources: list[str] = []
         self.association_config = association_config
         self.captcha_config = captcha_config
         self.challenge_config = challenge_config
@@ -168,15 +168,15 @@ class FakeWebACL(BaseModel):
 
     def update(
         self,
-        default_action: Optional[Dict[str, Any]],
-        rules: Optional[List[FakeRule]],
+        default_action: Optional[dict[str, Any]],
+        rules: Optional[list[FakeRule]],
         description: Optional[str],
-        visibility_config: Optional[Dict[str, Any]],
-        custom_response_bodies: Optional[Dict[str, Any]],
-        captcha_config: Optional[Dict[str, Any]],
-        challenge_config: Optional[Dict[str, Any]],
-        token_domains: Optional[List[str]],
-        association_config: Optional[Dict[str, Any]],
+        visibility_config: Optional[dict[str, Any]],
+        custom_response_bodies: Optional[dict[str, Any]],
+        captcha_config: Optional[dict[str, Any]],
+        challenge_config: Optional[dict[str, Any]],
+        token_domains: Optional[list[str]],
+        association_config: Optional[dict[str, Any]],
     ) -> None:
         if default_action is not None:
             self.default_action = default_action
@@ -198,7 +198,7 @@ class FakeWebACL(BaseModel):
             self.association_config = association_config
         self.lock_token = self._generate_lock_token()
 
-    def to_short_dict(self) -> Dict[str, Any]:
+    def to_short_dict(self) -> dict[str, Any]:
         # Format for summary https://docs.aws.amazon.com/waf/latest/APIReference/API_CreateWebACL.html (response syntax section)
         return {
             "ARN": self.arn,
@@ -208,7 +208,7 @@ class FakeWebACL(BaseModel):
             "LockToken": self.lock_token,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Id": self.id,
@@ -238,7 +238,7 @@ class FakeIPSet(BaseModel):
         arn: str,
         ip_set_id: str,
         ip_address_version: str,
-        addresses: List[str],
+        addresses: list[str],
         name: str,
         description: str,
         scope: str,
@@ -253,14 +253,14 @@ class FakeIPSet(BaseModel):
 
         self.lock_token = str(mock_random.uuid4())[0:6]
 
-    def update(self, description: Optional[str], addresses: List[str]) -> None:
+    def update(self, description: Optional[str], addresses: list[str]) -> None:
         if description is not None:
             self.description = description
         self.addresses = addresses
 
         self.lock_token = str(mock_random.uuid4())[0:6]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Id": self.ip_set_id,
@@ -276,10 +276,10 @@ class FakeLoggingConfiguration(BaseModel):
     def __init__(
         self,
         arn: str,
-        log_destination_configs: List[str],
-        redacted_fields: Optional[Dict[str, Any]],
+        log_destination_configs: list[str],
+        redacted_fields: Optional[dict[str, Any]],
         managed_gy_firewall_manager: Optional[bool],
-        logging_filter: Optional[Dict[str, Any]],
+        logging_filter: Optional[dict[str, Any]],
     ):
         self.arn = arn
         self.log_destination_configs = log_destination_configs
@@ -287,7 +287,7 @@ class FakeLoggingConfiguration(BaseModel):
         self.managed_by_firewall_manager = managed_gy_firewall_manager or False
         self.logging_filter = logging_filter
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "ResourceArn": self.arn,
             "LogDestinationConfigs": self.log_destination_configs,
@@ -306,10 +306,10 @@ class FakeRuleGroup(BaseModel):
         arn: str,
         scope: str,
         capacity: int,
-        visibility_config: Dict[str, Any],
+        visibility_config: dict[str, Any],
         description: Optional[str],
-        rules: Optional[List[FakeRule]],
-        custom_response_bodies: Optional[Dict[str, Any]] = None,
+        rules: Optional[list[FakeRule]],
+        custom_response_bodies: Optional[dict[str, Any]] = None,
     ):
         self.account = account
         self.name = name
@@ -329,7 +329,7 @@ class FakeRuleGroup(BaseModel):
     def _generate_lock_token(self) -> str:
         return str(mock_random.uuid4())
 
-    def _get_available_labels(self) -> Optional[List[Dict[str, str]]]:
+    def _get_available_labels(self) -> Optional[list[dict[str, str]]]:
         return (
             [
                 {"Name": f"{self.label_namespace}{label}"}
@@ -340,7 +340,7 @@ class FakeRuleGroup(BaseModel):
             else None
         )
 
-    def _get_consumed_labels(self) -> Optional[List[Dict[str, str]]]:
+    def _get_consumed_labels(self) -> Optional[list[dict[str, str]]]:
         return (
             [
                 {"Name": f"{self.label_namespace}{label}"}
@@ -357,9 +357,9 @@ class FakeRuleGroup(BaseModel):
     def update(
         self,
         description: Optional[str],
-        rules: Optional[List[FakeRule]],
-        visibility_config: Optional[Dict[str, Any]],
-        custom_response_bodies: Optional[Dict[str, Any]],
+        rules: Optional[list[FakeRule]],
+        visibility_config: Optional[dict[str, Any]],
+        custom_response_bodies: Optional[dict[str, Any]],
     ) -> str:
         if description is not None:
             self.description = description
@@ -373,7 +373,7 @@ class FakeRuleGroup(BaseModel):
         self.lock_token = self._generate_lock_token()
         return self.lock_token
 
-    def to_short_dict(self) -> Dict[str, Any]:
+    def to_short_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Id": self.id,
@@ -382,7 +382,7 @@ class FakeRuleGroup(BaseModel):
             "ARN": self.arn,
         }
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Id": self.id,
@@ -411,7 +411,7 @@ class FakeRegexPatternSet(BaseModel):
         id: str,
         arn: str,
         description: str,
-        regular_expressions: List[Dict[str, str]],
+        regular_expressions: list[dict[str, str]],
         scope: str,
     ):
         self.name = name
@@ -426,7 +426,7 @@ class FakeRegexPatternSet(BaseModel):
     def update(
         self,
         description: Optional[str],
-        regular_expressions: Optional[List[Dict[str, str]]],
+        regular_expressions: Optional[list[dict[str, str]]],
     ) -> None:
         if description is not None:
             self.description = description
@@ -434,7 +434,7 @@ class FakeRegexPatternSet(BaseModel):
             self.regular_expressions = regular_expressions
         self.lock_token = str(mock_random.uuid4())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Id": self.id,
@@ -444,7 +444,7 @@ class FakeRegexPatternSet(BaseModel):
             "LockToken": self.lock_token,
         }
 
-    def to_short_dict(self) -> Dict[str, Any]:
+    def to_short_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Id": self.id,
@@ -461,11 +461,11 @@ class WAFV2Backend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.wacls: Dict[str, FakeWebACL] = OrderedDict()
-        self.ip_sets: Dict[str, FakeIPSet] = OrderedDict()
-        self.logging_configurations: Dict[str, FakeLoggingConfiguration] = OrderedDict()
-        self.rule_groups: Dict[str, FakeRuleGroup] = OrderedDict()
-        self.regex_pattern_sets: Dict[str, FakeRegexPatternSet] = OrderedDict()
+        self.wacls: dict[str, FakeWebACL] = OrderedDict()
+        self.ip_sets: dict[str, FakeIPSet] = OrderedDict()
+        self.logging_configurations: dict[str, FakeLoggingConfiguration] = OrderedDict()
+        self.rule_groups: dict[str, FakeRuleGroup] = OrderedDict()
+        self.regex_pattern_sets: dict[str, FakeRegexPatternSet] = OrderedDict()
         self.tagging_service = TaggingService()
         # TODO: self.load_balancers = OrderedDict()
 
@@ -514,17 +514,17 @@ class WAFV2Backend(BaseBackend):
     def create_web_acl(
         self,
         name: str,
-        visibility_config: Dict[str, Any],
-        default_action: Dict[str, Any],
+        visibility_config: dict[str, Any],
+        default_action: dict[str, Any],
         scope: str,
         description: str,
-        tags: List[Dict[str, str]],
-        rules: List[Dict[str, Any]],
-        association_config: Optional[Dict[str, Any]],
-        captcha_config: Optional[Dict[str, Any]],
-        challenge_config: Optional[Dict[str, Any]],
-        custom_response_bodies: Optional[Dict[str, Any]],
-        token_domains: Optional[List[str]],
+        tags: list[dict[str, str]],
+        rules: list[dict[str, Any]],
+        association_config: Optional[dict[str, Any]],
+        captcha_config: Optional[dict[str, Any]],
+        challenge_config: Optional[dict[str, Any]],
+        custom_response_bodies: Optional[dict[str, Any]],
+        token_domains: Optional[list[str]],
     ) -> FakeWebACL:
         wacl_id = self._generate_id()
         arn = make_arn_for_wacl(
@@ -581,44 +581,44 @@ class WAFV2Backend(BaseBackend):
         raise WAFNonexistentItemException
 
     @paginate(PAGINATION_MODEL)  # type: ignore
-    def list_web_acls(self) -> List[FakeWebACL]:
-        return [wacl for wacl in self.wacls.values()]
+    def list_web_acls(self) -> list[FakeWebACL]:
+        return list(self.wacls.values())
 
     def _is_duplicate_name(self, name: str) -> bool:
-        all_wacl_names = set(wacl.name for wacl in self.wacls.values())
+        all_wacl_names = {wacl.name for wacl in self.wacls.values()}
         return name in all_wacl_names
 
     @paginate(PAGINATION_MODEL)  # type: ignore
-    def list_rule_groups(self, scope: str) -> List[FakeRuleGroup]:
+    def list_rule_groups(self, scope: str) -> list[FakeRuleGroup]:
         rule_groups = [
             group for group in self.rule_groups.values() if group.scope == scope
         ]
         return rule_groups
 
     @paginate(PAGINATION_MODEL)  # type: ignore
-    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, arn: str) -> list[dict[str, str]]:
         return self.tagging_service.list_tags_for_resource(arn)["Tags"]
 
-    def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
         self.tagging_service.tag_resource(arn, tags)
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagging_service.untag_resource_using_names(arn, tag_keys)
 
     def update_web_acl(
         self,
         name: str,
         _id: str,
-        default_action: Optional[Dict[str, Any]],
-        rules: Optional[List[Dict[str, Any]]],
+        default_action: Optional[dict[str, Any]],
+        rules: Optional[list[dict[str, Any]]],
         description: Optional[str],
-        visibility_config: Optional[Dict[str, Any]],
+        visibility_config: Optional[dict[str, Any]],
         lock_token: str,
-        custom_response_bodies: Optional[Dict[str, Any]],
-        captcha_config: Optional[Dict[str, Any]],
-        challenge_config: Optional[Dict[str, Any]],
-        token_domains: Optional[List[str]],
-        association_config: Optional[Dict[str, Any]],
+        custom_response_bodies: Optional[dict[str, Any]],
+        captcha_config: Optional[dict[str, Any]],
+        challenge_config: Optional[dict[str, Any]],
+        token_domains: Optional[list[str]],
+        association_config: Optional[dict[str, Any]],
     ) -> str:
         acl = self.get_web_acl(name, _id)
         if acl.lock_token != lock_token:
@@ -650,8 +650,8 @@ class WAFV2Backend(BaseBackend):
         scope: str,
         description: str,
         ip_address_version: str,
-        addresses: List[str],
-        tags: List[Dict[str, str]],
+        addresses: list[str],
+        tags: list[dict[str, str]],
     ) -> FakeIPSet:
         ip_set_id = self._generate_id()
         arn = make_arn_for_ip_set(
@@ -693,7 +693,7 @@ class WAFV2Backend(BaseBackend):
         self.ip_sets.pop(arn)
 
     @paginate(PAGINATION_MODEL)  # type: ignore
-    def list_ip_sets(self, scope: str) -> List[FakeIPSet]:
+    def list_ip_sets(self, scope: str) -> list[FakeIPSet]:
         ip_sets = [
             ip_set for arn, ip_set in self.ip_sets.items() if ip_set.scope == scope
         ]
@@ -718,7 +718,7 @@ class WAFV2Backend(BaseBackend):
         scope: str,
         _id: str,
         description: Optional[str],
-        addresses: List[str],
+        addresses: list[str],
         lock_token: str,
     ) -> FakeIPSet:
         arn = make_arn_for_ip_set(
@@ -742,10 +742,10 @@ class WAFV2Backend(BaseBackend):
     def put_logging_configuration(
         self,
         arn: str,
-        log_destination_configs: List[str],
-        redacted_fields: Optional[Dict[str, Any]],
+        log_destination_configs: list[str],
+        redacted_fields: Optional[dict[str, Any]],
         managed_gy_firewall_manager: bool,
-        logging_filter: Dict[str, Any],
+        logging_filter: dict[str, Any],
     ) -> FakeLoggingConfiguration:
         logging_configuration = FakeLoggingConfiguration(
             arn,
@@ -768,7 +768,7 @@ class WAFV2Backend(BaseBackend):
         return logging_configuration
 
     @paginate(PAGINATION_MODEL)  # type: ignore
-    def list_logging_configurations(self, scope: str) -> List[FakeLoggingConfiguration]:
+    def list_logging_configurations(self, scope: str) -> list[FakeLoggingConfiguration]:
         if scope == "CLOUDFRONT":
             scope = "global"
         else:
@@ -786,16 +786,16 @@ class WAFV2Backend(BaseBackend):
         scope: str,
         capacity: int,
         description: Optional[str],
-        rules: Optional[List[Dict[str, Any]]],
-        visibility_config: Dict[str, Union[bool, str]],
-        tags: Optional[List[Dict[str, str]]],
-        custom_response_bodies: Optional[Dict[str, str]],
+        rules: Optional[list[dict[str, Any]]],
+        visibility_config: dict[str, Union[bool, str]],
+        tags: Optional[list[dict[str, str]]],
+        custom_response_bodies: Optional[dict[str, str]],
     ) -> FakeRuleGroup:
         id = self._generate_id()
         arn = make_arn_for_rule_group(
             name, self.account_id, self.region_name, id, scope
         )
-        if name in set(group.name for group in self.rule_groups.values()):
+        if name in {group.name for group in self.rule_groups.values()}:
             raise WAFV2DuplicateItemException()
         rules_objs = (
             [
@@ -827,10 +827,10 @@ class WAFV2Backend(BaseBackend):
         scope: str,
         id: str,
         description: Optional[str],
-        rules: Optional[List[Dict[str, Any]]],
-        visibility_config: Dict[str, Any],
+        rules: Optional[list[dict[str, Any]]],
+        visibility_config: dict[str, Any],
         lock_token: str,
-        custom_response_bodies: Optional[Dict[str, Any]],
+        custom_response_bodies: Optional[dict[str, Any]],
     ) -> FakeRuleGroup:
         arn = make_arn_for_rule_group(
             name, self.account_id, self.region_name, id, scope
@@ -897,8 +897,8 @@ class WAFV2Backend(BaseBackend):
         name: str,
         scope: str,
         description: str,
-        regular_expressions: List[Dict[str, str]],
-        tags: List[Dict[str, str]],
+        regular_expressions: list[dict[str, str]],
+        tags: list[dict[str, str]],
     ) -> FakeRegexPatternSet:
         regex_pattern_set_id = self._generate_id()
         arn = make_arn_for_regex_pattern_set(
@@ -948,7 +948,7 @@ class WAFV2Backend(BaseBackend):
         scope: str,
         id: str,
         description: Optional[str],
-        regular_expressions: Optional[List[Dict[str, str]]],
+        regular_expressions: Optional[list[dict[str, str]]],
         lock_token: str,
     ) -> FakeRegexPatternSet:
         arn = make_arn_for_regex_pattern_set(
@@ -986,7 +986,7 @@ class WAFV2Backend(BaseBackend):
         self.regex_pattern_sets.pop(arn)
 
     @paginate(PAGINATION_MODEL)
-    def list_regex_pattern_sets(self, scope: str) -> List[FakeRegexPatternSet]:
+    def list_regex_pattern_sets(self, scope: str) -> list[FakeRegexPatternSet]:
         return [
             pattern_set
             for pattern_set in self.regex_pattern_sets.values()

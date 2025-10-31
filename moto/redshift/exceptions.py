@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from moto.core.exceptions import ServiceException
 
@@ -38,7 +38,7 @@ class ClusterParameterGroupNotFoundError(RedshiftClientError):
 
 
 class InvalidSubnetError(RedshiftClientError):
-    def __init__(self, subnet_identifier: List[str]):
+    def __init__(self, subnet_identifier: list[str]):
         super().__init__("InvalidSubnet", f"Subnet {subnet_identifier} not found.")
 
 

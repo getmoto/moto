@@ -14,7 +14,7 @@ class TestHashKey:
             expression_attribute_values=eav,
             key_condition_expression=expression,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == eav[":id"]
         assert comparison is None
@@ -28,7 +28,7 @@ class TestHashKey:
                 expression_attribute_values=eav,
                 key_condition_expression=kce,
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert exc.value.message == "Query condition missed key schema element: job_id"
 
@@ -47,7 +47,7 @@ class TestHashAndRangeKey:
                 expression_attribute_values=eav,
                 key_condition_expression=kce,
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert exc.value.message == "Query condition missed key schema element: job_id"
 
@@ -66,7 +66,7 @@ class TestHashAndRangeKey:
                 expression_attribute_values=eav,
                 key_condition_expression=expr,
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert (
             exc.value.message == "Query condition missed key schema element: start_date"
@@ -88,7 +88,7 @@ class TestHashAndRangeKey:
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
         assert comparison == "BEGINS_WITH"
@@ -102,7 +102,7 @@ class TestHashAndRangeKey:
                 expression_attribute_values=eav,
                 key_condition_expression=f"job_id = :id AND {fn}(start_date,:sk)",
                 schema=self.schema,
-                expression_attribute_names=dict(),
+                expression_attribute_names={},
             )
         assert (
             exc.value.message
@@ -123,7 +123,7 @@ class TestHashAndRangeKey:
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
         assert comparison == "BETWEEN"
@@ -137,7 +137,7 @@ class TestHashAndRangeKey:
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
         assert comparison == operator.strip()
@@ -158,7 +158,7 @@ class TestHashAndRangeKey:
             expression_attribute_values=eav,
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
 
@@ -175,7 +175,7 @@ class TestHashAndRangeKey:
             expression_attribute_values={":id": "pk", ":sk": "19"},
             key_condition_expression=expr,
             schema=self.schema,
-            expression_attribute_names=dict(),
+            expression_attribute_names={},
         )
         assert desired_hash_key == "pk"
 

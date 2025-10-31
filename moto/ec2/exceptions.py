@@ -1,4 +1,5 @@
-from typing import Any, Iterable, List, Optional, Union
+from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 from moto.core.exceptions import RESTError
 
@@ -320,7 +321,7 @@ class InvalidInstanceTypeError(EC2ClientError):
 
 
 class InvalidAMIIdError(EC2ClientError):
-    def __init__(self, ami_id: Union[List[str], str]):
+    def __init__(self, ami_id: Union[list[str], str]):
         super().__init__(
             "InvalidAMIID.NotFound",
             f"The image id '[{ami_id}]' does not exist",
@@ -344,7 +345,7 @@ class InvalidAMIAttributeItemValueError(EC2ClientError):
 
 
 class MalformedAMIIdError(EC2ClientError):
-    def __init__(self, ami_id: List[str]):
+    def __init__(self, ami_id: list[str]):
         super().__init__(
             "InvalidAMIID.Malformed", f'Invalid id: "{ami_id}" (expecting "ami-...")'
         )

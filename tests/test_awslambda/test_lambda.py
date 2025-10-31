@@ -382,17 +382,17 @@ def test_create_function__with_tracingmode(tracing_mode):
     source, output = tracing_mode
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]
-    kwargs = dict(
-        FunctionName=function_name,
-        Runtime=PYTHON_VERSION,
-        Role=get_role_name(),
-        Handler="lambda_function.lambda_handler",
-        Code={"ZipFile": zip_content},
-        Description="test lambda function",
-        Timeout=3,
-        MemorySize=128,
-        Publish=True,
-    )
+    kwargs = {
+        "FunctionName": function_name,
+        "Runtime": PYTHON_VERSION,
+        "Role": get_role_name(),
+        "Handler": "lambda_function.lambda_handler",
+        "Code": {"ZipFile": zip_content},
+        "Description": "test lambda function",
+        "Timeout": 3,
+        "MemorySize": 128,
+        "Publish": True,
+    }
     if source:
         kwargs["TracingConfig"] = {"Mode": source}
     result = conn.create_function(**kwargs)

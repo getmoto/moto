@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -14,7 +14,7 @@ class Location(BaseModel):
         location_uri: str,
         region_name: str,
         typ: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         arn_counter: int = 0,
     ):
         self.uri = location_uri
@@ -32,7 +32,7 @@ class Task(BaseModel):
         destination_location_arn: str,
         name: str,
         region_name: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         arn_counter: int = 0,
     ):
         self.source_location_arn = source_location_arn
@@ -100,12 +100,12 @@ class DataSyncBackend(BaseBackend):
         # Always increase when new things are created
         # This ensures uniqueness
         self.arn_counter = 0
-        self.locations: Dict[str, Location] = OrderedDict()
-        self.tasks: Dict[str, Task] = OrderedDict()
-        self.task_executions: Dict[str, TaskExecution] = OrderedDict()
+        self.locations: dict[str, Location] = OrderedDict()
+        self.tasks: dict[str, Task] = OrderedDict()
+        self.task_executions: dict[str, TaskExecution] = OrderedDict()
 
     def create_location(
-        self, location_uri: str, typ: str, metadata: Dict[str, Any]
+        self, location_uri: str, typ: str, metadata: dict[str, Any]
     ) -> str:
         """
         # AWS DataSync allows for duplicate LocationUris
@@ -145,7 +145,7 @@ class DataSyncBackend(BaseBackend):
         source_location_arn: str,
         destination_location_arn: str,
         name: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
     ) -> str:
         if source_location_arn not in self.locations:
             raise InvalidRequestException(f"Location {source_location_arn} not found.")
@@ -171,7 +171,7 @@ class DataSyncBackend(BaseBackend):
         else:
             raise InvalidRequestException
 
-    def update_task(self, task_arn: str, name: str, metadata: Dict[str, Any]) -> None:
+    def update_task(self, task_arn: str, name: str, metadata: dict[str, Any]) -> None:
         if task_arn in self.tasks:
             task = self.tasks[task_arn]
             task.name = name

@@ -20,7 +20,8 @@ which may change over time.
 
 from __future__ import annotations
 
-from typing import Any, Mapping, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from botocore.model import ListShape as BotocoreListShape
 from botocore.model import MapShape as BotocoreMapShape
@@ -84,7 +85,7 @@ class ServiceModel(BotocoreServiceModel):
     def __init__(
         self, service_description: Mapping[str, Any], service_name: str | None = None
     ):
-        super(ServiceModel, self).__init__(service_description, service_name)
+        super().__init__(service_description, service_name)
         # Use our custom shape resolver.
         self._shape_resolver = ShapeResolver(service_description.get("shapes", {}))
 

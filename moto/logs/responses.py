@@ -451,7 +451,7 @@ class LogsResponse(BaseResponse):
             destinationPrefix=self._get_param("destinationPrefix", "exportedlogs"),
             taskName=self._get_param("taskName"),
         )
-        return json.dumps(dict(taskId=str(task_id)))
+        return json.dumps({"taskId": str(task_id)})
 
     def describe_export_tasks(self) -> str:
         task_id = self._get_param("taskId")
@@ -489,19 +489,19 @@ class LogsResponse(BaseResponse):
             delivery_destination_configuration=delivery_destination_configuration,
             tags=tags,
         )
-        return json.dumps(dict(deliveryDestination=delivery_destination.to_dict()))
+        return json.dumps({"deliveryDestination": delivery_destination.to_dict()})
 
     def get_delivery_destination(self) -> str:
         name = self._get_param("name")
         delivery_destination = self.logs_backend.get_delivery_destination(
             name=name,
         )
-        return json.dumps(dict(deliveryDestination=delivery_destination.to_dict()))
+        return json.dumps({"deliveryDestination": delivery_destination.to_dict()})
 
     def describe_delivery_destinations(self) -> str:
         delivery_destinations = self.logs_backend.describe_delivery_destinations()
         return json.dumps(
-            dict(deliveryDestinations=[dd.to_dict() for dd in delivery_destinations])
+            {"deliveryDestinations": [dd.to_dict() for dd in delivery_destinations]}
         )
 
     def put_delivery_destination_policy(self) -> str:
@@ -511,14 +511,14 @@ class LogsResponse(BaseResponse):
             delivery_destination_name=delivery_destination_name,
             delivery_destination_policy=delivery_destination_policy,
         )
-        return json.dumps(dict(policy=policy))
+        return json.dumps({"policy": policy})
 
     def get_delivery_destination_policy(self) -> str:
         delivery_destination_name = self._get_param("deliveryDestinationName")
         policy = self.logs_backend.get_delivery_destination_policy(
             delivery_destination_name=delivery_destination_name,
         )
-        return json.dumps(dict(policy=policy))
+        return json.dumps({"policy": policy})
 
     def put_delivery_source(self) -> str:
         name = self._get_param("name")
@@ -531,12 +531,12 @@ class LogsResponse(BaseResponse):
             log_type=log_type,
             tags=tags,
         )
-        return json.dumps(dict(deliverySource=delivery_source.to_dict()))
+        return json.dumps({"deliverySource": delivery_source.to_dict()})
 
     def describe_delivery_sources(self) -> str:
         delivery_sources = self.logs_backend.describe_delivery_sources()
         return json.dumps(
-            dict(deliverySources=[ds.to_dict() for ds in delivery_sources])
+            {"deliverySources": [ds.to_dict() for ds in delivery_sources]}
         )
 
     def get_delivery_source(self) -> str:
@@ -544,7 +544,7 @@ class LogsResponse(BaseResponse):
         delivery_source = self.logs_backend.get_delivery_source(
             name=name,
         )
-        return json.dumps(dict(deliverySource=delivery_source.to_dict()))
+        return json.dumps({"deliverySource": delivery_source.to_dict()})
 
     def create_delivery(self) -> str:
         delivery_source_name = self._get_param("deliverySourceName")
@@ -561,18 +561,18 @@ class LogsResponse(BaseResponse):
             s3_delivery_configuration=s3_delivery_configuration,
             tags=tags,
         )
-        return json.dumps(dict(delivery=delivery.to_dict()))
+        return json.dumps({"delivery": delivery.to_dict()})
 
     def describe_deliveries(self) -> str:
         deliveries = self.logs_backend.describe_deliveries()
-        return json.dumps(dict(deliveries=[d.to_dict() for d in deliveries]))
+        return json.dumps({"deliveries": [d.to_dict() for d in deliveries]})
 
     def get_delivery(self) -> str:
         id = self._get_param("id")
         delivery = self.logs_backend.get_delivery(
             id=id,
         )
-        return json.dumps(dict(delivery=delivery.to_dict()))
+        return json.dumps({"delivery": delivery.to_dict()})
 
     def delete_delivery(self) -> str:
         id = self._get_param("id")

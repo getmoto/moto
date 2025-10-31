@@ -1,7 +1,8 @@
 import json
 import math
+from collections.abc import Iterable
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Optional, SupportsFloat, Tuple
+from typing import Any, Optional, SupportsFloat
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import BackendDict, BaseModel, CloudWatchMetricProvider
@@ -24,10 +25,10 @@ from .utils import (
     make_arn_for_rule,
 )
 
-_EMPTY_LIST: Any = tuple()
+_EMPTY_LIST: Any = ()
 
 
-class Dimension(object):
+class Dimension:
     def __init__(self, name: Optional[str], value: Optional[str]):
         self.name = name
         self.value = value
@@ -43,14 +44,14 @@ class Dimension(object):
         return self.name < other.name and self.value < other.name  # type: ignore[operator]
 
 
-class Metric(object):
-    def __init__(self, metric_name: str, namespace: str, dimensions: List[Dimension]):
+class Metric:
+    def __init__(self, metric_name: str, namespace: str, dimensions: list[Dimension]):
         self.metric_name = metric_name
         self.namespace = namespace
         self.dimensions = dimensions
 
 
-class MetricStat(object):
+class MetricStat:
     def __init__(self, metric: Metric, period: str, stat: str, unit: str):
         self.metric = metric
         self.period = period
@@ -58,7 +59,7 @@ class MetricStat(object):
         self.unit = unit
 
 
-class MetricDataQuery(object):
+class MetricDataQuery:
     def __init__(
         self,
         query_id: str,
@@ -117,7 +118,7 @@ class Alarm(BaseModel):
         name: str,
         namespace: str,
         metric_name: str,
-        metric_data_queries: Optional[List[MetricDataQuery]],
+        metric_data_queries: Optional[list[MetricDataQuery]],
         comparison_operator: str,
         evaluation_periods: int,
         datapoints_to_alarm: Optional[int],
@@ -126,10 +127,10 @@ class Alarm(BaseModel):
         statistic: str,
         extended_statistic: Optional[str],
         description: str,
-        dimensions: List[Dict[str, str]],
-        alarm_actions: List[str],
-        ok_actions: Optional[List[str]],
-        insufficient_data_actions: Optional[List[str]],
+        dimensions: list[dict[str, str]],
+        alarm_actions: list[str],
+        ok_actions: Optional[list[str]],
+        insufficient_data_actions: Optional[list[str]],
         unit: Optional[str],
         actions_enabled: bool,
         treat_missing_data: Optional[str],
@@ -164,7 +165,7 @@ class Alarm(BaseModel):
         self.evaluate_low_sample_count_percentile = evaluate_low_sample_count_percentile
         self.threshold_metric_id = threshold_metric_id
 
-        self.history: List[Any] = []
+        self.history: list[Any] = []
 
         self.state_reason = "Unchecked: Initial alarm creation"
         self.state_reason_data = "{}"
@@ -193,7 +194,7 @@ class Alarm(BaseModel):
 
 
 def are_dimensions_same(
-    metric_dimensions: List[Dimension], dimensions: List[Dimension]
+    metric_dimensions: list[Dimension], dimensions: list[Dimension]
 ) -> bool:
     if len(metric_dimensions) != len(dimensions):
         return False
@@ -216,7 +217,7 @@ class MetricDatumBase(BaseModel):
         self,
         namespace: str,
         name: str,
-        dimensions: List[Dict[str, str]],
+        dimensions: list[dict[str, str]],
         timestamp: Optional[datetime],
         unit: Any = None,
     ):
@@ -232,8 +233,8 @@ class MetricDatumBase(BaseModel):
         self,
         namespace: Optional[str],
         name: Optional[str],
-        dimensions: List[Dict[str, str]],
-        already_present_metrics: Optional[List["MetricDatumBase"]] = None,
+        dimensions: list[dict[str, str]],
+        already_present_metrics: Optional[list["MetricDatumBase"]] = None,
     ) -> bool:
         if namespace and namespace != self.namespace:
             return False
@@ -269,7 +270,7 @@ class MetricDatum(MetricDatumBase):
         namespace: str,
         name: str,
         value: float,
-        dimensions: List[Dict[str, str]],
+        dimensions: list[dict[str, str]],
         timestamp: Optional[datetime],
         unit: Any = None,
     ):
@@ -290,7 +291,7 @@ class MetricAggregatedDatum(MetricDatumBase):
         max_stat: float,
         sample_count: float,
         sum_stat: float,
-        dimensions: List[Dict[str, str]],
+        dimensions: list[dict[str, str]],
         timestamp: Optional[datetime],
         unit: Any = None,
     ):
@@ -325,9 +326,9 @@ class Statistics:
     Helper class to calculate statics for a list of metrics (MetricDatum, or MetricAggregatedDatum)
     """
 
-    def __init__(self, stats: List[str], dt: datetime, unit: Optional[str] = None):
+    def __init__(self, stats: list[str], dt: datetime, unit: Optional[str] = None):
         self.timestamp: datetime = dt or utcnow()
-        self.metric_data: List[MetricDatumBase] = []
+        self.metric_data: list[MetricDatumBase] = []
         self.stats = stats
         self.unit = unit
 
@@ -350,14 +351,14 @@ class Statistics:
         return None
 
     @property
-    def metric_single_values_list(self) -> List[float]:
+    def metric_single_values_list(self) -> list[float]:
         """
         :return: list of all values for the MetricDatum instances of the metric_data list
         """
         return [m.value for m in self.metric_data or [] if isinstance(m, MetricDatum)]
 
     @property
-    def metric_aggregated_list(self) -> List[MetricAggregatedDatum]:
+    def metric_aggregated_list(self) -> list[MetricAggregatedDatum]:
         """
         :return: list of all MetricAggregatedDatum instances from the metric_data list
         """
@@ -449,17 +450,17 @@ class InsightRule(BaseModel):
 class CloudWatchBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.alarms: Dict[str, Alarm] = {}
-        self.dashboards: Dict[str, Dashboard] = {}
-        self.metric_data: List[MetricDatumBase] = []
-        self.paged_metric_data: Dict[str, List[MetricDatumBase]] = {}
-        self.insight_rules: Dict[str, InsightRule] = {}
+        self.alarms: dict[str, Alarm] = {}
+        self.dashboards: dict[str, Dashboard] = {}
+        self.metric_data: list[MetricDatumBase] = []
+        self.paged_metric_data: dict[str, list[MetricDatumBase]] = {}
+        self.insight_rules: dict[str, InsightRule] = {}
         self.tagger = TaggingService()
 
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
     # Computed on the fly
-    def aws_metric_data(self) -> List[MetricDatumBase]:
+    def aws_metric_data(self) -> list[MetricDatumBase]:
         providers = CloudWatchMetricProvider.__subclasses__()
         md = []
         for provider in providers:
@@ -481,20 +482,20 @@ class CloudWatchBackend(BaseBackend):
         threshold: float,
         statistic: str,
         description: str,
-        dimensions: List[Dict[str, str]],
-        alarm_actions: List[str],
-        metric_data_queries: Optional[List[MetricDataQuery]] = None,
+        dimensions: list[dict[str, str]],
+        alarm_actions: list[str],
+        metric_data_queries: Optional[list[MetricDataQuery]] = None,
         datapoints_to_alarm: Optional[int] = None,
         extended_statistic: Optional[str] = None,
-        ok_actions: Optional[List[str]] = None,
-        insufficient_data_actions: Optional[List[str]] = None,
+        ok_actions: Optional[list[str]] = None,
+        insufficient_data_actions: Optional[list[str]] = None,
         unit: Optional[str] = None,
         actions_enabled: bool = True,
         treat_missing_data: Optional[str] = None,
         evaluate_low_sample_count_percentile: Optional[str] = None,
         threshold_metric_id: Optional[str] = None,
         rule: Optional[str] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> Alarm:
         if extended_statistic and not extended_statistic.startswith("p"):
             raise InvalidParameterValue(
@@ -546,7 +547,7 @@ class CloudWatchBackend(BaseBackend):
         return self.alarms.values()
 
     @staticmethod
-    def _list_element_starts_with(items: List[str], needle: str) -> bool:
+    def _list_element_starts_with(items: list[str], needle: str) -> bool:
         """True of any of the list elements starts with needle"""
         for item in items:
             if item.startswith(needle):
@@ -569,7 +570,7 @@ class CloudWatchBackend(BaseBackend):
             if alarm.name.startswith(name_prefix)
         ]
 
-    def get_alarms_by_alarm_names(self, alarm_names: List[str]) -> Iterable[Alarm]:
+    def get_alarms_by_alarm_names(self, alarm_names: list[str]) -> Iterable[Alarm]:
         return [alarm for alarm in self.alarms.values() if alarm.name in alarm_names]
 
     def get_alarms_by_state_value(self, target_state: str) -> Iterable[Alarm]:
@@ -577,12 +578,12 @@ class CloudWatchBackend(BaseBackend):
             lambda alarm: alarm.state_value == target_state, self.alarms.values()
         )
 
-    def delete_alarms(self, alarm_names: List[str]) -> None:
+    def delete_alarms(self, alarm_names: list[str]) -> None:
         for alarm_name in alarm_names:
             self.alarms.pop(alarm_name, None)
 
     def put_metric_data(
-        self, namespace: str, metric_data: List[Dict[str, Any]]
+        self, namespace: str, metric_data: list[dict[str, Any]]
     ) -> None:
         for i, metric in enumerate(metric_data):
             self._validate_parameters_put_metric_data(metric, i + 1)
@@ -644,11 +645,11 @@ class CloudWatchBackend(BaseBackend):
 
     def get_metric_data(
         self,
-        queries: List[Dict[str, Any]],
+        queries: list[dict[str, Any]],
         start_time: datetime,
         end_time: datetime,
         scan_by: str = "TimestampAscending",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         start_time = start_time.replace(microsecond=0)
         end_time = end_time.replace(microsecond=0)
 
@@ -689,8 +690,8 @@ class CloudWatchBackend(BaseBackend):
                 for d in metric_stat["Metric"].get("Dimensions", [])
             ]
             unit = metric_stat.get("Unit")
-            result_vals: List[SupportsFloat] = []
-            timestamps: List[datetime] = []
+            result_vals: list[SupportsFloat] = []
+            timestamps: list[datetime] = []
             stat = metric_stat["Stat"]
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
@@ -767,8 +768,8 @@ class CloudWatchBackend(BaseBackend):
         for query in metric_insights_expression_queries:
             period_start_time = start_time
             delta = timedelta(seconds=int(query["Period"]))
-            result_vals: List[SupportsFloat] = []  # type: ignore[no-redef]
-            timestamps: List[datetime] = []  # type: ignore[no-redef]
+            result_vals: list[SupportsFloat] = []  # type: ignore[no-redef]
+            timestamps: list[datetime] = []  # type: ignore[no-redef]
             while period_start_time <= end_time:
                 period_end_time = period_start_time + delta
                 period_md = [
@@ -811,10 +812,10 @@ class CloudWatchBackend(BaseBackend):
         start_time: datetime,
         end_time: datetime,
         period: int,
-        stats: List[str],
-        dimensions: List[Dict[str, str]],
+        stats: list[str],
+        dimensions: list[dict[str, str]],
         unit: Optional[str] = None,
-    ) -> List[Statistics]:
+    ) -> list[Statistics]:
         start_time = start_time.replace(microsecond=0)
         end_time = end_time.replace(microsecond=0)
 
@@ -845,7 +846,7 @@ class CloudWatchBackend(BaseBackend):
             return []
 
         idx = 0
-        data: List[Statistics] = list()
+        data: list[Statistics] = []
         for dt in daterange(
             filtered_data[0].timestamp,
             filtered_data[-1].timestamp + period_delta,
@@ -866,7 +867,7 @@ class CloudWatchBackend(BaseBackend):
 
         return data
 
-    def get_all_metrics(self) -> List[MetricDatumBase]:
+    def get_all_metrics(self) -> list[MetricDatumBase]:
         return self.metric_data + self.aws_metric_data
 
     def put_dashboard(self, name: str, body: str) -> None:
@@ -877,7 +878,7 @@ class CloudWatchBackend(BaseBackend):
             if key.startswith(prefix):
                 yield value
 
-    def delete_dashboards(self, dashboards: List[str]) -> Optional[str]:
+    def delete_dashboards(self, dashboards: list[str]) -> Optional[str]:
         to_delete = set(dashboards)
         all_dashboards = set(self.dashboards.keys())
 
@@ -921,8 +922,8 @@ class CloudWatchBackend(BaseBackend):
         next_token: Optional[str],
         namespace: str,
         metric_name: str,
-        dimensions: List[Dict[str, str]],
-    ) -> Tuple[Optional[str], List[MetricDatumBase]]:
+        dimensions: list[dict[str, str]],
+    ) -> tuple[Optional[str], list[MetricDatumBase]]:
         if next_token:
             if next_token not in self.paged_metric_data:
                 raise InvalidParameterValue("Request parameter NextToken is invalid")
@@ -935,10 +936,10 @@ class CloudWatchBackend(BaseBackend):
             return self._get_paginated(metrics)
 
     def get_filtered_metrics(
-        self, metric_name: str, namespace: str, dimensions: List[Dict[str, str]]
-    ) -> List[MetricDatumBase]:
+        self, metric_name: str, namespace: str, dimensions: list[dict[str, str]]
+    ) -> list[MetricDatumBase]:
         metrics = self.get_all_metrics()
-        new_metrics: List[MetricDatumBase] = []
+        new_metrics: list[MetricDatumBase] = []
         for md in metrics:
             if md.filter(
                 namespace=namespace,
@@ -949,10 +950,10 @@ class CloudWatchBackend(BaseBackend):
                 new_metrics.append(md)
         return new_metrics
 
-    def list_tags_for_resource(self, arn: str) -> Dict[str, str]:
+    def list_tags_for_resource(self, arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)
 
-    def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
         # From boto3:
         # Currently, the only CloudWatch resources that can be tagged are alarms and Contributor Insights rules.
         all_arns = [alarm.alarm_arn for alarm in self.describe_alarms()]
@@ -961,15 +962,15 @@ class CloudWatchBackend(BaseBackend):
 
         self.tagger.tag_resource(arn, tags)
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         if arn not in self.tagger.tags.keys():
             raise ResourceNotFoundException
 
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
     def _get_paginated(
-        self, metrics: List[MetricDatumBase]
-    ) -> Tuple[Optional[str], List[MetricDatumBase]]:
+        self, metrics: list[MetricDatumBase]
+    ) -> tuple[Optional[str], list[MetricDatumBase]]:
         if len(metrics) > 500:
             next_token = str(mock_random.uuid4())
             self.paged_metric_data[next_token] = metrics[500:]
@@ -978,7 +979,7 @@ class CloudWatchBackend(BaseBackend):
             return None, metrics
 
     def _validate_parameters_put_metric_data(
-        self, metric: Dict[str, Any], query_num: int
+        self, metric: dict[str, Any], query_num: int
     ) -> None:
         """Runs some basic validation of the Metric Query
 
@@ -989,7 +990,7 @@ class CloudWatchBackend(BaseBackend):
         :raises: InvalidParameterCombination
         """
         # basic validation of input
-        if math.isnan(metric.get("Value", float())):
+        if math.isnan(metric.get("Value", 0.0)):
             # single value
             raise InvalidParameterValue(
                 f"The value NaN for parameter MetricData.member.{query_num}.Value is invalid."
@@ -1030,7 +1031,7 @@ class CloudWatchBackend(BaseBackend):
         name: str,
         state: str,
         definition: str,
-        tags: Optional[List[Dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> InsightRule:
         rule = InsightRule(
             account_id=self.account_id,
@@ -1052,7 +1053,7 @@ class CloudWatchBackend(BaseBackend):
         self,
         next_token: Optional[str] = "",
         max_results: Optional[int] = 500,
-    ) -> List[InsightRule]:
+    ) -> list[InsightRule]:
         rules = list(self.insight_rules.values())
 
         if max_results is None or len(rules) <= max_results:
@@ -1060,7 +1061,7 @@ class CloudWatchBackend(BaseBackend):
 
         return rules[:max_results]
 
-    def delete_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
+    def delete_insight_rules(self, rule_names: list[str]) -> list[dict[str, Any]]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
             if rule_name in rule_names:
@@ -1079,7 +1080,7 @@ class CloudWatchBackend(BaseBackend):
 
         return failures
 
-    def disable_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
+    def disable_insight_rules(self, rule_names: list[str]) -> list[dict[str, Any]]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
             if rule_name in rule_names:
@@ -1098,7 +1099,7 @@ class CloudWatchBackend(BaseBackend):
 
         return failures
 
-    def enable_insight_rules(self, rule_names: List[str]) -> List[Dict[str, Any]]:
+    def enable_insight_rules(self, rule_names: list[str]) -> list[dict[str, Any]]:
         failures = []
         for rule_name in list(self.insight_rules.keys()):
             if rule_name in rule_names:

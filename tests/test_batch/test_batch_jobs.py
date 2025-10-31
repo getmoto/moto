@@ -615,9 +615,9 @@ def test_dependencies():
     while datetime.datetime.now() < future:
         resp = batch_client.describe_jobs(jobs=[job_id1, job_id2, job_id3])
 
-        if any([job["status"] == "FAILED" for job in resp["jobs"]]):
+        if any(job["status"] == "FAILED" for job in resp["jobs"]):
             raise RuntimeError("Batch job failed")
-        if all([job["status"] == "SUCCEEDED" for job in resp["jobs"]]):
+        if all(job["status"] == "SUCCEEDED" for job in resp["jobs"]):
             break
         time.sleep(0.5)
     else:
@@ -841,7 +841,7 @@ def test_container_overrides():
     # Getting the log stream to read out env variables inside container
     resp = logs_client.describe_log_streams(logGroupName="/aws/batch/job")
 
-    env_var = list()
+    env_var = []
     for stream in resp["logStreams"]:
         ls_name = stream["logStreamName"]
 

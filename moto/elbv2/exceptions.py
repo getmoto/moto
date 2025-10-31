@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from moto.core.exceptions import ServiceException
 
@@ -180,13 +180,13 @@ class InvalidConfigurationRequest(ELBClientError):
 
 
 class InvalidProtocol(ELBClientError):
-    def __init__(self, protocol: str, valid_protocols: List[str]):
+    def __init__(self, protocol: str, valid_protocols: list[str]):
         msg = f"Listener protocol '{protocol}' must be one of '{', '.join(valid_protocols)}'"
         super().__init__("ValidationError", msg)
 
 
 class InvalidProtocolValue(ELBClientError):
-    def __init__(self, protocol: str, valid_protocols: List[str]):
+    def __init__(self, protocol: str, valid_protocols: list[str]):
         msg = (
             f"1 validation error detected: Value '{protocol}' at 'protocol' failed to satisfy constraint: "
             f"Member must satisfy enum value set: [{', '.join(valid_protocols)}]"

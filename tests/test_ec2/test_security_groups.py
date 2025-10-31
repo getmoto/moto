@@ -54,7 +54,7 @@ def test_create_and_describe_security_group():
     all_groups = retrieve_all_sgs(client)
     # The default group gets created automatically
     assert sec_group_id in [g["GroupId"] for g in all_groups]
-    group_names = set([group["GroupName"] for group in all_groups])
+    group_names = {group["GroupName"] for group in all_groups}
     assert "default" in group_names
     assert sec_name in group_names
 
@@ -1377,12 +1377,12 @@ def test_security_group_filter_ip_permission():
     assert describe[0]["GroupName"] == sg_name
 
 
-def retrieve_all_sgs(conn, filters=[]):
-    res = conn.describe_security_groups(Filters=filters)
+def retrieve_all_sgs(conn, filters=None):
+    res = conn.describe_security_groups(Filters=filters or [])
     all_groups = res["SecurityGroups"]
     next_token = res.get("NextToken")
     while next_token:
-        res = conn.describe_security_groups(Filters=filters)
+        res = conn.describe_security_groups(Filters=filters or [])
         all_groups.extend(res["SecurityGroups"])
         next_token = res.get("NextToken")
     return all_groups

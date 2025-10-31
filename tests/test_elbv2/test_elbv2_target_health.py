@@ -234,7 +234,7 @@ sudo systemctl enable httpd"""
         states = set()
         while states != {"healthy", "unused"}:
             healths = describe_healths(target_group_arn)
-            states = set([h["TargetHealth"]["State"] for h in healths])
+            states = {h["TargetHealth"]["State"] for h in healths}
 
             if allow_aws_request():
                 sleep(5)

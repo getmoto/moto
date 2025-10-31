@@ -301,7 +301,7 @@ def test_create_too_many_members():
     member_id = response["MemberId"]
 
     # Create 4 more members - create invitations for 5
-    for counter in range(2, 7):
+    for _ in range(2, 7):
         # Create proposal
         proposal_id = conn.create_proposal(
             NetworkId=network_id,

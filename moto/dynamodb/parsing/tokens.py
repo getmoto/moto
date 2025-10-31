@@ -1,5 +1,5 @@
 import re
-from typing import List, Union
+from typing import Union
 
 from moto.dynamodb.exceptions import (
     InvalidExpressionAttributeNameKey,
@@ -72,7 +72,7 @@ class Token:
         return self.type == other.type and self.value == other.value
 
 
-class ExpressionTokenizer(object):
+class ExpressionTokenizer:
     """
     Takes a string and returns a list of tokens. While attribute names in DynamoDB must be between 1 and 255 characters
     long there are no other restrictions for attribute names. For expressions however there are additional rules. If an
@@ -144,11 +144,11 @@ class ExpressionTokenizer(object):
 
     def __init__(self, input_expression_str: str):
         self.input_expression_str = input_expression_str
-        self.token_list: List[Token] = []
+        self.token_list: list[Token] = []
         self.staged_characters = ""
 
     @classmethod
-    def make_list(cls, input_expression_str: str) -> List[Token]:
+    def make_list(cls, input_expression_str: str) -> list[Token]:
         assert isinstance(input_expression_str, str)
 
         return ExpressionTokenizer(input_expression_str)._make_list()
@@ -181,7 +181,7 @@ class ExpressionTokenizer(object):
         else:
             self.raise_unexpected_token()
 
-    def _make_list(self) -> List[Token]:
+    def _make_list(self) -> list[Token]:
         """
         Just go through characters
           if a character is not a token boundary,  stage it for adding it as a grouped token later

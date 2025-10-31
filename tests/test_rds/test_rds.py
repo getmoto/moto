@@ -1510,8 +1510,8 @@ def test_modify_option_group():
         audit_plugin = [
             o for o in option_settings if o["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
         ][0]
-        audit_plugin["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
-        audit_plugin["Value"] == "1000"
+        assert audit_plugin["Name"] == "SERVER_AUDIT_FILE_ROTATE_SIZE"
+        assert audit_plugin["Value"] == "1000"
 
         # Verify option can be deleted
         client.modify_option_group(
@@ -2898,9 +2898,10 @@ def test_modify_db_snapshot_attribute(client):
 def test_delete_db_instance_with_skip_final_snapshot_param(client, skip_final_snapshot):
     create_db_instance(DBInstanceIdentifier="db-primary-1")
 
-    deletion_kwargs = dict(
-        DBInstanceIdentifier="db-primary-1", SkipFinalSnapshot=skip_final_snapshot
-    )
+    deletion_kwargs = {
+        "DBInstanceIdentifier": "db-primary-1",
+        "SkipFinalSnapshot": skip_final_snapshot,
+    }
     if not skip_final_snapshot:
         deletion_kwargs["FinalDBSnapshotIdentifier"] = "final-snapshot"
     client.delete_db_instance(**deletion_kwargs)
@@ -3368,7 +3369,8 @@ def test_copy_db_snapshot_copy_tags_from_source_snapshot(client):
     tag_list = client.list_tags_for_resource(ResourceName=snapshot["DBSnapshotArn"])[
         "TagList"
     ]
-    tag_list == test_tags
+    assert tag_list == test_tags
+
     copied_snapshot = client.copy_db_snapshot(
         SourceDBSnapshotIdentifier="snap-1",
         TargetDBSnapshotIdentifier="snap-1-copy",

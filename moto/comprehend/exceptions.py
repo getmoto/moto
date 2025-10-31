@@ -1,7 +1,5 @@
 """Exceptions raised by the comprehend service."""
 
-from typing import List
-
 from moto.core.exceptions import JsonRESTError
 
 
@@ -14,7 +12,7 @@ class ResourceNotFound(JsonRESTError):
 
 
 class DetectPIIValidationException(JsonRESTError):
-    def __init__(self, language: str, all_languages: List[str]) -> None:
+    def __init__(self, language: str, all_languages: list[str]) -> None:
         all_languages_str = str(all_languages).replace("'", "")
         super().__init__(
             "ValidationException",

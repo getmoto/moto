@@ -192,12 +192,12 @@ def test_delete_cluster_exceptions():
 def test_register_task_definition():
     client = boto3.client("ecs", region_name=ECS_REGION)
     # Registering with minimal definition
-    definition = dict(
-        family="test_ecs_task",
-        containerDefinitions=[
+    definition = {
+        "family": "test_ecs_task",
+        "containerDefinitions": [
             {"name": "hello_world", "image": "hello-world:latest", "memory": 400}
         ],
-    )
+    }
 
     response = client.register_task_definition(**definition)
 
@@ -299,17 +299,17 @@ def test_register_task_definition():
 @mock_aws
 def test_register_task_definition_fargate_with_pid_mode():
     client = boto3.client("ecs", region_name=ECS_REGION)
-    definition = dict(
-        family="test_ecs_task",
-        containerDefinitions=[
+    definition = {
+        "family": "test_ecs_task",
+        "containerDefinitions": [
             {"name": "hello_world", "image": "hello-world:latest", "memory": 400}
         ],
-        requiresCompatibilities=["FARGATE"],
-        pidMode="host",
-        networkMode="awsvpc",
-        cpu="256",
-        memory="512",
-    )
+        "requiresCompatibilities": ["FARGATE"],
+        "pidMode": "host",
+        "networkMode": "awsvpc",
+        "cpu": "256",
+        "memory": "512",
+    }
 
     with pytest.raises(ClientError) as exc:
         client.register_task_definition(**definition)
@@ -327,14 +327,14 @@ def test_register_task_definition_fargate_with_pid_mode():
 def test_register_task_definition_memory_validation_ec2():
     client = boto3.client("ecs", region_name=ECS_REGION)
     container_name = "hello_world"
-    bad_definition1 = dict(
-        family="test_ecs_task",
-        containerDefinitions=[
+    bad_definition1 = {
+        "family": "test_ecs_task",
+        "containerDefinitions": [
             {"name": container_name, "image": "hello-world:latest"},
             {"name": f"{container_name}2", "image": "hello-world:latest"},
         ],
-        requiresCompatibilities=["EC2"],
-    )
+        "requiresCompatibilities": ["EC2"],
+    }
 
     with pytest.raises(ClientError) as exc:
         client.register_task_definition(**bad_definition1)
@@ -352,15 +352,15 @@ def test_register_task_definition_memory_validation_ec2():
 def test_register_task_definition_memory_validation_fargate():
     client = boto3.client("ecs", region_name=ECS_REGION)
     container_name = "hello_world"
-    good_definition1 = dict(
-        family="test_ecs_task",
-        memory="1024",
-        containerDefinitions=[
+    good_definition1 = {
+        "family": "test_ecs_task",
+        "memory": "1024",
+        "containerDefinitions": [
             {"name": container_name, "image": "hello-world:latest"},
             {"name": f"{container_name}2", "image": "hello-world:latest"},
         ],
-        requiresCompatibilities=["FARGATE"],
-    )
+        "requiresCompatibilities": ["FARGATE"],
+    }
 
     response = client.register_task_definition(**good_definition1)
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -375,12 +375,12 @@ def test_register_task_definition_container_definition_validation(
     ecs_def, missing_prop
 ):
     client = boto3.client("ecs", region_name=ECS_REGION)
-    bad_definition1 = dict(
-        family="test_ecs_task",
-        memory="400",
-        containerDefinitions=[ecs_def],
-        requiresCompatibilities=["FARGATE"],
-    )
+    bad_definition1 = {
+        "family": "test_ecs_task",
+        "memory": "400",
+        "containerDefinitions": [ecs_def],
+        "requiresCompatibilities": ["FARGATE"],
+    }
 
     with pytest.raises(ClientError) as exc:
         client.register_task_definition(**bad_definition1)
@@ -1767,7 +1767,7 @@ def test_describe_container_instances():
 
         test_instance_arns.append(response["containerInstance"]["containerInstanceArn"])
 
-    test_instance_ids = list(map((lambda x: x.split("/")[-1]), test_instance_arns))
+    test_instance_ids = [x.split("/")[-1] for x in test_instance_arns]
     response = ecs_client.describe_container_instances(
         cluster=test_cluster_name, containerInstances=test_instance_ids
     )
@@ -1833,7 +1833,7 @@ def test_update_container_instances_state():
 
         test_instance_arns.append(response["containerInstance"]["containerInstanceArn"])
 
-    test_instance_ids = list(map((lambda x: x.split("/")[-1]), test_instance_arns))
+    test_instance_ids = [x.split("/")[-1] for x in test_instance_arns]
     response = ecs_client.update_container_instances_state(
         cluster=test_cluster_name,
         containerInstances=test_instance_ids,
@@ -2597,9 +2597,9 @@ def test_describe_tasks():
     response = client.describe_tasks(cluster="test_ecs_cluster", tasks=tasks_arns)
 
     assert len(response["tasks"]) == 2
-    assert set(
-        [response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]]
-    ) == set(tasks_arns)
+    assert {response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]} == set(
+        tasks_arns
+    )
     # Since no "group parameter" was passed with RunTask, we get back the one generated by default
     assert response["tasks"][0]["group"] == "family:test_ecs_task"
     assert response["tasks"][1]["group"] == "family:test_ecs_task"
@@ -2644,9 +2644,9 @@ def test_describe_tasks_empty_tags():
     )
 
     assert len(response["tasks"]) == 2
-    assert set(
-        [response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]]
-    ) == set(tasks_arns)
+    assert {response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]} == set(
+        tasks_arns
+    )
     assert response["tasks"][0]["tags"] == []
 
     # Test we can pass task ids instead of ARNs
@@ -2679,9 +2679,9 @@ def test_describe_tasks_include_tags():
     )
 
     assert len(response["tasks"]) == 2
-    assert set(
-        [response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]]
-    ) == set(tasks_arns)
+    assert {response["tasks"][0]["taskArn"], response["tasks"][1]["taskArn"]} == set(
+        tasks_arns
+    )
     assert response["tasks"][0]["tags"] == task_tags
 
     # Test we can pass task ids instead of ARNs

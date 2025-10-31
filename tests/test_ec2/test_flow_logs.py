@@ -4,8 +4,9 @@ import boto3
 import pytest
 from botocore.exceptions import ClientError
 
-from moto import mock_aws
+from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.ec2.exceptions import FilterNotImplementedError
 
 
 @mock_aws
@@ -604,7 +605,7 @@ def test_describe_flow_logs_filtering():
     assert fl2 not in cw_ids
     assert fl3 in cw_ids
 
-    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], all_cw_logs))
+    flow_logs_resource_ids = tuple(fl["ResourceId"] for fl in all_cw_logs)
     assert subnet1["SubnetId"] in flow_logs_resource_ids
     assert vpc3["VpcId"] in flow_logs_resource_ids
 
@@ -622,11 +623,11 @@ def test_describe_flow_logs_filtering():
         Filters=[{"Name": "flow-log-id", "Values": [fl1, fl3]}]
     )["FlowLogs"]
     assert len(fl_by_flow_log_ids) == 2
-    flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], fl_by_flow_log_ids))
+    flow_logs_ids = tuple(fl["FlowLogId"] for fl in fl_by_flow_log_ids)
     assert fl1 in flow_logs_ids
     assert fl3 in flow_logs_ids
 
-    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], fl_by_flow_log_ids))
+    flow_logs_resource_ids = tuple(fl["ResourceId"] for fl in fl_by_flow_log_ids)
     assert subnet1["SubnetId"] in flow_logs_resource_ids
     assert vpc3["VpcId"] in flow_logs_resource_ids
 
@@ -682,8 +683,11 @@ def test_describe_flow_logs_filtering():
     assert len(fl_by_tag_key) == 0
 
     # NotYetImplemented
-    with pytest.raises(Exception):
-        client.describe_flow_logs(Filters=[{"Name": "unknown", "Values": ["foobar"]}])
+    if settings.TEST_DECORATOR_MODE:
+        with pytest.raises(FilterNotImplementedError):
+            client.describe_flow_logs(
+                Filters=[{"Name": "unknown", "Values": ["foobar"]}]
+            )
 
 
 @mock_aws
@@ -722,11 +726,11 @@ def test_flow_logs_by_ids():
 
     flow_logs = client.describe_flow_logs(FlowLogIds=[fl1, fl3])["FlowLogs"]
     assert len(flow_logs) == 2
-    flow_logs_ids = tuple(map(lambda fl: fl["FlowLogId"], flow_logs))
+    flow_logs_ids = tuple(fl["FlowLogId"] for fl in flow_logs)
     assert fl1 in flow_logs_ids
     assert fl3 in flow_logs_ids
 
-    flow_logs_resource_ids = tuple(map(lambda fl: fl["ResourceId"], flow_logs))
+    flow_logs_resource_ids = tuple(fl["ResourceId"] for fl in flow_logs)
     assert vpc1["VpcId"] in flow_logs_resource_ids
     assert vpc3["VpcId"] in flow_logs_resource_ids
 
@@ -748,12 +752,12 @@ def test_flow_logs_by_ids():
     assert fl3 not in all_ids
 
 
-def retrieve_all_logs(client, filters=[]):
-    resp = client.describe_flow_logs(Filters=filters)
+def retrieve_all_logs(client, filters=None):
+    resp = client.describe_flow_logs(Filters=filters or [])
     all_logs = resp["FlowLogs"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_flow_logs(Filters=filters, NextToken=token)
+        resp = client.describe_flow_logs(Filters=filters or [], NextToken=token)
         all_logs.extend(resp["FlowLogs"])
         token = resp.get("NextToken")
     return all_logs

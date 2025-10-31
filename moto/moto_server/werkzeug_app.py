@@ -2,7 +2,7 @@ import io
 import os
 import os.path
 from threading import Lock
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Optional
 
 try:
     from flask import Flask
@@ -11,7 +11,8 @@ except ImportError:
     import warnings
 
     warnings.warn(
-        "When using MotoServer, ensure that you install moto[server] to have all dependencies!\n"
+        "When using MotoServer, ensure that you install moto[server] to have all dependencies!\n",
+        stacklevel=2,
     )
     raise
 
@@ -61,7 +62,7 @@ class DomainDispatcherApplication:
     def __init__(self, create_app: Callable[[backends.SERVICE_NAMES], Flask]):
         self.create_app = create_app
         self.lock = Lock()
-        self.app_instances: Dict[str, Flask] = {}
+        self.app_instances: dict[str, Flask] = {}
         self.backend_url_patterns = backend_index.backend_url_patterns
 
     def get_backend_for_host(self, host: Optional[str]) -> Any:
@@ -85,7 +86,7 @@ class DomainDispatcherApplication:
             )
 
     def infer_service_region_host(
-        self, environ: Dict[str, Any], path: str
+        self, environ: dict[str, Any], path: str
     ) -> Optional[str]:
         auth = environ.get("HTTP_AUTHORIZATION")
         target = environ.get("HTTP_X_AMZ_TARGET")
@@ -175,7 +176,7 @@ class DomainDispatcherApplication:
 
         return host
 
-    def get_application(self, environ: Dict[str, Any]) -> Flask:
+    def get_application(self, environ: dict[str, Any]) -> Flask:
         path_info = environ.get("PATH_INFO", "")
 
         # The URL path might contain non-ASCII text, for instance unicode S3 bucket names
@@ -205,7 +206,7 @@ class DomainDispatcherApplication:
                 self.app_instances[backend] = app
             return app
 
-    def _get_body(self, environ: Dict[str, Any]) -> Optional[str]:
+    def _get_body(self, environ: dict[str, Any]) -> Optional[str]:
         body = None
         try:
             # AWS requests use querystrings as the body (Action=x&Data=y&...)
@@ -224,8 +225,8 @@ class DomainDispatcherApplication:
         return body
 
     def get_service_from_body(
-        self, body: Optional[str], environ: Dict[str, Any]
-    ) -> Tuple[Optional[str], Optional[str]]:
+        self, body: Optional[str], environ: dict[str, Any]
+    ) -> tuple[Optional[str], Optional[str]]:
         # Some services have the SDK Version in the body
         # If the version is unique, we can derive the service from it
         version = self.get_version_from_body(body)
@@ -252,7 +253,7 @@ class DomainDispatcherApplication:
 
     def get_service_from_path(
         self, path_info: str
-    ) -> Tuple[Optional[str], Optional[str]]:
+    ) -> tuple[Optional[str], Optional[str]]:
         # Moto sometimes needs to send a HTTP request to itself
         # In which case it will send a request to 'http://localhost/service_region/whatever'
         try:
@@ -261,7 +262,7 @@ class DomainDispatcherApplication:
         except (AttributeError, KeyError, ValueError):
             return None, None
 
-    def __call__(self, environ: Dict[str, Any], start_response: Any) -> Any:
+    def __call__(self, environ: dict[str, Any], start_response: Any) -> Any:
         backend_app = self.get_application(environ)
         return backend_app(environ, start_response)
 

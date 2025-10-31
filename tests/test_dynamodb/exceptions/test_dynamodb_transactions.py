@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -9,22 +11,21 @@ from .. import dynamodb_aws_verified
 
 @mock_aws
 def test_multiple_transactions_on_same_item():
+    table_name = f"T{uuid4()}"
     schema = {
         "KeySchema": [{"AttributeName": "id", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
+    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
     # Insert an item
-    dynamodb.put_item(TableName="test-table", Item={"id": {"S": "foo"}})
+    dynamodb.put_item(TableName=table_name, Item={"id": {"S": "foo"}})
 
     def update_email_transact(email):
         return {
             "Update": {
                 "Key": {"id": {"S": "foo"}},
-                "TableName": "test-table",
+                "TableName": table_name,
                 "UpdateExpression": "SET #e = :v",
                 "ExpressionAttributeNames": {"#e": "email_address"},
                 "ExpressionAttributeValues": {":v": {"S": email}},
@@ -137,19 +138,18 @@ def test_transact_write_items__update_with_multiple_set_clauses(table_name=None)
 
 @mock_aws
 def test_transact_write_items__too_many_transactions():
+    table_name = f"T{uuid4()}"
     schema = {
         "KeySchema": [{"AttributeName": "pk", "KeyType": "HASH"}],
         "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **schema
-    )
+    dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
 
     def update_email_transact(email):
         return {
             "Put": {
-                "TableName": "test-table",
+                "TableName": table_name,
                 "Item": {"pk": {"S": ":v"}},
                 "ExpressionAttributeValues": {":v": {"S": email}},
             }
@@ -178,7 +178,7 @@ def test_transact_write_items_multiple_operations_fail():
         "AttributeDefinitions": [{"AttributeName": "id", "AttributeType": "S"}],
     }
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
-    table_name = "test-table"
+    table_name = f"T{uuid4()}"
     dynamodb.create_table(TableName=table_name, BillingMode="PAY_PER_REQUEST", **schema)
 
     # Execute
@@ -209,9 +209,10 @@ def test_transact_write_items_multiple_operations_fail():
 @mock_aws
 def test_transact_write_items_with_empty_gsi_key():
     client = boto3.client("dynamodb", "us-east-2")
+    table_name = f"T{uuid4()}"
 
     client.create_table(
-        TableName="test_table",
+        TableName=table_name,
         KeySchema=[{"AttributeName": "unique_code", "KeyType": "HASH"}],
         AttributeDefinitions=[
             {"AttributeName": "unique_code", "AttributeType": "S"},
@@ -231,7 +232,7 @@ def test_transact_write_items_with_empty_gsi_key():
         {
             "Put": {
                 "Item": {"unique_code": {"S": "some code"}, "unique_id": {"S": ""}},
-                "TableName": "test_table",
+                "TableName": table_name,
             }
         }
     ]

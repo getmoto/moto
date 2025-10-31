@@ -1,5 +1,5 @@
 import json
-from typing import Any, Final, List
+from typing import Any, Final
 
 from moto.stepfunctions.parser.asl.component.intrinsic.argument.argument import (
     ArgumentContextPath,
@@ -71,7 +71,7 @@ class StringFormat(StatesFunction):
         args = env.stack.pop()
 
         string_format: str = args[0]
-        values: List[Any] = args[1:]
+        values: list[Any] = args[1:]
 
         values_str_repr = map(self._to_str_repr, values)
         string_result = string_format.format(*values_str_repr)
@@ -93,10 +93,10 @@ class StringFormat(StatesFunction):
         if isinstance(value, str):
             return value
         elif isinstance(value, list):
-            value_parts: List[str] = list(map(StringFormat._to_str_repr, value))
+            value_parts: list[str] = list(map(StringFormat._to_str_repr, value))
             return f"[{', '.join(value_parts)}]"
         elif isinstance(value, dict):
-            dict_items = list()
+            dict_items = []
             for d_key, d_value in value.items():
                 d_value_lit = StringFormat._to_str_repr(d_value)
                 dict_items.append(f"{d_key}={d_value_lit}")

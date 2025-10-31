@@ -1,7 +1,7 @@
 import datetime
 from os import getenv
 from time import sleep
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.batch.exceptions import ClientException
 from moto.batch.models import BatchBackend, Job, batch_backends
@@ -52,13 +52,13 @@ class BatchSimpleBackend(BatchBackend):
         job_name: str,
         job_def_id: str,
         job_queue: str,
-        array_properties: Dict[str, Any],
-        depends_on: Optional[List[Dict[str, str]]] = None,
-        container_overrides: Optional[Dict[str, Any]] = None,
-        timeout: Optional[Dict[str, int]] = None,
-        parameters: Optional[Dict[str, str]] = None,
-        tags: Optional[Dict[str, str]] = None,
-    ) -> Tuple[str, str, str]:
+        array_properties: dict[str, Any],
+        depends_on: Optional[list[dict[str, str]]] = None,
+        container_overrides: Optional[dict[str, Any]] = None,
+        timeout: Optional[dict[str, int]] = None,
+        parameters: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> tuple[str, str, str]:
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)
         if job_def is None:
@@ -84,7 +84,7 @@ class BatchSimpleBackend(BatchBackend):
         )
 
         if "size" in array_properties:
-            child_jobs: List[Job] = []
+            child_jobs: list[Job] = []
             for array_index in range(array_properties.get("size", 0)):
                 provided_job_id = f"{job.job_id}:{array_index}"
                 child_job = Job(

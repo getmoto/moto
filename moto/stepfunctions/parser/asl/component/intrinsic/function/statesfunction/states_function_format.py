@@ -1,4 +1,4 @@
-from typing import Any, Final, List
+from typing import Any, Final
 
 from moto.stepfunctions.parser.asl.component.intrinsic.argument.argument import (
     ArgumentList,
@@ -41,13 +41,13 @@ class StatesFunctionFormat(StatesFunction):
         # TODO: investigate behaviour for incorrect number of arguments in string format.
         self.argument_list.eval(env=env)
 
-        values: List[Any] = list()
+        values: list[Any] = []
         for _ in range(self.argument_list.size):
             values.append(env.stack.pop())
         string_format: str = values.pop()
         values.reverse()
 
-        string_format_parts: List[str] = string_format.split(self._DELIMITER)
+        string_format_parts: list[str] = string_format.split(self._DELIMITER)
         string_result: str = ""
         for part in string_format_parts:
             string_result += part

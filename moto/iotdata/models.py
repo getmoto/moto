@@ -1,6 +1,6 @@
 import json
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -23,7 +23,7 @@ class FakeShadow(BaseModel):
         self,
         desired: Optional[str],
         reported: Optional[str],
-        requested_payload: Optional[Dict[str, Any]],
+        requested_payload: Optional[dict[str, Any]],
         version: int,
         deleted: bool = False,
     ):
@@ -43,7 +43,7 @@ class FakeShadow(BaseModel):
 
     @classmethod
     def create_from_previous_version(  # type: ignore[misc]
-        cls, previous_shadow: Optional["FakeShadow"], payload: Optional[Dict[str, Any]]
+        cls, previous_shadow: Optional["FakeShadow"], payload: Optional[dict[str, Any]]
     ) -> "FakeShadow":
         """
         set None to payload when you want to delete shadow
@@ -93,7 +93,7 @@ class FakeShadow(BaseModel):
         return delta
 
     @classmethod
-    def _compute_delta_dict(cls, desired: Any, reported: Any) -> Dict[str, Any]:  # type: ignore[misc]
+    def _compute_delta_dict(cls, desired: Any, reported: Any) -> dict[str, Any]:  # type: ignore[misc]
         delta = {}
         for key, value in desired.items():
             delta_value = cls._compute_delta(reported.get(key), value)
@@ -134,7 +134,7 @@ class FakeShadow(BaseModel):
 
         return _f(state, ts)
 
-    def to_response_dict(self) -> Dict[str, Any]:
+    def to_response_dict(self) -> dict[str, Any]:
         metadata = {}
 
         if self.requested_payload["state"] is None:  # type: ignore
@@ -162,7 +162,7 @@ class FakeShadow(BaseModel):
             "version": self.version,
         }
 
-    def to_dict(self, include_delta: bool = True) -> Dict[str, Any]:
+    def to_dict(self, include_delta: bool = True) -> dict[str, Any]:
         """returning nothing except for just top-level keys for now."""
         if self.deleted:
             return {"timestamp": self.timestamp, "version": self.version}
@@ -192,7 +192,7 @@ class FakeShadow(BaseModel):
 class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.published_payloads: List[Tuple[str, bytes]] = list()
+        self.published_payloads: list[tuple[str, bytes]] = []
 
     @property
     def iot_backend(self) -> IoTBackend:
@@ -220,7 +220,7 @@ class IoTDataPlaneBackend(BaseBackend):
             if not isinstance(_payload["state"], dict):
                 raise InvalidRequestException("state node must be an Object")
             acceptable = ["reported", "desired"]
-            if any(map(lambda v: v not in acceptable, _payload["state"].keys())):
+            if any(v not in acceptable for v in _payload["state"].keys()):
                 raise InvalidRequestException("State contains an invalid node")
 
         thing_shadow = thing.thing_shadows.get(shadow_name)
@@ -255,7 +255,7 @@ class IoTDataPlaneBackend(BaseBackend):
     def publish(self, topic: str, payload: bytes) -> None:
         self.published_payloads.append((topic, payload))
 
-    def list_named_shadows_for_thing(self, thing_name: str) -> List[str]:
+    def list_named_shadows_for_thing(self, thing_name: str) -> list[str]:
         thing = self.iot_backend.describe_thing(thing_name)
         return [name for name in thing.thing_shadows.keys() if name is not None]
 

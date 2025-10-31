@@ -121,10 +121,10 @@ class StateTaskLambda(StateTask):
             self.parargs.eval(env=env)
 
         payload = env.stack.pop()
-        parameters = dict(
-            FunctionName=self.resource.resource_arn,
-            Payload=payload,
-        )
+        parameters = {
+            "FunctionName": self.resource.resource_arn,
+            "Payload": payload,
+        }
         return parameters
 
     def _eval_execution(self, env: Environment) -> None:

@@ -13,11 +13,7 @@ from typing import (
     Any,
     Callable,
     ClassVar,
-    Dict,
-    List,
     Optional,
-    Set,
-    Tuple,
     TypeVar,
     Union,
     cast,
@@ -54,7 +50,7 @@ from moto.utilities.utils import get_partition
 
 log = logging.getLogger(__name__)
 
-JINJA_ENVS: Dict[type, Environment] = {}
+JINJA_ENVS: dict[type, Environment] = {}
 
 if TYPE_CHECKING:
     from typing_extensions import ParamSpec
@@ -69,8 +65,8 @@ ResponseShape = TypeVar("ResponseShape", bound="BaseResponse")
 boto3_service_name = {"awslambda": "lambda"}
 
 
-def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
-    decoded: Dict[str, Any] = OrderedDict()
+def _decode_dict(d: dict[Any, Any]) -> dict[str, Any]:
+    decoded: dict[str, Any] = OrderedDict()
     for key, value in d.items():
         if isinstance(key, bytes):
             newkey = key.decode("utf-8")
@@ -93,9 +89,9 @@ def _decode_dict(d: Dict[Any, Any]) -> Dict[str, Any]:
     return decoded
 
 
-@functools.lru_cache(maxsize=None)
-def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]]:
-    method_urls: Dict[str, Dict[str, str]] = defaultdict(dict)
+@functools.cache
+def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]]:
+    method_urls: dict[str, dict[str, str]] = defaultdict(dict)
     service_name = boto3_service_name.get(service_name) or service_name  # type: ignore
     conn = boto3.client(service_name, region_name=region)
     op_names = conn._service_model.operation_names
@@ -128,14 +124,14 @@ def _get_method_urls(service_name: str, region: str) -> Dict[str, Dict[str, str]
 
 
 class DynamicDictLoader(DictLoader):
-    def update(self, mapping: Dict[str, str]) -> None:
+    def update(self, mapping: dict[str, str]) -> None:
         self.mapping.update(mapping)  # type: ignore[attr-defined]
 
     def contains(self, template: str) -> bool:
         return bool(template in self.mapping)
 
 
-class _TemplateEnvironmentMixin(object):
+class _TemplateEnvironmentMixin:
     LEFT_PATTERN = re.compile(r"[\s\n]+<")
     RIGHT_PATTERN = re.compile(r">[\s\n]+")
 
@@ -188,7 +184,7 @@ class _TemplateEnvironmentMixin(object):
         return self.environment.get_template(template_id)
 
 
-class ActionAuthenticatorMixin(object):
+class ActionAuthenticatorMixin:
     request_count: ClassVar[int] = 0
 
     PUBLIC_OPERATIONS = [
@@ -249,11 +245,11 @@ class ActionAuthenticatorMixin(object):
     @staticmethod
     def set_initial_no_auth_action_count(
         initial_no_auth_action_count: int,
-    ) -> "Callable[[Callable[P, T]], Callable[P, T]]":
+    ) -> Callable[[Callable[P, T]], Callable[P, T]]:
         _test_server_mode_endpoint = settings.test_server_mode_endpoint()
 
-        def decorator(function: "Callable[P, T]") -> "Callable[P, T]":
-            def wrapper(*args: "P.args", **kwargs: "P.kwargs") -> T:
+        def decorator(function: Callable[P, T]) -> Callable[P, T]:
+            def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
                 if settings.TEST_SERVER_MODE:
                     response = requests.post(
                         f"{_test_server_mode_endpoint}/moto-api/reset-auth",
@@ -401,7 +397,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
         self.is_werkzeug_request = "werkzeug" in str(type(request))
         self.parsed_url = urlparse(full_url)
-        querystring: Dict[str, Any] = OrderedDict()
+        querystring: dict[str, Any] = OrderedDict()
         if hasattr(request, "body"):
             # Boto
             self.body = request.body
@@ -684,7 +680,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         try:
             self._authenticate_and_authorize_normal_action(resource)
         except HTTPException as http_error:
-            response = http_error.description, dict(status=http_error.code)
+            response = http_error.description, {"status": http_error.code}
             status, headers, body = self._transform_response(headers, response)
             headers, body = self._enrich_response(headers, body)
 
@@ -702,7 +698,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 se_headers["status"] = se_status
                 response = se_body, se_headers  # type: ignore[assignment]
             except HTTPException as http_error:
-                response_headers: Dict[str, Union[str, int]] = dict(
+                response_headers: dict[str, Union[str, int]] = dict(
                     http_error.get_headers() or []
                 )
                 response_headers["status"] = http_error.code  # type: ignore[assignment]
@@ -726,7 +722,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         raise NotImplementedError(f"The {action} action has not been implemented")
 
     @staticmethod
-    def _transform_response(headers: Dict[str, str], response: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def _transform_response(headers: dict[str, str], response: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
         if response is None:
             response = "", {}
         if len(response) == 2:
@@ -739,8 +735,8 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     @staticmethod
     def _enrich_response(  # type: ignore[misc]
-        headers: Dict[str, str], body: Any
-    ) -> Tuple[Dict[str, str], Any]:
+        headers: dict[str, str], body: Any
+    ) -> tuple[dict[str, str], Any]:
         # Cast status to string
         if "status" in headers:
             headers["status"] = str(headers["status"])
@@ -811,16 +807,16 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_dict(self, param_prefix: str) -> Dict[str, Any]:
+    def _get_multi_param_dict(self, param_prefix: str) -> dict[str, Any]:
         return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
 
     def _get_multi_param_helper(
         self,
         param_prefix: str,
         skip_result_conversion: bool = False,
-        tracked_prefixes: Optional[Set[str]] = None,
+        tracked_prefixes: Optional[set[str]] = None,
     ) -> Any:
-        value_dict: Any = dict()
+        value_dict: Any = {}
         tracked_prefixes = (
             tracked_prefixes or set()
         )  # prefixes which have already been processed
@@ -885,7 +881,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
     def _get_multi_param(
         self, param_prefix: str, skip_result_conversion: bool = False
-    ) -> List[Any]:
+    ) -> list[Any]:
         """
         Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
         this will return ['my-test-1', 'my-test-2']
@@ -908,7 +904,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return values
 
-    def _get_dict_param(self, param_prefix: str) -> Dict[str, Any]:
+    def _get_dict_param(self, param_prefix: str) -> dict[str, Any]:
         """
         Given a parameter dict of
         {
@@ -922,7 +918,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
             "instance_count": "1",
         }
         """
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
         for key, value in self.querystring.items():
             if key.startswith(param_prefix):
                 params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[
@@ -930,7 +926,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 ]
         return params
 
-    def _get_params(self) -> Dict[str, Any]:
+    def _get_params(self) -> dict[str, Any]:
         """
         Given a querystring of
         {
@@ -968,7 +964,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         """
         if self.automated_parameter_parsing:
             return self.params
-        params: Dict[str, Any] = {}
+        params: dict[str, Any] = {}
         for k, v in sorted(self.querystring.items(), key=params_sort_function):
             self._parse_param(k, v[0], params)
         return params
@@ -1007,7 +1003,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             obj[keylist[-1]] = value
 
-    def _get_list_prefix(self, param_prefix: str) -> List[Dict[str, Any]]:
+    def _get_list_prefix(self, param_prefix: str) -> list[dict[str, Any]]:
         """
         Given a query dict like
         {

@@ -1,5 +1,3 @@
-from typing import List
-
 from moto.core.responses import ActionResult, EmptyResult
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.utils import add_tag_specification
@@ -295,7 +293,7 @@ class VPCs(EC2BaseResponse):
         managed_prefix_list = self.ec2_backend.get_managed_prefix_list_entries(
             prefix_list_id=prefix_list_id
         )
-        entries: List[ManagedPrefixList] = []
+        entries: list[ManagedPrefixList] = []
         if managed_prefix_list:
             entries = (
                 list(managed_prefix_list.entries.values())[-1]

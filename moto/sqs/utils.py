@@ -1,5 +1,5 @@
 import string
-from typing import Any, Dict
+from typing import Any
 
 from moto.moto_api._internal import mock_random as random
 
@@ -12,7 +12,7 @@ def generate_receipt_handle() -> str:
     return "".join(random.choice(string.ascii_lowercase) for x in range(length))
 
 
-def validate_message_attributes(message_attributes: Dict[str, Any]) -> None:
+def validate_message_attributes(message_attributes: dict[str, Any]) -> None:
     for name, value in (message_attributes or {}).items():
         data_type = value["DataType"]
 

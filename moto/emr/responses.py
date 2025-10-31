@@ -1,5 +1,6 @@
 import re
-from typing import Any, List, Pattern
+from re import Pattern
+from typing import Any
 
 from moto.core.parsers import XFormedDict
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
@@ -12,7 +13,7 @@ from .utils import ReleaseLabel
 class ElasticMapReduceResponse(BaseResponse):
     # EMR end points are inconsistent in the placement of region name
     # in the URL, so parsing it out needs to be handled differently
-    emr_region_regex: List[Pattern[str]] = [
+    emr_region_regex: list[Pattern[str]] = [
         re.compile(r"elasticmapreduce\.(.+?)\.amazonaws\.com"),
         re.compile(r"(.+?)\.elasticmapreduce\.amazonaws\.com"),
     ]
@@ -175,52 +176,52 @@ class ElasticMapReduceResponse(BaseResponse):
         return EmptyResult()
 
     def run_job_flow(self) -> ActionResult:
-        instance_attrs = dict(
-            master_instance_type=self._get_param("Instances.MasterInstanceType"),
-            slave_instance_type=self._get_param("Instances.SlaveInstanceType"),
-            instance_count=self._get_int_param("Instances.InstanceCount", 1),
-            ec2_key_name=self._get_param("Instances.Ec2KeyName"),
-            ec2_subnet_id=self._get_param("Instances.Ec2SubnetId"),
-            hadoop_version=self._get_param("Instances.HadoopVersion"),
-            availability_zone=self._get_param(
+        instance_attrs = {
+            "master_instance_type": self._get_param("Instances.MasterInstanceType"),
+            "slave_instance_type": self._get_param("Instances.SlaveInstanceType"),
+            "instance_count": self._get_int_param("Instances.InstanceCount", 1),
+            "ec2_key_name": self._get_param("Instances.Ec2KeyName"),
+            "ec2_subnet_id": self._get_param("Instances.Ec2SubnetId"),
+            "hadoop_version": self._get_param("Instances.HadoopVersion"),
+            "availability_zone": self._get_param(
                 "Instances.Placement.AvailabilityZone", self.backend.region_name + "a"
             ),
-            keep_job_flow_alive_when_no_steps=self._get_bool_param(
+            "keep_job_flow_alive_when_no_steps": self._get_bool_param(
                 "Instances.KeepJobFlowAliveWhenNoSteps", False
             ),
-            termination_protected=self._get_bool_param(
+            "termination_protected": self._get_bool_param(
                 "Instances.TerminationProtected", False
             ),
-            emr_managed_master_security_group=self._get_param(
+            "emr_managed_master_security_group": self._get_param(
                 "Instances.EmrManagedMasterSecurityGroup"
             ),
-            emr_managed_slave_security_group=self._get_param(
+            "emr_managed_slave_security_group": self._get_param(
                 "Instances.EmrManagedSlaveSecurityGroup"
             ),
-            service_access_security_group=self._get_param(
+            "service_access_security_group": self._get_param(
                 "Instances.ServiceAccessSecurityGroup"
             ),
-            additional_master_security_groups=self._get_param(
+            "additional_master_security_groups": self._get_param(
                 "Instances.AdditionalMasterSecurityGroups", []
             ),
-            additional_slave_security_groups=self._get_param(
+            "additional_slave_security_groups": self._get_param(
                 "Instances.AdditionalSlaveSecurityGroups", []
             ),
-        )
+        }
 
-        kwargs = dict(
-            name=self._get_param("Name"),
-            log_uri=self._get_param("LogUri"),
-            job_flow_role=self._get_param("JobFlowRole"),
-            service_role=self._get_param("ServiceRole"),
-            auto_scaling_role=self._get_param("AutoScalingRole"),
-            steps=self._get_param("Steps", []),
-            ebs_root_volume_iops=self._get_param("EbsRootVolumeIops"),
-            ebs_root_volume_size=self._get_param("EbsRootVolumeSize"),
-            ebs_root_volume_throughput=self._get_param("EbsRootVolumeThroughput"),
-            visible_to_all_users=self._get_bool_param("VisibleToAllUsers", False),
-            instance_attrs=instance_attrs,
-        )
+        kwargs = {
+            "name": self._get_param("Name"),
+            "log_uri": self._get_param("LogUri"),
+            "job_flow_role": self._get_param("JobFlowRole"),
+            "service_role": self._get_param("ServiceRole"),
+            "auto_scaling_role": self._get_param("AutoScalingRole"),
+            "steps": self._get_param("Steps", []),
+            "ebs_root_volume_iops": self._get_param("EbsRootVolumeIops"),
+            "ebs_root_volume_size": self._get_param("EbsRootVolumeSize"),
+            "ebs_root_volume_throughput": self._get_param("EbsRootVolumeThroughput"),
+            "visible_to_all_users": self._get_bool_param("VisibleToAllUsers", False),
+            "instance_attrs": instance_attrs,
+        }
 
         bootstrap_actions = self._get_param("BootstrapActions", [])
         if bootstrap_actions:
@@ -237,8 +238,8 @@ class ElasticMapReduceResponse(BaseResponse):
             if ami_version:
                 message = (
                     "Only one AMI version and release label may be specified. "
-                    "Provided AMI: {0}, release label: {1}."
-                ).format(ami_version, release_label)
+                    f"Provided AMI: {ami_version}, release label: {release_label}."
+                )
                 raise ValidationException(message)
         else:
             if ami_version:
@@ -294,9 +295,7 @@ class ElasticMapReduceResponse(BaseResponse):
 
         tags = self._get_param("Tags", [])
         if tags:
-            self.backend.add_tags(
-                cluster.id, dict((d["key"], d["value"]) for d in tags)
-            )
+            self.backend.add_tags(cluster.id, {d["key"]: d["value"] for d in tags})
         result = {
             "JobFlowId": cluster.job_flow_id,
             "ClusterArn": cluster.arn,

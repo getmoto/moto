@@ -1,5 +1,6 @@
 import copy
 from decimal import Decimal as dec
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -80,12 +81,12 @@ def test_scan_with_alternating_hash_keys(table_name=None):
     table = ddb.Table(table_name)
 
     # Insert Data
-    data = [dict(pk="A" if i % 2 else "B", sk=str(i)) for i in range(8)]
+    data = [{"pk": "A" if i % 2 else "B", "sk": str(i)} for i in range(8)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
     # Also add some range keys in reverse, to verify they come back in a natural order
-    data = [dict(pk="A", sk=str(i)) for i in range(20, 15, -1)]
+    data = [{"pk": "A", "sk": str(i)} for i in range(20, 15, -1)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
@@ -130,12 +131,12 @@ def test_scan_with_numeric_range_key(table_name=None):
     table = ddb.Table(table_name)
 
     # Insert Data
-    data = [dict(pk="A" if i % 2 else "B", sk=i) for i in range(8)]
+    data = [{"pk": "A" if i % 2 else "B", "sk": i} for i in range(8)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
     # Also add some range keys in reverse, to verify they come back in a natural order
-    data = [dict(pk="A", sk=i) for i in range(20, 15, -1)]
+    data = [{"pk": "A", "sk": i} for i in range(20, 15, -1)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
@@ -181,12 +182,12 @@ def test_scan_by_global_index(table_name=None):
     table = resource.Table(table_name)
 
     # Insert Data
-    data = [dict(pk=f"A{i}", gsi_pk=f"gsi{i}") for i in range(5)]
+    data = [{"pk": f"A{i}", "gsi_pk": f"gsi{i}"} for i in range(5)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
     # Also add some range keys in reverse, to verify they come back in a natural order
-    data = [dict(pk=f"A{i}", gsi_pk=f"gsi{i}") for i in range(20, 15, -1)]
+    data = [{"pk": f"A{i}", "gsi_pk": f"gsi{i}"} for i in range(20, 15, -1)]
     with table.batch_writer() as batch:
         for item in data:
             batch.put_item(Item=item)
@@ -234,9 +235,10 @@ def test_scan_by_global_index(table_name=None):
 @mock_aws
 def test_scan_by_global_and_local_index():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     dynamodb.create_table(
-        TableName="test",
+        TableName=table_name,
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
             {"AttributeName": "range_key", "KeyType": "RANGE"},
@@ -276,7 +278,7 @@ def test_scan_by_global_and_local_index():
     )
 
     dynamodb.put_item(
-        TableName="test",
+        TableName=table_name,
         Item={
             "id": {"S": "1"},
             "range_key": {"S": "1"},
@@ -288,7 +290,7 @@ def test_scan_by_global_and_local_index():
     )
 
     dynamodb.put_item(
-        TableName="test",
+        TableName=table_name,
         Item={
             "id": {"S": "1"},
             "range_key": {"S": "2"},
@@ -300,28 +302,28 @@ def test_scan_by_global_and_local_index():
     )
 
     dynamodb.put_item(
-        TableName="test",
+        TableName=table_name,
         Item={"id": {"S": "3"}, "range_key": {"S": "1"}, "col1": {"S": "val3"}},
     )
 
-    res = dynamodb.scan(TableName="test")
+    res = dynamodb.scan(TableName=table_name)
     assert res["Count"] == 3
     assert len(res["Items"]) == 3
 
-    res = dynamodb.scan(TableName="test", Limit=1)
+    res = dynamodb.scan(TableName=table_name, Limit=1)
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
 
-    res = dynamodb.scan(TableName="test", ExclusiveStartKey=res["LastEvaluatedKey"])
+    res = dynamodb.scan(TableName=table_name, ExclusiveStartKey=res["LastEvaluatedKey"])
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi")
+    res = dynamodb.scan(TableName=table_name, IndexName="test_gsi")
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_gsi", Limit=1)
+    res = dynamodb.scan(TableName=table_name, IndexName="test_gsi", Limit=1)
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
     assert len(res["Items"]) == 1
@@ -331,22 +333,22 @@ def test_scan_by_global_and_local_index():
     assert last_eval_key["gsi_range_key"]["S"] == "1"
 
     res = dynamodb.scan(
-        TableName="test", IndexName="test_gsi", ExclusiveStartKey=last_eval_key
+        TableName=table_name, IndexName="test_gsi", ExclusiveStartKey=last_eval_key
     )
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
 
-    res = dynamodb.scan(TableName="test", IndexName="test_lsi")
+    res = dynamodb.scan(TableName=table_name, IndexName="test_lsi")
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_lsi", ConsistentRead=True)
+    res = dynamodb.scan(TableName=table_name, IndexName="test_lsi", ConsistentRead=True)
     assert res["Count"] == 2
     assert res["ScannedCount"] == 2
     assert len(res["Items"]) == 2
 
-    res = dynamodb.scan(TableName="test", IndexName="test_lsi", Limit=1)
+    res = dynamodb.scan(TableName=table_name, IndexName="test_lsi", Limit=1)
     assert res["Count"] == 1
     assert res["ScannedCount"] == 1
     assert len(res["Items"]) == 1
@@ -393,7 +395,7 @@ def test_scan_gsi_pagination_with_string_gsi_range(table_name=None):
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["sk"]) for r in results])
+    subjects = {int(r["sk"]) for r in results}
     assert subjects == set(range(10))
 
 
@@ -428,7 +430,7 @@ def test_scan_gsi_pagination_with_string_gsi_range_and_empty_gsi_pk(table_name=N
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    assert set([r["sk"] for r in results]) == {"3", "4", "5", "6", "7", "8", "9"}
+    assert {r["sk"] for r in results} == {"3", "4", "5", "6", "7", "8", "9"}
 
 
 @pytest.mark.aws_verified
@@ -462,7 +464,7 @@ def test_scan_gsi_pagination_with_string_gsi_range_and_empty_gsi_sk(table_name=N
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    assert set([r["sk"] for r in results]) == {"0", "1", "2", "7", "8", "9"}
+    assert {r["sk"] for r in results} == {"0", "1", "2", "7", "8", "9"}
 
 
 @pytest.mark.aws_verified
@@ -496,7 +498,7 @@ def test_scan_gsi_pagination_with_string_gsi_range_no_sk(table_name=None):
     assert "LastEvaluatedKey" not in page2
 
     results = page1["Items"] + page2["Items"]
-    subjects = set([int(r["pk"]) for r in results])
+    subjects = {int(r["pk"]) for r in results}
     assert subjects == set(range(10))
 
 
@@ -550,10 +552,11 @@ class TestFilterExpression:
     def test_scan_filter(self):
         client = boto3.client("dynamodb", region_name="us-east-1")
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+        table_name = f"T{uuid4()}"
 
         # Create the DynamoDB table.
         client.create_table(
-            TableName="test1",
+            TableName=table_name,
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "S"},
@@ -565,10 +568,11 @@ class TestFilterExpression:
             ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
         )
         client.put_item(
-            TableName="test1", Item={"client": {"S": "client1"}, "app": {"S": "app1"}}
+            TableName=table_name,
+            Item={"client": {"S": "client1"}, "app": {"S": "app1"}},
         )
 
-        table = dynamodb.Table("test1")
+        table = dynamodb.Table(table_name)
         response = table.scan(FilterExpression=Attr("app").eq("app2"))
         assert response["Count"] == 0
 
@@ -583,10 +587,11 @@ class TestFilterExpression:
 
     def test_scan_filter2(self):
         client = boto3.client("dynamodb", region_name="us-east-1")
+        table_name = f"T{uuid4()}"
 
         # Create the DynamoDB table.
         client.create_table(
-            TableName="test1",
+            TableName=table_name,
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "N"},
@@ -598,11 +603,11 @@ class TestFilterExpression:
             ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
         )
         client.put_item(
-            TableName="test1", Item={"client": {"S": "client1"}, "app": {"N": "1"}}
+            TableName=table_name, Item={"client": {"S": "client1"}, "app": {"N": "1"}}
         )
 
         response = client.scan(
-            TableName="test1",
+            TableName=table_name,
             Select="ALL_ATTRIBUTES",
             FilterExpression="#tb >= :dt",
             ExpressionAttributeNames={"#tb": "app"},
@@ -613,10 +618,11 @@ class TestFilterExpression:
     def test_scan_filter3(self):
         client = boto3.client("dynamodb", region_name="us-east-1")
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+        table_name = f"T{uuid4()}"
 
         # Create the DynamoDB table.
         client.create_table(
-            TableName="test1",
+            TableName=table_name,
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "N"},
@@ -628,7 +634,7 @@ class TestFilterExpression:
             ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
         )
         client.put_item(
-            TableName="test1",
+            TableName=table_name,
             Item={
                 "client": {"S": "client1"},
                 "app": {"N": "1"},
@@ -636,7 +642,7 @@ class TestFilterExpression:
             },
         )
 
-        table = dynamodb.Table("test1")
+        table = dynamodb.Table(table_name)
         response = table.scan(FilterExpression=Attr("active").eq(True))
         assert response["Count"] == 1
 
@@ -655,10 +661,11 @@ class TestFilterExpression:
     def test_scan_filter4(self):
         client = boto3.client("dynamodb", region_name="us-east-1")
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+        table_name = f"T{uuid4()}"
 
         # Create the DynamoDB table.
         client.create_table(
-            TableName="test1",
+            TableName=table_name,
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "N"},
@@ -670,7 +677,7 @@ class TestFilterExpression:
             ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
         )
 
-        table = dynamodb.Table("test1")
+        table = dynamodb.Table(table_name)
         response = table.scan(
             FilterExpression=Attr("epoch_ts").lt(7) & Attr("fanout_ts").not_exists()
         )
@@ -678,7 +685,7 @@ class TestFilterExpression:
         assert response["Count"] == 0
 
     def test_filter_should_not_return_non_existing_attributes(self):
-        table_name = "my-table"
+        table_name = f"T{uuid4()}"
         item = {"partitionKey": "pk-2", "my-attr": 42}
         # Create table
         res = boto3.resource("dynamodb", region_name="us-east-1")
@@ -706,10 +713,11 @@ class TestFilterExpression:
     def test_bad_scan_filter(self):
         client = boto3.client("dynamodb", region_name="us-east-1")
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+        table_name = f"T{uuid4()}"
 
         # Create the DynamoDB table.
         client.create_table(
-            TableName="test1",
+            TableName=table_name,
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "S"},
@@ -720,7 +728,7 @@ class TestFilterExpression:
             ],
             ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
         )
-        table = dynamodb.Table("test1")
+        table = dynamodb.Table(table_name)
 
         # Bad expression
         with pytest.raises(ClientError) as exc:
@@ -779,6 +787,10 @@ class TestFilterExpression:
 
 @pytest.mark.aws_verified
 class TestParallelScan(BaseTest):
+    @classmethod
+    def setup_method(cls):
+        cls.empty_table()
+
     @staticmethod
     def setup_class(cls):
         super().setup_class(add_range=True)

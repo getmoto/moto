@@ -1,7 +1,8 @@
 import json
 import typing
+from collections import defaultdict
 from datetime import datetime
-from typing import Any, DefaultDict, Dict, List, Optional
+from typing import Any, Optional
 
 from dateutil.tz import tzutc
 
@@ -15,7 +16,7 @@ if typing.TYPE_CHECKING:
 
 
 def get_pipeline_from_name(
-    pipelines: Dict[str, "FakePipeline"], pipeline_name: str
+    pipelines: dict[str, "FakePipeline"], pipeline_name: str
 ) -> "FakePipeline":
     try:
         return pipelines[pipeline_name]
@@ -30,7 +31,7 @@ def get_pipeline_name_from_execution_arn(pipeline_execution_arn: str) -> str:
 
 
 def get_pipeline_execution_from_arn(
-    pipelines: Dict[str, "FakePipeline"], pipeline_execution_arn: str
+    pipelines: dict[str, "FakePipeline"], pipeline_execution_arn: str
 ) -> "FakePipelineExecution":
     try:
         pipeline_name = get_pipeline_name_from_execution_arn(pipeline_execution_arn)
@@ -43,8 +44,8 @@ def get_pipeline_execution_from_arn(
 
 
 def load_pipeline_definition_from_s3(
-    pipeline_definition_s3_location: Dict[str, Any], account_id: str, partition: str
-) -> Dict[str, Any]:
+    pipeline_definition_s3_location: dict[str, Any], account_id: str, partition: str
+) -> dict[str, Any]:
     s3_backend = s3_backends[account_id][partition]
     result = s3_backend.get_object(
         bucket_name=pipeline_definition_s3_location["Bucket"],
@@ -70,14 +71,14 @@ def validate_model_approval_status(model_approval_status: typing.Optional[str]) 
 
 
 def filter_model_cards(
-    model_cards: DefaultDict[str, List["FakeModelCard"]],
+    model_cards: defaultdict[str, list["FakeModelCard"]],
     creation_time_after: Optional[datetime],
     creation_time_before: Optional[datetime],
     name_contains: Optional[str],
     model_card_status: Optional[str],
     sort_by: Optional[str],
     sort_order: Optional[str],
-) -> List["FakeModelCard"]:
+) -> list["FakeModelCard"]:
     reverse = sort_order == "Descending"
 
     if name_contains:
@@ -86,9 +87,9 @@ def filter_model_cards(
             k: v for k, v in model_cards.items() if lowercase_name in k.lower()
         }
     else:
-        filtered_cards = {k: v for k, v in model_cards.items()}
+        filtered_cards = dict(model_cards.items())
 
-    result: List[FakeModelCard] = []
+    result: list[FakeModelCard] = []
     for _, versions in filtered_cards.items():
         filtered_versions = versions
 

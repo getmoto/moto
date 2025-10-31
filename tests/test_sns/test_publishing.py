@@ -487,10 +487,7 @@ def test_publish_to_http():
 
     def callback(request):
         assert request.headers["Content-Type"] == "text/plain; charset=UTF-8"
-        try:
-            json.loads(request.body.decode())
-        except Exception:
-            assert False, "json.load() raised an exception"
+        json.loads(request.body.decode())
         return 200, {}, ""
 
     responses_mock.add_callback(

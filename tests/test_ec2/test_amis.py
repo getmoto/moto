@@ -65,7 +65,7 @@ def test_ami_create_and_delete():
     )["ImageId"]
 
     all_images = ec2.describe_images()["Images"]
-    assert image_id in set([i["ImageId"] for i in all_images])
+    assert image_id in {i["ImageId"] for i in all_images}
 
     retrieved_image = [i for i in all_images if i["ImageId"] == image_id][0]
 
@@ -1315,17 +1315,15 @@ def test_ami_filter_by_source_instance_id():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
-    instance_ids = []
-    for i in range(2):
-        instance = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)[
-            0
-        ]
-        instance_ids.append(instance.instance_id)
+    instance_ids = [
+        i.instance_id
+        for i in ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=2, MaxCount=2)
+    ]
     for i in range(2):
         client.create_image(
             InstanceId=instance_ids[i],
             Name=f"MyAMI{i}",
-            Description="Image from instance {i}",
+            Description=f"Image from instance {i}",
         )
     for i in range(2):
         images_filter = [

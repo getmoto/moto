@@ -1,11 +1,11 @@
 import json
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Union
 
 from moto.core.responses import BaseResponse
 
 from .models import EFSBackend, efs_backends
 
-TYPE_RESPONSE = Tuple[str, Dict[str, Union[str, int]]]
+TYPE_RESPONSE = tuple[str, dict[str, Union[str, int]]]
 
 
 class EFSResponse(BaseResponse):
@@ -55,7 +55,7 @@ class EFSResponse(BaseResponse):
             creation_token=creation_token,
             file_system_id=file_system_id,
         )
-        resp_json: Dict[str, Any] = {
+        resp_json: dict[str, Any] = {
             "FileSystems": [fs.info_json() for fs in file_systems]
         }
         if marker:
@@ -93,7 +93,7 @@ class EFSResponse(BaseResponse):
             access_point_id=access_point_id,
             marker=marker,
         )
-        resp_json: Dict[str, Any] = {
+        resp_json: dict[str, Any] = {
             "MountTargets": [mt.info_json() for mt in mount_targets]
         }
         if marker:
@@ -105,12 +105,12 @@ class EFSResponse(BaseResponse):
     def delete_file_system(self) -> TYPE_RESPONSE:
         file_system_id = self._get_param("FileSystemId")
         self.efs_backend.delete_file_system(file_system_id)
-        return json.dumps(dict()), {"status": 204, "Content-Type": "application/json"}
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
 
     def delete_mount_target(self) -> TYPE_RESPONSE:
         mount_target_id = self._get_param("MountTargetId")
         self.efs_backend.delete_mount_target(mount_target_id)
-        return json.dumps(dict()), {"status": 204, "Content-Type": "application/json"}
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
 
     def describe_backup_policy(self) -> TYPE_RESPONSE:
         file_system_id = self._get_param("FileSystemId")
@@ -204,7 +204,7 @@ class EFSResponse(BaseResponse):
             file_system_id=file_system_id,
         )
         return (
-            json.dumps(dict(FileSystemId=file_system_id, Policy=policy)),
+            json.dumps({"FileSystemId": file_system_id, "Policy": policy}),
             {"Content-Type": "application/json"},
         )
 
@@ -220,6 +220,6 @@ class EFSResponse(BaseResponse):
             bypass_policy_lockout_safety_check=bypass_policy_lockout_safety_check,
         )
         return (
-            json.dumps(dict(FileSystemId=file_system_id, Policy=policy)),
+            json.dumps({"FileSystemId": file_system_id, "Policy": policy}),
             {"Content-Type": "application/json"},
         )

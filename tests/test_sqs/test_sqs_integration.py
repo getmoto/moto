@@ -69,7 +69,7 @@ def test_invoke_function_from_sqs_queue():
                 return
         time.sleep(0.5)
 
-    assert False, "Test Failed"
+    raise AssertionError("Test Failed")
 
 
 @mock_aws(config={"lambda": {"use_docker": False}})
@@ -172,4 +172,4 @@ def test_invoke_function_from_sqs_fifo_queue():
 
         time.sleep(0.5)
 
-    assert False, "Test Failed"
+    raise AssertionError("Test Failed")

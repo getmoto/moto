@@ -66,7 +66,7 @@ class MemoryDBResponse(BaseResponse):
             auto_minor_version_upgrade=auto_minor_version_upgrade,
             data_tiering=data_tiering,
         )
-        return json.dumps(dict(Cluster=cluster.to_dict()))
+        return json.dumps({"Cluster": cluster.to_dict()})
 
     def create_subnet_group(self) -> str:
         params = json.loads(self.body)
@@ -80,7 +80,7 @@ class MemoryDBResponse(BaseResponse):
             subnet_ids=subnet_ids,
             tags=tags,
         )
-        return json.dumps(dict(SubnetGroup=subnet_group.to_dict()))
+        return json.dumps({"SubnetGroup": subnet_group.to_dict()})
 
     def create_snapshot(self) -> str:
         params = json.loads(self.body)
@@ -94,7 +94,7 @@ class MemoryDBResponse(BaseResponse):
             kms_key_id=kms_key_id,
             tags=tags,
         )
-        return json.dumps(dict(Snapshot=snapshot.to_dict()))
+        return json.dumps({"Snapshot": snapshot.to_dict()})
 
     def describe_clusters(self) -> str:
         params = json.loads(self.body)
@@ -104,12 +104,12 @@ class MemoryDBResponse(BaseResponse):
             cluster_name=cluster_name,
         )
         return json.dumps(
-            dict(
-                Clusters=[
+            {
+                "Clusters": [
                     cluster.to_desc_dict() if show_shard_details else cluster.to_dict()
                     for cluster in clusters
                 ]
-            )
+            }
         )
 
     def describe_snapshots(self) -> str:
@@ -124,12 +124,12 @@ class MemoryDBResponse(BaseResponse):
             source=source,
         )
         return json.dumps(
-            dict(
-                Snapshots=[
+            {
+                "Snapshots": [
                     snapshot.to_desc_dict() if show_detail else snapshot.to_dict()
                     for snapshot in snapshots
                 ]
-            )
+            }
         )
 
     def describe_subnet_groups(self) -> str:
@@ -138,7 +138,7 @@ class MemoryDBResponse(BaseResponse):
         subnet_groups = self.memorydb_backend.describe_subnet_groups(
             subnet_group_name=subnet_group_name,
         )
-        return json.dumps(dict(SubnetGroups=[sg.to_dict() for sg in subnet_groups]))
+        return json.dumps({"SubnetGroups": [sg.to_dict() for sg in subnet_groups]})
 
     def list_tags(self) -> str:
         params = json.loads(self.body)
@@ -146,7 +146,7 @@ class MemoryDBResponse(BaseResponse):
         tag_list = self.memorydb_backend.list_tags(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(TagList=tag_list))
+        return json.dumps({"TagList": tag_list})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
@@ -156,7 +156,7 @@ class MemoryDBResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict(TagList=tag_list))
+        return json.dumps({"TagList": tag_list})
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
@@ -166,7 +166,7 @@ class MemoryDBResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tag_keys,
         )
-        return json.dumps(dict(TagList=tag_list))
+        return json.dumps({"TagList": tag_list})
 
     def update_cluster(self) -> str:
         params = json.loads(self.body)
@@ -200,7 +200,7 @@ class MemoryDBResponse(BaseResponse):
             shard_configuration=shard_configuration,
             acl_name=acl_name,
         )
-        return json.dumps(dict(Cluster=cluster.to_dict()))
+        return json.dumps({"Cluster": cluster.to_dict()})
 
     def delete_cluster(self) -> str:
         params = json.loads(self.body)
@@ -210,7 +210,7 @@ class MemoryDBResponse(BaseResponse):
             cluster_name=cluster_name,
             final_snapshot_name=final_snapshot_name,
         )
-        return json.dumps(dict(Cluster=cluster.to_dict()))
+        return json.dumps({"Cluster": cluster.to_dict()})
 
     def delete_snapshot(self) -> str:
         params = json.loads(self.body)
@@ -218,7 +218,7 @@ class MemoryDBResponse(BaseResponse):
         snapshot = self.memorydb_backend.delete_snapshot(
             snapshot_name=snapshot_name,
         )
-        return json.dumps(dict(Snapshot=snapshot.to_dict()))
+        return json.dumps({"Snapshot": snapshot.to_dict()})
 
     def delete_subnet_group(self) -> str:
         params = json.loads(self.body)
@@ -226,4 +226,4 @@ class MemoryDBResponse(BaseResponse):
         subnet_group = self.memorydb_backend.delete_subnet_group(
             subnet_group_name=subnet_group_name,
         )
-        return json.dumps(dict(SubnetGroup=subnet_group.to_dict()))
+        return json.dumps({"SubnetGroup": subnet_group.to_dict()})

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from ..exceptions import (
     InvalidParameterValue,
@@ -18,12 +18,12 @@ class VPNConnection(TaggedEC2Resource):
         customer_gateway_id: str,
         vpn_gateway_id: Optional[str] = None,
         transit_gateway_id: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = vpn_connection_id
         self.state = "available"
-        self.customer_gateway_configuration: Dict[str, str] = {}
+        self.customer_gateway_configuration: dict[str, str] = {}
         self.type = vpn_conn_type
         self.customer_gateway_id = customer_gateway_id
         self.vpn_gateway_id = vpn_gateway_id
@@ -41,7 +41,7 @@ class VPNConnection(TaggedEC2Resource):
 
 class VPNConnectionBackend:
     def __init__(self) -> None:
-        self.vpn_connections: Dict[str, VPNConnection] = {}
+        self.vpn_connections: dict[str, VPNConnection] = {}
 
     def create_vpn_connection(
         self,
@@ -49,7 +49,7 @@ class VPNConnectionBackend:
         customer_gateway_id: str,
         vpn_gateway_id: Optional[str] = None,
         transit_gateway_id: Optional[str] = None,
-        tags: Optional[Dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> VPNConnection:
         if vpn_gateway_id and transit_gateway_id:
             # From the docs (parentheses mine):
@@ -83,8 +83,8 @@ class VPNConnectionBackend:
         return self.vpn_connections[vpn_connection_id]
 
     def describe_vpn_connections(
-        self, vpn_connection_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[VPNConnection]:
+        self, vpn_connection_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[VPNConnection]:
         vpn_connections = list(self.vpn_connections.values())
 
         if vpn_connection_ids:
@@ -96,7 +96,7 @@ class VPNConnectionBackend:
             if len(vpn_connections) != len(vpn_connection_ids):
                 invalid_id = list(
                     set(vpn_connection_ids).difference(
-                        set([vpn_connection.id for vpn_connection in vpn_connections])
+                        {vpn_connection.id for vpn_connection in vpn_connections}
                     )
                 )[0]
                 raise InvalidVpnConnectionIdError(invalid_id)

@@ -1,6 +1,6 @@
 """NetworkFirewallBackend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -26,14 +26,14 @@ class NetworkFirewallModel(BaseModel):
         firewall_name: str,
         firewall_policy_arn: str,
         vpc_id: str,
-        subnet_mappings: List[str],
+        subnet_mappings: list[str],
         delete_protection: bool,
         subnet_change_protection: bool,
         firewall_policy_change_protection: bool,
         description: str,
-        tags: List[Dict[str, str]],
-        encryption_configuration: Dict[str, str],
-        enabled_analysis_types: List[str],
+        tags: list[dict[str, str]],
+        encryption_configuration: dict[str, str],
+        enabled_analysis_types: list[str],
     ):
         self.firewall_name = firewall_name
         self.firewall_policy_arn = firewall_policy_arn
@@ -62,9 +62,9 @@ class NetworkFirewallModel(BaseModel):
             "Status": "READY",
             "ConfigurationSyncStateSummary": "IN_SYNC",
         }
-        self.logging_configs: Dict[str, List[Dict[str, Any]]] = {}
+        self.logging_configs: dict[str, list[dict[str, Any]]] = {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "FirewallName": self.firewall_name,
             "FirewallArn": self.arn,
@@ -86,7 +86,7 @@ class NetworkFirewallBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.firewalls: Dict[str, NetworkFirewallModel] = {}
+        self.firewalls: dict[str, NetworkFirewallModel] = {}
         self.tagger = TaggingService()
 
     def create_firewall(
@@ -94,14 +94,14 @@ class NetworkFirewallBackend(BaseBackend):
         firewall_name: str,
         firewall_policy_arn: str,
         vpc_id: str,
-        subnet_mappings: List[str],
+        subnet_mappings: list[str],
         delete_protection: bool,
         subnet_change_protection: bool,
         firewall_policy_change_protection: bool,
         description: str,
-        tags: List[Dict[str, str]],
-        encryption_configuration: Dict[str, str],
-        enabled_analysis_types: List[str],
+        tags: list[dict[str, str]],
+        encryption_configuration: dict[str, str],
+        enabled_analysis_types: list[str],
     ) -> NetworkFirewallModel:
         firewall = NetworkFirewallModel(
             self.account_id,
@@ -146,14 +146,14 @@ class NetworkFirewallBackend(BaseBackend):
         self,
         firewall_arn: str,
         firewall_name: str,
-        logging_configuration: Dict[str, List[Dict[str, Any]]],
+        logging_configuration: dict[str, list[dict[str, Any]]],
     ) -> NetworkFirewallModel:
         firewall: NetworkFirewallModel = self._get_firewall(firewall_arn, firewall_name)
         firewall.logging_configs = logging_configuration
         return firewall
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_firewalls(self, vpc_ids: List[str]) -> List[NetworkFirewallModel]:
+    def list_firewalls(self, vpc_ids: list[str]) -> list[NetworkFirewallModel]:
         firewalls = list(self.firewalls.values())
         if vpc_ids:
             firewalls = [fw for fw in firewalls if fw.vpc_id in vpc_ids]

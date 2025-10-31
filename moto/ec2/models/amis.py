@@ -2,7 +2,7 @@ import json
 import os
 import re
 from os import environ
-from typing import Any, Dict, List, Optional, Set, cast
+from typing import Any, Optional, cast
 
 from moto import settings
 from moto.utilities.utils import load_resource
@@ -23,8 +23,8 @@ from .core import TaggedEC2Resource
 from .instances import Instance
 
 if "MOTO_AMIS_PATH" in environ:
-    with open(environ["MOTO_AMIS_PATH"], "r", encoding="utf-8") as f:
-        AMIS: List[Dict[str, Any]] = json.load(f)
+    with open(environ["MOTO_AMIS_PATH"], encoding="utf-8") as f:
+        AMIS: list[dict[str, Any]] = json.load(f)
 else:
     AMIS = load_resource(__name__, "../resources/amis.json")
 
@@ -54,9 +54,9 @@ class Ami(TaggedEC2Resource):
         sriov: str = "simple",
         region_name: str = "us-east-1a",
         snapshot_description: Optional[str] = None,
-        product_codes: Set[str] = set(),
+        product_codes: Optional[set[str]] = None,
         boot_mode: str = "uefi",
-        tags: Optional[Dict[str, Any]] = None,
+        tags: Optional[dict[str, Any]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = ami_id
@@ -76,7 +76,7 @@ class Ami(TaggedEC2Resource):
         self.root_device_type = root_device_type
         self.sriov = sriov
         self.creation_date = creation_date or utc_date_and_time()
-        self.product_codes = product_codes
+        self.product_codes = product_codes or set()
         self.boot_mode = boot_mode
         self.instance_id: Optional[str] = None
 
@@ -106,7 +106,7 @@ class Ami(TaggedEC2Resource):
             if not description:
                 self.description = source_ami.description
 
-        self.launch_permissions: List[Dict[str, str]] = []
+        self.launch_permissions: list[dict[str, str]] = []
 
         if public:
             self.launch_permissions.append({"Group": "all"})
@@ -126,7 +126,7 @@ class Ami(TaggedEC2Resource):
         return {"Group": "all"} in self.launch_permissions
 
     @property
-    def block_device_mappings(self) -> List[Dict[str, Any]]:
+    def block_device_mappings(self) -> list[dict[str, Any]]:
         return [
             {
                 "DeviceName": self.root_device_name,
@@ -178,8 +178,8 @@ class AmiBackend:
     AMI_REGEX = re.compile("ami-[a-z0-9]+")
 
     def __init__(self) -> None:
-        self.amis: Dict[str, Ami] = {}
-        self.deleted_amis: List[str] = list()
+        self.amis: dict[str, Ami] = {}
+        self.deleted_amis: list[str] = []
         self._load_amis()
 
     def _load_amis(self) -> None:
@@ -195,7 +195,7 @@ class AmiBackend:
             for path in ["latest_amis", "ecs/optimized_amis"]:
                 try:
                     latest_amis = cast(
-                        List[Dict[str, Any]],
+                        list[dict[str, Any]],
                         load_resource(
                             __name__,
                             f"../resources/{path}/{self.region_name}.json",  # type: ignore[attr-defined]
@@ -214,7 +214,7 @@ class AmiBackend:
         instance_id: str,
         name: str,
         description: str,
-        tag_specifications: List[Dict[str, Any]],
+        tag_specifications: list[dict[str, Any]],
     ) -> Ami:
         # TODO: check that instance exists and pull info from it.
         ami_id = random_ami_id()
@@ -269,11 +269,11 @@ class AmiBackend:
 
     def describe_images(
         self,
-        ami_ids: Optional[List[str]] = None,
-        filters: Optional[Dict[str, Any]] = None,
-        exec_users: Optional[List[str]] = None,
-        owners: Optional[List[str]] = None,
-    ) -> List[Ami]:
+        ami_ids: Optional[list[str]] = None,
+        filters: Optional[dict[str, Any]] = None,
+        exec_users: Optional[list[str]] = None,
+        owners: Optional[list[str]] = None,
+    ) -> list[Ami]:
         images = list(self.amis.copy().values())
 
         if ami_ids and len(ami_ids):
@@ -316,9 +316,7 @@ class AmiBackend:
             if owners:
                 # support filtering by Owners=['self']
                 if "self" in owners:
-                    owners = list(
-                        map(lambda o: self.account_id if o == "self" else o, owners)  # type: ignore[attr-defined]
-                    )
+                    owners = [self.account_id if o == "self" else o for o in owners]  # type: ignore[attr-defined]
                 images = [
                     ami
                     for ami in images
@@ -340,7 +338,7 @@ class AmiBackend:
         else:
             raise InvalidAMIIdError(ami_id)
 
-    def validate_permission_targets(self, permissions: List[Dict[str, str]]) -> None:
+    def validate_permission_targets(self, permissions: list[dict[str, str]]) -> None:
         for perm in permissions:
             # If anything is invalid, nothing is added. (No partial success.)
             # AWS docs:
@@ -358,8 +356,8 @@ class AmiBackend:
     def modify_image_attribute(
         self,
         ami_id: str,
-        launch_permissions_to_add: List[Dict[str, str]],
-        launch_permissions_to_remove: List[Dict[str, str]],
+        launch_permissions_to_add: list[dict[str, str]],
+        launch_permissions_to_remove: list[dict[str, str]],
     ) -> None:
         ami = self.describe_images(ami_ids=[ami_id])[0]
         self.validate_permission_targets(launch_permissions_to_add)

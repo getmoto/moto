@@ -1,13 +1,13 @@
 import base64
 import json
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 from moto.core.responses import BaseResponse
 
 from .exceptions import AWSValidationException
 from .models import AWSCertificateManagerBackend, acm_backends
 
-GENERIC_RESPONSE_TYPE = Union[str, Tuple[str, Dict[str, int]]]
+GENERIC_RESPONSE_TYPE = Union[str, tuple[str, dict[str, int]]]
 
 
 class AWSCertificateManagerResponse(BaseResponse):
@@ -26,7 +26,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         self.acm_backend.add_tags_to_certificate(arn, tags)
@@ -40,7 +40,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         self.acm_backend.delete_certificate(arn)
@@ -54,7 +54,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         cert_bundle = self.acm_backend.describe_certificate(arn)
@@ -68,7 +68,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         cert_bundle = self.acm_backend.get_certificate(arn)
@@ -145,13 +145,13 @@ class AWSCertificateManagerResponse(BaseResponse):
 
         if arn is None:
             msg = "A required parameter for the specified action is not supplied."
-            return json.dumps({"__type": "MissingParameter", "message": msg}), dict(
-                status=400
-            )
+            return json.dumps({"__type": "MissingParameter", "message": msg}), {
+                "status": 400
+            }
 
         cert_bundle = self.acm_backend.get_certificate(arn)
 
-        result: Dict[str, List[Dict[str, str]]] = {"Tags": []}
+        result: dict[str, list[dict[str, str]]] = {"Tags": []}
         # Tag "objects" can not contain the Value part
         for key, value in cert_bundle.tags.items():
             tag_dict = {"Key": key}
@@ -169,7 +169,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         self.acm_backend.remove_tags_from_certificate(arn, tags)
@@ -191,7 +191,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             )
             return (
                 json.dumps({"__type": "LimitExceededException", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         arn = self.acm_backend.request_certificate(
@@ -218,7 +218,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         cert_bundle = self.acm_backend.get_certificate(arn)
@@ -226,7 +226,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         if cert_bundle.common_name != domain:
             msg = "Parameter Domain does not match certificate domain"
             _type = "InvalidDomainValidationOptionsException"
-            return json.dumps({"__type": _type, "message": msg}), dict(status=400)
+            return json.dumps({"__type": _type, "message": msg}), {"status": 400}
 
         return ""
 
@@ -238,7 +238,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         (
@@ -249,11 +249,11 @@ class AWSCertificateManagerResponse(BaseResponse):
             certificate_arn=certificate_arn, passphrase=passphrase
         )
         return json.dumps(
-            dict(
-                Certificate=certificate,
-                CertificateChain=certificate_chain,
-                PrivateKey=private_key,
-            )
+            {
+                "Certificate": certificate,
+                "CertificateChain": certificate_chain,
+                "PrivateKey": private_key,
+            }
         )
 
     def get_account_configuration(self) -> str:
@@ -268,7 +268,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "A required parameter for the specified action is not supplied."
             return (  # type: ignore
                 json.dumps({"__type": "MissingParameter", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         days_before_expiry = expiry_events.get("DaysBeforeExpiry")
@@ -276,7 +276,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             msg = "DaysBeforeExpiry is required in ExpiryEvents."
             return (  # type: ignore
                 json.dumps({"__type": "ValidationException", "message": msg}),
-                dict(status=400),
+                {"status": 400},
             )
 
         self.acm_backend.put_account_configuration(

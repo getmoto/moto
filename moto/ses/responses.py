@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import utcnow
@@ -151,7 +151,7 @@ class EmailResponse(BaseResponse):
 
         attribute_names = self._get_param("ConfigurationSetAttributeNames", [])
 
-        event_destination: Optional[Dict[str, Any]] = None
+        event_destination: Optional[dict[str, Any]] = None
         if "eventDestinations" in attribute_names:
             event_destination = self.backend.config_set_event_destination.get(
                 configuration_set_name

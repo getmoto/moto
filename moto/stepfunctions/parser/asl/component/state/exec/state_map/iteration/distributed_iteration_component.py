@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import Any, Final, List, Optional
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.api import (
     HistoryEventType,
@@ -58,7 +58,7 @@ class DistributedIterationComponentEvalInput(InlineIterationComponentEvalInput):
         self,
         state_name: str,
         max_concurrency: int,
-        input_items: List[json],
+        input_items: list[json],
         parameters: Optional[Parameters],
         item_selector: Optional[ItemSelector],
         item_reader: Optional[ItemReader],
@@ -101,7 +101,7 @@ class DistributedIterationComponent(InlineIterationComponent, abc.ABC):
     def _map_run(
         self, env: Environment, eval_input: DistributedIterationComponentEvalInput
     ) -> None:
-        input_items: List[json] = env.stack.pop()
+        input_items: list[json] = env.stack.pop()
 
         input_item_program: Final[Program] = self._get_iteration_program()
         job_pool = JobPool(job_program=input_item_program, job_inputs=input_items)
@@ -122,8 +122,8 @@ class DistributedIterationComponent(InlineIterationComponent, abc.ABC):
         if worker_exception is not None:
             raise worker_exception
 
-        closed_jobs: List[JobClosed] = job_pool.get_closed_jobs()
-        outputs: List[Any] = [closed_job.job_output for closed_job in closed_jobs]
+        closed_jobs: list[JobClosed] = job_pool.get_closed_jobs()
+        outputs: list[Any] = [closed_job.job_output for closed_job in closed_jobs]
 
         env.stack.append(outputs)
 

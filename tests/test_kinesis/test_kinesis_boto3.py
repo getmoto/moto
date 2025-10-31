@@ -233,7 +233,7 @@ def test_split_shard():
     for index in range(1, 100):
         client.put_record(
             StreamName=stream_name,
-            Data=f"data_{index}".encode("utf-8"),
+            Data=f"data_{index}".encode(),
             PartitionKey=str(index),
         )
 

@@ -1782,6 +1782,66 @@ def test_add_listener_certificate():
 
 
 @mock_aws
+def test_describe_listener_certificates_with_default_field():
+    """Test that describe_listener_certificates returns IsDefault field.
+
+    The IsDefault field should be True for the default certificate and False
+    for SNI certificates.
+    """
+    client = boto3.client("elbv2", region_name="us-east-1")
+    acm = boto3.client("acm", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    subnet1 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.1.0/24", AvailabilityZone="us-east-1a"
+    )
+    subnet2 = ec2.create_subnet(
+        VpcId=vpc.id, CidrBlock="10.0.2.0/24", AvailabilityZone="us-east-1b"
+    )
+
+    response = client.create_load_balancer(
+        Name="my-lb", Subnets=[subnet1.id, subnet2.id]
+    )
+    load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]
+
+    response = client.create_target_group(
+        Name="my-tg", Protocol="HTTPS", Port=443, VpcId=vpc.id
+    )
+    target_group_arn = response["TargetGroups"][0]["TargetGroupArn"]
+
+    response = acm.request_certificate(DomainName="example.com")
+    cert_arn = response["CertificateArn"]
+
+    response = client.create_listener(
+        LoadBalancerArn=load_balancer_arn,
+        Protocol="HTTPS",
+        Port=443,
+        Certificates=[{"CertificateArn": cert_arn}],
+        DefaultActions=[{"Type": "forward", "TargetGroupArn": target_group_arn}],
+    )
+    listener_arn = response["Listeners"][0]["ListenerArn"]
+
+    client.add_listener_certificates(
+        ListenerArn=listener_arn, Certificates=[{"CertificateArn": cert_arn}]
+    )
+
+    certs = client.describe_listener_certificates(ListenerArn=listener_arn)[
+        "Certificates"
+    ]
+
+    assert len(certs) == 2
+
+    default_certs = [c for c in certs if c.get("IsDefault") is True]
+    sni_certs = [c for c in certs if c.get("IsDefault") is False]
+
+    assert len(default_certs) == 1, "Should have exactly one default certificate"
+    assert len(sni_certs) == 1, "Should have exactly one SNI certificate"
+    assert default_certs[0]["CertificateArn"] == cert_arn
+    assert sni_certs[0]["CertificateArn"] == cert_arn
+
+
+@mock_aws
 def test_forward_config_action():
     response, vpc, _, _, _, conn = create_load_balancer()
     load_balancer_arn = response["LoadBalancers"][0]["LoadBalancerArn"]

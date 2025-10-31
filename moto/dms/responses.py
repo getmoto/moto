@@ -65,7 +65,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(ReplicationTasks=[t.to_dict() for t in replication_tasks])
+            {"ReplicationTasks": [t.to_dict() for t in replication_tasks]}
         )
 
     def create_replication_instance(self) -> str:
@@ -203,9 +203,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                Endpoint={k: v for k, v in endpoint.to_dict().items() if v is not None}
-            )
+            {"Endpoint": {k: v for k, v in endpoint.to_dict().items() if v is not None}}
         )
 
     def describe_endpoints(self) -> str:
@@ -217,12 +215,12 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             filters=filters, max_records=max_records, marker=marker
         )
         return json.dumps(
-            dict(
-                Endpoints=[
+            {
+                "Endpoints": [
                     {k: v for k, v in endpoint.to_dict().items() if v is not None}
                     for endpoint in endpoints
                 ]
-            )
+            }
         )
 
     def list_tags_for_resource(self) -> str:
@@ -244,4 +242,4 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         else:
             tag_list = self.dms_backend.list_tags_for_resource(resource_arn_list)
 
-        return json.dumps(dict(TagList=tag_list))
+        return json.dumps({"TagList": tag_list})
