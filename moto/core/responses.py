@@ -1047,7 +1047,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         return "JSON" in self.querystring.get("ContentType", [])
 
     def error_on_dryrun(self) -> None:
-        if "true" in self.querystring.get("DryRun", ["false"]):
-            a = self._get_param("Action")
+        if self._get_param("DryRun", False):
+            a = self._get_action()
             message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
             raise DryRunClientError(error_type="DryRunOperation", message=message)
