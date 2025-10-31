@@ -110,34 +110,34 @@ class AmisResponse(EC2BaseResponse):
 
     def modify_image_attribute(self) -> ActionResult:
         ami_id = self._get_param("ImageId")
-        launch_permissions_to_add = list(
-            self._get_params().get("LaunchPermission", {}).get("Add", {}).values()
+        launch_permissions_to_add = self._get_param("LaunchPermission", {}).get(
+            "Add", []
         )
-        launch_permissions_to_remove = list(
-            self._get_params().get("LaunchPermission", {}).get("Remove", {}).values()
+        launch_permissions_to_remove = self._get_param("LaunchPermission", {}).get(
+            "Remove", []
         )
         # If only one OperationType is added, the other attributes are submitted as different variables
         operation_type = self._get_param("OperationType")
         if operation_type in ["add", "remove"]:
-            group = self._get_param("UserGroup.1")
+            group = self._get_param("UserGroups", [])
             lp = (
                 launch_permissions_to_add
                 if operation_type == "add"
                 else launch_permissions_to_remove
             )
             if group:
-                lp.append({"Group": group})
+                lp.append({"Group": group[0]})
 
-            for user_id in self._get_multi_param("UserId"):
+            for user_id in self._get_param("UserIds", []):
                 lp.append({"UserId": user_id})
 
-            org_arn = self._get_param("OrganizationArn.1")
+            org_arn = self._get_param("OrganizationArns", [])
             if org_arn:
-                lp.append({"OrganizationArn": org_arn})
+                lp.append({"OrganizationArn": org_arn[0]})
 
-            ou_arn = self._get_param("OrganizationalUnitArn.1")
+            ou_arn = self._get_param("OrganizationalUnitArns", [])
             if ou_arn:
-                lp.append({"OrganizationalUnitArn": ou_arn})
+                lp.append({"OrganizationalUnitArn": ou_arn[0]})
 
         self.error_on_dryrun()
 
