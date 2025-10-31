@@ -2430,13 +2430,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def put_object_tagging(
         self,
-        key: Optional[FakeKey],
+        key: FakeKey,
         tags: Optional[dict[str, str]],
-        key_name: Optional[str] = None,
     ) -> FakeKey:
-        if key is None:
-            raise MissingKey(key=key_name)
-
         # get bucket for eventbridge notification
         # we can assume that the key has its bucket
         bucket = self.get_bucket(key.bucket_name)  # type: ignore
