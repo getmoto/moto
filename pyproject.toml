@@ -12,6 +12,7 @@ markers = [
     "network: requires network connection",
     "requires_docker: requires running docker",
     "aws_verified: Verified against AWS, and should be able to run against AWS",
+    "requires_clean_slate: requires a clean slate, so no parallel testing",
 ]
 
 [tool.ruff.lint]

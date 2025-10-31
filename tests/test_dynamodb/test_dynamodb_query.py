@@ -1,4 +1,5 @@
 from decimal import Decimal
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -84,8 +85,8 @@ def test_key_condition_expressions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -96,7 +97,6 @@ def test_key_condition_expressions():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table = dynamodb.Table("users")
 
     table.put_item(Item={"forum_name": "the-key", "subject": "123"})
     table.put_item(Item={"forum_name": "the-key", "subject": "456"})
@@ -331,8 +331,8 @@ def test_query_gsi_pagination_with_opposite_pk_order():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "pk", "KeyType": "HASH"},
         ],
@@ -353,7 +353,6 @@ def test_query_gsi_pagination_with_opposite_pk_order():
             }
         ],
     )
-    table = dynamodb.Table("users")
 
     table.put_item(Item={"pk": "b", "gsi_hash": "a", "gsi_sort": "a"})
     table.put_item(Item={"pk": "a", "gsi_hash": "a", "gsi_sort": "b"})
@@ -693,9 +692,11 @@ class TestFilterExpression:
         client = boto3.client("dynamodb", region_name="us-east-1")
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
+        table_name = f"T{str(uuid4())}"
+
         # Create the DynamoDB table.
         client.create_table(
-            TableName="test1",
+            TableName=table_name,
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "S"},
@@ -707,7 +708,7 @@ class TestFilterExpression:
             ProvisionedThroughput={"ReadCapacityUnits": 123, "WriteCapacityUnits": 123},
         )
         client.put_item(
-            TableName="test1",
+            TableName=table_name,
             Item={
                 "client": {"S": "client1"},
                 "app": {"S": "app1"},
@@ -720,7 +721,7 @@ class TestFilterExpression:
             },
         )
         client.put_item(
-            TableName="test1",
+            TableName=table_name,
             Item={
                 "client": {"S": "client1"},
                 "app": {"S": "app2"},
@@ -733,7 +734,7 @@ class TestFilterExpression:
             },
         )
 
-        table = dynamodb.Table("test1")
+        table = dynamodb.Table(table_name)
         response = table.query(KeyConditionExpression=Key("client").eq("client1"))
         assert response["Count"] == 2
         assert response["ScannedCount"] == 2
@@ -786,9 +787,11 @@ class TestFilterExpression:
         client = boto3.client("dynamodb", region_name="us-east-1")
         dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
+        table_name = f"T{str(uuid4())}"
+
         # Create the DynamoDB table.
         client.create_table(
-            TableName="test1",
+            TableName=table_name,
             AttributeDefinitions=[
                 {"AttributeName": "client", "AttributeType": "S"},
                 {"AttributeName": "app", "AttributeType": "S"},
@@ -801,7 +804,7 @@ class TestFilterExpression:
         )
 
         client.put_item(
-            TableName="test1",
+            TableName=table_name,
             Item={
                 "client": {"S": "client1"},
                 "app": {"S": "app1"},
@@ -814,7 +817,7 @@ class TestFilterExpression:
             },
         )
 
-        table = dynamodb.Table("test1")
+        table = dynamodb.Table(table_name)
         response = table.query(
             KeyConditionExpression=Key("client").eq("client1") & Key("app").eq("app1"),
             ProjectionExpression="#1, #10, nested",
