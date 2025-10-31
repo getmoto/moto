@@ -509,6 +509,52 @@ def test_set_sslcertificate():
 
 
 @mock_aws
+def test_set_sslcertificate_update_to_iam_certificate():
+    iam_client = boto3.client("iam", region_name="us-east-1")
+    client = boto3.client("elb", region_name="us-east-1")
+    lb_name = str(uuid4())[0:6]
+
+    old_cert_response = iam_client.upload_server_certificate(
+        ServerCertificateName="old-cert",
+        CertificateBody="old-cert-body",
+        PrivateKey="old-private-key",
+    )
+    old_cert_arn = old_cert_response["ServerCertificateMetadata"]["Arn"]
+
+    client.create_load_balancer(
+        LoadBalancerName=lb_name,
+        Listeners=[
+            {
+                "Protocol": "https",
+                "LoadBalancerPort": 443,
+                "InstancePort": 8080,
+                "SSLCertificateId": old_cert_arn,
+            }
+        ],
+        AvailabilityZones=["us-east-1a"],
+    )
+
+    new_cert_response = iam_client.upload_server_certificate(
+        ServerCertificateName="new-cert",
+        CertificateBody="new-cert-body",
+        PrivateKey="new-private-key",
+    )
+    new_cert_arn = new_cert_response["ServerCertificateMetadata"]["Arn"]
+
+    client.set_load_balancer_listener_ssl_certificate(
+        LoadBalancerName=lb_name,
+        LoadBalancerPort=443,
+        SSLCertificateId=new_cert_arn,
+    )
+
+    elb = client.describe_load_balancers(LoadBalancerNames=[lb_name])[
+        "LoadBalancerDescriptions"
+    ][0]
+    listener = elb["ListenerDescriptions"][0]["Listener"]
+    assert listener["SSLCertificateId"] == new_cert_arn
+
+
+@mock_aws
 def test_get_load_balancers_by_name():
     client = boto3.client("elb", region_name="us-east-1")
     lb_name1 = str(uuid4())[0:6]
