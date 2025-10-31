@@ -537,12 +537,26 @@ class AWSCertificateManagerBackend(BaseBackend):
         for arn in self._certificates.keys():
             cert = self.get_certificate(arn)
             if not statuses or cert.status in statuses:
-                if not includes or (
-                    "Export" in cert.cert_options
-                    and includes.get("exportOption", None)
-                    in cert.cert_options["Export"]
-                ):
+                if not includes:
                     yield cert
+                    continue
+
+                # Check exportOption filter if present
+                if "exportOption" in includes:
+                    export_option = includes["exportOption"]
+                    if export_option not in cert.cert_options.get("Export", ""):
+                        continue
+
+                # Check keyTypes filter if present
+                if "keyTypes" in includes:
+                    key_types = includes["keyTypes"]
+                    # Get the certificate's key algorithm from describe()
+                    cert_key_algo = cert.describe()["Certificate"]["KeyAlgorithm"]
+                    if cert_key_algo not in key_types:
+                        continue
+
+                # Certificate passed all filters
+                yield cert
 
     def get_certificate(self, arn: str) -> CertBundle:
         if arn not in self._certificates:
