@@ -181,6 +181,30 @@ class QueryParser(RequestParser):
         return key_name
 
 
+class EC2QueryParser(QueryParser):
+    def _get_serialized_name(self, shape, default_name):
+        # https://smithy.io/2.0/aws/protocols/aws-ec2-query-protocol.html#query-key-resolution
+        if "queryName" in shape.serialization:
+            return shape.serialization["queryName"]
+        if "name" in shape.serialization:
+            name = shape.serialization["name"]
+            return name[0].upper() + name[1:]
+        return default_name
+
+    def _handle_list(self, shape, node, prefix=""):
+        parsed_list = []
+        i = 1
+        while True:
+            element_name = f"{prefix}.{i}"
+            element_shape = shape.member
+            value = self._parse_shape(element_shape, node, element_name)
+            if value is UNDEFINED:
+                break
+            parsed_list.append(value)
+            i += 1
+        return parsed_list if parsed_list != [] else UNDEFINED
+
+
 class JSONParser(RequestParser):
     DEFAULT_ENCODING = "utf-8"
 
@@ -259,6 +283,7 @@ class JSONParser(RequestParser):
 
 
 PROTOCOL_PARSERS = {
+    "ec2": EC2QueryParser,
     "json": JSONParser,
     "query": QueryParser,
 }
