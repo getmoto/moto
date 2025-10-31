@@ -118,6 +118,9 @@ def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]
             # AWS GO SDK behaves differently from other SDK's, does not send a trailing slash
             request_uri += "?"
         uri_regexp = BaseResponse.uri_to_regexp(request_uri)
+        # CloudFront uses query parameters (e.g. ?Operation=Tag) that we need to escape
+        if service_name == "cloudfront" and "?" in request_uri:
+            uri_regexp = uri_regexp.replace("?", r"\?")
         method_urls[_method][uri_regexp] = op_model.name
 
     return method_urls
