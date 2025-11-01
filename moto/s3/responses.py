@@ -46,6 +46,7 @@ from .exceptions import (
     LockNotEnabled,
     MalformedACLError,
     MalformedXML,
+    MethodNotAllowed,
     MissingBucket,
     MissingKey,
     MissingRequestBody,
@@ -62,6 +63,7 @@ from .exceptions import (
 from .models import (
     FakeAcl,
     FakeBucket,
+    FakeDeleteMarker,
     FakeGrant,
     FakeGrantee,
     FakeKey,
@@ -1973,10 +1975,18 @@ class S3Response(BaseResponse):
         key_name = self.parse_key_name()
         version_id = self._get_param("versionId")
         key_to_tag = self.backend.get_object(
-            self.bucket_name, key_name, version_id=version_id
+            self.bucket_name, key_name, version_id=version_id, return_delete_marker=True
         )
+
+        if isinstance(key_to_tag, FakeDeleteMarker):
+            raise MethodNotAllowed(method="PUT", resource_type="DeleteMarker")
+        elif key_to_tag is None and version_id is None:
+            raise MissingKey(key=key_name)
+        elif key_to_tag is None:
+            raise MissingVersion(key=key_name, version_id=version_id)
+
         tagging = self._tagging_from_xml()
-        self.backend.put_object_tagging(key_to_tag, tagging, key_name)
+        self.backend.put_object_tagging(key=key_to_tag, tags=tagging)
 
         response_headers = self._get_cors_headers_other()
         self._get_checksum(response_headers)
