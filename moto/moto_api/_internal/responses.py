@@ -87,6 +87,16 @@ class MotoAPIResponse(BaseResponse):
 
         return render_template("dashboard.html")
 
+    def lib_js(
+        self,
+        request: Any,
+        full_url: str,
+        headers: Any,
+    ) -> str:
+        from flask import render_template
+
+        return render_template("lib.js")
+
     def get_transition(
         self,
         request: Any,
