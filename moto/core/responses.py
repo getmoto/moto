@@ -904,28 +904,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return values
 
-    def _get_dict_param(self, param_prefix: str) -> dict[str, Any]:
-        """
-        Given a parameter dict of
-        {
-            'Instances.SlaveInstanceType': ['m1.small'],
-            'Instances.InstanceCount': ['1']
-        }
-
-        returns
-        {
-            "slave_instance_type": "m1.small",
-            "instance_count": "1",
-        }
-        """
-        params: dict[str, Any] = {}
-        for key, value in self.querystring.items():
-            if key.startswith(param_prefix):
-                params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[
-                    0
-                ]
-        return params
-
     def _get_params(self) -> dict[str, Any]:
         """
         Given a querystring of

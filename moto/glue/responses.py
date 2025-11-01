@@ -403,7 +403,7 @@ class GlueResponse(BaseResponse):
 
     def start_job_run(self) -> str:
         allocated_capacity = self._get_int_param("AllocatedCapacity")
-        notification_property = self._get_dict_param("NotificationProperty")
+        notification_property = self._get_param("NotificationProperty")
         number_of_workers = self._get_int_param("NumberOfWorkers")
         security_configuration = self._get_param("SecurityConfiguration")
         timeout = self._get_int_param("Timeout")
