@@ -21,6 +21,17 @@ class CloudFrontResponse(BaseResponse):
     def backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.current_account][self.partition]
 
+    def _get_action_from_method_and_request_uri(
+        self, method: str, request_uri: str
+    ) -> str:
+        # CloudFront uses a query param "Operation" on its tag endpoint
+        if self.querystring.get("Operation"):
+            operation = self.querystring["Operation"]
+            if isinstance(operation, list):
+                operation = operation[0]
+            request_uri = f"{request_uri}?Operation={operation}"
+        return super()._get_action_from_method_and_request_uri(method, request_uri)
+
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
         if "DistributionConfigWithTags" in params:
@@ -117,6 +128,15 @@ class CloudFrontResponse(BaseResponse):
         template = self.response_template(TAGS_TEMPLATE)
         response = template.render(tags=tags, xmlns=XMLNS)
         return 200, {}, response
+
+    def tag_resource(self) -> TYPE_RESPONSE:
+        resource = unquote(self._get_param("Resource"))
+        params = self._get_xml_body()
+        tags = params.get("Tags", {}).get("Items", {}).get("Tag", [])
+        if not isinstance(tags, list):
+            tags = [tags]
+        self.backend.tag_resource(resource=resource, tags=tags)
+        return 204, {}, ""
 
     def create_origin_access_control(self) -> TYPE_RESPONSE:
         config = self._get_xml_body().get("OriginAccessControlConfig", {})

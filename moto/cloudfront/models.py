@@ -458,6 +458,9 @@ class CloudFrontBackend(BaseBackend):
     def list_tags_for_resource(self, resource: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
 
+    def tag_resource(self, resource: str, tags: list[dict[str, str]]) -> None:
+        self.tagger.tag_resource(resource, tags)
+
     def create_origin_access_control(
         self, config_dict: dict[str, str]
     ) -> OriginAccessControl:
