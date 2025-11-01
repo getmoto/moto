@@ -69,8 +69,17 @@ def test_create_another_member():
     assert helpers.member_id_exist_in_list(members, member_id2) is True
 
     # Get member 2 details
-    response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
-    assert response["Member"]["Name"] == "testmember2"
+    member = conn.get_member(NetworkId=network_id, MemberId=member_id2)["Member"]
+    assert member["Name"] == "testmember2"
+    assert member["FrameworkAttributes"] == {
+        "Fabric": {
+            "AdminUsername": "admin",
+            "CaEndpoint": f"ca.{member_id2.lower()}.{network_id.lower()}.managedblockchain.us-east-1.amazonaws.com:30002",
+        }
+    }
+    assert member["LogPublishingConfiguration"] == {
+        "Fabric": {"CaLogs": {"Cloudwatch": {"Enabled": False}}}
+    }
 
     # Update member
     logconfignewenabled = not helpers.default_memberconfiguration[
@@ -86,11 +95,10 @@ def test_create_another_member():
     )
 
     # Get member 2 details
-    response = conn.get_member(NetworkId=network_id, MemberId=member_id2)
-    cloudwatch = response["Member"]["LogPublishingConfiguration"]["Fabric"]["CaLogs"][
-        "Cloudwatch"
-    ]
-    assert cloudwatch["Enabled"] == logconfignewenabled
+    member2 = conn.get_member(NetworkId=network_id, MemberId=member_id2)
+    assert member2["Member"]["LogPublishingConfiguration"] == {
+        "Fabric": {"CaLogs": {"Cloudwatch": {"Enabled": True}}}
+    }
 
 
 @mock_aws
