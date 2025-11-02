@@ -2388,7 +2388,7 @@
 
 ## dms
 <details>
-<summary>8% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2403,21 +2403,21 @@
 - [ ] create_migration_project
 - [ ] create_replication_config
 - [X] create_replication_instance
-- [ ] create_replication_subnet_group
+- [X] create_replication_subnet_group
 - [X] create_replication_task
 - [ ] delete_certificate
 - [ ] delete_connection
 - [ ] delete_data_migration
 - [ ] delete_data_provider
-- [ ] delete_endpoint
+- [X] delete_endpoint
 - [ ] delete_event_subscription
 - [ ] delete_fleet_advisor_collector
 - [ ] delete_fleet_advisor_databases
 - [ ] delete_instance_profile
 - [ ] delete_migration_project
 - [ ] delete_replication_config
-- [ ] delete_replication_instance
-- [ ] delete_replication_subnet_group
+- [X] delete_replication_instance
+- [X] delete_replication_subnet_group
 - [X] delete_replication_task
 - [ ] delete_replication_task_assessment_run
 - [ ] describe_account_attributes
@@ -2455,7 +2455,7 @@
 - [ ] describe_replication_configs
 - [ ] describe_replication_instance_task_logs
 - [X] describe_replication_instances
-- [ ] describe_replication_subnet_groups
+- [X] describe_replication_subnet_groups
 - [ ] describe_replication_table_statistics
 - [ ] describe_replication_task_assessment_results
 - [ ] describe_replication_task_assessment_runs
