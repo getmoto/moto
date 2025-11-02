@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.16
 -----
-Docker Digest for 5.1.16: <autopopulateddigest>
+Docker Digest for 5.1.16: _sha256:f78c8e0370cabe2516395f351fb27e1df1aa6dc2d728d6de16d5dfbc9ccf595d_
 
     General:
         * Removed support for the RoboMaker and QLDB, now that AWS has also deprecated these services
