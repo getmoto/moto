@@ -398,6 +398,34 @@ def test_describe_endpoints_filter():
 
 
 @mock_aws
+def test_delete_endpoint():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    response = client.create_endpoint(
+        EndpointIdentifier="test-endpoint", EndpointType="source", EngineName="mysql"
+    )
+    endpoint_arn = response["Endpoint"]["EndpointArn"]
+    client.delete_endpoint(EndpointArn=endpoint_arn)
+
+    endpoints = client.describe_endpoints(
+        Filters=[{"Name": "endpoint-id", "Values": ["test-endpoint"]}]
+    )
+    assert len(endpoints["Endpoints"]) == 0
+
+
+@mock_aws
+def test_delete_endpoint_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_endpoint(EndpointArn="does-not-exist")
+
+    assert ex.value.operation_name == "DeleteEndpoint"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert ex.value.response["Error"]["Message"] == "Endpoint could not be found."
+
+
+@mock_aws
 def test_list_tags_for_resource_replication_instance():
     client = boto3.client("dms", region_name="eu-west-1")
 

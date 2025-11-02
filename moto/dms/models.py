@@ -328,6 +328,20 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                 result.append({"Key": key, "ResourceArn": resource_arn, "Value": value})
         return result
 
+    def delete_endpoint(self, endpoint_arn: str) -> "Endpoint":
+        endpoints = [
+            endpoint
+            for endpoint in list(self.endpoints.values())
+            if getattr(endpoint, "endpoint_arn") == endpoint_arn
+        ]
+
+        if len(endpoints) == 0:
+            raise ResourceNotFoundFault("Endpoint could not be found.")
+        endpoint = endpoints[0]
+        endpoint.delete()
+        self.endpoints.pop(getattr(endpoint, "endpoint_identifier"))
+        return endpoint
+
 
 class Endpoint(BaseModel):
     def __init__(
@@ -455,6 +469,10 @@ class Endpoint(BaseModel):
             "GcpMySQLSettings": self.gcp_my_sql_settings,
             "TimestreamSettings": self.timestream_settings,
         }
+
+    def delete(self) -> "Endpoint":
+        self.status = "deleting"
+        return self
 
 
 class FakeReplicationTask(BaseModel):

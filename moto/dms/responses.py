@@ -223,6 +223,13 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             }
         )
 
+    def delete_endpoint(self) -> str:
+        endpoint_arn = self._get_param("EndpointArn")
+        endpoint = self.dms_backend.delete_endpoint(
+            endpoint_arn=endpoint_arn,
+        )
+        return json.dumps({"Endpoint": endpoint.to_dict()})
+
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceArn")
