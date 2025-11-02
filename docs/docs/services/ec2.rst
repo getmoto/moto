@@ -104,6 +104,8 @@ ec2
 - [ ] create_ipam
 - [ ] create_ipam_external_resource_verification_token
 - [ ] create_ipam_pool
+- [ ] create_ipam_prefix_list_resolver
+- [ ] create_ipam_prefix_list_resolver_target
 - [ ] create_ipam_resource_discovery
 - [ ] create_ipam_scope
 - [X] create_key_pair
@@ -194,6 +196,8 @@ ec2
 - [ ] delete_ipam
 - [ ] delete_ipam_external_resource_verification_token
 - [ ] delete_ipam_pool
+- [ ] delete_ipam_prefix_list_resolver
+- [ ] delete_ipam_prefix_list_resolver_target
 - [ ] delete_ipam_resource_discovery
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
@@ -288,6 +292,7 @@ ec2
 - [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
+- [ ] describe_capacity_reservation_topology
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
 - [ ] describe_classic_link_instances
@@ -349,6 +354,8 @@ ec2
 - [ ] describe_ipam_byoasn
 - [ ] describe_ipam_external_resource_verification_tokens
 - [ ] describe_ipam_pools
+- [ ] describe_ipam_prefix_list_resolver_targets
+- [ ] describe_ipam_prefix_list_resolvers
 - [ ] describe_ipam_resource_discoveries
 - [ ] describe_ipam_resource_discovery_associations
 - [ ] describe_ipam_scopes
@@ -570,6 +577,9 @@ ec2
 - [ ] get_ipam_discovered_resource_cidrs
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
+- [ ] get_ipam_prefix_list_resolver_rules
+- [ ] get_ipam_prefix_list_resolver_version_entries
+- [ ] get_ipam_prefix_list_resolver_versions
 - [ ] get_ipam_resource_cidrs
 - [X] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
@@ -635,6 +645,8 @@ ec2
 - [ ] modify_instance_placement
 - [ ] modify_ipam
 - [ ] modify_ipam_pool
+- [ ] modify_ipam_prefix_list_resolver
+- [ ] modify_ipam_prefix_list_resolver_target
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_resource_discovery
 - [ ] modify_ipam_scope

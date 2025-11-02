@@ -1125,8 +1125,6 @@ class GlueResponse(BaseResponse):
         return ""
 
     def get_security_configurations(self) -> str:
-        next_token = self._get_param("NextToken")
-
         security_configurations = self.glue_backend.get_security_configurations()
 
         return json.dumps(
@@ -1134,6 +1132,6 @@ class GlueResponse(BaseResponse):
                 "SecurityConfigurations": [
                     sc.as_dict() for sc in security_configurations
                 ],
-                "NextToken": next_token,
+                "NextToken": None,
             }
         )

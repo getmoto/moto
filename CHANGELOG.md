@@ -1,6 +1,58 @@
 Moto Changelog
 ==============
 
+5.1.16
+-----
+Docker Digest for 5.1.16: <autopopulateddigest>
+
+    General:
+        * Removed support for the RoboMaker and QLDB, now that AWS has also deprecated these services
+
+    New Services:
+        * S3Vectors:
+            * create_vector_bucket()
+            * delete_vector_bucket()
+            * get_vector_bucket()
+            * list_vector_buckets()
+
+    New Methods:
+        * Glue:
+            * create_security_configuration()
+            * delete_security_configuration()
+            * get_security_configuration()
+            * get_security_configurations()
+
+        * FSx:
+            * create_backup()
+            * delete_backup()
+            * list_tags_for_resource()
+
+        * VPCLattice:
+            * get_service()
+            * get_service_network()
+            * list_services()
+            * list_service_networks()
+            * list_tags_for_resource()
+            * tag_resource()
+            * untag_resource()
+
+    Miscellaneous:
+        * ACM: list_certificates() now supports the 'keyTypes'-filter
+        * APIGateway: get_stage() now supports stages that are URL encoded, like '$default'
+        * DynamoDB now supports the WarmThroughput parameter on Tables and Indexes
+        * DynamoDB: execute_statement() now supports querying indexes (both GSI and LSI)
+        * EC2: create_volume() now supports the MultiAttachEnabled-parameter
+        * EC2: modify_volume() now supports the parameters Iops, Throughput and MultiAttachEnabled
+        * ElastiCache: create_cache_cluster() now validates that the mandatory parameter CacheNodeType is provided
+        * ELBv2: describe_listener_certificates() now returns the IsDefault-field
+        * Glue: create_connection() now supports the parameters ConnectionProperties, SparkProperties, AthenaProperties and PythonProperties
+        * ResourceGroupsTaggingAPI: get_resources() now supports FSx resource types (Backups and FileSystems)
+        * ResourceGroupsTaggingAPI: get_resources() now supports VPCLattice resource types (Services and Service Networks)
+        * ResourceGroupsTaggingAPI: untag_resources() now supports RDS resource types
+        * S3: put_object_tagging() now throws MethodNotAllowed when trying to tag a DeleteMarker
+        * SSM: get_parameters_by_path() now validates that the maxResults-parameter is 10 at most
+
+
 5.1.15
 -----
 Docker Digest for 5.1.15: _sha256:8860b18917e1ee4d067df19a406ae95dc26037e6965d5b499e1cffd33755b914_
