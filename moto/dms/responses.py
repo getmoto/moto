@@ -257,3 +257,54 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             tag_list = self.dms_backend.list_tags_for_resource(resource_arn_list)
 
         return json.dumps({"TagList": tag_list})
+
+    def create_replication_subnet_group(self) -> str:
+        params = json.loads(self.body)
+        replication_subnet_group_identifier = params.get(
+            "ReplicationSubnetGroupIdentifier"
+        )
+        replication_subnet_group_description = params.get(
+            "ReplicationSubnetGroupDescription"
+        )
+        subnet_ids = params.get("SubnetIds")
+        tags = params.get("Tags")
+        replication_subnet_group = self.dms_backend.create_replication_subnet_group(
+            replication_subnet_group_identifier=replication_subnet_group_identifier,
+            replication_subnet_group_description=replication_subnet_group_description,
+            subnet_ids=subnet_ids,
+            tags=tags,
+        )
+        return json.dumps(
+            {"ReplicationSubnetGroup": replication_subnet_group.to_dict()}
+        )
+
+    def describe_replication_subnet_groups(self) -> str:
+        params = json.loads(self.body)
+        filters = params.get("Filters", [])
+        max_records = params.get("MaxRecords")
+        marker = params.get("Marker")
+        replication_subnet_groups = self.dms_backend.describe_replication_subnet_groups(
+            filters=filters, max_records=max_records, marker=marker
+        )
+
+        return json.dumps(
+            {
+                "ReplicationSubnetGroups": [
+                    {
+                        k: v
+                        for k, v in replication_subnet_group.to_dict().items()
+                        if v is not None
+                    }
+                    for replication_subnet_group in replication_subnet_groups
+                ]
+            }
+        )
+
+    def delete_replication_subnet_group(self) -> str:
+        replication_subnet_group_identifier = self._get_param(
+            "ReplicationSubnetGroupIdentifier"
+        )
+        self.dms_backend.delete_replication_subnet_group(
+            replication_subnet_group_identifier=replication_subnet_group_identifier,
+        )
+        return json.dumps({})

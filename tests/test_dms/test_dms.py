@@ -437,7 +437,9 @@ def test_delete_endpoint():
     client = boto3.client("dms", region_name="ap-southeast-1")
 
     response = client.create_endpoint(
-        EndpointIdentifier="test-endpoint", EndpointType="source", EngineName="mysql"
+        EndpointIdentifier="test-endpoint",
+        EndpointType="source",
+        EngineName="mysql",
     )
     endpoint_arn = response["Endpoint"]["EndpointArn"]
     client.delete_endpoint(EndpointArn=endpoint_arn)
@@ -518,3 +520,112 @@ def test_list_tags_for_resource_endpoints():
 
     resp = client.list_tags_for_resource(ResourceArnList=[endpoint_arn1, endpoint_arn2])
     assert len(resp["TagList"]) == 2
+
+
+@mock_aws
+def test_create_replication_subnet_group():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+    response = client.create_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group",
+        ReplicationSubnetGroupDescription="description for test-group",
+        SubnetIds=["subnet-12345"],
+    )
+
+    replication_subnet_group = response["ReplicationSubnetGroup"]
+
+    assert replication_subnet_group["ReplicationSubnetGroupIdentifier"] == "test-group"
+    assert (
+        replication_subnet_group["ReplicationSubnetGroupDescription"]
+        == "description for test-group"
+    )
+    assert replication_subnet_group["VpcId"] == "vpc-12345"
+    assert replication_subnet_group["SubnetGroupStatus"] == "Complete"
+
+
+@mock_aws
+def test_create_replication_subnet_group_throws_resource_already_exists():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+    client.create_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group",
+        ReplicationSubnetGroupDescription="description for test-group",
+        SubnetIds=["subnet-OD12345"],
+    )
+
+    with pytest.raises(ClientError) as ex:
+        client.create_replication_subnet_group(
+            ReplicationSubnetGroupIdentifier="test-group",
+            ReplicationSubnetGroupDescription="description for test-group",
+            SubnetIds=["subnet-OD12345"],
+        )
+
+    assert ex.value.operation_name == "CreateReplicationSubnetGroup"
+    assert ex.value.response["Error"]["Code"] == "ResourceAlreadyExistsFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "The resource you are attempting to create already exists."
+    )
+
+
+@mock_aws
+def test_describe_replication_subnet_groups():
+    client = boto3.client("dms", region_name="ap-southeast-1")
+    for i in range(3):
+        client.create_replication_subnet_group(
+            ReplicationSubnetGroupIdentifier=f"test-group-{i}",
+            ReplicationSubnetGroupDescription=f"description for test-group-{i}",
+            SubnetIds=["subnet-12345"],
+        )
+
+    response = client.describe_replication_subnet_groups()
+    assert len(response["ReplicationSubnetGroups"]) == 3
+
+    group_filter = {"Name": "replication-subnet-group-id", "Values": ["test-group-1"]}
+    response = client.describe_replication_subnet_groups(Filters=[group_filter])
+    assert len(response["ReplicationSubnetGroups"]) == 1
+
+    group_filter = {"Name": "replication-subnet-group-id", "Values": ["no-grou["]}
+    response = client.describe_replication_subnet_groups(Filters=[group_filter])
+    assert len(response["ReplicationSubnetGroups"]) == 0
+
+
+@mock_aws
+def test_delete_replication_subnet_group():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    client.create_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group",
+        ReplicationSubnetGroupDescription="description for test-group",
+        SubnetIds=["subnet-12345"],
+    )
+
+    client.delete_replication_subnet_group(
+        ReplicationSubnetGroupIdentifier="test-group"
+    )
+
+    response = client.describe_replication_subnet_groups()
+    assert len(response["ReplicationSubnetGroups"]) == 0
+
+
+@mock_aws
+def test_delete_replication_subnet_group_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="eu-west-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_replication_subnet_group(
+            ReplicationSubnetGroupIdentifier="does-not-exist"
+        )
+
+    assert ex.value.operation_name == "DeleteReplicationSubnetGroup"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Replication subnet group could not be found."
+    )
+
+
+# @mock_aws
+# def test_test_connection():
+#     client = boto3.client("dms", region_name="ap-southeast-1")
+#     resp = client.test_connection()
+
+#     raisExseception("NotYetImplemented")

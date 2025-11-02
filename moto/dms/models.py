@@ -23,6 +23,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         self.replication_tasks: dict[str, FakeReplicationTask] = {}
         self.replication_instances: dict[str, FakeReplicationInstance] = {}
         self.endpoints: dict[str, Endpoint] = {}
+        self.replication_subnet_groups: dict[str, FakeReplicationSubnetGroup] = {}
         self.tagger = TaggingService()
 
     def create_replication_task(
@@ -353,6 +354,70 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         endpoint.delete()
         self.endpoints.pop(endpoint.endpoint_identifier)
         return endpoint
+
+    def create_replication_subnet_group(
+        self,
+        replication_subnet_group_identifier: str,
+        replication_subnet_group_description: str,
+        subnet_ids: list[str],
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> "FakeReplicationSubnetGroup":
+        replication_subnet_group = FakeReplicationSubnetGroup(
+            replication_subnet_group_identifier=replication_subnet_group_identifier,
+            replication_subnet_group_description=replication_subnet_group_description,
+        )
+        if tags:
+            self.tagger.tag_resource(
+                replication_subnet_group.replication_subnet_group_identifier, tags
+            )
+        if self.replication_subnet_groups.get(replication_subnet_group_identifier):
+            raise ResourceAlreadyExistsFault(
+                "The resource you are attempting to create already exists."
+            )
+
+        self.replication_subnet_groups[
+            replication_subnet_group.replication_subnet_group_identifier
+        ] = replication_subnet_group
+        return replication_subnet_group
+
+    # TODO implement pagination
+    def describe_replication_subnet_groups(
+        self,
+        filters: list[dict[str, Any]],
+        max_records: Optional[int],
+        marker: Optional[str],
+    ) -> list["FakeReplicationSubnetGroup"]:
+        subnet_groups = list(self.replication_subnet_groups.values())
+        filter_map = {
+            "replication-subnet-group-id": "replication_subnet_group_identifier"
+        }
+
+        for filter in filters:
+            filter_name = filter.get("Name")
+            filter_values = filter.get("Values", [])
+            if filter_name not in filter_map:
+                raise ValueError(f"Invalid filter name: {filter_name}")
+
+            attribute = filter_map[filter_name]
+            subnet_groups = [
+                subnet_group
+                for subnet_group in subnet_groups
+                if getattr(subnet_group, attribute) in filter_values
+            ]
+
+        return subnet_groups
+
+    def delete_replication_subnet_group(
+        self, replication_subnet_group_identifier: str
+    ) -> "FakeReplicationSubnetGroup":
+        if not self.replication_subnet_groups.get(replication_subnet_group_identifier):
+            raise ResourceNotFoundFault("Replication subnet group could not be found.")
+
+        replication_subnet_group = self.replication_subnet_groups[
+            replication_subnet_group_identifier
+        ]
+        self.replication_subnet_groups.pop(replication_subnet_group_identifier)
+        return replication_subnet_group
 
 
 class Endpoint(BaseModel):
@@ -696,9 +761,39 @@ class FakeReplicationInstance(BaseModel):
             "KerberosAuthenticationSettings": kerberos_settings,
         }
 
-    def delete(self) -> "FakeReplicationTask":
+    def delete(self) -> "FakeReplicationInstance":
         self.status = "deleting"
         return self
+
+
+class FakeReplicationSubnetGroup(BaseModel):
+    def __init__(
+        self,
+        replication_subnet_group_identifier: str,
+        replication_subnet_group_description: str,
+        subnetIds: Optional[list[str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.replication_subnet_group_identifier = replication_subnet_group_identifier
+        self.description = replication_subnet_group_description
+        self.subnetIds = subnetIds
+        self.tags = tags or []
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ReplicationSubnetGroupIdentifier": self.replication_subnet_group_identifier,
+            "ReplicationSubnetGroupDescription": self.description,
+            "VpcId": "vpc-12345",
+            "SubnetGroupStatus": "Complete",
+            "Subnets": [
+                {
+                    "SubnetIdentifier": "subnet-12345",
+                    "SubnetAvailabilityZone": {"Name": "us-east-1a"},
+                    "SubnetStatus": "Active",
+                }
+            ],
+            "SupportedNetworkTypes": ["IPV4"],
+        }
 
 
 dms_backends = BackendDict(DatabaseMigrationServiceBackend, "dms")
