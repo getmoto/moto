@@ -1648,6 +1648,7 @@ class GlueBackend(BaseBackend):
             raise EntityNotFoundException(f"SecurityConfiguration {name} not found")
 
     def get_security_configurations(self) -> list["FakeSecurityConfiguration"]:
+        """Pagination is not yet implemented"""
         return list(self.security_configurations.values())
 
 

@@ -17,6 +17,7 @@ amp
 |start-h3| Implemented features for this service |end-h3|
 
 - [ ] create_alert_manager_definition
+- [ ] create_anomaly_detector
 - [X] create_logging_configuration
 - [ ] create_query_logging_configuration
 - [X] create_rule_groups_namespace
@@ -31,6 +32,7 @@ amp
         
 
 - [ ] delete_alert_manager_definition
+- [ ] delete_anomaly_detector
 - [X] delete_logging_configuration
 - [ ] delete_query_logging_configuration
 - [ ] delete_resource_policy
@@ -47,6 +49,7 @@ amp
         
 
 - [ ] describe_alert_manager_definition
+- [ ] describe_anomaly_detector
 - [X] describe_logging_configuration
 - [ ] describe_query_logging_configuration
 - [ ] describe_resource_policy
@@ -56,11 +59,13 @@ amp
 - [X] describe_workspace
 - [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
+- [ ] list_anomaly_detectors
 - [X] list_rule_groups_namespaces
 - [ ] list_scrapers
 - [X] list_tags_for_resource
 - [X] list_workspaces
 - [ ] put_alert_manager_definition
+- [ ] put_anomaly_detector
 - [ ] put_resource_policy
 - [X] put_rule_groups_namespace
   
