@@ -199,6 +199,18 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
         return replication_instances
 
+    def delete_replication_instance(
+        self, replication_instance_arn: str
+    ) -> "FakeReplicationInstance":
+        if not self.replication_instances.get(replication_instance_arn):
+            raise ResourceNotFoundFault("Replication instance could not be found.")
+
+        replication_instance = self.replication_instances[replication_instance_arn]
+        replication_instance.delete()
+        self.replication_instances.pop(replication_instance_arn)
+
+        return replication_instance
+
     def create_endpoint(
         self,
         endpoint_identifier: str,
@@ -332,14 +344,14 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         endpoints = [
             endpoint
             for endpoint in list(self.endpoints.values())
-            if getattr(endpoint, "endpoint_arn") == endpoint_arn
+            if endpoint.endpoint_arn == endpoint_arn
         ]
 
         if len(endpoints) == 0:
             raise ResourceNotFoundFault("Endpoint could not be found.")
         endpoint = endpoints[0]
         endpoint.delete()
-        self.endpoints.pop(getattr(endpoint, "endpoint_identifier"))
+        self.endpoints.pop(endpoint.endpoint_identifier)
         return endpoint
 
 
@@ -683,6 +695,10 @@ class FakeReplicationInstance(BaseModel):
             "NetworkType": self.network_type,
             "KerberosAuthenticationSettings": kerberos_settings,
         }
+
+    def delete(self) -> "FakeReplicationTask":
+        self.status = "deleting"
+        return self
 
 
 dms_backends = BackendDict(DatabaseMigrationServiceBackend, "dms")

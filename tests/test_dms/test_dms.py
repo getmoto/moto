@@ -303,6 +303,41 @@ def test_describe_replication_instances():
 
 
 @mock_aws
+def test_delete_replication_instance():
+    client = boto3.client("dms", region_name="us-east-2")
+
+    response = client.create_replication_instance(
+        ReplicationInstanceIdentifier="test-instance-1",
+        ReplicationInstanceClass="dms.t2.micro",
+        EngineVersion="3.4.5",
+    )
+    replication_instance_arn = response["ReplicationInstance"]["ReplicationInstanceArn"]
+    client.delete_replication_instance(ReplicationInstanceArn=replication_instance_arn)
+    replication_instances = client.describe_replication_instances(
+        Filters=[
+            {"Name": "replication-instance-arn", "Values": [replication_instance_arn]}
+        ]
+    )
+
+    assert len(replication_instances["ReplicationInstances"]) == 0
+
+
+@mock_aws
+def test_delete_replication_instancee_throws_resource_not_found_error():
+    client = boto3.client("dms", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as ex:
+        client.delete_replication_instance(ReplicationInstanceArn="does-not-exist")
+
+    assert ex.value.operation_name == "DeleteReplicationInstance"
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Replication instance could not be found."
+    )
+
+
+@mock_aws
 def test_create_endpoint():
     region_name = "ap-southeast-1"
     client = boto3.client("dms", region_name=region_name)

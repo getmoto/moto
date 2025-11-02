@@ -127,6 +127,13 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         # TODO: Add Marker (optional) to the response
         return json.dumps({"ReplicationInstances": instances_dict})
 
+    def delete_replication_instance(self) -> str:
+        replication_instance_arn = self._get_param("ReplicationInstanceArn")
+        replication_instance = self.dms_backend.delete_replication_instance(
+            replication_instance_arn=replication_instance_arn,
+        )
+        return json.dumps({"ReplicationInstance": replication_instance.to_dict()})
+
     def create_endpoint(self) -> str:
         params = json.loads(self.body)
         endpoint_identifier = params.get("EndpointIdentifier")
