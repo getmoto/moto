@@ -3,10 +3,13 @@ window.addEventListener('DOMContentLoaded', function () {
 });
 
 const refreshData = async () => {
-  await fetch('moto-api/data.json')
+  await fetch('/moto-api/data.json')
     .then(result => result.json())
     .then(data => {
       updateTable(data);
+      $('.onbootonly').each(function () {
+        this.className = 'tab-pane';
+      });
     });
 };
 
@@ -50,41 +53,31 @@ function updateTable(data) {
     return;
   }
 
-  //Filter data base on url arguments
-  const urlParams = new URLSearchParams(window.location.search);
-  const filterService = urlParams.get('service') ? decodeURIComponent(urlParams.get('service')) : null;
-  filteredData = data
-  if (filterService) {
-    filteredData = {};
-    Object.keys(data).forEach(serviceName => {
-      if (serviceName.toLowerCase() == filterService.toLowerCase()) {
-        filteredData[serviceName] = data[serviceName];
-      }
-    });
-  }
-
   //create menu
   const listService = document.getElementById('list-service');
   if (listService) {
-    Object.keys(data).forEach((serviceName, index) => {
-      if (index == 0) {
-        const listItemAll = document.createElement('a');
-        listItemAll.className = 'list-group-item list-group-item-action';
-        listItemAll.href = `/moto-api`;
-        listItemAll.textContent = "All Services";
-        if (!filterService) {
-          listItemAll.classList.add('active');
-        }
-        listService.appendChild(listItemAll);
-      }
+    Object.keys(data).forEach((serviceName, svcIndex) => {
       //Add services to side menu
-      const listItem = document.createElement('a');
-      listItem.className = 'list-group-item list-group-item-action';
-      listItem.href = `/moto-api?service=${encodeURIComponent(serviceName)}`;
-      listItem.textContent = serviceName;
-      if (filterService == serviceName) {
-        listItem.classList.add('active');
+      const listItem = document.createElement('li');
+      listItem.className = 'nav-item';
+
+      const listItemLink = document.createElement('button');
+      listItemLink.className = 'nav-link';
+      listItemLink.setAttribute('id', `service-tab-${serviceName}`);
+      listItemLink.setAttribute('data-bs-toggle', 'pill');
+      listItemLink.setAttribute('data-bs-target', `#div-table-${serviceName}`);
+      listItemLink.setAttribute('role', 'tab');
+      listItemLink.setAttribute('aria-controls', `div-table-${serviceName}`);
+      listItemLink.setAttribute('type', 'button');
+      if (svcIndex == 0) {
+        listItemLink.setAttribute('aria-selected', 'true');
+        listItemLink.classList.add('active');
+        focusedService = serviceName;
+      } else {
+        listItemLink.setAttribute('aria-selected', 'false');
       }
+      listItemLink.textContent = serviceName;
+      listItem.appendChild(listItemLink);
       listService.appendChild(listItem);
 
     });
@@ -97,28 +90,31 @@ function updateTable(data) {
   // Each service is a div
   // inside this div, each resource is a table if the resource array is not empty
 
-  Object.keys(filteredData).forEach(serviceName => {
-    const resources = filteredData[serviceName];
+  Object.keys(data).forEach((serviceName) => {
+    const resources = data[serviceName];
     //create table object
     const serviceDiv = document.createElement('div');
     serviceDiv.setAttribute('id', `div-table-${serviceName}`);
+    if (serviceName == focusedService) {
+      serviceDiv.className = 'tab-pane show active firsttab';
+    } else {
+      serviceDiv.className = 'tab-pane show active onbootonly';
+    }
+    serviceDiv.setAttribute('role', 'tabpanel');
+    serviceDiv.setAttribute('aria-labelledby', `service-tab-${serviceName}`);
+    serviceDiv.setAttribute('tabindex', "0");
+
 
     //Add horizontal line before each service
     const hr = document.createElement('hr');
     hr.className = 'border border-primary border-1 opacity-75';
     serviceDiv.appendChild(hr);
 
-    //Add service name as h3
-    const serviceTitle = document.createElement('h3');
-    serviceTitle.textContent = `${serviceName}`;
-    serviceTitle.setAttribute('id', `title-${serviceName}`);
-
     //Create a Div for the resources
     const resourcesDiv = document.createElement('div');
     resourcesDiv.setAttribute('id', `div-table-content-${serviceName}`);
 
     // Append elements title + table
-    serviceDiv.appendChild(serviceTitle);
     serviceDiv.appendChild(resourcesDiv);
     dataContainer.appendChild(serviceDiv);
 
@@ -135,7 +131,7 @@ function updateTable(data) {
 
       //Create resource title
       const resourceTitle = document.createElement('h4');
-      resourceTitle.className = 'float-start';
+      resourceTitle.className = 'float-start mt-3';
       resourceTitle.textContent = `${serviceName} - ${resourceName}`;
       resourcesDiv.appendChild(resourceTitle);
 
@@ -170,6 +166,7 @@ function updateTable(data) {
       // Create table element
       const resourceTable = document.createElement('table');
       resourceTable.setAttribute('id', `table-${serviceName}-${resourceName}`);
+      resourceTable.setAttribute('tabindex', "0");
       resourceTable.setAttribute('data-virtual-scroll', 'true');
       resourceTable.setAttribute('data-height', '400');
       resourceTable.setAttribute('data-show-columns', 'true');

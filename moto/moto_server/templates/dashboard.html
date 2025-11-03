@@ -30,7 +30,7 @@
       <div class="collapse navbar-collapse flex-grow-0" id="navbarNav">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="#">Home</a>
+            <a class="nav-link active" aria-current="page" href="/moto-api">Home</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="https://docs.getmoto.org">
@@ -54,31 +54,8 @@
           </li>
           <li class="nav-item"><a class="nav-link" href="#about" data-bs-toggle="modal"
               data-bs-target="#aboutModal">About</a></li>
-          <li class="nav-item">
-            <button id="btn-fold" type="button" class="btn btn-secondary" aria-expanded="false" aria-controls="">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                class="bi bi-arrows-collapse" viewBox="0 0 16 16">
-                <path fill-rule="evenodd"
-                  d="M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8m7-8a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 1 1 .708-.708L7.5 4.293V.5A.5.5 0 0 1 8 0m-.5 11.707-1.146 1.147a.5.5 0 0 1-.708-.708l2-2a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 11.707V15.5a.5.5 0 0 1-1 0z">
-                </path>
-              </svg>
-              Fold all
-            </button>
-          </li>
-          <li class="nav-item">
-            <button id="btn-unfold" type="button" class="btn btn-secondary" aria-expanded="false" aria-controls="">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                class="bi bi-arrows-expand" viewBox="0 0 16 16">
-                <path fill-rule="evenodd"
-                  d="M1 8a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 0 1h-13A.5.5 0 0 1 1 8M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10" />
-              </svg>
-              Unfold all
-            </button>
-          </li>
         </ul>
-
       </div>
-
     </div>
   </nav>
 
@@ -90,7 +67,11 @@
         </aside>
       </div>
       <main class="col-10">
-        <div id="data" data-bs-spy="scroll" data-bs-target="#list-service" tabindex="0" data-bs-smooth-scroll="true">
+        <div id="data">
+          <p>Loading Data.json...</p>
+          <div class="spinner-border text-secondary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
         </div>
       </main>
     </div>
