@@ -21,16 +21,16 @@ class CloudFrontResponse(BaseResponse):
     def backend(self) -> CloudFrontBackend:
         return cloudfront_backends[self.current_account][self.partition]
 
-    def _get_action_from_method_and_request_uri(
-        self, method: str, request_uri: str
-    ) -> str:
-        # CloudFront uses a query param "Operation" on its tag endpoint
-        if self.querystring.get("Operation"):
-            operation = self.querystring["Operation"]
-            if isinstance(operation, list):
-                operation = operation[0]
-            request_uri = f"{request_uri}?Operation={operation}"
-        return super()._get_action_from_method_and_request_uri(method, request_uri)
+    @classmethod
+    def tagging(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        operation = response._get_param("Operation")
+        if operation == "Tag":
+            return 204, {}, response.tag_resource()[2]
+        if request.method == "GET":
+            return 200, {}, response.list_tags_for_resource()[2]
+        return response.dispatch(request, full_url, headers)
 
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
