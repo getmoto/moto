@@ -461,6 +461,9 @@ class CloudFrontBackend(BaseBackend):
     def tag_resource(self, resource: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource, tags)
 
+    def untag_resource(self, resource: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource, tag_keys)
+
     def create_origin_access_control(
         self, config_dict: dict[str, str]
     ) -> OriginAccessControl:

@@ -28,9 +28,10 @@ class CloudFrontResponse(BaseResponse):
         operation = response._get_param("Operation")
         if operation == "Tag":
             return 204, {}, response.tag_resource()[2]
+        if operation == "Untag":
+            return 204, {}, response.untag_resource()[2]
         if request.method == "GET":
             return 200, {}, response.list_tags_for_resource()[2]
-        return response.dispatch(request, full_url, headers)
 
     def create_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
@@ -136,6 +137,15 @@ class CloudFrontResponse(BaseResponse):
         if not isinstance(tags, list):
             tags = [tags]
         self.backend.tag_resource(resource=resource, tags=tags)
+        return 204, {}, ""
+
+    def untag_resource(self) -> TYPE_RESPONSE:
+        resource = unquote(self._get_param("Resource"))
+        params = self._get_xml_body()
+        tag_keys_data = params.get("TagKeys", {}).get("Items", {}).get("Key", [])
+        if not isinstance(tag_keys_data, list):
+            tag_keys_data = [tag_keys_data]
+        self.backend.untag_resource(resource=resource, tag_keys=tag_keys_data)
         return 204, {}, ""
 
     def create_origin_access_control(self) -> TYPE_RESPONSE:
