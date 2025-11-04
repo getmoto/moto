@@ -8,7 +8,7 @@ class ElasticIPAddresses(EC2BaseResponse):
     def allocate_address(self) -> str:
         domain = self._get_param("Domain", if_none=None)
         reallocate_address = self._get_param("Address", if_none=None)
-        tag_param = self._get_multi_param("TagSpecification")
+        tag_param = self._get_param("TagSpecifications", [])
         tags = add_tag_specification(tag_param)
 
         self.error_on_dryrun()
@@ -37,9 +37,7 @@ class ElasticIPAddresses(EC2BaseResponse):
                 "Invalid request, expect InstanceId/NetworkId parameter.",
             )
 
-        reassociate = False
-        if "AllowReassociation" in self.querystring:
-            reassociate = self._get_param("AllowReassociation") == "true"
+        reassociate = self._get_param("AllowReassociation", False)
 
         self.error_on_dryrun()
 
@@ -74,8 +72,8 @@ class ElasticIPAddresses(EC2BaseResponse):
 
     def describe_addresses(self) -> str:
         self.error_on_dryrun()
-        allocation_ids = self._get_multi_param("AllocationId")
-        public_ips = self._get_multi_param("PublicIp")
+        allocation_ids = self._get_param("AllocationIds", [])
+        public_ips = self._get_param("PublicIps", [])
         filters = self._filters_from_querystring()
         addresses = self.ec2_backend.describe_addresses(
             allocation_ids, public_ips, filters
@@ -85,7 +83,7 @@ class ElasticIPAddresses(EC2BaseResponse):
 
     def describe_addresses_attribute(self) -> str:
         self.error_on_dryrun()
-        allocation_ids = self._get_multi_param("AllocationId")
+        allocation_ids = self._get_param("AllocationIds", [])
         addresses = self.ec2_backend.describe_addresses_attribute(allocation_ids)
         template = self.response_template(DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE)
         return template.render(addresses=addresses)

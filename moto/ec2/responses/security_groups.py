@@ -74,7 +74,7 @@ def parse_sg_attributes_from_dict(sg_attributes: dict[str, Any]) -> tuple[Any, .
 class SecurityGroups(EC2BaseResponse):
     def _process_rules_from_querystring(self) -> Any:
         group_name_or_id = self._get_param("GroupName") or self._get_param("GroupId")
-        security_rule_ids = self._get_multi_param("SecurityGroupRuleId")
+        security_rule_ids = self._get_param("SecurityGroupRuleIds", [])
 
         querytree: dict[str, Any] = {}
         for key, value in self.querystring.items():
@@ -156,7 +156,7 @@ class SecurityGroups(EC2BaseResponse):
 
     def create_security_group(self) -> ActionResult:
         name = self._get_param("GroupName")
-        description = self._get_param("GroupDescription")
+        description = self._get_param("Description")
         vpc_id = self._get_param("VpcId")
         tags = self._parse_tag_specification().get("security-group", {})
 
@@ -189,8 +189,8 @@ class SecurityGroups(EC2BaseResponse):
         return EmptyResult()
 
     def describe_security_groups(self) -> ActionResult:
-        groupnames = self._get_multi_param("GroupName")
-        group_ids = self._get_multi_param("GroupId")
+        groupnames = self._get_param("GroupNames", [])
+        group_ids = self._get_param("GroupIds", [])
         filters = self._filters_from_querystring()
 
         groups = self.ec2_backend.describe_security_groups(
@@ -202,7 +202,7 @@ class SecurityGroups(EC2BaseResponse):
 
     def describe_security_group_rules(self) -> ActionResult:
         self.error_on_dryrun()
-        sg_rule_ids = self._get_multi_param("SecurityGroupRuleId")
+        sg_rule_ids = self._get_param("SecurityGroupRuleIds", [])
         filters = self._filters_from_querystring()
         rules = self.ec2_backend.describe_security_group_rules(sg_rule_ids, filters)
         result = {"SecurityGroupRules": rules}
@@ -230,8 +230,8 @@ class SecurityGroups(EC2BaseResponse):
         self.error_on_dryrun()
 
         rules = {}
-        security_group_rules_param = self._get_params()["SecurityGroupRule"]
-        for sgr in security_group_rules_param.values():
+        security_group_rules_param = self._get_param("SecurityGroupRules", [])
+        for sgr in security_group_rules_param:
             rules[sgr["SecurityGroupRuleId"]] = sgr["SecurityGroupRule"]
 
         group_id = self._get_param("GroupId")

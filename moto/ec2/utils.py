@@ -391,7 +391,7 @@ def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> set[str]:
 
 def add_tag_specification(tags: Any) -> dict[str, str]:
     tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-    tags = (tags or {}).get("Tag", [])
+    tags = (tags or {}).get("Tags", [])
     tags = {t["Key"]: t["Value"] for t in tags}
     return tags
 
@@ -464,6 +464,9 @@ def instance_value_in_filter_values(instance_value: Any, filter_values: Any) -> 
     if isinstance(instance_value, list):
         if not set(filter_values).intersection(set(instance_value)):
             return False
+    elif isinstance(instance_value, bool):
+        if str(instance_value).lower() not in filter_values:
+            return False
     elif instance_value not in filter_values:
         return False
     return True
@@ -528,6 +531,11 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
 
     if isinstance(value, bool):
         if str(value).lower() in filter_value:
+            return True
+        return False
+
+    if isinstance(value, int):
+        if str(value) in filter_value:
             return True
         return False
 
@@ -750,7 +758,7 @@ def public_key_parse(
     try:
         if isinstance(key_material, str):
             key_material = key_material.encode("ascii")
-        key_material = base64.b64decode(key_material)
+        # key_material = base64.b64decode(key_material)
 
         if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
             # cryptography doesn't parse RFC4716 key format, so we have to convert it first
@@ -923,7 +931,7 @@ def gen_moto_amis(
 
 
 def convert_tag_spec(
-    tag_spec_set: list[dict[str, Any]], tag_key: str = "Tag"
+    tag_spec_set: list[dict[str, Any]], tag_key: str = "Tags"
 ) -> dict[str, dict[str, str]]:
     # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
     #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case

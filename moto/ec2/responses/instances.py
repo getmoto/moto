@@ -1,3 +1,4 @@
+import base64
 from copy import deepcopy
 from typing import Any, Optional
 
@@ -9,6 +10,7 @@ from moto.ec2.exceptions import (
 )
 from moto.ec2.utils import filter_iam_instance_profiles
 
+from ...core.parsers import default_blob_parser
 from ._base_response import EC2BaseResponse
 
 
@@ -54,13 +56,15 @@ class InstanceResponse(EC2BaseResponse):
         )
 
     def run_instances(self) -> str:
-        min_count = int(self._get_param("MinCount", if_none="1"))
+        min_count = int(self._get_param("MinCount", "1"))
         image_id = self._get_param("ImageId")
         owner_id = self._get_param("OwnerId")
         user_data = self._get_param("UserData")
-        security_group_names = self._get_multi_param("SecurityGroup")
+        if user_data:
+            user_data = default_blob_parser(user_data)  # type: ignore[no-untyped-call]
+        security_group_names = self._get_param("SecurityGroups", [])
         kwargs = {
-            "instance_type": self._get_param("InstanceType", if_none="m1.small"),
+            "instance_type": self._get_param("InstanceType", "m1.small"),
             "is_instance_type_default": not self._get_param("InstanceType"),
             "placement": self._get_param("Placement.AvailabilityZone"),
             "placement_hostid": self._get_param("Placement.HostId"),
@@ -68,31 +72,28 @@ class InstanceResponse(EC2BaseResponse):
             "subnet_id": self._get_param("SubnetId"),
             "owner_id": owner_id,
             "key_name": self._get_param("KeyName"),
-            "security_group_ids": self._get_multi_param("SecurityGroupId"),
-            "nics": self._get_multi_param("NetworkInterface."),
+            "security_group_ids": self._get_param("SecurityGroupIds", []),
+            "nics": self._get_param("NetworkInterfaces", []),
             "private_ip": self._get_param("PrivateIpAddress"),
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
             "tags": self._parse_tag_specification(),
             "ebs_optimized": self._get_param("EbsOptimized") or False,
             "disable_api_stop": self._get_param("DisableApiStop") or False,
             "instance_market_options": self._get_param(
-                "InstanceMarketOptions.MarketType"
-            )
-            or {},
+                "InstanceMarketOptions.MarketType", {}
+            ),
             "instance_initiated_shutdown_behavior": self._get_param(
                 "InstanceInitiatedShutdownBehavior"
             ),
-            "launch_template": self._get_multi_param_dict("LaunchTemplate"),
-            "hibernation_options": self._get_multi_param_dict("HibernationOptions"),
-            "iam_instance_profile_name": self._get_param("IamInstanceProfile.Name")
-            or None,
-            "iam_instance_profile_arn": self._get_param("IamInstanceProfile.Arn")
-            or None,
+            "launch_template": self._get_param("LaunchTemplate", {}),
+            "hibernation_options": self._get_param("HibernationOptions", {}),
+            "iam_instance_profile_name": self._get_param("IamInstanceProfile.Name"),
+            "iam_instance_profile_arn": self._get_param("IamInstanceProfile.Arn"),
             "monitoring_state": "enabled"
-            if self._get_param("Monitoring.Enabled") == "true"
+            if self._get_param("Monitoring.Enabled")
             else "disabled",
             "ipv6_address_count": self._get_int_param("Ipv6AddressCount"),
-            "metadata_options": self._get_multi_param_dict("MetadataOptions"),
+            "metadata_options": self._get_param("MetadataOptions", {}),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -139,7 +140,7 @@ class InstanceResponse(EC2BaseResponse):
         )
 
     def terminate_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
 
         self.error_on_dryrun()
 
@@ -157,7 +158,7 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def reboot_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
 
         self.error_on_dryrun()
 
@@ -166,7 +167,7 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def stop_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
 
         self.error_on_dryrun()
 
@@ -175,7 +176,7 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def start_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
         self.error_on_dryrun()
 
         instances = self.ec2_backend.start_instances(instance_ids)
@@ -185,6 +186,7 @@ class InstanceResponse(EC2BaseResponse):
     def _get_list_of_dict_params(
         self, param_prefix: str, _dct: dict[str, Any]
     ) -> list[Any]:
+        # TODO: Do we need this?
         """
         Simplified version of _get_dict_param
         Allows you to pass in a custom dict instead of using self.querystring by default
@@ -196,8 +198,8 @@ class InstanceResponse(EC2BaseResponse):
         return params
 
     def describe_instance_status(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
-        include_all_instances = self._get_param("IncludeAllInstances") == "true"
+        instance_ids = self._get_param("InstanceIds", [])
+        include_all_instances = self._get_bool_param("IncludeAllInstances", False)
         filters = self._get_list_prefix("Filter")
         filters = [
             {"name": f["name"], "values": self._get_list_of_dict_params("value.", f)}
@@ -212,7 +214,7 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def describe_instance_types(self) -> str:
-        instance_type_filters = self._get_multi_param("InstanceType")
+        instance_type_filters = self._get_param("InstanceTypes", [])
         filter_dict = self._filters_from_querystring()
         instance_types = self.ec2_backend.describe_instance_types(
             instance_type_filters, filter_dict
@@ -240,13 +242,19 @@ class InstanceResponse(EC2BaseResponse):
 
         if attribute == "groupSet":
             template = self.response_template(EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
+        elif attribute in ["disableApiStop", "sourceDestCheck"]:
+            template = self.response_template(EC2_DESCRIBE_BOOL_INSTANCE_ATTRIBUTE)
+        elif attribute == "userData":
+            if value is not None:
+                value = base64.b64encode(value).decode("utf-8")
+            template = self.response_template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         else:
             template = self.response_template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
 
         return template.render(instance=instance, attribute=attribute, value=value)
 
     def describe_instance_credit_specifications(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
         instance = self.ec2_backend.describe_instance_credit_specifications(
             instance_ids
         )
@@ -354,7 +362,7 @@ class InstanceResponse(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        value = self.querystring.get(attribute_key)[0]  # type: ignore
+        value = self._get_param(attribute_key)  # type: ignore
         normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
         instance_id = self._get_param("InstanceId")
         self.ec2_backend.modify_instance_attribute(
@@ -571,16 +579,16 @@ INSTANCE_TEMPLATE = """<item>
           <hypervisor>xen</hypervisor>
           {% if instance.hibernation_options %}
           <hibernationOptions>
-            <configured>{{ instance.hibernation_options.get("Configured") }}</configured>
+            <configured>{{ instance.hibernation_options.get('Configured')|lower }}</configured>
           </hibernationOptions>
           {% endif %}
           {% if instance.metadata_options %}
           <metadataOptions>
-            <httpTokens>{{ instance.metadata_options.get("HttpTokens") }}</httpTokens>
-            <httpPutResponseHopLimit>{{ instance.metadata_options.get("HttpPutResponseHopLimit") }}</httpPutResponseHopLimit>
-            <httpEndpoint>{{ instance.metadata_options.get("HttpEndpoint") }}</httpEndpoint>
-            <httpProtocolIpv6>{{ instance.metadata_options.get("HttpProtocolIpv6") }}</httpProtocolIpv6>
-            <instanceMetadataTags>{{ instance.metadata_options.get("InstanceMetadataTags") }}</instanceMetadataTags>
+            <httpTokens>{{ instance.metadata_options.get('HttpTokens') }}</httpTokens>
+            <httpPutResponseHopLimit>{{ instance.metadata_options.get('HttpPutResponseHopLimit') }}</httpPutResponseHopLimit>
+            <httpEndpoint>{{ instance.metadata_options.get('HttpEndpoint') }}</httpEndpoint>
+            <httpProtocolIpv6>{{ instance.metadata_options.get('HttpProtocolIpv6') }}</httpProtocolIpv6>
+            <instanceMetadataTags>{{ instance.metadata_options.get('InstanceMetadataTags') }}</instanceMetadataTags>
           </metadataOptions>
           {% endif %}
           {% if instance.get_tags() %}
@@ -662,7 +670,7 @@ INSTANCE_TEMPLATE = """<item>
         </item>"""
 
 EC2_RUN_INSTANCES = (
-    """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    """<RunInstancesResponse xmlns='http://ec2.amazonaws.com/doc/2013-10-15/'>
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <reservationId>{{ reservation.id }}</reservationId>
   <ownerId>{{ account_id }}</ownerId>
@@ -787,9 +795,18 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
-    {% if value is not none %}
-    <value>{{ value }}</value>
-    {% endif %}
+  {% if value is not none %}
+    <value>{{ value }}</value>{% endif %}
+  </{{ attribute }}>
+</DescribeInstanceAttributeResponse>"""
+
+EC2_DESCRIBE_BOOL_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <instanceId>{{ instance.id }}</instanceId>  
+  <{{ attribute }}>
+  {% if value is not none %}
+    <value>{{ value|lower }}</value>
+  {% endif %}
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
 

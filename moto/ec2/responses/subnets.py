@@ -58,7 +58,7 @@ class Subnets(EC2BaseResponse):
 
     def describe_subnets(self) -> ActionResult:
         self.error_on_dryrun()
-        subnet_ids = self._get_multi_param("SubnetId")
+        subnet_ids = self._get_param("SubnetIds")
         filters = self._filters_from_querystring()
         subnets = self.ec2_backend.describe_subnets(subnet_ids, filters)
         result = {"Subnets": subnets}
@@ -68,9 +68,9 @@ class Subnets(EC2BaseResponse):
         subnet_id = self._get_param("SubnetId")
 
         for attribute in ("MapPublicIpOnLaunch", "AssignIpv6AddressOnCreation"):
-            if self.querystring.get(f"{attribute}.Value"):
+            if self._get_param(f"{attribute}.Value"):
                 attr_name = camelcase_to_underscores(attribute)
-                attr_value = self.querystring[f"{attribute}.Value"][0]
+                attr_value = self._get_param(f"{attribute}.Value")
                 self.ec2_backend.modify_subnet_attribute(
                     subnet_id, attr_name, attr_value
                 )

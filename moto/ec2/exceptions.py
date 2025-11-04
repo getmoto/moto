@@ -671,7 +671,7 @@ class AvailabilityZoneNotFromRegionError(EC2ClientError):
 
 
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
-    def __init__(self, rule_number: str):
+    def __init__(self, rule_number: int):
         super().__init__(
             "NetworkAclEntryAlreadyExists",
             f"The network acl entry identified by {rule_number} already exists.",

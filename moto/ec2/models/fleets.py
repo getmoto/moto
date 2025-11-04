@@ -80,7 +80,7 @@ class Fleet(TaggedEC2Resource):
             launch_specs_from_config.append(new_launch_template)
 
         for spec in launch_specs_from_config:
-            tag_spec_set = spec.get("TagSpecification", [])
+            tag_spec_set = spec.get("TagSpecifications", [])
             tags = convert_tag_spec(tag_spec_set)
             tags["instance"] = tags.get("instance", {}) | instance_tags
             self.launch_specs.append(

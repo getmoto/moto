@@ -3,7 +3,7 @@ from ._base_response import EC2BaseResponse
 
 class SpotFleets(EC2BaseResponse):
     def cancel_spot_fleet_requests(self) -> str:
-        spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
+        spot_fleet_request_ids = self._get_param("SpotFleetRequestIds", [])
         terminate_instances = self._get_bool_param("TerminateInstances")
         spot_fleets = self.ec2_backend.cancel_spot_fleet_requests(
             spot_fleet_request_ids, terminate_instances
@@ -23,7 +23,7 @@ class SpotFleets(EC2BaseResponse):
         )
 
     def describe_spot_fleet_requests(self) -> str:
-        spot_fleet_request_ids = self._get_multi_param("SpotFleetRequestId.")
+        spot_fleet_request_ids = self._get_param("SpotFleetRequestIds", [])
 
         requests = self.ec2_backend.describe_spot_fleet_requests(spot_fleet_request_ids)
         template = self.response_template(DESCRIBE_SPOT_FLEET_TEMPLATE)
@@ -41,7 +41,7 @@ class SpotFleets(EC2BaseResponse):
         return self.response_template(MODIFY_SPOT_FLEET_REQUEST_TEMPLATE).render()
 
     def request_spot_fleet(self) -> str:
-        spot_config = self._get_multi_param_dict("SpotFleetRequestConfig")
+        spot_config = self._get_param("SpotFleetRequestConfig", {})
         spot_price = spot_config.get("SpotPrice")
         target_capacity = spot_config["TargetCapacity"]
         iam_fleet_role = spot_config["IamFleetRole"]
@@ -51,13 +51,10 @@ class SpotFleets(EC2BaseResponse):
         )
 
         launch_specs = spot_config.get("LaunchSpecifications")
-        launch_template_config = list(
-            self._get_params()
-            .get("SpotFleetRequestConfig", {})
-            .get("LaunchTemplateConfigs", {})
-            .values()
+        launch_template_config = self._get_param(
+            "SpotFleetRequestConfig.LaunchTemplateConfigs", []
         )
-        tag_specifications = spot_config.get("TagSpecification")
+        tag_specifications = spot_config.get("TagSpecifications", [])
 
         request = self.ec2_backend.request_spot_fleet(
             spot_price=spot_price,
@@ -116,7 +113,7 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
                         <instanceType>{{ launch_spec.instance_type }}</instanceType>
                         <iamInstanceProfile><arn>{{ launch_spec.iam_instance_profile }}</arn></iamInstanceProfile>
                         <keyName>{{ launch_spec.key_name }}</keyName>
-                        <monitoring><enabled>{{ launch_spec.monitoring }}</enabled></monitoring>
+                        <monitoring><enabled>{{ launch_spec.monitoring|lower }}</enabled></monitoring>
                         {% if launch_spec.spot_price %}
                         <spotPrice>{{ launch_spec.spot_price }}</spotPrice>
                         {% endif %}
@@ -125,7 +122,7 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
                         <groupSet>
                             {% for group in launch_spec.group_set %}
                             <item>
-                                <groupId>{{ group }}</groupId>
+                                <groupId>{{ group.get("GroupId") }}</groupId>
                             </item>
                             {% endfor %}
                         </groupSet>

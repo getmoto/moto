@@ -710,8 +710,8 @@ def test_create_fleet_api_response():
                     "LocalStorage": "included",
                     "LocalStorageTypes": ["ssd"],
                     "MemoryGiBPerVCpu": {
-                        "Min": 1,
-                        "Max": 160,
+                        "Min": 1.0,
+                        "Max": 160.0,
                     },
                     "MemoryMiB": {
                         "Min": 2048,
@@ -725,8 +725,8 @@ def test_create_fleet_api_response():
                     "RequireHibernateSupport": True,
                     "SpotMaxPricePercentageOverLowestPrice": 99999,
                     "TotalLocalStorageGB": {
-                        "Min": 100,
-                        "Max": 10000,
+                        "Min": 100.0,
+                        "Max": 10000.0,
                     },
                     "VCpuCount": {
                         "Min": 2,
@@ -734,9 +734,9 @@ def test_create_fleet_api_response():
                     },
                 },
                 "MaxPrice": "0.5",
-                "Priority": 2,
+                "Priority": 2.0,
                 "SubnetId": subnet_id,
-                "WeightedCapacity": 1,
+                "WeightedCapacity": 1.0,
             },
         ],
     }

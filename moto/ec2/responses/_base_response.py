@@ -26,6 +26,9 @@ class EC2BaseResponse(BaseResponse):
     def _filters_from_querystring(self) -> dict[str, str]:
         # [{"Name": x1, "Value": y1}, ..]
         _filters = self._get_param("Filters", [])
+        # EC2 is inconsistent with parameter name, so check singular as well.
+        if not _filters:
+            _filters = self._get_param("Filter", [])
         # return {x1: y1, ...}
         try:
             return {f["Name"]: f.get("Values", []) for f in _filters}
@@ -53,7 +56,7 @@ class EC2BaseResponse(BaseResponse):
             raise InvalidParameter(
                 f"'{tags_dict['ResourceType']}' is not a valid taggable resource type for this operation."
             )
-        if "Tag" not in tags_dict:
+        if "Tags" not in tags_dict:
             if tags_dict.get("ResourceType") == "subnet":
                 raise InvalidParameter("Tag specification must have at least one tag")
             raise EmptyTagSpecError

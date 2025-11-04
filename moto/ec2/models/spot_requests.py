@@ -227,22 +227,22 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
             launch_template_data = launch_template.latest_version().data
             new_launch_template = launch_template_data.copy()
             if config.get("Overrides"):
-                overrides = list(config["Overrides"].values())[0]
+                overrides = config["Overrides"][0]
                 new_launch_template.update(overrides)
             launch_specs_from_config.append(new_launch_template)
 
         for spec in (launch_specs or []) + launch_specs_from_config:
-            tag_spec_set = spec.get("TagSpecificationSet", [])
+            tag_spec_set = spec.get("TagSpecifications", [])
             tags = convert_tag_spec(tag_spec_set)
             self.launch_specs.append(
                 SpotFleetLaunchSpec(
                     ebs_optimized=spec.get("EbsOptimized"),
-                    group_set=spec.get("GroupSet", []),
-                    iam_instance_profile=spec.get("IamInstanceProfile"),
+                    group_set=spec.get("SecurityGroups", []),
+                    iam_instance_profile=spec.get("IamInstanceProfile", {}).get("Arn"),
                     image_id=spec["ImageId"],
                     instance_type=spec["InstanceType"],
                     key_name=spec.get("KeyName"),
-                    monitoring=spec.get("Monitoring"),
+                    monitoring=spec.get("Monitoring", {}).get("Enabled", False),
                     spot_price=spec.get("SpotPrice", self.spot_price),
                     subnet_id=spec.get("SubnetId"),
                     tag_specifications=tags,
