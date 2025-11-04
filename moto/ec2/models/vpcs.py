@@ -1210,7 +1210,9 @@ class VPCBackend:
 
                 elif filter_item["Name"] == "service-type":
                     service_types = {x["ServiceType"] for x in service["ServiceType"]}
-                    if not service_types & set(filter_item["Value"]):
+                    if not service_types & set(
+                        filter_item.get("Value", []) + filter_item.get("Values", [])
+                    ):
                         matched = False
 
                 elif filter_item["Name"] == "tag-key" or filter_item["Name"].startswith(

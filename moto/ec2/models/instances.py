@@ -758,7 +758,7 @@ class InstanceBackend:
                 block_device_mappings = kwargs["block_device_mappings"]
             elif kwargs.get("launch_template"):
                 template = self._get_template_from_args(kwargs["launch_template"])
-                block_device_mappings = template.data.get("BlockDeviceMapping")
+                block_device_mappings = template.data.get("BlockDeviceMappings")
             elif kwargs.get("launch_config"):
                 block_device_mappings = kwargs[
                     "launch_config"
@@ -770,8 +770,6 @@ class InstanceBackend:
                     volume_type = block_device["Ebs"].get("VolumeType")
                     snapshot_id = block_device["Ebs"].get("SnapshotId")
                     encrypted = block_device["Ebs"].get("Encrypted", False)
-                    if isinstance(encrypted, str):
-                        encrypted = encrypted.lower() == "true"
                     delete_on_termination = block_device["Ebs"].get(
                         "DeleteOnTermination", False
                     )

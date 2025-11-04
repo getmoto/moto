@@ -200,12 +200,10 @@ class InstanceResponse(EC2BaseResponse):
     def describe_instance_status(self) -> str:
         instance_ids = self._get_param("InstanceIds", [])
         include_all_instances = self._get_bool_param("IncludeAllInstances", False)
-        filters = self._get_list_prefix("Filter")
         filters = [
-            {"name": f["name"], "values": self._get_list_of_dict_params("value.", f)}
-            for f in filters
+            {"name": k, "values": v}
+            for k, v in self._filters_from_querystring().items()
         ]
-
         instances = self.ec2_backend.describe_instance_status(
             instance_ids, include_all_instances, filters
         )
@@ -401,31 +399,33 @@ class InstanceResponse(EC2BaseResponse):
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
     def _parse_block_device_mapping(self) -> list[dict[str, Any]]:
-        device_mappings = self._get_list_prefix("BlockDeviceMapping")
+        device_mappings = self._get_param("BlockDeviceMappings", [])
         mappings = []
         for device_mapping in device_mappings:
             self._validate_block_device_mapping(device_mapping)
             device_template: dict[str, Any] = deepcopy(BLOCK_DEVICE_MAPPING_TEMPLATE)
-            device_template["VirtualName"] = device_mapping.get("virtual_name")
-            device_template["DeviceName"] = device_mapping.get("device_name")
-            device_template["Ebs"]["SnapshotId"] = device_mapping.get(
-                "ebs._snapshot_id"
+            device_template["VirtualName"] = device_mapping.get("VirtualName")
+            device_template["DeviceName"] = device_mapping.get("DeviceName")
+            device_template["Ebs"]["SnapshotId"] = device_mapping.get("Ebs", {}).get(
+                "SnapshotId"
             )
-            device_template["Ebs"]["VolumeSize"] = device_mapping.get(
-                "ebs._volume_size"
+            device_template["Ebs"]["VolumeSize"] = device_mapping.get("Ebs", {}).get(
+                "VolumeSize"
             )
-            device_template["Ebs"]["DeleteOnTermination"] = self._convert_to_bool(
-                device_mapping.get("ebs._delete_on_termination", False)
+            device_template["Ebs"]["DeleteOnTermination"] = device_mapping.get(
+                "Ebs", {}
+            ).get("DeleteOnTermination", False)
+            device_template["Ebs"]["VolumeType"] = device_mapping.get("Ebs", {}).get(
+                "VolumeType"
             )
-            device_template["Ebs"]["VolumeType"] = device_mapping.get(
-                "ebs._volume_type"
+            device_template["Ebs"]["Iops"] = device_mapping.get("Ebs", {}).get("Iops")
+            device_template["Ebs"]["Encrypted"] = device_mapping.get("Ebs", {}).get(
+                "VolumeSize", False
             )
-            device_template["Ebs"]["Iops"] = device_mapping.get("ebs._iops")
-            device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
-                device_mapping.get("ebs._encrypted", False)
+            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("Ebs", {}).get(
+                "KmsKeyId"
             )
-            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("ebs._kms_key_id")
-            device_template["NoDevice"] = device_mapping.get("no_device")
+            device_template["NoDevice"] = device_mapping.get("NoDevice")
             mappings.append(device_template)
 
         return mappings
@@ -434,11 +434,11 @@ class InstanceResponse(EC2BaseResponse):
     def _validate_block_device_mapping(device_mapping: dict[str, Any]) -> None:  # type: ignore[misc]
         from botocore import __version__ as botocore_version
 
-        if "no_device" in device_mapping:
-            assert isinstance(device_mapping["no_device"], str), (
+        if "NoDevice" in device_mapping:
+            assert isinstance(device_mapping["NoDevice"], str), (
                 f"botocore {botocore_version} isn't limiting NoDevice to str type anymore, it is type:{type(device_mapping['no_device'])}"
             )
-            if device_mapping["no_device"] == "":
+            if device_mapping["NoDevice"] == "":
                 # the only legit value it can have is empty string
                 # and none of the other checks here matter if NoDevice
                 # is being used
@@ -446,12 +446,11 @@ class InstanceResponse(EC2BaseResponse):
             else:
                 raise InvalidRequest()
 
-        if not any(mapping for mapping in device_mapping if mapping.startswith("ebs.")):
+        if "Ebs" not in device_mapping:
             raise MissingParameterError("ebs")
-        if (
-            "ebs._volume_size" not in device_mapping
-            and "ebs._snapshot_id" not in device_mapping
-        ):
+        if not device_mapping.get("Ebs", {}).get(
+            "VolumeSize"
+        ) and not device_mapping.get("Ebs", {}).get("SnapshotId"):
             raise MissingParameterError("size or snapshotId")
 
     @staticmethod
