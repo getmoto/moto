@@ -1,9 +1,10 @@
-import datetime
 from collections import defaultdict
+from datetime import datetime
 from typing import Any, Optional
 
 from moto.ec2.models.spot_requests import SpotFleetLaunchSpec, SpotInstanceRequest
 
+from ...core.utils import utcnow
 from ..utils import (
     convert_tag_spec,
     random_fleet_id,
@@ -24,8 +25,8 @@ class Fleet(TaggedEC2Resource):
         replace_unhealthy_instances: bool,
         terminate_instances_with_expiration: bool,
         fleet_type: str,
-        valid_from: str,
-        valid_until: str,
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         tag_specifications: list[dict[str, Any]],
     ):
         self.ec2_backend = ec2_backend
@@ -40,7 +41,7 @@ class Fleet(TaggedEC2Resource):
         self.replace_unhealthy_instances = replace_unhealthy_instances
         self.terminate_instances_with_expiration = terminate_instances_with_expiration
         self.fleet_type = fleet_type
-        self.valid_from = valid_from or datetime.datetime.now(tz=datetime.timezone.utc)
+        self.valid_from = valid_from or utcnow()
         self.valid_until = valid_until
         tag_spec = convert_tag_spec(tag_specifications)
         self.add_tags(tag_spec.get("fleet", {}))
@@ -128,6 +129,18 @@ class Fleet(TaggedEC2Resource):
                 self.create_on_demand_requests(remaining_capacity)
             elif default_capacity == "spot":
                 self.create_spot_requests(remaining_capacity)
+
+    @property
+    def valid_from_as_string(self) -> str:
+        x = self.valid_from
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
+
+    @property
+    def valid_until_as_string(self) -> Optional[str]:
+        if self.valid_until is None:
+            return self.valid_until
+        x = self.valid_until
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
     @property
     def physical_resource_id(self) -> str:
@@ -271,8 +284,8 @@ class FleetsBackend:
         replace_unhealthy_instances: bool,
         terminate_instances_with_expiration: bool,
         fleet_type: str,
-        valid_from: str,
-        valid_until: str,
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         tag_specifications: list[dict[str, Any]],
     ) -> Fleet:
         fleet_id = random_fleet_id()

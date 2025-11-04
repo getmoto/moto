@@ -389,10 +389,10 @@ DESCRIBE_FLEETS_TEMPLATE = """<DescribeFleetsResponse xmlns="http://ec2.amazonaw
             <terminateInstancesWithExpiration>{{ request.terminate_instances_with_expiration|lower }}</terminateInstancesWithExpiration>
             <type>{{ request.fleet_type }}</type>
             {% if request.valid_from %}
-            <validFrom>{{ request.valid_from }}</validFrom>
+            <validFrom>{{ request.valid_from_as_string }}</validFrom>
             {% endif %}
             {% if request.valid_until %}
-            <validUntil>{{ request.valid_until }}</validUntil>
+            <validUntil>{{ request.valid_until_as_string }}</validUntil>
             {% endif %}
             <replaceUnhealthyInstances>{{ request.replace_unhealthy_instances|lower }}</replaceUnhealthyInstances>
             <tagSet>

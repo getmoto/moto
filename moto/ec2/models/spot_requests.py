@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -49,8 +50,8 @@ class SpotInstanceRequest(TaggedEC2Resource):
         price: str,
         image_id: str,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         launch_group: Optional[str],
         availability_zone_group: Optional[str],
         key_name: str,
@@ -113,6 +114,20 @@ class SpotInstanceRequest(TaggedEC2Resource):
         self.state = "active"
         self.status = "fulfilled"
         self.status_message = ""
+
+    @property
+    def valid_from_as_string(self) -> Optional[str]:
+        if self.valid_from is None:
+            return self.valid_from
+        x = self.valid_from
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
+
+    @property
+    def valid_until_as_string(self) -> Optional[str]:
+        if self.valid_until is None:
+            return self.valid_until
+        x = self.valid_until
+        return f"{x.year}-{x.month:02d}-{x.day:02d}T{x.hour:02d}:{x.minute:02d}:{x.second:02d}.000Z"
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
@@ -390,8 +405,8 @@ class SpotRequestBackend:
         image_id: str,
         count: int,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
+        valid_from: Optional[datetime],
+        valid_until: Optional[datetime],
         launch_group: Optional[str],
         availability_zone_group: Optional[str],
         key_name: str,

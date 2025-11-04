@@ -143,10 +143,10 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
       <launchGroup>{{ request.launch_group }}</launchGroup>
       <createTime>2015-01-01T00:00:00.000Z</createTime>
       {% if request.valid_from %}
-      <validFrom>{{ request.valid_from }}</validFrom>
+      <validFrom>{{ request.valid_from_as_string }}</validFrom>
       {% endif %}
       {% if request.valid_until %}
-      <validUntil>{{ request.valid_until }}</validUntil>
+      <validUntil>{{ request.valid_until_as_string }}</validUntil>
       {% endif %}
       <productDescription>Linux/UNIX</productDescription>
     </item>
@@ -222,10 +222,10 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
       {% endif %}
         <createTime>2015-01-01T00:00:00.000Z</createTime>
       {% if request.valid_from %}
-        <validFrom>{{ request.valid_from }}</validFrom>
+        <validFrom>{{ request.valid_from_as_string }}</validFrom>
       {% endif %}
       {% if request.valid_until %}
-        <validUntil>{{ request.valid_until }}</validUntil>
+        <validUntil>{{ request.valid_until_as_string }}</validUntil>
       {% endif %}
       <productDescription>Linux/UNIX</productDescription>
       <instanceInterruptionBehavior>{{ request.instance_interruption_behaviour }}</instanceInterruptionBehavior>
