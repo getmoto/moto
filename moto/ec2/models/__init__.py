@@ -34,8 +34,8 @@ from .launch_templates import LaunchTemplateBackend
 from .managed_prefixes import ManagedPrefixListBackend
 from .nat_gateways import NatGatewayBackend
 from .network_acls import NetworkAclBackend
-from .route_tables import RouteBackend
 from .reserved_instances import ReservedInstancesBackend
+from .route_tables import RouteBackend
 from .security_groups import SecurityGroupBackend
 from .spot_requests import SpotRequestBackend
 from .subnets import SubnetBackend

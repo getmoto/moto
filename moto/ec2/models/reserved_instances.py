@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import itertools
 import random
-from typing import Any, Dict, List
-
-from ..utils import generic_filter
+from typing import Any
 
 
 class ReservedInstancesOffering(dict):
@@ -43,7 +41,7 @@ class ReservedInstancesBackend:
     """
 
     _ri_offerings_generated: bool = False
-    _ri_offerings: Dict[str, List[ReservedInstancesOffering]]
+    _ri_offerings: dict[str, list[ReservedInstancesOffering]]
 
     def _ensure_reserved_offerings(self) -> None:
         if getattr(self, "_ri_offerings_generated", False):
@@ -60,7 +58,7 @@ class ReservedInstancesBackend:
         offering_types = ["No Upfront", "Partial Upfront", "All Upfront"]
         product = "Linux/UNIX"
 
-        offerings: List[ReservedInstancesOffering] = []
+        offerings: list[ReservedInstancesOffering] = []
         rid_counter = 1
         for itype, zone, otype in itertools.product(instance_types, zones, offering_types):
             rid = f"{region}-ri-off-{rid_counter:04d}"
@@ -113,8 +111,8 @@ class ReservedInstancesBackend:
         self._ri_offerings_generated = True
 
     def describe_reserved_instances_offerings(
-        self, filters: Dict[str, List[str]] | None = None
-    ) -> List[Dict[str, Any]]:
+        self, filters: dict[str, list[str]] | None = None
+    ) -> list[dict[str, Any]]:
         self._ensure_reserved_offerings()
         region = self.region_name  # type: ignore[attr-defined]
         offerings = self._ri_offerings.get(region, [])
@@ -123,7 +121,7 @@ class ReservedInstancesBackend:
             return offerings
 
         # Simple filter predicate across supported keys
-        def predicate(obj: ReservedInstancesOffering, ff: Dict[str, List[str]]) -> bool:
+        def predicate(obj: ReservedInstancesOffering, ff: dict[str, list[str]]) -> bool:
             for name, values in ff.items():
                 val = obj.get_filter_value(name)
                 if val is None:
@@ -138,4 +136,3 @@ class ReservedInstancesBackend:
             return True
 
         return [o for o in offerings if predicate(o, filters)]
-
