@@ -33,7 +33,7 @@ def test_batch_write_single_set(table_name=None):
 @dynamodb_aws_verified(create_table=False)
 def test_batch_write_item_to_multiple_tables():
     conn = boto3.resource("dynamodb", region_name="us-west-2")
-    tables = [f"table-{str(uuid4())[0:6]}-{i}" for i in range(3)]
+    tables = [f"table-{str(uuid4())}-{i}" for i in range(3)]
     for name in tables:
         conn.create_table(
             TableName=name,

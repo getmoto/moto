@@ -60,7 +60,7 @@ def test_with_name_filter():
 
     secrets = conn.list_secrets(Filters=[{"Key": "name", "Values": ["foo"]}])
 
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     assert secret_names == ["foo"]
 
 
@@ -75,7 +75,7 @@ def test_with_tag_key_filter():
 
     secrets = conn.list_secrets(Filters=[{"Key": "tag-key", "Values": ["baz"]}])
 
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     assert secret_names == ["foo"]
 
 
@@ -90,7 +90,7 @@ def test_with_tag_value_filter():
 
     secrets = conn.list_secrets(Filters=[{"Key": "tag-value", "Values": ["baz"]}])
 
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     assert secret_names == ["foo"]
 
 
@@ -103,7 +103,7 @@ def test_with_description_filter():
 
     secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["baz"]}])
 
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     assert secret_names == ["foo"]
 
 
@@ -384,7 +384,7 @@ def test_with_duplicate_filter_keys():
             ]
         )
 
-        secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
         assert secret_names == ["foo"]
     finally:
         conn.delete_secret(SecretId="foo", ForceDeleteWithoutRecovery=True)
@@ -419,7 +419,7 @@ def test_with_multiple_filters():
         ]
     )
 
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     assert secret_names == ["foo"]
 
 
@@ -433,7 +433,7 @@ def test_with_filter_with_multiple_values():
 
     secrets = conn.list_secrets(Filters=[{"Key": "name", "Values": ["foo", "bar"]}])
 
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     assert secret_names == ["foo", "bar"]
 
 
@@ -453,17 +453,17 @@ def test_with_filter_with_value_with_multiple_words():
         secrets = conn.list_secrets(
             Filters=[{"Key": "description", "Values": ["one two"]}]
         )
-        secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
         assert secret_names == ["foo", "bar"]
 
         # All values that start with o and t
         secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["o t"]}])
-        secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
         assert secret_names == ["foo", "bar"]
 
         # All values that contain t
         secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["t"]}])
-        secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+        secret_names = [s["Name"] for s in secrets["SecretList"]]
         assert secret_names == ["foo", "bar", "qux"]
     finally:
         conn.delete_secret(SecretId="foo", ForceDeleteWithoutRecovery=True)
@@ -487,12 +487,12 @@ def test_with_filter_with_negation():
         Filters=[{"Key": "description", "Values": ["one", "!two"]}]
     )
 
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     for secret_name in ["foo", "bar", "baz"]:
         assert secret_name in secret_names
 
     secrets = conn.list_secrets(Filters=[{"Key": "description", "Values": ["!o"]}])
-    secret_names = list(map(lambda s: s["Name"], secrets["SecretList"]))
+    secret_names = [s["Name"] for s in secrets["SecretList"]]
     for secret_name in ["qux", "none"]:
         assert secret_name in secret_names
 

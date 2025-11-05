@@ -113,7 +113,7 @@ class QuicksightSearchFilterList:
         self.filters: list[QuicksightBaseSearchFilter] = filters
 
     def match(self, input: BaseModel) -> bool:
-        return any([filter.match(input) for filter in self.filters])
+        return any(filter.match(input) for filter in self.filters)
 
 
 class QuicksightSearchFilterFactory:

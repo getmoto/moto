@@ -63,7 +63,7 @@ class QuicksightGroup(BaseModel):
         self.namespace = namespace
         self.region = region
 
-        self.members: dict[str, QuicksightMembership] = dict()
+        self.members: dict[str, QuicksightMembership] = {}
 
     def add_member(self, member_name: str) -> QuicksightMembership:
         membership = QuicksightMembership(

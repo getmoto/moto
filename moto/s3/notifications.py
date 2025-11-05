@@ -269,7 +269,7 @@ def _invoke_awslambda(
 
         lambda_backend = get_backend(account_id, region_name)
         func = lambda_backend.get_function(fn_arn)
-        func.invoke(json.dumps(event_body), dict(), dict())
+        func.invoke(json.dumps(event_body), {}, {})
     except:  # noqa
         # This is an async action in AWS.
         # Even if this part fails, the calling function should pass, so catch all errors

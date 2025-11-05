@@ -313,11 +313,11 @@ class Queue(CloudFormationModel):
 
     @property
     def pending_message_groups(self) -> set[str]:
-        return set(
+        return {
             message.group_id
             for message in self._pending_messages
             if message.group_id is not None
-        )
+        }
 
     def _set_attributes(
         self, attributes: dict[str, Any], now: Optional[float] = None

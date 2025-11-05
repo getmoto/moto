@@ -47,7 +47,7 @@ class NetworkFirewallResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(Firewall=firewall.to_dict(), FirewallStatus=firewall.firewall_status)
+            {"Firewall": firewall.to_dict(), "FirewallStatus": firewall.firewall_status}
         )
 
     def describe_logging_configuration(self) -> str:
@@ -58,10 +58,10 @@ class NetworkFirewallResponse(BaseResponse):
             firewall_name=firewall_name,
         )
         return json.dumps(
-            dict(
-                FirewallArn=firewall.arn,
-                LoggingConfiguration=firewall.logging_configs,
-            )
+            {
+                "FirewallArn": firewall.arn,
+                "LoggingConfiguration": firewall.logging_configs,
+            }
         )
 
     def update_logging_configuration(self) -> str:
@@ -74,11 +74,11 @@ class NetworkFirewallResponse(BaseResponse):
             logging_configuration=logging_configuration,
         )
         return json.dumps(
-            dict(
-                FirewallArn=firewall.arn,
-                FirewallName=firewall.firewall_name,
-                LoggingConfiguration=firewall.logging_configs,
-            )
+            {
+                "FirewallArn": firewall.arn,
+                "FirewallName": firewall.firewall_name,
+                "LoggingConfiguration": firewall.logging_configs,
+            }
         )
 
     def list_firewalls(self) -> str:
@@ -91,7 +91,7 @@ class NetworkFirewallResponse(BaseResponse):
             max_results=max_results,
         )
         firewall_list = [fw.to_dict() for fw in firewalls]
-        return json.dumps(dict(nextToken=next_token, Firewalls=firewall_list))
+        return json.dumps({"nextToken": next_token, "Firewalls": firewall_list})
 
     def describe_firewall(self) -> str:
         firewall_name = self._get_param("FirewallName")
@@ -101,9 +101,9 @@ class NetworkFirewallResponse(BaseResponse):
             firewall_arn=firewall_arn,
         )
         return json.dumps(
-            dict(
-                UpdateToken=firewall.update_token,
-                Firewall=firewall.to_dict(),
-                FirewallStatus=firewall.firewall_status,
-            )
+            {
+                "UpdateToken": firewall.update_token,
+                "Firewall": firewall.to_dict(),
+                "FirewallStatus": firewall.firewall_status,
+            }
         )

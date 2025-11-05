@@ -184,7 +184,7 @@ def apply_filter(
                 continue
             for attr in filter_def.attrs_to_check:
                 if filter_def.case_insensitive:
-                    filter_values = list(map(lambda x: x.lower(), filter_values))
+                    filter_values = [x.lower() for x in filter_values]
                 if get_object_value(obj, attr) in filter_values:
                     matches_filter = True
                     break

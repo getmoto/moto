@@ -271,7 +271,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         response = resource.describe()
         response.pop("featureSet")
 
-        return dict(resourceShare=response)
+        return {"resourceShare": response}
 
     def get_resource_shares(self, resource_owner: Optional[str]) -> dict[str, Any]:
         if resource_owner not in ["SELF", "OTHER-ACCOUNTS"]:
@@ -287,7 +287,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         resources = [resource.describe() for resource in self.resource_shares]
 
-        return dict(resourceShares=resources)
+        return {"resourceShares": resources}
 
     def update_resource_share(
         self,
@@ -313,7 +313,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         response = resource.describe()
         response.pop("featureSet")
 
-        return dict(resourceShare=response)
+        return {"resourceShare": response}
 
     def delete_resource_share(
         self, resource_share_arn: Optional[str]
@@ -334,13 +334,13 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         resource.delete()
 
-        return dict(returnValue=True)
+        return {"returnValue": True}
 
     def enable_sharing_with_aws_organization(self) -> dict[str, Any]:
         if not self.organizations_backend.org:
             raise OperationNotPermittedException
 
-        return dict(returnValue=True)
+        return {"returnValue": True}
 
     def get_resource_share_associations(
         self,
@@ -418,7 +418,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                         }
                     )
 
-        return dict(resourceShareAssociations=associations)
+        return {"resourceShareAssociations": associations}
 
     def list_resource_types(self, resource_region_scope: str) -> dict[str, Any]:
         if resource_region_scope not in ["ALL", "REGIONAL", "GLOBAL"]:
@@ -439,7 +439,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                 and resource_type_dict["resourceRegionScope"] == resource_region_scope
             ]
 
-        return dict(resourceTypes=resource_types)
+        return {"resourceTypes": resource_types}
 
     def list_permissions(
         self, resource_type: str, permission_type: str
@@ -486,7 +486,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                 == permission["permissionType"]
             ]
 
-        return dict(permissions=permissions)
+        return {"permissions": permissions}
 
 
 ram_backends = BackendDict(ResourceAccessManagerBackend, "ram")

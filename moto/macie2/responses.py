@@ -77,7 +77,7 @@ class MacieResponse(BaseResponse):
 
     def disable_macie(self) -> str:
         self.macie_backend.disable_macie()
-        return json.dumps(dict())
+        return json.dumps({})
 
     def enable_organization_admin_account(self) -> str:
         admin_account_id = self._get_param("adminAccountId")

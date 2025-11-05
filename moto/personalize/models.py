@@ -42,7 +42,7 @@ class PersonalizeBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.schemas: dict[str, Schema] = dict()
+        self.schemas: dict[str, Schema] = {}
 
     def create_schema(self, name: str, schema_dict: dict[str, Any], domain: str) -> str:
         schema = Schema(

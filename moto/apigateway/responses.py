@@ -844,7 +844,7 @@ class APIGatewayResponse(BaseResponse):
     def get_gateway_responses(self) -> TYPE_RESPONSE:
         rest_api_id = self.path.split("/")[-2]
         responses = self.backend.get_gateway_responses(rest_api_id=rest_api_id)
-        return 200, {}, json.dumps(dict(item=[gw.to_json() for gw in responses]))
+        return 200, {}, json.dumps({"item": [gw.to_json() for gw in responses]})
 
     def delete_gateway_response(self) -> TYPE_RESPONSE:
         rest_api_id = self.path.split("/")[-3]
@@ -852,7 +852,7 @@ class APIGatewayResponse(BaseResponse):
         self.backend.delete_gateway_response(
             rest_api_id=rest_api_id, response_type=response_type
         )
-        return 202, {}, json.dumps(dict())
+        return 202, {}, json.dumps({})
 
     def update_account(self) -> str:
         patch_operations = self._get_param("patchOperations")

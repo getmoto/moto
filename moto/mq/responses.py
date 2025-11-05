@@ -92,7 +92,7 @@ class MQResponse(BaseResponse):
     def delete_broker(self) -> ActionResult:
         broker_id = self.path.split("/")[-1]
         self.mq_backend.delete_broker(broker_id=broker_id)
-        return ActionResult(dict(BrokerId=broker_id))
+        return ActionResult({"BrokerId": broker_id})
 
     def describe_broker(self) -> ActionResult:
         broker_id = self.path.split("/")[-1]
@@ -103,7 +103,7 @@ class MQResponse(BaseResponse):
 
     def list_brokers(self) -> ActionResult:
         brokers = self.mq_backend.list_brokers()
-        return ActionResult(dict(BrokerSummaries=brokers))
+        return ActionResult({"BrokerSummaries": brokers})
 
     def create_user(self) -> ActionResult:
         params = json.loads(self.body)

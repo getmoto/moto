@@ -72,7 +72,7 @@ class SSOAdminResponse(BaseResponse):
             max_results=max_results,
         )
 
-        return json.dumps(dict(AccountAssignments=assignments, NextToken=next_token))
+        return json.dumps({"AccountAssignments": assignments, "NextToken": next_token})
 
     def list_account_assignments_for_principal(self) -> str:
         filter_ = self._get_param("Filter", {})
@@ -94,7 +94,7 @@ class SSOAdminResponse(BaseResponse):
             principal_type=principal_type,
         )
 
-        return json.dumps(dict(AccountAssignments=assignments, NextToken=next_token))
+        return json.dumps({"AccountAssignments": assignments, "NextToken": next_token})
 
     def create_permission_set(self) -> str:
         name = self._get_param("Name")
@@ -309,7 +309,7 @@ class SSOAdminResponse(BaseResponse):
         )
         account_assignment_creation_status["Status"] = "SUCCEEDED"
         return json.dumps(
-            dict(AccountAssignmentCreationStatus=account_assignment_creation_status)
+            {"AccountAssignmentCreationStatus": account_assignment_creation_status}
         )
 
     def describe_account_assignment_deletion_status(self) -> str:
@@ -323,7 +323,7 @@ class SSOAdminResponse(BaseResponse):
         )
         account_assignment_deletion_status["Status"] = "SUCCEEDED"
         return json.dumps(
-            dict(AccountAssignmentDeletionStatus=account_assignment_deletion_status)
+            {"AccountAssignmentDeletionStatus": account_assignment_deletion_status}
         )
 
     def list_instances(self) -> str:

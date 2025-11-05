@@ -12,6 +12,7 @@ markers = [
     "network: requires network connection",
     "requires_docker: requires running docker",
     "aws_verified: Verified against AWS, and should be able to run against AWS",
+    "requires_clean_slate: requires a clean slate, so no parallel testing",
 ]
 
 [tool.ruff.lint]
@@ -23,5 +24,5 @@ ignore = [
     "E501",  # Line length
     "UP007",  # Use X | Y for type annotations - should only be enabled when we support Python >= 3.10
 ]
-extend-select = ["B", "I", "T201", "T203", "UP"]
+extend-select = ["B", "C4", "I", "T201", "T203", "UP"]
 

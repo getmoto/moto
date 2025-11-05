@@ -244,7 +244,7 @@ class Execution:
 
     def to_history_output(self) -> GetExecutionHistoryOutput:
         env = self.exec_worker.env
-        event_history: HistoryEventList = list()
+        event_history: HistoryEventList = []
         if env is not None:
             # The execution has not started yet.
             event_history: HistoryEventList = env.event_manager.get_event_history()

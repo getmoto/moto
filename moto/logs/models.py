@@ -389,7 +389,7 @@ class LogGroup(CloudFormationModel):
             f"arn:{get_partition(region)}:logs:{region}:{account_id}:log-group:{name}"
         )
         self.creation_time = int(unix_time_millis())
-        self.streams: dict[str, LogStream] = dict()  # {name: LogStream}
+        self.streams: dict[str, LogStream] = {}  # {name: LogStream}
         # AWS defaults to Never Expire for log group retention
         self.retention_in_days = kwargs.get("RetentionInDays")
         self.subscription_filters: dict[str, SubscriptionFilter] = {}
@@ -922,16 +922,16 @@ class Delivery(BaseModel):
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.groups: dict[str, LogGroup] = dict()
+        self.groups: dict[str, LogGroup] = {}
         self.filters = MetricFilters()
-        self.queries: dict[str, LogQuery] = dict()
-        self.resource_policies: dict[str, LogResourcePolicy] = dict()
-        self.destinations: dict[str, Destination] = dict()
+        self.queries: dict[str, LogQuery] = {}
+        self.resource_policies: dict[str, LogResourcePolicy] = {}
+        self.destinations: dict[str, Destination] = {}
         self.tagger = TaggingService()
-        self.export_tasks: dict[str, ExportTask] = dict()
-        self.delivery_destinations: dict[str, DeliveryDestination] = dict()
-        self.delivery_sources: dict[str, DeliverySource] = dict()
-        self.deliveries: dict[str, Delivery] = dict()
+        self.export_tasks: dict[str, ExportTask] = {}
+        self.delivery_destinations: dict[str, DeliveryDestination] = {}
+        self.delivery_sources: dict[str, DeliverySource] = {}
+        self.deliveries: dict[str, Delivery] = {}
 
     def create_log_group(
         self, log_group_name: str, tags: dict[str, str], **kwargs: Any

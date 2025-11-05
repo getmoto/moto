@@ -533,7 +533,7 @@ class FakeRecipeVersion(BaseModel):
             "Steps": self.steps,
             "Description": self.description,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
             "RecipeVersion": str(self.version),
         }
         if self.published_date is not None:
@@ -574,7 +574,7 @@ class FakeRuleset(BaseModel):
             "Description": self.description,
             "TargetArn": self.target_arn,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
         }
 
 
@@ -612,7 +612,7 @@ class FakeDataset(BaseModel):
             "Input": self.input,
             "PathOptions": self.path_options,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
             "ResourceArn": self.resource_arn,
         }
 
@@ -675,7 +675,7 @@ class FakeJob(BaseModel, metaclass=JobMetaclass):
             "CreateDate": f"{self.created_time.timestamp():.3f}",
             "DatasetName": self.dataset_name,
             "EncryptionMode": self.encryption_mode,
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
             "LogSubscription": self.log_subscription,
             "MaxCapacity": self.max_capacity,
             "MaxRetries": self.max_retries,

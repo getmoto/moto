@@ -235,7 +235,7 @@ class Stream(CloudFormationModel):
 
         step = 2**128 // shard_count
         hash_ranges = itertools.chain(
-            map(lambda i: (i, i * step, (i + 1) * step - 1), range(shard_count - 1)),
+            ((i, i * step, (i + 1) * step - 1) for i in range(shard_count - 1)),
             [(shard_count - 1, (shard_count - 1) * step, 2**128)],
         )
         for index, start, end in hash_ranges:
@@ -363,9 +363,7 @@ class Stream(CloudFormationModel):
                 [s for s in self.shards.values() if s.is_open],
                 key=lambda x: x.starting_hash,
             )
-            adjacent_shards = zip(
-                [s for s in shard_list[0:-1:2]], [s for s in shard_list[1::2]]
-            )
+            adjacent_shards = zip(list(shard_list[0:-1:2]), list(shard_list[1::2]))
 
             for shard, adjacent in adjacent_shards:
                 self.merge_shards(shard.shard_id, adjacent.shard_id)
@@ -560,10 +558,8 @@ class Stream(CloudFormationModel):
     def is_replacement_update(properties: list[str]) -> bool:
         properties_requiring_replacement_update = ["BucketName", "ObjectLockEnabled"]
         return any(
-            [
-                property_requiring_replacement in properties
-                for property_requiring_replacement in properties_requiring_replacement_update
-            ]
+            property_requiring_replacement in properties
+            for property_requiring_replacement in properties_requiring_replacement_update
         )
 
     @classmethod

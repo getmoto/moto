@@ -1602,6 +1602,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 self.quicksight_backend.untag_resource(arn, tag_keys)
             elif arn.startswith(f"arn:{get_partition(self.region_name)}:elasticache:"):
                 self.elasticache_backend.remove_tags_from_resource(arn, tag_keys)
+            elif arn.startswith(f"arn:{get_partition(self.region_name)}:rds:"):
+                self.rds_backend.remove_tags_from_resource(arn, tag_keys)
             else:
                 missing_resources.append(arn)
 

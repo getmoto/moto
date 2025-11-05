@@ -128,12 +128,7 @@ class DHCPOptionsSetBackend:
             if len(dhcp_options_sets) != len(dhcp_options_ids):
                 invalid_id = list(
                     set(dhcp_options_ids).difference(
-                        set(
-                            [
-                                dhcp_options_set.id
-                                for dhcp_options_set in dhcp_options_sets
-                            ]
-                        )
+                        {dhcp_options_set.id for dhcp_options_set in dhcp_options_sets}
                     )
                 )[0]
                 raise InvalidDHCPOptionsIdError(invalid_id)

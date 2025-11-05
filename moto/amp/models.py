@@ -62,7 +62,7 @@ class Workspace(BaseModel):
         self.status = {"statusCode": "ACTIVE"}
         self.created_at = unix_time()
         self.tag_fn = tag_fn
-        self.rule_group_namespaces: dict[str, RuleGroupNamespace] = dict()
+        self.rule_group_namespaces: dict[str, RuleGroupNamespace] = {}
         self.logging_config: Optional[dict[str, Any]] = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -82,7 +82,7 @@ class PrometheusServiceBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.workspaces: dict[str, Workspace] = dict()
+        self.workspaces: dict[str, Workspace] = {}
         self.tagger = TaggingService()
 
     def create_workspace(self, alias: str, tags: dict[str, str]) -> Workspace:

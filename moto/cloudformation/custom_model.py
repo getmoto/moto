@@ -16,7 +16,7 @@ class CustomModel(CloudFormationModel):
         self.request_id = request_id
         self.logical_id = logical_id
         self.resource_name = resource_name
-        self.data: dict[str, Any] = dict()
+        self.data: dict[str, Any] = {}
         self._finished = False
 
     def set_data(self, data: dict[str, Any]) -> None:

@@ -78,8 +78,8 @@ EC2_RESOURCE_TO_PREFIX = {
 }
 
 
-EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
-HEX_CHARS = list(str(x) for x in range(10)) + ["a", "b", "c", "d", "e", "f"]
+EC2_PREFIX_TO_RESOURCE = {v: k for (k, v) in EC2_RESOURCE_TO_PREFIX.items()}
+HEX_CHARS = [str(x) for x in range(10)] + ["a", "b", "c", "d", "e", "f"]
 
 
 def random_resource_id(size: int = 8) -> str:
@@ -361,19 +361,17 @@ def is_tag_filter(filter_name: str) -> bool:
 
 def get_obj_tag(obj: Any, filter_name: str) -> Optional[str]:
     tag_name = filter_name.replace("tag:", "", 1)
-    tags = dict((tag["key"], tag["value"]) for tag in obj.get_tags())
+    tags = {tag["key"]: tag["value"] for tag in obj.get_tags()}
     return tags.get(tag_name)
 
 
 def get_obj_tag_names(obj: Any) -> set[str]:
-    tags = set(tag["key"] for tag in obj.get_tags())
+    tags = {tag["key"] for tag in obj.get_tags()}
     return tags
 
 
 def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> set[str]:
-    tags = set(
-        tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None
-    )
+    tags = {tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None}
     return tags
 
 

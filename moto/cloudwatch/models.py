@@ -25,7 +25,7 @@ from .utils import (
     make_arn_for_rule,
 )
 
-_EMPTY_LIST: Any = tuple()
+_EMPTY_LIST: Any = ()
 
 
 class Dimension:
@@ -846,7 +846,7 @@ class CloudWatchBackend(BaseBackend):
             return []
 
         idx = 0
-        data: list[Statistics] = list()
+        data: list[Statistics] = []
         for dt in daterange(
             filtered_data[0].timestamp,
             filtered_data[-1].timestamp + period_delta,

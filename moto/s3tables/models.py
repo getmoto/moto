@@ -196,11 +196,11 @@ class S3TablesBackend(BaseBackend):
         self,
         prefix: Optional[str] = None,
     ) -> list[FakeTableBucket]:
-        all_buckets = list(
+        all_buckets = [
             bucket
             for bucket in self.table_buckets.values()
             if (prefix is None or bucket.name.startswith(prefix))
-        )
+        ]
 
         return all_buckets
 
@@ -242,11 +242,11 @@ class S3TablesBackend(BaseBackend):
     ) -> list[Namespace]:
         bucket = self.get_table_bucket(table_bucket_arn)
 
-        all_namespaces = list(
+        all_namespaces = [
             ns
             for ns in bucket.namespaces.values()
             if (prefix is None or ns.name.startswith(prefix))
-        )
+        ]
 
         return all_namespaces
 
@@ -321,18 +321,18 @@ class S3TablesBackend(BaseBackend):
             )
 
         if namespace:
-            all_tables = list(
+            all_tables = [
                 table
                 for table in bucket.namespaces[namespace].tables.values()
                 if (prefix is None or table.name.startswith(prefix))
-            )
+            ]
         else:
-            all_tables = list(
+            all_tables = [
                 table
                 for ns in bucket.namespaces.values()
                 for table in ns.tables.values()
                 if (prefix is None or table.name.startswith(prefix))
-            )
+            ]
 
         return all_tables
 

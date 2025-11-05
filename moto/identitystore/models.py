@@ -331,7 +331,7 @@ class IdentityStoreBackend(BaseBackend):
                     if m.DisplayName == displayname
                 ]
 
-        return [m for m in identity_store.groups.values()]
+        return list(identity_store.groups.values())
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_users(

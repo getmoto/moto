@@ -14,7 +14,7 @@ class DataSyncResponse(BaseResponse):
         return datasync_backends[self.current_account][self.region]
 
     def list_locations(self) -> str:
-        locations = list()
+        locations = []
         for arn, location in self.datasync_backend.locations.items():
             locations.append({"LocationArn": arn, "LocationUri": location.uri})
         return json.dumps({"Locations": locations})
@@ -113,7 +113,7 @@ class DataSyncResponse(BaseResponse):
         return json.dumps({})
 
     def list_tasks(self) -> str:
-        tasks = list()
+        tasks = []
         for arn, task in self.datasync_backend.tasks.items():
             tasks.append({"Name": task.name, "Status": task.status, "TaskArn": arn})
         return json.dumps({"Tasks": tasks})

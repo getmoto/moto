@@ -53,7 +53,7 @@ class App(BaseModel):
 
 class AppSettings(BaseModel):
     def __init__(self) -> None:
-        self.settings: dict[str, Any] = dict()
+        self.settings: dict[str, Any] = {}
         self.last_modified = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     def update(self, settings: dict[str, Any]) -> None:

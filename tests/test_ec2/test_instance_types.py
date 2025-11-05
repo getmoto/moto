@@ -14,9 +14,9 @@ def test_describe_instance_types():
     assert "InstanceType" in instance_types["InstanceTypes"][0]
     assert "SizeInMiB" in instance_types["InstanceTypes"][0]["MemoryInfo"]
 
-    ena_support = set(
+    ena_support = {
         t["NetworkInfo"]["EnaSupport"] for t in instance_types["InstanceTypes"]
-    )
+    }
     assert ena_support == {"required", "unsupported", "supported"}
 
 
@@ -186,7 +186,7 @@ def test_describe_instance_types_small_instances():
         {"Name": "vcpu-info.valid-threads-per-core", "Values": ["1"]},
     ])  # fmt: skip
 
-    types = set(t["InstanceType"] for t in instance_types["InstanceTypes"])
+    types = {t["InstanceType"] for t in instance_types["InstanceTypes"]}
     assert types == {"t3.nano", "t3.micro", "t3a.nano", "t3a.micro"}
 
 

@@ -377,7 +377,7 @@ def test_increase_replication_factor():
         client.describe_clusters(ClusterNames=[name])
 
     described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    node_ids = set([node["NodeId"] for node in described_cluster["Nodes"]])
+    node_ids = {node["NodeId"] for node in described_cluster["Nodes"]}
 
     assert node_ids == (
         {f"{name}-a", f"{name}-b", f"{name}-c", f"{name}-d", f"{name}-e"}
@@ -420,7 +420,7 @@ def test_decrease_replication_factor():
         client.describe_clusters(ClusterNames=[name])
 
     described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    node_ids = set([node["NodeId"] for node in described_cluster["Nodes"]])
+    node_ids = {node["NodeId"] for node in described_cluster["Nodes"]}
 
     assert node_ids == ({f"{name}-a", f"{name}-b", f"{name}-c"})
 
@@ -451,6 +451,6 @@ def test_decrease_replication_factor_specific_nodeids():
         client.describe_clusters(ClusterNames=[name])
 
     described_cluster = client.describe_clusters(ClusterNames=[name])["Clusters"][0]
-    node_ids = set([node["NodeId"] for node in described_cluster["Nodes"]])
+    node_ids = {node["NodeId"] for node in described_cluster["Nodes"]}
 
     assert node_ids == ({f"{name}-a", f"{name}-d", f"{name}-e"})

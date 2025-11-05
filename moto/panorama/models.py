@@ -56,7 +56,7 @@ class BaseObject(BaseModel):
             setattr(self, k, details[k])
 
     def gen_response_object(self) -> dict[str, Any]:
-        response_object: dict[str, Any] = dict()
+        response_object: dict[str, Any] = {}
         for key, value in self.__dict__.items():
             if "_" in key:
                 response_object[self.camelCase(key)] = value

@@ -1084,7 +1084,7 @@ class VPCBackend:
             if len(vpc_end_points) != len(vpc_end_point_ids):
                 invalid_id = list(
                     set(vpc_end_point_ids).difference(
-                        set([vpc_end_point.id for vpc_end_point in vpc_end_points])
+                        {vpc_end_point.id for vpc_end_point in vpc_end_points}
                     )
                 )[0]
                 raise InvalidVpcEndPointIdError(invalid_id)

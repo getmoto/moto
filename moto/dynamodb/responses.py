@@ -414,12 +414,12 @@ class DynamoHandler(BaseResponse):
         expected_attrs = []
         expected_attrs.extend([key["AttributeName"] for key in key_schema])
         local_key_schemas = itertools.chain(
-            *list(idx["KeySchema"] for idx in (local_secondary_indexes or []))
+            *[idx["KeySchema"] for idx in (local_secondary_indexes or [])]
         )
         expected_attrs.extend(schema["AttributeName"] for schema in local_key_schemas)
 
         global_key_schemas = itertools.chain(
-            *list(idx["KeySchema"] for idx in (global_indexes or []))
+            *[idx["KeySchema"] for idx in (global_indexes or [])]
         )
         expected_attrs.extend(schema["AttributeName"] for schema in global_key_schemas)
         expected_attrs = list(set(expected_attrs))
@@ -736,7 +736,7 @@ class DynamoHandler(BaseResponse):
                     "ExpressionAttributeNames must not be empty"
                 )
 
-        if not all([k in table.attribute_keys for k in key]):
+        if not all(k in table.attribute_keys for k in key):
             raise ProvidedKeyDoesNotExist
 
         expression_attribute_names = expression_attribute_names or {}
@@ -1054,7 +1054,7 @@ class DynamoHandler(BaseResponse):
             raise MockValidationException("Return values set to invalid value")
 
         table = self.dynamodb_backend.get_table(name)
-        if not all([k in table.attribute_keys for k in key]):
+        if not all(k in table.attribute_keys for k in key):
             raise ProvidedKeyDoesNotExist
 
         # Attempt to parse simple ConditionExpressions into an Expected
@@ -1104,7 +1104,7 @@ class DynamoHandler(BaseResponse):
             )
 
         table = self.dynamodb_backend.get_table(name)
-        if not all([k in table.attribute_keys for k in key]):
+        if not all(k in table.attribute_keys for k in key):
             raise ProvidedKeyDoesNotExist
 
         expression_attribute_names_used = []
@@ -1283,11 +1283,11 @@ class DynamoHandler(BaseResponse):
 
     def transact_get_items(self) -> str:
         transact_items = self.body["TransactItems"]
-        responses: list[dict[str, Any]] = list()
+        responses: list[dict[str, Any]] = []
 
         if len(transact_items) > TRANSACTION_MAX_ITEMS:
             msg = "1 validation error detected: Value '["
-            err_list = list()
+            err_list = []
             request_id = 268435456
             for _ in transact_items:
                 request_id += 1
@@ -1304,7 +1304,7 @@ class DynamoHandler(BaseResponse):
             raise MockValidationException(msg)
 
         ret_consumed_capacity = self.body.get("ReturnConsumedCapacity", "NONE")
-        consumed_capacity: dict[str, Any] = dict()
+        consumed_capacity: dict[str, Any] = {}
 
         for transact_item in transact_items:
             table_name = transact_item["Get"]["TableName"]
@@ -1332,10 +1332,10 @@ class DynamoHandler(BaseResponse):
                     "ReadCapacityUnits": read_capacity_units,
                 }
 
-        result = dict()
+        result = {}
         result.update({"Responses": responses})
         if ret_consumed_capacity != "NONE":
-            result.update({"ConsumedCapacity": [v for v in consumed_capacity.values()]})
+            result.update({"ConsumedCapacity": list(consumed_capacity.values())})
 
         return dynamo_json_dump(result)
 

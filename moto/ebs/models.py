@@ -34,7 +34,7 @@ class EBSSnapshot(BaseModel):
         ]
         self.description = snapshot.description
 
-        self.blocks: dict[str, Block] = dict()
+        self.blocks: dict[str, Block] = {}
 
     def put_block(
         self,
@@ -65,7 +65,7 @@ class EBSBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.snapshots: dict[str, EBSSnapshot] = dict()
+        self.snapshots: dict[str, EBSSnapshot] = {}
 
     @property
     def ec2_backend(self) -> EC2Backend:

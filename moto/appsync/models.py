@@ -218,7 +218,7 @@ class GraphqlAPI(BaseModel):
         self.arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
         self.graphql_schema: Optional[GraphqlSchema] = None
 
-        self.api_keys: dict[str, GraphqlAPIKey] = dict()
+        self.api_keys: dict[str, GraphqlAPIKey] = {}
 
         self.api_cache: Optional[APICache] = None
         self.backend = backend
@@ -436,8 +436,8 @@ class EventsAPI(BaseModel):
 
         self.api_arn = f"arn:{get_partition(self.region)}:appsync:{self.region}:{account_id}:apis/{self.api_id}"
 
-        self.api_keys: dict[str, EventsAPIKey] = dict()
-        self.channel_namespaces: list[ChannelNamespace] = list()
+        self.api_keys: dict[str, EventsAPIKey] = {}
+        self.channel_namespaces: list[ChannelNamespace] = []
 
         dns_prefix = str(mock_random.get_random_string(length=26))
         self.dns = {
@@ -493,8 +493,8 @@ class AppSyncBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.graphql_apis: dict[str, GraphqlAPI] = dict()
-        self.events_apis: dict[str, EventsAPI] = dict()
+        self.graphql_apis: dict[str, GraphqlAPI] = {}
+        self.events_apis: dict[str, EventsAPI] = {}
         self.tagger = TaggingService()
 
     def create_graphql_api(

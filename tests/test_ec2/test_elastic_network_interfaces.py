@@ -122,7 +122,7 @@ def test_elastic_network_interfaces_with_groups():
         eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id
     ][0]
     assert len(my_eni_description["Groups"]) == 2
-    assert set([group["GroupId"] for group in my_eni_description["Groups"]]) == {
+    assert {group["GroupId"] for group in my_eni_description["Groups"]} == {
         sec_group1.id,
         sec_group2.id,
     }
@@ -132,7 +132,7 @@ def test_elastic_network_interfaces_with_groups():
     ).get("Groups")
 
     assert len(eni_groups_attribute) == 2
-    assert set([group["GroupId"] for group in eni_groups_attribute]) == {
+    assert {group["GroupId"] for group in eni_groups_attribute} == {
         sec_group1.id,
         sec_group2.id,
     }
@@ -232,7 +232,7 @@ def test_elastic_network_interfaces_filtering():
         Filters=[{"Name": "group-id", "Values": [sec_group1.id]}]
     )["NetworkInterfaces"]
     assert len(enis_by_group) == 2
-    assert set([eni["NetworkInterfaceId"] for eni in enis_by_group]) == {
+    assert {eni["NetworkInterfaceId"] for eni in enis_by_group} == {
         eni1.id,
         eni2.id,
     }

@@ -548,9 +548,7 @@ class ECRBackend(BaseBackend):
             )
 
         # Validate imageTagMutability if provided explicitly
-        if image_tag_mutability and image_tag_mutability not in [
-            value for value in RepoTagMutability
-        ]:
+        if image_tag_mutability and image_tag_mutability not in list(RepoTagMutability):
             raise InvalidParameterException(
                 "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
                 "must be one of 'MUTABLE', 'IMMUTABLE', 'MUTABLE_WITH_EXCLUSION', 'IMMUTABLE_WITH_EXCLUSION'"
@@ -646,12 +644,12 @@ class ECRBackend(BaseBackend):
         repository = self._get_repository(repository_name, registry_id)
 
         if image_ids:
-            return set(
+            return {
                 repository._get_image(
                     image_id.get("imageTag"), image_id.get("imageDigest")
                 )
                 for image_id in image_ids
-            )
+            }
 
         else:
             return list(repository.images)
@@ -1011,7 +1009,7 @@ class ECRBackend(BaseBackend):
             list[ImageTagMutabilityExclusionFilterT]
         ] = None,
     ) -> dict[str, str]:
-        if image_tag_mutability not in [value for value in RepoTagMutability]:
+        if image_tag_mutability not in list(RepoTagMutability):
             raise InvalidParameterException(
                 "Invalid parameter at 'imageTagMutability' failed to satisfy constraint: "
                 "'Member must satisfy enum value set: [IMMUTABLE, MUTABLE, MUTABLE_WITH_EXCLUSION, IMMUTABLE_WITH_EXCLUSION]'"

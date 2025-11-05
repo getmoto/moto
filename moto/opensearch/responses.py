@@ -110,21 +110,21 @@ class OpenSearchServiceResponse(BaseResponse):
             elasticsearch_version=elasticsearch_version,
             elasticsearch_cluster_config=elasticsearch_cluster_config,
         )
-        return json.dumps(dict(DomainStatus=domain.to_dict()))
+        return json.dumps({"DomainStatus": domain.to_dict()})
 
     def get_compatible_versions(self) -> str:
         domain_name = self._get_param("domainName")
         compatible_versions = self.opensearch_backend.get_compatible_versions(
             domain_name=domain_name,
         )
-        return json.dumps(dict(CompatibleVersions=compatible_versions))
+        return json.dumps({"CompatibleVersions": compatible_versions})
 
     def delete_domain(self) -> str:
         domain_name = self.path.split("/")[-1]
         domain = self.opensearch_backend.delete_domain(
             domain_name=domain_name,
         )
-        return json.dumps(dict(DomainStatus=domain.to_dict()))
+        return json.dumps({"DomainStatus": domain.to_dict()})
 
     def describe_domain(self) -> str:
         domain_name = self.path.split("/")[-1]
@@ -133,7 +133,7 @@ class OpenSearchServiceResponse(BaseResponse):
         domain = self.opensearch_backend.describe_domain(
             domain_name=domain_name,
         )
-        return json.dumps(dict(DomainStatus=domain.to_dict()))
+        return json.dumps({"DomainStatus": domain.to_dict()})
 
     def describe_domain_config(self) -> str:
         # Supports both body param and URL form (/domain/{name}/config)
@@ -157,7 +157,7 @@ class OpenSearchServiceResponse(BaseResponse):
             domain_name=domain_name,
         )
 
-        return 200, {}, json.dumps(dict(DomainConfig=domain_config))
+        return 200, {}, json.dumps({"DomainConfig": domain_config})
 
     def update_domain_config(self) -> str:
         domain_name = self._get_param("DomainName")
@@ -205,7 +205,7 @@ class OpenSearchServiceResponse(BaseResponse):
         domain_names = self.opensearch_backend.list_domain_names(
             engine_type=engine_type,
         )
-        return json.dumps(dict(DomainNames=domain_names))
+        return json.dumps({"DomainNames": domain_names})
 
     def describe_domains(self) -> str:
         domain_names = self._get_param("DomainNames")

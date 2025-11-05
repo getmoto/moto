@@ -53,7 +53,7 @@ def test_availability_zones__parameters():
         "AvailabilityZones"
     ]
     assert len(zones) == 2
-    assert set([zone["ZoneId"] for zone in zones]) == {"use1-az1", "use1-az6"}
+    assert {zone["ZoneId"] for zone in zones} == {"use1-az1", "use1-az6"}
 
     zones = us_east.describe_availability_zones(ZoneIds=["use1-az1"])[
         "AvailabilityZones"

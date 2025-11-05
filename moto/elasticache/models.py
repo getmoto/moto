@@ -651,7 +651,7 @@ class ElastiCacheBackend(BaseBackend):
         self.arn_regex = re_compile(
             r"^arn:aws:elasticache:.*:[0-9]*:(cluster|snapshot|subnetgroup|replicationgroup|user):.*$"
         )
-        self.users = dict()
+        self.users = {}
         self.users["default"] = User(
             account_id=self.account_id,
             region=self.region_name,
@@ -662,10 +662,10 @@ class ElastiCacheBackend(BaseBackend):
             no_password_required=True,
         )
 
-        self.cache_clusters: dict[str, Any] = dict()
-        self.cache_subnet_groups: dict[str, CacheSubnetGroup] = dict()
-        self.replication_groups: dict[str, ReplicationGroup] = dict()
-        self.snapshots: dict[str, Snapshot] = dict()
+        self.cache_clusters: dict[str, Any] = {}
+        self.cache_subnet_groups: dict[str, CacheSubnetGroup] = {}
+        self.replication_groups: dict[str, ReplicationGroup] = {}
+        self.snapshots: dict[str, Snapshot] = {}
         self.tagging_service = TaggingService()
 
     def _get_snapshots_by_param(

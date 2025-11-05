@@ -13,11 +13,11 @@ def test_ssm_get_latest_ami_by_path():
     assert len(params) == 10
 
     assert all(
-        {p["Name"].startswith("/aws/service/ami-amazon-linux-latest") for p in params}
+        p["Name"].startswith("/aws/service/ami-amazon-linux-latest") for p in params
     )
-    assert all({p["Type"] == "String" for p in params})
-    assert all({p["DataType"] == "text" for p in params})
-    assert all({p["ARN"].startswith("arn:aws:ssm:us-west-1") for p in params})
+    assert all(p["Type"] == "String" for p in params)
+    assert all(p["DataType"] == "text" for p in params)
+    assert all(p["ARN"].startswith("arn:aws:ssm:us-west-1") for p in params)
 
 
 @mock_aws

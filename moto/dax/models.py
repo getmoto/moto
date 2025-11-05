@@ -169,7 +169,7 @@ class DaxCluster(BaseModel, ManagedState):
 class DAXBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._clusters: dict[str, DaxCluster] = dict()
+        self._clusters: dict[str, DaxCluster] = {}
         self._tagger = TaggingService()
 
     @property

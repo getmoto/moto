@@ -202,7 +202,7 @@ class Detector(BaseModel):
         # https://docs.aws.amazon.com/guardduty/latest/APIReference/API_DetectorFeatureConfiguration.html
         self.features = features or []
 
-        self.filters: dict[str, Filter] = dict()
+        self.filters: dict[str, Filter] = {}
 
     def add_filter(self, _filter: Filter) -> None:
         self.filters[_filter.name] = _filter

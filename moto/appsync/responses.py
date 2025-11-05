@@ -63,7 +63,7 @@ class AppSyncResponse(BaseResponse):
         )
         response = graphql_api.to_json()
         response["tags"] = self.appsync_backend.list_tags_for_resource(graphql_api.arn)
-        return json.dumps(dict(graphqlApi=response))
+        return json.dumps({"graphqlApi": response})
 
     def get_graphql_api(self) -> str:
         api_id = self.path.split("/")[-1]
@@ -71,7 +71,7 @@ class AppSyncResponse(BaseResponse):
         graphql_api = self.appsync_backend.get_graphql_api(api_id=api_id)
         response = graphql_api.to_json()
         response["tags"] = self.appsync_backend.list_tags_for_resource(graphql_api.arn)
-        return json.dumps(dict(graphqlApi=response))
+        return json.dumps({"graphqlApi": response})
 
     def delete_graphql_api(self) -> str:
         api_id = self.path.split("/")[-1]
@@ -104,11 +104,11 @@ class AppSyncResponse(BaseResponse):
             xray_enabled=xray_enabled,
             lambda_authorizer_config=lambda_authorizer_config,
         )
-        return json.dumps(dict(graphqlApi=api.to_json()))
+        return json.dumps({"graphqlApi": api.to_json()})
 
     def list_graphql_apis(self) -> str:
         graphql_apis = self.appsync_backend.list_graphql_apis()
-        return json.dumps(dict(graphqlApis=[api.to_json() for api in graphql_apis]))
+        return json.dumps({"graphqlApis": [api.to_json() for api in graphql_apis]})
 
     def create_api_key(self) -> str:
         params = json.loads(self.body)
@@ -128,7 +128,7 @@ class AppSyncResponse(BaseResponse):
         api_key = self.appsync_backend.create_api_key(
             api_id=api_id, description=description, expires=expires
         )
-        return json.dumps(dict(apiKey=api_key.to_json()))
+        return json.dumps({"apiKey": api_key.to_json()})
 
     def delete_api_key(self) -> str:
         api_id = self.path.split("/")[-3]
@@ -140,7 +140,7 @@ class AppSyncResponse(BaseResponse):
         # /v1/apis/[api_id]/apikeys
         api_id = self.path.split("/")[-2]
         api_keys = self.appsync_backend.list_api_keys(api_id=api_id)
-        return json.dumps(dict(apiKeys=[key.to_json() for key in api_keys]))
+        return json.dumps({"apiKeys": [key.to_json() for key in api_keys]})
 
     def update_api_key(self) -> str:
         api_id = self.path.split("/")[-3]
@@ -164,7 +164,7 @@ class AppSyncResponse(BaseResponse):
             description=description,
             expires=expires,
         )
-        return json.dumps(dict(apiKey=api_key.to_json()))
+        return json.dumps({"apiKey": api_key.to_json()})
 
     def start_schema_creation(self) -> str:
         params = json.loads(self.body)
@@ -178,7 +178,7 @@ class AppSyncResponse(BaseResponse):
     def get_schema_creation_status(self) -> str:
         api_id = self.path.split("/")[-2]
         status, details = self.appsync_backend.get_schema_creation_status(api_id=api_id)
-        return json.dumps(dict(status=status, details=details))
+        return json.dumps({"status": status, "details": details})
 
     def tag_resource(self) -> str:
         resource_arn = self._extract_arn_from_path()
@@ -198,7 +198,7 @@ class AppSyncResponse(BaseResponse):
     def list_tags_for_resource(self) -> str:
         resource_arn = self._extract_arn_from_path()
         tags = self.appsync_backend.list_tags_for_resource(resource_arn=resource_arn)
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})
 
     def _extract_arn_from_path(self) -> str:
         # /v1/tags/arn_that_may_contain_a_slash
@@ -212,7 +212,7 @@ class AppSyncResponse(BaseResponse):
         graphql_type = self.appsync_backend.get_type(
             api_id=api_id, type_name=type_name, type_format=type_format
         )
-        return json.dumps(dict(type=graphql_type))
+        return json.dumps({"type": graphql_type})
 
     def get_introspection_schema(self) -> str:
         api_id = self.path.split("/")[-2]
@@ -235,7 +235,7 @@ class AppSyncResponse(BaseResponse):
         api_cache = self.appsync_backend.get_api_cache(
             api_id=api_id,
         )
-        return json.dumps(dict(apiCache=api_cache.to_json()))
+        return json.dumps({"apiCache": api_cache.to_json()})
 
     def delete_api_cache(self) -> str:
         api_id = self.path.split("/")[-2]
@@ -262,7 +262,7 @@ class AppSyncResponse(BaseResponse):
             type=type,
             health_metrics_config=health_metrics_config,
         )
-        return json.dumps(dict(apiCache=api_cache.to_json()))
+        return json.dumps({"apiCache": api_cache.to_json()})
 
     def update_api_cache(self) -> str:
         api_id = self.path.split("/")[-3]
@@ -278,7 +278,7 @@ class AppSyncResponse(BaseResponse):
             type=type,
             health_metrics_config=health_metrics_config,
         )
-        return json.dumps(dict(apiCache=api_cache.to_json()))
+        return json.dumps({"apiCache": api_cache.to_json()})
 
     def flush_api_cache(self) -> str:
         api_id = self.path.split("/")[-2]
@@ -317,7 +317,7 @@ class AppSyncResponse(BaseResponse):
 
     def list_apis(self) -> str:
         apis = self.appsync_backend.list_apis()
-        return json.dumps(dict(apis=[api.to_json() for api in apis]))
+        return json.dumps({"apis": [api.to_json() for api in apis]})
 
     def delete_api(self) -> str:
         api_id = self.path.split("/")[-1]
@@ -361,12 +361,12 @@ class AppSyncResponse(BaseResponse):
         api_id = self.path.split("/")[-2]
         channel_namespaces = self.appsync_backend.list_channel_namespaces(api_id=api_id)
         return json.dumps(
-            dict(
-                channelNamespaces=[
+            {
+                "channelNamespaces": [
                     channel_namespace.to_json()
                     for channel_namespace in channel_namespaces
                 ]
-            )
+            }
         )
 
     def delete_channel_namespace(self) -> str:
@@ -386,4 +386,4 @@ class AppSyncResponse(BaseResponse):
         api = self.appsync_backend.get_api(api_id=api_id)
         response = api.to_json()
         response["tags"] = self.appsync_backend.list_tags_for_resource(api.api_arn)
-        return json.dumps(dict(api=response))
+        return json.dumps({"api": response})

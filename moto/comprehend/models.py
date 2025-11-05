@@ -311,12 +311,12 @@ class ComprehendBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.recognizers: dict[str, EntityRecognizer] = dict()
+        self.recognizers: dict[str, EntityRecognizer] = {}
         self.tagger = TaggingService()
-        self.endpoints: dict[str, Endpoint] = dict()
-        self.classifiers: dict[str, DocumentClassifier] = dict()
-        self.flywheels: dict[str, Flywheel] = dict()
-        self.resource_policies: dict[str, dict[str, Any]] = dict()
+        self.endpoints: dict[str, Endpoint] = {}
+        self.classifiers: dict[str, DocumentClassifier] = {}
+        self.flywheels: dict[str, Flywheel] = {}
+        self.resource_policies: dict[str, dict[str, Any]] = {}
         self.jobs: dict[str, ComprehendJob] = {}
 
     def list_entity_recognizers(

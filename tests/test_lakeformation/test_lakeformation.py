@@ -155,9 +155,10 @@ def test_grant_permissions_staggered():
 
     resp = client.list_permissions()
     assert len(resp["PrincipalResourcePermissions"]) == 1
-    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == set(
-        ["DESCRIBE", "CREATE_TABLE"]
-    )
+    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == {
+        "DESCRIBE",
+        "CREATE_TABLE",
+    }
 
 
 @mock_aws
@@ -522,17 +523,16 @@ def test_revoke_permissions():
         "Database": {"Name": "db"}
     }
     # compare as sets to be order independent
-    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == set(
-        ["SELECT", "ALTER"]
-    )
+    assert set(resp["PrincipalResourcePermissions"][0]["Permissions"]) == {
+        "SELECT",
+        "ALTER",
+    }
     assert set(
         resp["PrincipalResourcePermissions"][0]["PermissionsWithGrantOption"]
-    ) == set(
-        [
-            "SELECT",
-            "DROP",
-        ]
-    )
+    ) == {
+        "SELECT",
+        "DROP",
+    }
 
 
 @mock_aws

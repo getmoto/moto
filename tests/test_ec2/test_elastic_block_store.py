@@ -537,11 +537,11 @@ def test_snapshot_filters():
             Filters=[{"Name": name, "Values": [value]}]
         )["Snapshots"]
         if others:
-            actual = set([s["SnapshotId"] for s in snapshots])
+            actual = {s["SnapshotId"] for s in snapshots}
             for e in expected:
                 assert e in actual
         else:
-            assert set([s["SnapshotId"] for s in snapshots]) == set(expected)
+            assert {s["SnapshotId"] for s in snapshots} == set(expected)
 
     verify_filter("description", snapshot1_desc, expected=snapshot1.id)
     verify_filter("snapshot-id", snapshot1.id, expected=snapshot1.id)
@@ -1111,7 +1111,7 @@ def test_create_snapshots_multiple_volumes():
     # 3 Snapshots ; 1 boot, two additional volumes
     assert len(snapshots) == 3
     # 3 unique snapshot IDs
-    assert len(set([s["SnapshotId"] for s in snapshots])) == 3
+    assert len({s["SnapshotId"] for s in snapshots}) == 3
 
     boot_snapshot = next(
         s for s in snapshots if s["VolumeId"] == boot_volume["VolumeId"]

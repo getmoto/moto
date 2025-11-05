@@ -129,9 +129,7 @@ class MockAWS(AbstractContextManager["MockAWS"]):
     def _decorate_class(self, klass: "Callable[P, T]") -> "Callable[P, T]":
         assert inspect.isclass(klass)  # Keep mypy happy
         direct_methods = get_direct_methods_of(klass)
-        defined_classes = set(
-            x for x, y in klass.__dict__.items() if inspect.isclass(y)
-        )
+        defined_classes = {x for x, y in klass.__dict__.items() if inspect.isclass(y)}
 
         # Get a list of all userdefined superclasses
         superclasses = [
@@ -244,11 +242,11 @@ class MockAWS(AbstractContextManager["MockAWS"]):
 
 
 def get_direct_methods_of(klass: object) -> set[str]:
-    return set(
+    return {
         x
         for x, y in klass.__dict__.items()
         if isinstance(y, (FunctionType, classmethod, staticmethod))
-    )
+    }
 
 
 RESPONSES_METHODS = [

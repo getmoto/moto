@@ -53,7 +53,7 @@ class CloudHSMV2Response(BaseResponse):
             resource_id=resource_id,
             tag_list=tag_list,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         params = json.loads(self.body)
@@ -64,7 +64,7 @@ class CloudHSMV2Response(BaseResponse):
             resource_id=resource_id,
             tag_key_list=tag_key_list,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_cluster(self) -> str:
         backup_retention_policy = self._get_param("BackupRetentionPolicy", {})

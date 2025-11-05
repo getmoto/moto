@@ -38,9 +38,9 @@ def test_default_emr_security_groups_get_created_on_first_job_flow():
     assert len(_get_default_security_groups()) == 0
 
     client = boto3.client("emr", region_name="us-east-1")
-    run_job_flow_params = dict(
-        ReleaseLabel="emr-5.29.0",
-        Instances={
+    run_job_flow_params = {
+        "ReleaseLabel": "emr-5.29.0",
+        "Instances": {
             "KeepJobFlowAliveWhenNoSteps": True,
             "Ec2SubnetId": subnet.id,
             "InstanceGroups": [
@@ -60,11 +60,11 @@ def test_default_emr_security_groups_get_created_on_first_job_flow():
                 },
             ],
         },
-        JobFlowRole="EMR_EC2_DefaultRole",
-        Name="test-emr-cluster-security-groups",
-        ServiceRole="EMR_DefaultRole",
-        VisibleToAllUsers=True,
-    )
+        "JobFlowRole": "EMR_EC2_DefaultRole",
+        "Name": "test-emr-cluster-security-groups",
+        "ServiceRole": "EMR_DefaultRole",
+        "VisibleToAllUsers": True,
+    }
     cluster_id = client.run_job_flow(**run_job_flow_params)["JobFlowId"]
 
     # Default security groups should have been created.

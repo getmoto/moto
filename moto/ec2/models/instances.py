@@ -529,7 +529,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "PrivateIpAddress": private_ip,
             "AssociatePublicIpAddress": associate_public_ip,
         }
-        primary_nic = dict((k, v) for k, v in primary_nic.items() if v)
+        primary_nic = {k: v for k, v in primary_nic.items() if v}
 
         # If empty NIC spec but primary NIC values provided, create NIC from
         # them.
@@ -705,19 +705,15 @@ class InstanceBackend:
                 raise AvailabilityZoneNotFromRegionError(kwargs["placement"])
         match_filters = InstanceTypeOfferingBackend().matches_filters
         if not kwargs["is_instance_type_default"] and not any(
-            {
-                match_filters(
-                    valid_instance,
-                    {"instance-type": kwargs["instance_type"]},
-                    location_type,
-                )
-                for valid_instance in valid_instance_types.get(
-                    kwargs["region_name"]
-                    if "region_name" in kwargs
-                    else default_region,
-                    {},
-                )
-            },
+            match_filters(
+                valid_instance,
+                {"instance-type": kwargs["instance_type"]},
+                location_type,
+            )
+            for valid_instance in valid_instance_types.get(
+                kwargs["region_name"] if "region_name" in kwargs else default_region,
+                {},
+            )
         ):
             if settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])

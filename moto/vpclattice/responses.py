@@ -99,7 +99,7 @@ class VPCLatticeResponse(BaseResponse):
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
         tags = self.backend.list_tags_for_resource(resource_arn)
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})
 
     def tag_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))

@@ -71,7 +71,7 @@ class QueryParser(RequestParser):
     def _gonna_recurse(self, query_params, prefix):
         if prefix == "":
             return False
-        return not any([param_key.startswith(prefix) for param_key in query_params])
+        return not any(param_key.startswith(prefix) for param_key in query_params)
 
     def _handle_structure(self, shape, query_params, prefix=""):
         if self._gonna_recurse(query_params, prefix):

@@ -434,7 +434,7 @@ class Stack(CloudFormationModel):
         )
         self.resource_map = self._create_resource_map()
 
-        self.custom_resources: dict[str, CustomModel] = dict()
+        self.custom_resources: dict[str, CustomModel] = {}
 
         self.output_map = self._create_output_map()
         self.creation_time = utcnow()
@@ -822,23 +822,16 @@ class CloudFormationBackend(BaseBackend):
         instance: Union[Stack, StackSet],
         incoming_params: list[dict[str, str]],
     ) -> dict[str, str]:
-        parameters = dict(
-            [
-                (parameter["ParameterKey"], parameter["ParameterValue"])
-                for parameter in incoming_params
-                if "ParameterValue" in parameter
-            ]
-        )
-        previous = dict(
-            [
-                (
-                    parameter["ParameterKey"],
-                    instance.parameters[parameter["ParameterKey"]],
-                )
-                for parameter in incoming_params
-                if parameter.get("UsePreviousValue", False)
-            ]
-        )
+        parameters = {
+            parameter["ParameterKey"]: parameter["ParameterValue"]
+            for parameter in incoming_params
+            if "ParameterValue" in parameter
+        }
+        previous = {
+            parameter["ParameterKey"]: instance.parameters[parameter["ParameterKey"]]
+            for parameter in incoming_params
+            if parameter.get("UsePreviousValue", False)
+        }
         parameters.update(previous)
 
         return parameters
@@ -1201,9 +1194,7 @@ class CloudFormationBackend(BaseBackend):
         return self.change_sets.values()
 
     def list_stacks(self, status_filter: Optional[list[str]] = None) -> list[Stack]:
-        total_stacks = [v for v in self.stacks.values()] + [
-            v for v in self.deleted_stacks.values()
-        ]
+        total_stacks = list(self.stacks.values()) + list(self.deleted_stacks.values())
         return filter_stacks(total_stacks, status_filter)
 
     def get_stack(self, name_or_stack_id: str) -> Stack:

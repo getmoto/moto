@@ -52,7 +52,7 @@ class FakeDomain(BaseModel):
 class SimpleDBBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.domains: dict[str, FakeDomain] = dict()
+        self.domains: dict[str, FakeDomain] = {}
 
     def create_domain(self, domain_name: str) -> None:
         self._validate_domain_name(domain_name)
