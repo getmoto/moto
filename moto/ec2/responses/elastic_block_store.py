@@ -49,9 +49,8 @@ class ElasticBlockStore(EC2BaseResponse):
         return template.render(snapshot=snapshot)
 
     def create_snapshots(self) -> str:
-        params = self._get_params()
-        instance_spec = params.get("InstanceSpecification")
-        description = params.get("Description", "")
+        instance_spec = self._get_param("InstanceSpecification", {})
+        description = self._get_param("Description", "")
         tags = self._parse_tag_specification()
         snapshot_tags = tags.get("snapshot", {})
 
