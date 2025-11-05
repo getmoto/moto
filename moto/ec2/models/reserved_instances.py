@@ -60,7 +60,9 @@ class ReservedInstancesBackend:
 
         offerings: list[ReservedInstancesOffering] = []
         rid_counter = 1
-        for itype, zone, otype in itertools.product(instance_types, zones, offering_types):
+        for itype, zone, otype in itertools.product(
+            instance_types, zones, offering_types
+        ):
             rid = f"{region}-ri-off-{rid_counter:04d}"
             rid_counter += 1
             duration = 31536000  # 1 year in seconds

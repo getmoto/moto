@@ -54,4 +54,3 @@ def test_describe_reserved_instances_offerings_filter_product_description():
     offerings = resp["ReservedInstancesOfferings"]
     assert len(offerings) > 0
     assert all(o.get("ProductDescription") == "Linux/UNIX" for o in offerings)
-
