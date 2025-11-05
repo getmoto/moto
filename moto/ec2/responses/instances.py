@@ -535,7 +535,7 @@ INSTANCE_TEMPLATE = """<item>
           {% if instance.nics[0].public_ip %}
               <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
           {% endif %}
-          <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
+          <sourceDestCheck>{{ instance.source_dest_check|lower }}</sourceDestCheck>
           <groupSet>
              {% for group in instance.dynamic_group_list %}
              <item>
