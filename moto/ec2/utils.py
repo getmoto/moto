@@ -758,7 +758,6 @@ def public_key_parse(
     try:
         if isinstance(key_material, str):
             key_material = key_material.encode("ascii")
-        # key_material = base64.b64decode(key_material)
 
         if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
             # cryptography doesn't parse RFC4716 key format, so we have to convert it first

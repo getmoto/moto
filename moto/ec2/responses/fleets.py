@@ -31,23 +31,6 @@ class Fleets(EC2BaseResponse):
             "TargetCapacitySpecification", {}
         )
         launch_template_configs = self._get_param("LaunchTemplateConfigs", [])
-        # Our multi_param function doesn't understand when to return a list, a string, or a dictionary
-        # So we'll have to help it a little, by explicitly asking for a dict if we're getting anything else back
-        # for idx, config in enumerate(launch_template_configs, start=1):
-        #     if (overrides := config.get("Overrides")) and not isinstance(
-        #         overrides, dict
-        #     ):
-        #         config["Overrides"] = self._get_multi_param(
-        #             f"LaunchTemplateConfigs.{idx}.Overrides",
-        #             skip_result_conversion=True,
-        #         )
-        #     if (spec := config.get("LaunchTemplateSpecification")) and not isinstance(
-        #         spec, dict
-        #     ):
-        #         config["LaunchTemplateSpecification"] = self._get_multi_param_dict(
-        #             f"LaunchTemplateConfigs.{idx}.LaunchTemplateSpecification"
-        #         )
-
         excess_capacity_termination_policy = self._get_param(
             "ExcessCapacityTerminationPolicy"
         )
