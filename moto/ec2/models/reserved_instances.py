@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import itertools
 import random
-from typing import Any
+from typing import Any, cast
 
 
-class ReservedInstancesOffering(dict):
+class ReservedInstancesOffering(dict[str, Any]):
     """Lightweight container for a Reserved Instance Offering.
 
     This is a simplified representation that captures commonly-used fields
@@ -49,7 +49,7 @@ class ReservedInstancesBackend:
 
         # Build a handful of offerings for the current region based on its AZs
         region = self.region_name  # type: ignore[attr-defined]
-        zones = [z.name for z in self.describe_availability_zones()]
+        zones = [z.name for z in self.describe_availability_zones()]  # type: ignore[attr-defined]
         instance_types = [
             "t2.micro",
             "t3.small",
@@ -120,7 +120,7 @@ class ReservedInstancesBackend:
         offerings = self._ri_offerings.get(region, [])
 
         if not filters:
-            return offerings
+            return cast(list[dict[str, Any]], offerings)
 
         # Simple filter predicate across supported keys
         def predicate(obj: ReservedInstancesOffering, ff: dict[str, list[str]]) -> bool:
@@ -137,4 +137,6 @@ class ReservedInstancesBackend:
                         return False
             return True
 
-        return [o for o in offerings if predicate(o, filters)]
+        return cast(
+            list[dict[str, Any]], [o for o in offerings if predicate(o, filters)]
+        )
