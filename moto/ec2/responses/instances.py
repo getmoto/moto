@@ -429,16 +429,6 @@ class InstanceResponse(EC2BaseResponse):
         ) and not device_mapping.get("Ebs", {}).get("SnapshotId"):
             raise MissingParameterError("size or snapshotId")
 
-    @staticmethod
-    def _convert_to_bool(bool_str: Any) -> bool:  # type: ignore[misc]
-        if isinstance(bool_str, bool):
-            return bool_str
-
-        if isinstance(bool_str, str):
-            return str(bool_str).lower() == "true"
-
-        return False
-
 
 BLOCK_DEVICE_MAPPING_TEMPLATE = {
     "VirtualName": None,
