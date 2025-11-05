@@ -615,7 +615,7 @@ INSTANCE_TEMPLATE = """<item>
                 <status>in-use</status>
                 <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                 <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
-                <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
+                <sourceDestCheck>{{ instance.source_dest_check|lower }}</sourceDestCheck>
                 <groupSet>
                   {% for group in nic.group_set %}
                   <item>
