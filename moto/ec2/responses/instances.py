@@ -183,20 +183,6 @@ class InstanceResponse(EC2BaseResponse):
         template = self.response_template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
-    def _get_list_of_dict_params(
-        self, param_prefix: str, _dct: dict[str, Any]
-    ) -> list[Any]:
-        # TODO: Do we need this?
-        """
-        Simplified version of _get_dict_param
-        Allows you to pass in a custom dict instead of using self.querystring by default
-        """
-        params = []
-        for key, value in _dct.items():
-            if key.startswith(param_prefix):
-                params.append(value)
-        return params
-
     def describe_instance_status(self) -> str:
         instance_ids = self._get_param("InstanceIds", [])
         include_all_instances = self._get_bool_param("IncludeAllInstances", False)
@@ -312,61 +298,54 @@ class InstanceResponse(EC2BaseResponse):
                 }]
             )
 
-        The querystring contains information similar to:
-
-            BlockDeviceMapping.1.Ebs.DeleteOnTermination : ['true']
-            BlockDeviceMapping.1.DeviceName : ['/dev/sda1']
-
         For now we only support the "BlockDeviceMapping.1.Ebs.DeleteOnTermination"
         configuration, but it should be trivial to add anything else.
         """
-        mapping_counter = 1
-        mapping_device_name_fmt = "BlockDeviceMapping.%s.DeviceName"
-        mapping_del_on_term_fmt = "BlockDeviceMapping.%s.Ebs.DeleteOnTermination"
-        while True:
-            mapping_device_name = mapping_device_name_fmt % mapping_counter
-            if mapping_device_name not in self.querystring.keys():
-                break
-
-            mapping_del_on_term = mapping_del_on_term_fmt % mapping_counter
-            del_on_term_value_str = self.querystring[mapping_del_on_term][0]
-            del_on_term_value = True if "true" == del_on_term_value_str else False
-            device_name_value = self.querystring[mapping_device_name][0]
+        attribute_modified = False
+        for mapping in self._get_param("BlockDeviceMappings", []):
+            device_name = mapping.get("DeviceName")
+            del_on_term_value = mapping.get("Ebs", {}).get("DeleteOnTermination")
 
             instance_id = self._get_param("InstanceId")
             instance = self.ec2_backend.get_instance(instance_id)
 
             self.error_on_dryrun()
 
-            block_device_type = instance.block_device_mapping[device_name_value]
+            if del_on_term_value is None:
+                continue
+            block_device_type = instance.block_device_mapping[device_name]
             block_device_type.delete_on_termination = del_on_term_value
 
-            # +1 for the next device
-            mapping_counter += 1
+            attribute_modified = True
 
-        if mapping_counter > 1:
+        if attribute_modified:
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
         return None
 
     def _dot_value_instance_attribute_handler(self) -> Optional[str]:
-        attribute_key = None
-        for key in self.querystring:
-            if ".Value" in key:
-                attribute_key = key
+        attribute_modified = False
+        for attribute in (
+            "InstanceType",
+            "Kernel",
+            "UserData",
+            "DisableApiTermination",
+            "SourceDestCheck",
+            "EbsOptimized",
+            "DisableApiStop",
+        ):
+            if self._get_param(f"{attribute}.Value") is not None:
+                self.error_on_dryrun()
+                instance_id = self._get_param("InstanceId")
+                attr_name = camelcase_to_underscores(attribute)
+                attr_value = self._get_param(f"{attribute}.Value")
+                self.ec2_backend.modify_instance_attribute(
+                    instance_id, attr_name, attr_value
+                )
+                attribute_modified = True
                 break
-
-        if not attribute_key:
-            return None
-
-        self.error_on_dryrun()
-
-        value = self._get_param(attribute_key)  # type: ignore
-        normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
-        instance_id = self._get_param("InstanceId")
-        self.ec2_backend.modify_instance_attribute(
-            instance_id, normalized_attribute, value
-        )
-        return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        if attribute_modified:
+            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        return None
 
     def _attribute_value_handler(self) -> Optional[str]:
         attribute_key = self._get_param("Attribute")
@@ -384,15 +363,12 @@ class InstanceResponse(EC2BaseResponse):
         )
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
-    def _security_grp_instance_attribute_handler(self) -> str:
-        new_security_grp_list = []
-        for key in self.querystring:
-            if "GroupId." in key:
-                new_security_grp_list.append(self.querystring.get(key)[0])  # type: ignore
-
-        instance_id = self._get_param("InstanceId")
+    def _security_grp_instance_attribute_handler(self) -> Optional[str]:
+        new_security_grp_list = self._get_param("Groups")
+        if new_security_grp_list is None:
+            return None
         self.error_on_dryrun()
-
+        instance_id = self._get_param("InstanceId")
         self.ec2_backend.modify_instance_security_groups(
             instance_id, new_security_grp_list
         )

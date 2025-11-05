@@ -331,18 +331,6 @@ def split_route_id(route_id: str) -> tuple[str, str]:
     return values[0], values[1]
 
 
-def get_attribute_value(
-    parameter: str, querystring_dict: dict[str, list[str]]
-) -> Union[None, bool, str]:
-    for key, value in querystring_dict.items():
-        match = re.search(rf"{parameter}.Value", key)
-        if match:
-            if value[0].lower() in ["true", "false"]:
-                return True if value[0].lower() in ["true"] else False
-            return value[0]
-    return None
-
-
 def get_object_value(obj: Any, attr: str) -> Any:
     keys = attr.split(".")
     val = obj

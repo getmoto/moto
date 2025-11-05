@@ -1,6 +1,6 @@
 from moto.core.responses import ActionResult, EmptyResult
 from moto.ec2.exceptions import InvalidParameterValueErrorUnknownAttribute
-from moto.ec2.utils import add_tag_specification, get_attribute_value
+from moto.ec2.utils import add_tag_specification
 
 from ._base_response import EC2BaseResponse
 
@@ -101,8 +101,8 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
     def modify_network_interface_attribute(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         group_ids = self._get_param("Groups", [])
-        source_dest_check = get_attribute_value("SourceDestCheck", self.querystring)
-        description = get_attribute_value("Description", self.querystring)
+        source_dest_check = self._get_param("SourceDestCheck.Value")
+        description = self._get_param("Description.Value")
 
         self.error_on_dryrun()
 

@@ -25,9 +25,9 @@ class ElasticIPAddresses(EC2BaseResponse):
     def associate_address(self) -> str:
         instance = eni = None
 
-        if "InstanceId" in self.querystring:
+        if "InstanceId" in self._get_params():
             instance = self.ec2_backend.get_instance(self._get_param("InstanceId"))
-        elif "NetworkInterfaceId" in self.querystring:
+        elif "NetworkInterfaceId" in self._get_params():
             eni = self.ec2_backend.get_network_interface(
                 self._get_param("NetworkInterfaceId")
             )
@@ -42,14 +42,14 @@ class ElasticIPAddresses(EC2BaseResponse):
         self.error_on_dryrun()
 
         if instance or eni:
-            if "PublicIp" in self.querystring:
+            if "PublicIp" in self._get_params():
                 eip = self.ec2_backend.associate_address(
                     instance=instance,
                     eni=eni,
                     address=self._get_param("PublicIp"),
                     reassociate=reassociate,
                 )
-            elif "AllocationId" in self.querystring:
+            elif "AllocationId" in self._get_params():
                 eip = self.ec2_backend.associate_address(
                     instance=instance,
                     eni=eni,
@@ -90,8 +90,8 @@ class ElasticIPAddresses(EC2BaseResponse):
 
     def disassociate_address(self) -> ActionResult:
         if (
-            "PublicIp" not in self.querystring
-            and "AssociationId" not in self.querystring
+            "PublicIp" not in self._get_params()
+            and "AssociationId" not in self._get_params()
         ):
             self.ec2_backend.raise_error(
                 "MissingParameter",
@@ -100,9 +100,9 @@ class ElasticIPAddresses(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        if "PublicIp" in self.querystring:
+        if "PublicIp" in self._get_params():
             self.ec2_backend.disassociate_address(address=self._get_param("PublicIp"))
-        elif "AssociationId" in self.querystring:
+        elif "AssociationId" in self._get_params():
             self.ec2_backend.disassociate_address(
                 association_id=self._get_param("AssociationId")
             )
@@ -111,8 +111,8 @@ class ElasticIPAddresses(EC2BaseResponse):
 
     def release_address(self) -> ActionResult:
         if (
-            "PublicIp" not in self.querystring
-            and "AllocationId" not in self.querystring
+            "PublicIp" not in self._get_params()
+            and "AllocationId" not in self._get_params()
         ):
             self.ec2_backend.raise_error(
                 "MissingParameter",
@@ -121,9 +121,9 @@ class ElasticIPAddresses(EC2BaseResponse):
 
         self.error_on_dryrun()
 
-        if "PublicIp" in self.querystring:
+        if "PublicIp" in self._get_params():
             self.ec2_backend.release_address(address=self._get_param("PublicIp"))
-        elif "AllocationId" in self.querystring:
+        elif "AllocationId" in self._get_params():
             self.ec2_backend.release_address(
                 allocation_id=self._get_param("AllocationId")
             )
