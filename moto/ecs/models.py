@@ -29,17 +29,13 @@ from .exceptions import (
 )
 
 
-class BaseObject(BaseModel):
-    pass
-
-
-class AccountSetting(BaseObject):
+class AccountSetting(BaseModel):
     def __init__(self, name: str, value: str):
         self.name = name
         self.value = value
 
 
-class Cluster(BaseObject, CloudFormationModel):
+class Cluster(CloudFormationModel, BaseModel):
     def __init__(
         self,
         cluster_name: str,
@@ -131,7 +127,7 @@ class Cluster(BaseObject, CloudFormationModel):
         raise UnformattedGetAttTemplateException()
 
 
-class TaskDefinition(BaseObject, CloudFormationModel):
+class TaskDefinition(CloudFormationModel, BaseModel):
     def __init__(
         self,
         family: str,
@@ -296,13 +292,13 @@ class TaskDefinition(BaseObject, CloudFormationModel):
             return original_resource
 
 
-class DeleteTaskDefinitionFailure(BaseObject):
+class DeleteTaskDefinitionFailure(BaseModel):
     def __init__(self, reason: str, name: str, account_id: str, region_name: str):
         self.reason = reason
         self.arn = name
 
 
-class Task(BaseObject, ManagedState):
+class Task(ManagedState, BaseModel):
     def __init__(
         self,
         cluster: Cluster,
@@ -405,7 +401,7 @@ class Task(BaseObject, ManagedState):
         return f"arn:{get_partition(self.region_name)}:ecs:{self.region_name}:{self._account_id}:task/{self.id}"
 
 
-class CapacityProvider(BaseObject):
+class CapacityProvider(BaseModel):
     def __init__(
         self,
         account_id: str,
@@ -464,13 +460,13 @@ class CapacityProvider(BaseObject):
         self.update_status = "UPDATE_COMPLETE"
 
 
-class CapacityProviderFailure(BaseObject):
+class CapacityProviderFailure(BaseModel):
     def __init__(self, reason: str, name: str, account_id: str, region_name: str):
         self.reason = reason
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:capacity_provider/{name}"
 
 
-class Service(BaseObject, CloudFormationModel):
+class Service(CloudFormationModel, BaseModel):
     def __init__(
         self,
         cluster: Cluster,
@@ -678,7 +674,7 @@ class Service(BaseObject, CloudFormationModel):
         raise UnformattedGetAttTemplateException()
 
 
-class Container(BaseObject, CloudFormationModel):
+class Container(CloudFormationModel, BaseModel):
     def __init__(
         self,
         task_def: TaskDefinition,
@@ -701,7 +697,7 @@ class Container(BaseObject, CloudFormationModel):
         self.command = container_def.get("command")
 
 
-class ContainerInstance(BaseObject):
+class ContainerInstance(BaseModel):
     def __init__(
         self,
         ec2_instance_id: str,
@@ -810,7 +806,7 @@ class ContainerInstance(BaseObject):
         return f"arn:{get_partition(self.region_name)}:ecs:{self.region_name}:{self._account_id}:container-instance/{self.id}"
 
 
-class ClusterFailure(BaseObject):
+class ClusterFailure(BaseModel):
     def __init__(
         self, reason: str, cluster_name: str, account_id: str, region_name: str
     ):
@@ -818,7 +814,7 @@ class ClusterFailure(BaseObject):
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
 
 
-class ContainerInstanceFailure(BaseObject):
+class ContainerInstanceFailure(BaseModel):
     def __init__(
         self, reason: str, container_instance_id: str, account_id: str, region_name: str
     ):
@@ -826,7 +822,7 @@ class ContainerInstanceFailure(BaseObject):
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:container-instance/{container_instance_id}"
 
 
-class TaskSet(BaseObject):
+class TaskSet(BaseModel):
     def __init__(
         self,
         service: str,
