@@ -254,14 +254,14 @@ class EC2ContainerServiceResponse(BaseResponse):
         family = self._get_param("family")
         started_by = self._get_param("startedBy")
         service_name = self._get_param("serviceName")
-        desiredStatus = self._get_param("desiredStatus")
+        desired_status = self._get_param("desiredStatus")
         tasks = self.ecs_backend.list_tasks(
             cluster_str,
             container_instance,
             family,
             started_by,
             service_name,
-            desiredStatus,
+            desired_status,
         )
         return ActionResult({"taskArns": [t.task_arn for t in tasks]})
 
@@ -331,7 +331,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         return ActionResult(resp)
 
     def update_service(self) -> ActionResult:
-        service_properties = json.loads(self.body)
+        service_properties = self._get_params()
         parsed_props = {}
         for k, v in service_properties.items():
             parsed_props[camelcase_to_underscores(k)] = v
@@ -402,7 +402,7 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def put_attributes(self) -> ActionResult:
         cluster_name = self._get_param("cluster")
-        attributes = self._get_param("attributes")
+        attributes = self._get_param("attributes", [])
 
         self.ecs_backend.put_attributes(cluster_name, attributes)
 
