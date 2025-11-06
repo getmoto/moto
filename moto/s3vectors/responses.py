@@ -2,7 +2,11 @@
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult, get_partition
 
-from .exceptions import VectorBucketInvalidChars, VectorBucketInvalidLength
+from .exceptions import (
+    ValidationError,
+    VectorBucketInvalidChars,
+    VectorBucketInvalidLength,
+)
 from .models import S3VectorsBackend, s3vectors_backends
 
 # Some obvious invalid chars - but I haven't found an official list (or even a allowed regex, which would be easier)
@@ -57,3 +61,77 @@ class S3VectorsResponse(BaseResponse):
             prefix=prefix,
         )
         return ActionResult(result={"vectorBuckets": buckets})
+
+    def create_index(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        vector_bucket_arn = self._get_param("vectorBucketArn")
+        index_name = self._get_param("indexName")
+        data_type = self._get_param("dataType")
+        dimension = self._get_param("dimension")
+        distance_metric = self._get_param("distanceMetric")
+
+        if data_type not in ["float32"]:
+            raise ValidationError(
+                "1 validation error detected. Value at '/dataType' failed to satisfy constraint: Member must satisfy enum value set: [float32]"
+            )
+        if dimension < 1 or dimension >= 4096:
+            raise ValidationError(
+                "1 validation error detected. Value at '/dimension' failed to satisfy constraint: Member must be between 1 and 4096, inclusive"
+            )
+        if distance_metric not in ["euclidean", "cosine"]:
+            raise ValidationError(
+                "1 validation error detected. Value at '/distanceMetric' failed to satisfy constraint: Member must satisfy enum value set: [euclidean, cosine]"
+            )
+
+        self.s3vectors_backend.create_index(
+            vector_bucket_name=vector_bucket_name,
+            vector_bucket_arn=vector_bucket_arn,
+            index_name=index_name,
+            data_type=data_type,
+            dimension=dimension,
+            distance_metric=distance_metric,
+        )
+        return EmptyResult()
+
+    def delete_index(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        index_name = self._get_param("indexName")
+        index_arn = self._get_param("indexArn")
+        self.s3vectors_backend.delete_index(
+            vector_bucket_name=vector_bucket_name,
+            index_name=index_name,
+            index_arn=index_arn,
+        )
+        return EmptyResult()
+
+    def get_index(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        index_name = self._get_param("indexName")
+        index_arn = self._get_param("indexArn")
+
+        if vector_bucket_name and index_arn:
+            raise ValidationError(
+                "Must specify either indexArn or both vectorBucketName and indexName"
+            )
+
+        index = self.s3vectors_backend.get_index(
+            vector_bucket_name=vector_bucket_name,
+            index_name=index_name,
+            index_arn=index_arn,
+        )
+        return ActionResult(result={"index": index})
+
+    def list_indexes(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        vector_bucket_arn = self._get_param("vectorBucketArn")
+
+        if vector_bucket_name and vector_bucket_arn:
+            raise ValidationError(
+                "Must specify either vectorBucketName or vectorBucketArn but not both"
+            )
+
+        indexes = self.s3vectors_backend.list_indexes(
+            vector_bucket_name=vector_bucket_name,
+            vector_bucket_arn=vector_bucket_arn,
+        )
+        return ActionResult(result={"indexes": indexes})
