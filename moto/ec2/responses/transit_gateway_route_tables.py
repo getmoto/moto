@@ -18,9 +18,7 @@ class TransitGatewayRouteTable(EC2BaseResponse):
 
     def describe_transit_gateway_route_tables(self) -> ActionResult:
         filters = self._filters_from_querystring()
-        transit_gateway_route_table_ids = (
-            self._get_multi_param("TransitGatewayRouteTableIds") or None
-        )
+        transit_gateway_route_table_ids = self._get_param("TransitGatewayRouteTableIds")
         transit_gateway_route_tables = (
             self.ec2_backend.get_all_transit_gateway_route_tables(
                 transit_gateway_route_table_ids, filters

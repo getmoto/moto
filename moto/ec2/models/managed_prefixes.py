@@ -133,7 +133,7 @@ class ManagedPrefixListBackend:
                 else []
             )
             for item in entries.copy():
-                if item.get("Cidr", "") in remove_entry:
+                if item.get("Cidr", "") in [entry["Cidr"] for entry in remove_entry]:
                     entries.remove(item)
 
             for item in add_entry:

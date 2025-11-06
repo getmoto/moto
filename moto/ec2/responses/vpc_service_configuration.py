@@ -4,19 +4,17 @@ from ._base_response import EC2BaseResponse
 
 class VPCEndpointServiceConfiguration(EC2BaseResponse):
     def create_vpc_endpoint_service_configuration(self) -> str:
-        gateway_lbs = self._get_multi_param("GatewayLoadBalancerArn")
-        network_lbs = self._get_multi_param("NetworkLoadBalancerArn")
+        gateway_lbs = self._get_param("GatewayLoadBalancerArns", [])
+        network_lbs = self._get_param("NetworkLoadBalancerArns", [])
         if not gateway_lbs and not network_lbs:
             raise NoLoadBalancersProvided
 
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_param("TagSpecifications", [])
         if tags:
-            tags = tags[0].get("Tag")
-        acceptance_required = (
-            str(self._get_param("AcceptanceRequired", "true")).lower() == "true"
-        )
+            tags = tags[0].get("Tags")
+        acceptance_required = self._get_param("AcceptanceRequired", True)
         private_dns_name = self._get_param("PrivateDnsName")
-        supported_regions = self._get_multi_param("SupportedRegion")
+        supported_regions = self._get_param("SupportedRegions", [])
 
         config = self.ec2_backend.create_vpc_endpoint_service_configuration(
             gateway_lbs or network_lbs,
@@ -29,7 +27,7 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
         return template.render(config=config)
 
     def describe_vpc_endpoint_service_configurations(self) -> str:
-        service_ids = self._get_multi_param("ServiceId")
+        service_ids = self._get_param("ServiceIds", [])
 
         configs = self.ec2_backend.describe_vpc_endpoint_service_configurations(
             service_ids
@@ -39,7 +37,7 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
         return template.render(configs=configs)
 
     def delete_vpc_endpoint_service_configurations(self) -> str:
-        service_ids = self._get_multi_param("ServiceId")
+        service_ids = self._get_param("ServiceIds", [])
         missing_configs = self.ec2_backend.delete_vpc_endpoint_service_configurations(
             service_ids
         )
@@ -61,12 +59,12 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
         service_id = self._get_param("ServiceId")
         private_dns_name = self._get_param("PrivateDnsName")
         acceptance_required = self._get_param("AcceptanceRequired")
-        add_network_lbs = self._get_multi_param("AddNetworkLoadBalancerArn")
-        remove_network_lbs = self._get_multi_param("RemoveNetworkLoadBalancerArn")
-        add_gateway_lbs = self._get_multi_param("AddGatewayLoadBalancerArn")
-        remove_gateway_lbs = self._get_multi_param("RemoveGatewayLoadBalancerArn")
-        add_supported_regions = self._get_multi_param("AddSupportedRegion")
-        remove_supported_regions = self._get_multi_param("RemoveSupportedRegion")
+        add_network_lbs = self._get_param("AddNetworkLoadBalancerArns", [])
+        remove_network_lbs = self._get_param("RemoveNetworkLoadBalancerArns", [])
+        add_gateway_lbs = self._get_param("AddGatewayLoadBalancerArns", [])
+        remove_gateway_lbs = self._get_param("RemoveGatewayLoadBalancerArns", [])
+        add_supported_regions = self._get_param("AddSupportedRegions", [])
+        remove_supported_regions = self._get_param("RemoveSupportedRegions", [])
 
         self.ec2_backend.modify_vpc_endpoint_service_configuration(
             service_id,
@@ -84,8 +82,8 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
 
     def modify_vpc_endpoint_service_permissions(self) -> str:
         service_id = self._get_param("ServiceId")
-        add_principals = self._get_multi_param("AddAllowedPrincipals")
-        remove_principals = self._get_multi_param("RemoveAllowedPrincipals")
+        add_principals = self._get_param("AddAllowedPrincipals", [])
+        remove_principals = self._get_param("RemoveAllowedPrincipals", [])
 
         self.ec2_backend.modify_vpc_endpoint_service_permissions(
             service_id, add_principals, remove_principals

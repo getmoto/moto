@@ -28,7 +28,7 @@ class VPCPeeringConnections(EC2BaseResponse):
         return template.render(vpc_pcx=vpc_pcx)
 
     def describe_vpc_peering_connections(self) -> str:
-        ids = self._get_multi_param("VpcPeeringConnectionId")
+        ids = self._get_param("VpcPeeringConnectionIds", [])
         vpc_pcxs = self.ec2_backend.describe_vpc_peering_connections(
             vpc_peering_ids=ids
         )
@@ -49,12 +49,8 @@ class VPCPeeringConnections(EC2BaseResponse):
 
     def modify_vpc_peering_connection_options(self) -> str:
         vpc_pcx_id = self._get_param("VpcPeeringConnectionId")
-        accepter_options = self._get_multi_param_dict(
-            "AccepterPeeringConnectionOptions"
-        )
-        requester_options = self._get_multi_param_dict(
-            "RequesterPeeringConnectionOptions"
-        )
+        accepter_options = self._get_param("AccepterPeeringConnectionOptions", {})
+        requester_options = self._get_param("RequesterPeeringConnectionOptions", {})
         self.ec2_backend.modify_vpc_peering_connection_options(
             vpc_pcx_id, accepter_options, requester_options
         )
@@ -79,9 +75,9 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
      <cidrBlockSet></cidrBlockSet>
      <ipv6CidrBlockSet></ipv6CidrBlockSet>
      <peeringOptions>
-       <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-       <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-       <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+       <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+       <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+       <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
      </peeringOptions>
    </requesterVpcInfo>
    <accepterVpcInfo>
@@ -92,9 +88,9 @@ CREATE_VPC_PEERING_CONNECTION_RESPONSE = """
      <cidrBlockSet></cidrBlockSet>
      <ipv6CidrBlockSet></ipv6CidrBlockSet>
      <peeringOptions>
-       <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-       <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-       <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+       <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+       <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+       <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
      </peeringOptions>
    </accepterVpcInfo>
    <status>
@@ -129,9 +125,9 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
      <cidrBlockSet></cidrBlockSet>
      <ipv6CidrBlockSet></ipv6CidrBlockSet>
      <peeringOptions>
-      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
      </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
@@ -142,9 +138,9 @@ DESCRIBE_VPC_PEERING_CONNECTIONS_RESPONSE = """
      <cidrBlockSet></cidrBlockSet>
      <ipv6CidrBlockSet></ipv6CidrBlockSet>
      <peeringOptions>
-      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
      </peeringOptions>
     </accepterVpcInfo>
      <status>
@@ -185,9 +181,9 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
      <cidrBlockSet></cidrBlockSet>
      <ipv6CidrBlockSet></ipv6CidrBlockSet>
      <peeringOptions>
-      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+      <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+      <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.requester_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+      <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.requester_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
      </peeringOptions>
     </requesterVpcInfo>
     <accepterVpcInfo>
@@ -198,9 +194,9 @@ ACCEPT_VPC_PEERING_CONNECTION_RESPONSE = """
       <cidrBlockSet></cidrBlockSet>
       <ipv6CidrBlockSet></ipv6CidrBlockSet>
       <peeringOptions>
-        <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-        <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-        <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+        <allowEgressFromLocalClassicLinkToRemoteVpc>{{ vpc_pcx.accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+        <allowEgressFromLocalVpcToRemoteClassicLink>{{ vpc_pcx.accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+        <allowDnsResolutionFromRemoteVpc>{{ vpc_pcx.accepter_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
       </peeringOptions>
     </accepterVpcInfo>
     <status>
@@ -231,16 +227,16 @@ MODIFY_VPC_PEERING_CONNECTION_RESPONSE = """
   <requestId>8d977c82-8aba-4cd1-81ca-example</requestId>
   {% if requester_options %}
   <requesterPeeringConnectionOptions>
-    <allowEgressFromLocalClassicLinkToRemoteVpc>{{ requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-    <allowEgressFromLocalVpcToRemoteClassicLink>{{ requester_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-    <allowDnsResolutionFromRemoteVpc>{{ requester_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+    <allowEgressFromLocalClassicLinkToRemoteVpc>{{ requester_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+    <allowEgressFromLocalVpcToRemoteClassicLink>{{ requester_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+    <allowDnsResolutionFromRemoteVpc>{{ requester_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
   </requesterPeeringConnectionOptions>
   {% endif %}
   {% if accepter_options %}
   <accepterPeeringConnectionOptions>
-    <allowEgressFromLocalClassicLinkToRemoteVpc>{{ accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
-    <allowEgressFromLocalVpcToRemoteClassicLink>{{ accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
-    <allowDnsResolutionFromRemoteVpc>{{ accepter_options.AllowDnsResolutionFromRemoteVpc or '' }}</allowDnsResolutionFromRemoteVpc>
+    <allowEgressFromLocalClassicLinkToRemoteVpc>{{ accepter_options.AllowEgressFromLocalClassicLinkToRemoteVpc|lower or '' }}</allowEgressFromLocalClassicLinkToRemoteVpc>
+    <allowEgressFromLocalVpcToRemoteClassicLink>{{ accepter_options.AllowEgressFromLocalVpcToRemoteClassicLink|lower or '' }}</allowEgressFromLocalVpcToRemoteClassicLink>
+    <allowDnsResolutionFromRemoteVpc>{{ accepter_options.AllowDnsResolutionFromRemoteVpc|lower or '' }}</allowDnsResolutionFromRemoteVpc>
   </accepterPeeringConnectionOptions>
   {% endif %}
 </ModifyVpcPeeringConnectionOptionsResponse>

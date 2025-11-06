@@ -5,8 +5,8 @@ from ._base_response import EC2BaseResponse
 
 class TransitGatewayAttachment(EC2BaseResponse):
     def create_transit_gateway_vpc_attachment(self) -> str:
-        options = self._get_multi_param_dict("Options")
-        subnet_ids = self._get_multi_param("SubnetIds")
+        options = self._get_param("Options", {})
+        subnet_ids = self._get_param("SubnetIds", [])
         transit_gateway_id = self._get_param("TransitGatewayId")
         vpc_id = self._get_param("VpcId")
 
@@ -25,8 +25,8 @@ class TransitGatewayAttachment(EC2BaseResponse):
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
 
     def describe_transit_gateway_vpc_attachments(self) -> str:
-        transit_gateways_attachment_ids = self._get_multi_param(
-            "TransitGatewayAttachmentIds"
+        transit_gateways_attachment_ids = self._get_param(
+            "TransitGatewayAttachmentIds", []
         )
         filters = self._filters_from_querystring()
         transit_gateway_vpc_attachments = (
@@ -41,9 +41,9 @@ class TransitGatewayAttachment(EC2BaseResponse):
         )
 
     def modify_transit_gateway_vpc_attachment(self) -> str:
-        add_subnet_ids = self._get_multi_param("AddSubnetIds")
-        options = self._get_multi_param_dict("Options")
-        remove_subnet_ids = self._get_multi_param("RemoveSubnetIds")
+        add_subnet_ids = self._get_param("AddSubnetIds", [])
+        options = self._get_param("Options", {})
+        remove_subnet_ids = self._get_param("RemoveSubnetIds", [])
         transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
 
         transit_gateway_attachment = (
@@ -58,8 +58,8 @@ class TransitGatewayAttachment(EC2BaseResponse):
         return template.render(transit_gateway_attachment=transit_gateway_attachment)
 
     def describe_transit_gateway_attachments(self) -> str:
-        transit_gateways_attachment_ids = self._get_multi_param(
-            "TransitGatewayAttachmentIds"
+        transit_gateways_attachment_ids = self._get_param(
+            "TransitGatewayAttachmentIds", []
         )
         filters = self._filters_from_querystring()
         transit_gateway_attachments = (
@@ -132,7 +132,7 @@ class TransitGatewayAttachment(EC2BaseResponse):
         peer_region = self._get_param("PeerRegion")
         peer_transit_gateway_id = self._get_param("PeerTransitGatewayId")
         transit_gateway_id = self._get_param("TransitGatewayId")
-        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
         transit_gateway_peering_attachment = (
             self.ec2_backend.create_transit_gateway_peering_attachment(
                 transit_gateway_id,
@@ -149,8 +149,8 @@ class TransitGatewayAttachment(EC2BaseResponse):
         )
 
     def describe_transit_gateway_peering_attachments(self) -> str:
-        transit_gateways_attachment_ids = self._get_multi_param(
-            "TransitGatewayAttachmentIds"
+        transit_gateways_attachment_ids = self._get_param(
+            "TransitGatewayAttachmentIds", []
         )
         filters = self._filters_from_querystring()
         transit_gateway_peering_attachments = (
