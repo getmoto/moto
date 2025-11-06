@@ -1,7 +1,7 @@
 import re
 from collections.abc import Iterator
 from copy import copy
-from datetime import datetime, timezone
+from datetime import datetime
 from os import getenv
 from typing import Any, Optional
 
@@ -9,7 +9,7 @@ from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import pascal_to_camelcase, remap_nested_keys, unix_time
+from moto.core.utils import pascal_to_camelcase, remap_nested_keys, unix_time, utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -600,7 +600,7 @@ class Service(BaseObject, CloudFormationModel):
         if self.deployment_controller["type"] == "ECS":
             self.deployments = [
                 {
-                    "createdAt": datetime.now(timezone.utc),
+                    "createdAt": utcnow(),
                     "desiredCount": self.desired_count,
                     "id": f"ecs-svc/{mock_random.randint(0, 32**12)}",
                     "launchType": self.launch_type,
@@ -611,7 +611,7 @@ class Service(BaseObject, CloudFormationModel):
                     "platformFamily": "EC2" if self.launch_type == "EC2" else "FARGATE",
                     "status": "PRIMARY",
                     "taskDefinition": self.task_definition,
-                    "updatedAt": datetime.now(timezone.utc),
+                    "updatedAt": utcnow(),
                 }
             ]
         else:
@@ -901,7 +901,7 @@ class ContainerInstance(BaseObject):
             if ec2_instance.platform == "windows"
             else "linux",  # options are windows and linux, linux is default
         }
-        self.registered_at = datetime.now(timezone.utc)
+        self.registered_at = utcnow()
         self.region_name = region_name
         self.id = str(mock_random.uuid4())
         self.cluster_name = cluster_name
@@ -1002,9 +1002,9 @@ class TaskSet(BaseObject):
         self.client_token = client_token or ""
         self.tags = tags or []
         self.stabilityStatus = "STEADY_STATE"
-        self.createdAt = datetime.now(timezone.utc)
-        self.updatedAt = datetime.now(timezone.utc)
-        self.stabilityStatusAt = datetime.now(timezone.utc)
+        self.createdAt = utcnow()
+        self.updatedAt = utcnow()
+        self.stabilityStatusAt = utcnow()
         self.id = f"ecs-svc/{mock_random.randint(0, 32**12)}"
         self.service_arn = ""
         self.cluster_arn = ""
@@ -1855,7 +1855,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             if force_new_deployment and current_service.deployments:
                 deployment = current_service.deployments[0]
                 deployment["id"] = f"ecs-svc/{mock_random.randint(0, 32**12)}"
-                now = datetime.now(timezone.utc)
+                now = utcnow()
                 deployment["createdAt"] = now
                 deployment["updatedAt"] = now
             return current_service
