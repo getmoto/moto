@@ -6,7 +6,6 @@ from typing import Any, Optional
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
-from moto.core.exceptions import JsonRESTError
 from moto.core.utils import pascal_to_camelcase, remap_nested_keys, utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
@@ -18,6 +17,7 @@ from ..ec2.utils import random_private_ip
 from .exceptions import (
     ClusterNotFoundException,
     EcsClientException,
+    ECSException,
     InvalidParameterException,
     RevisionNotFoundException,
     ServiceNotFoundException,
@@ -1852,9 +1852,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         if container_instance is None:
             raise Exception("{0} is not a container id in the cluster")
         if not force and container_instance.running_tasks_count > 0:
-            raise JsonRESTError(
-                error_type="InvalidParameter",
-                message="Found running tasks on the instance.",
+            raise InvalidParameterException(
+                "Found running tasks on the instance.",
             )
         # Currently assume that people might want to do something based around deregistered instances
         # with tasks left running on them - but nothing if no tasks were running already
@@ -1907,14 +1906,14 @@ class EC2ContainerServiceBackend(BaseBackend):
                 arn = target_id.rsplit("/", 1)[-1]  # type: ignore[union-attr]
                 self.container_instances[cluster_name][arn].attributes[name] = value
             except KeyError:
-                raise JsonRESTError(
+                raise ECSException(
                     "TargetNotFoundException", f"Could not find {target_id}"
                 )
         else:
             # targetId is container uuid, targetType must be container-instance
             try:
                 if target_type != "container-instance":
-                    raise JsonRESTError(
+                    raise ECSException(
                         "TargetNotFoundException", f"Could not find {target_id}"
                     )
 
@@ -1922,7 +1921,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     name
                 ] = value
             except KeyError:
-                raise JsonRESTError(
+                raise ECSException(
                     "TargetNotFoundException", f"Could not find {target_id}"
                 )
 
@@ -1937,9 +1936,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         Pagination is not yet implemented
         """
         if target_type != "container-instance":
-            raise JsonRESTError(
-                "InvalidParameterException", "targetType must be container-instance"
-            )
+            raise InvalidParameterException("targetType must be container-instance")
 
         filters = [lambda x: True]
 
@@ -1972,9 +1969,7 @@ class EC2ContainerServiceBackend(BaseBackend):
         cluster = self._get_cluster(cluster_name)
 
         if attributes is None:
-            raise JsonRESTError(
-                "InvalidParameterException", "attributes value is required"
-            )
+            raise InvalidParameterException("attributes value is required")
 
         for attr in attributes:
             self._delete_attribute(
@@ -2005,14 +2000,14 @@ class EC2ContainerServiceBackend(BaseBackend):
                 if name in instance.attributes and instance.attributes[name] == value:
                     del instance.attributes[name]
             except KeyError:
-                raise JsonRESTError(
+                raise ECSException(
                     "TargetNotFoundException", f"Could not find {target_id}"
                 )
         else:
             # targetId is container uuid, targetType must be container-instance
             try:
                 if target_type != "container-instance":
-                    raise JsonRESTError(
+                    raise ECSException(
                         "TargetNotFoundException", f"Could not find {target_id}"
                     )
 
@@ -2020,7 +2015,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                 if name in instance.attributes and instance.attributes[name] == value:
                     del instance.attributes[name]
             except KeyError:
-                raise JsonRESTError(
+                raise ECSException(
                     "TargetNotFoundException", f"Could not find {target_id}"
                 )
 
@@ -2050,7 +2045,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             match = re.match(regex, resource_arn)
             if match:
                 return match.groupdict()
-        raise JsonRESTError("InvalidParameterException", "The ARN provided is invalid.")
+        raise InvalidParameterException("The ARN provided is invalid.")
 
     def _get_resource(self, resource_arn: str, parsed_arn: dict[str, str]) -> Any:
         if parsed_arn["service"] == "cluster":
