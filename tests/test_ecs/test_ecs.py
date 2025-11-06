@@ -1521,7 +1521,7 @@ def test_delete_service_exceptions():
     client.create_cluster()
     with pytest.raises(ClientError) as exc:
         client.delete_service(service="not_as_service")
-    assert "ServiceNotFoundException" in exc.value.response["Error"]["Message"]
+    assert "ServiceNotFoundException" in exc.value.response["Error"]["Code"]
 
     client.register_task_definition(
         family="test_ecs_task",
@@ -1559,7 +1559,7 @@ def test_update_service_exceptions():
 
     with pytest.raises(ClientError) as exc:
         client.update_service(service="not_a_service", desiredCount=0)
-    assert "ServiceNotFoundException" in exc.value.response["Error"]["Message"]
+    assert "ServiceNotFoundException" in exc.value.response["Error"]["Code"]
 
 
 @mock_aws
@@ -3480,7 +3480,7 @@ def test_list_tags_exceptions():
         client.list_tags_for_resource(
             resourceArn="arn:aws:ecs:us-east-1:012345678910:service/fake_service:1"
         )
-    assert "ServiceNotFoundException" in exc.value.response["Error"]["Message"]
+    assert "ServiceNotFoundException" in exc.value.response["Error"]["Code"]
 
     with pytest.raises(ClientError) as exc:
         client.list_tags_for_resource(
