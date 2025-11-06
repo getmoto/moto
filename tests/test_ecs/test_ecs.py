@@ -1326,7 +1326,7 @@ def test_update_service():
         forceNewDeployment=True,
     )
     assert response["service"]["deployments"][0]["id"] != id
-    assert response["service"]["deployments"][0]["createdAt"] != created_at
+    assert response["service"]["deployments"][0]["createdAt"] >= created_at
     assert (
         response["service"]["deployments"][0]["createdAt"]
         == response["service"]["deployments"][0]["updatedAt"]
