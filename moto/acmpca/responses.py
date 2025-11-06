@@ -74,7 +74,7 @@ class ACMPCAResponse(BaseResponse):
         csr = self.acmpca_backend.get_certificate_authority_csr(
             certificate_authority_arn=certificate_authority_arn,
         )
-        return json.dumps({"Csr": csr.decode("utf-8")})
+        return json.dumps({"Csr": csr.decode("utf-8").strip()})
 
     def list_tags(self) -> str:
         params = json.loads(self.body)
@@ -124,12 +124,14 @@ class ACMPCAResponse(BaseResponse):
             certificate_authority_arn=certificate_authority_arn,
             certificate_arn=certificate_arn,
         )
-        return json.dumps(
-            {
-                "Certificate": certificate.decode("utf-8"),
-                "CertificateChain": certificate_chain,
-            }
-        )
+
+        response = {"Certificate": certificate.decode("utf-8").strip()}
+
+        # Include CertificateChain if it exists (non-root certificates)
+        if certificate_chain:
+            response["CertificateChain"] = certificate_chain.decode("utf-8").strip()
+
+        return json.dumps(response)
 
     def import_certificate_authority_certificate(self) -> str:
         params = json.loads(self.body)

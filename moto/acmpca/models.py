@@ -65,6 +65,7 @@ class CertificateAuthority(BaseModel):
         self.certificate_bytes: bytes = b""
         self.certificate_chain: Optional[bytes] = None
         self.issued_certificates: dict[str, bytes] = {}
+        self.issued_certificates_certificate_chains: dict[str, bytes] = {}
 
         self.subject = self.certificate_authority_configuration.get("Subject", {})
 
@@ -162,6 +163,15 @@ class CertificateAuthority(BaseModel):
         cert_id = str(mock_random.uuid4()).replace("-", "")
         cert_arn = f"arn:{get_partition(self.region_name)}:acm-pca:{self.region_name}:{self.account_id}:certificate-authority/{self.id}/certificate/{cert_id}"
         self.issued_certificates[cert_arn] = new_cert
+
+        # Store certificate with its chain
+        # For root CA certificates, chain is empty; for others, include CA certificate
+        is_root_cert = template_arn == "arn:aws:acm-pca:::template/RootCACertificate/V1"
+        if not is_root_cert:
+            self.issued_certificates_certificate_chains[cert_arn] = (
+                self.certificate_bytes
+            )
+
         return cert_arn
 
     def _x509_extensions(
@@ -263,8 +273,12 @@ class CertificateAuthority(BaseModel):
 
         return extensions
 
-    def get_certificate(self, certificate_arn: str) -> bytes:
-        return self.issued_certificates[certificate_arn]
+    def get_certificate(self, certificate_arn: str) -> tuple[bytes, bytes]:
+        certificate = self.issued_certificates[certificate_arn]
+        certificate_chain = self.issued_certificates_certificate_chains.get(
+            certificate_arn, b""
+        )
+        return certificate, certificate_chain
 
     def set_revocation_configuration(
         self, revocation_configuration: Optional[dict[str, Any]]
@@ -435,13 +449,12 @@ class ACMPCABackend(BaseBackend):
 
     def get_certificate(
         self, certificate_authority_arn: str, certificate_arn: str
-    ) -> tuple[bytes, Optional[str]]:
+    ) -> tuple[bytes, bytes]:
         """
         The CertificateChain will always return None for now
         """
         ca = self.describe_certificate_authority(certificate_authority_arn)
-        certificate = ca.get_certificate(certificate_arn)
-        certificate_chain = None
+        certificate, certificate_chain = ca.get_certificate(certificate_arn)
         return certificate, certificate_chain
 
     def import_certificate_authority_certificate(
