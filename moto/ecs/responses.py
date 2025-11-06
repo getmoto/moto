@@ -10,6 +10,7 @@ from .models import EC2ContainerServiceBackend, ecs_backends
 class EC2ContainerServiceResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="ecs")
+        self.automated_parameter_parsing = True
 
     @property
     def ecs_backend(self) -> EC2ContainerServiceBackend:
