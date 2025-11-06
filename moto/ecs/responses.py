@@ -18,8 +18,8 @@ def format_attributes(attributes: dict[str, str] | None) -> list[dict[str, str]]
 
 class EC2ContainerServiceResponse(BaseResponse):
     RESPONSE_KEY_PATH_TO_TRANSFORMER = {
-        "containerInstance.attributes": format_attributes,
-        "ContainerInstance.attributes": format_attributes,
+        "DescribeContainerInstancesResponse.containerInstances.ContainerInstance.attributes": format_attributes,
+        "RegisterContainerInstanceResponse.containerInstance.attributes": format_attributes,
     }
 
     def __init__(self) -> None:
