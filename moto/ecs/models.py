@@ -1,7 +1,5 @@
 import re
 from collections.abc import Iterator
-from copy import copy
-from datetime import datetime
 from os import getenv
 from typing import Any, Optional
 
@@ -9,7 +7,7 @@ from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
-from moto.core.utils import pascal_to_camelcase, remap_nested_keys, unix_time, utcnow
+from moto.core.utils import pascal_to_camelcase, remap_nested_keys, utcnow
 from moto.ec2 import ec2_backends
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
@@ -32,28 +30,7 @@ from .exceptions import (
 
 
 class BaseObject(BaseModel):
-    def camelCase(self, key: str) -> str:
-        words = []
-        for i, word in enumerate(key.split("_")):
-            if i > 0:
-                words.append(word.title())
-            else:
-                words.append(word)
-        return "".join(words)
-
-    def gen_response_object(self) -> dict[str, Any]:
-        response_object = copy(self.__dict__)
-        for key, value in self.__dict__.items():
-            if key.startswith("_"):
-                del response_object[key]
-            elif "_" in key:
-                response_object[self.camelCase(key)] = value
-                del response_object[key]
-        return response_object
-
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        return self.gen_response_object()
+    pass
 
 
 class AccountSetting(BaseObject):
@@ -95,18 +72,6 @@ class Cluster(BaseObject, CloudFormationModel):
     @property
     def physical_resource_id(self) -> str:
         return self.name
-
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["clusterArn"] = self.arn
-        response_object["clusterName"] = self.name
-        response_object["capacityProviders"] = self.capacity_providers
-        response_object["defaultCapacityProviderStrategy"] = (
-            self.default_capacity_provider_strategy
-        )
-        del response_object["arn"], response_object["name"]
-        return response_object
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -255,23 +220,6 @@ class TaskDefinition(BaseObject, CloudFormationModel):
         self.status = "ACTIVE"
 
     @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["taskDefinitionArn"] = response_object.pop("arn")
-
-        if not response_object["requiresCompatibilities"]:
-            del response_object["requiresCompatibilities"]
-        if not response_object["cpu"]:
-            del response_object["cpu"]
-        if not response_object["memory"]:
-            del response_object["memory"]
-
-        return {
-            "taskDefinition": response_object,
-            "tags": response_object.get("tags", []),
-        }
-
-    @property
     def physical_resource_id(self) -> str:
         return self.arn
 
@@ -352,13 +300,6 @@ class DeleteTaskDefinitionFailure(BaseObject):
     def __init__(self, reason: str, name: str, account_id: str, region_name: str):
         self.reason = reason
         self.arn = name
-
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["reason"] = self.reason
-        response_object["arn"] = self.arn
-        return response_object
 
 
 class Task(BaseObject, ManagedState):
@@ -463,16 +404,6 @@ class Task(BaseObject, ManagedState):
             return f"arn:{get_partition(self.region_name)}:ecs:{self.region_name}:{self._account_id}:task/{self.cluster_name}/{self.id}"
         return f"arn:{get_partition(self.region_name)}:ecs:{self.region_name}:{self._account_id}:task/{self.id}"
 
-    def response_object(self, include_tags: bool = True) -> dict[str, Any]:  # type: ignore
-        response_object = self.gen_response_object()
-        if not include_tags:
-            response_object.pop("tags", None)
-        response_object["taskArn"] = self.task_arn
-        response_object["lastStatus"] = self.last_status
-        response_object["platformVersion"] = self.platform_version
-        response_object["containers"] = [self.containers[0].response_object]
-        return response_object
-
 
 class CapacityProvider(BaseObject):
     def __init__(
@@ -537,13 +468,6 @@ class CapacityProviderFailure(BaseObject):
     def __init__(self, reason: str, name: str, account_id: str, region_name: str):
         self.reason = reason
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:capacity_provider/{name}"
-
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["reason"] = self.reason
-        response_object["arn"] = self.arn
-        return response_object
 
 
 class Service(BaseObject, CloudFormationModel):
@@ -658,37 +582,6 @@ class Service(BaseObject, CloudFormationModel):
     @property
     def physical_resource_id(self) -> str:
         return self.arn
-
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        del response_object["name"], response_object["tags"]
-        response_object["serviceName"] = self.name
-        response_object["serviceArn"] = self.arn
-        response_object["schedulingStrategy"] = self.scheduling_strategy
-        response_object["platformVersion"] = self.platform_version
-        if response_object["deploymentController"]["type"] == "ECS":
-            del response_object["deploymentController"]
-            del response_object["taskSets"]
-        else:
-            response_object["taskSets"] = [
-                t.response_object for t in response_object["taskSets"]
-            ]
-
-        for deployment in response_object["deployments"]:
-            if isinstance(deployment["createdAt"], datetime):
-                deployment["createdAt"] = unix_time(
-                    deployment["createdAt"].replace(tzinfo=None)
-                )
-            if isinstance(deployment["updatedAt"], datetime):
-                deployment["updatedAt"] = unix_time(
-                    deployment["updatedAt"].replace(tzinfo=None)
-                )
-        response_object["networkConfiguration"] = self.network_configuration
-        if self.role_arn:
-            response_object["roleArn"] = self.role_arn
-
-        return response_object
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -916,26 +809,6 @@ class ContainerInstance(BaseObject):
             return f"arn:{get_partition(self.region_name)}:ecs:{self.region_name}:{self._account_id}:container-instance/{self.cluster_name}/{self.id}"
         return f"arn:{get_partition(self.region_name)}:ecs:{self.region_name}:{self._account_id}:container-instance/{self.id}"
 
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["containerInstanceArn"] = self.container_instance_arn
-        response_object["attributes"] = [
-            self._format_attribute(name, value)
-            for name, value in response_object["attributes"].items()
-        ]
-        if isinstance(response_object["registeredAt"], datetime):
-            response_object["registeredAt"] = unix_time(
-                response_object["registeredAt"].replace(tzinfo=None)
-            )
-        return response_object
-
-    def _format_attribute(self, name: str, value: Optional[str]) -> dict[str, str]:
-        formatted_attr = {"name": name}
-        if value is not None:
-            formatted_attr["value"] = value
-        return formatted_attr
-
 
 class ClusterFailure(BaseObject):
     def __init__(
@@ -944,13 +817,6 @@ class ClusterFailure(BaseObject):
         self.reason = reason
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:cluster/{cluster_name}"
 
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["reason"] = self.reason
-        response_object["arn"] = self.arn
-        return response_object
-
 
 class ContainerInstanceFailure(BaseObject):
     def __init__(
@@ -958,13 +824,6 @@ class ContainerInstanceFailure(BaseObject):
     ):
         self.reason = reason
         self.arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:container-instance/{container_instance_id}"
-
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        response_object["reason"] = self.reason
-        response_object["arn"] = self.arn
-        return response_object
 
 
 class TaskSet(BaseObject):
@@ -1012,25 +871,6 @@ class TaskSet(BaseObject):
         cluster_name = self.cluster.split("/")[-1]
         service_name = self.service.split("/")[-1]
         self.task_set_arn = f"arn:{get_partition(region_name)}:ecs:{region_name}:{account_id}:task-set/{cluster_name}/{service_name}/{self.id}"
-
-    @property
-    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
-        response_object = self.gen_response_object()
-        if isinstance(response_object["createdAt"], datetime):
-            response_object["createdAt"] = unix_time(
-                self.createdAt.replace(tzinfo=None)
-            )
-        if isinstance(response_object["updatedAt"], datetime):
-            response_object["updatedAt"] = unix_time(
-                self.updatedAt.replace(tzinfo=None)
-            )
-        if isinstance(response_object["stabilityStatusAt"], datetime):
-            response_object["stabilityStatusAt"] = unix_time(
-                self.stabilityStatusAt.replace(tzinfo=None)
-            )
-        del response_object["service"]
-        del response_object["cluster"]
-        return response_object
 
 
 class EC2ContainerServiceBackend(BaseBackend):
