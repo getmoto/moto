@@ -199,7 +199,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                         for instance in replication_instances
                         if instance.engine_version in filter_values
                     ]
-
+        for replication_instance in replication_instances:
+            replication_instance.advance()
         return replication_instances
 
     def delete_replication_instance(
@@ -339,7 +340,6 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                 for endpoint in endpoints
                 if getattr(endpoint, attribute) in filter_values
             ]
-
         return endpoints
 
     def list_tags_for_resource(
@@ -723,7 +723,7 @@ class FakeReplicationTask(BaseModel):
         return self
 
 
-class FakeReplicationInstance(BaseModel):
+class FakeReplicationInstance(ManagedState):
     def __init__(
         self,
         replication_instance_identifier: str,
@@ -746,6 +746,12 @@ class FakeReplicationInstance(BaseModel):
         network_type: Optional[str] = None,
         kerberos_authentication_settings: Optional[dict[str, str]] = None,
     ):
+        ManagedState.__init__(
+            self,
+            model_name="dms::replicationinstance",
+            transitions=[("creating", "available")],
+        )
+
         self.id = replication_instance_identifier
         self.replication_instance_class = replication_instance_class
         self.region = region_name
@@ -768,7 +774,6 @@ class FakeReplicationInstance(BaseModel):
         self.network_type = network_type
         self.kerberos_authentication_settings = kerberos_authentication_settings or {}
         self.arn = f"arn:{get_partition(region_name)}:dms:{region_name}:{account_id}:rep:{self.id}"
-        self.status = "creating"
         self.creation_date = utcnow()
         self.private_ip_addresses = ["10.0.0.1"]
         self.public_ip_addresses = ["54.0.0.1"] if publicly_accessible else []

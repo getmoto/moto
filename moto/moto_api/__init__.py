@@ -26,6 +26,10 @@ state_manager.register_default_transition(
     transition={"progression": "manual", "times": 1},
 )
 state_manager.register_default_transition(
+    model_name="dms::replicationinstance",
+    transition={"progression": "manual", "times": 1},
+)
+state_manager.register_default_transition(
     "dsql::cluster", transition={"progression": "manual", "times": 1}
 )
 state_manager.register_default_transition(

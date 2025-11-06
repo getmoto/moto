@@ -262,6 +262,15 @@ def test_create_replication_instance():
     assert len(response["ReplicationInstances"]) == 1
     instance = response["ReplicationInstances"][0]
     assert instance["ReplicationInstanceIdentifier"] == "test-instance"
+    assert instance["ReplicationInstanceClass"] == "dms.t2.micro"
+    assert instance["AllocatedStorage"] == 50
+    assert instance["AvailabilityZone"] == "us-east-1a"
+    assert instance["ReplicationInstanceStatus"] == "available"
+    assert instance["MultiAZ"] is False
+    assert instance["EngineVersion"] == "3.4.6"
+    assert instance["AutoMinorVersionUpgrade"] is True
+    assert instance["PubliclyAccessible"] is True
+    assert instance["NetworkType"] == "IPV4"
     assert instance["VpcSecurityGroups"] == [
         {"Status": "active", "VpcSecurityGroupId": "sg-12345"}
     ]
