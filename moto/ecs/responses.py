@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import json
-from typing import Any
+from copy import deepcopy
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.utils import camelcase_to_underscores
@@ -7,7 +9,19 @@ from moto.core.utils import camelcase_to_underscores
 from .models import EC2ContainerServiceBackend, ecs_backends
 
 
+def format_attributes(attributes: dict[str, str] | None) -> list[dict[str, str]] | None:
+    if attributes is None:
+        return None
+    formatted = [{"name": name, "value": value} for name, value in attributes.items()]
+    return formatted
+
+
 class EC2ContainerServiceResponse(BaseResponse):
+    RESPONSE_KEY_PATH_TO_TRANSFORMER = {
+        "containerInstance.attributes": format_attributes,
+        "ContainerInstance.attributes": format_attributes,
+    }
+
     def __init__(self) -> None:
         super().__init__(service_name="ecs")
         self.automated_parameter_parsing = True
@@ -21,7 +35,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         asg_provider = self._get_param("autoScalingGroupProvider")
         tags = self._get_param("tags")
         provider = self.ecs_backend.create_capacity_provider(name, asg_provider, tags)
-        return ActionResult({"capacityProvider": provider.response_object})
+        return ActionResult({"capacityProvider": provider})
 
     def create_cluster(self) -> ActionResult:
         cluster_name = self._get_param("clusterName")
@@ -44,7 +58,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             default_capacity_provider_strategy,
             service_connect_defaults=service_connect_defaults,
         )
-        return ActionResult({"cluster": cluster.response_object})
+        return ActionResult({"cluster": cluster})
 
     def list_clusters(self) -> ActionResult:
         cluster_arns = self.ecs_backend.list_clusters()
@@ -61,7 +75,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             configuration=configuration,
             service_connect_defaults=service_connect_defaults,
         )
-        return ActionResult({"cluster": cluster.response_object})
+        return ActionResult({"cluster": cluster})
 
     def put_cluster_capacity_providers(self) -> ActionResult:
         cluster_name = self._get_param("cluster")
@@ -72,44 +86,48 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster = self.ecs_backend.put_cluster_capacity_providers(
             cluster_name, capacity_providers, default_capacity_provider_strategy
         )
-        return ActionResult({"cluster": cluster.response_object})
+        return ActionResult({"cluster": cluster})
 
     def delete_capacity_provider(self) -> ActionResult:
         name = self._get_param("capacityProvider")
         provider = self.ecs_backend.delete_capacity_provider(name)
-        return ActionResult({"capacityProvider": provider.response_object})
+        return ActionResult({"capacityProvider": provider})
 
     def update_capacity_provider(self) -> ActionResult:
         name = self._get_param("name")
         asg_provider = self._get_param("autoScalingGroupProvider")
         provider = self.ecs_backend.update_capacity_provider(name, asg_provider)
-        return ActionResult({"capacityProvider": provider.response_object})
+        return ActionResult({"capacityProvider": provider})
 
     def describe_capacity_providers(self) -> ActionResult:
         names = self._get_param("capacityProviders")
         providers, failures = self.ecs_backend.describe_capacity_providers(names)
         return ActionResult(
             {
-                "capacityProviders": [p.response_object for p in providers],
-                "failures": [p.response_object for p in failures],
+                "capacityProviders": providers,
+                "failures": failures,
             }
         )
 
     def describe_clusters(self) -> ActionResult:
         names = self._get_param("clusters")
-        include = self._get_param("include")
-        clusters, failures = self.ecs_backend.describe_clusters(names, include)
+        include = self._get_param("include", [])
+        clusters, failures = self.ecs_backend.describe_clusters(names)
+        if "TAGS" not in include:
+            clusters = [deepcopy(c) for c in clusters]
+            for cluster in clusters:
+                delattr(cluster, "tags")
         return ActionResult(
             {
                 "clusters": clusters,
-                "failures": [cluster.response_object for cluster in failures],
+                "failures": failures,
             }
         )
 
     def delete_cluster(self) -> ActionResult:
         cluster_str = self._get_param("cluster")
         cluster = self.ecs_backend.delete_cluster(cluster_str)
-        return ActionResult({"cluster": cluster.response_object})
+        return ActionResult({"cluster": cluster})
 
     def register_task_definition(self) -> ActionResult:
         family = self._get_param("family")
@@ -149,7 +167,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             pid_mode=pid_mode,
             ephemeral_storage=ephemeral_storage,
         )
-        return ActionResult(task_definition.response_object)
+        return ActionResult({"taskDefinition": task_definition})
 
     def list_task_definitions(self) -> ActionResult:
         family_prefix = self._get_param("familyPrefix")
@@ -161,11 +179,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def describe_task_definition(self) -> ActionResult:
         task_definition_str = self._get_param("taskDefinition")
-        data = self.ecs_backend.describe_task_definition(task_definition_str)
-        resp: dict[str, Any] = data.response_object
-        resp["failures"] = []
+        task_definition = self.ecs_backend.describe_task_definition(task_definition_str)
+        resp = {"taskDefinition": task_definition, "failures": []}
         if "TAGS" in self._get_param("include", []):
-            resp["tags"] = self.ecs_backend.list_tags_for_resource(data.arn)
+            resp["tags"] = self.ecs_backend.list_tags_for_resource(task_definition.arn)
         return ActionResult(resp)
 
     def deregister_task_definition(self) -> ActionResult:
@@ -173,7 +190,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_definition = self.ecs_backend.deregister_task_definition(
             task_definition_str
         )
-        return ActionResult(task_definition.response_object)
+        return ActionResult({"taskDefinition": task_definition})
 
     def run_task(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -198,18 +215,16 @@ class EC2ContainerServiceResponse(BaseResponse):
             group,
             platform_version,
         )
-        return ActionResult(
-            {"tasks": [task.response_object() for task in tasks], "failures": []}
-        )
+        return ActionResult({"tasks": tasks, "failures": []})
 
     def describe_tasks(self) -> ActionResult:
         cluster = self._get_param("cluster", "default")
         tasks = self._get_param("tasks")
-        include_tags = "TAGS" in self._get_param("include", [])
-        data = self.ecs_backend.describe_tasks(cluster, tasks)
+        # include_tags = "TAGS" in self._get_param("include", [])
+        tasks = self.ecs_backend.describe_tasks(cluster, tasks)
         return ActionResult(
             {
-                "tasks": [task.response_object(include_tags) for task in data],
+                "tasks": tasks,
                 "failures": [],
             }
         )
@@ -231,9 +246,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             tags,
             group,
         )
-        return ActionResult(
-            {"tasks": [task.response_object() for task in tasks], "failures": []}
-        )
+        return ActionResult({"tasks": tasks, "failures": []})
 
     def list_tasks(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -257,7 +270,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         task = self._get_param("task")
         reason = self._get_param("reason")
         task = self.ecs_backend.stop_task(cluster_str, task, reason)
-        return ActionResult({"task": task.response_object()})
+        return ActionResult({"task": task})
 
     def create_service(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -290,7 +303,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             propagate_tags=propagate_tags,
             role_arn=role,
         )
-        return ActionResult({"service": service.response_object})
+        return ActionResult({"service": service})
 
     def list_services(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -307,15 +320,14 @@ class EC2ContainerServiceResponse(BaseResponse):
         services, failures = self.ecs_backend.describe_services(
             cluster_str, service_names
         )
+        if "TAGS" in self._get_param("include", []):
+            services = [deepcopy(service) for service in services]
+            for service in services:
+                service.tags = self.ecs_backend.list_tags_for_resource(service.arn)
         resp = {
-            "services": [service.response_object for service in services],
+            "services": services,
             "failures": failures,
         }
-        if "TAGS" in self._get_param("include", []):
-            for i, service in enumerate(services):
-                resp["services"][i]["tags"] = self.ecs_backend.list_tags_for_resource(
-                    service.arn
-                )
         return ActionResult(resp)
 
     def update_service(self) -> ActionResult:
@@ -325,14 +337,14 @@ class EC2ContainerServiceResponse(BaseResponse):
             parsed_props[camelcase_to_underscores(k)] = v
 
         service = self.ecs_backend.update_service(parsed_props)
-        return ActionResult({"service": service.response_object})
+        return ActionResult({"service": service})
 
     def delete_service(self) -> ActionResult:
         service_name = self._get_param("service")
         cluster_name = self._get_param("cluster", "default")
         force = self._get_param("force", False)
         service = self.ecs_backend.delete_service(cluster_name, service_name, force)
-        return ActionResult({"service": service.response_object})
+        return ActionResult({"service": service})
 
     def register_container_instance(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -342,7 +354,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         container_instance = self.ecs_backend.register_container_instance(
             cluster_str, ec2_instance_id
         )
-        return ActionResult({"containerInstance": container_instance.response_object})
+        return ActionResult({"containerInstance": container_instance})
 
     def deregister_container_instance(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -351,7 +363,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         container_instance = self.ecs_backend.deregister_container_instance(
             cluster_str, container_instance_str, force
         )
-        return ActionResult({"containerInstance": container_instance.response_object})
+        return ActionResult({"containerInstance": container_instance})
 
     def list_container_instances(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -366,10 +378,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
         return ActionResult(
             {
-                "failures": [ci.response_object for ci in failures],
-                "containerInstances": [
-                    ci.response_object for ci in container_instances
-                ],
+                "failures": failures,
+                "containerInstances": container_instances,
             }
         )
 
@@ -385,10 +395,8 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
         return ActionResult(
             {
-                "failures": [ci.response_object for ci in failures],
-                "containerInstances": [
-                    ci.response_object for ci in container_instances
-                ],
+                "failures": failures,
+                "containerInstances": container_instances,
             }
         )
 
@@ -489,7 +497,7 @@ class EC2ContainerServiceResponse(BaseResponse):
             client_token=client_token,
             tags=tags,
         )
-        return ActionResult({"taskSet": task_set.response_object})
+        return ActionResult({"taskSet": task_set})
 
     def describe_task_sets(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -499,11 +507,10 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_set_objs = self.ecs_backend.describe_task_sets(
             cluster_str, service_str, task_sets
         )
-
-        response_objs = [t.response_object for t in task_set_objs]
+        response_objs = [deepcopy(t) for t in task_set_objs]
         if "TAGS" not in include:
             for ro in response_objs:
-                del ro["tags"]
+                delattr(ro, "tags")
         return ActionResult({"taskSets": response_objs})
 
     def delete_task_set(self) -> ActionResult:
@@ -511,7 +518,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         service_str = self._get_param("service")
         task_set = self._get_param("taskSet")
         task_set = self.ecs_backend.delete_task_set(cluster_str, service_str, task_set)
-        return ActionResult({"taskSet": task_set.response_object})
+        return ActionResult({"taskSet": task_set})
 
     def update_task_set(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -522,7 +529,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_set = self.ecs_backend.update_task_set(
             cluster_str, service_str, task_set, scale
         )
-        return ActionResult({"taskSet": task_set.response_object})
+        return ActionResult({"taskSet": task_set})
 
     def update_service_primary_task_set(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -532,19 +539,19 @@ class EC2ContainerServiceResponse(BaseResponse):
         task_set = self.ecs_backend.update_service_primary_task_set(
             cluster_str, service_str, primary_task_set
         )
-        return ActionResult({"taskSet": task_set.response_object})
+        return ActionResult({"taskSet": task_set})
 
     def put_account_setting(self) -> ActionResult:
         name = self._get_param("name")
         value = self._get_param("value")
         account_setting = self.ecs_backend.put_account_setting(name, value)
-        return ActionResult({"setting": account_setting.response_object})
+        return ActionResult({"setting": account_setting})
 
     def list_account_settings(self) -> ActionResult:
         name = self._get_param("name")
         value = self._get_param("value")
         account_settings = self.ecs_backend.list_account_settings(name, value)
-        return ActionResult({"settings": [s.response_object for s in account_settings]})
+        return ActionResult({"settings": account_settings})
 
     def delete_account_setting(self) -> ActionResult:
         name = self._get_param("name")
@@ -558,10 +565,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
         return ActionResult(
             {
-                "taskDefinitions": [
-                    td.response_object["taskDefinition"]
-                    for td in deleted_task_definitions
-                ],
-                "failures": [f.response_object for f in failures],
+                "taskDefinitions": deleted_task_definitions,
+                "failures": failures,
             }
         )

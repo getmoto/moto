@@ -1216,8 +1216,7 @@ class EC2ContainerServiceBackend(BaseBackend):
     def describe_clusters(
         self,
         list_clusters_name: Optional[list[str]] = None,
-        include: Optional[list[str]] = None,
-    ) -> tuple[list[dict[str, Any]], list[ClusterFailure]]:
+    ) -> tuple[list[Cluster], list[ClusterFailure]]:
         """
         Only include=TAGS is currently supported.
         """
@@ -1225,22 +1224,18 @@ class EC2ContainerServiceBackend(BaseBackend):
         failures = []
         if list_clusters_name is None:
             if "default" in self.clusters:
-                list_clusters.append(self.clusters["default"].response_object)
+                list_clusters.append(self.clusters["default"])
         else:
             for cluster_name in list_clusters_name:
                 cluster_name = cluster_name.split("/")[-1]
                 if cluster_name in self.clusters:
-                    list_clusters.append(self.clusters[cluster_name].response_object)
+                    list_clusters.append(self.clusters[cluster_name])
                 else:
                     failures.append(
                         ClusterFailure(
                             "MISSING", cluster_name, self.account_id, self.region_name
                         )
                     )
-
-        if not include or "TAGS" not in (include):
-            for cluster in list_clusters:
-                cluster["tags"] = None
 
         return list_clusters, failures
 
