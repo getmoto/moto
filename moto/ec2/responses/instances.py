@@ -231,6 +231,7 @@ class InstanceResponse(EC2BaseResponse):
         if attribute_name == "GroupSet":
             attribute_name = "Groups"
             attribute_value = [{"GroupId": group.id} for group in value]
+        # TODO: Might be able to address this with a `moto-extras` model update.
         elif attribute_name == "UserData" and value:
             encoded_value = base64.b64encode(value).strip().decode("utf-8")
             attribute_value = {"Value": encoded_value}
