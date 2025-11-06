@@ -1242,7 +1242,7 @@
 
 ## cloudfront
 <details>
-<summary>15% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] associate_alias
 - [ ] associate_distribution_tenant_web_acl
@@ -1367,9 +1367,9 @@
 - [X] list_tags_for_resource
 - [ ] list_vpc_origins
 - [ ] publish_function
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_function
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
 - [ ] update_connection_group
@@ -2388,7 +2388,7 @@
 
 ## dms
 <details>
-<summary>13% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2423,7 +2423,7 @@
 - [ ] describe_account_attributes
 - [ ] describe_applicable_individual_assessments
 - [ ] describe_certificates
-- [ ] describe_connections
+- [X] describe_connections
 - [ ] describe_conversion_configuration
 - [ ] describe_data_migrations
 - [ ] describe_data_providers
@@ -2500,7 +2500,7 @@
 - [ ] stop_data_migration
 - [ ] stop_replication
 - [X] stop_replication_task
-- [ ] test_connection
+- [X] test_connection
 - [ ] update_subscriptions_to_event_bridge
 </details>
 
@@ -5432,7 +5432,7 @@
 
 ## kinesis
 <details>
-<summary>86% implemented</summary>
+<summary>79% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -5440,6 +5440,7 @@
 - [X] delete_resource_policy
 - [X] delete_stream
 - [X] deregister_stream_consumer
+- [ ] describe_account_settings
 - [X] describe_limits
 - [X] describe_stream
 - [X] describe_stream_consumer
@@ -5467,9 +5468,11 @@
 - [ ] subscribe_to_shard
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_account_settings
 - [ ] update_max_record_size
 - [X] update_shard_count
 - [X] update_stream_mode
+- [ ] update_stream_warm_throughput
 </details>
 
 ## kinesis-video-archived-media

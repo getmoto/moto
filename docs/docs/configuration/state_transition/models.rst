@@ -172,3 +172,26 @@ Transition type: Manual - describe the resource 1 time before the state advances
 Advancement:
 
     Call `boto3.client("ecs").describe_tasks(..)`
+
+Service: DMS
+---------------------
+
+**Model**: `dms::connection`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "testing" --> "success"
+
+Transition type: Manual - describe the resource 1 time before the state advances  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("dms").describe_connections(..)`
+
+**Model**: `dms::replicationinstance`  :raw-html:`<br />`
+Available States:  :raw-html:`<br />`
+
+    "creating" --> "available"   :raw-html:`<br />`
+
+Transition type: Manual - describe the resource 1 time before the state advances  :raw-html:`<br />`
+Advancement:
+
+    Call `boto3.client("dms").describe_replication_instance(..)`
