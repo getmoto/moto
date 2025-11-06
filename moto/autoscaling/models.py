@@ -947,19 +947,35 @@ class FakeAutoScalingGroup(CloudFormationModel):
         else:
             self.desired_capacity = new_capacity
 
-        curr_instance_count = len(self.active_instances())
+        # Measure of capacity depends on the request
+        if self.mixed_instances_policy and len(self.mixed_instances_policy.get('LaunchTemplate', {}).get('Overrides', [])):
+            # Use weighted capacities if using mixed instances
+            weights = self.mixed_instances_policy['LaunchTemplate']['Overrides']
 
-        if self.desired_capacity == curr_instance_count:
+            # Instance types are expected to be in priority order. Use the highest priority instance type
+            instance_type = weights[0]['InstanceType']
+            weighted_capacity = weights[0]['WeightedCapacity']
+
+            current_set_capacity = ...
+        else:
+            # Use number of instances
+            current_set_capacity = len(self.active_instances())
+
+        # Use bin packing?
+
+        count_delta = 0  # Represents the change in instance counts
+
+        if self.desired_capacity == current_set_capacity:
             pass  # Nothing to do here
-        elif self.desired_capacity > curr_instance_count:  # type: ignore[operator]
+        elif self.desired_capacity > current_set_capacity:  # type: ignore[operator]
             # Need more instances
-            count_needed = int(self.desired_capacity) - int(curr_instance_count)  # type: ignore[arg-type]
+            count_needed = int(self.desired_capacity) - int(current_set_capacity)  # type: ignore[arg-type]
 
             propagated_tags = self.get_propagated_tags()
             self.replace_autoscaling_group_instances(count_needed, propagated_tags)
         else:
             # Need to remove some instances
-            count_to_remove = curr_instance_count - self.desired_capacity  # type: ignore[operator]
+            count_to_remove = current_set_capacity - self.desired_capacity  # type: ignore[operator]
             instances_to_remove = [  # only remove unprotected
                 state
                 for state in self.instance_states
@@ -975,6 +991,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 self.instance_states = list(
                     set(self.instance_states) - set(instances_to_remove)
                 )
+
         if self.name in self.autoscaling_backend.autoscaling_groups:
             self.autoscaling_backend.update_attached_elbs(self.name)
             self.autoscaling_backend.update_attached_target_groups(self.name)
