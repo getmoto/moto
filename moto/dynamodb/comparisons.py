@@ -971,13 +971,11 @@ class AttributeValue(Operand):
                 return float(self.value)
         elif self.type in ["SS", "NS", "BS"]:
             sub_type = self.type[0]
-            return set([AttributeValue({sub_type: v}).expr(item) for v in self.value])
+            return {AttributeValue({sub_type: v}).expr(item) for v in self.value}
         elif self.type == "L":
             return [AttributeValue(v).expr(item) for v in self.value]
         elif self.type == "M":
-            return dict(
-                [(k, AttributeValue(v).expr(item)) for k, v in self.value.items()]
-            )
+            return {k: AttributeValue(v).expr(item) for k, v in self.value.items()}
         else:
             return self.value
         return self.value

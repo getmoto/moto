@@ -21,7 +21,7 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
                 stream_name=stream_name, stream_arn=stream_arn
             )
         )
-        return json.dumps(dict(HLSStreamingSessionURL=hls_streaming_session_url))
+        return json.dumps({"HLSStreamingSessionURL": hls_streaming_session_url})
 
     def get_dash_streaming_session_url(self) -> str:
         stream_name = self._get_param("StreamName")
@@ -31,7 +31,7 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
                 stream_name=stream_name, stream_arn=stream_arn
             )
         )
-        return json.dumps(dict(DASHStreamingSessionURL=dash_streaming_session_url))
+        return json.dumps({"DASHStreamingSessionURL": dash_streaming_session_url})
 
     def get_clip(self) -> tuple[bytes, dict[str, str]]:
         stream_name = self._get_param("StreamName")

@@ -459,7 +459,9 @@ class LambdaResponse(BaseResponse):
             version_number=version_number,
             statement=statement,
         )
-        return json.dumps(dict(Statement=json.dumps(statement), RevisionId=revision_id))
+        return json.dumps(
+            {"Statement": json.dumps(statement), "RevisionId": revision_id}
+        )
 
     def get_layer_version_policy(self) -> str:
         layer_name = self._get_param("LayerName")

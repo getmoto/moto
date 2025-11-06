@@ -87,7 +87,7 @@ def filter_model_cards(
             k: v for k, v in model_cards.items() if lowercase_name in k.lower()
         }
     else:
-        filtered_cards = {k: v for k, v in model_cards.items()}
+        filtered_cards = dict(model_cards.items())
 
     result: list[FakeModelCard] = []
     for _, versions in filtered_cards.items():

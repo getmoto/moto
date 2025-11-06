@@ -87,7 +87,7 @@ def test_get_all_groups():
     groups = conn.list_groups()["Groups"]
     assert len(groups) == 2
 
-    assert all([g["CreateDate"] for g in groups])
+    assert all(g["CreateDate"] for g in groups)
 
 
 @mock_aws

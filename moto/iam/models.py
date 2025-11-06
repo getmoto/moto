@@ -399,23 +399,18 @@ class ManagedPolicy(Policy, CloudFormationModel):
                 "description": self.description,
                 "createDate": str(self.create_date.isoformat()),
                 "updateDate": str(self.create_date.isoformat()),
-                "tags": list(
-                    map(
-                        lambda key: {"key": key, "value": self.tags[key]["Value"]},
-                        self.tags,
-                    )
-                ),
-                "policyVersionList": list(
-                    map(
-                        lambda version: {
-                            "document": parse.quote(version.document),
-                            "versionId": version.version_id,
-                            "isDefaultVersion": version.is_default,
-                            "createDate": str(version.create_date),
-                        },
-                        self.versions,
-                    )
-                ),
+                "tags": [
+                    {"key": key, "value": self.tags[key]["Value"]} for key in self.tags
+                ],
+                "policyVersionList": [
+                    {
+                        "document": parse.quote(version.document),
+                        "versionId": version.version_id,
+                        "isDefaultVersion": version.is_default,
+                        "createDate": str(version.create_date),
+                    }
+                    for version in self.versions
+                ],
             },
             "supplementaryConfiguration": {},
         }
@@ -637,10 +632,8 @@ class InlinePolicy(CloudFormationModel):
     def is_replacement_update(properties: list[str]) -> bool:
         properties_requiring_replacement_update: list[str] = []
         return any(
-            [
-                property_requiring_replacement in properties
-                for property_requiring_replacement in properties_requiring_replacement_update
-            ]
+            property_requiring_replacement in properties
+            for property_requiring_replacement in properties_requiring_replacement_update
         )
 
     @property
@@ -1239,10 +1232,8 @@ class AccessKey(CloudFormationModel):
     def is_replacement_update(properties: list[str]) -> bool:
         properties_requiring_replacement_update = ["Serial", "UserName"]
         return any(
-            [
-                property_requiring_replacement in properties
-                for property_requiring_replacement in properties_requiring_replacement_update
-            ]
+            property_requiring_replacement in properties
+            for property_requiring_replacement in properties_requiring_replacement_update
         )
 
     @property
@@ -1460,11 +1451,9 @@ class User(CloudFormationModel):
 
     def has_access_key(self, access_key_id: str) -> bool:
         return any(
-            [
-                access_key
-                for access_key in self.access_keys
-                if access_key.access_key_id == access_key_id
-            ]
+            access_key
+            for access_key in self.access_keys
+            if access_key.access_key_id == access_key_id
         )
 
     def upload_ssh_public_key(self, ssh_public_key_body: str) -> SshPublicKey:
@@ -1664,10 +1653,8 @@ class User(CloudFormationModel):
     def is_replacement_update(properties: list[str]) -> bool:
         properties_requiring_replacement_update = ["UserName"]
         return any(
-            [
-                property_requiring_replacement in properties
-                for property_requiring_replacement in properties_requiring_replacement_update
-            ]
+            property_requiring_replacement in properties
+            for property_requiring_replacement in properties_requiring_replacement_update
         )
 
     @property
@@ -1929,7 +1916,7 @@ class IAMBackend(BaseBackend):
         ]
 
     def _init_managed_policies(self) -> dict[str, ManagedPolicy]:
-        return dict((p.arn, p) for p in self.aws_managed_policies)
+        return {p.arn: p for p in self.aws_managed_policies}
 
     def initialize_service_roles(self) -> None:
         pass
@@ -1943,7 +1930,7 @@ class IAMBackend(BaseBackend):
         # )
 
     def attach_role_policy(self, policy_arn: str, role_name: str) -> None:
-        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        arns = {p.arn: p for p in self.managed_policies.values()}
         try:
             policy = arns[policy_arn]
         except KeyError:
@@ -1984,7 +1971,7 @@ class IAMBackend(BaseBackend):
         role.permissions_boundary_arn = None
 
     def detach_role_policy(self, policy_arn: str, role_name: str) -> None:
-        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        arns = {p.arn: p for p in self.managed_policies.values()}
         try:
             policy = arns[policy_arn]
             if policy.arn not in self.get_role(role_name).managed_policies.keys():
@@ -1994,7 +1981,7 @@ class IAMBackend(BaseBackend):
         policy.detach_from(self.get_role(role_name))
 
     def attach_group_policy(self, policy_arn: str, group_name: str) -> None:
-        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        arns = {p.arn: p for p in self.managed_policies.values()}
         try:
             policy = arns[policy_arn]
         except KeyError:
@@ -2004,7 +1991,7 @@ class IAMBackend(BaseBackend):
         policy.attach_to(self.get_group(group_name))
 
     def detach_group_policy(self, policy_arn: str, group_name: str) -> None:
-        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        arns = {p.arn: p for p in self.managed_policies.values()}
         try:
             policy = arns[policy_arn]
             if policy.arn not in self.get_group(group_name).managed_policies.keys():
@@ -2014,7 +2001,7 @@ class IAMBackend(BaseBackend):
         policy.detach_from(self.get_group(group_name))
 
     def attach_user_policy(self, policy_arn: str, user_name: str) -> None:
-        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        arns = {p.arn: p for p in self.managed_policies.values()}
         try:
             policy = arns[policy_arn]
         except KeyError:
@@ -2024,7 +2011,7 @@ class IAMBackend(BaseBackend):
         policy.attach_to(self.get_user(user_name))
 
     def detach_user_policy(self, policy_arn: str, user_name: str) -> None:
-        arns = dict((p.arn, p) for p in self.managed_policies.values())
+        arns = {p.arn: p for p in self.managed_policies.values()}
         try:
             policy = arns[policy_arn]
             if policy.arn not in self.get_user(user_name).managed_policies.keys():

@@ -54,12 +54,12 @@ def test_role_resource_returns_subset_of_available_attributes(specify_optional_p
     boundary_policy_arn = resp["Policy"]["Arn"]
     try:
         path = f"/{test_guid}/"
-        create_role_params: dict[str, Any] = dict(
-            Path=path,
-            RoleName=role_name,
-            AssumeRolePolicyDocument=json.dumps(role_policy),
-            Description="test",
-        )
+        create_role_params: dict[str, Any] = {
+            "Path": path,
+            "RoleName": role_name,
+            "AssumeRolePolicyDocument": json.dumps(role_policy),
+            "Description": "test",
+        }
         if specify_optional_params:
             create_role_params["PermissionsBoundary"] = boundary_policy_arn
             create_role_params["Tags"] = DEFAULT_TAGS
@@ -120,10 +120,10 @@ def test_user_resource_returns_subset_of_available_attributes(specify_optional_p
     boundary_policy_arn = resp["Policy"]["Arn"]
     try:
         path = f"/{test_guid}/"
-        create_user_params: dict[str, Any] = dict(
-            Path=path,
-            UserName=user_name,
-        )
+        create_user_params: dict[str, Any] = {
+            "Path": path,
+            "UserName": user_name,
+        }
         if specify_optional_params:
             create_user_params["PermissionsBoundary"] = boundary_policy_arn
             create_user_params["Tags"] = DEFAULT_TAGS
@@ -182,11 +182,11 @@ def test_policy_resource_returns_subset_of_available_attributes(
     try:
         policy_name = "TestPolicy" + test_guid
         path = f"/{test_guid}/"
-        create_policy_params: dict[str, Any] = dict(
-            Path=path,
-            PolicyName=policy_name,
-            PolicyDocument=json.dumps(BOUNDARY_POLICY),
-        )
+        create_policy_params: dict[str, Any] = {
+            "Path": path,
+            "PolicyName": policy_name,
+            "PolicyDocument": json.dumps(BOUNDARY_POLICY),
+        }
         if specify_optional_params:
             create_policy_params["Description"] = "test description"
             create_policy_params["Tags"] = DEFAULT_TAGS

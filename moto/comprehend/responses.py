@@ -24,7 +24,7 @@ class ComprehendResponse(BaseResponse):
         _filter = params.get("Filter", {})
         recognizers = self.comprehend_backend.list_entity_recognizers(_filter=_filter)
         return json.dumps(
-            dict(EntityRecognizerPropertiesList=[r.to_dict() for r in recognizers])
+            {"EntityRecognizerPropertiesList": [r.to_dict() for r in recognizers]}
         )
 
     def create_entity_recognizer(self) -> str:
@@ -51,7 +51,7 @@ class ComprehendResponse(BaseResponse):
             model_kms_key_id=model_kms_key_id,
             model_policy=model_policy,
         )
-        return json.dumps(dict(EntityRecognizerArn=entity_recognizer_arn))
+        return json.dumps({"EntityRecognizerArn": entity_recognizer_arn})
 
     def describe_entity_recognizer(self) -> str:
         params = json.loads(self.body)
@@ -59,7 +59,7 @@ class ComprehendResponse(BaseResponse):
         recognizer = self.comprehend_backend.describe_entity_recognizer(
             entity_recognizer_arn=entity_recognizer_arn,
         )
-        return json.dumps(dict(EntityRecognizerProperties=recognizer.to_dict()))
+        return json.dumps({"EntityRecognizerProperties": recognizer.to_dict()})
 
     def stop_training_entity_recognizer(self) -> str:
         params = json.loads(self.body)
@@ -67,7 +67,7 @@ class ComprehendResponse(BaseResponse):
         self.comprehend_backend.stop_training_entity_recognizer(
             entity_recognizer_arn=entity_recognizer_arn,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
@@ -75,7 +75,7 @@ class ComprehendResponse(BaseResponse):
         tags = self.comprehend_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(ResourceArn=resource_arn, Tags=tags))
+        return json.dumps({"ResourceArn": resource_arn, "Tags": tags})
 
     def delete_entity_recognizer(self) -> str:
         params = json.loads(self.body)
@@ -104,14 +104,14 @@ class ComprehendResponse(BaseResponse):
         text = params.get("Text")
         language = params.get("LanguageCode")
         resp = self.comprehend_backend.detect_pii_entities(text, language)
-        return json.dumps(dict(Entities=resp))
+        return json.dumps({"Entities": resp})
 
     def detect_key_phrases(self) -> str:
         params = json.loads(self.body)
         text = params.get("Text")
         language = params.get("LanguageCode")
         resp = self.comprehend_backend.detect_key_phrases(text, language)
-        return json.dumps(dict(KeyPhrases=resp))
+        return json.dumps({"KeyPhrases": resp})
 
     def detect_sentiment(self) -> str:
         params = json.loads(self.body)
@@ -152,7 +152,7 @@ class ComprehendResponse(BaseResponse):
             model_policy=model_policy,
         )
 
-        return json.dumps(dict(DocumentClassifierArn=document_classifier_arn))
+        return json.dumps({"DocumentClassifierArn": document_classifier_arn})
 
     def create_endpoint(self) -> str:
         params = json.loads(self.body)
@@ -173,7 +173,7 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict(EndpointArn=endpoint_arn, ModelArn=model_arn))
+        return json.dumps({"EndpointArn": endpoint_arn, "ModelArn": model_arn})
 
     def create_flywheel(self) -> str:
         params = json.loads(self.body)
@@ -199,7 +199,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(FlywheelArn=flywheel_arn, activeModelArn=active_model_arn)
+            {"FlywheelArn": flywheel_arn, "activeModelArn": active_model_arn}
         )
 
     def describe_document_classifier(self) -> str:
@@ -210,7 +210,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(DocumentClassifierProperties=document_classifier.to_dict())
+            {"DocumentClassifierProperties": document_classifier.to_dict()}
         )
 
     def describe_endpoint(self) -> str:
@@ -220,7 +220,7 @@ class ComprehendResponse(BaseResponse):
             endpoint_arn=endpoint_arn,
         )
 
-        return json.dumps(dict(EndpointProperties=endpoint_properties.to_dict()))
+        return json.dumps({"EndpointProperties": endpoint_properties.to_dict()})
 
     def describe_flywheel(self) -> str:
         params = json.loads(self.body)
@@ -229,7 +229,7 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict(FlywheelProperties=flywheel_properties.to_dict()))
+        return json.dumps({"FlywheelProperties": flywheel_properties.to_dict()})
 
     def delete_document_classifier(self) -> str:
         params = json.loads(self.body)
@@ -238,7 +238,7 @@ class ComprehendResponse(BaseResponse):
             document_classifier_arn=document_classifier_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_endpoint(self) -> str:
         params = json.loads(self.body)
@@ -247,7 +247,7 @@ class ComprehendResponse(BaseResponse):
             endpoint_arn=endpoint_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_flywheel(self) -> str:
         params = json.loads(self.body)
@@ -256,7 +256,7 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_document_classifiers(self) -> str:
         params = json.loads(self.body)
@@ -272,10 +272,10 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                DocumentClassifierPropertiesList=document_classifier_properties_list,
-                NextToken=next_token,
-            )
+            {
+                "DocumentClassifierPropertiesList": document_classifier_properties_list,
+                "NextToken": next_token,
+            }
         )
 
     def list_endpoints(self) -> str:
@@ -290,7 +290,10 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(EndpointPropertiesList=endpoint_properties_list, NextToken=next_token)
+            {
+                "EndpointPropertiesList": endpoint_properties_list,
+                "NextToken": next_token,
+            }
         )
 
     def list_flywheels(self) -> str:
@@ -305,7 +308,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(FlywheelSummaryList=flywheel_summary_list, nextToken=next_token)
+            {"FlywheelSummaryList": flywheel_summary_list, "nextToken": next_token}
         )
 
     def stop_training_document_classifier(self) -> str:
@@ -315,7 +318,7 @@ class ComprehendResponse(BaseResponse):
             document_classifier_arn=document_classifier_arn,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def start_flywheel_iteration(self) -> str:
         params = json.loads(self.body)
@@ -329,7 +332,7 @@ class ComprehendResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(FlywheelArn=flywheel_arn, FlywheelIterationId=flywheel_iteration_id)
+            {"FlywheelArn": flywheel_arn, "FlywheelIterationId": flywheel_iteration_id}
         )
 
     def update_endpoint(self) -> str:
@@ -347,7 +350,7 @@ class ComprehendResponse(BaseResponse):
             flywheel_arn=flywheel_arn,
         )
 
-        return json.dumps(dict(DesiredModelArn=desired_model_arn))
+        return json.dumps({"DesiredModelArn": desired_model_arn})
 
     def _job_to_dict_resp(self, job_properties: dict[str, Any]) -> str:
         job_type_key = job_properties.pop("job_type")

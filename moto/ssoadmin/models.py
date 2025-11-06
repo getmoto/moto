@@ -75,8 +75,8 @@ class PermissionSet(BaseModel):
         self.tags = tags
         self.created_date = unix_time()
         self.inline_policy = ""
-        self.managed_policies: list[ManagedPolicy] = list()
-        self.customer_managed_policies: list[CustomerManagedPolicy] = list()
+        self.managed_policies: list[ManagedPolicy] = []
+        self.customer_managed_policies: list[CustomerManagedPolicy] = []
         self.total_managed_policies_attached = (
             0  # this will also include customer managed policies
         )
@@ -149,9 +149,9 @@ class SSOAdminBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.account_assignments: list[AccountAssignment] = list()
-        self.deleted_account_assignments: list[AccountAssignment] = list()
-        self.permission_sets: list[PermissionSet] = list()
+        self.account_assignments: list[AccountAssignment] = []
+        self.deleted_account_assignments: list[AccountAssignment] = []
+        self.permission_sets: list[PermissionSet] = []
         self.aws_managed_policies: Optional[dict[str, Any]] = None
         self.instances: list[Instance] = []
 

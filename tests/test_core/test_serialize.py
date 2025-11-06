@@ -206,7 +206,7 @@ class TestXFormedAttributePicker:
     picker = XFormedAttributePicker()
 
     def test_missing_attribute(self):
-        obj = dict()
+        obj = {}
         ctx = AttributePickerContext(obj, "Attribute", None)
         value = self.picker(ctx)
         assert value is None

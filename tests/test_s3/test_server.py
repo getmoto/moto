@@ -247,7 +247,7 @@ def test_s3_server_post_cors():
     )
     assert res.status_code in [200, 204]
 
-    expected_methods = set(["DELETE", "PATCH", "PUT", "GET", "HEAD", "POST", "OPTIONS"])
+    expected_methods = {"DELETE", "PATCH", "PUT", "GET", "HEAD", "POST", "OPTIONS"}
     assert (
         set(res.headers["Access-Control-Allow-Methods"].split(", ")) == expected_methods
     )

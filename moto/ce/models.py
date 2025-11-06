@@ -75,7 +75,7 @@ class CostExplorerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.cost_categories: dict[str, CostCategoryDefinition] = dict()
+        self.cost_categories: dict[str, CostCategoryDefinition] = {}
         self.cost_usage_results_queue: list[dict[str, Any]] = []
         self.cost_usage_results: dict[str, dict[str, Any]] = {}
         self.tagger = TaggingService()

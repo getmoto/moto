@@ -121,7 +121,7 @@ class LowercaseDict(MutableMapping[str, Any]):
     """A dictionary that lowercases all keys"""
 
     def __init__(self, *args: Any, **kwargs: Any):
-        self.store: dict[str, Any] = dict()
+        self.store: dict[str, Any] = {}
         self.update(dict(*args, **kwargs))  # use the free update to set keys
 
     def __getitem__(self, key: str) -> Any:

@@ -680,7 +680,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         try:
             self._authenticate_and_authorize_normal_action(resource)
         except HTTPException as http_error:
-            response = http_error.description, dict(status=http_error.code)
+            response = http_error.description, {"status": http_error.code}
             status, headers, body = self._transform_response(headers, response)
             headers, body = self._enrich_response(headers, body)
 
@@ -816,7 +816,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         skip_result_conversion: bool = False,
         tracked_prefixes: Optional[set[str]] = None,
     ) -> Any:
-        value_dict: Any = dict()
+        value_dict: Any = {}
         tracked_prefixes = (
             tracked_prefixes or set()
         )  # prefixes which have already been processed
@@ -904,28 +904,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
 
         return values
 
-    def _get_dict_param(self, param_prefix: str) -> dict[str, Any]:
-        """
-        Given a parameter dict of
-        {
-            'Instances.SlaveInstanceType': ['m1.small'],
-            'Instances.InstanceCount': ['1']
-        }
-
-        returns
-        {
-            "slave_instance_type": "m1.small",
-            "instance_count": "1",
-        }
-        """
-        params: dict[str, Any] = {}
-        for key, value in self.querystring.items():
-            if key.startswith(param_prefix):
-                params[camelcase_to_underscores(key.replace(param_prefix, ""))] = value[
-                    0
-                ]
-        return params
-
     def _get_params(self) -> dict[str, Any]:
         """
         Given a querystring of
@@ -1003,51 +981,12 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             obj[keylist[-1]] = value
 
-    def _get_list_prefix(self, param_prefix: str) -> list[dict[str, Any]]:
-        """
-        Given a query dict like
-        {
-            'Steps.member.1.Name': ['example1'],
-            'Steps.member.1.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
-            'Steps.member.1.HadoopJarStep.Jar': ['streaming1.jar'],
-            'Steps.member.2.Name': ['example2'],
-            'Steps.member.2.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
-            'Steps.member.2.HadoopJarStep.Jar': ['streaming2.jar'],
-        }
-
-        returns
-        [{
-            'name': u'example1',
-            'action_on_failure': u'TERMINATE_JOB_FLOW',
-            'hadoop_jar_step._jar': u'streaming1.jar',
-        }, {
-            'name': u'example2',
-            'action_on_failure': u'TERMINATE_JOB_FLOW',
-            'hadoop_jar_step._jar': u'streaming2.jar',
-        }]
-        """
-        results = []
-        param_index = 1
-        while True:
-            index_prefix = f"{param_prefix}.{param_index}."
-            new_items = {}
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    new_items[
-                        camelcase_to_underscores(key.replace(index_prefix, ""))
-                    ] = value[0]
-            if not new_items:
-                break
-            results.append(new_items)
-            param_index += 1
-        return results
-
     @property
     def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
 
     def error_on_dryrun(self) -> None:
-        if "true" in self.querystring.get("DryRun", ["false"]):
-            a = self._get_param("Action")
+        if self._get_param("DryRun", False):
+            a = self._get_action()
             message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
             raise DryRunClientError(error_type="DryRunOperation", message=message)

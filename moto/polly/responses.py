@@ -26,7 +26,7 @@ class PollyResponse(BaseResponse):
         return self._json
 
     def _error(self, code: str, message: str) -> tuple[str, dict[str, int]]:
-        return json.dumps({"__type": code, "message": message}), dict(status=400)
+        return json.dumps({"__type": code, "message": message}), {"status": 400}
 
     def _get_action(self) -> str:
         # Amazon is now naming things /v1/api_name
@@ -45,7 +45,7 @@ class PollyResponse(BaseResponse):
                 f"1 validation error detected: Value '{language_code}' at 'languageCode' failed to satisfy constraint: "
                 f"Member must satisfy enum value set: [{all_codes}]"
             )
-            return msg, dict(status=400)
+            return msg, {"status": 400}
 
         voices = self.polly_backend.describe_voices(language_code)
 

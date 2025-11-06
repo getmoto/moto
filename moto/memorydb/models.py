@@ -347,7 +347,7 @@ class MemoryDBBackend(BaseBackend):
         super().__init__(region_name, account_id)
 
         self.ec2_backend = ec2_backends[account_id][region_name]
-        self.clusters: dict[str, MemoryDBCluster] = dict()
+        self.clusters: dict[str, MemoryDBCluster] = {}
         self.subnet_groups: dict[str, MemoryDBSubnetGroup] = {
             "default": MemoryDBSubnetGroup(
                 region_name,
@@ -358,7 +358,7 @@ class MemoryDBBackend(BaseBackend):
                 self.get_default_subnets(),
             )
         }
-        self.snapshots: dict[str, MemoryDBSnapshot] = dict()
+        self.snapshots: dict[str, MemoryDBSnapshot] = {}
         self.tagger = TaggingService()
 
     def get_default_subnets(self) -> list[str]:
@@ -498,7 +498,7 @@ class MemoryDBBackend(BaseBackend):
         if cluster_name:
             if cluster_name in self.clusters:
                 cluster = self.clusters[cluster_name]
-                return list([cluster])
+                return [cluster]
             else:
                 raise ClusterNotFoundFault(msg=f"Cluster {cluster_name} not found")
         clusters = list(self.clusters.values())
@@ -558,7 +558,7 @@ class MemoryDBBackend(BaseBackend):
     ) -> list[MemoryDBSubnetGroup]:
         if subnet_group_name:
             if subnet_group_name in self.subnet_groups:
-                return list([self.subnet_groups[subnet_group_name]])
+                return [self.subnet_groups[subnet_group_name]]
             raise SubnetGroupNotFoundFault(
                 msg=f"Subnet group {subnet_group_name} not found."
             )

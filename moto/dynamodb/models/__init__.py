@@ -215,7 +215,7 @@ class DynamoDBBackend(BaseBackend):
     def update_table_global_indexes(
         self, table: Table, global_index_updates: list[dict[str, Any]]
     ) -> None:
-        gsis_by_name = dict((i.name, i) for i in table.global_indexes)
+        gsis_by_name = {i.name: i for i in table.global_indexes}
         for gsi_update in global_index_updates:
             gsi_to_create = gsi_update.get("Create")
             gsi_to_update = gsi_update.get("Update")
@@ -319,7 +319,7 @@ class DynamoDBBackend(BaseBackend):
         table = self.get_table(table_name)
         if index_name:
             all_indexes = (table.global_indexes or []) + (table.indexes or [])
-            indexes_by_name = dict((i.name, i) for i in all_indexes)
+            indexes_by_name = {i.name: i for i in all_indexes}
             if index_name not in indexes_by_name:
                 all_index_names = ", ".join(indexes_by_name.keys())
                 raise ResourceNotFoundException(
@@ -331,17 +331,16 @@ class DynamoDBBackend(BaseBackend):
             return table.schema
 
     def get_table(self, table_name: str) -> Table:
-        table = next(
-            (
-                t
-                for t in self.tables.values()
-                if t.name == table_name or t.table_arn == table_name
-            ),
-            None,
-        )
-        if not table:
-            raise ResourceNotFoundException()
-        return table
+        # Find table by name
+        if table := self.tables.get(table_name):
+            return table
+        # Find table by ARN
+        # List of tables might change during this operation, so we have to be defensive about this
+        table_names = list(self.tables.keys())
+        for name in table_names:
+            if (table := self.tables.get(name)) and table.table_arn == table_name:
+                return table
+        raise ResourceNotFoundException()
 
     def get_item(
         self,
@@ -599,7 +598,15 @@ class DynamoDBBackend(BaseBackend):
         if len(transact_items) > 100:
             raise TooManyTransactionsException()
         # Create a backup in case any of the transactions fail
-        original_table_state = copy.deepcopy(self.tables)
+        original_table_state: dict[str, Table] = {}
+        for item in transact_items:
+            _, op = next(iter(item.items()))
+            table_name = op.get("TableName")
+            if table_name and table_name in self.tables:
+                original_table_state[table_name] = copy.deepcopy(
+                    self.tables[table_name]
+                )
+
         target_items: set[tuple[str, str]] = set()
 
         def check_unicity(table_name: str, key: dict[str, Any]) -> None:
@@ -686,7 +693,8 @@ class DynamoDBBackend(BaseBackend):
                 errors.append((None, None, None))
             except (MultipleTransactionsException, MockValidationException):
                 # Rollback to the original state, and reraise the error
-                self.tables = original_table_state
+                for table_name in original_table_state:
+                    self.tables[table_name] = original_table_state[table_name]
                 raise
             except ConditionalCheckFailed as e:
                 errors.append(("ConditionalCheckFailed", str(e.message), original_item))  # type: ignore
@@ -694,9 +702,10 @@ class DynamoDBBackend(BaseBackend):
                 # For other exceptions, capture their details
                 errors.append((type(e).__name__, str(e), original_item))  # type: ignore
 
-        if any([code is not None for code, _, _ in errors]):
+        if any(code is not None for code, _, _ in errors):
             # Rollback to the original state, and reraise the errors
-            self.tables = original_table_state
+            for table_name in original_table_state:
+                self.tables[table_name] = original_table_state[table_name]
             raise TransactionCanceledException(errors)
 
     def describe_continuous_backups(self, table_name: str) -> dict[str, Any]:
@@ -836,7 +845,7 @@ class DynamoDBBackend(BaseBackend):
         """
         # We need to execute a statement - but we don't know which table
         # Just pass all tables to PartiQL
-        source_data: dict[str, list[Any]] = dict()
+        source_data: dict[str, list[Any]] = {}
         for table in self.tables.values():
             source_data[table.name] = [  # type: ignore
                 item.to_json()["Attributes"] for item in table.all_items()

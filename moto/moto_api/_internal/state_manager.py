@@ -5,8 +5,8 @@ DEFAULT_TRANSITION = {"progression": "immediate"}
 
 class StateManager:
     def __init__(self) -> None:
-        self._default_transitions: dict[str, dict[str, Any]] = dict()
-        self._transitions: dict[str, dict[str, Any]] = dict()
+        self._default_transitions: dict[str, dict[str, Any]] = {}
+        self._transitions: dict[str, dict[str, Any]] = {}
 
     def register_default_transition(
         self, model_name: str, transition: dict[str, Any]

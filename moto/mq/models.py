@@ -75,7 +75,7 @@ class Configuration(BaseModel):
         self.engine_type = engine_type
         self.engine_version = engine_version
 
-        self.revisions: dict[str, ConfigurationRevision] = dict()
+        self.revisions: dict[str, ConfigurationRevision] = {}
         default_desc = (
             f"Auto-generated default for {self.name} on {engine_type} {engine_version}"
         )
@@ -205,7 +205,7 @@ class Broker(BaseModel):
             else:
                 self.subnet_ids = ["default-subnet"]
 
-        self._users: dict[str, User] = dict()
+        self._users: dict[str, User] = {}
         for user in users:
             self.create_user(
                 username=user["username"],
@@ -313,8 +313,8 @@ class MQBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.brokers: dict[str, Broker] = dict()
-        self.configs: dict[str, Configuration] = dict()
+        self.brokers: dict[str, Broker] = {}
+        self.configs: dict[str, Configuration] = {}
         self.tagger = TaggingService()
 
     def create_broker(

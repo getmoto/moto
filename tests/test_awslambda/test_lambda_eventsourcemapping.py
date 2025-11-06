@@ -224,7 +224,7 @@ def test_invoke_function_from_dynamodb_put():
         expected_msg + " was not found after a DDB insert. All logs: " + str(all_logs)
     )
     assert any(
-        [json.dumps(item_to_create, separators=(",", ":")) in msg for msg in all_logs]
+        json.dumps(item_to_create, separators=(",", ":")) in msg for msg in all_logs
     )
 
 

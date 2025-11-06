@@ -181,9 +181,9 @@ class ServiceDiscoveryBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.operations: dict[str, Operation] = dict()
-        self.namespaces: dict[str, Namespace] = dict()
-        self.services: dict[str, Service] = dict()
+        self.operations: dict[str, Operation] = {}
+        self.namespaces: dict[str, Namespace] = {}
+        self.services: dict[str, Service] = {}
         self.tagger = TaggingService()
 
     def list_namespaces(self) -> Iterable[Namespace]:

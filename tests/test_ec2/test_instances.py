@@ -301,7 +301,7 @@ def test_get_instances_by_id():
     reservation = reservations[0]
     assert len(reservation["Instances"]) == 2
     instance_ids = [instance["InstanceId"] for instance in reservation["Instances"]]
-    assert set(instance_ids) == set([instance1.id, instance2.id])
+    assert set(instance_ids) == {instance1.id, instance2.id}
 
     # Call describe_instances with a bad id should raise an error
     with pytest.raises(ClientError) as ex:
@@ -1418,14 +1418,14 @@ def test_run_instance_with_nic_autocreated():
 
     assert instance.subnet_id == subnet.id
     assert len(instance.security_groups) == 2
-    assert set([group["GroupId"] for group in instance.security_groups]) == {
+    assert {group["GroupId"] for group in instance.security_groups} == {
         security_group1.id,
         security_group2.id,
     }
 
     assert eni["SubnetId"] == subnet.id
     assert len(eni["Groups"]) == 2
-    assert set([group["GroupId"] for group in eni["Groups"]]) == {
+    assert {group["GroupId"] for group in eni["Groups"]} == {
         security_group1.id,
         security_group2.id,
     }
@@ -1476,7 +1476,7 @@ def test_run_instance_with_nic_preexisting():
 
     assert instance_eni["SubnetId"] == subnet.id
     assert len(instance_eni["Groups"]) == 2
-    assert set([group["GroupId"] for group in instance_eni["Groups"]]) == {
+    assert {group["GroupId"] for group in instance_eni["Groups"]} == {
         security_group1.id,
         security_group2.id,
     }
@@ -1519,7 +1519,7 @@ def test_run_instance_with_new_nic_and_security_groups():
     instance_eni = instance_enis[0]
 
     assert len(instance_eni["Groups"]) == 2
-    assert set([group["GroupId"] for group in instance_eni["Groups"]]) == {
+    assert {group["GroupId"] for group in instance_eni["Groups"]} == {
         security_group1.id,
         security_group2.id,
     }
@@ -1578,7 +1578,7 @@ def test_instance_with_nic_attach_detach():
     instance_eni = instance.network_interfaces_attribute[1]
     assert instance_eni["NetworkInterfaceId"] == eni_id
     assert len(instance_eni["Groups"]) == 2
-    assert set([group["GroupId"] for group in instance_eni["Groups"]]) == {
+    assert {group["GroupId"] for group in instance_eni["Groups"]} == {
         security_group1.id,
         security_group2.id,
     }
@@ -1587,7 +1587,7 @@ def test_instance_with_nic_attach_detach():
         Filters=[{"Name": "network-interface-id", "Values": [eni_id]}]
     )["NetworkInterfaces"][0]
     assert len(eni["Groups"]) == 2
-    assert set([group["GroupId"] for group in eni["Groups"]]) == {
+    assert {group["GroupId"] for group in eni["Groups"]} == {
         security_group1.id,
         security_group2.id,
     }
@@ -2552,7 +2552,7 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
     # We could have other warnings in this method, coming from botocore for instance
     # But we should not receive a warning that the AMI could not be found
     messages = [str(w.message) for w in ws]
-    assert all(["Could not find AMI" not in msg for msg in messages])
+    assert all("Could not find AMI" not in msg for msg in messages)
 
 
 @mock_aws

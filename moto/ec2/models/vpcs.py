@@ -1084,7 +1084,7 @@ class VPCBackend:
             if len(vpc_end_points) != len(vpc_end_point_ids):
                 invalid_id = list(
                     set(vpc_end_point_ids).difference(
-                        set([vpc_end_point.id for vpc_end_point in vpc_end_points])
+                        {vpc_end_point.id for vpc_end_point in vpc_end_points}
                     )
                 )[0]
                 raise InvalidVpcEndPointIdError(invalid_id)
@@ -1210,7 +1210,9 @@ class VPCBackend:
 
                 elif filter_item["Name"] == "service-type":
                     service_types = {x["ServiceType"] for x in service["ServiceType"]}
-                    if not service_types & set(filter_item["Value"]):
+                    if not service_types & set(
+                        filter_item.get("Value", []) + filter_item.get("Values", [])
+                    ):
                         matched = False
 
                 elif filter_item["Name"] == "tag-key" or filter_item["Name"].startswith(

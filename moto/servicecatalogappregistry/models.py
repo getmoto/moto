@@ -32,10 +32,10 @@ class Application(BaseModel):
         self.description = description
         self.creationTime = datetime.datetime.now()
         self.lastUpdateTime = self.creationTime
-        self.tags: dict[str, str] = dict()
+        self.tags: dict[str, str] = {}
         self.applicationTag: dict[str, str] = {"awsApplication": self.arn}
 
-        self.associated_resources: dict[str, AssociatedResource] = dict()
+        self.associated_resources: dict[str, AssociatedResource] = {}
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -120,7 +120,7 @@ class AppRegistryBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.applications: dict[str, Application] = dict()
+        self.applications: dict[str, Application] = {}
         self.tagger = TaggingService()
         self.configuration: dict[str, Any] = {"tagQueryConfiguration": {}}
 

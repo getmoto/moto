@@ -12,7 +12,7 @@ class VPNConnections(EC2BaseResponse):
         cgw_id = self._get_param("CustomerGatewayId")
         vgw_id = self._get_param("VpnGatewayId")
         tgw_id = self._get_param("TransitGatewayId")
-        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
         vpn_connection = self.ec2_backend.create_vpn_connection(
             vpn_conn_type,
             cgw_id,
@@ -40,7 +40,7 @@ class VPNConnections(EC2BaseResponse):
         return EmptyResult()
 
     def describe_vpn_connections(self) -> str:
-        vpn_connection_ids = self._get_multi_param("VpnConnectionId")
+        vpn_connection_ids = self._get_param("VpnConnectionIds", [])
         filters = self._filters_from_querystring()
         vpn_connections = self.ec2_backend.describe_vpn_connections(
             vpn_connection_ids=vpn_connection_ids, filters=filters

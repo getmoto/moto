@@ -1218,9 +1218,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         self._errors: list[str] = []
         self._documents: dict[str, Documents] = {}
 
-        self.windows: dict[str, FakeMaintenanceWindow] = dict()
-        self.baselines: dict[str, FakePatchBaseline] = dict()
-        self.patch_groups: dict[str, FakePatchGroup] = dict()
+        self.windows: dict[str, FakeMaintenanceWindow] = {}
+        self.baselines: dict[str, FakePatchBaseline] = {}
+        self.patch_groups: dict[str, FakePatchGroup] = {}
         self.ssm_prefix = (
             f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
         )
@@ -2380,7 +2380,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         The NextExecutionTime-field is not returned.
 
         """
-        res = [window for window in self.windows.values()]
+        res = list(self.windows.values())
         if filters:
             for f in filters:
                 if f["Key"] == "Name":
@@ -2440,7 +2440,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         """
         Returns all baselines. No pagination has been implemented yet.
         """
-        baselines = [baseline for baseline in self.baselines.values()]
+        baselines = list(self.baselines.values())
         if filters:
             for f in filters:
                 if f["Key"] == "NAME_PREFIX":

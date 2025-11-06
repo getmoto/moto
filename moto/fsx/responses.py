@@ -50,7 +50,7 @@ class FSxResponse(BaseResponse):
             open_zfs_configuration=open_zfs_configuration,
         )
 
-        return json.dumps(dict(FileSystem=file_system.to_dict()))
+        return json.dumps({"FileSystem": file_system.to_dict()})
 
     def describe_file_systems(self) -> str:
         params = json.loads(self.body)
@@ -63,7 +63,7 @@ class FSxResponse(BaseResponse):
             next_token=next_token,
         )
         list_file_systems = [file_system.to_dict() for file_system in file_systems]
-        return json.dumps(dict(FileSystems=list_file_systems, NextToken=next_token))
+        return json.dumps({"FileSystems": list_file_systems, "NextToken": next_token})
 
     def delete_file_system(self) -> str:
         params = json.loads(self.body)
@@ -87,13 +87,13 @@ class FSxResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                FileSystemId=file_system_id,
-                Lifecycle=lifecycle,
-                WindowsResponse=windows_response,
-                LustreResponse=lustre_response,
-                OpenZfsResponse=open_zfs_response,
-            )
+            {
+                "FileSystemId": file_system_id,
+                "Lifecycle": lifecycle,
+                "WindowsResponse": windows_response,
+                "LustreResponse": lustre_response,
+                "OpenZfsResponse": open_zfs_response,
+            }
         )
 
     def create_backup(self) -> str:
@@ -109,7 +109,7 @@ class FSxResponse(BaseResponse):
             tags=tags,
             volume_id=volume_id,
         )
-        return json.dumps(dict(Backup=backup.to_dict()))
+        return json.dumps({"Backup": backup.to_dict()})
 
     def delete_backup(self) -> str:
         params = json.loads(self.body)

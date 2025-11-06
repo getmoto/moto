@@ -62,9 +62,9 @@ def test_describe_instance_type_offering_filter_by_zone():
     offerings = offerings["InstanceTypeOfferings"]
     # Exact number of offerings changes quite often, but it's a lot
     assert len(offerings) > 500
-    assert all([o["LocationType"] == "availability-zone" for o in offerings])
-    assert all([o["Location"] == "us-east-1c" for o in offerings])
-    assert any([o["InstanceType"] == "a1.2xlarge" for o in offerings])
+    assert all(o["LocationType"] == "availability-zone" for o in offerings)
+    assert all(o["Location"] == "us-east-1c" for o in offerings)
+    assert any(o["InstanceType"] == "a1.2xlarge" for o in offerings)
 
 
 @mock_aws

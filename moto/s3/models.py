@@ -921,7 +921,7 @@ class Notification(BaseModel):
 
     def to_config_dict(self) -> dict[str, Any]:
         # Type and ARN will be filled in by NotificationConfiguration's to_config_dict:
-        data: dict[str, Any] = {"events": [event for event in self.events]}
+        data: dict[str, Any] = {"events": list(self.events)}
 
         if self.filters:
             data["filter"] = {
@@ -2430,13 +2430,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
 
     def put_object_tagging(
         self,
-        key: Optional[FakeKey],
+        key: FakeKey,
         tags: Optional[dict[str, str]],
-        key_name: Optional[str] = None,
     ) -> FakeKey:
-        if key is None:
-            raise MissingKey(key=key_name)
-
         # get bucket for eventbridge notification
         # we can assume that the key has its bucket
         bucket = self.get_bucket(key.bucket_name)  # type: ignore
@@ -2446,7 +2442,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         if tags:
             if len(tags_input) > 10:
                 raise BadRequest("Object tags cannot be greater than 10")
-            if any([tagkey.startswith("aws") for tagkey in tags.keys()]):
+            if any(tagkey.startswith("aws") for tagkey in tags.keys()):
                 raise InvalidTagError("Your TagKey cannot be prefixed with aws:")
         # Validation shared across all services
         errmsg = self.tagger.validate_tags(tags_input)
@@ -2749,9 +2745,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             lambda key: not isinstance(key, FakeDeleteMarker), key_results
         )
         key_results = sorted(key_results, key=lambda key: key.name)  # type: ignore
-        folder_results = [  # type: ignore
-            folder_name for folder_name in sorted(folder_results, key=lambda key: key)
-        ]
+        folder_results = sorted(folder_results)  # type: ignore[assignment]
 
         if marker:
             limit = self._pagination_tokens.get(marker) or marker

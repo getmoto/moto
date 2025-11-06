@@ -82,7 +82,7 @@ class TimestreamDatabase(BaseModel):
         self.arn = f"arn:{get_partition(self.region_name)}:timestream:{self.region_name}:{account_id}:database/{self.name}"
         self.created_on = unix_time()
         self.updated_on = unix_time()
-        self.tables: dict[str, TimestreamTable] = dict()
+        self.tables: dict[str, TimestreamTable] = {}
 
     def update(self, kms_key_id: str) -> None:
         self.kms_key_id = kms_key_id
@@ -159,7 +159,7 @@ class TimestreamWriteBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.databases: dict[str, TimestreamDatabase] = dict()
+        self.databases: dict[str, TimestreamDatabase] = {}
         self.tagging_service = TaggingService()
 
     def create_database(

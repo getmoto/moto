@@ -109,12 +109,12 @@ class Cluster:
         if encryption_config is None:
             encryption_config = []
         if tags is None:
-            tags = dict()
+            tags = {}
 
-        self.nodegroups: dict[str, Nodegroup] = dict()
+        self.nodegroups: dict[str, Nodegroup] = {}
         self.nodegroup_count = 0
 
-        self.fargate_profiles: dict[str, FargateProfile] = dict()
+        self.fargate_profiles: dict[str, FargateProfile] = {}
         self.fargate_profile_count = 0
 
         self.arn = CLUSTER_ARN_TEMPLATE.format(
@@ -164,9 +164,9 @@ class FargateProfile:
         tags: Optional[dict[str, str]] = None,
     ):
         if subnets is None:
-            subnets = list()
+            subnets = []
         if tags is None:
-            tags = dict()
+            tags = {}
 
         self.created_at = utcnow()
         self.uuid = str(random.uuid4())
@@ -214,9 +214,9 @@ class Nodegroup:
         release_version: Optional[str] = None,
     ):
         if tags is None:
-            tags = dict()
+            tags = {}
         if labels is None:
-            labels = dict()
+            labels = {}
         if taints is None:
             taints = []
 
@@ -282,7 +282,7 @@ class Nodegroup:
 class EKSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.clusters: dict[str, Cluster] = dict()
+        self.clusters: dict[str, Cluster] = {}
         self.cluster_count = 0
         self.partition = get_partition(region_name)
 

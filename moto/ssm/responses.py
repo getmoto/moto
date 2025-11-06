@@ -155,7 +155,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 "__type": "ParameterNotFound",
                 "message": f"Parameter {name} not found.",
             }
-            return json.dumps(error), dict(status=400)
+            return json.dumps(error), {"status": 400}
         return json.dumps({})
 
     def delete_parameters(self) -> str:
@@ -190,7 +190,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 "__type": "ParameterNotFound",
                 "message": f"Parameter {name} not found.",
             }
-            return json.dumps(error), dict(status=400)
+            return json.dumps(error), {"status": 400}
 
         response = {"Parameter": result.response_object(with_decryption, self.region)}
         return json.dumps(response)
@@ -308,7 +308,7 @@ class SimpleSystemManagerResponse(BaseResponse):
                 "__type": "ParameterNotFound",
                 "message": f"Parameter {name} not found.",
             }
-            return json.dumps(error), dict(status=400)
+            return json.dumps(error), {"status": 400}
 
         response = {
             "Parameters": [

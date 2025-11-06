@@ -10,20 +10,20 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
-run_job_flow_args = dict(
-    Instances={
+run_job_flow_args = {
+    "Instances": {
         "InstanceCount": 3,
         "KeepJobFlowAliveWhenNoSteps": True,
         "MasterInstanceType": "c3.medium",
         "Placement": {"AvailabilityZone": "us-east-1a"},
         "SlaveInstanceType": "c3.xlarge",
     },
-    JobFlowRole="EMR_EC2_DefaultRole",
-    LogUri="s3://mybucket/log",
-    Name="cluster",
-    ServiceRole="EMR_DefaultRole",
-    VisibleToAllUsers=True,
-)
+    "JobFlowRole": "EMR_EC2_DefaultRole",
+    "LogUri": "s3://mybucket/log",
+    "Name": "cluster",
+    "ServiceRole": "EMR_DefaultRole",
+    "VisibleToAllUsers": True,
+}
 
 
 input_instance_groups = [
@@ -531,7 +531,7 @@ def _do_assertion_ebs_configuration(x, y):
 
 @mock_aws
 def test_run_job_flow_with_instance_groups():
-    input_groups = dict((g["Name"], g) for g in input_instance_groups)
+    input_groups = {g["Name"]: g for g in input_instance_groups}
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
     args["Instances"] = {"InstanceGroups": input_instance_groups}
@@ -584,7 +584,7 @@ auto_scaling_policy = {
 
 @mock_aws
 def test_run_job_flow_with_instance_groups_with_autoscaling():
-    input_groups = dict((g["Name"], g) for g in input_instance_groups)
+    input_groups = {g["Name"]: g for g in input_instance_groups}
 
     input_groups["core"]["AutoScalingPolicy"] = auto_scaling_policy
     input_groups["task-1"]["AutoScalingPolicy"] = auto_scaling_policy
@@ -846,7 +846,7 @@ def test_bootstrap_actions():
 
 @mock_aws
 def test_instances():
-    input_groups = dict((g["Name"], g) for g in input_instance_groups)
+    input_groups = {g["Name"]: g for g in input_instance_groups}
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
     args["Instances"] = {"InstanceGroups": input_instance_groups}
@@ -887,7 +887,7 @@ def test_instances():
 
 @mock_aws
 def test_instance_groups():
-    input_groups = dict((g["Name"], g) for g in input_instance_groups)
+    input_groups = {g["Name"]: g for g in input_instance_groups}
 
     client = boto3.client("emr", region_name="us-east-1")
     args = deepcopy(run_job_flow_args)
@@ -962,7 +962,7 @@ def test_instance_groups():
         # assert isinstance(x['Status']['Timeline']['EndDateTime'], 'datetime.datetime')
         assert isinstance(x["Status"]["Timeline"]["ReadyDateTime"], datetime)
 
-    igs = dict((g["Name"], g) for g in groups)
+    igs = {g["Name"]: g for g in groups}
     client.modify_instance_groups(
         InstanceGroups=[
             {"InstanceGroupId": igs["task-1"]["Id"], "InstanceCount": 2},
@@ -971,7 +971,7 @@ def test_instance_groups():
     )
     jf = client.describe_job_flows(JobFlowIds=[cluster_id])["JobFlows"][0]
     assert jf["Instances"]["InstanceCount"] == base_instance_count + 5
-    igs = dict((g["Name"], g) for g in jf["Instances"]["InstanceGroups"])
+    igs = {g["Name"]: g for g in jf["Instances"]["InstanceGroups"]}
     assert igs["task-1"]["InstanceRunningCount"] == 2
     assert igs["task-2"]["InstanceRunningCount"] == 3
 
@@ -1063,7 +1063,7 @@ def test_steps():
             )
         assert x["StepConfig"]["Name"] == y["Name"]
 
-    expected = dict((s["Name"], s) for s in input_steps)
+    expected = {s["Name"]: s for s in input_steps}
 
     steps = client.list_steps(ClusterId=cluster_id)["Steps"]
     assert len(steps) == 2
@@ -1197,9 +1197,9 @@ def test_security_configurations():
 @mock_aws
 def test_run_job_flow_with_invalid_number_of_master_nodes_raises_error():
     client = boto3.client("emr", region_name="us-east-1")
-    params = dict(
-        Name="test-cluster",
-        Instances={
+    params = {
+        "Name": "test-cluster",
+        "Instances": {
             "InstanceGroups": [
                 {
                     "InstanceCount": 2,
@@ -1210,7 +1210,7 @@ def test_run_job_flow_with_invalid_number_of_master_nodes_raises_error():
                 }
             ]
         },
-    )
+    }
     with pytest.raises(ClientError) as ex:
         client.run_job_flow(**params)
     error = ex.value.response["Error"]
@@ -1224,9 +1224,9 @@ def test_run_job_flow_with_invalid_number_of_master_nodes_raises_error():
 @mock_aws
 def test_run_job_flow_with_multiple_master_nodes():
     client = boto3.client("emr", region_name="us-east-1")
-    params = dict(
-        Name="test-cluster",
-        Instances={
+    params = {
+        "Name": "test-cluster",
+        "Instances": {
             "InstanceGroups": [
                 {
                     "InstanceCount": 3,
@@ -1239,7 +1239,7 @@ def test_run_job_flow_with_multiple_master_nodes():
             "KeepJobFlowAliveWhenNoSteps": False,
             "TerminationProtected": False,
         },
-    )
+    }
     cluster_id = client.run_job_flow(**params)["JobFlowId"]
     cluster = client.describe_cluster(ClusterId=cluster_id)["Cluster"]
     assert cluster["AutoTerminate"] is False

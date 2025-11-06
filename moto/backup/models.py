@@ -105,7 +105,7 @@ class Vault(BaseModel):
 
     def to_list_dict(self) -> dict[str, Any]:
         dct = self.to_dict()
-        dct_options: dict[str, Any] = dict()
+        dct_options: dict[str, Any] = {}
         dct_options = {
             "EncryptionKeyArn": self.encryption_key_arn,
             "CreatorRequestId": self.creator_request_id,
@@ -127,8 +127,8 @@ class BackupBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
 
-        self.vaults: dict[str, Vault] = dict()
-        self.plans: dict[str, Plan] = dict()
+        self.vaults: dict[str, Vault] = {}
+        self.plans: dict[str, Plan] = {}
         self.tagger = TaggingService()
 
     def create_backup_plan(
@@ -137,9 +137,9 @@ class BackupBackend(BaseBackend):
         backup_plan_tags: dict[str, str],
         creator_request_id: str,
     ) -> Plan:
-        if backup_plan["BackupPlanName"] in list(
+        if backup_plan["BackupPlanName"] in [
             p.backup_plan["BackupPlanName"] for p in list(self.plans.values())
-        ):
+        ]:
             raise AlreadyExistsException(
                 msg="Backup plan with the same plan document already exists"
             )

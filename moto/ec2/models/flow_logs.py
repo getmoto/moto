@@ -282,7 +282,7 @@ class FlowLogsBackend:
     def describe_flow_logs(
         self, flow_log_ids: Optional[list[str]] = None, filters: Any = None
     ) -> list[FlowLogs]:
-        matches = list(itertools.chain([i for i in self.flow_logs.values()]))
+        matches = list(itertools.chain(list(self.flow_logs.values())))
         if flow_log_ids:
             matches = [flow_log for flow_log in matches if flow_log.id in flow_log_ids]
         if filters:

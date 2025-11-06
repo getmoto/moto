@@ -303,9 +303,7 @@ class DBProxyTargetGroup(RDSBaseModel):
             "MaxConnectionsPercent": self.max_connections,
             "MaxIdleConnectionsPercent": self.max_idle_connections,
             "ConnectionBorrowTimeout": self.borrow_timeout,
-            "SessionPinningFilters": [
-                filter_ for filter_ in self.session_pinning_filters
-            ],
+            "SessionPinningFilters": list(self.session_pinning_filters),
         }
 
 
@@ -647,7 +645,7 @@ class DBCluster(RDSBaseModel):
             "serverless_v2_scaling_configuration"
         )
         self.replication_source_identifier = kwargs.get("replication_source_identifier")
-        self.read_replica_identifiers: list[str] = list()
+        self.read_replica_identifiers: list[str] = []
         self.is_writer: bool = False
         self.storage_encrypted = storage_encrypted
         self.kms_key_id = kms_key_id or "default_kms_key_id"
@@ -705,7 +703,7 @@ class DBCluster(RDSBaseModel):
     @property
     def multi_az(self) -> bool:
         availability_zones = list(
-            set([instance.availability_zone for instance in self._members])
+            {instance.availability_zone for instance in self._members}
         )
         multi_az_conditions = [
             (len(self.read_replica_identifiers) > 0),
@@ -1489,7 +1487,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
 
     @property
     def read_replica_db_instance_identifiers(self) -> list[str]:
-        return [replica for replica in self.replicas]
+        return list(self.replicas)
 
     @property
     def db_instance_port(self) -> Optional[int]:

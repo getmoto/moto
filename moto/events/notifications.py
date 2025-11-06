@@ -77,8 +77,8 @@ def _invoke_lambda(account_id: str, fn_arn: str, event: Any) -> None:
         function_name=fn_arn,
         qualifier=None,
         body=body,
-        headers=dict(),
-        response_headers=dict(),
+        headers={},
+        response_headers={},
     )
 
 

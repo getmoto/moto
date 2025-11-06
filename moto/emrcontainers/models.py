@@ -163,9 +163,9 @@ class EMRContainersBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.virtual_clusters: dict[str, FakeCluster] = dict()
+        self.virtual_clusters: dict[str, FakeCluster] = {}
         self.virtual_cluster_count = 0
-        self.jobs: dict[str, FakeJob] = dict()
+        self.jobs: dict[str, FakeJob] = {}
         self.job_count = 0
         self.partition = get_partition(region_name)
 

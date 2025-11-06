@@ -181,7 +181,7 @@ class BaseObject(BaseModel):
             setattr(self, k, details[k])
 
     def gen_response_object(self) -> dict[str, Any]:
-        response_object: dict[str, Any] = dict()
+        response_object: dict[str, Any] = {}
         for key, value in self.__dict__.items():
             if "_" in key:
                 response_object[self.camelCase(key)] = value
@@ -258,7 +258,7 @@ class FakePipeline(BaseObject):
         self.pipeline_display_name = pipeline_display_name or pipeline_name
         self.pipeline_definition = pipeline_definition
         self.pipeline_description = pipeline_description
-        self.pipeline_executions: dict[str, FakePipelineExecution] = dict()
+        self.pipeline_executions: dict[str, FakePipelineExecution] = {}
         self.role_arn = role_arn
         self.tags = tags or []
         self.parallelism_configuration = parallelism_configuration
@@ -5949,17 +5949,13 @@ class FakeTrialComponent(BaseObject):
                 METRIC_STEP_TYPE, self.metrics[metrics_name]["Values"]
             )
             max_step = max(list(metrics_steps.keys()))
-            metrics_steps_values: list[float] = list(
-                map(
-                    lambda metric: cast(float, metric["Value"]),
-                    list(metrics_steps.values()),
-                )
-            )
+            metrics_steps_values: list[float] = [
+                cast(float, metric["Value"]) for metric in list(metrics_steps.values())
+            ]
             count = len(metrics_steps_values)
             mean = sum(metrics_steps_values) / count
             std = (
-                sum(map(lambda value: (value - mean) ** 2, metrics_steps_values))
-                / count
+                sum((value - mean) ** 2 for value in metrics_steps_values) / count
             ) ** 0.5
             timestamp_int: int = cast(int, self.metrics[metrics_name]["Timestamp"])
             metrics_response_object = {

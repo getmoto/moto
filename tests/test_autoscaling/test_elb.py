@@ -216,7 +216,7 @@ class TestAutoScalingELB(TestCase):
         )
         group = resp["AutoScalingGroups"][0]
         assert group["AutoScalingGroupName"] == self.asg_name
-        assert set(group["AvailabilityZones"]) == set(["us-east-1a", "us-east-1b"])
+        assert set(group["AvailabilityZones"]) == {"us-east-1a", "us-east-1b"}
         assert group["DesiredCapacity"] == 2
         assert group["MaxSize"] == INSTANCE_COUNT_GROUP
         assert group["MinSize"] == INSTANCE_COUNT_GROUP

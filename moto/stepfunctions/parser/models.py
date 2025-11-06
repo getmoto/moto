@@ -169,7 +169,7 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         state_machine_clone = copy.deepcopy(state_machine)
 
         if execution_input is None:
-            input_data = dict()
+            input_data = {}
         else:
             try:
                 input_data = json.loads(execution_input)
@@ -263,9 +263,11 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         map_run_records: list[MapRunRecord] = (
             execution.exec_worker.env.map_run_record_pool_manager.get_all()
         )
-        return dict(
-            mapRuns=[map_run_record.list_item() for map_run_record in map_run_records]
-        )
+        return {
+            "mapRuns": [
+                map_run_record.list_item() for map_run_record in map_run_records
+            ]
+        }
 
     def update_map_run(
         self,

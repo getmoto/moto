@@ -56,9 +56,22 @@ def test_modify_volumes():
 
     old_size = 80
     new_size = 160
+    old_type = "gp3"
     new_type = "io2"
+    old_iops = 3000
+    new_iops = 4000
+    old_throughput = 100
+    new_throughput = 150
+    old_multi_attach_enabled = False
+    new_multi_attach_enabled = True
 
-    volume_id = ec2.create_volume(Size=old_size, AvailabilityZone="us-east-1a").id
+    volume_id = ec2.create_volume(
+        Size=old_size,
+        AvailabilityZone="us-east-1a",
+        Iops=old_iops,
+        Throughput=old_throughput,
+        VolumeType=old_type,
+    ).id
 
     # Ensure no modification records exist
     modifications = client.describe_volumes_modifications()
@@ -74,16 +87,52 @@ def test_modify_volumes():
 
     # Ensure volume type can be modified
     response = client.modify_volume(VolumeId=volume_id, VolumeType=new_type)
-    assert response["VolumeModification"]["OriginalVolumeType"] == "gp2"
+    assert response["VolumeModification"]["OriginalVolumeType"] == old_type
     assert response["VolumeModification"]["TargetVolumeType"] == new_type
     assert (
         client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["VolumeType"]
         == new_type
     )
 
+    # Ensure volume iops can be modified
+    response = client.modify_volume(VolumeId=volume_id, Iops=new_iops)
+    assert response["VolumeModification"]["OriginalIops"] == old_iops
+    assert response["VolumeModification"]["TargetIops"] == new_iops
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Iops"] == new_iops
+    )
+
+    # Ensure volume throughput can be modified
+    response = client.modify_volume(VolumeId=volume_id, Throughput=new_throughput)
+    assert response["VolumeModification"]["OriginalThroughput"] == old_throughput
+    assert response["VolumeModification"]["TargetThroughput"] == new_throughput
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0]["Throughput"]
+        == new_throughput
+    )
+
+    # Ensure volume multi attach enabled can be modified
+    response = client.modify_volume(
+        VolumeId=volume_id, MultiAttachEnabled=new_multi_attach_enabled
+    )
+    assert (
+        response["VolumeModification"]["OriginalMultiAttachEnabled"]
+        == old_multi_attach_enabled
+    )
+    assert (
+        response["VolumeModification"]["TargetMultiAttachEnabled"]
+        == new_multi_attach_enabled
+    )
+    assert (
+        client.describe_volumes(VolumeIds=[volume_id])["Volumes"][0][
+            "MultiAttachEnabled"
+        ]
+        == new_multi_attach_enabled
+    )
+
     # Ensure volume modifications are tracked
     modifications = client.describe_volumes_modifications()
-    assert len(modifications["VolumesModifications"]) == 2
+    assert len(modifications["VolumesModifications"]) == 5
 
 
 @mock_aws
@@ -488,11 +537,11 @@ def test_snapshot_filters():
             Filters=[{"Name": name, "Values": [value]}]
         )["Snapshots"]
         if others:
-            actual = set([s["SnapshotId"] for s in snapshots])
+            actual = {s["SnapshotId"] for s in snapshots}
             for e in expected:
                 assert e in actual
         else:
-            assert set([s["SnapshotId"] for s in snapshots]) == set(expected)
+            assert {s["SnapshotId"] for s in snapshots} == set(expected)
 
     verify_filter("description", snapshot1_desc, expected=snapshot1.id)
     verify_filter("snapshot-id", snapshot1.id, expected=snapshot1.id)
@@ -1062,7 +1111,7 @@ def test_create_snapshots_multiple_volumes():
     # 3 Snapshots ; 1 boot, two additional volumes
     assert len(snapshots) == 3
     # 3 unique snapshot IDs
-    assert len(set([s["SnapshotId"] for s in snapshots])) == 3
+    assert len({s["SnapshotId"] for s in snapshots}) == 3
 
     boot_snapshot = next(
         s for s in snapshots if s["VolumeId"] == boot_volume["VolumeId"]
@@ -1145,6 +1194,40 @@ def test_create_volume_with_throughput_fails():
         )
     assert ex.value.response["Error"]["Code"] == "InvalidParameterDependency"
     assert "Throughput" in ex.value.response["Error"]["Message"]
+
+
+@mock_aws
+def test_create_volume_with_multi_attach_enabled():
+    ec2 = boto3.client("ec2", region_name="us-east-1")
+
+    for volume_type in ["io1", "io2"]:
+        volume = ec2.create_volume(
+            AvailabilityZone="us-east-1a",
+            Size=10,
+            VolumeType=volume_type,
+            Iops=300,
+            MultiAttachEnabled=True,
+        )
+        assert volume["MultiAttachEnabled"]
+
+        volume = ec2.describe_volumes(VolumeIds=[volume["VolumeId"]])["Volumes"][0]
+        assert volume["MultiAttachEnabled"]
+
+
+@mock_aws
+def test_create_volume_with_multi_attach_enabled_fails():
+    resource = boto3.resource("ec2", region_name="us-east-1")
+
+    for volume_type in ["standard", "gp2", "gp3", "sc1", "sc2"]:
+        with pytest.raises(ClientError) as ex:
+            resource.create_volume(
+                AvailabilityZone="us-east-1a",
+                Size=10,
+                VolumeType=volume_type,
+                MultiAttachEnabled=True,
+            )
+        assert ex.value.response["Error"]["Code"] == "InvalidParameterDependency"
+        assert "MultiAttachEnabled" in ex.value.response["Error"]["Message"]
 
 
 @mock_aws

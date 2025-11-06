@@ -65,7 +65,7 @@ def test_ami_create_and_delete():
     )["ImageId"]
 
     all_images = ec2.describe_images()["Images"]
-    assert image_id in set([i["ImageId"] for i in all_images])
+    assert image_id in {i["ImageId"] for i in all_images}
 
     retrieved_image = [i for i in all_images if i["ImageId"] == image_id][0]
 

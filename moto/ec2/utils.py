@@ -78,8 +78,8 @@ EC2_RESOURCE_TO_PREFIX = {
 }
 
 
-EC2_PREFIX_TO_RESOURCE = dict((v, k) for (k, v) in EC2_RESOURCE_TO_PREFIX.items())
-HEX_CHARS = list(str(x) for x in range(10)) + ["a", "b", "c", "d", "e", "f"]
+EC2_PREFIX_TO_RESOURCE = {v: k for (k, v) in EC2_RESOURCE_TO_PREFIX.items()}
+HEX_CHARS = [str(x) for x in range(10)] + ["a", "b", "c", "d", "e", "f"]
 
 
 def random_resource_id(size: int = 8) -> str:
@@ -331,18 +331,6 @@ def split_route_id(route_id: str) -> tuple[str, str]:
     return values[0], values[1]
 
 
-def get_attribute_value(
-    parameter: str, querystring_dict: dict[str, list[str]]
-) -> Union[None, bool, str]:
-    for key, value in querystring_dict.items():
-        match = re.search(rf"{parameter}.Value", key)
-        if match:
-            if value[0].lower() in ["true", "false"]:
-                return True if value[0].lower() in ["true"] else False
-            return value[0]
-    return None
-
-
 def get_object_value(obj: Any, attr: str) -> Any:
     keys = attr.split(".")
     val = obj
@@ -373,25 +361,23 @@ def is_tag_filter(filter_name: str) -> bool:
 
 def get_obj_tag(obj: Any, filter_name: str) -> Optional[str]:
     tag_name = filter_name.replace("tag:", "", 1)
-    tags = dict((tag["key"], tag["value"]) for tag in obj.get_tags())
+    tags = {tag["key"]: tag["value"] for tag in obj.get_tags()}
     return tags.get(tag_name)
 
 
 def get_obj_tag_names(obj: Any) -> set[str]:
-    tags = set(tag["key"] for tag in obj.get_tags())
+    tags = {tag["key"] for tag in obj.get_tags()}
     return tags
 
 
 def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> set[str]:
-    tags = set(
-        tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None
-    )
+    tags = {tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None}
     return tags
 
 
 def add_tag_specification(tags: Any) -> dict[str, str]:
     tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-    tags = (tags or {}).get("Tag", [])
+    tags = (tags or {}).get("Tags", [])
     tags = {t["Key"]: t["Value"] for t in tags}
     return tags
 
@@ -464,6 +450,9 @@ def instance_value_in_filter_values(instance_value: Any, filter_values: Any) -> 
     if isinstance(instance_value, list):
         if not set(filter_values).intersection(set(instance_value)):
             return False
+    elif isinstance(instance_value, bool):
+        if str(instance_value).lower() not in filter_values:
+            return False
     elif instance_value not in filter_values:
         return False
     return True
@@ -528,6 +517,11 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
 
     if isinstance(value, bool):
         if str(value).lower() in filter_value:
+            return True
+        return False
+
+    if isinstance(value, int):
+        if str(value) in filter_value:
             return True
         return False
 
@@ -750,7 +744,6 @@ def public_key_parse(
     try:
         if isinstance(key_material, str):
             key_material = key_material.encode("ascii")
-        key_material = base64.b64decode(key_material)
 
         if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
             # cryptography doesn't parse RFC4716 key format, so we have to convert it first
@@ -923,7 +916,7 @@ def gen_moto_amis(
 
 
 def convert_tag_spec(
-    tag_spec_set: list[dict[str, Any]], tag_key: str = "Tag"
+    tag_spec_set: list[dict[str, Any]], tag_key: str = "Tags"
 ) -> dict[str, dict[str, str]]:
     # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
     #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case

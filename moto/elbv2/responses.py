@@ -797,7 +797,13 @@ class ELBV2Response(BaseResponse):
     def describe_listener_certificates(self) -> ActionResult:
         arn = self._get_param("ListenerArn")
         certificates = self.elbv2_backend.describe_listener_certificates(arn)
-        result = {"Certificates": [{"CertificateArn": arn} for arn in certificates]}
+        # The first certificate is the default, others are SNI certificates
+        result = {
+            "Certificates": [
+                {"CertificateArn": cert_arn, "IsDefault": idx == 0}
+                for idx, cert_arn in enumerate(certificates)
+            ]
+        }
         return ActionResult(result)
 
     def remove_listener_certificates(self) -> ActionResult:

@@ -183,7 +183,7 @@ class EMRServerlessResponse(BaseResponse):
         return (
             200,
             {},
-            json.dumps(dict(applicationId=application_id, jobRunId=job_run_id)),
+            json.dumps({"applicationId": application_id, "jobRunId": job_run_id}),
         )
 
     def list_job_runs(self) -> TYPE_RESPONSE:

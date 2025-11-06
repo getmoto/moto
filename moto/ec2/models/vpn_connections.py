@@ -96,7 +96,7 @@ class VPNConnectionBackend:
             if len(vpn_connections) != len(vpn_connection_ids):
                 invalid_id = list(
                     set(vpn_connection_ids).difference(
-                        set([vpn_connection.id for vpn_connection in vpn_connections])
+                        {vpn_connection.id for vpn_connection in vpn_connections}
                     )
                 )[0]
                 raise InvalidVpnConnectionIdError(invalid_id)

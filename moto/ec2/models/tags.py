@@ -20,7 +20,7 @@ class TagBackend:
         self.tags: dict[str, dict[str, str]] = defaultdict(dict)
 
     def create_tags(self, resource_ids: list[str], tags: dict[str, str]) -> bool:
-        if None in set([tags[tag] for tag in tags]):
+        if None in {tags[tag] for tag in tags}:
             raise InvalidParameterValueErrorTagNull()
         for resource_id in resource_ids:
             if resource_id in self.tags:

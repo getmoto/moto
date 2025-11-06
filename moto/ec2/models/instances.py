@@ -117,7 +117,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         # Check if we have tags to process
         if launch_template_arg:
             template_version = ec2_backend._get_template_from_args(launch_template_arg)
-            tag_spec_set = template_version.data.get("TagSpecification", {})
+            tag_spec_set = template_version.data.get("TagSpecifications", {})
             tags = convert_tag_spec(tag_spec_set)
             instance_tags = tags.get("instance", {})
             self.add_tags(instance_tags)
@@ -140,7 +140,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.key_name = kwargs.get("key_name")
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
         self.monitoring_state = kwargs.get("monitoring_state", "disabled")
-        self.source_dest_check = "true"
+        self.source_dest_check = True
         self.launch_time = utc_date_and_time()
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
@@ -182,7 +182,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
             if self.associate_public_ip is None:
                 # Mapping public ip hasnt been explicitly enabled or disabled
-                self.associate_public_ip = subnet.map_public_ip_on_launch == "true"
+                self.associate_public_ip = subnet.map_public_ip_on_launch is True
         elif placement:
             self._placement.zone = placement
         else:
@@ -557,7 +557,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         if private_ip:
             return private_ip
         for address in nic.get("PrivateIpAddresses", []):
-            if address.get("Primary") == "true":
+            if address.get("Primary") is True:
                 return address.get("PrivateIpAddress")
         return None
 
@@ -574,7 +574,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             if int(nic.get("DeviceIndex")) == 0:  # type: ignore[arg-type]
                 nic_associate_public_ip = nic.get("AssociatePublicIpAddress")
                 if nic_associate_public_ip is not None:
-                    associate_public_ip = nic_associate_public_ip == "true"
+                    associate_public_ip = nic_associate_public_ip is True
                 if private_ip is None:
                     private_ip = self._get_private_ip_from_nic(nic)
                 break
@@ -597,7 +597,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "PrivateIpAddress": private_ip,
             "AssociatePublicIpAddress": associate_public_ip,
         }
-        primary_nic = dict((k, v) for k, v in primary_nic.items() if v)
+        primary_nic = {k: v for k, v in primary_nic.items() if v}
 
         # If empty NIC spec but primary NIC values provided, create NIC from
         # them.
@@ -647,7 +647,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
                     nic_subnet = default_subnet or self.subnet_id  # type: ignore[assignment]
 
-                group_ids = nic.get("SecurityGroupId") or []
+                group_ids = nic.get("Groups") or []
                 if security_groups:
                     group_ids.extend([group.id for group in security_groups])
 
@@ -657,7 +657,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     device_index=device_index,
                     public_ip_auto_assign=nic.get("AssociatePublicIpAddress", False),
                     group_ids=group_ids,
-                    delete_on_termination=nic.get("DeleteOnTermination") == "true",
+                    delete_on_termination=nic.get("DeleteOnTermination") is True,
                     ipv6_address_count=ipv6_address_count,
                 )
 
@@ -773,19 +773,15 @@ class InstanceBackend:
                 raise AvailabilityZoneNotFromRegionError(kwargs["placement"])
         match_filters = InstanceTypeOfferingBackend().matches_filters
         if not kwargs["is_instance_type_default"] and not any(
-            {
-                match_filters(
-                    valid_instance,
-                    {"instance-type": kwargs["instance_type"]},
-                    location_type,
-                )
-                for valid_instance in valid_instance_types.get(
-                    kwargs["region_name"]
-                    if "region_name" in kwargs
-                    else default_region,
-                    {},
-                )
-            },
+            match_filters(
+                valid_instance,
+                {"instance-type": kwargs["instance_type"]},
+                location_type,
+            )
+            for valid_instance in valid_instance_types.get(
+                kwargs["region_name"] if "region_name" in kwargs else default_region,
+                {},
+            )
         ):
             if settings.EC2_ENABLE_INSTANCE_TYPE_VALIDATION:
                 raise InvalidInstanceTypeError(kwargs["instance_type"])
@@ -826,7 +822,7 @@ class InstanceBackend:
                 block_device_mappings = kwargs["block_device_mappings"]
             elif kwargs.get("launch_template"):
                 template = self._get_template_from_args(kwargs["launch_template"])
-                block_device_mappings = template.data.get("BlockDeviceMapping")
+                block_device_mappings = template.data.get("BlockDeviceMappings")
             elif kwargs.get("launch_config"):
                 block_device_mappings = kwargs[
                     "launch_config"
@@ -838,8 +834,6 @@ class InstanceBackend:
                     volume_type = block_device["Ebs"].get("VolumeType")
                     snapshot_id = block_device["Ebs"].get("SnapshotId")
                     encrypted = block_device["Ebs"].get("Encrypted", False)
-                    if isinstance(encrypted, str):
-                        encrypted = encrypted.lower() == "true"
                     delete_on_termination = block_device["Ebs"].get(
                         "DeleteOnTermination", False
                     )
@@ -880,7 +874,7 @@ class InstanceBackend:
     ) -> list[tuple[Instance, InstanceState]]:
         stopped_instances = []
         for instance in self.get_multi_instances_by_id(instance_ids):
-            if instance.disable_api_stop == "true":
+            if instance.disable_api_stop is True:
                 raise OperationDisableApiStopNotPermitted(instance.id)
             previous_state = instance.stop()
             stopped_instances.append((instance, previous_state))
@@ -894,7 +888,7 @@ class InstanceBackend:
         if not instance_ids:
             raise InvalidParameterCombination("No instances specified")
         for instance in self.get_multi_instances_by_id(instance_ids):
-            if instance.disable_api_termination == "true":
+            if instance.disable_api_termination is True:
                 raise OperationNotPermitted4(instance.id)
             previous_state = instance.terminate()
             terminated_instances.append((instance, previous_state))

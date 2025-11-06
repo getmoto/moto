@@ -76,7 +76,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         self.ecs_backend = ecs_backends[account_id][region_name]
         self.targets: dict[str, dict[str, FakeScalableTarget]] = OrderedDict()
         self.policies: dict[str, FakeApplicationAutoscalingPolicy] = {}
-        self.scheduled_actions: list[FakeScheduledAction] = list()
+        self.scheduled_actions: list[FakeScheduledAction] = []
 
     def describe_scalable_targets(
         self, namespace: str, r_ids: Union[None, list[str]], dimension: Union[None, str]

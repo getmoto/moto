@@ -126,7 +126,7 @@ class ScheduleGroup(BaseModel):
     def __init__(self, region: str, account_id: str, name: str):
         self.name = name
         self.arn = f"arn:{get_partition(region)}:scheduler:{region}:{account_id}:schedule-group/{name}"
-        self.schedules: dict[str, Schedule] = dict()
+        self.schedules: dict[str, Schedule] = {}
         self.created_on = None if self.name == "default" else unix_time()
         self.last_modified = None if self.name == "default" else unix_time()
 
@@ -158,7 +158,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.schedules: list[Schedule] = list()
+        self.schedules: list[Schedule] = []
         self.schedule_groups = {
             "default": ScheduleGroup(
                 region=region_name, account_id=account_id, name="default"

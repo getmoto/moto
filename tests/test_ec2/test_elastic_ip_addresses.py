@@ -564,7 +564,7 @@ def test_eip_filters():
         if all_values:
             assert len(addresses) == 2
             ips = [addr.public_ip for addr in addresses]
-            assert set(ips) == set([eip1.public_ip, eip2.public_ip])
+            assert set(ips) == {eip1.public_ip, eip2.public_ip}
             assert inst1.public_ip_address in ips
         else:
             ips = [addr.public_ip for addr in addresses]

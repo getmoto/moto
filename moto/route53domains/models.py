@@ -180,7 +180,7 @@ class Route53DomainsBackend(BaseBackend):
         domains_to_return: list[Route53Domain] = []
 
         for domain in self.__domains.values():
-            if all([f.filter(domain) for f in filters]):
+            if all(f.filter(domain) for f in filters):
                 domains_to_return.append(domain)
 
         if sort:

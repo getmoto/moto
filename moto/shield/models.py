@@ -187,7 +187,7 @@ class ShieldBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.protections: dict[str, Protection] = dict()
+        self.protections: dict[str, Protection] = {}
         self.subscription: Optional[Subscription] = None
         self.tagger = TaggingService()
 

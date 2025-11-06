@@ -179,7 +179,7 @@ class AmiBackend:
 
     def __init__(self) -> None:
         self.amis: dict[str, Ami] = {}
-        self.deleted_amis: list[str] = list()
+        self.deleted_amis: list[str] = []
         self._load_amis()
 
     def _load_amis(self) -> None:
@@ -223,7 +223,7 @@ class AmiBackend:
         for tag_specification in tag_specifications:
             resource_type = tag_specification["ResourceType"]
             if resource_type == "image":
-                tags += tag_specification["Tag"]
+                tags += tag_specification["Tags"]
             elif resource_type == "snapshot":
                 raise NotImplementedError()
             else:
@@ -316,9 +316,7 @@ class AmiBackend:
             if owners:
                 # support filtering by Owners=['self']
                 if "self" in owners:
-                    owners = list(
-                        map(lambda o: self.account_id if o == "self" else o, owners)  # type: ignore[attr-defined]
-                    )
+                    owners = [self.account_id if o == "self" else o for o in owners]  # type: ignore[attr-defined]
                 images = [
                     ami
                     for ami in images

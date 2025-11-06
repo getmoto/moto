@@ -193,11 +193,9 @@ class SegmentCollection:
                     (trace["end_date"] - trace["start_date"]).total_seconds()
                 )
                 # this stuff is mostly guesses, refer to TODO above
-                has_error = any(["error" in seg.misc for seg in trace["segments"]])
-                has_fault = any(["fault" in seg.misc for seg in trace["segments"]])
-                has_throttle = any(
-                    ["throttle" in seg.misc for seg in trace["segments"]]
-                )
+                has_error = any("error" in seg.misc for seg in trace["segments"])
+                has_fault = any("fault" in seg.misc for seg in trace["segments"])
+                has_throttle = any("throttle" in seg.misc for seg in trace["segments"])
 
                 # Apparently all of these options are optional
                 summary_part = {

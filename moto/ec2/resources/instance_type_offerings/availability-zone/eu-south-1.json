@@ -508,6 +508,30 @@
   "Location": "eu-south-1a"
  },
  {
+  "InstanceType": "im4gn.16xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "im4gn.2xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "im4gn.4xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "im4gn.8xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "im4gn.large",
+  "Location": "eu-south-1a"
+ },
+ {
+  "InstanceType": "im4gn.xlarge",
+  "Location": "eu-south-1a"
+ },
+ {
   "InstanceType": "inf1.24xlarge",
   "Location": "eu-south-1a"
  },
@@ -1956,6 +1980,30 @@
   "Location": "eu-south-1b"
  },
  {
+  "InstanceType": "im4gn.16xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "im4gn.2xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "im4gn.4xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "im4gn.8xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "im4gn.large",
+  "Location": "eu-south-1b"
+ },
+ {
+  "InstanceType": "im4gn.xlarge",
+  "Location": "eu-south-1b"
+ },
+ {
   "InstanceType": "inf1.24xlarge",
   "Location": "eu-south-1b"
  },
@@ -3309,6 +3357,30 @@
  },
  {
   "InstanceType": "i7i.xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "im4gn.16xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "im4gn.2xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "im4gn.4xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "im4gn.8xlarge",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "im4gn.large",
+  "Location": "eu-south-1c"
+ },
+ {
+  "InstanceType": "im4gn.xlarge",
   "Location": "eu-south-1c"
  },
  {

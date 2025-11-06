@@ -356,10 +356,8 @@ def test_ip_set_crud():
     assert len(list_response["IPSets"]) == 1
 
     assert all(
-        [
-            key in list_response["IPSets"][0]
-            for key in ["ARN", "Description", "Id", "LockToken", "Name"]
-        ]
+        key in list_response["IPSets"][0]
+        for key in ["ARN", "Description", "Id", "LockToken", "Name"]
     )
 
     client.delete_ip_set(

@@ -34,7 +34,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             description=description,
             tags=tags,
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def delete_namespace(self) -> str:
         params = json.loads(self.body)
@@ -42,7 +42,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         operation_id = self.servicediscovery_backend.delete_namespace(
             namespace_id=namespace_id
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def list_operations(self) -> TYPE_RESPONSE:
         operations = self.servicediscovery_backend.list_operations()
@@ -58,7 +58,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         operation = self.servicediscovery_backend.get_operation(
             operation_id=operation_id
         )
-        return json.dumps(dict(Operation=operation.to_json()))
+        return json.dumps({"Operation": operation.to_json()})
 
     def get_namespace(self) -> str:
         params = json.loads(self.body)
@@ -66,7 +66,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         namespace = self.servicediscovery_backend.get_namespace(
             namespace_id=namespace_id
         )
-        return json.dumps(dict(Namespace=namespace.to_json()))
+        return json.dumps({"Namespace": namespace.to_json()})
 
     def tag_resource(self) -> str:
         params = json.loads(self.body)
@@ -108,7 +108,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             tags=tags,
             properties=properties,
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def create_public_dns_namespace(self) -> str:
         params = json.loads(self.body)
@@ -124,7 +124,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             tags=tags,
             properties=properties,
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def create_service(self) -> str:
         params = json.loads(self.body)
@@ -148,13 +148,13 @@ class ServiceDiscoveryResponse(BaseResponse):
             tags=tags,
             service_type=service_type,
         )
-        return json.dumps(dict(Service=service.to_json()))
+        return json.dumps({"Service": service.to_json()})
 
     def get_service(self) -> str:
         params = json.loads(self.body)
         service_id = params.get("Id")
         service = self.servicediscovery_backend.get_service(service_id=service_id)
-        return json.dumps(dict(Service=service.to_json()))
+        return json.dumps({"Service": service.to_json()})
 
     def delete_service(self) -> str:
         params = json.loads(self.body)
@@ -164,7 +164,7 @@ class ServiceDiscoveryResponse(BaseResponse):
 
     def list_services(self) -> str:
         services = self.servicediscovery_backend.list_services()
-        return json.dumps(dict(Services=[s.to_json() for s in services]))
+        return json.dumps({"Services": [s.to_json() for s in services]})
 
     def update_service(self) -> str:
         params = json.loads(self.body)
@@ -173,7 +173,7 @@ class ServiceDiscoveryResponse(BaseResponse):
         operation_id = self.servicediscovery_backend.update_service(
             service_id=service_id, details=details
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def update_http_namespace(self) -> str:
         params = json.loads(self.body)
@@ -185,7 +185,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             updater_request_id=updater_request_id,
             namespace_dict=namespace,
         )
-        return json.dumps(dict(operationId=operation_id))
+        return json.dumps({"operationId": operation_id})
 
     def update_private_dns_namespace(self) -> str:
         params = json.loads(self.body)
@@ -197,7 +197,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             description=description,
             properties=properties,
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def update_public_dns_namespace(self) -> str:
         params = json.loads(self.body)
@@ -209,7 +209,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             description=description,
             properties=properties,
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def register_instance(self) -> str:
         params = json.loads(self.body)
@@ -223,7 +223,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             creator_request_id=creator_request_id,
             attributes=attributes,
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def deregister_instance(self) -> str:
         params = json.loads(self.body)
@@ -233,7 +233,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             service_id=service_id,
             instance_id=instance_id,
         )
-        return json.dumps(dict(OperationId=operation_id))
+        return json.dumps({"OperationId": operation_id})
 
     def get_instance(self) -> str:
         params = json.loads(self.body)
@@ -243,7 +243,7 @@ class ServiceDiscoveryResponse(BaseResponse):
             service_id=service_id,
             instance_id=instance_id,
         )
-        return json.dumps(dict(Instance=instance.to_json()))
+        return json.dumps({"Instance": instance.to_json()})
 
     def get_instances_health_status(self) -> str:
         params = json.loads(self.body)
@@ -341,4 +341,4 @@ class ServiceDiscoveryResponse(BaseResponse):
             namespace_name=namespace_name,
             service_name=service_name,
         )
-        return json.dumps(dict(InstancesRevision=instances_revision))
+        return json.dumps({"InstancesRevision": instances_revision})

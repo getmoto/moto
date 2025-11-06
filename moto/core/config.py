@@ -74,7 +74,7 @@ def passthrough_url(clean_url: str) -> bool:
     passthrough_urls = (
         default_user_config.get("core", {}).get("passthrough", {}).get("urls", [])
     )
-    return any([re.match(url, clean_url) for url in passthrough_urls])
+    return any(re.match(url, clean_url) for url in passthrough_urls)
 
 
 def mock_credentials() -> bool:

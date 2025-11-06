@@ -48,9 +48,9 @@ class PeeringConnectionStatus:
 
 class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
     DEFAULT_OPTIONS = {
-        "AllowEgressFromLocalClassicLinkToRemoteVpc": "false",
-        "AllowEgressFromLocalVpcToRemoteClassicLink": "false",
-        "AllowDnsResolutionFromRemoteVpc": "false",
+        "AllowEgressFromLocalClassicLinkToRemoteVpc": False,
+        "AllowEgressFromLocalVpcToRemoteClassicLink": False,
+        "AllowDnsResolutionFromRemoteVpc": False,
     }
 
     def __init__(

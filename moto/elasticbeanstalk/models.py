@@ -72,7 +72,7 @@ class Application(BaseModel):
     ):
         self.backend = weakref.proxy(backend)  # weakref to break cycles
         self.application_name = application_name
-        self.environments: dict[str, Environment] = dict()
+        self.environments: dict[str, Environment] = {}
         self.account_id = self.backend.account_id
         self.region = self.backend.region_name
         self.arn = make_arn(
@@ -99,7 +99,7 @@ class Application(BaseModel):
 class EBBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.applications: dict[str, Application] = dict()
+        self.applications: dict[str, Application] = {}
 
     def create_application(self, application_name: str) -> Application:
         if application_name in self.applications:

@@ -680,7 +680,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             self.region, self.account_id, self.function_name
         )
 
-        self.tags = spec.get("Tags") or dict()
+        self.tags = spec.get("Tags") or {}
 
     def __getstate__(self) -> dict[str, Any]:
         return {
@@ -972,7 +972,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.logs_backend.ensure_log_group(self.logs_group_name)
         # TODO: context not yet implemented
         if event is None:
-            event = dict()  # type: ignore[assignment]
+            event = {}  # type: ignore[assignment]
         output = None
 
         try:
@@ -1010,7 +1010,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
                 _DockerDataVolumeLayerContext(self) as layer_context,
             ):
                 try:
-                    run_kwargs: dict[str, Any] = dict()
+                    run_kwargs: dict[str, Any] = {}
                     network_name = settings.moto_network_name()
                     network_mode = settings.moto_network_mode()
                     if network_name:
@@ -1091,9 +1091,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
             # We only care about the response from the lambda
             # Which is the last line of the output, according to https://github.com/lambci/docker-lambda/issues/25
             resp = output.splitlines()[-1]
-            logs = os.linesep.join(
-                [line for line in self.convert(output).splitlines()[:-1]]
-            )
+            logs = os.linesep.join(list(self.convert(output).splitlines()[:-1]))
             invocation_error = exit_code != 0
             return resp, invocation_error, logs
         except docker.errors.DockerException as e:
@@ -1324,7 +1322,7 @@ class EventSourceMapping(CloudFormationModel):
             "SelfManagedKafkaEventSourceConfig"
         )
         self.source_access_config = spec.get("SourceAccessConfigurations")
-        self.tags = spec.get("Tags") or dict()
+        self.tags = spec.get("Tags") or {}
         self.topics = spec.get("Topics")
         self.tumbling_window = spec.get("TumblingWindowInSeconds")
 

@@ -754,7 +754,7 @@ def set_transition(transition=None):
     if settings.TEST_DECORATOR_MODE:
         state_manager.set_transition(model_name="osis::pipeline", transition=transition)
     else:
-        post_body = dict(model_name="osis::pipeline", transition=transition)
+        post_body = {"model_name": "osis::pipeline", "transition": transition}
         requests.post(
             "http://localhost:5000/moto-api/state-manager/set-transition",
             data=json.dumps(post_body),

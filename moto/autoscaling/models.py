@@ -1608,9 +1608,7 @@ class AutoScalingBackend(BaseBackend):
 
     def update_attached_elbs(self, group_name: str) -> None:
         group = self.autoscaling_groups[group_name]
-        group_instance_ids = set(
-            state.instance.id for state in group.active_instances()
-        )
+        group_instance_ids = {state.instance.id for state in group.active_instances()}
 
         # skip this if group.load_balancers is empty
         # otherwise elb_backend.describe_load_balancers returns all available load balancers
@@ -1635,7 +1633,7 @@ class AutoScalingBackend(BaseBackend):
 
     def update_attached_target_groups(self, group_name: str) -> None:
         group = self.autoscaling_groups[group_name]
-        group_instance_ids = set(state.instance.id for state in group.instance_states)
+        group_instance_ids = {state.instance.id for state in group.instance_states}
 
         # no action necessary if target_group_arns is empty
         if not group.target_group_arns:
@@ -1697,7 +1695,7 @@ class AutoScalingBackend(BaseBackend):
         self, group_name: str, load_balancer_names: list[str]
     ) -> None:
         group = self.autoscaling_groups[group_name]
-        group_instance_ids = set(state.instance.id for state in group.instance_states)
+        group_instance_ids = {state.instance.id for state in group.instance_states}
         elbs = self.elb_backend.describe_load_balancers(names=group.load_balancer_names)
         for elb in elbs:
             self.elb_backend.deregister_instances(
@@ -1848,7 +1846,7 @@ class AutoScalingBackend(BaseBackend):
             if f["Name"] == "auto-scaling-group":
                 tags = [t for t in tags if t["ResourceId"] in f["Values"]]
             if f["Name"] == "propagate-at-launch":
-                values = [v for v in f["Values"]]
+                values = list(f["Values"])
                 tags = [
                     t for t in tags if str(t.get("PropagateAtLaunch", False)) in values
                 ]

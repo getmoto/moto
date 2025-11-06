@@ -31,7 +31,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
             return [], None
 
         pab = None
-        regions = [region for region in Session().get_available_regions("config")]
+        regions = list(Session().get_available_regions("config"))
 
         # If a resource ID was passed in, then filter accordingly:
         if resource_ids:
@@ -113,7 +113,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
         if resource_name is not None and resource_name != "":
             return None
 
-        regions = [region for region in Session().get_available_regions("config")]
+        regions = list(Session().get_available_regions("config"))
 
         # Is the resource ID correct?:
         if account_id == resource_id:

@@ -2553,7 +2553,7 @@ class IoTBackend(BaseBackend):
         """
         The following parameter are not yet implemented: Status, TargetSelection, ThingGroupName, ThingGroupId
         """
-        return [_ for _ in self.jobs.values()]
+        return list(self.jobs.values())
 
     def describe_job_execution(
         self, job_id: str, thing_name: str, execution_number: int

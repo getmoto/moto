@@ -25,7 +25,7 @@ def test_list_verified_identities():
 
     identities = conn.list_identities()["Identities"]
     matches = ["domain1.com", "domain2.com", "test@example.com"]
-    assert all([a in matches for a in identities])
+    assert all(a in matches for a in identities)
 
     identities = conn.list_identities(IdentityType="EmailAddress")["Identities"]
     assert identities == ["test@example.com"]
@@ -105,7 +105,7 @@ def test_send_email():
     conn.verify_domain_identity(Domain="example.com")
     conn.send_email(**kwargs)
 
-    too_many_addresses = list(f"to{i}@example.com" for i in range(51))
+    too_many_addresses = [f"to{i}@example.com" for i in range(51)]
     with pytest.raises(ClientError):
         conn.send_email(**dict(kwargs, Destination={"ToAddresses": too_many_addresses}))
 
@@ -245,7 +245,7 @@ def test_send_bulk_templated_email():
 
     conn.send_bulk_templated_email(**kwargs)
 
-    too_many_destinations = list(
+    too_many_destinations = [
         {
             "Destination": {
                 "ToAddresses": [f"to{i}@example.com"],
@@ -254,7 +254,7 @@ def test_send_bulk_templated_email():
             }
         }
         for i in range(51)
-    )
+    ]
 
     with pytest.raises(ClientError) as ex:
         args = dict(kwargs, Destinations=too_many_destinations)
@@ -263,7 +263,7 @@ def test_send_bulk_templated_email():
     assert ex.value.response["Error"]["Code"] == "MessageRejected"
     assert ex.value.response["Error"]["Message"] == "Too many destinations."
 
-    too_many_destinations = list(f"to{i}@example.com" for i in range(51))
+    too_many_destinations = [f"to{i}@example.com" for i in range(51)]
 
     with pytest.raises(ClientError) as ex:
         args = dict(
@@ -324,7 +324,7 @@ def test_send_templated_email():
 
     conn.send_templated_email(**kwargs)
 
-    too_many_addresses = list(f"to{i}@example.com" for i in range(51))
+    too_many_addresses = [f"to{i}@example.com" for i in range(51)]
     with pytest.raises(ClientError) as ex:
         conn.send_templated_email(
             **dict(kwargs, Destination={"ToAddresses": too_many_addresses})
@@ -529,10 +529,10 @@ def test_send_email_notification_with_encoded_sender():
 @mock_aws
 def test_create_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
+    conn.create_configuration_set(ConfigurationSet={"Name": "test"})
 
     with pytest.raises(ClientError) as ex:
-        conn.create_configuration_set(ConfigurationSet=dict({"Name": "test"}))
+        conn.create_configuration_set(ConfigurationSet={"Name": "test"})
     assert ex.value.response["Error"]["Code"] == "ConfigurationSetAlreadyExists"
 
     conn.create_configuration_set_event_destination(
@@ -583,7 +583,7 @@ def test_describe_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
 
     name = "test"
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": name}))
+    conn.create_configuration_set(ConfigurationSet={"Name": name})
 
     with pytest.raises(ClientError) as ex:
         conn.describe_configuration_set(
@@ -630,9 +630,9 @@ def test_describe_configuration_set():
 @mock_aws
 def test_list_configuration_sets():
     conn = boto3.client("ses", region_name="us-east-1")
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test1"}))
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test2"}))
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test3"}))
+    conn.create_configuration_set(ConfigurationSet={"Name": "test1"})
+    conn.create_configuration_set(ConfigurationSet={"Name": "test2"})
+    conn.create_configuration_set(ConfigurationSet={"Name": "test3"})
 
     config_sets = conn.list_configuration_sets()["ConfigurationSets"]
     assert len(config_sets) == 3
@@ -645,9 +645,9 @@ def test_list_configuration_sets():
 @mock_aws
 def test_delete_configuration_set():
     conn = boto3.client("ses", region_name="us-east-1")
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test1"}))
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test2"}))
-    conn.create_configuration_set(ConfigurationSet=dict({"Name": "test3"}))
+    conn.create_configuration_set(ConfigurationSet={"Name": "test1"})
+    conn.create_configuration_set(ConfigurationSet={"Name": "test2"})
+    conn.create_configuration_set(ConfigurationSet={"Name": "test3"})
 
     config_sets = conn.list_configuration_sets()["ConfigurationSets"]
     assert len(config_sets) == 3

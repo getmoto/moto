@@ -175,7 +175,7 @@ class MediaLiveBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_channels(self) -> list[Channel]:
-        return [c for c in self._channels.values()]
+        return list(self._channels.values())
 
     def describe_channel(self, channel_id: str) -> Channel:
         channel = self._channels[channel_id]
@@ -266,7 +266,7 @@ class MediaLiveBackend(BaseBackend):
 
     @paginate(PAGINATION_MODEL)
     def list_inputs(self) -> list[Input]:
-        return [i for i in self._inputs.values()]
+        return list(self._inputs.values())
 
     def delete_input(self, input_id: str) -> None:
         a_input = self._inputs[input_id]

@@ -118,7 +118,7 @@ def split_words(s: str) -> list[str]:
         if char in s:
             others = special_chars.copy()
             others.remove(char)
-            contains_other = any([c in s for c in others])
+            contains_other = any(c in s for c in others)
             if contains_other:
                 # Secret contains two different characters, i.e. my/secret+value
                 # Values like this will not be split

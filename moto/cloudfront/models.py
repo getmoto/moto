@@ -332,11 +332,11 @@ class KeyGroup(BaseModel):
 class CloudFrontBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.distributions: dict[str, Distribution] = dict()
-        self.invalidations: dict[str, list[Invalidation]] = dict()
-        self.origin_access_controls: dict[str, OriginAccessControl] = dict()
-        self.public_keys: dict[str, PublicKey] = dict()
-        self.key_groups: dict[str, KeyGroup] = dict()
+        self.distributions: dict[str, Distribution] = {}
+        self.invalidations: dict[str, list[Invalidation]] = {}
+        self.origin_access_controls: dict[str, OriginAccessControl] = {}
+        self.public_keys: dict[str, PublicKey] = {}
+        self.key_groups: dict[str, KeyGroup] = {}
         self.tagger = TaggingService()
 
     def create_distribution(
@@ -457,6 +457,12 @@ class CloudFrontBackend(BaseBackend):
 
     def list_tags_for_resource(self, resource: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource)
+
+    def tag_resource(self, resource: str, tags: list[dict[str, str]]) -> None:
+        self.tagger.tag_resource(resource, tags)
+
+    def untag_resource(self, resource: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource, tag_keys)
 
     def create_origin_access_control(
         self, config_dict: dict[str, str]

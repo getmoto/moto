@@ -18,7 +18,7 @@ class CodeCommit(BaseModel):
         repository_name: str,
     ):
         current_date = iso_8601_datetime_with_milliseconds()
-        self.repository_metadata = dict()
+        self.repository_metadata = {}
         self.repository_metadata["repositoryName"] = repository_name
         self.repository_metadata["cloneUrlSsh"] = (
             f"ssh://git-codecommit.{region}.amazonaws.com/v1/repos/{repository_name}"
