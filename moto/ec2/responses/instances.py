@@ -226,11 +226,14 @@ class InstanceResponse(EC2BaseResponse):
         instance, value = self.ec2_backend.describe_instance_attribute(
             instance_id, attribute
         )
-        attribute_name = attribute
+        attribute_name = attribute[0].upper() + attribute[1:]
         attribute_value: Any = {"Value": value}
-        if attribute == "groupSet":
+        if attribute_name == "GroupSet":
             attribute_name = "Groups"
             attribute_value = [{"GroupId": group.id} for group in value]
+        elif attribute_name == "UserData" and value:
+            encoded_value = base64.b64encode(value).strip().decode("utf-8")
+            attribute_value = {"Value": encoded_value}
         result = {"InstanceId": instance.id, attribute_name: attribute_value}
         return ActionResult(result)
 
