@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import boto3
 
@@ -15,14 +15,14 @@ class RoleConfigQuery(ConfigQueryModel[IAMBackend]):
         self,
         account_id: str,
         partition: str,
-        resource_ids: Optional[List[str]],
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-        aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # IAM roles are "global" and aren't assigned into any availability zone
         # The resource ID is a AWS-assigned random string like "AROA0BSVNSZKXVHS00SBJ"
         # The resource name is a user-assigned string like "MyDevelopmentAdminRole"
@@ -141,7 +141,7 @@ class RoleConfigQuery(ConfigQueryModel[IAMBackend]):
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         role = self.backends[account_id][partition].roles.get(resource_id)
 
         if not role:
@@ -169,14 +169,14 @@ class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
         self,
         account_id: str,
         partition: str,
-        resource_ids: Optional[List[str]],
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-        aggregator: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # IAM policies are "global" and aren't assigned into any availability zone
         # The resource ID is a AWS-assigned random string like "ANPA0BSVNSZK00SJSPVUJ"
         # The resource name is a user-assigned string like "my-development-policy"
@@ -317,7 +317,7 @@ class PolicyConfigQuery(ConfigQueryModel[IAMBackend]):
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         # policies are listed in the backend as arns, but we have to accept the PolicyID as the resource_id
         # we'll make a really crude search for it
         policy = None

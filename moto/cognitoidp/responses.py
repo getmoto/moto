@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse, EmptyResult
 from moto.utilities.utils import load_resource
@@ -22,7 +22,7 @@ class CognitoIdpResponse(BaseResponse):
         return RegionAgnosticBackend(self.current_account, self.region)
 
     @property
-    def parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def parameters(self) -> dict[str, Any]:  # type: ignore[misc]
         return json.loads(self.body)
 
     @property
@@ -73,7 +73,7 @@ class CognitoIdpResponse(BaseResponse):
         user_pools, next_token = self.backend.list_user_pools(
             max_results=max_results, next_token=next_token
         )
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "UserPools": [user_pool.to_json() for user_pool in user_pools]
         }
         if next_token:
@@ -108,7 +108,7 @@ class CognitoIdpResponse(BaseResponse):
     def describe_user_pool_domain(self) -> ActionResult:
         domain = self._get_param("Domain")
         user_pool_domain = self.backend.describe_user_pool_domain(domain)
-        domain_description: Dict[str, Any] = {}
+        domain_description: dict[str, Any] = {}
         if user_pool_domain:
             domain_description = user_pool_domain.to_json()
 
@@ -144,7 +144,7 @@ class CognitoIdpResponse(BaseResponse):
         user_pool_clients, next_token = self.backend.list_user_pool_clients(
             user_pool_id, max_results=max_results, next_token=next_token
         )
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "UserPoolClients": [
                 user_pool_client.to_json() for user_pool_client in user_pool_clients
             ]
@@ -193,7 +193,7 @@ class CognitoIdpResponse(BaseResponse):
         identity_providers, next_token = self.backend.list_identity_providers(
             user_pool_id, max_results=max_results, next_token=next_token
         )
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "Providers": [
                 identity_provider.to_json() for identity_provider in identity_providers
             ]
@@ -370,7 +370,7 @@ class CognitoIdpResponse(BaseResponse):
         users, token = self.backend.list_users(
             user_pool_id, filt, limit=limit, pagination_token=token
         )
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "Users": [
                 user.to_json(extended=True, attributes_to_get=attributes_to_get)
                 for user in users
@@ -528,7 +528,7 @@ class CognitoIdpResponse(BaseResponse):
         resource_servers, next_token = self.backend.list_resource_servers(
             user_pool_id, max_results=max_results, next_token=next_token
         )
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "ResourceServers": [
                 resource_server.to_json() for resource_server in resource_servers
             ]

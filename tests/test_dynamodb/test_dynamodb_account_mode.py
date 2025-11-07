@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import boto3
 import pytest
 from botocore.config import Config
@@ -19,7 +21,7 @@ def test_dynamodb_with_account_id_routing(endpoint_mode):
         config=endpoint_config,
     )
     client.create_table(
-        TableName="test",
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "id", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},

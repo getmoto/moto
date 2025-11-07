@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import xmltodict
 
@@ -39,7 +39,7 @@ class S3ControlResponse(BaseResponse):
         self.backend.delete_public_access_block(account_id=account_id)
         return 204, {"status": 204}, json.dumps({})
 
-    def _parse_pab_config(self, body: str) -> Dict[str, Any]:
+    def _parse_pab_config(self, body: str) -> dict[str, Any]:
         parsed_xml = xmltodict.parse(body)
         parsed_xml["PublicAccessBlockConfiguration"].pop("@xmlns", None)
 
@@ -99,7 +99,7 @@ class S3ControlResponse(BaseResponse):
 
     def _get_accountid_and_name_from_accesspoint(
         self, full_url: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         url = full_url
         if full_url.startswith("http"):
             url = full_url.split("://")[1]
@@ -107,7 +107,7 @@ class S3ControlResponse(BaseResponse):
         name = url.split("v20180820/accesspoint/")[-1]
         return account_id, name
 
-    def _get_accountid_and_name_from_policy(self, full_url: str) -> Tuple[str, str]:
+    def _get_accountid_and_name_from_policy(self, full_url: str) -> tuple[str, str]:
         url = full_url
         if full_url.startswith("http"):
             url = full_url.split("://")[1]

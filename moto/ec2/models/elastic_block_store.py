@@ -1,4 +1,5 @@
-from typing import Any, Dict, Iterable, List, Optional, Set
+from collections.abc import Iterable
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
@@ -35,17 +36,46 @@ class VolumeModification:
         volume: "Volume",
         target_size: Optional[int] = None,
         target_volume_type: Optional[str] = None,
+        target_iops: Optional[int] = None,
+        target_throughput: Optional[int] = None,
+        target_multi_attach_enabled: Optional[bool] = None,
     ):
-        if not any([target_size, target_volume_type]):
+        if not any(
+            [
+                target_size,
+                target_volume_type,
+                target_iops,
+                target_throughput,
+                target_multi_attach_enabled,
+            ]
+        ):
             raise InvalidParameterValueError(
-                "Invalid input: Must specify at least one of size or type"
+                "Invalid input: Must specify at least one of size, type, iops, throughput, multi_attach_enabled"
             )
 
         self.volume = volume
-        self.original_size = volume.size
-        self.original_volume_type = volume.volume_type
-        self.target_size = target_size or volume.size
-        self.target_volume_type = target_volume_type or volume.volume_type
+
+        if target_size:
+            self.original_size = volume.size
+            self.target_size = target_size or volume.size
+
+        if target_volume_type:
+            self.original_volume_type = volume.volume_type
+            self.target_volume_type = target_volume_type or volume.volume_type
+
+        if target_iops:
+            self.original_iops = volume.iops
+            self.target_iops = volume.iops = target_iops or volume.iops
+
+        if target_throughput:
+            self.original_throughput = volume.throughput
+            self.target_throughput = target_throughput or volume.throughput
+
+        if target_multi_attach_enabled:
+            self.original_multi_attach_enabled = volume.multi_attach_enabled or False
+            self.target_multi_attach_enabled = (
+                target_multi_attach_enabled or volume.multi_attach_enabled
+            )
 
         self.start_time = utc_date_and_time()
         self.end_time = utc_date_and_time()
@@ -117,6 +147,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         volume_type: Optional[str] = None,
         iops: Optional[int] = None,
         throughput: Optional[int] = None,
+        multi_attach_enabled: Optional[bool] = None,
     ):
         self.id = volume_id
         self.volume_type = volume_type or "gp2"
@@ -128,22 +159,39 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.encrypted = encrypted
         self.kms_key_id = kms_key_id
-        self.modifications: List[VolumeModification] = []
+        self.modifications: list[VolumeModification] = []
         self.iops = iops
         self.throughput = throughput
+        self.multi_attach_enabled = multi_attach_enabled
 
     def modify(
         self,
         target_size: Optional[int] = None,
         target_volume_type: Optional[str] = None,
+        target_iops: Optional[int] = None,
+        target_throughput: Optional[int] = None,
+        target_multi_attach_enabled: Optional[bool] = None,
     ) -> None:
         modification = VolumeModification(
-            volume=self, target_size=target_size, target_volume_type=target_volume_type
+            volume=self,
+            target_size=target_size,
+            target_volume_type=target_volume_type,
+            target_iops=target_iops,
+            target_throughput=target_throughput,
+            target_multi_attach_enabled=target_multi_attach_enabled,
         )
         self.modifications.append(modification)
 
-        self.size = modification.target_size
-        self.volume_type = modification.target_volume_type
+        if target_size:
+            self.size = modification.target_size
+        if target_volume_type:
+            self.volume_type = modification.target_volume_type
+        if target_iops:
+            self.iops = modification.target_iops
+        if target_throughput:
+            self.throughput = modification.target_throughput
+        if target_multi_attach_enabled:
+            self.multi_attach_enabled = modification.target_multi_attach_enabled
 
     @staticmethod
     def cloudformation_name_type() -> str:
@@ -231,8 +279,8 @@ class Snapshot(TaggedEC2Resource):
         self.volume = volume
         self.description = description
         self.start_time = utc_date_and_time()
-        self.create_volume_permission_groups: Set[str] = set()
-        self.create_volume_permission_userids: Set[str] = set()
+        self.create_volume_permission_groups: set[str] = set()
+        self.create_volume_permission_userids: set[str] = set()
         self.ec2_backend = ec2_backend
         self.status = "completed"
         self.encrypted = encrypted or (kms_key_id is not None)
@@ -267,9 +315,9 @@ class Snapshot(TaggedEC2Resource):
 
 class EBSBackend:
     def __init__(self) -> None:
-        self.volumes: Dict[str, Volume] = {}
-        self.attachments: Dict[str, VolumeAttachment] = {}
-        self.snapshots: Dict[str, Snapshot] = {}
+        self.volumes: dict[str, Volume] = {}
+        self.attachments: dict[str, VolumeAttachment] = {}
+        self.snapshots: dict[str, Snapshot] = {}
         self.default_kms_key_id: str = ""
 
     def create_volume(
@@ -282,6 +330,7 @@ class EBSBackend:
         volume_type: Optional[str] = None,
         iops: Optional[int] = None,
         throughput: Optional[int] = None,
+        multi_attach_enabled: Optional[bool] = None,
     ) -> Volume:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -297,6 +346,8 @@ class EBSBackend:
             raise InvalidParameterDependency("VolumeType", "Iops")
         if volume_type not in THROUGHPUT_SUPPORTED_VOLUME_TYPES and throughput:
             raise InvalidParameterDependency("VolumeType", "Throughput")
+        if multi_attach_enabled and volume_type not in IOPS_REQUIRED_VOLUME_TYPES:
+            raise InvalidParameterDependency("MultiAttachEnabled", "VolumeType")
 
         volume_id = random_volume_id()
         zone = self.get_zone_by_name(zone_name)  # type: ignore[attr-defined]
@@ -321,13 +372,14 @@ class EBSBackend:
             volume_type=volume_type,
             iops=iops,
             throughput=throughput,
+            multi_attach_enabled=multi_attach_enabled,
         )
         self.volumes[volume_id] = volume
         return volume
 
     def describe_volumes(
-        self, volume_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[Volume]:
+        self, volume_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[Volume]:
         matches = list(self.volumes.values())
         if volume_ids:
             matches = [vol for vol in matches if vol.id in volume_ids]
@@ -343,14 +395,23 @@ class EBSBackend:
         volume_id: str,
         target_size: Optional[int] = None,
         target_volume_type: Optional[str] = None,
+        target_iops: Optional[int] = None,
+        target_throughput: Optional[int] = None,
+        target_multi_attach_enabled: Optional[bool] = None,
     ) -> Volume:
         volume = self.get_volume(volume_id)
-        volume.modify(target_size=target_size, target_volume_type=target_volume_type)
+        volume.modify(
+            target_size=target_size,
+            target_volume_type=target_volume_type,
+            target_iops=target_iops,
+            target_throughput=target_throughput,
+            target_multi_attach_enabled=target_multi_attach_enabled,
+        )
         return volume
 
     def describe_volumes_modifications(
-        self, volume_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[VolumeModification]:
+        self, volume_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[VolumeModification]:
         volumes = self.describe_volumes(volume_ids)
         modifications = []
         for volume in volumes:
@@ -444,8 +505,8 @@ class EBSBackend:
         return snapshot
 
     def create_snapshots(
-        self, instance_spec: Dict[str, Any], description: str, tags: Dict[str, str]
-    ) -> List[Snapshot]:
+        self, instance_spec: dict[str, Any], description: str, tags: dict[str, str]
+    ) -> list[Snapshot]:
         """
         The CopyTagsFromSource-parameter is not yet implemented.
         """
@@ -469,8 +530,8 @@ class EBSBackend:
         return snapshots
 
     def describe_snapshots(
-        self, snapshot_ids: Optional[List[str]] = None, filters: Any = None
-    ) -> List[Snapshot]:
+        self, snapshot_ids: Optional[list[str]] = None, filters: Any = None
+    ) -> list[Snapshot]:
         matches = list(self.snapshots.values())
         if snapshot_ids:
             matches = [snap for snap in matches if snap.id in snapshot_ids]
@@ -519,16 +580,16 @@ class EBSBackend:
             return self.snapshots.pop(snapshot_id)
         raise InvalidSnapshotIdError()
 
-    def get_create_volume_permission_groups(self, snapshot_id: str) -> Set[str]:
+    def get_create_volume_permission_groups(self, snapshot_id: str) -> set[str]:
         snapshot = self.get_snapshot(snapshot_id)
         return snapshot.create_volume_permission_groups
 
-    def get_create_volume_permission_userids(self, snapshot_id: str) -> Set[str]:
+    def get_create_volume_permission_userids(self, snapshot_id: str) -> set[str]:
         snapshot = self.get_snapshot(snapshot_id)
         return snapshot.create_volume_permission_userids
 
     def add_create_volume_permission(
-        self, snapshot_id: str, user_ids: List[str], groups: List[str]
+        self, snapshot_id: str, user_ids: list[str], groups: list[str]
     ) -> None:
         snapshot = self.get_snapshot(snapshot_id)
         if user_ids:
@@ -542,7 +603,7 @@ class EBSBackend:
     def remove_create_volume_permission(
         self,
         snapshot_id: str,
-        user_ids: Optional[List[str]] = None,
+        user_ids: Optional[list[str]] = None,
         groups: Optional[Iterable[str]] = None,
     ) -> None:
         snapshot = self.get_snapshot(snapshot_id)

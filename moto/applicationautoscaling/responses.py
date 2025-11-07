@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -148,7 +148,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             resource_id=resource_id,
             scalable_dimension=scalable_dimension,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def put_scheduled_action(self) -> str:
         params = json.loads(self.body)
@@ -172,7 +172,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             end_time=end_time,
             scalable_target_action=scalable_target_action,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_scheduled_actions(self) -> str:
         params = json.loads(self.body)
@@ -194,7 +194,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
         return json.dumps(response_obj)
 
 
-def _build_target(t: FakeScalableTarget) -> Dict[str, Any]:
+def _build_target(t: FakeScalableTarget) -> dict[str, Any]:
     return {
         "CreationTime": t.creation_time,
         "MaxCapacity": t.max_capacity,
@@ -208,11 +208,11 @@ def _build_target(t: FakeScalableTarget) -> Dict[str, Any]:
     }
 
 
-def _build_alarms(policy: FakeApplicationAutoscalingPolicy) -> List[Dict[str, str]]:
+def _build_alarms(policy: FakeApplicationAutoscalingPolicy) -> list[dict[str, str]]:
     return [{"AlarmARN": a.alarm_arn, "AlarmName": a.name} for a in policy.alarms]
 
 
-def _build_policy(p: FakeApplicationAutoscalingPolicy) -> Dict[str, Any]:
+def _build_policy(p: FakeApplicationAutoscalingPolicy) -> dict[str, Any]:
     response = {
         "PolicyARN": p.policy_arn,
         "PolicyName": p.policy_name,
@@ -232,7 +232,7 @@ def _build_policy(p: FakeApplicationAutoscalingPolicy) -> Dict[str, Any]:
     return response
 
 
-def _build_scheduled_action(a: FakeScheduledAction) -> Dict[str, Any]:
+def _build_scheduled_action(a: FakeScheduledAction) -> dict[str, Any]:
     response = {
         "ScheduledActionName": a.scheduled_action_name,
         "ScheduledActionARN": a.arn,

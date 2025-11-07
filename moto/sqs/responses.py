@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
@@ -204,7 +204,7 @@ class SQSResponse(BaseResponse):
                 }
             )
 
-        resp: Dict[str, Any] = {"Successful": [], "Failed": errors}
+        resp: dict[str, Any] = {"Successful": [], "Failed": errors}
         for msg in messages:
             msg_dict = {
                 "Id": msg.user_id,  # type: ignore
@@ -310,7 +310,7 @@ class SQSResponse(BaseResponse):
 
         msgs = []
         for message in messages:
-            msg: Dict[str, Any] = {
+            msg: dict[str, Any] = {
                 "MessageId": message.id,
                 "ReceiptHandle": message.receipt_handle,
                 "MD5OfBody": message.body_md5,

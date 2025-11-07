@@ -705,7 +705,7 @@ def test_put_events():
         with warnings.catch_warnings(record=True) as ws:
             client.put_events(Entries=[event])
         messages = [str(w.message) for w in ws]
-        assert any(["EventDetail should be of type dict" in msg for msg in messages])
+        assert any("EventDetail should be of type dict" in msg for msg in messages)
 
 
 @mock_aws
@@ -2509,7 +2509,9 @@ def test_kms_key_is_created(auth_type, auth_parameters, with_headers):
                 secret_deleted = err["Code"] == "ResourceNotFoundException"
 
         if not secret_deleted:
-            assert False, f"Should have automatically deleted secret {secret_arn}"
+            raise AssertionError(
+                f"Should have automatically deleted secret {secret_arn}"
+            )
     finally:
         if not connection_deleted:
             client.delete_connection(Name=name)
@@ -2631,7 +2633,7 @@ def test_create_and_update_api_destination(key, initial_value, updated_value):
     destination = client.describe_api_destination(Name="test")
     assert destination[key] == initial_value
 
-    client.update_api_destination(Name="test", **dict({key: updated_value}))
+    client.update_api_destination(Name="test", **{key: updated_value})
 
     destination = client.describe_api_destination(Name="test")
     assert destination[key] == updated_value

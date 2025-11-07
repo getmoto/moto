@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -34,15 +34,15 @@ class APIGatewayResponse(BaseResponse):
                 "ValidationException",
                 (
                     "1 validation error detected: "
-                    "Value '{api_key_source}' at 'createRestApiInput.apiKeySource' failed "
+                    f"Value '{api_key_source}' at 'createRestApiInput.apiKeySource' failed "
                     "to satisfy constraint: Member must satisfy enum value set: "
                     "[AUTHORIZER, HEADER]"
-                ).format(api_key_source=api_key_source),
+                ),
             )
         return None
 
     def __validate_endpoint_configuration(
-        self, endpoint_configuration: Dict[str, str]
+        self, endpoint_configuration: dict[str, str]
     ) -> Optional[TYPE_RESPONSE]:
         if endpoint_configuration and "types" in endpoint_configuration:
             invalid_types = list(
@@ -52,11 +52,11 @@ class APIGatewayResponse(BaseResponse):
                 return self.error(
                     "ValidationException",
                     (
-                        "1 validation error detected: Value '{endpoint_type}' "
+                        f"1 validation error detected: Value '{invalid_types[0]}' "
                         "at 'createRestApiInput.endpointConfiguration.types' failed "
                         "to satisfy constraint: Member must satisfy enum value set: "
                         "[PRIVATE, EDGE, REGIONAL]"
-                    ).format(endpoint_type=invalid_types[0]),
+                    ),
                 )
         return None
 
@@ -105,7 +105,7 @@ class APIGatewayResponse(BaseResponse):
         return json.dumps({"item": [api.to_dict() for api in apis]})
 
     def __validte_rest_patch_operations(
-        self, patch_operations: List[Dict[str, str]]
+        self, patch_operations: list[dict[str, str]]
     ) -> Optional[TYPE_RESPONSE]:
         for op in patch_operations:
             path = op["path"]
@@ -284,10 +284,10 @@ class APIGatewayResponse(BaseResponse):
                 "ValidationException",
                 (
                     "1 validation error detected: "
-                    "Value '{authorizer_type}' at 'createAuthorizerInput.type' failed "
+                    f"Value '{authorizer_type}' at 'createAuthorizerInput.type' failed "
                     "to satisfy constraint: Member must satisfy enum value set: "
                     "[TOKEN, REQUEST, COGNITO_USER_POOLS]"
-                ).format(authorizer_type=authorizer_type),
+                ),
             )
 
         authorizer_response = self.backend.create_authorizer(
@@ -844,7 +844,7 @@ class APIGatewayResponse(BaseResponse):
     def get_gateway_responses(self) -> TYPE_RESPONSE:
         rest_api_id = self.path.split("/")[-2]
         responses = self.backend.get_gateway_responses(rest_api_id=rest_api_id)
-        return 200, {}, json.dumps(dict(item=[gw.to_json() for gw in responses]))
+        return 200, {}, json.dumps({"item": [gw.to_json() for gw in responses]})
 
     def delete_gateway_response(self) -> TYPE_RESPONSE:
         rest_api_id = self.path.split("/")[-3]
@@ -852,7 +852,7 @@ class APIGatewayResponse(BaseResponse):
         self.backend.delete_gateway_response(
             rest_api_id=rest_api_id, response_type=response_type
         )
-        return 202, {}, json.dumps(dict())
+        return 202, {}, json.dumps({})
 
     def update_account(self) -> str:
         patch_operations = self._get_param("patchOperations")

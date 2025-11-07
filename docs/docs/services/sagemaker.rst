@@ -133,10 +133,12 @@ sagemaker
 - [ ] delete_optimization_job
 - [ ] delete_partner_app
 - [X] delete_pipeline
+- [ ] delete_processing_job
 - [ ] delete_project
 - [ ] delete_space
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
+- [ ] delete_training_job
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile

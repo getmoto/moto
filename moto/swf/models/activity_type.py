@@ -1,11 +1,9 @@
-from typing import List
-
 from .generic_type import GenericType
 
 
 class ActivityType(GenericType):
     @property
-    def _configuration_keys(self) -> List[str]:
+    def _configuration_keys(self) -> list[str]:
         return [
             "defaultTaskHeartbeatTimeout",
             "defaultTaskScheduleToCloseTimeout",

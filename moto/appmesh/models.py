@@ -1,6 +1,6 @@
 """AppMeshBackend class with methods for supported APIs."""
 
-from typing import Dict, List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 from moto.appmesh.dataclasses.mesh import (
     Mesh,
@@ -71,7 +71,7 @@ class AppMeshBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.meshes: Dict[str, Mesh] = dict()
+        self.meshes: dict[str, Mesh] = {}
 
     def _validate_mesh(self, mesh_name: str, mesh_owner: Optional[str]) -> None:
         if mesh_name not in self.meshes:
@@ -184,7 +184,7 @@ class AppMeshBackend(BaseBackend):
         mesh_name: str,
         egress_filter_type: Optional[str],
         ip_preference: Optional[str],
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
     ) -> Mesh:
         from moto.sts import sts_backends
 
@@ -207,7 +207,7 @@ class AppMeshBackend(BaseBackend):
             spec=spec,
             status={"status": "ACTIVE"},
             metadata=metadata,
-            tags=tags or list(),
+            tags=tags or [],
         )
         self.meshes[mesh_name] = mesh
         return mesh
@@ -250,7 +250,7 @@ class AppMeshBackend(BaseBackend):
         return mesh
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_meshes(self) -> List[Dict[str, Union[str, int]]]:
+    def list_meshes(self) -> list[dict[str, Union[str, int]]]:
         return [
             {
                 "arn": mesh.metadata.arn,
@@ -284,10 +284,10 @@ class AppMeshBackend(BaseBackend):
         raise ResourceNotFoundError(resource_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self._get_resource_with_arn(resource_arn=resource_arn).tags
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         if len(tags) > 0:
             resource = self._get_resource_with_arn(resource_arn=resource_arn)
             resource.tags.extend(tags)
@@ -308,8 +308,8 @@ class AppMeshBackend(BaseBackend):
         client_token: str,
         mesh_name: str,
         mesh_owner: Optional[str],
-        port_mappings: List[PortMapping],
-        tags: Optional[List[Dict[str, str]]],
+        port_mappings: list[PortMapping],
+        tags: Optional[list[dict[str, str]]],
         virtual_router_name: str,
     ) -> VirtualRouter:
         self._check_router_availability(
@@ -323,7 +323,7 @@ class AppMeshBackend(BaseBackend):
             resource_owner=owner,
             arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualRouter/{virtual_router_name}",
         )
-        listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
+        listeners: list[dict[Literal["port_mapping"], PortMapping]] = [
             {"port_mapping": port_mapping} for port_mapping in port_mappings
         ]
         spec = VirtualRouterSpec(listeners=listeners)
@@ -333,7 +333,7 @@ class AppMeshBackend(BaseBackend):
             metadata=metadata,
             status={"status": "ACTIVE"},
             spec=spec,
-            tags=tags or list(),
+            tags=tags or [],
         )
         self.meshes[mesh_name].virtual_routers[virtual_router_name] = virtual_router
         return virtual_router
@@ -343,7 +343,7 @@ class AppMeshBackend(BaseBackend):
         client_token: str,
         mesh_name: str,
         mesh_owner: Optional[str],
-        port_mappings: List[PortMapping],
+        port_mappings: list[PortMapping],
         virtual_router_name: str,
     ) -> VirtualRouter:
         self._check_router_validity(
@@ -351,7 +351,7 @@ class AppMeshBackend(BaseBackend):
             mesh_owner=mesh_owner,
             virtual_router_name=virtual_router_name,
         )
-        listeners: List[Dict[Literal["port_mapping"], PortMapping]] = [
+        listeners: list[dict[Literal["port_mapping"], PortMapping]] = [
             {"port_mapping": port_mapping} for port_mapping in port_mappings
         ]
         spec = VirtualRouterSpec(listeners=listeners)
@@ -378,7 +378,7 @@ class AppMeshBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_virtual_routers(
         self, mesh_name: str, mesh_owner: Optional[str]
-    ) -> List[Dict[str, Union[str, int]]]:
+    ) -> list[dict[str, Union[str, int]]]:
         self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
         return [
             {
@@ -405,7 +405,7 @@ class AppMeshBackend(BaseBackend):
         mesh_owner: Optional[str],
         route_name: str,
         spec: RouteSpec,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         virtual_router_name: str,
     ) -> Route:
         self._check_route_availability(
@@ -429,7 +429,7 @@ class AppMeshBackend(BaseBackend):
             metadata=metadata,
             route_name=route_name,
             spec=spec,
-            tags=tags or list(),
+            tags=tags or [],
             virtual_router_name=virtual_router_name,
         )
         self.meshes[mesh_name].virtual_routers[virtual_router_name].routes[
@@ -513,7 +513,7 @@ class AppMeshBackend(BaseBackend):
         mesh_name: str,
         mesh_owner: Optional[str],
         virtual_router_name: str,
-    ) -> List[RouteMetadata]:
+    ) -> list[RouteMetadata]:
         self._check_router_validity(
             mesh_name=mesh_name,
             mesh_owner=mesh_owner,
@@ -538,7 +538,7 @@ class AppMeshBackend(BaseBackend):
         mesh_name: str,
         mesh_owner: Optional[str],
         spec: VirtualNodeSpec,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         virtual_node_name: str,
     ) -> VirtualNode:
         self._check_virtual_node_availability(
@@ -559,7 +559,7 @@ class AppMeshBackend(BaseBackend):
             mesh_owner=owner,
             metadata=metadata,
             spec=spec,
-            tags=tags or list(),
+            tags=tags or [],
             virtual_node_name=virtual_node_name,
         )
         self.meshes[mesh_name].virtual_nodes[virtual_node_name] = virtual_node
@@ -602,7 +602,7 @@ class AppMeshBackend(BaseBackend):
         self,
         mesh_name: str,
         mesh_owner: Optional[str],
-    ) -> List[VirtualNodeMetadata]:
+    ) -> list[VirtualNodeMetadata]:
         self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
         virtual_nodes = self.meshes[mesh_name].virtual_nodes
         return [virtual_node.metadata for virtual_node in virtual_nodes.values()]

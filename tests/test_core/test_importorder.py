@@ -1,5 +1,5 @@
 import sys
-from typing import Any, List
+from typing import Any
 from unittest import SkipTest
 
 import boto3
@@ -117,7 +117,7 @@ class ImportantBusinessLogic:
     def __init__(self) -> None:
         self._s3 = boto3.client("s3", region_name="us-east-1")
 
-    def do_important_things(self) -> List[str]:
+    def do_important_things(self) -> list[str]:
         return self._s3.list_buckets()["Buckets"]
 
 

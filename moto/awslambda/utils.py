@@ -1,6 +1,6 @@
 from collections import namedtuple
 from functools import partial
-from typing import TYPE_CHECKING, Any, Type, Union
+from typing import TYPE_CHECKING, Any, Union
 
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
@@ -33,7 +33,7 @@ make_function_ver_arn = partial(make_ver_arn, "function")
 make_layer_ver_arn = partial(make_ver_arn, "layer")
 
 
-def split_arn(arn_type: Union[Type[ARN], Type[LAYER_ARN]], arn: str) -> Any:
+def split_arn(arn_type: Union[type[ARN], type[LAYER_ARN]], arn: str) -> Any:
     for partition in PARTITION_NAMES:
         arn = arn.replace(f"arn:{partition}:lambda:", "")
 

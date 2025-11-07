@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -34,7 +34,7 @@ class Portfolio(BaseModel):
         display_name: str,
         description: str,
         provider_name: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         region_name: str,
         account_id: str,
         backend: "ServiceCatalogBackend",
@@ -55,7 +55,7 @@ class Portfolio(BaseModel):
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:catalog:{self.region_name}:{self.account_id}:portfolio/{self.id}"
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {
             "Id": self.id,
             "ARN": self.arn,
@@ -149,7 +149,7 @@ class ServiceCatalogBackend(BaseBackend):
         organization_parent_id: Optional[str],
         page_token: Optional[str],
         page_size: Optional[int] = None,
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         # TODO: Implement organization_parent_id and accept_language
 
         account_ids = self.portfolio_access.get(portfolio_id, [])
@@ -171,7 +171,7 @@ class ServiceCatalogBackend(BaseBackend):
         accept_language: Optional[str],
         portfolio_id: str,
         account_id: Optional[str],
-        organization_node: Optional[Dict[str, str]],
+        organization_node: Optional[dict[str, str]],
     ) -> Optional[str]:
         # TODO: Implement accept_language
 
@@ -208,9 +208,9 @@ class ServiceCatalogBackend(BaseBackend):
         display_name: str,
         description: Optional[str],
         provider_name: str,
-        tags: Optional[List[Dict[str, str]]],
+        tags: Optional[list[dict[str, str]]],
         idempotency_token: Optional[str],
-    ) -> Tuple[Dict[str, str], List[Dict[str, str]]]:
+    ) -> tuple[dict[str, str], list[dict[str, str]]]:
         # TODO: Implement accept_language
 
         if idempotency_token and idempotency_token in self.idempotency_tokens:
@@ -245,7 +245,7 @@ class ServiceCatalogBackend(BaseBackend):
         accept_language: Optional[str],
         portfolio_id: str,
         account_id: Optional[str],
-        organization_node: Optional[Dict[str, str]],
+        organization_node: Optional[dict[str, str]],
         share_tag_options: bool,
         share_principals: bool,
     ) -> Optional[str]:
@@ -289,7 +289,7 @@ class ServiceCatalogBackend(BaseBackend):
         accept_language: Optional[str] = None,
         page_token: Optional[str] = None,
         page_size: Optional[int] = None,
-    ) -> Tuple[List[Dict[str, str]], Optional[str]]:
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         """TODO: Implement pagination and accept_language"""
         portfolio_details = [
             portfolio.to_dict() for portfolio in self.portfolios.values()
@@ -302,7 +302,7 @@ class ServiceCatalogBackend(BaseBackend):
         type: str,
         page_token: Optional[str] = None,
         page_size: Optional[int] = None,
-    ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
+    ) -> tuple[Optional[str], list[dict[str, Any]]]:
         """TODO: Implement pagination"""
 
         portfolio_share_details = []
@@ -353,8 +353,8 @@ class ServiceCatalogBackend(BaseBackend):
 
     def describe_portfolio(
         self, accept_language: Optional[str], id: str
-    ) -> Tuple[
-        Dict[str, Any], List[Dict[str, str]], List[Dict[str, Any]], List[Dict[str, str]]
+    ) -> tuple[
+        dict[str, Any], list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]
     ]:
         # TODO: Implement accept_language
 
@@ -366,8 +366,8 @@ class ServiceCatalogBackend(BaseBackend):
 
         tags = portfolio.tags
 
-        tag_options: List[Dict[str, Any]] = []
-        budgets: List[Dict[str, Any]] = []
+        tag_options: list[dict[str, Any]] = []
+        budgets: list[dict[str, Any]] = []
 
         return portfolio_detail, tags, tag_options, budgets
 

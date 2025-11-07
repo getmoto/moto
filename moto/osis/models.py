@@ -1,7 +1,7 @@
 """OpenSearchIngestionBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 import yaml
 
@@ -35,7 +35,7 @@ class Pipeline(ManagedState, BaseModel):
     STARTING_REASON = "The pipeline is starting. It is not able to ingest data"
     UPDATING_REASON = "An update was triggered for the pipeline. It is still available to ingest data."
 
-    STATUS_REASON_MAP: ClassVar[Dict[str, str]] = {
+    STATUS_REASON_MAP: ClassVar[dict[str, str]] = {
         "CREATING": CREATING_REASON,
         "ACTIVE": ACTIVE_REASON,
         "STOPPING": STOPPING_REASON,
@@ -53,11 +53,11 @@ class Pipeline(ManagedState, BaseModel):
         min_units: int,
         max_units: int,
         pipeline_configuration_body: str,
-        log_publishing_options: Optional[Dict[str, Any]],
-        vpc_options: Optional[Dict[str, Any]],
-        buffer_options: Optional[Dict[str, Any]],
-        encryption_at_rest_options: Optional[Dict[str, Any]],
-        ingest_endpoint_urls: List[str],
+        log_publishing_options: Optional[dict[str, Any]],
+        vpc_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, Any]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
+        ingest_endpoint_urls: list[str],
         serverless: bool,
         vpc_endpoint_service: Optional[str],
         vpc_endpoint: Optional[str],
@@ -112,14 +112,14 @@ class Pipeline(ManagedState, BaseModel):
     def _get_arn(self, name: str) -> str:
         return f"arn:{get_partition(self.region)}:osis:{self.region}:{self.account_id}:pipeline/{name}"
 
-    def _get_service_vpc_endpoints(self) -> Optional[List[Dict[str, str]]]:
+    def _get_service_vpc_endpoints(self) -> Optional[list[dict[str, str]]]:
         # ServiceVpcEndpoint.VpcEndpointId not implemented
         if self.serverless:
             return [{"ServiceName": "OPENSEARCH_SERVERLESS"}]
         else:
             return None
 
-    def _update_destinations(self) -> List[Dict[str, str]]:
+    def _update_destinations(self) -> list[dict[str, str]]:
         destinations = []
         for sub_pipeline in self.pipeline_configuration_body:
             if sub_pipeline != "version":
@@ -142,7 +142,7 @@ class Pipeline(ManagedState, BaseModel):
         return destinations
 
     @staticmethod
-    def is_serverless(pipeline_body: Dict[str, Any]) -> bool:  # type: ignore[misc]
+    def is_serverless(pipeline_body: dict[str, Any]) -> bool:  # type: ignore[misc]
         serverless = False
         for sub_pipeline in pipeline_body:
             if sub_pipeline != "version":
@@ -185,9 +185,9 @@ class Pipeline(ManagedState, BaseModel):
         min_units: Optional[int],
         max_units: Optional[int],
         pipeline_configuration_body: Optional[str],
-        log_publishing_options: Optional[Dict[str, Any]],
-        buffer_options: Optional[Dict[str, Any]],
-        encryption_at_rest_options: Optional[Dict[str, Any]],
+        log_publishing_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, Any]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
     ) -> None:
         if min_units is not None:
             self.min_units = min_units
@@ -210,7 +210,7 @@ class Pipeline(ManagedState, BaseModel):
         self.status = "UPDATING"
         self.set_last_updated()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "PipelineName": self.pipeline_name,
             "PipelineArn": self.arn,
@@ -242,7 +242,7 @@ class Pipeline(ManagedState, BaseModel):
             "Tags": self.backend.list_tags_for_resource(self.arn)["Tags"],
         }
 
-    def to_short_dict(self) -> Dict[str, Any]:
+    def to_short_dict(self) -> dict[str, Any]:
         return {
             "Status": self.status,
             "StatusReason": {
@@ -289,7 +289,7 @@ class OpenSearchIngestionBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._pipelines: Dict[str, Pipeline] = dict()
+        self._pipelines: dict[str, Pipeline] = {}
         self.tagger = TaggingService()
 
     @property
@@ -299,7 +299,7 @@ class OpenSearchIngestionBackend(BaseBackend):
         return ec2_backends[self.account_id][self.region_name]
 
     @property
-    def pipelines(self) -> Dict[str, Pipeline]:
+    def pipelines(self) -> dict[str, Pipeline]:
         self._pipelines = {
             name: pipeline
             for name, pipeline in self._pipelines.items()
@@ -309,7 +309,7 @@ class OpenSearchIngestionBackend(BaseBackend):
 
     def _get_ingest_endpoint_urls(
         self, pipeline_name: str, endpoint_random_string: str
-    ) -> List[str]:
+    ) -> list[str]:
         return [
             f"{pipeline_name}-{endpoint_random_string}.{self.region_name}.osis.amazonaws.com"
         ]
@@ -318,7 +318,7 @@ class OpenSearchIngestionBackend(BaseBackend):
         return random.get_random_string(length=26, lower_case=True)
 
     def _get_vpc_endpoint(
-        self, vpc_id: str, vpc_options: Dict[str, Any], service_name: str
+        self, vpc_id: str, vpc_options: dict[str, Any], service_name: str
     ) -> Optional[str]:
         if vpc_options.get("VpcEndpointManagement", "SERVICE") == "SERVICE":
             service_managed_endpoint = self.ec2_backend.create_vpc_endpoint(
@@ -341,7 +341,7 @@ class OpenSearchIngestionBackend(BaseBackend):
     ) -> str:
         return f"com.amazonaws.osis.{self.region_name}.{pipeline_name}-{endpoint_random_string}"
 
-    def _validate_and_get_vpc(self, vpc_options: Dict[str, Any]) -> str:
+    def _validate_and_get_vpc(self, vpc_options: dict[str, Any]) -> str:
         from moto.ec2.exceptions import InvalidSubnetIdError
 
         vpc_id = ""
@@ -372,11 +372,11 @@ class OpenSearchIngestionBackend(BaseBackend):
         min_units: int,
         max_units: int,
         pipeline_configuration_body: str,
-        log_publishing_options: Optional[Dict[str, Any]],
-        vpc_options: Optional[Dict[str, Any]],
-        buffer_options: Optional[Dict[str, bool]],
-        encryption_at_rest_options: Optional[Dict[str, Any]],
-        tags: List[Dict[str, str]],
+        log_publishing_options: Optional[dict[str, Any]],
+        vpc_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, bool]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
+        tags: list[dict[str, str]],
     ) -> Pipeline:
         if pipeline_name in self.pipelines:
             raise PipelineAlreadyExistsException(pipeline_name)
@@ -460,12 +460,12 @@ class OpenSearchIngestionBackend(BaseBackend):
         return pipeline
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
-    def list_pipelines(self) -> List[Pipeline]:
+    def list_pipelines(self) -> list[Pipeline]:
         for pipeline in self.pipelines.values():
             pipeline.advance()
-        return [p for p in self.pipelines.values()]
+        return list(self.pipelines.values())
 
-    def list_tags_for_resource(self, arn: str) -> Dict[str, List[Dict[str, str]]]:
+    def list_tags_for_resource(self, arn: str) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(arn)
 
     def update_pipeline(
@@ -474,9 +474,9 @@ class OpenSearchIngestionBackend(BaseBackend):
         min_units: Optional[int],
         max_units: Optional[int],
         pipeline_configuration_body: Optional[str],
-        log_publishing_options: Optional[Dict[str, Any]],
-        buffer_options: Optional[Dict[str, Any]],
-        encryption_at_rest_options: Optional[Dict[str, Any]],
+        log_publishing_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, Any]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
     ) -> Pipeline:
         if pipeline_name not in self.pipelines:
             raise PipelineNotFoundException(pipeline_name)
@@ -495,10 +495,10 @@ class OpenSearchIngestionBackend(BaseBackend):
         )
         return pipeline
 
-    def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(arn, tags)
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
 

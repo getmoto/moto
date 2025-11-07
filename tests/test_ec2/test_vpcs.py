@@ -10,6 +10,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws, settings
 
 from . import ec2_aws_verified
+from .helpers import assert_dryrun_error
 from .test_tags import retrieve_all_tagged
 
 SAMPLE_DOMAIN_NAME = "example.com"
@@ -161,12 +162,12 @@ def test_vpc_state_available_filter():
     assert vpc2.id in [v["VpcId"] for v in available]
 
 
-def retrieve_all_vpcs(client, filters=[]):
-    resp = client.describe_vpcs(Filters=filters)
+def retrieve_all_vpcs(client, filters=None):
+    resp = client.describe_vpcs(Filters=filters or [])
     all_vpcs = resp["Vpcs"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_vpcs(Filters=filters, NextToken=token)
+        resp = client.describe_vpcs(Filters=filters or [], NextToken=token)
         all_vpcs.extend(resp["Vpcs"])
         token = resp.get("NextToken")
     return all_vpcs
@@ -200,7 +201,7 @@ def test_vpc_get_by_id():
 
     vpcs = client.describe_vpcs(VpcIds=[vpc1.id, vpc2.id])["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -224,7 +225,7 @@ def test_vpc_get_by_cidr_block():
     vpcs = client.describe_vpcs(Filters=[{"Name": "cidr", "Values": [random_cidr]}])[
         "Vpcs"
     ]
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -248,7 +249,7 @@ def test_vpc_get_by_dhcp_options_id():
         Filters=[{"Name": "dhcp-options-id", "Values": [dhcp_options.id]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -270,7 +271,7 @@ def test_vpc_get_by_tag():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -292,7 +293,7 @@ def test_vpc_get_by_tag_key_superset():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -315,7 +316,7 @@ def test_vpc_get_by_tag_key_subset():
         Filters=[{"Name": "tag-key", "Values": [tag_key1, tag_key2]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -337,7 +338,7 @@ def test_vpc_get_by_tag_value_superset():
         "Vpcs"
     ]
     assert len(vpcs) == 2
-    assert set([vpc["VpcId"] for vpc in vpcs]) == {vpc1.id, vpc2.id}
+    assert {vpc["VpcId"] for vpc in vpcs} == {vpc1.id, vpc2.id}
 
 
 @mock_aws
@@ -359,7 +360,7 @@ def test_vpc_get_by_tag_value_subset():
         Filters=[{"Name": "tag-value", "Values": [value1, value2]}]
     )["Vpcs"]
     assert len(vpcs) == 2
-    vpc_ids = tuple(map(lambda v: v["VpcId"], vpcs))
+    vpc_ids = tuple(v["VpcId"] for v in vpcs)
     assert vpc1.id in vpc_ids
     assert vpc2.id in vpc_ids
 
@@ -1456,12 +1457,7 @@ def test_describe_vpcs_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_vpcs(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeVpcs operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

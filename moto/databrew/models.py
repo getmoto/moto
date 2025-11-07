@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend, InstanceTrackerMeta
 from moto.core.common_models import BaseModel
@@ -57,10 +57,10 @@ class DataBrewBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.recipes: Dict[str, FakeRecipe] = OrderedDict()
-        self.rulesets: Dict[str, FakeRuleset] = OrderedDict()
-        self.datasets: Dict[str, FakeDataset] = OrderedDict()
-        self.jobs: Dict[str, FakeJob] = OrderedDict()
+        self.recipes: dict[str, FakeRecipe] = OrderedDict()
+        self.rulesets: dict[str, FakeRuleset] = OrderedDict()
+        self.datasets: dict[str, FakeDataset] = OrderedDict()
+        self.jobs: dict[str, FakeJob] = OrderedDict()
 
     @staticmethod
     def validate_length(param: str, param_name: str, max_length: int) -> None:
@@ -74,8 +74,8 @@ class DataBrewBackend(BaseBackend):
         self,
         recipe_name: str,
         recipe_description: str,
-        recipe_steps: List[Dict[str, Any]],
-        tags: Dict[str, str],
+        recipe_steps: list[dict[str, Any]],
+        tags: dict[str, str],
     ) -> "FakeRecipeVersion":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_CreateRecipe.html
         if recipe_name in self.recipes:
@@ -124,7 +124,7 @@ class DataBrewBackend(BaseBackend):
         self,
         recipe_name: str,
         recipe_description: str,
-        recipe_steps: List[Dict[str, Any]],
+        recipe_steps: list[dict[str, Any]],
     ) -> None:
         if recipe_name not in self.recipes:
             raise ResourceNotFoundException(f"The recipe {recipe_name} wasn't found")
@@ -135,7 +135,7 @@ class DataBrewBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_recipes(
         self, recipe_version: Optional[str] = None
-    ) -> List["FakeRecipeVersion"]:
+    ) -> list["FakeRecipeVersion"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
         if recipe_version == FakeRecipe.LATEST_WORKING:
             version = "latest_working"
@@ -150,7 +150,7 @@ class DataBrewBackend(BaseBackend):
         return [r for r in recipes if r is not None]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_recipe_versions(self, recipe_name: str) -> List["FakeRecipeVersion"]:
+    def list_recipe_versions(self, recipe_name: str) -> list["FakeRecipeVersion"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
         self.validate_length(recipe_name, "name", 255)
 
@@ -210,9 +210,9 @@ class DataBrewBackend(BaseBackend):
         self,
         ruleset_name: str,
         ruleset_description: str,
-        ruleset_rules: List[Dict[str, Any]],
+        ruleset_rules: list[dict[str, Any]],
         ruleset_target_arn: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ) -> "FakeRuleset":
         if ruleset_name in self.rulesets:
             raise RulesetAlreadyExistsException()
@@ -232,8 +232,8 @@ class DataBrewBackend(BaseBackend):
         self,
         ruleset_name: str,
         ruleset_description: str,
-        ruleset_rules: List[Dict[str, Any]],
-        tags: Dict[str, str],
+        ruleset_rules: list[dict[str, Any]],
+        tags: dict[str, str],
     ) -> "FakeRuleset":
         if ruleset_name not in self.rulesets:
             raise RulesetNotFoundException(ruleset_name)
@@ -254,7 +254,7 @@ class DataBrewBackend(BaseBackend):
         return self.rulesets[ruleset_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_rulesets(self) -> List["FakeRuleset"]:
+    def list_rulesets(self) -> list["FakeRuleset"]:
         return list(self.rulesets.values())
 
     def delete_ruleset(self, ruleset_name: str) -> None:
@@ -267,10 +267,10 @@ class DataBrewBackend(BaseBackend):
         self,
         dataset_name: str,
         dataset_format: str,
-        dataset_format_options: Dict[str, Any],
-        dataset_input: Dict[str, Any],
-        dataset_path_options: Dict[str, Any],
-        tags: Dict[str, str],
+        dataset_format_options: dict[str, Any],
+        dataset_input: dict[str, Any],
+        dataset_path_options: dict[str, Any],
+        tags: dict[str, str],
     ) -> "FakeDataset":
         if dataset_name in self.datasets:
             raise AlreadyExistsException(dataset_name)
@@ -289,17 +289,17 @@ class DataBrewBackend(BaseBackend):
         return dataset
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_datasets(self) -> List["FakeDataset"]:
+    def list_datasets(self) -> list["FakeDataset"]:
         return list(self.datasets.values())
 
     def update_dataset(
         self,
         dataset_name: str,
         dataset_format: str,
-        dataset_format_options: Dict[str, Any],
-        dataset_input: Dict[str, Any],
-        dataset_path_options: Dict[str, Any],
-        tags: Dict[str, str],
+        dataset_format_options: dict[str, Any],
+        dataset_input: dict[str, Any],
+        dataset_path_options: dict[str, Any],
+        tags: dict[str, str],
     ) -> "FakeDataset":
         if dataset_name not in self.datasets:
             raise ResourceNotFoundException("One or more resources can't be found.")
@@ -407,7 +407,7 @@ class DataBrewBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(
         self, dataset_name: Optional[str] = None, project_name: Optional[str] = None
-    ) -> List["FakeJob"]:
+    ) -> list["FakeJob"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         if dataset_name is not None:
             self.validate_length(dataset_name, "datasetName", 255)
@@ -456,10 +456,10 @@ class FakeRecipe(BaseModel):
         region_name: str,
         recipe_name: str,
         recipe_description: str,
-        recipe_steps: List[Dict[str, Any]],
-        tags: Dict[str, str],
+        recipe_steps: list[dict[str, Any]],
+        tags: dict[str, str],
     ):
-        self.versions: Dict[float, FakeRecipeVersion] = OrderedDict()
+        self.versions: dict[float, FakeRecipeVersion] = OrderedDict()
         self.versions[self.INITIAL_VERSION] = FakeRecipeVersion(
             region_name,
             recipe_name,
@@ -484,7 +484,7 @@ class FakeRecipe(BaseModel):
         self.versions[self.latest_working.version] = self.latest_working
 
     def update(
-        self, description: Optional[str], steps: Optional[List[Dict[str, Any]]]
+        self, description: Optional[str], steps: Optional[list[dict[str, Any]]]
     ) -> None:
         if description is not None:
             self.latest_working.description = description
@@ -514,8 +514,8 @@ class FakeRecipeVersion(BaseModel):
         region_name: str,
         recipe_name: str,
         recipe_description: str,
-        recipe_steps: List[Dict[str, Any]],
-        tags: Dict[str, str],
+        recipe_steps: list[dict[str, Any]],
+        tags: dict[str, str],
         version: float,
     ):
         self.region_name = region_name
@@ -527,13 +527,13 @@ class FakeRecipeVersion(BaseModel):
         self.published_date: Optional[datetime] = None
         self.version = version
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         dict_recipe = {
             "Name": self.name,
             "Steps": self.steps,
             "Description": self.description,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
             "RecipeVersion": str(self.version),
         }
         if self.published_date is not None:
@@ -554,9 +554,9 @@ class FakeRuleset(BaseModel):
         region_name: str,
         ruleset_name: str,
         ruleset_description: str,
-        ruleset_rules: List[Dict[str, Any]],
+        ruleset_rules: list[dict[str, Any]],
         ruleset_target_arn: str,
-        tags: Dict[str, str],
+        tags: dict[str, str],
     ):
         self.region_name = region_name
         self.name = ruleset_name
@@ -567,14 +567,14 @@ class FakeRuleset(BaseModel):
 
         self.tags = tags
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Rules": self.rules,
             "Description": self.description,
             "TargetArn": self.target_arn,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
         }
 
 
@@ -585,10 +585,10 @@ class FakeDataset(BaseModel):
         account_id: str,
         dataset_name: str,
         dataset_format: str,
-        dataset_format_options: Dict[str, Any],
-        dataset_input: Dict[str, Any],
-        dataset_path_options: Dict[str, Any],
-        tags: Dict[str, str],
+        dataset_format_options: dict[str, Any],
+        dataset_input: dict[str, Any],
+        dataset_path_options: dict[str, Any],
+        tags: dict[str, str],
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -604,7 +604,7 @@ class FakeDataset(BaseModel):
     def resource_arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:dataset/{self.name}"
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "Name": self.name,
             "Format": self.format,
@@ -612,7 +612,7 @@ class FakeDataset(BaseModel):
             "Input": self.input,
             "PathOptions": self.path_options,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
             "ResourceArn": self.resource_arn,
         }
 
@@ -627,7 +627,7 @@ class FakeJob(BaseModel, metaclass=JobMetaclass):
 
     @property
     @abstractmethod
-    def local_attrs(self) -> List[str]:
+    def local_attrs(self) -> list[str]:
         raise NotImplementedError
 
     def __init__(self, account_id: str, region_name: str, **kwargs: Any):
@@ -668,14 +668,14 @@ class FakeJob(BaseModel, metaclass=JobMetaclass):
     def resource_arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:job/{self.name}"
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         rtn_dict = {
             "Name": self.name,
             "AccountId": self.account_id,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
             "DatasetName": self.dataset_name,
             "EncryptionMode": self.encryption_mode,
-            "Tags": self.tags or dict(),
+            "Tags": self.tags or {},
             "LogSubscription": self.log_subscription,
             "MaxCapacity": self.max_capacity,
             "MaxRetries": self.max_retries,

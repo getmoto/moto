@@ -4,10 +4,13 @@ from time import sleep
 from uuid import uuid4
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import allow_aws_request
+
+pytest.register_assert_rewrite("tests.test_ec2.helpers")
 
 
 def ec2_aws_verified(
@@ -210,7 +213,7 @@ def delete_transit_gateway_dependencies(ec2_client, tg_id):
                     TransitGatewayRouteTableId=table["TransitGatewayRouteTableId"]
                 )
 
-        if set(rt["State"] for rt in route_tables) == {"deleted"}:
+        if {rt["State"] for rt in route_tables} == {"deleted"}:
             return
 
         sleep(5 * idx)
@@ -238,7 +241,7 @@ def delete_tg_attachments(ec2_client, tg_id):
                     err = exc.response["Error"]
                     assert err["Code"] == "InvalidTransitGatewayAttachmentID.NotFound"
 
-        if set(a["State"] for a in attachments) == {"deleted"}:
+        if {a["State"] for a in attachments} == {"deleted"}:
             return
 
         sleep(5 * idx)

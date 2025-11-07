@@ -13,7 +13,7 @@ from moto import mock_aws
 def test_get_item_without_range_key():
     client = boto3.resource("dynamodb", region_name="us-east-1")
     table = client.create_table(
-        TableName="messages",
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "id", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -51,7 +51,7 @@ def test_query_filter():
 
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     table = dynamodb.create_table(
-        TableName="test-table", BillingMode="PAY_PER_REQUEST", **table_schema
+        TableName=f"T{uuid4()}", BillingMode="PAY_PER_REQUEST", **table_schema
     )
 
     for i in range(0, 3):
@@ -80,10 +80,11 @@ def test_query_filter():
 @mock_aws
 def test_conditions_ignorecase():
     dynamodb = boto3.client("dynamodb", region_name="us-east-1")
+    table_name = f"T{uuid4()}"
 
     # Create the DynamoDB table.
     dynamodb.create_table(
-        TableName="users",
+        TableName=table_name,
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -96,15 +97,15 @@ def test_conditions_ignorecase():
     )
 
     dynamodb.put_item(
-        TableName="users",
+        TableName=table_name,
         Item={"forum_name": {"S": "the-key"}, "subject": {"S": "100"}},
     )
     dynamodb.put_item(
-        TableName="users",
+        TableName=table_name,
         Item={"forum_name": {"S": "the-key"}, "subject": {"S": "199"}},
     )
     dynamodb.put_item(
-        TableName="users",
+        TableName=table_name,
         Item={"forum_name": {"S": "the-key"}, "subject": {"S": "250"}},
     )
 
@@ -116,7 +117,7 @@ def test_conditions_ignorecase():
     ]
     for expr in between_expressions:
         results = dynamodb.query(
-            TableName="users",
+            TableName=table_name,
             KeyConditionExpression=f"forum_name = :forum_name and subject {expr}",
             ExpressionAttributeValues={
                 ":forum_name": {"S": "the-key"},
@@ -128,7 +129,7 @@ def test_conditions_ignorecase():
 
     with pytest.raises(ClientError) as ex:
         dynamodb.query(
-            TableName="users",
+            TableName=table_name,
             KeyConditionExpression="forum_name = :forum_name and BegIns_WiTh(subject, :subject )",
             ExpressionAttributeValues={
                 ":forum_name": {"S": "the-key"},
@@ -147,8 +148,8 @@ def test_put_item_with_conditions():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -159,10 +160,8 @@ def test_put_item_with_conditions():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    table = dynamodb.Table("users")
 
     table.put_item(Item={"forum_name": "the-key", "subject": "123"})
-
     table.put_item(
         Item={"forum_name": "the-key-2", "subject": "1234"},
         ConditionExpression="attribute_not_exists(forum_name) AND attribute_not_exists(subject)",
@@ -189,8 +188,8 @@ def _create_table_with_range_key():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
+    return dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -217,7 +216,6 @@ def _create_table_with_range_key():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    return dynamodb.Table("users")
 
 
 @mock_aws
@@ -242,10 +240,10 @@ def test_update_item_range_key_set():
         },
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "username": "johndoe2",
         "forum_name": "the-key",
@@ -272,10 +270,10 @@ def test_update_item_does_not_exist_is_created():
 
     assert not result.get("Attributes")
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "username": "johndoe2",
         "forum_name": "the-key",
@@ -299,10 +297,10 @@ def test_update_item_add_value():
         AttributeUpdates={"numeric_field": {"Action": "ADD", "Value": Decimal("2")}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "numeric_field": "1",
         "forum_name": "the-key",
@@ -318,22 +316,22 @@ def test_update_item_add_value_string_set():
         Item={
             "forum_name": "the-key",
             "subject": "123",
-            "string_set": set(["str1", "str2"]),
+            "string_set": {"str1", "str2"},
         }
     )
 
     item_key = {"forum_name": "the-key", "subject": "123"}
     table.update_item(
         Key=item_key,
-        AttributeUpdates={"string_set": {"Action": "ADD", "Value": set(["str3"])}},
+        AttributeUpdates={"string_set": {"Action": "ADD", "Value": {"str3"}}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
-        "string_set": set(["str1", "str2", "str3"]),
+        "string_set": {"str1", "str2", "str3"},
         "forum_name": "the-key",
         "subject": "123",
     }
@@ -347,22 +345,22 @@ def test_update_item_delete_value_string_set():
         Item={
             "forum_name": "the-key",
             "subject": "123",
-            "string_set": set(["str1", "str2"]),
+            "string_set": {"str1", "str2"},
         }
     )
 
     item_key = {"forum_name": "the-key", "subject": "123"}
     table.update_item(
         Key=item_key,
-        AttributeUpdates={"string_set": {"Action": "DELETE", "Value": set(["str2"])}},
+        AttributeUpdates={"string_set": {"Action": "DELETE", "Value": {"str2"}}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
-        "string_set": set(["str1"]),
+        "string_set": {"str1"},
         "forum_name": "the-key",
         "subject": "123",
     }
@@ -378,10 +376,10 @@ def test_update_item_add_value_does_not_exist_is_created():
         AttributeUpdates={"numeric_field": {"Action": "ADD", "Value": Decimal("2")}},
     )
 
-    returned_item = dict(
-        (k, str(v) if isinstance(v, Decimal) else v)
+    returned_item = {
+        k: str(v) if isinstance(v, Decimal) else v
         for k, v in table.get_item(Key=item_key)["Item"].items()
-    )
+    }
     assert returned_item == {
         "numeric_field": "2",
         "forum_name": "the-key",
@@ -674,8 +672,8 @@ def test_update_table_throughput():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -686,7 +684,6 @@ def test_update_table_throughput():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
 
     assert table.provisioned_throughput["ReadCapacityUnits"] == 5
     assert table.provisioned_throughput["WriteCapacityUnits"] == 6
@@ -694,8 +691,6 @@ def test_update_table_throughput():
     table.update(
         ProvisionedThroughput={"ReadCapacityUnits": 10, "WriteCapacityUnits": 11}
     )
-
-    table = dynamodb.Table("users")
 
     assert table.provisioned_throughput["ReadCapacityUnits"] == 10
     assert table.provisioned_throughput["WriteCapacityUnits"] == 11
@@ -707,7 +702,7 @@ def test_update_table_gsi_throughput():
 
     # Create the DynamoDB table.
     table = dynamodb.create_table(
-        TableName="users",
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -734,7 +729,6 @@ def test_update_table_gsi_throughput():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
     assert gsi_throughput["ReadCapacityUnits"] == 3
@@ -757,8 +751,6 @@ def test_update_table_gsi_throughput():
         ]
     )
 
-    table = dynamodb.Table("users")
-
     # Primary throughput has not changed
     assert table.provisioned_throughput["ReadCapacityUnits"] == 5
     assert table.provisioned_throughput["WriteCapacityUnits"] == 6
@@ -774,7 +766,7 @@ def test_update_table_gsi_create():
 
     # Create the DynamoDB table.
     table = dynamodb.create_table(
-        TableName="users",
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -785,7 +777,6 @@ def test_update_table_gsi_create():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
 
     assert len(table.global_secondary_indexes) == 0
     assert len(table.attribute_definitions) == 2
@@ -815,7 +806,6 @@ def test_update_table_gsi_create():
         ],
     )
 
-    table = dynamodb.Table("users")
     table.reload()
     assert len(table.global_secondary_indexes) == 1
     assert len(table.attribute_definitions) == 4
@@ -838,7 +828,6 @@ def test_update_table_gsi_create():
             }
         ]
     )
-    table = dynamodb.Table("users")
 
     gsi_throughput = table.global_secondary_indexes[0]["ProvisionedThroughput"]
     assert gsi_throughput["ReadCapacityUnits"] == 10
@@ -846,7 +835,6 @@ def test_update_table_gsi_create():
 
     table.update(GlobalSecondaryIndexUpdates=[{"Delete": {"IndexName": "TestGSI"}}])
 
-    table = dynamodb.Table("users")
     assert len(table.global_secondary_indexes) == 0
 
 
@@ -855,8 +843,8 @@ def test_update_table_delete_gsi():
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 
     # Create the DynamoDB table.
-    dynamodb.create_table(
-        TableName="users",
+    table = dynamodb.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[
             {"AttributeName": "forum_name", "KeyType": "HASH"},
             {"AttributeName": "subject", "KeyType": "RANGE"},
@@ -883,12 +871,9 @@ def test_update_table_delete_gsi():
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 6},
     )
-    table = dynamodb.Table("users")
     assert len(table.global_secondary_indexes) == 1
 
     table.update(GlobalSecondaryIndexUpdates=[{"Delete": {"IndexName": "TestGSI"}}])
-
-    table = dynamodb.Table("users")
     assert len(table.global_secondary_indexes) == 0
 
 
@@ -901,7 +886,7 @@ def test_update_item_throws_exception_when_updating_hash_or_range_key(
     create_item_first, expression
 ):
     client = boto3.client("dynamodb", region_name="ap-northeast-3")
-    table_name = "testtable_3877"
+    table_name = f"T{uuid4()}"
 
     client.create_table(
         TableName=table_name,

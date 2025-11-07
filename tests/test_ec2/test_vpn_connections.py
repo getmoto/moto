@@ -178,12 +178,12 @@ def test_describe_vpn_connections_unknown():
     assert err["Code"] == "InvalidVpnConnectionID.NotFound"
 
 
-def retrieve_all_vpncs(client, filters=[]):
-    resp = client.describe_vpn_connections(Filters=filters)
+def retrieve_all_vpncs(client, filters=None):
+    resp = client.describe_vpn_connections(Filters=filters or [])
     all_vpncs = resp["VpnConnections"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_vpn_connections(NextToken=token, Filters=filters)
+        resp = client.describe_vpn_connections(NextToken=token, Filters=filters or [])
         all_vpncs.extend(resp["VpnConnections"])
         token = resp.get("NextToken")
     return all_vpncs

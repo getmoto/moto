@@ -71,24 +71,6 @@ def test_get_params() -> None:
     }
 
 
-def test_get_dict_list_params() -> None:
-    subject = BaseResponse()
-    subject.querystring = OrderedDict(
-        [
-            ("Action", ["CreateDBCluster"]),
-            ("Version", ["2014-10-31"]),
-            ("VpcSecurityGroupIds.VpcSecurityGroupId.1", ["sg-123"]),
-            ("VpcSecurityGroupIds.VpcSecurityGroupId.2", ["sg-456"]),
-            ("VpcSecurityGroupIds.VpcSecurityGroupId.3", ["sg-789"]),
-        ]
-    )
-
-    # TODO: extend test and logic such that we can call subject._get_params() directly here
-    result = subject._get_multi_param_dict("VpcSecurityGroupIds")
-
-    assert result == {"VpcSecurityGroupId": ["sg-123", "sg-456", "sg-789"]}
-
-
 def test_response_environment_preserved_by_type() -> None:
     """Ensure Jinja environment is cached by response type."""
 

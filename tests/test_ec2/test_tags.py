@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from tests import EXAMPLE_AMI_ID
 
+from .helpers import assert_dryrun_error
 from .test_instances import retrieve_all_instances
 
 
@@ -20,12 +21,7 @@ def test_instance_create_tags():
         instance.create_tags(
             Tags=[{"Key": "a key", "Value": "some value"}], DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
     existing_instances = retrieve_all_instances(client)
@@ -49,12 +45,7 @@ def test_instance_delete_tags():
 
     with pytest.raises(ClientError) as ex:
         instance.delete_tags(DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     # Specifying key only
     instance.delete_tags(Tags=[{"Key": "a key"}])
@@ -97,12 +88,7 @@ def test_create_tags():
 
     with pytest.raises(ClientError) as ex:
         client.create_tags(Resources=[instance.id], Tags=tag_list, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.create_tags(Resources=[instance.id], Tags=tag_list)
     tags = client.describe_tags(
@@ -245,7 +231,7 @@ def test_get_all_tags_value_filter():
     def filter_by_value(query, expected):
         filters = [{"Name": "value", "Values": [query]}]
         tags = retrieve_all_tagged(client, filters)
-        actual = set([t["ResourceId"] for t in tags])
+        actual = {t["ResourceId"] for t in tags}
         for e in expected:
             assert e in actual
 
@@ -539,12 +525,12 @@ def get_filter(tag_val):
     ]
 
 
-def retrieve_all_tagged(client, filters=[]):
-    resp = client.describe_tags(Filters=filters)
+def retrieve_all_tagged(client, filters=None):
+    resp = client.describe_tags(Filters=filters or [])
     tags = resp["Tags"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_tags(Filters=filters, NextToken=token)
+        resp = client.describe_tags(Filters=filters or [], NextToken=token)
         tags.extend(resp["Tags"])
         token = resp.get("Token")
     return tags

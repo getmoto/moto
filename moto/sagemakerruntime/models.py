@@ -1,5 +1,4 @@
 import json
-from typing import Dict, List, Tuple
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -10,14 +9,14 @@ class SageMakerRuntimeBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.async_results: Dict[str, Dict[str, Tuple[str, str]]] = {}
-        self.results: Dict[str, Dict[bytes, Tuple[str, str, str, str]]] = {}
-        self.results_queue: List[Tuple[str, str, str, str]] = []
-        self.async_results_queue: List[Tuple[bool, str]] = []
+        self.async_results: dict[str, dict[str, tuple[str, str]]] = {}
+        self.results: dict[str, dict[bytes, tuple[str, str, str, str]]] = {}
+        self.results_queue: list[tuple[str, str, str, str]] = []
+        self.async_results_queue: list[tuple[bool, str]] = []
 
     def invoke_endpoint(
         self, endpoint_name: str, unique_repr: bytes
-    ) -> Tuple[str, str, str, str]:
+    ) -> tuple[str, str, str, str]:
         """
         This call will return static data by default.
 
@@ -68,7 +67,7 @@ class SageMakerRuntimeBackend(BaseBackend):
 
     def invoke_endpoint_async(
         self, endpoint_name: str, input_location: str
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         """
         This call will return static data by default.
 

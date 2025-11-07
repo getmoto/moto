@@ -1,5 +1,4 @@
 from moto.core.responses import ActionResult, EmptyResult
-from moto.core.utils import tags_from_query_string
 from moto.ec2.models import validate_resource_ids
 
 from ._base_response import EC2BaseResponse
@@ -7,10 +6,10 @@ from ._base_response import EC2BaseResponse
 
 class TagResponse(EC2BaseResponse):
     def create_tags(self) -> ActionResult:
-        resource_ids = self._get_multi_param("ResourceId")
+        resource_ids = self._get_param("Resources", [])
         validate_resource_ids(resource_ids)
         self.ec2_backend.do_resources_exist(resource_ids)
-        tags = tags_from_query_string(self.querystring)
+        tags = {tag["Key"]: tag["Value"] for tag in self._get_param("Tags", [])}
 
         self.error_on_dryrun()
 
@@ -18,9 +17,9 @@ class TagResponse(EC2BaseResponse):
         return EmptyResult()
 
     def delete_tags(self) -> ActionResult:
-        resource_ids = self._get_multi_param("ResourceId")
+        resource_ids = self._get_param("Resources", [])
         validate_resource_ids(resource_ids)
-        tags = tags_from_query_string(self.querystring)
+        tags = {tag["Key"]: tag.get("Value") for tag in self._get_param("Tags", [])}
 
         self.error_on_dryrun()
 

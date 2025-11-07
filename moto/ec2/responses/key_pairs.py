@@ -18,7 +18,7 @@ class KeyPairs(EC2BaseResponse):
         return self.response_template(DELETE_KEY_PAIR_RESPONSE).render()
 
     def describe_key_pairs(self) -> str:
-        names = self._get_multi_param("KeyName")
+        names = self._get_param("KeyNames", [])
         filters = self._filters_from_querystring()
         keypairs = self.ec2_backend.describe_key_pairs(names, filters)
         template = self.response_template(DESCRIBE_KEY_PAIRS_RESPONSE)

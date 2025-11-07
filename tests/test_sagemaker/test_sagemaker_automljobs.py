@@ -708,6 +708,7 @@ def test_tag_auto_ml_job():
         {"Key": "testkey", "Value": "testvalue"},
         {"Key": "testkey2", "Value": "testvalue2"},
     ]
-    client.delete_tags(ResourceArn=arn["AutoMLJobArn"], TagKeys=["testkey"]) == [
-        {"Key": "testkey2", "Value": "testvalue2"}
-    ]
+
+    client.delete_tags(ResourceArn=arn["AutoMLJobArn"], TagKeys=["testkey"])
+    resp = client.list_tags(ResourceArn=arn["AutoMLJobArn"])
+    assert resp["Tags"] == [{"Key": "testkey2", "Value": "testvalue2"}]

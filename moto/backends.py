@@ -1,6 +1,7 @@
 import importlib
 import os
-from typing import TYPE_CHECKING, Iterable, Optional, Union, overload
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 import moto
 
@@ -113,7 +114,6 @@ if TYPE_CHECKING:
     from moto.personalize.models import PersonalizeBackend
     from moto.pinpoint.models import PinpointBackend
     from moto.polly.models import PollyBackend
-    from moto.qldb.models import QLDBBackend
     from moto.quicksight.models import QuickSightBackend
     from moto.ram.models import ResourceAccessManagerBackend
     from moto.rds.models import RDSBackend
@@ -124,13 +124,13 @@ if TYPE_CHECKING:
     from moto.resiliencehub.models import ResilienceHubBackend
     from moto.resourcegroups.models import ResourceGroupsBackend
     from moto.resourcegroupstaggingapi.models import ResourceGroupsTaggingAPIBackend
-    from moto.robomaker.models import RoboMakerBackend
     from moto.route53.models import Route53Backend
     from moto.route53domains.models import Route53DomainsBackend
     from moto.route53resolver.models import Route53ResolverBackend
     from moto.s3.models import S3Backend
     from moto.s3control.models import S3ControlBackend
     from moto.s3tables.models import S3TablesBackend
+    from moto.s3vectors.models import S3VectorsBackend
     from moto.sagemaker.models import SageMakerModelBackend
     from moto.sagemakermetrics.models import SageMakerMetricsBackend
     from moto.sagemakerruntime.models import SageMakerRuntimeBackend
@@ -306,7 +306,6 @@ SERVICE_NAMES = Union[
     "Literal['personalize']",
     "Literal['pinpoint']",
     "Literal['polly']",
-    "Literal['qldb']",
     "Literal['quicksight']",
     "Literal['ram']",
     "Literal['rds']",
@@ -317,7 +316,6 @@ SERVICE_NAMES = Union[
     "Literal['resiliencehub']",
     "Literal['resource-groups']",
     "Literal['resourcegroupstaggingapi']",
-    "Literal['robomaker']",
     "Literal['route53']",
     "Literal['route53resolver']",
     "Literal['route53domains']",
@@ -325,6 +323,7 @@ SERVICE_NAMES = Union[
     "Literal['s3bucket_path']",
     "Literal['s3control']",
     "Literal['s3tables']",
+    "Literal['s3vectors']",
     "Literal['sagemaker']",
     "Literal['sagemaker-metrics']",
     "Literal['sagemaker-runtime']",
@@ -662,8 +661,6 @@ def get_backend(name: "Literal['pinpoint']") -> "BackendDict[PinpointBackend]": 
 @overload
 def get_backend(name: "Literal['polly']") -> "BackendDict[PollyBackend]": ...
 @overload
-def get_backend(name: "Literal['qldb']") -> "BackendDict[QLDBBackend]": ...
-@overload
 def get_backend(name: "Literal['quicksight']") -> "BackendDict[QuickSightBackend]": ...
 @overload
 def get_backend(
@@ -698,8 +695,6 @@ def get_backend(
     name: "Literal['resourcegroupstaggingapi']",
 ) -> "BackendDict[ResourceGroupsTaggingAPIBackend]": ...
 @overload
-def get_backend(name: "Literal['robomaker']") -> "BackendDict[RoboMakerBackend]": ...
-@overload
 def get_backend(name: "Literal['route53']") -> "BackendDict[Route53Backend]": ...
 @overload
 def get_backend(
@@ -715,6 +710,8 @@ def get_backend(name: "Literal['s3']") -> "BackendDict[S3Backend]": ...
 def get_backend(name: "Literal['s3bucket_path']") -> "BackendDict[S3Backend]": ...
 @overload
 def get_backend(name: "Literal['s3control']") -> "BackendDict[S3ControlBackend]": ...
+@overload
+def get_backend(name: "Literal['s3vectors']") -> "BackendDict[S3VectorsBackend]": ...
 @overload
 def get_backend(
     name: "Literal['sagemaker']",

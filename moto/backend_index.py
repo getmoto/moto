@@ -164,7 +164,6 @@ backend_url_patterns = [
     ("personalize", re.compile("https?://personalize\\.(.+)\\.amazonaws\\.com")),
     ("pinpoint", re.compile("https?://pinpoint\\.(.+)\\.amazonaws\\.com")),
     ("polly", re.compile("https?://polly\\.(.+)\\.amazonaws.com")),
-    ("qldb", re.compile("https?://qldb\\.(.+)\\.amazonaws\\.com")),
     ("quicksight", re.compile("https?://quicksight\\.(.+)\\.amazonaws\\.com")),
     ("ram", re.compile("https?://ram\\.(.+)\\.amazonaws.com")),
     ("rds", re.compile("https?://rds\\.(.+)\\.amazonaws\\.com")),
@@ -179,18 +178,17 @@ backend_url_patterns = [
         re.compile("https?://resource-groups(-fips)?\\.(.+)\\.amazonaws.com"),
     ),
     ("resourcegroupstaggingapi", re.compile("https?://tagging\\.(.+)\\.amazonaws.com")),
-    ("robomaker", re.compile("https?://robomaker\\.(.+)\\.amazonaws\\.com")),
     ("route53", re.compile("https?://route53(\\..+)?\\.amazonaws.com")),
     ("route53domains", re.compile("https?://route53domains\\.(.+)\\.amazonaws\\.com")),
     (
         "route53resolver",
         re.compile("https?://route53resolver\\.(.+)\\.amazonaws\\.com"),
     ),
-    ("s3", re.compile("https?://s3(?!(-control|tables))(.*)\\.amazonaws.com")),
+    ("s3", re.compile("https?://s3(?!(-control|tables|vectors))(.*)\\.amazonaws.com")),
     (
         "s3",
         re.compile(
-            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!(-control|tables))(.*)\\.amazonaws.com"
+            "https?://(?P<bucket_name>[a-zA-Z0-9\\-_.]*)\\.?s3(?!(-control|tables|vectors))(.*)\\.amazonaws.com"
         ),
     ),
     (
@@ -198,6 +196,7 @@ backend_url_patterns = [
         re.compile("https?://([0-9]+)\\.s3-control\\.(.+)\\.amazonaws\\.com"),
     ),
     ("s3tables", re.compile("https?://s3tables\\.(.+)\\.amazonaws\\.com")),
+    ("s3vectors", re.compile("https?://s3vectors\\.(.+)\\.api\\.aws")),
     ("sagemaker", re.compile("https?://api\\.sagemaker\\.(.+)\\.amazonaws.com")),
     (
         "sagemakermetrics",

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Callable, Final, List, Optional
+from typing import Any, Callable, Final, Optional
 
 from moto.stepfunctions.parser.asl.utils.encoding import to_json_str
 
@@ -106,7 +106,7 @@ def extract_jsonata_variable_references(
     if not jsonata_expression:
         return set()
     # Extract all recognised patterns.
-    all_references: List[Any] = _PATTERN_VARIABLE_REFERENCE.findall(jsonata_expression)
+    all_references: list[Any] = _PATTERN_VARIABLE_REFERENCE.findall(jsonata_expression)
     # Filter non-empty patterns (this includes consumed blocks such as jsonata
     # regular expressions, delimited between non-escaped slashes).
     variable_references: set[VariableReference] = {
@@ -123,7 +123,7 @@ def extract_jsonata_variable_references(
 def encode_jsonata_variable_declarations(
     bindings: dict[VariableReference, Any],
 ) -> VariableDeclarations:
-    declarations_parts: List[str] = list()
+    declarations_parts: list[str] = []
     for variable_reference, value in bindings.items():
         if isinstance(value, str):
             value_str_lit = f'"{value}"'
@@ -142,7 +142,7 @@ def encode_jsonata_variable_declarations(
 
 def compose_jsonata_expression(
     final_jsonata_expression: JSONataExpression,
-    variable_declarations_list: List[VariableDeclarations],
+    variable_declarations_list: list[VariableDeclarations],
 ) -> JSONataExpression:
     variable_declarations = "".join(variable_declarations_list)
     expression = "".join(

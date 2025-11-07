@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from enum import Enum
-from typing import Any, Final, List
+from typing import Any, Final
 
 from moto.stepfunctions.parser.asl.antlr.runtime.ASLLexer import ASLLexer
 from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
@@ -72,23 +72,21 @@ class ComparisonCompositeSingle(ComparisonComposite, abc.ABC):
     rule: Final[ChoiceRule]
 
     def __init__(self, operator: ComparisonComposite.ChoiceOp, rule: ChoiceRule):
-        super(ComparisonCompositeSingle, self).__init__(operator=operator)
+        super().__init__(operator=operator)
         self.rule = rule
 
 
 class ComparisonCompositeMulti(ComparisonComposite, abc.ABC):
-    rules: Final[List[ChoiceRule]]
+    rules: Final[list[ChoiceRule]]
 
-    def __init__(self, operator: ComparisonComposite.ChoiceOp, rules: List[ChoiceRule]):
-        super(ComparisonCompositeMulti, self).__init__(operator=operator)
+    def __init__(self, operator: ComparisonComposite.ChoiceOp, rules: list[ChoiceRule]):
+        super().__init__(operator=operator)
         self.rules = rules
 
 
 class ComparisonCompositeNot(ComparisonCompositeSingle):
     def __init__(self, rule: ChoiceRule):
-        super(ComparisonCompositeNot, self).__init__(
-            operator=ComparisonComposite.ChoiceOp.Not, rule=rule
-        )
+        super().__init__(operator=ComparisonComposite.ChoiceOp.Not, rule=rule)
 
     def _eval_body(self, env: Environment) -> None:
         self.rule.eval(env)
@@ -98,10 +96,8 @@ class ComparisonCompositeNot(ComparisonCompositeSingle):
 
 
 class ComparisonCompositeAnd(ComparisonCompositeMulti):
-    def __init__(self, rules: List[ChoiceRule]):
-        super(ComparisonCompositeAnd, self).__init__(
-            operator=ComparisonComposite.ChoiceOp.And, rules=rules
-        )
+    def __init__(self, rules: list[ChoiceRule]):
+        super().__init__(operator=ComparisonComposite.ChoiceOp.And, rules=rules)
 
     def _eval_body(self, env: Environment) -> None:
         res = True
@@ -115,10 +111,8 @@ class ComparisonCompositeAnd(ComparisonCompositeMulti):
 
 
 class ComparisonCompositeOr(ComparisonCompositeMulti):
-    def __init__(self, rules: List[ChoiceRule]):
-        super(ComparisonCompositeOr, self).__init__(
-            operator=ComparisonComposite.ChoiceOp.Or, rules=rules
-        )
+    def __init__(self, rules: list[ChoiceRule]):
+        super().__init__(operator=ComparisonComposite.ChoiceOp.Or, rules=rules)
 
     def _eval_body(self, env: Environment) -> None:
         res = False

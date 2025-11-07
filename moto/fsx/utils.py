@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List
 
 
 class FileSystemType(str, Enum):
@@ -9,5 +8,5 @@ class FileSystemType(str, Enum):
     OPEN_ZFS = "OPENZFS"
 
     @classmethod
-    def list_values(self) -> List[str]:
+    def list_values(self) -> list[str]:
         return sorted([item.value for item in FileSystemType])

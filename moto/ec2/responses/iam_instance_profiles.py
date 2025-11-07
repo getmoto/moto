@@ -15,7 +15,7 @@ class IamInstanceProfiles(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_iam_instance_profile_associations(self) -> ActionResult:
-        association_ids = self._get_multi_param("AssociationId")
+        association_ids = self._get_param("AssociationIds", [])
         filters = self._filters_from_querystring()
         max_items = self._get_param("MaxItems")
         next_token = self._get_param("NextToken")

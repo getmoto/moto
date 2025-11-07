@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Tuple
+from typing import Any
 
 from moto.core.exceptions import JsonRESTError
 
@@ -11,7 +11,7 @@ class ManagedBlockchainClientError(JsonRESTError):
         self.message = message
         self.description = json.dumps({"message": self.message})
 
-    def get_headers(self, *args: Any, **kwargs: Any) -> List[Tuple[str, str]]:
+    def get_headers(self, *args: Any, **kwargs: Any) -> list[tuple[str, str]]:
         return [
             ("Content-Type", "application/json"),
             ("x-amzn-ErrorType", self.error_type),

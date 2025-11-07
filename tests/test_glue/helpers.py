@@ -201,11 +201,12 @@ def register_schema_version(client):
     )
 
 
-def set_transition(model_name, transition={"progression": "immediate"}):
+def set_transition(model_name, transition=None):
+    transition = transition or {"progression": "immediate"}
     if settings.TEST_DECORATOR_MODE:
         state_manager.set_transition(model_name=model_name, transition=transition)
     else:
-        post_body = dict(model_name=model_name, transition=transition)
+        post_body = {"model_name": model_name, "transition": transition}
         requests.post(
             "http://localhost:5000/moto-api/state-manager/set-transition",
             data=json.dumps(post_body),

@@ -1,5 +1,4 @@
 import json
-import typing
 
 import boto3
 import pytest
@@ -1829,7 +1828,7 @@ def test_get_resources_workspacesweb():
 @pytest.mark.parametrize("resource_type", ["secretsmanager", "secretsmanager:secret"])
 @mock_aws
 def test_get_resources_secretsmanager(resource_type):
-    def assert_tagging_works(region_name: str, regional_response_keys: typing.Set[str]):
+    def assert_tagging_works(region_name: str, regional_response_keys: set[str]):
         rtapi = boto3.client("resourcegroupstaggingapi", region_name=region_name)
         resp = rtapi.get_resources(
             ResourcesPerPage=2, ResourceTypeFilters=[resource_type]

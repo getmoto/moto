@@ -10,6 +10,8 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.utils import random_private_ip
 from tests import EXAMPLE_AMI_ID, aws_verified
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_elastic_network_interfaces():
@@ -17,12 +19,7 @@ def test_elastic_network_interfaces():
 
     with pytest.raises(ClientError) as ex:
         ec2resource.create_network_interface(SubnetId=subnet.id, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     eni = ec2resource.create_network_interface(SubnetId=subnet.id)
     assert eni.availability_zone == subnet.availability_zone
@@ -44,12 +41,7 @@ def test_elastic_network_interfaces():
 
     with pytest.raises(ClientError) as ex:
         ec2client.delete_network_interface(NetworkInterfaceId=eni_id, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     ec2client.delete_network_interface(NetworkInterfaceId=eni_id)
 
@@ -122,7 +114,7 @@ def test_elastic_network_interfaces_with_groups():
         eni for eni in all_enis if eni["NetworkInterfaceId"] == my_eni.id
     ][0]
     assert len(my_eni_description["Groups"]) == 2
-    assert set([group["GroupId"] for group in my_eni_description["Groups"]]) == {
+    assert {group["GroupId"] for group in my_eni_description["Groups"]} == {
         sec_group1.id,
         sec_group2.id,
     }
@@ -132,7 +124,7 @@ def test_elastic_network_interfaces_with_groups():
     ).get("Groups")
 
     assert len(eni_groups_attribute) == 2
-    assert set([group["GroupId"] for group in eni_groups_attribute]) == {
+    assert {group["GroupId"] for group in eni_groups_attribute} == {
         sec_group1.id,
         sec_group2.id,
     }
@@ -175,12 +167,7 @@ def test_elastic_network_interfaces_modify_attribute():
         ec2client.modify_network_interface_attribute(
             NetworkInterfaceId=eni_id, Groups=[sec_group2.id], DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     ec2client.modify_network_interface_attribute(
         NetworkInterfaceId=eni_id, Groups=[sec_group2.id]
@@ -232,7 +219,7 @@ def test_elastic_network_interfaces_filtering():
         Filters=[{"Name": "group-id", "Values": [sec_group1.id]}]
     )["NetworkInterfaces"]
     assert len(enis_by_group) == 2
-    assert set([eni["NetworkInterfaceId"] for eni in enis_by_group]) == {
+    assert {eni["NetworkInterfaceId"] for eni in enis_by_group} == {
         eni1.id,
         eni2.id,
     }
@@ -272,12 +259,7 @@ def test_elastic_network_interfaces_get_by_tag_name():
 
     with pytest.raises(ClientError) as ex:
         eni1.create_tags(Tags=[{"Key": "Name", "Value": "eni1"}], DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     tag_value = str(uuid4())
     eni1.create_tags(Tags=[{"Key": "Name", "Value": tag_value}])
@@ -930,12 +912,7 @@ def test_elastic_network_interfaces_describe_attachment():
         ec2client.describe_network_interface_attribute(
             NetworkInterfaceId=eni_id, Attribute="attachment", DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeNetworkInterfaceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     my_eni_description = ec2client.describe_network_interface_attribute(
         NetworkInterfaceId=eni_id, Attribute="description"

@@ -158,7 +158,7 @@ class EKSResponse(BaseResponse):
             max_results=max_results, next_token=next_token
         )
 
-        return ActionResult(dict(clusters=clusters, nextToken=next_token))
+        return ActionResult({"clusters": clusters, "nextToken": next_token})
 
     def list_fargate_profiles(self) -> ActionResult:
         cluster_name = self._get_param("name")
@@ -170,7 +170,7 @@ class EKSResponse(BaseResponse):
         )
 
         return ActionResult(
-            dict(fargateProfileNames=fargate_profile_names, nextToken=next_token)
+            {"fargateProfileNames": fargate_profile_names, "nextToken": next_token}
         )
 
     def list_nodegroups(self) -> ActionResult:
@@ -182,7 +182,7 @@ class EKSResponse(BaseResponse):
             cluster_name=cluster_name, max_results=max_results, next_token=next_token
         )
 
-        return ActionResult(dict(nodegroups=nodegroups, nextToken=next_token))
+        return ActionResult({"nodegroups": nodegroups, "nextToken": next_token})
 
     def delete_cluster(self) -> ActionResult:
         name = self._get_param("name")

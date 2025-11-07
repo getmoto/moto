@@ -1,6 +1,6 @@
 """SESV2Backend class with methods for supported APIs."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
@@ -48,7 +48,7 @@ class SESV2Backend(BaseBackend):
         # Store local variables in v1 backend for interoperability
         self.core_backend = ses_backends[self.account_id][self.region_name]
 
-    def create_contact_list(self, params: Dict[str, Any]) -> None:
+    def create_contact_list(self, params: dict[str, Any]) -> None:
         name = params["ContactListName"]
         description = params.get("Description")
         topics = [] if "Topics" not in params else params["Topics"]
@@ -63,7 +63,7 @@ class SESV2Backend(BaseBackend):
                 f"List with name: {contact_list_name} doesn't exist."
             )
 
-    def list_contact_lists(self) -> List[ContactList]:
+    def list_contact_lists(self) -> list[ContactList]:
         return self.core_backend.contacts_lists.values()  # type: ignore[return-value]
 
     def delete_contact_list(self, name: str) -> None:
@@ -72,7 +72,7 @@ class SESV2Backend(BaseBackend):
         else:
             raise NotFoundException(f"List with name: {name} doesn't exist")
 
-    def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:
+    def create_contact(self, contact_list_name: str, params: dict[str, Any]) -> None:
         contact_list = self.get_contact_list(contact_list_name)
         contact_list.create_contact(contact_list_name, params)
         return
@@ -82,7 +82,7 @@ class SESV2Backend(BaseBackend):
         contact = contact_list.get_contact(email)
         return contact
 
-    def list_contacts(self, contact_list_name: str) -> List[Contact]:
+    def list_contacts(self, contact_list_name: str) -> list[Contact]:
         contact_list = self.get_contact_list(contact_list_name)
         contacts = contact_list.list_contacts()
         return contacts
@@ -93,7 +93,7 @@ class SESV2Backend(BaseBackend):
         return
 
     def send_email(
-        self, source: str, destinations: Dict[str, List[str]], subject: str, body: str
+        self, source: str, destinations: dict[str, list[str]], subject: str, body: str
     ) -> Message:
         message = self.core_backend.send_email(
             source=source,
@@ -104,7 +104,7 @@ class SESV2Backend(BaseBackend):
         return message
 
     def send_raw_email(
-        self, source: str, destinations: List[str], raw_data: str
+        self, source: str, destinations: list[str], raw_data: str
     ) -> RawMessage:
         message = self.core_backend.send_raw_email(
             source=source, destinations=destinations, raw_data=raw_data
@@ -114,7 +114,7 @@ class SESV2Backend(BaseBackend):
     def create_email_identity(
         self,
         email_identity: str,
-        tags: Optional[Dict[str, str]],
+        tags: Optional[dict[str, str]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
@@ -129,20 +129,20 @@ class SESV2Backend(BaseBackend):
         self.core_backend.delete_identity(email_identity)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_email_identities(self) -> List[EmailIdentity]:
+    def list_email_identities(self) -> list[EmailIdentity]:
         identities = list(self.core_backend.email_identities.values())
         return identities
 
     def create_configuration_set(
         self,
         configuration_set_name: str,
-        tracking_options: Dict[str, str],
-        delivery_options: Dict[str, Any],
-        reputation_options: Dict[str, Any],
-        sending_options: Dict[str, bool],
-        tags: List[Dict[str, str]],
-        suppression_options: Dict[str, List[str]],
-        vdm_options: Dict[str, Dict[str, str]],
+        tracking_options: dict[str, str],
+        delivery_options: dict[str, Any],
+        reputation_options: dict[str, Any],
+        sending_options: dict[str, bool],
+        tags: list[dict[str, str]],
+        suppression_options: dict[str, list[str]],
+        vdm_options: dict[str, dict[str, str]],
     ) -> None:
         self.core_backend.create_configuration_set_v2(
             configuration_set_name=configuration_set_name,
@@ -165,11 +165,11 @@ class SESV2Backend(BaseBackend):
         return config_set
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_configuration_sets(self) -> List[ConfigurationSet]:
+    def list_configuration_sets(self) -> list[ConfigurationSet]:
         return self.core_backend._list_all_configuration_sets()
 
     def create_dedicated_ip_pool(
-        self, pool_name: str, tags: List[Dict[str, str]], scaling_mode: str
+        self, pool_name: str, tags: list[dict[str, str]], scaling_mode: str
     ) -> None:
         if pool_name not in self.core_backend.dedicated_ip_pools:
             new_pool = DedicatedIpPool(
@@ -181,7 +181,7 @@ class SESV2Backend(BaseBackend):
         self.core_backend.dedicated_ip_pools.pop(pool_name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_dedicated_ip_pools(self) -> List[str]:
+    def list_dedicated_ip_pools(self) -> list[str]:
         return list(self.core_backend.dedicated_ip_pools.keys())
 
     def get_dedicated_ip_pool(self, pool_name: str) -> DedicatedIpPool:
@@ -228,7 +228,7 @@ class SESV2Backend(BaseBackend):
 
         return
 
-    def get_email_identity_policies(self, email_identity: str) -> Dict[str, Any]:
+    def get_email_identity_policies(self, email_identity: str) -> dict[str, Any]:
         email_id = self.get_email_identity(email_identity)
 
         return email_id.policies

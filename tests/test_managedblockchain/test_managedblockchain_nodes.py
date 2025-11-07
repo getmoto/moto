@@ -38,8 +38,19 @@ def test_create_node():
     assert helpers.node_id_exist_in_list(nodes, node_id) is True
 
     # Get node details
-    response = conn.get_node(NetworkId=network_id, MemberId=member_id, NodeId=node_id)
-    assert response["Node"]["AvailabilityZone"] == "us-east-1a"
+    get_node = conn.get_node(NetworkId=network_id, MemberId=member_id, NodeId=node_id)[
+        "Node"
+    ]
+    assert get_node["Id"] == node_id
+    assert get_node["AvailabilityZone"] == "us-east-1a"
+
+    framework = get_node["FrameworkAttributes"]
+    assert framework == {
+        "Fabric": {
+            "PeerEndpoint": f"{node_id.lower()}.{network_id.lower()}.{member_id.lower()}.managedblockchain.us-east-1.amazonaws.com:30003",
+            "PeerEventEndpoint": f"{node_id.lower()}.{network_id.lower()}.{member_id.lower()}.managedblockchain.us-east-1.amazonaws.com:30004",
+        }
+    }
 
     # Update node
     logconfignewenabled = not helpers.default_nodeconfiguration[

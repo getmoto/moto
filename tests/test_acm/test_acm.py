@@ -534,6 +534,24 @@ def test_request_exportable_certificate():
 
 
 @mock_aws
+def test_list_certificates_with_key_types_filter():
+    client = boto3.client("acm", region_name="us-east-1")
+    arn = _import_cert(client)
+
+    certs = client.list_certificates(
+        Includes={"keyTypes": ["RSA_2048", "RSA_4096", "EC_prime256v1"]}
+    )["CertificateSummaryList"]
+
+    assert len(certs) == 1
+    assert certs[0]["CertificateArn"] == arn
+
+    certs = client.list_certificates(Includes={"keyTypes": ["RSA_1024"]})[
+        "CertificateSummaryList"
+    ]
+    assert len(certs) == 0
+
+
+@mock_aws
 @mock.patch("moto.settings.ACM_VALIDATION_WAIT", 1)
 def test_request_certificate_with_optional_arguments():
     if not settings.TEST_DECORATOR_MODE:
