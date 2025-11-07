@@ -3,7 +3,12 @@ from typing import Any, Optional
 from moto.core.responses import BaseResponse
 from moto.core.serialize import return_if_not_empty
 
-from ..exceptions import EC2ClientError, EmptyTagSpecError, InvalidParameter
+from ..exceptions import (
+    DryRunClientError,
+    EC2ClientError,
+    EmptyTagSpecError,
+    InvalidParameter,
+)
 from ..utils import convert_tag_spec
 
 
@@ -62,3 +67,7 @@ class EC2BaseResponse(BaseResponse):
             raise EmptyTagSpecError
 
         return convert_tag_spec(tag_spec_set)
+
+    def error_on_dryrun(self) -> None:
+        if self._get_param("DryRun", False):
+            raise DryRunClientError()
