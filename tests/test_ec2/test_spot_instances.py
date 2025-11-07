@@ -10,6 +10,8 @@ from moto import mock_aws, settings
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_request_spot_instances():
@@ -53,12 +55,7 @@ def test_request_spot_instances():
             },
             DryRun=True,
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the RequestSpotInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     request = conn.request_spot_instances(
         SpotPrice="0.5",
@@ -175,12 +172,7 @@ def test_cancel_spot_instance_request():
         client.cancel_spot_instance_requests(
             SpotInstanceRequestIds=[request["SpotInstanceRequestId"]], DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CancelSpotInstanceRequests operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.cancel_spot_instance_requests(
         SpotInstanceRequestIds=[request["SpotInstanceRequestId"]]

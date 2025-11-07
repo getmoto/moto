@@ -8,7 +8,7 @@ class NatGateways(EC2BaseResponse):
         subnet_id = self._get_param("SubnetId")
         allocation_id = self._get_param("AllocationId")
         connectivity_type = self._get_param("ConnectivityType")
-        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
 
         nat_gateway = self.ec2_backend.create_nat_gateway(
             subnet_id=subnet_id,
@@ -27,7 +27,7 @@ class NatGateways(EC2BaseResponse):
 
     def describe_nat_gateways(self) -> str:
         filters = self._filters_from_querystring()
-        nat_gateway_ids = self._get_multi_param("NatGatewayId")
+        nat_gateway_ids = self._get_param("NatGatewayIds", [])
         nat_gateways = self.ec2_backend.describe_nat_gateways(filters, nat_gateway_ids)
         template = self.response_template(DESCRIBE_NAT_GATEWAYS_RESPONSE)
         return template.render(nat_gateways=nat_gateways)

@@ -19,8 +19,8 @@ class DHCPOptions(EC2BaseResponse):
         return EmptyResult()
 
     def create_dhcp_options(self) -> str:
-        provided_config = self._get_multi_param("DhcpConfiguration")
-        flat_config = {f["Key"]: f["Value"] for f in provided_config}
+        provided_config = self._get_param("DhcpConfigurations", [])
+        flat_config = {f["Key"]: f["Values"] for f in provided_config}
 
         # TODO validate we only got the options we know about
 
@@ -47,7 +47,7 @@ class DHCPOptions(EC2BaseResponse):
         return EmptyResult()
 
     def describe_dhcp_options(self) -> str:
-        dhcp_opt_ids = self._get_multi_param("DhcpOptionsId")
+        dhcp_opt_ids = self._get_param("DhcpOptionsIds", [])
         filters = self._filters_from_querystring()
         dhcp_opts = self.ec2_backend.describe_dhcp_options(dhcp_opt_ids, filters)
         template = self.response_template(DESCRIBE_DHCP_OPTIONS_RESPONSE)

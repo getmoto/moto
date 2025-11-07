@@ -797,3 +797,156 @@ def test_list_certificate_authorities():
     response = client.list_certificate_authorities(MaxResults=1)
     assert len(response["CertificateAuthorities"]) == 1
     assert "NextToken" in response
+
+
+@mock_aws
+def test_root_certificate_has_no_chain():
+    """Root CA certificates should not include CertificateChain in response"""
+    client = boto3.client("acm-pca", region_name="us-east-2")
+
+    # Create Root CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "root.test.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Issue root certificate
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    certificate_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+
+    # Get certificate and verify no chain
+    resp = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=certificate_arn
+    )
+
+    assert "Certificate" in resp
+    assert "CertificateChain" not in resp
+    assert "-----BEGIN CERTIFICATE-----" in resp["Certificate"]
+
+
+@mock_aws
+def test_end_entity_certificate_includes_chain():
+    """End-entity certificates should include the issuing CA certificate as chain"""
+    client = boto3.client("acm-pca", region_name="us-east-2")
+
+    # Create and activate Root CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "ca.test.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    # Activate CA
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    ca_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+
+    ca_cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=ca_cert_arn
+    )["Certificate"]
+
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=ca_cert,
+    )
+
+    # Issue end-entity certificate
+    private_key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
+        public_exponent=65537, key_size=2048
+    )
+    ee_csr = create_csr(private_key, "US", "WA", "TestOrg", "app.test.com")
+
+    ee_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=ee_csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        Validity={"Type": "DAYS", "Value": 365},
+    )["CertificateArn"]
+
+    # Get end-entity certificate and verify chain
+    resp = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=ee_cert_arn
+    )
+
+    assert "Certificate" in resp
+    assert "CertificateChain" in resp
+    assert resp["Certificate"] != resp["CertificateChain"]
+    assert resp["CertificateChain"] == ca_cert
+
+
+@mock_aws
+def test_certificate_chain_is_valid_pem():
+    """Certificate chain should be valid PEM format"""
+    client = boto3.client("acm-pca", region_name="us-east-1")
+
+    # Create and activate CA
+    ca_arn = client.create_certificate_authority(
+        CertificateAuthorityConfiguration={
+            "KeyAlgorithm": "RSA_4096",
+            "SigningAlgorithm": "SHA512WITHRSA",
+            "Subject": {"CommonName": "issuer.test.com"},
+        },
+        CertificateAuthorityType="ROOT",
+    )["CertificateAuthorityArn"]
+
+    csr = client.get_certificate_authority_csr(CertificateAuthorityArn=ca_arn)["Csr"]
+    ca_cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        TemplateArn="arn:aws:acm-pca:::template/RootCACertificate/V1",
+        Validity={"Type": "YEARS", "Value": 10},
+    )["CertificateArn"]
+
+    ca_cert = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=ca_cert_arn
+    )["Certificate"]
+
+    client.import_certificate_authority_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Certificate=ca_cert,
+    )
+
+    # Issue certificate
+    private_key = cryptography.hazmat.primitives.asymmetric.rsa.generate_private_key(
+        public_exponent=65537, key_size=2048
+    )
+    ee_csr = create_csr(private_key, "US", "NY", "Company", "service.test.com")
+
+    cert_arn = client.issue_certificate(
+        CertificateAuthorityArn=ca_arn,
+        Csr=ee_csr,
+        SigningAlgorithm="SHA256WITHRSA",
+        Validity={"Type": "MONTHS", "Value": 12},
+    )["CertificateArn"]
+
+    # Verify chain format
+    resp = client.get_certificate(
+        CertificateAuthorityArn=ca_arn, CertificateArn=cert_arn
+    )
+
+    chain = resp["CertificateChain"]
+    assert chain.startswith("-----BEGIN CERTIFICATE-----")
+    assert chain.endswith("-----END CERTIFICATE-----")
+
+    # Verify chain is loadable as X.509
+    chain_x509 = cryptography.x509.load_pem_x509_certificate(chain.encode("utf-8"))
+    assert chain_x509 is not None

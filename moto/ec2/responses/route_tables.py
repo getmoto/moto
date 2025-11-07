@@ -50,9 +50,9 @@ class RouteTables(EC2BaseResponse):
 
     def create_route_table(self) -> str:
         vpc_id = self._get_param("VpcId")
-        tags = self._get_multi_param("TagSpecification", skip_result_conversion=True)
+        tags = self._get_param("TagSpecifications", [])
         if tags:
-            tags = tags[0].get("Tag") or []
+            tags = tags[0].get("Tags") or []
         route_table = self.ec2_backend.create_route_table(vpc_id, tags)
         template = self.response_template(CREATE_ROUTE_TABLE_RESPONSE)
         return template.render(route_table=route_table)
@@ -76,7 +76,7 @@ class RouteTables(EC2BaseResponse):
         return EmptyResult()
 
     def describe_route_tables(self) -> str:
-        route_table_ids = self._get_multi_param("RouteTableId")
+        route_table_ids = self._get_param("RouteTableIds", [])
         filters = self._filters_from_querystring()
         route_tables = self.ec2_backend.describe_route_tables(route_table_ids, filters)
         template = self.response_template(DESCRIBE_ROUTE_TABLES_RESPONSE)

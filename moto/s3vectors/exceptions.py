@@ -1,11 +1,25 @@
 from moto.core.exceptions import ServiceException
 
 
+class ValidationError(ServiceException):
+    code = "ValidationException"
+
+    def __init__(self, msg: str) -> None:
+        super().__init__(msg)
+
+
 class VectorBucketNotFound(ServiceException):
     code = "NotFoundException"
 
     def __init__(self) -> None:
         super().__init__("The specified vector bucket could not be found")
+
+
+class IndexNotFound(ServiceException):
+    code = "NotFoundException"
+
+    def __init__(self) -> None:
+        super().__init__("The specified index could not be found")
 
 
 class VectorBucketInvalidLength(ServiceException):

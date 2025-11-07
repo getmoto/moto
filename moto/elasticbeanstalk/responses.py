@@ -1,5 +1,4 @@
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.core.utils import tags_from_query_string
 
 from .exceptions import InvalidParameterValueError
 from .models import EBBackend, eb_backends
@@ -228,6 +227,7 @@ SOLUTION_STACK_DETAILS = [
 class EBResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="elasticbeanstalk")
+        self.automated_parameter_parsing = True
 
     @property
     def elasticbeanstalk_backend(self) -> EBBackend:
@@ -258,7 +258,7 @@ class EBResponse(BaseResponse):
                 f"No Application named '{application_name}' found."
             )
 
-        tags = tags_from_query_string(self.querystring, prefix="Tags.member")
+        tags = {tag["Key"]: tag["Value"] for tag in self._get_param("Tags", [])}
         env = self.elasticbeanstalk_backend.create_environment(
             app,
             environment_name=self._get_param("EnvironmentName"),
@@ -286,10 +286,10 @@ class EBResponse(BaseResponse):
 
     def update_tags_for_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceArn")
-        tags_to_add = tags_from_query_string(
-            self.querystring, prefix="TagsToAdd.member"
-        )
-        tags_to_remove = self._get_multi_param("TagsToRemove.member")
+        tags_to_add = {
+            tag["Key"]: tag["Value"] for tag in self._get_param("TagsToAdd", [])
+        }
+        tags_to_remove = self._get_param("TagsToRemove", [])
         self.elasticbeanstalk_backend.update_tags_for_resource(
             resource_arn, tags_to_add, tags_to_remove
         )

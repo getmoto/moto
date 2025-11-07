@@ -1,7 +1,17 @@
 from collections.abc import Iterable
 from typing import Any, Optional, Union
 
-from moto.core.exceptions import RESTError
+from moto.core.exceptions import RESTError, ServiceException
+
+
+class EC2Error(ServiceException):
+    pass
+
+
+class DryRunClientError(EC2Error):
+    code = "DryRunOperation"
+    message = "Request would have succeeded, but DryRun flag is set."
+
 
 # EC2 has a custom root-tag - <Response> vs <ErrorResponse>
 # `terraform destroy` will complain if the roottag is incorrect
@@ -671,7 +681,7 @@ class AvailabilityZoneNotFromRegionError(EC2ClientError):
 
 
 class NetworkAclEntryAlreadyExistsError(EC2ClientError):
-    def __init__(self, rule_number: str):
+    def __init__(self, rule_number: int):
         super().__init__(
             "NetworkAclEntryAlreadyExists",
             f"The network acl entry identified by {rule_number} already exists.",
