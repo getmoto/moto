@@ -9,6 +9,11 @@ from moto.core.utils import camelcase_to_underscores
 from .models import EC2ContainerServiceBackend, ecs_backends
 
 
+# ContainerInstance.Attribute is a multi-field structure (name, value, targetType, targetId),
+# but is currently stored as a dictionary (key=name, value=value) on the Moto ECS backend.
+# For now, we use this transformer to convert the attributes dictionary into a data structure
+# that matches the AWS spec.
+# TODO: model ContainerInstance.Attribute properly on the backend and remove this transformer.
 def format_attributes(attributes: dict[str, str] | None) -> list[dict[str, str]] | None:
     if attributes is None:
         return None
