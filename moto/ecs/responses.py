@@ -120,16 +120,18 @@ class EC2ContainerServiceResponse(BaseResponse):
         )
 
     def describe_clusters(self) -> ActionResult:
-        names = self._get_param("clusters")
+        cluster_names = self._get_param("clusters", [])
+        clusters, failures = self.ecs_backend.describe_clusters(cluster_names)
         include = self._get_param("include", [])
-        self.conditional_response_field(DESCRIBE_CLUSTERS_TAGS, "TAGS" in include)
-        clusters, failures = self.ecs_backend.describe_clusters(names)
-        return ActionResult(
-            {
-                "clusters": clusters,
-                "failures": failures,
-            }
-        )
+        if "TAGS" in include:
+            self._include_in_response(DESCRIBE_CLUSTERS_TAGS)
+        else:
+            self._exclude_from_response(DESCRIBE_CLUSTERS_TAGS)
+        result = {
+            "clusters": clusters,
+            "failures": failures,
+        }
+        return ActionResult(result)
 
     def delete_cluster(self) -> ActionResult:
         cluster_str = self._get_param("cluster")
@@ -226,16 +228,18 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def describe_tasks(self) -> ActionResult:
         cluster = self._get_param("cluster", "default")
-        tasks = self._get_param("tasks")
+        task_ids = self._get_param("tasks", [])
+        tasks = self.ecs_backend.describe_tasks(cluster, task_ids)
         include = self._get_param("include", [])
-        self.conditional_response_field(DESCRIBE_TASKS_TAGS, "TAGS" in include)
-        tasks = self.ecs_backend.describe_tasks(cluster, tasks)
-        return ActionResult(
-            {
-                "tasks": tasks,
-                "failures": [],
-            }
-        )
+        if "TAGS" in include:
+            self._include_in_response(DESCRIBE_TASKS_TAGS)
+        else:
+            self._exclude_from_response(DESCRIBE_TASKS_TAGS)
+        result = {
+            "tasks": tasks,
+            "failures": [],
+        }
+        return ActionResult(result)
 
     def start_task(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
@@ -324,17 +328,20 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def describe_services(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
-        service_names = self._get_param("services")
-        include = self._get_param("include", [])
-        self.conditional_response_field(DESCRIBE_SERVICES_TAGS, "TAGS" in include)
+        service_names = self._get_param("services", [])
         services, failures = self.ecs_backend.describe_services(
             cluster_str, service_names
         )
-        resp = {
+        include = self._get_param("include", [])
+        if "TAGS" in include:
+            self._include_in_response(DESCRIBE_SERVICES_TAGS)
+        else:
+            self._exclude_from_response(DESCRIBE_SERVICES_TAGS)
+        result = {
             "services": services,
             "failures": failures,
         }
-        return ActionResult(resp)
+        return ActionResult(result)
 
     def update_service(self) -> ActionResult:
         service_properties = self._get_params()
@@ -508,13 +515,16 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_task_sets(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
         service_str = self._get_param("service")
-        task_sets = self._get_param("taskSets")
-        include = self._get_param("include", [])
-        self.conditional_response_field(DESCRIBE_TASK_SETS_TAGS, "TAGS" in include)
-        task_set_objs = self.ecs_backend.describe_task_sets(
-            cluster_str, service_str, task_sets
+        task_set_ids = self._get_param("taskSets", [])
+        task_sets = self.ecs_backend.describe_task_sets(
+            cluster_str, service_str, task_set_ids
         )
-        return ActionResult({"taskSets": task_set_objs})
+        include = self._get_param("include", [])
+        if "TAGS" in include:
+            self._include_in_response(DESCRIBE_TASK_SETS_TAGS)
+        else:
+            self._exclude_from_response(DESCRIBE_TASK_SETS_TAGS)
+        return ActionResult({"taskSets": task_sets})
 
     def delete_task_set(self) -> ActionResult:
         cluster_str = self._get_param("cluster")
@@ -572,14 +582,6 @@ class EC2ContainerServiceResponse(BaseResponse):
                 "failures": failures,
             }
         )
-
-    def conditional_response_field(
-        self, response_key_path: str, conditional: bool
-    ) -> None:
-        if conditional:
-            self._include_in_response(response_key_path)
-        else:
-            self._exclude_from_response(response_key_path)
 
     def _include_in_response(self, response_key_path: str) -> None:
         self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = lambda x: x

@@ -1051,18 +1051,15 @@ class EC2ContainerServiceBackend(BaseBackend):
 
     def describe_clusters(
         self,
-        list_clusters_name: Optional[list[str]] = None,
+        cluster_names: list[str],
     ) -> tuple[list[Cluster], list[ClusterFailure]]:
-        """
-        Only include=TAGS is currently supported.
-        """
         list_clusters = []
         failures = []
-        if list_clusters_name is None:
+        if not cluster_names:
             if "default" in self.clusters:
                 list_clusters.append(self.clusters["default"])
         else:
-            for cluster_name in list_clusters_name:
+            for cluster_name in cluster_names:
                 cluster_name = cluster_name.split("/")[-1]
                 if cluster_name in self.clusters:
                     list_clusters.append(self.clusters[cluster_name])
@@ -1437,7 +1434,7 @@ class EC2ContainerServiceBackend(BaseBackend):
             self.tasks[cluster.name][task.task_arn] = task
         return tasks
 
-    def describe_tasks(self, cluster_str: str, tasks: Optional[str]) -> list[Task]:
+    def describe_tasks(self, cluster_str: str, tasks: list[str]) -> list[Task]:
         """
         Only include=TAGS is currently supported.
         """
@@ -2191,10 +2188,8 @@ class EC2ContainerServiceBackend(BaseBackend):
         return task_set
 
     def describe_task_sets(
-        self, cluster_str: str, service: str, task_sets: Optional[list[str]] = None
+        self, cluster_str: str, service: str, task_sets: list[str]
     ) -> list[TaskSet]:
-        task_sets = task_sets or []
-
         cluster_obj = self._get_cluster(cluster_str)
 
         service_name = service.split("/")[-1]
