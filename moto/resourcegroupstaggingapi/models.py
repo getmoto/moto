@@ -46,6 +46,7 @@ from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
+from moto.servicecatalog.models import ServiceCatalogBackend, servicecatalog_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -175,6 +176,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.account_id][self.region_name]
+
+    @property
+    def servicecatalog_backend(self) -> ServiceCatalogBackend:
+        return servicecatalog_backends[self.account_id][self.region_name]
 
     @property
     def stepfunctions_backend(self) -> StepFunctionBackend:
@@ -966,6 +971,26 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
+
+        # Service Catalog
+        if not resource_type_filters or "servicecatalog" in resource_type_filters:
+            # Portfolio
+            for portfolio in self.servicecatalog_backend.portfolios.values():
+                tags = self.servicecatalog_backend.tagger.list_tags_for_resource(
+                    portfolio.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{portfolio.arn}", "Tags": tags}
+
+            # Product
+            for product in self.servicecatalog_backend.products.values():
+                tags = self.servicecatalog_backend.tagger.list_tags_for_resource(
+                    product.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{product.arn}", "Tags": tags}
 
         # SNS
         if not resource_type_filters or "sns" in resource_type_filters:
