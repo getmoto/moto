@@ -385,28 +385,38 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield {"ResourceARN": f"{vault.backup_vault_arn}", "Tags": tags}
 
         # Comprehend
-        comprehend_resource_map: dict[str, dict[str, Any]] = {
-            "comprehend:document-classification-job": dict(
-                self.comprehend_backend.jobs
-            ),
-            "comprehend:document-classifier": dict(self.comprehend_backend.classifiers),
-            "comprehend:dominant-language-detection-job": dict(
-                self.comprehend_backend.jobs
-            ),
-            "comprehend:entity-recognizer": dict(self.comprehend_backend.recognizers),
-            "comprehend:entities-detection-job": dict(self.comprehend_backend.jobs),
-            "comprehend:endpoint": dict(self.comprehend_backend.endpoints),
-            "comprehend:events-detection-job": dict(self.comprehend_backend.jobs),
-            "comprehend:flywheel": dict(self.comprehend_backend.flywheels),
-            "comprehend:key-phrases-detection-job": dict(self.comprehend_backend.jobs),
-            "comprehend:pii-entities-detection-job": dict(self.comprehend_backend.jobs),
-            "comprehend:sentiment-detection-job": dict(self.comprehend_backend.jobs),
-            "comprehend:targeted-sentiment-detection-job": dict(
-                self.comprehend_backend.jobs
-            ),
-            "comprehend:topic-detection-job": dict(self.comprehend_backend.jobs),
-        }
         if self.comprehend_backend:
+            comprehend_resource_map: dict[str, dict[str, Any]] = {
+                "comprehend:document-classification-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:document-classifier": dict(
+                    self.comprehend_backend.classifiers
+                ),
+                "comprehend:dominant-language-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:entity-recognizer": dict(
+                    self.comprehend_backend.recognizers
+                ),
+                "comprehend:entities-detection-job": dict(self.comprehend_backend.jobs),
+                "comprehend:endpoint": dict(self.comprehend_backend.endpoints),
+                "comprehend:events-detection-job": dict(self.comprehend_backend.jobs),
+                "comprehend:flywheel": dict(self.comprehend_backend.flywheels),
+                "comprehend:key-phrases-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:pii-entities-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:sentiment-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:targeted-sentiment-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:topic-detection-job": dict(self.comprehend_backend.jobs),
+            }
             for resource_type, resource_source in comprehend_resource_map.items():
                 if (
                     not resource_type_filters
@@ -417,6 +427,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                         arn = getattr(resource, "arn", None) or getattr(
                             resource, "job_arn", None
                         )
+                        if not arn:
+                            continue
+
                         tags = self.comprehend_backend.tagger.list_tags_for_resource(
                             arn
                         )["Tags"]

@@ -707,6 +707,10 @@ class ComprehendBackend(BaseBackend):
             **kwargs,
         )
         self.jobs[job.job_id] = job
+
+        if "Tags" in kwargs:
+            self.tagger.tag_resource(job.job_arn, kwargs["Tags"])
+
         return job
 
     def _get_job(self, job_id: str) -> ComprehendJob:
