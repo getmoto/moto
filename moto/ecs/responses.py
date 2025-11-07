@@ -220,11 +220,23 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_tasks(self) -> ActionResult:
         cluster = self._get_param("cluster", "default")
         tasks = self._get_param("tasks")
-        # include_tags = "TAGS" in self._get_param("include", [])
+        include = self._get_param("include", [])
         tasks = self.ecs_backend.describe_tasks(cluster, tasks)
+        task_list = []
+        for task in tasks:
+            task_to_add = task
+            if "TAGS" not in include:
+                saved_status = task.status
+                task_to_add = deepcopy(task)
+                delattr(task_to_add, "tags")
+                # HACK: We have to save and reset the Task status because the
+                # StateManager will get invoked by the deepcopy() call.
+                if saved_status is not None:
+                    task_to_add.status = saved_status
+            task_list.append(task_to_add)
         return ActionResult(
             {
-                "tasks": tasks,
+                "tasks": task_list,
                 "failures": [],
             }
         )

@@ -2674,6 +2674,10 @@ def test_describe_tasks_include_tags():
             tags=task_tags,
         )["tasks"]
     ]
+    response = client.describe_tasks(cluster="test_ecs_cluster", tasks=tasks_arns)
+    for task in response["tasks"]:
+        assert "tags" not in task
+
     response = client.describe_tasks(
         cluster="test_ecs_cluster", tasks=tasks_arns, include=["TAGS"]
     )
