@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_ID2
 
+from .helpers import assert_dryrun_error
 from .test_instances import retrieve_all_instances
 
 
@@ -129,12 +130,7 @@ def test_describe_regions_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_regions(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeRegions operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

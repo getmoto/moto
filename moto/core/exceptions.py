@@ -145,10 +145,6 @@ class RESTError(HTTPException):
         return Environment(loader=DictLoader(templates))
 
 
-class DryRunClientError(RESTError):
-    code = 412
-
-
 class JsonRESTError(RESTError):
     def __init__(
         self, error_type: str, message: str, template: str = "error_json", **kwargs: Any

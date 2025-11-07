@@ -5,6 +5,8 @@ from botocore.exceptions import ClientError
 from moto import mock_aws
 from tests.test_ec2 import ec2_aws_verified
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_create_customer_gateways():
@@ -38,12 +40,7 @@ def test_describe_customer_gateways_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_customer_gateways(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeCustomerGateways operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

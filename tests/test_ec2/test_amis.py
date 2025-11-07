@@ -12,6 +12,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.core.utils import RFC3339_DATETIME_PATTERN
 from moto.ec2.models.amis import AMIS
 from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
+from tests.test_ec2.helpers import assert_dryrun_error
 
 
 # The default AMIs are not loaded for our test case, to speed things up
@@ -52,13 +53,8 @@ def test_ami_create_and_delete():
         ec2.create_image(
             InstanceId=instance["InstanceId"], Name="test-ami", DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateImage operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
+    assert_dryrun_error(ex)
 
     image_id = ec2.create_image(
         InstanceId=instance_id, Name="test-ami", Description="this is a test ami"
@@ -111,13 +107,7 @@ def test_ami_create_and_delete():
     # Deregister
     with pytest.raises(ClientError) as ex:
         ec2.deregister_image(ImageId=image_id, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeregisterImage operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     success = ec2.deregister_image(ImageId=image_id)
     assert success["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -183,13 +173,7 @@ def test_ami_copy_dryrun():
             Description="this is a test copy ami",
             DryRun=True,
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CopyImage operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock.patch.dict(os.environ, {"MOTO_EC2_LOAD_DEFAULT_AMIS": "true"})
@@ -330,13 +314,7 @@ def test_ami_tagging():
 
     with pytest.raises(ClientError) as ex:
         image.create_tags(Tags=[{"Key": "a key", "Value": "some value"}], DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    err = ex.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     image.create_tags(Tags=[{"Key": "a key", "Value": "some value"}])
     assert image.tags == [{"Value": "some value", "Key": "a key"}]
@@ -580,12 +558,7 @@ def test_ami_attribute_group_permissions():
     # Add 'all' group and confirm
     with pytest.raises(ClientError) as ex:
         image.modify_attribute(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyImageAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     image.modify_attribute(**ADD_GROUP_ARGS)
 
@@ -1396,12 +1369,7 @@ def test_describe_images_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_images(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeImages operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

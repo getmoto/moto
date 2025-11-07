@@ -28,7 +28,7 @@ from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
-from moto.core.exceptions import DryRunClientError, ServiceException
+from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
 from moto.core.parsers import PROTOCOL_PARSERS
 from moto.core.request import determine_request_protocol, normalize_request
@@ -884,9 +884,3 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     @property
     def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
-
-    def error_on_dryrun(self) -> None:
-        if self._get_param("DryRun", False):
-            a = self._get_action()
-            message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
-            raise DryRunClientError(error_type="DryRunOperation", message=message)
