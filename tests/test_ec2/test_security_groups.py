@@ -15,6 +15,8 @@ from moto.ec2 import ec2_backends
 from tests import aws_verified
 from tests.test_ec2 import ec2_aws_verified
 
+from .helpers import assert_dryrun_error
+
 REGION = "us-east-1"
 
 
@@ -24,12 +26,7 @@ def test_create_and_describe_security_group():
 
     with pytest.raises(ClientError) as ex:
         client.create_security_group(GroupName="test", Description="test", DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     sec_name = str(uuid4())
     response = client.create_security_group(GroupName=sec_name, Description="test")
@@ -192,12 +189,7 @@ def test_deleting_security_groups():
     # Delete by name
     with pytest.raises(ClientError) as ex:
         client.delete_security_group(GroupName=sg_name2, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.delete_security_group(GroupName=sg_name2)
 
@@ -247,12 +239,7 @@ def test_authorize_ip_range_and_revoke():
             CidrIp="123.123.123.123/32",
             DryRun=True,
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     ingress_permissions = [
         {
@@ -284,12 +271,7 @@ def test_authorize_ip_range_and_revoke():
     # Actually revoke
     with pytest.raises(ClientError) as ex:
         security_group.revoke_ingress(IpPermissions=ingress_permissions, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupIngress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     security_group.revoke_ingress(IpPermissions=ingress_permissions)
 
@@ -312,12 +294,7 @@ def test_authorize_ip_range_and_revoke():
         egress_security_group.authorize_egress(
             IpPermissions=egress_permissions, DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AuthorizeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     egress_security_group.authorize_egress(IpPermissions=egress_permissions)
 
@@ -349,12 +326,7 @@ def test_authorize_ip_range_and_revoke():
         egress_security_group.revoke_egress(
             IpPermissions=egress_permissions, DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the RevokeSecurityGroupEgress operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     egress_security_group.revoke_egress(IpPermissions=egress_permissions)
 
@@ -1308,12 +1280,7 @@ def test_security_group_tagging():
             Tags=[{"Key": "Test", "Value": "Tag"}],
             DryRun=True,
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     tag_val = str(uuid4())
     conn.create_tags(

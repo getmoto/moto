@@ -97,7 +97,6 @@ class ECRResponse(BaseResponse):
         return ActionResult({"imageDetails": dto_images})
 
     def batch_check_layer_availability(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError(
             "ECR.batch_check_layer_availability is not yet implemented"
         )
@@ -142,7 +141,6 @@ class ECRResponse(BaseResponse):
         )
 
     def complete_layer_upload(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError("ECR.complete_layer_upload is not yet implemented")
 
     def delete_repository_policy(self) -> ActionResult:
@@ -173,7 +171,6 @@ class ECRResponse(BaseResponse):
         return ActionResult({"authorizationData": auth_data})
 
     def get_download_url_for_layer(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError(
             "ECR.get_download_url_for_layer is not yet implemented"
         )
@@ -189,7 +186,6 @@ class ECRResponse(BaseResponse):
         )
 
     def initiate_layer_upload(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError("ECR.initiate_layer_upload is not yet implemented")
 
     def set_repository_policy(self) -> ActionResult:
@@ -209,7 +205,6 @@ class ECRResponse(BaseResponse):
         )
 
     def upload_layer_part(self) -> None:
-        self.error_on_dryrun()
         raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
 
     def list_tags_for_resource(self) -> ActionResult:
