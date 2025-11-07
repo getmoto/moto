@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
-from copy import deepcopy
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.serialize import never_return
 from moto.core.utils import camelcase_to_underscores
 
 from .models import EC2ContainerServiceBackend, ecs_backends
+
+DESCRIBE_CLUSTERS_TAGS = "DescribeClustersResponse.clusters.Cluster.tags"
+DESCRIBE_SERVICES_TAGS = "DescribeServicesResponse.services.Service.tags"
+DESCRIBE_TASKS_TAGS = "DescribeTasksResponse.tasks.Task.tags"
+DESCRIBE_TASK_SETS_TAGS = "DescribeTaskSetsResponse.taskSets.TaskSet.tags"
 
 
 # ContainerInstance.Attribute is a multi-field structure (name, value, targetType, targetId),
@@ -117,11 +122,8 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_clusters(self) -> ActionResult:
         names = self._get_param("clusters")
         include = self._get_param("include", [])
+        self.conditional_response_field(DESCRIBE_CLUSTERS_TAGS, "TAGS" in include)
         clusters, failures = self.ecs_backend.describe_clusters(names)
-        if "TAGS" not in include:
-            clusters = [deepcopy(c) for c in clusters]
-            for cluster in clusters:
-                delattr(cluster, "tags")
         return ActionResult(
             {
                 "clusters": clusters,
@@ -226,22 +228,11 @@ class EC2ContainerServiceResponse(BaseResponse):
         cluster = self._get_param("cluster", "default")
         tasks = self._get_param("tasks")
         include = self._get_param("include", [])
+        self.conditional_response_field(DESCRIBE_TASKS_TAGS, "TAGS" in include)
         tasks = self.ecs_backend.describe_tasks(cluster, tasks)
-        task_list = []
-        for task in tasks:
-            task_to_add = task
-            if "TAGS" not in include:
-                saved_status = task.status
-                task_to_add = deepcopy(task)
-                delattr(task_to_add, "tags")
-                # HACK: We have to save and reset the Task status because the
-                # StateManager will get invoked by the deepcopy() call.
-                if saved_status is not None:
-                    task_to_add.status = saved_status
-            task_list.append(task_to_add)
         return ActionResult(
             {
-                "tasks": task_list,
+                "tasks": tasks,
                 "failures": [],
             }
         )
@@ -334,13 +325,11 @@ class EC2ContainerServiceResponse(BaseResponse):
     def describe_services(self) -> ActionResult:
         cluster_str = self._get_param("cluster", "default")
         service_names = self._get_param("services")
+        include = self._get_param("include", [])
+        self.conditional_response_field(DESCRIBE_SERVICES_TAGS, "TAGS" in include)
         services, failures = self.ecs_backend.describe_services(
             cluster_str, service_names
         )
-        if "TAGS" in self._get_param("include", []):
-            services = [deepcopy(service) for service in services]
-            for service in services:
-                service.tags = self.ecs_backend.list_tags_for_resource(service.arn)
         resp = {
             "services": services,
             "failures": failures,
@@ -521,14 +510,11 @@ class EC2ContainerServiceResponse(BaseResponse):
         service_str = self._get_param("service")
         task_sets = self._get_param("taskSets")
         include = self._get_param("include", [])
+        self.conditional_response_field(DESCRIBE_TASK_SETS_TAGS, "TAGS" in include)
         task_set_objs = self.ecs_backend.describe_task_sets(
             cluster_str, service_str, task_sets
         )
-        response_objs = [deepcopy(t) for t in task_set_objs]
-        if "TAGS" not in include:
-            for ro in response_objs:
-                delattr(ro, "tags")
-        return ActionResult({"taskSets": response_objs})
+        return ActionResult({"taskSets": task_set_objs})
 
     def delete_task_set(self) -> ActionResult:
         cluster_str = self._get_param("cluster")
@@ -586,3 +572,17 @@ class EC2ContainerServiceResponse(BaseResponse):
                 "failures": failures,
             }
         )
+
+    def conditional_response_field(
+        self, response_key_path: str, conditional: bool
+    ) -> None:
+        if conditional:
+            self._include_in_response(response_key_path)
+        else:
+            self._exclude_from_response(response_key_path)
+
+    def _include_in_response(self, response_key_path: str) -> None:
+        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = lambda x: x
+
+    def _exclude_from_response(self, response_key_path: str) -> None:
+        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = never_return

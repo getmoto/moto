@@ -338,6 +338,7 @@ class EmptyResult(ActionResult):
 
 class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     PROTOCOL_PARSER_MAP_TYPE: Any = dict
+    RESPONSE_KEY_PATH_TO_TRANSFORMER: dict[str, Callable[[Any], Any]] = {}
 
     default_region = "us-east-1"
     # to extract region, use [^.]
