@@ -276,25 +276,6 @@ def path_url(url: str) -> str:
     return path
 
 
-def tags_from_query_string(
-    querystring_dict: dict[str, Any],
-    prefix: str = "Tag",
-    key_suffix: str = "Key",
-    value_suffix: str = "Value",
-) -> dict[str, str]:
-    response_values = {}
-    for key in querystring_dict.keys():
-        if key.startswith(prefix) and key.endswith(key_suffix):
-            tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
-            tag_key = querystring_dict[f"{prefix}.{tag_index}.{key_suffix}"][0]
-            tag_value_key = f"{prefix}.{tag_index}.{value_suffix}"
-            if tag_value_key in querystring_dict:
-                response_values[tag_key] = querystring_dict[tag_value_key][0]
-            else:
-                response_values[tag_key] = None
-    return response_values
-
-
 def tags_from_cloudformation_tags_list(
     tags_list: list[dict[str, str]],
 ) -> dict[str, str]:

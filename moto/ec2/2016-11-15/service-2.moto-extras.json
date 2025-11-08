@@ -1,0 +1,16 @@
+{
+  "version": 1.0,
+  "merge": {
+    "shapes": {
+      "DryRunOperation": {
+        "type": "structure",
+        "members": {},
+        "error": {
+          "code": "DryRunOperation",
+          "httpStatusCode": 412
+        },
+        "exception": true
+      }
+    }
+  }
+}

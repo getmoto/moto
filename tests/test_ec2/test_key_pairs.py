@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 
-from .helpers import check_private_key
+from .helpers import assert_dryrun_error, check_private_key
 
 ED25519_PUBLIC_KEY_OPENSSH = b"""\
 ssh-ed25519 \
@@ -116,12 +116,7 @@ def test_key_pairs_create_dryrun():
 
     with pytest.raises(ClientError) as ex:
         ec2.create_key_pair(KeyName="foo", DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
@@ -184,12 +179,7 @@ def test_key_pairs_delete_exist():
 
     with pytest.raises(ClientError) as ex:
         client.delete_key_pair(KeyName=key_name, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.delete_key_pair(KeyName=key_name)
     assert key_name not in [
@@ -225,12 +215,7 @@ def test_key_pairs_import(public_key, fingerprint):
         client.import_key_pair(
             KeyName=key_name, PublicKeyMaterial=public_key, DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     kp1 = client.import_key_pair(KeyName=key_name, PublicKeyMaterial=public_key)
 

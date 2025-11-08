@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, TypedDict
 
 from ..exceptions import (
     DependencyViolationError,
@@ -41,11 +41,16 @@ class NetworkAclBackend:
         return network_acl
 
     def add_default_entries(self, network_acl_id: str) -> None:
-        default_acl_entries = [
-            {"rule_number": "100", "rule_action": "allow", "egress": "true"},
-            {"rule_number": "32767", "rule_action": "deny", "egress": "true"},
-            {"rule_number": "100", "rule_action": "allow", "egress": "false"},
-            {"rule_number": "32767", "rule_action": "deny", "egress": "false"},
+        class AclEntry(TypedDict):
+            rule_number: int
+            rule_action: str
+            egress: bool
+
+        default_acl_entries: list[AclEntry] = [
+            {"rule_number": 100, "rule_action": "allow", "egress": True},
+            {"rule_number": 32767, "rule_action": "deny", "egress": True},
+            {"rule_number": 100, "rule_action": "allow", "egress": False},
+            {"rule_number": 32767, "rule_action": "deny", "egress": False},
         ]
         for entry in default_acl_entries:
             self.create_network_acl_entry(
@@ -79,10 +84,10 @@ class NetworkAclBackend:
     def create_network_acl_entry(
         self,
         network_acl_id: str,
-        rule_number: str,
+        rule_number: int,
         protocol: str,
         rule_action: str,
-        egress: str,
+        egress: bool,
         cidr_block: str,
         icmp_code: Optional[int],
         icmp_type: Optional[int],
@@ -115,7 +120,7 @@ class NetworkAclBackend:
         return network_acl_entry
 
     def delete_network_acl_entry(
-        self, network_acl_id: str, rule_number: str, egress: str
+        self, network_acl_id: str, rule_number: int, egress: bool
     ) -> "NetworkAclEntry":
         network_acl = self.get_network_acl(network_acl_id)
         entry = next(
@@ -130,10 +135,10 @@ class NetworkAclBackend:
     def replace_network_acl_entry(
         self,
         network_acl_id: str,
-        rule_number: str,
+        rule_number: int,
         protocol: str,
         rule_action: str,
-        egress: str,
+        egress: bool,
         cidr_block: str,
         icmp_code: int,
         icmp_type: int,
@@ -247,13 +252,13 @@ class NetworkAcl(TaggedEC2Resource):
         self.owner_id = owner_id or ec2_backend.account_id
         self.network_acl_entries: list[NetworkAclEntry] = []
         self.associations: dict[str, NetworkAclAssociation] = {}
-        self.default = "true" if default is True else "false"
+        self.default = default
 
     def get_filter_value(
         self, filter_name: str, method_name: Optional[str] = None
     ) -> Any:
         if filter_name == "default":
-            return self.default
+            return str(self.default).lower()
         elif filter_name == "vpc-id":
             return self.vpc_id
         elif filter_name == "association.network-acl-id":
@@ -265,11 +270,11 @@ class NetworkAcl(TaggedEC2Resource):
         elif filter_name == "entry.protocol":
             return [entry.protocol for entry in self.network_acl_entries]
         elif filter_name == "entry.rule-number":
-            return [entry.rule_number for entry in self.network_acl_entries]
+            return [str(entry.rule_number) for entry in self.network_acl_entries]
         elif filter_name == "entry.rule-action":
             return [entry.rule_action for entry in self.network_acl_entries]
         elif filter_name == "entry.egress":
-            return [entry.egress for entry in self.network_acl_entries]
+            return [str(entry.egress).lower() for entry in self.network_acl_entries]
         elif filter_name == "owner-id":
             return self.owner_id
         else:
@@ -281,10 +286,10 @@ class NetworkAclEntry(TaggedEC2Resource):
         self,
         ec2_backend: Any,
         network_acl_id: str,
-        rule_number: str,
+        rule_number: int,
         protocol: str,
         rule_action: str,
-        egress: str,
+        egress: bool,
         cidr_block: str,
         icmp_code: Optional[int],
         icmp_type: Optional[int],

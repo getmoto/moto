@@ -4,10 +4,13 @@ from time import sleep
 from uuid import uuid4
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from tests import allow_aws_request
+
+pytest.register_assert_rewrite("tests.test_ec2.helpers")
 
 
 def ec2_aws_verified(

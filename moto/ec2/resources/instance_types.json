@@ -25893,7 +25893,7 @@
    "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
-   "FlexibleEnaQueuesSupport": "unsupported",
+   "FlexibleEnaQueuesSupport": "supported",
    "Ipv4AddressesPerInterface": 50,
    "Ipv6AddressesPerInterface": 50,
    "Ipv6Supported": true,
@@ -25903,6 +25903,8 @@
     {
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
      "MaximumNetworkInterfaces": 12,
      "NetworkCardIndex": 0,
      "NetworkPerformance": "300 Gigabit",
@@ -25911,6 +25913,8 @@
     {
      "BaselineBandwidthInGbps": 300.0,
      "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumEnaQueueCount": 384,
+     "MaximumEnaQueueCountPerInterface": 128,
      "MaximumNetworkInterfaces": 12,
      "NetworkCardIndex": 1,
      "NetworkPerformance": "300 Gigabit",
@@ -105460,7 +105464,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -105586,7 +105590,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -105829,7 +105833,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -106072,7 +106076,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -106292,7 +106296,7 @@
   "NetworkInfo": {
    "DefaultNetworkCardIndex": 0,
    "EfaSupported": false,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
@@ -106384,7 +106388,7 @@
     "MaximumEfaInterfaces": 1
    },
    "EfaSupported": true,
-   "EnaSrdSupported": false,
+   "EnaSrdSupported": true,
    "EnaSupport": "required",
    "EncryptionInTransitSupported": true,
    "FlexibleEnaQueuesSupport": "unsupported",
