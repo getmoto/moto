@@ -7,7 +7,7 @@ from ._base_response import EC2BaseResponse
 class CarrierGateway(EC2BaseResponse):
     def create_carrier_gateway(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
-        tag_param = self._get_multi_param("TagSpecification")
+        tag_param = self._get_param("TagSpecifications", [])
         tags = add_tag_specification(tag_param)
 
         carrier_gateway = self.ec2_backend.create_carrier_gateway(
@@ -24,7 +24,7 @@ class CarrierGateway(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_carrier_gateways(self) -> ActionResult:
-        carrier_gateway_ids = self._get_multi_param("CarrierGatewayId")
+        carrier_gateway_ids = self._get_param("CarrierGatewayIds")
         filters = self._filters_from_querystring()
 
         carrier_gateways = self.ec2_backend.describe_carrier_gateways(

@@ -28,7 +28,7 @@ from werkzeug.exceptions import HTTPException
 
 from moto import settings
 from moto.core.common_types import TYPE_IF_NONE, TYPE_RESPONSE
-from moto.core.exceptions import DryRunClientError, ServiceException
+from moto.core.exceptions import ServiceException
 from moto.core.model import OperationModel, ServiceModel
 from moto.core.parsers import PROTOCOL_PARSERS
 from moto.core.request import determine_request_protocol, normalize_request
@@ -346,9 +346,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     region_from_useragent_regex = re.compile(
         r"region/(?P<region>[a-z]{2}-[a-z]+-\d{1})"
     )
-    # Note: technically, we could remove "member" from the regex below... (leaving it for clarity)
-    param_list_regex = re.compile(r"^(\.?[^.]*(\.member|\.[^.]+)?)\.(\d+)\.?")
-    param_regex = re.compile(r"([^\.]*)\.(\w+)(\..+)?")
     access_key_regex = re.compile(
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
@@ -807,103 +804,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
                 return False
         return if_none
 
-    def _get_multi_param_dict(self, param_prefix: str) -> dict[str, Any]:
-        return self._get_multi_param_helper(param_prefix, skip_result_conversion=True)
-
-    def _get_multi_param_helper(
-        self,
-        param_prefix: str,
-        skip_result_conversion: bool = False,
-        tracked_prefixes: Optional[set[str]] = None,
-    ) -> Any:
-        value_dict: Any = {}
-        tracked_prefixes = (
-            tracked_prefixes or set()
-        )  # prefixes which have already been processed
-
-        for name, value in self.querystring.items():
-            if not name.startswith(param_prefix):
-                continue
-
-            if len(name) > len(param_prefix) and not name[
-                len(param_prefix) :
-            ].startswith("."):
-                continue
-
-            match = (
-                self.param_list_regex.search(name[len(param_prefix) :])
-                if len(name) > len(param_prefix)
-                else None
-            )
-            if match:
-                prefix = param_prefix + match.group(1)
-                value = self._get_multi_param(prefix)
-                tracked_prefixes.add(prefix)
-                name = prefix
-                value_dict[name] = value
-            else:
-                match = self.param_regex.search(name[len(param_prefix) :])
-                if match:
-                    # enable access to params that are lists of dicts, e.g., "TagSpecification.1.ResourceType=.."
-                    sub_attr = (
-                        f"{name[: len(param_prefix)]}{match.group(1)}.{match.group(2)}"
-                    )
-                    if match.group(3):
-                        value = self._get_multi_param_helper(
-                            sub_attr,
-                            tracked_prefixes=tracked_prefixes,
-                            skip_result_conversion=skip_result_conversion,
-                        )
-                    else:
-                        value = self._get_param(sub_attr)
-                    tracked_prefixes.add(sub_attr)
-                    value_dict[name] = value
-                else:
-                    value_dict[name] = value[0]
-
-        if not value_dict:
-            return None
-
-        if skip_result_conversion or len(value_dict) > 1:
-            # strip off period prefix
-            value_dict = {
-                name[len(param_prefix) + 1 :]: value
-                for name, value in value_dict.items()
-            }
-            for k in list(value_dict.keys()):
-                parts = k.split(".")
-                if len(parts) != 2 or parts[1] != "member":
-                    value_dict[parts[0]] = value_dict.pop(k)
-        else:
-            value_dict = list(value_dict.values())[0]
-
-        return value_dict
-
-    def _get_multi_param(
-        self, param_prefix: str, skip_result_conversion: bool = False
-    ) -> list[Any]:
-        """
-        Given a querystring of ?LaunchConfigurationNames.member.1=my-test-1&LaunchConfigurationNames.member.2=my-test-2
-        this will return ['my-test-1', 'my-test-2']
-        """
-        if param_prefix.endswith("."):
-            prefix = param_prefix
-        else:
-            prefix = param_prefix + "."
-        values = []
-        index = 1
-        while True:
-            value_dict = self._get_multi_param_helper(
-                prefix + str(index), skip_result_conversion=skip_result_conversion
-            )
-            if not value_dict and value_dict != "":
-                break
-
-            values.append(value_dict)
-            index += 1
-
-        return values
-
     def _get_params(self) -> dict[str, Any]:
         """
         Given a querystring of
@@ -981,51 +881,6 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         else:
             obj[keylist[-1]] = value
 
-    def _get_list_prefix(self, param_prefix: str) -> list[dict[str, Any]]:
-        """
-        Given a query dict like
-        {
-            'Steps.member.1.Name': ['example1'],
-            'Steps.member.1.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
-            'Steps.member.1.HadoopJarStep.Jar': ['streaming1.jar'],
-            'Steps.member.2.Name': ['example2'],
-            'Steps.member.2.ActionOnFailure': ['TERMINATE_JOB_FLOW'],
-            'Steps.member.2.HadoopJarStep.Jar': ['streaming2.jar'],
-        }
-
-        returns
-        [{
-            'name': u'example1',
-            'action_on_failure': u'TERMINATE_JOB_FLOW',
-            'hadoop_jar_step._jar': u'streaming1.jar',
-        }, {
-            'name': u'example2',
-            'action_on_failure': u'TERMINATE_JOB_FLOW',
-            'hadoop_jar_step._jar': u'streaming2.jar',
-        }]
-        """
-        results = []
-        param_index = 1
-        while True:
-            index_prefix = f"{param_prefix}.{param_index}."
-            new_items = {}
-            for key, value in self.querystring.items():
-                if key.startswith(index_prefix):
-                    new_items[
-                        camelcase_to_underscores(key.replace(index_prefix, ""))
-                    ] = value[0]
-            if not new_items:
-                break
-            results.append(new_items)
-            param_index += 1
-        return results
-
     @property
     def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
-
-    def error_on_dryrun(self) -> None:
-        if "true" in self.querystring.get("DryRun", ["false"]):
-            a = self._get_param("Action")
-            message = f"An error occurred (DryRunOperation) when calling the {a} operation: Request would have succeeded, but DryRun flag is set"
-            raise DryRunClientError(error_type="DryRunOperation", message=message)

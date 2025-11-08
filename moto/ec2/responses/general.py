@@ -4,11 +4,6 @@ from ._base_response import EC2BaseResponse
 class General(EC2BaseResponse):
     def get_console_output(self) -> str:
         instance_id = self._get_param("InstanceId")
-        if not instance_id:
-            # For compatibility with boto.
-            # See: https://github.com/getmoto/moto/pull/1152#issuecomment-332487599
-            instance_id = self._get_multi_param("InstanceId")[0]
-
         instance = self.ec2_backend.get_instance(instance_id)
         template = self.response_template(GET_CONSOLE_OUTPUT_RESULT)
         return template.render(instance=instance)

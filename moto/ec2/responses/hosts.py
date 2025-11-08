@@ -3,13 +3,12 @@ from ._base_response import EC2BaseResponse
 
 class HostsResponse(EC2BaseResponse):
     def allocate_hosts(self) -> str:
-        params = self._get_params()
-        quantity = int(params.get("Quantity"))  # type: ignore
-        host_recovery = params.get("HostRecovery")
-        zone = params.get("AvailabilityZone")
-        instance_type = params.get("InstanceType")
-        instance_family = params.get("InstanceFamily")
-        auto_placement = params.get("AutoPlacement")
+        quantity = self._get_int_param("Quantity")
+        host_recovery = self._get_param("HostRecovery")
+        zone = self._get_param("AvailabilityZone")
+        instance_type = self._get_param("InstanceType")
+        instance_family = self._get_param("InstanceFamily")
+        auto_placement = self._get_param("AutoPlacement")
         tags = self._parse_tag_specification()
         host_tags = tags.get("dedicated-host", {})
         host_ids = self.ec2_backend.allocate_hosts(
@@ -25,19 +24,18 @@ class HostsResponse(EC2BaseResponse):
         return template.render(host_ids=host_ids)
 
     def describe_hosts(self) -> str:
-        host_ids = list(self._get_params().get("HostId", {}).values())
+        host_ids = self._get_param("HostIds", [])
         filters = self._filters_from_querystring()
         hosts = self.ec2_backend.describe_hosts(host_ids, filters)
         template = self.response_template(EC2_DESCRIBE_HOSTS)
         return template.render(account_id=self.current_account, hosts=hosts)
 
     def modify_hosts(self) -> str:
-        params = self._get_params()
-        host_ids = list(self._get_params().get("HostId", {}).values())
-        auto_placement = params.get("AutoPlacement")
-        host_recovery = params.get("HostRecovery")
-        instance_type = params.get("InstanceType")
-        instance_family = params.get("InstanceFamily")
+        host_ids = self._get_param("HostIds", [])
+        auto_placement = self._get_param("AutoPlacement")
+        host_recovery = self._get_param("HostRecovery")
+        instance_type = self._get_param("InstanceType")
+        instance_family = self._get_param("InstanceFamily")
         self.ec2_backend.modify_hosts(
             host_ids, auto_placement, host_recovery, instance_type, instance_family
         )
@@ -45,7 +43,7 @@ class HostsResponse(EC2BaseResponse):
         return template.render(host_ids=host_ids)
 
     def release_hosts(self) -> str:
-        host_ids = list(self._get_params().get("HostId", {}).values())
+        host_ids = self._get_param("HostIds", [])
         self.ec2_backend.release_hosts(host_ids)
         template = self.response_template(EC2_RELEASE_HOSTS)
         return template.render(host_ids=host_ids)
