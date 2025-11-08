@@ -9,8 +9,6 @@ recorder_response = RecorderResponse()
 url_paths = {
     "{0}/moto-api/$": response_instance.dashboard,
     "{0}/moto-api/lib.js": response_instance.lib_js,
-    "{0}/moto-api/v1": response_instance.dashboard_v1,
-    "{0}/moto-api/libTable.js": response_instance.lib_table_js,
     "{0}/moto-api/data.json": response_instance.model_data,
     "{0}/moto-api/reset": response_instance.reset_response,
     "{0}/moto-api/reset-auth": response_instance.reset_auth_response,
