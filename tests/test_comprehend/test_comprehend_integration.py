@@ -1,6 +1,7 @@
 import boto3
 
 from moto import mock_aws
+from moto.comprehend.models import comprehend_backends
 from tests.test_comprehend.test_comprehend import (
     DOCUMENT_CLASSIFIER_INPUT_DATA_CONFIG,
 )
@@ -54,3 +55,24 @@ def test_tags_from_resourcegroupsapi():
             "Tags": [{"Key": "jobkey", "Value": "jobvalue"}],
         }
     ]
+
+
+@mock_aws
+def test_tags_from_resourcegroupsapi_no_arn():
+    resource_groups_client = boto3.client(
+        "resourcegroupstaggingapi", region_name="ap-southeast-1"
+    )
+    account_id = "123456789012"
+
+    backend = comprehend_backends[account_id]["ap-southeast-1"]
+
+    class DummyResource:
+        pass
+
+    backend.jobs["fake-job"] = DummyResource()
+
+    result = resource_groups_client.get_resources(
+        ResourceTypeFilters=["comprehend:document-classification-job"]
+    )["ResourceTagMappingList"]
+
+    assert result == []
