@@ -24,6 +24,7 @@ kinesis
 
 - [X] delete_stream
 - [X] deregister_stream_consumer
+- [ ] describe_account_settings
 - [X] describe_limits
   Return fixed Kinesis limits.
 
@@ -65,7 +66,9 @@ kinesis
 - [ ] subscribe_to_shard
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_account_settings
 - [ ] update_max_record_size
 - [X] update_shard_count
 - [X] update_stream_mode
+- [ ] update_stream_warm_throughput
 
