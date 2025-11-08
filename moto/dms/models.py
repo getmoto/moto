@@ -5,6 +5,7 @@ from typing import Any, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
@@ -24,6 +25,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         self.replication_instances: dict[str, FakeReplicationInstance] = {}
         self.endpoints: dict[str, Endpoint] = {}
         self.replication_subnet_groups: dict[str, FakeReplicationSubnetGroup] = {}
+        self.connections: list[FakeConnection] = []
         self.tagger = TaggingService()
 
     def create_replication_task(
@@ -197,7 +199,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                         for instance in replication_instances
                         if instance.engine_version in filter_values
                     ]
-
+        for replication_instance in replication_instances:
+            replication_instance.advance()
         return replication_instances
 
     def delete_replication_instance(
@@ -209,6 +212,15 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         replication_instance = self.replication_instances[replication_instance_arn]
         replication_instance.delete()
         self.replication_instances.pop(replication_instance_arn)
+
+        # remove any connections we might have tested linked to this instance
+        connections = [
+            connection
+            for connection in self.connections
+            if connection.replication_instance_arn == replication_instance_arn
+        ]
+        for connection in connections:
+            self.connections.remove(connection)
 
         return replication_instance
 
@@ -328,7 +340,6 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                 for endpoint in endpoints
                 if getattr(endpoint, attribute) in filter_values
             ]
-
         return endpoints
 
     def list_tags_for_resource(
@@ -353,6 +364,15 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         endpoint = endpoints[0]
         endpoint.delete()
         self.endpoints.pop(endpoint.endpoint_identifier)
+
+        # remove any connections we might have tested linked to this instance
+        connections = [
+            connection
+            for connection in self.connections
+            if connection.endpoint_arn == endpoint_arn
+        ]
+        for connection in connections:
+            self.connections.remove(connection)
         return endpoint
 
     def create_replication_subnet_group(
@@ -418,6 +438,70 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         ]
         self.replication_subnet_groups.pop(replication_subnet_group_identifier)
         return replication_subnet_group
+
+    def test_connection(
+        self, replication_instance_arn: str, endpoint_arn: str
+    ) -> "FakeConnection":
+        if not self.replication_instances.get(replication_instance_arn):
+            raise ResourceNotFoundFault("Replication instance could not be found.")
+        replication_instance = self.replication_instances[replication_instance_arn]
+        endpoints = [
+            endpoint
+            for endpoint in list(self.endpoints.values())
+            if endpoint.endpoint_arn == endpoint_arn
+        ]
+
+        if len(endpoints) == 0:
+            raise ResourceNotFoundFault("Endpoint could not be found.")
+        endpoint = endpoints[0]
+        connections = self.connections
+        connections = [
+            connection
+            for connection in connections
+            if connection.replication_instance_arn == replication_instance_arn
+        ]
+        connections = [
+            connection
+            for connection in connections
+            if connection.endpoint_arn == endpoint_arn
+        ]
+        if len(connections) == 0:
+            connection = FakeConnection(
+                replication_instance_arn=replication_instance.arn,
+                endpoint_arn=endpoint.endpoint_arn,
+                replication_instance_identifier=replication_instance.id,
+                endpoint_identifier=endpoint.endpoint_identifier,
+            )
+            self.connections.append(connection)
+        return connection
+
+    # TODO implement pagination
+    def describe_connections(
+        self,
+        filters: list[dict[str, Any]],
+        max_records: Optional[int],
+        marker: Optional[str],
+    ) -> list["FakeConnection"]:
+        filter_map = {
+            "endpoint-arn": "endpoint_arn",
+            "replication-instance-arn": "replication_instance_arn",
+        }
+        connections = self.connections
+        for filter in filters:
+            filter_name = filter.get("Name")
+            filter_values = filter.get("Values", [])
+            if filter_name not in filter_map:
+                raise ValueError(f"Invalid filter name: {filter_name}")
+
+            attribute = filter_map[filter_name]
+            connections = [
+                connection
+                for connection in self.connections
+                if getattr(connection, attribute) in filter_values
+            ]
+        for connection in connections:
+            connection.advance()
+        return connections
 
 
 class Endpoint(BaseModel):
@@ -639,7 +723,7 @@ class FakeReplicationTask(BaseModel):
         return self
 
 
-class FakeReplicationInstance(BaseModel):
+class FakeReplicationInstance(ManagedState):
     def __init__(
         self,
         replication_instance_identifier: str,
@@ -662,6 +746,12 @@ class FakeReplicationInstance(BaseModel):
         network_type: Optional[str] = None,
         kerberos_authentication_settings: Optional[dict[str, str]] = None,
     ):
+        ManagedState.__init__(
+            self,
+            model_name="dms::replicationinstance",
+            transitions=[("creating", "available")],
+        )
+
         self.id = replication_instance_identifier
         self.replication_instance_class = replication_instance_class
         self.region = region_name
@@ -684,7 +774,6 @@ class FakeReplicationInstance(BaseModel):
         self.network_type = network_type
         self.kerberos_authentication_settings = kerberos_authentication_settings or {}
         self.arn = f"arn:{get_partition(region_name)}:dms:{region_name}:{account_id}:rep:{self.id}"
-        self.status = "creating"
         self.creation_date = utcnow()
         self.private_ip_addresses = ["10.0.0.1"]
         self.public_ip_addresses = ["54.0.0.1"] if publicly_accessible else []
@@ -793,6 +882,36 @@ class FakeReplicationSubnetGroup(BaseModel):
                 }
             ],
             "SupportedNetworkTypes": ["IPV4"],
+        }
+
+
+class FakeConnection(ManagedState):
+    def __init__(
+        self,
+        replication_instance_arn: str,
+        endpoint_arn: str,
+        replication_instance_identifier: str,
+        endpoint_identifier: str,
+    ):
+        ManagedState.__init__(
+            self,
+            model_name="dms::connection",
+            transitions=[("testing", "success")],
+        )
+
+        self.replication_instance_arn = replication_instance_arn
+        self.endpoint_arn = endpoint_arn
+        self.replication_instance_identifier = replication_instance_identifier
+        self.endpoint_identifier = endpoint_identifier
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ReplicationInstanceArn": self.replication_instance_arn,
+            "EndpointArn": self.endpoint_arn,
+            "Status": self.status,
+            "LastFailureMessage": "",
+            "EndpointIdentifier": self.endpoint_identifier,
+            "ReplicationInstanceIdentifier": self.replication_instance_identifier,
         }
 
 

@@ -176,9 +176,9 @@ cloudfront
 - [X] list_tags_for_resource
 - [ ] list_vpc_origins
 - [ ] publish_function
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_function
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
 - [ ] update_connection_group
