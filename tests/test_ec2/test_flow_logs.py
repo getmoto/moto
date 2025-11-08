@@ -8,6 +8,8 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from moto.ec2.exceptions import FilterNotImplementedError
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 @pytest.mark.parametrize(
@@ -34,12 +36,7 @@ def test_create_flow_logs_s3(region, partition):
             LogDestination="arn:aws:s3:::" + bucket.name,
             DryRun=True,
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     response = client.create_flow_logs(
         ResourceType="VPC",
@@ -163,12 +160,7 @@ def test_create_flow_logs_cloud_watch():
             DeliverLogsPermissionArn="arn:aws:iam::" + ACCOUNT_ID + ":role/test-role",
             DryRun=True,
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateFlowLogs operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     response = client.create_flow_logs(
         ResourceType="VPC",

@@ -15,6 +15,8 @@ from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 from tests import EXAMPLE_AMI_ID
 
+from .helpers import assert_dryrun_error
+
 decode_method = base64.decodebytes
 
 
@@ -42,12 +44,7 @@ def test_instance_launch_and_terminate():
         client.run_instances(
             ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1, DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the RunInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     reservation = client.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     assert len(reservation["Instances"]) == 1
@@ -85,12 +82,7 @@ def test_instance_launch_and_terminate():
 
     with pytest.raises(ClientError) as ex:
         client.terminate_instances(InstanceIds=[instance_id], DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the TerminateInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     response = client.terminate_instances(InstanceIds=[instance_id])
     assert len(response["TerminatingInstances"]) == 1
@@ -956,12 +948,7 @@ def test_instance_start_and_stop():
 
     with pytest.raises(ClientError) as ex:
         client.stop_instances(InstanceIds=instance_ids, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the StopInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     stopped_instances = client.stop_instances(InstanceIds=instance_ids)[
         "StoppingInstances"
@@ -977,12 +964,7 @@ def test_instance_start_and_stop():
 
     with pytest.raises(ClientError) as ex:
         client.start_instances(InstanceIds=[instance1.id], DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the StartInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance1.reload()
     # The DryRun-operation did not change anything
@@ -1006,12 +988,7 @@ def test_instance_reboot():
 
     with pytest.raises(ClientError) as ex:
         instance.reboot(DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the RebootInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     assert instance.state == {"Code": 16, "Name": "running"}
 
@@ -1028,12 +1005,7 @@ def test_instance_attribute_instance_type():
 
     with pytest.raises(ClientError) as ex:
         instance.modify_attribute(InstanceType={"Value": "m1.medium"}, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(InstanceType={"Value": "m1.medium"})
 
@@ -1060,12 +1032,7 @@ def test_modify_instance_attribute_security_groups():
 
     with pytest.raises(ClientError) as ex:
         instance.modify_attribute(Groups=[sg_id, sg_id2], DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(Groups=[sg_id, sg_id2])
 
@@ -1085,12 +1052,7 @@ def test_instance_attribute_user_data():
         instance.modify_attribute(
             UserData={"Value": "this is my user data"}, DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(UserData={"Value": "this is my user data"})
 
@@ -1111,12 +1073,7 @@ def test_instance_attribute_source_dest_check():
 
     with pytest.raises(ClientError) as ex:
         instance.modify_attribute(SourceDestCheck={"Value": False}, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(SourceDestCheck={"Value": False})
 
@@ -1154,12 +1111,7 @@ def test_run_instance_with_security_group_name():
         ec2.create_security_group(
             GroupName=sec_group_name, Description="d", DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateSecurityGroup operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     group = ec2.create_security_group(
         GroupName=sec_group_name, Description="some description"
@@ -1561,12 +1513,7 @@ def test_instance_with_nic_attach_detach():
             DeviceIndex=1,
             DryRun=True,
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AttachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.attach_network_interface(
         NetworkInterfaceId=eni_id, InstanceId=instance.id, DeviceIndex=1
@@ -1597,12 +1544,7 @@ def test_instance_with_nic_attach_detach():
         client.detach_network_interface(
             AttachmentId=instance_eni["Attachment"]["AttachmentId"], DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DetachNetworkInterface operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.detach_network_interface(
         AttachmentId=instance_eni["Attachment"]["AttachmentId"]
@@ -2139,12 +2081,7 @@ def test_get_instance_by_security_group():
         client.modify_instance_attribute(
             InstanceId=instance.id, Groups=[security_group.id], DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.modify_instance_attribute(InstanceId=instance.id, Groups=[security_group.id])
 
@@ -2716,12 +2653,7 @@ def test_describe_instances_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_instances(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeInstances operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
