@@ -1,5 +1,5 @@
 from datetime import datetime
-from unittest import SkipTest, TestCase
+from unittest import TestCase
 
 import boto3
 import pytest
@@ -54,7 +54,7 @@ def test_list_model_packages():
 @mock_aws
 def test_list_model_packages_creation_time_before():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with freeze_time("2020-01-01 00:00:00"):
         client.create_model_package(
@@ -74,7 +74,7 @@ def test_list_model_packages_creation_time_before():
 @mock_aws
 def test_list_model_packages_creation_time_after():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with freeze_time("2020-01-01 00:00:00"):
         client.create_model_package(
@@ -227,7 +227,7 @@ def test_list_model_packages_sort_order():
 @mock_aws
 def test_describe_model_package_default():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
     with freeze_time("2015-01-01 00:00:00"):
@@ -369,7 +369,7 @@ def test_update_model_package_given_additional_inference_specifications_to_add()
 @mock_aws
 def test_update_model_package_should_update_last_modified_information():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     client.create_model_package_group(ModelPackageGroupName="test-model-package-group")
     model_package_arn = client.create_model_package(

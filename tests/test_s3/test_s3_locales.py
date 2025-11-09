@@ -1,7 +1,7 @@
 from datetime import datetime
-from unittest import SkipTest
 
 import boto3
+import pytest
 from freezegun import freeze_time
 
 from moto import mock_aws, settings
@@ -10,7 +10,7 @@ from moto import mock_aws, settings
 @mock_aws
 def test_rfc_returns_valid_date_for_every_possible_weekday_and_month():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Freezing time only possible in DecoratorMode")
+        raise pytest.skip("Freezing time only possible in DecoratorMode")
     client = boto3.client("s3", region_name="us-east-1")
     client.create_bucket(Bucket="bucket_")
     for weekday in range(1, 8):

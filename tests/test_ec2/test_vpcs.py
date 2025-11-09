@@ -1,6 +1,5 @@
 import json
 import random
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -19,7 +18,9 @@ SAMPLE_NAME_SERVERS = ["10.0.0.6", "10.0.0.7"]
 @mock_aws
 def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Lets not start deleting VPC's while other tests are using it")
+        raise pytest.skip(
+            "Lets not start deleting VPC's while other tests are using it"
+        )
     # Delete VPC that's created by default
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)
@@ -41,7 +42,9 @@ def test_creating_a_vpc_in_empty_region_does_not_make_this_vpc_the_default():
 @mock_aws
 def test_create_default_vpc():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Lets not start deleting VPC's while other tests are using it")
+        raise pytest.skip(
+            "Lets not start deleting VPC's while other tests are using it"
+        )
     # Delete VPC that's created by default
     client = boto3.client("ec2", region_name="eu-north-1")
     all_vpcs = retrieve_all_vpcs(client)

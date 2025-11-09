@@ -1,5 +1,4 @@
 import json
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -77,7 +76,7 @@ COLUMN_INFO = [
 @pytest.mark.aws_verified
 def test_athena_csv_result(bucket_name=None):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("No point in testing this outside of decorators")
+        raise pytest.skip("No point in testing this outside of decorators")
 
     s3 = boto3.client("s3", "us-east-1")
     s3.put_object(Bucket=bucket_name, Key="input/data1.json", Body=DATA.encode("utf-8"))

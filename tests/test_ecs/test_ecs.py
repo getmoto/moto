@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import UUID
 
 import boto3
@@ -757,7 +757,7 @@ def test_create_service():
 @mock_aws
 def test_create_running_service():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Can't set environment variables in server mode for a single test"
         )
     running_service_count = 3
@@ -1096,7 +1096,7 @@ def test_describe_services():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_describe_services_new_arn():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Can't set environment variables in server mode for a single test"
         )
     client = boto3.client("ecs", region_name=ECS_REGION)
@@ -1605,7 +1605,7 @@ def test_register_container_instance():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_register_container_instance_new_arn_format():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Can't set environment variables in server mode for a single test"
         )
     ecs_client = boto3.client("ecs", region_name=ECS_REGION)
@@ -2027,7 +2027,7 @@ def test_run_task():
 @mock_aws
 def test_wait_tasks_stopped():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
+        raise pytest.skip("Can't set transition directly in ServerMode")
 
     state_manager.set_transition(
         model_name="ecs::task",
@@ -2093,7 +2093,7 @@ def test_wait_tasks_stopped():
 @mock_aws
 def test_task_state_transitions():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
+        raise pytest.skip("Can't set transition directly in ServerMode")
 
     state_manager.set_transition(
         model_name="ecs::task",
@@ -2325,7 +2325,7 @@ def test_run_task_default_cluster():
 @mock.patch.dict(os.environ, {"MOTO_ECS_NEW_ARN": "TrUe"})
 def test_run_task_default_cluster_new_arn_format():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Can't set environment variables in server mode for a single test"
         )
     client = boto3.client("ecs", region_name=ECS_REGION)

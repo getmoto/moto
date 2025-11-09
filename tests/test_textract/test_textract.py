@@ -1,6 +1,5 @@
 import json
 from random import randint
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -16,7 +15,7 @@ from moto.textract.models import TextractBackend
 @mock_aws
 def test_get_document_text_detection():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set textract backend values in server mode")
+        raise pytest.skip("Cannot set textract backend values in server mode")
 
     TextractBackend.JOB_STATUS = "SUCCEEDED"
     TextractBackend.PAGES = randint(5, 500)
@@ -146,7 +145,7 @@ def test_start_document_text_detection_with_sns_notification():
 @mock_aws
 def test_get_document_analysis():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set textract backend values in server mode")
+        raise pytest.skip("Cannot set textract backend values in server mode")
 
     TextractBackend.JOB_STATUS = "SUCCEEDED"
     TextractBackend.PAGES = randint(5, 500)

@@ -1,8 +1,8 @@
 import datetime
-from unittest import SkipTest
 from unittest.mock import ANY
 
 import boto3
+import pytest
 from dateutil.tz import tzutc
 from freezegun import freeze_time
 
@@ -125,7 +125,7 @@ def test_describe_application_instance() -> None:
 def test_create_application_instance_should_set_created_time() -> None:
     # Given
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't use ManagedState in ServerMode")
+        raise pytest.skip("Can't use ManagedState in ServerMode")
     panorama_client = boto3.client("panorama", "eu-west-1")
     response_device_creation = panorama_client.provision_device(
         **PROVISION_DEVICE_PARAMS

@@ -1,9 +1,10 @@
 import base64
 import json
 import os
-from unittest import SkipTest, TestCase
+from unittest import TestCase
 
 import boto3
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -232,7 +233,7 @@ class TestRecorder(TestCase):
 class TestThreadedMotoServer(TestCase):
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
-            raise SkipTest("No point in testing ServerMode within ServerMode")
+            raise pytest.skip("No point in testing ServerMode within ServerMode")
 
         self.port_1 = 5678
         self.port_2 = 5679

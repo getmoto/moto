@@ -1,6 +1,5 @@
 import json
 from time import sleep
-from unittest import SkipTest
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -277,7 +276,7 @@ def test_log_file_is_created():
 @mock_aws
 def test_invalid_bucket_logging_when_permissions_are_false():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't patch permission logic in ServerMode")
+        raise pytest.skip("Can't patch permission logic in ServerMode")
 
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -307,7 +306,7 @@ def test_invalid_bucket_logging_when_permissions_are_false():
 @mock_aws
 def test_valid_bucket_logging_when_permissions_are_true():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't patch permission logic in ServerMode")
+        raise pytest.skip("Can't patch permission logic in ServerMode")
 
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket_name = "mybucket"
@@ -340,7 +339,7 @@ def test_valid_bucket_logging_when_permissions_are_true():
 @mock_aws
 def test_bucket_policy_not_set():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't patch permission logic in ServerMode")
+        raise pytest.skip("Can't patch permission logic in ServerMode")
 
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
@@ -360,7 +359,7 @@ def test_bucket_policy_not_set():
 @mock_aws
 def test_bucket_policy_principal():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't patch permission logic in ServerMode")
+        raise pytest.skip("Can't patch permission logic in ServerMode")
 
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
@@ -415,7 +414,7 @@ def test_bucket_policy_principal():
 @mock_aws
 def test_bucket_policy_effect():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't patch permission logic in ServerMode")
+        raise pytest.skip("Can't patch permission logic in ServerMode")
 
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
@@ -469,7 +468,7 @@ def test_bucket_policy_effect():
 @mock_aws
 def test_bucket_policy_action():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't patch permission logic in ServerMode")
+        raise pytest.skip("Can't patch permission logic in ServerMode")
 
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]
@@ -521,7 +520,7 @@ def test_bucket_policy_action():
 @mock_aws
 def test_bucket_policy_resource():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't patch permission logic in ServerMode")
+        raise pytest.skip("Can't patch permission logic in ServerMode")
 
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_backend = s3_backends[DEFAULT_ACCOUNT_ID]["global"]

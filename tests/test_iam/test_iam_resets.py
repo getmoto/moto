@@ -1,8 +1,9 @@
 import json
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 
@@ -10,7 +11,7 @@ from moto import mock_aws, settings
 # Test IAM User Inline Policy
 def test_policies_are_not_kept_after_mock_ends():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Policies not loaded in ServerMode")
+        raise pytest.skip("Policies not loaded in ServerMode")
     with mock_aws(config={"iam": {"load_aws_managed_policies": True}}):
         iam_client = boto3.client("iam", "us-east-1")
         role_name = "test"
@@ -45,7 +46,7 @@ def test_policies_are_not_kept_after_mock_ends():
 
 def test_policies_are_loaded_when_using_env_variable():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("EnvVar not loaded in ServerMode")
+        raise pytest.skip("EnvVar not loaded in ServerMode")
     with mock.patch.dict(os.environ, {"MOTO_IAM_LOAD_MANAGED_POLICIES": "true"}):
         with mock_aws():
             iam_client = boto3.client("iam", "us-east-1")

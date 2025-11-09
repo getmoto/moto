@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 from typing import Callable
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -19,7 +18,7 @@ def moto_server() -> Iterable[Callable[[], str]]:
     try:
         from moto.moto_server.threaded_moto_server import ThreadedMotoServer
     except ImportError as e:
-        raise SkipTest(str(e))
+        raise pytest.skip(str(e))
 
     servers = []
     """Fixture to run a mocked AWS server for testing."""

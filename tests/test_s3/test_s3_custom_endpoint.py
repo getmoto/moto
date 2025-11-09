@@ -1,5 +1,4 @@
 import os
-from unittest import SkipTest
 from unittest.mock import patch
 
 import boto3
@@ -16,7 +15,7 @@ CUSTOM_ENDPOINT_2 = "https://caf-o.s3-ext.jc.rl.ac.uk"
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 def test_create_and_list_buckets(url):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Unable to set ENV VAR in ServerMode")
+        raise pytest.skip("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         # Mock needs to be started after the environment variable is patched in
@@ -35,7 +34,7 @@ def test_create_and_list_buckets(url):
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Unable to set ENV VAR in ServerMode")
+        raise pytest.skip("Unable to set ENV VAR in ServerMode")
     # Have to inline this, as the URL-param is not available as a context decorator
     with patch.dict(
         os.environ,
@@ -58,7 +57,7 @@ def test_create_and_list_buckets_with_multiple_supported_endpoints(url):
 @mock_aws
 def test_put_and_get_object(url):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Unable to set ENV VAR in ServerMode")
+        raise pytest.skip("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         with mock_aws():
             bucket = "mybucket"
@@ -81,7 +80,7 @@ def test_put_and_get_object(url):
 @mock_aws
 def test_put_and_list_objects(url):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Unable to set ENV VAR in ServerMode")
+        raise pytest.skip("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         with mock_aws():
             bucket = "mybucket"
@@ -102,7 +101,7 @@ def test_put_and_list_objects(url):
 @pytest.mark.parametrize("url", [CUSTOM_ENDPOINT, CUSTOM_ENDPOINT_2])
 def test_get_presigned_url(url):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Unable to set ENV VAR in ServerMode")
+        raise pytest.skip("Unable to set ENV VAR in ServerMode")
     with patch.dict(os.environ, {"MOTO_S3_CUSTOM_ENDPOINTS": url}):
         with mock_aws():
             bucket = "mybucket"

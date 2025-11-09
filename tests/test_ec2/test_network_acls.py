@@ -1,5 +1,4 @@
 from random import randint
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -41,7 +40,7 @@ def test_network_create_and_list_acls():
 @mock_aws
 def test_new_subnet_associates_with_default_network_acl():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode will have conflicting CidrBlocks")
+        raise pytest.skip("ServerMode will have conflicting CidrBlocks")
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     default_vpc = client.describe_vpcs()["Vpcs"][0]
@@ -265,7 +264,7 @@ def test_default_network_acl_default_entries():
 @mock_aws
 def test_delete_default_network_acl_default_entry():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Don't want to mess with default ACLs in ServerMode, as other tests may need them"
         )
     ec2 = boto3.resource("ec2", region_name="us-west-1")

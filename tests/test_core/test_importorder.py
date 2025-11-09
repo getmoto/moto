@@ -1,6 +1,5 @@
 import sys
 from typing import Any
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -15,7 +14,7 @@ boto3_version = sys.modules["botocore"].__version__
 def fixture_aws_credentials(monkeypatch: Any) -> None:  # type: ignore[misc]
     """Mocked AWS Credentials for moto."""
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point in testing this in ServerMode.")
+        raise pytest.skip("No point in testing this in ServerMode.")
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
@@ -75,7 +74,7 @@ def test_mock_works_with_resource_created_outside(
 
 def test_patch_can_be_called_on_a_mocked_client() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     # start S3 after the mock, ensuring that the client contains our event-handler
     m = mock_aws()
     m.start()
@@ -125,7 +124,7 @@ def test_mock_works_when_replacing_client(
     aws_credentials: Any,
 ) -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     logic = ImportantBusinessLogic()
 
     m = mock_aws()

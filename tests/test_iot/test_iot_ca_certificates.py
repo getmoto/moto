@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -40,7 +38,7 @@ def test_register_ca_certificate_simple(make_cert):
         # in ServerMode the config is not set, so we'll compute the cert the old/invalid way
         # But there are no assertions to actually verify the value of the computed cert
         # This is just added here as a warning/reminder if this ever changes
-        raise SkipTest("Config cannot be easily set in ServerMode")
+        raise pytest.skip("Config cannot be easily set in ServerMode")
 
     client = boto3.client("iot", region_name="us-east-1")
     certInfo = make_cert

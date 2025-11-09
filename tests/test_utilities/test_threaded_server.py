@@ -1,7 +1,7 @@
 import unittest
-from unittest import SkipTest
 
 import boto3
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -11,7 +11,7 @@ from moto.server import ThreadedMotoServer
 class TestThreadedMotoServer(unittest.TestCase):
     def setUp(self):
         if settings.TEST_SERVER_MODE:
-            raise SkipTest("No point in testing ServerMode within ServerMode")
+            raise pytest.skip("No point in testing ServerMode within ServerMode")
         self.server = ThreadedMotoServer(ip_address="127.0.0.1")
         self.server.start()
         requests.post("http://localhost:5000/moto-api/reset")
@@ -58,7 +58,7 @@ class TestThreadedMotoServer(unittest.TestCase):
 
 def test_threaded_moto_server__different_port():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point in testing ServerMode within ServerMode")
+        raise pytest.skip("No point in testing ServerMode within ServerMode")
     server = ThreadedMotoServer(port=5001)
     server.start()
     requests.post("http://localhost:5001/moto-api/reset")
@@ -79,7 +79,7 @@ def test_threaded_moto_server__different_port():
 
 def test_threaded_moto_server__using_requests():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point in testing ServerMode within ServerMode")
+        raise pytest.skip("No point in testing ServerMode within ServerMode")
     server = ThreadedMotoServer(port=5001)
     server.start()
     requests.post("http://localhost:5001/moto-api/reset")

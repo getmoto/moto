@@ -1,6 +1,5 @@
 import json
 import sys
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -57,7 +56,7 @@ def test_add_function_permission(key):
 @mock_aws
 def test_add_permission_with_principalorgid():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]

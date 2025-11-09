@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -11,7 +9,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 @mock_aws
 def test_describe_carrier_gateways_none():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
+        raise pytest.skip("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-east-1")
     assert ec2.describe_carrier_gateways()["CarrierGateways"] == []
 

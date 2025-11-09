@@ -1,7 +1,8 @@
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 
@@ -12,7 +13,7 @@ from moto import mock_aws, settings
 @mock_aws
 def test_ssm_get_latest_ami_by_path():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     ssm = boto3.client("ssm", region_name="us-east-1")
     path = "/aws/service/ecs/optimized-ami"
     params = ssm.get_parameters_by_path(Path=path, Recursive=True)["Parameters"]

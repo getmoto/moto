@@ -1,7 +1,7 @@
 import os
-from unittest import SkipTest
 
 import boto3
+import pytest
 import requests
 from botocore.config import Config
 
@@ -26,7 +26,7 @@ DEFAULT_COLUMN_INFO = [
 @mock_aws
 def test_set_athena_result():
     if settings.is_test_proxy_mode():
-        raise SkipTest("Proxy requires more config, done in separate test")
+        raise pytest.skip("Proxy requires more config, done in separate test")
     base_url = (
         "localhost:5000" if settings.TEST_SERVER_MODE else "motoapi.amazonaws.com"
     )
@@ -60,7 +60,7 @@ def test_set_athena_result():
 
 def test_set_athena_result_using_proxy():
     if not settings.is_test_proxy_mode():
-        raise SkipTest("Specifically testing the proxy here")
+        raise pytest.skip("Specifically testing the proxy here")
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
     athena_result = {

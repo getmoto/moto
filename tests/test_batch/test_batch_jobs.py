@@ -1,6 +1,5 @@
 import datetime
 import time
-from unittest import SkipTest
 from uuid import uuid4
 
 import botocore.exceptions
@@ -142,7 +141,7 @@ def test_submit_job_array_size():
 @requires_docker
 def test_submit_job_array_size__reset_while_job_is_running():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point testing this in ServerMode")
+        raise pytest.skip("No point testing this in ServerMode")
 
     # Setup
     job_definition_name = f"echo_{str(uuid4())[0:6]}"

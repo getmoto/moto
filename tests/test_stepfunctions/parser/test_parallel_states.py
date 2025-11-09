@@ -1,5 +1,6 @@
 import json
-from unittest import SkipTest
+
+import pytest
 
 from moto import mock_aws, settings
 
@@ -9,7 +10,7 @@ from . import verify_execution_result
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_with_parallel_states():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
     tmpl_name = "parallel_states"
 
     def _verify_result(client, execution, execution_arn):
@@ -32,7 +33,7 @@ def test_state_machine_with_parallel_states():
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_with_parallel_states_catch_error():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
     expected_status = "SUCCEEDED"
     tmpl_name = "parallel_states_catch"
 
@@ -51,7 +52,7 @@ def test_state_machine_with_parallel_states_catch_error():
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_with_parallel_states_error():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     def _verify_result(client, execution, execution_arn):
         assert "stopDate" in execution
@@ -63,7 +64,7 @@ def test_state_machine_with_parallel_states_error():
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_with_parallel_states_order():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     def _verify_result(client, execution, execution_arn):
         assert json.loads(execution["output"]) == [

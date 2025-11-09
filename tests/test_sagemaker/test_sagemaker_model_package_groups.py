@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -66,7 +65,7 @@ def test_list_model_package_groups():
 @mock_aws
 def test_list_model_package_groups_creation_time_before():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with freeze_time("2020-01-01 00:00:00"):
         client.create_model_package_group(
@@ -86,7 +85,7 @@ def test_list_model_package_groups_creation_time_before():
 @mock_aws
 def test_list_model_package_groups_creation_time_after():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with freeze_time("2020-01-01 00:00:00"):
         client.create_model_package_group(
@@ -172,7 +171,7 @@ def test_list_model_package_groups_sort_order():
 @mock_aws
 def test_describe_model_package_group():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
     with freeze_time("2020-01-01 00:00:00"):
         client.create_model_package_group(
@@ -197,7 +196,7 @@ def test_describe_model_package_group():
 @mock_aws
 def test_describe_model_package_group_not_exists():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("sagemaker", region_name="eu-west-1")
 
     with pytest.raises(ClientError) as e:

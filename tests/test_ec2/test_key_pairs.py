@@ -1,5 +1,4 @@
 from datetime import datetime
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -94,7 +93,7 @@ moto@github.com"""
 @mock_aws
 def test_key_pairs_empty():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
+        raise pytest.skip("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", "us-west-1")
     assert client.describe_key_pairs()["KeyPairs"] == []
 

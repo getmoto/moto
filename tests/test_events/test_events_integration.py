@@ -2,7 +2,7 @@ import contextlib
 import json
 import os
 from datetime import datetime
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -324,7 +324,7 @@ def test_moto_matches_none_value_with_exists_filter():
 @mock_aws
 def test_put_events_event_bus_forwarding_rules():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cross-account test - easiest to just test in DecoratorMode")
+        raise pytest.skip("Cross-account test - easiest to just test in DecoratorMode")
 
     # EventBus1 --> EventBus2 --> SQS
     account1 = ACCOUNT_ID

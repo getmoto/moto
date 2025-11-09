@@ -7,9 +7,10 @@ import importlib
 import json
 import os
 from pathlib import Path
-from unittest import SkipTest, TestCase, mock
+from unittest import TestCase, mock
 
 import boto3
+import pytest
 
 import moto
 from moto import mock_aws, settings
@@ -54,7 +55,7 @@ class TestEC2CustomAMIs(TestCase):
 
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
-            raise SkipTest("Only test status code in non-ServerMode")
+            raise pytest.skip("Only test status code in non-ServerMode")
         self.test_ami_path = self.setup_amis()
         os.environ["MOTO_AMIS_PATH"] = str(self.test_ami_path)
 

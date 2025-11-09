@@ -1,7 +1,6 @@
 import json
 import time
 import uuid
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -75,7 +74,7 @@ def test_invoke_function_from_sqs_queue():
 @mock_aws(config={"lambda": {"use_docker": False}})
 def test_invoke_fake_function_from_sqs_queue():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only set Config in DecoratorMode")
+        raise pytest.skip("Can only set Config in DecoratorMode")
     logs_conn = boto3.client("logs", region_name="us-east-1")
     sqs = boto3.resource("sqs", region_name="us-east-1")
     queue_name = str(uuid.uuid4())[0:6]

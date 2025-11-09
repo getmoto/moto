@@ -1,6 +1,5 @@
 import base64
 import json
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -483,7 +482,7 @@ def test_publish_to_sqs_in_different_region():
 @mock_aws
 def test_publish_to_http():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't mock requests in ServerMode")
+        raise pytest.skip("Can't mock requests in ServerMode")
 
     def callback(request):
         assert request.headers["Content-Type"] == "text/plain; charset=UTF-8"

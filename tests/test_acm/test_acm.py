@@ -2,7 +2,7 @@ import datetime
 import os
 import uuid
 from ipaddress import IPv4Address
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -477,7 +477,7 @@ def test_request_certificate():
 @mock.patch("moto.settings.ACM_VALIDATION_WAIT", 1)
 def test_request_exportable_certificate():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only change setting in DecoratorMode")
+        raise pytest.skip("Can only change setting in DecoratorMode")
     client = boto3.client("acm", region_name="eu-central-1")
 
     resp = client.request_certificate(
@@ -555,7 +555,7 @@ def test_list_certificates_with_key_types_filter():
 @mock.patch("moto.settings.ACM_VALIDATION_WAIT", 1)
 def test_request_certificate_with_optional_arguments():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only change setting in DecoratorMode")
+        raise pytest.skip("Can only change setting in DecoratorMode")
     client = boto3.client("acm", region_name="eu-central-1")
 
     token = str(uuid.uuid4())
@@ -793,7 +793,7 @@ def test_request_certificate_issued_status():
 def test_request_certificate_issued_status_with_wait_in_envvar():
     # After requesting a certificate, it should then auto-validate after 3 seconds
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     client = boto3.client("acm", region_name="eu-central-1")
 
@@ -821,7 +821,7 @@ def test_request_certificate_issued_status_with_wait_in_envvar():
 @mock_aws
 def test_request_certificate_with_multiple_times():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     # After requesting a certificate, it should then auto-validate after 1 minute
     # Some sneaky programming for that ;-)
@@ -944,7 +944,7 @@ def test_elbv2_acm_in_use_by():
 @mock_aws
 def test_certificate_expiration_status():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
     client = boto3.client("acm", region_name="eu-central-1")
     arn = _import_cert(client)
 

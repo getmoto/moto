@@ -2,8 +2,9 @@ import datetime
 from collections import OrderedDict
 from gzip import compress as gzip_compress
 from typing import Any
-from unittest import SkipTest, mock
+from unittest import mock
 
+import pytest
 from botocore.awsrequest import AWSPreparedRequest, HTTPHeaders
 from freezegun import freeze_time
 
@@ -119,7 +120,7 @@ def test_response_environment_preserved_by_type() -> None:
 )
 def test_jinja_render_prettify(m_env_var: Any) -> None:  # type: ignore[misc]
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "It is not possible to set the environment variable in server mode"
         )
     response = BaseResponse()

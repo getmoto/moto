@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 from botocore.client import ClientError
@@ -330,7 +328,7 @@ def test_get_partitions_expression_timestamp_column():
 @mock_aws
 def test_get_partition_expression_warnings_and_exceptions():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot catch warnings in server mode")
+        raise pytest.skip("Cannot catch warnings in server mode")
 
     client = boto3.client("glue", region_name="us-east-1")
     database_name = "myspecialdatabase"

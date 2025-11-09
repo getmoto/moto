@@ -1,7 +1,9 @@
 import os
 from typing import Any
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
+
+import pytest
 
 from moto import mock_aws, settings
 
@@ -193,7 +195,7 @@ def test_submit_job_fail_bad_int() -> None:
 
 def setup_common_batch_simple(job_definition_name: str) -> tuple[Any, str, str]:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point in testing batch_simple in ServerMode")
+        raise pytest.skip("No point in testing batch_simple in ServerMode")
 
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)

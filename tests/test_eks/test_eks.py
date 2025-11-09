@@ -1,6 +1,6 @@
 import datetime
 from copy import deepcopy
-from unittest import SkipTest, mock
+from unittest import mock
 from unittest.mock import PropertyMock
 
 import boto3
@@ -556,7 +556,7 @@ def test_create_nodegroup_throws_exception_when_nodegroup_already_exists(
 @mock_aws
 def test_create_nodegroup_throws_exception_when_cluster_not_active(NodegroupBuilder):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant patch Cluster attributes in server mode.")
+        raise pytest.skip("Cant patch Cluster attributes in server mode.")
     client, generated_test_data = NodegroupBuilder(BatchCountSize.SMALL)
     expected_exception = InvalidRequestException
     expected_msg = CLUSTER_NOT_READY_MSG.format(
@@ -1004,7 +1004,7 @@ def test_create_fargate_profile_throws_exception_when_cluster_not_active(
     FargateProfileBuilder,
 ):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant patch Cluster attributes in server mode.")
+        raise pytest.skip("Cant patch Cluster attributes in server mode.")
     client, generated_test_data = FargateProfileBuilder(BatchCountSize.SMALL)
     expected_exception = InvalidRequestException
     expected_msg = CLUSTER_NOT_READY_MSG.format(

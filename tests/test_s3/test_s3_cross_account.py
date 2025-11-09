@@ -1,5 +1,5 @@
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -12,7 +12,7 @@ from moto.s3.responses import DEFAULT_REGION_NAME
 @mock_aws
 def test_cross_account_region_access():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Multi-accounts env config only works serverside")
+        raise pytest.skip("Multi-accounts env config only works serverside")
 
     client1 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client2 = boto3.client("s3", region_name=DEFAULT_REGION_NAME)

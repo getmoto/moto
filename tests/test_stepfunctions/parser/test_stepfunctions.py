@@ -1,6 +1,5 @@
 import json
 from time import sleep
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -21,7 +20,7 @@ from . import (
 @pytest.mark.aws_verified
 def test_state_machine_with_simple_failure_state():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     def _verify_result(client, execution, execution_arn):
         assert "stopDate" in execution
@@ -55,7 +54,7 @@ def test_state_machine_with_simple_failure_state():
 @pytest.mark.aws_verified
 def test_state_machine_with_input():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     _input = {"my": "data"}
 
@@ -74,7 +73,7 @@ def test_state_machine_with_input():
 @pytest.mark.aws_verified
 def test_state_machine_with_json_regex():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     _input = {"Parameters": [{"Name": "/eggs/cooked/like", "Value": "poached"}]}
     _output = {
@@ -172,7 +171,7 @@ def test_version_is_only_available_when_published():
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_verify_template_with_credentials():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     def _verify_result(client, execution, execution_arn):
         output = json.loads(execution["output"])

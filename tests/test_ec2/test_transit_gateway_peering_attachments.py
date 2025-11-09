@@ -1,5 +1,5 @@
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -12,7 +12,7 @@ from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 @mock_aws
 def test_describe_transit_gateway_peering_attachment_empty():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
+        raise pytest.skip("ServerMode is not guaranteed to be empty")
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     all_attachments = ec2.describe_transit_gateway_peering_attachments()[

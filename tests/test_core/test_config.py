@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 import requests
@@ -59,7 +57,7 @@ def test_change_configuration_using_api() -> None:
 
 def test_whitelist() -> None:
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("No point in testing this anywhere else")
+        raise pytest.skip("No point in testing this anywhere else")
 
     with mock_aws(config={"core": {"service_whitelist": ["s3"]}}):
         dynamodb = boto3.client("dynamodb", "us-east-1")

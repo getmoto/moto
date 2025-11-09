@@ -1,7 +1,7 @@
 import json
-from unittest import SkipTest
 
 import boto3
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -12,9 +12,9 @@ from moto.core.versions import is_responses_0_17_x
 @mock_aws
 def test_http_integration():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
+        raise pytest.skip("Cannot test mock of execute-api.apigateway in ServerMode")
     if not is_responses_0_17_x():
-        raise SkipTest("Not supported in older requests-version")
+        raise pytest.skip("Not supported in older requests-version")
 
     responses_mock.add(
         responses_mock.GET, "http://httpbin.org/robots.txt", body="a fake response"
@@ -62,9 +62,9 @@ def test_http_integration():
 @mock_aws
 def test_aws_integration_dynamodb():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
+        raise pytest.skip("Cannot test mock of execute-api.apigateway in ServerMode")
     if not is_responses_0_17_x():
-        raise SkipTest("Not supported in older requests-version")
+        raise pytest.skip("Not supported in older requests-version")
 
     client = boto3.client("apigateway", region_name="us-west-2")
     dynamodb = boto3.client("dynamodb", region_name="us-west-2")
@@ -88,9 +88,9 @@ def test_aws_integration_dynamodb():
 @mock_aws
 def test_aws_integration_dynamodb_multiple_stages():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
+        raise pytest.skip("Cannot test mock of execute-api.apigateway in ServerMode")
     if not is_responses_0_17_x():
-        raise SkipTest("Not supported in older requests-version")
+        raise pytest.skip("Not supported in older requests-version")
 
     client = boto3.client("apigateway", region_name="us-west-2")
     dynamodb = boto3.client("dynamodb", region_name="us-west-2")
@@ -126,9 +126,9 @@ def test_aws_integration_dynamodb_multiple_stages():
 @mock_aws
 def test_aws_integration_dynamodb_multiple_resources():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Cannot test mock of execute-api.apigateway in ServerMode")
+        raise pytest.skip("Cannot test mock of execute-api.apigateway in ServerMode")
     if not is_responses_0_17_x():
-        raise SkipTest("Not supported in older requests-version")
+        raise pytest.skip("Not supported in older requests-version")
 
     client = boto3.client("apigateway", region_name="us-west-2")
     dynamodb = boto3.client("dynamodb", region_name="us-west-2")

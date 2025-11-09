@@ -1,8 +1,8 @@
 import csv
 import datetime
-from unittest import SkipTest
 
 import boto3
+import pytest
 from dateutil.parser import parse
 
 from moto import mock_aws, settings
@@ -67,7 +67,7 @@ def test_mark_role_as_last_used():
 @mock_aws
 def test_get_credential_report_content__set_last_used_automatically():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("No point testing this in ServerMode")
+        raise pytest.skip("No point testing this in ServerMode")
     # Ensure LAST_USED field is set
     c_iam = boto3.client("iam", region_name="us-east-1")
     c_iam.create_user(Path="my/path", UserName="fakeUser")

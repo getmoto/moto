@@ -1,8 +1,8 @@
 import json
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 
@@ -12,7 +12,7 @@ from . import verify_execution_result
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_calling_sqs_with_heartbeat():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("No point in testing this in ServerMode")
+        raise pytest.skip("No point in testing this in ServerMode")
     sqs = boto3.client("sqs", "us-east-1")
     sfn = boto3.client("stepfunctions", "us-east-1")
     queue_name = f"queue{uuid4()}"
@@ -43,7 +43,7 @@ def test_state_machine_calling_sqs_with_heartbeat():
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_calling_sqs_with_task_success():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("No point in testing this in ServerMode")
+        raise pytest.skip("No point in testing this in ServerMode")
     sqs = boto3.client("sqs", "us-east-1")
     sfn = boto3.client("stepfunctions", "us-east-1")
     queue_name = f"queue{uuid4()}"

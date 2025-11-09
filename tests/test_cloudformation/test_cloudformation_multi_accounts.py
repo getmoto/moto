@@ -1,5 +1,5 @@
 import json
-from unittest import SkipTest, TestCase
+from unittest import TestCase
 from uuid import uuid4
 
 import boto3
@@ -37,7 +37,7 @@ class TestStackSetMultipleAccounts(TestCase):
         #                     [acct21]      [acct22]
         #
         if settings.TEST_SERVER_MODE:
-            raise SkipTest(
+            raise pytest.skip(
                 "These tests directly access the backend, which is not possible in ServerMode"
             )
         mockname = "mock-account"

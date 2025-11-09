@@ -1,5 +1,4 @@
 import os
-from unittest import SkipTest
 from unittest.mock import patch
 
 import boto3
@@ -13,9 +12,9 @@ from moto.core.versions import is_werkzeug_2_0_x_or_older
 
 def test_passthrough_calls_for_entire_service() -> None:
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test config when using decorators")
+        raise pytest.skip("Can only test config when using decorators")
     if is_werkzeug_2_0_x_or_older():
-        raise SkipTest(
+        raise pytest.skip(
             "Bug in old werkzeug versions where headers with byte-values throw errors"
         )
     # Still mock the credentials ourselves, we don't want to reach out to AWS for real
@@ -54,9 +53,9 @@ def test_passthrough_calls_for_entire_service() -> None:
 
 def test_passthrough_calls_for_specific_url() -> None:
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test config when using decorators")
+        raise pytest.skip("Can only test config when using decorators")
     if is_werkzeug_2_0_x_or_older():
-        raise SkipTest(
+        raise pytest.skip(
             "Bug in old werkzeug versions where headers with byte-values throw errors"
         )
     # Still mock the credentials ourselves, we don't want to reach out to AWS for real
@@ -94,7 +93,7 @@ def test_passthrough_calls_for_specific_url() -> None:
 
 def test_passthrough_calls_for_wildcard_urls() -> None:
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test config when using decorators")
+        raise pytest.skip("Can only test config when using decorators")
     # Still mock the credentials ourselves, we don't want to reach out to AWS for real
     with patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "a", "AWS_SECRET_ACCESS_KEY": "b"}
@@ -130,7 +129,7 @@ def test_passthrough_calls_for_wildcard_urls() -> None:
 
 def test_passthrough__using_unsupported_service() -> None:
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test config when using decorators")
+        raise pytest.skip("Can only test config when using decorators")
     with patch.dict(
         os.environ, {"AWS_ACCESS_KEY_ID": "a", "AWS_SECRET_ACCESS_KEY": "b"}
     ):

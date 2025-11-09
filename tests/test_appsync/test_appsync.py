@@ -1,6 +1,5 @@
 import json
 from datetime import datetime, timedelta
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -695,7 +694,7 @@ def test_get_api():
 @mock_aws
 def test_events_api_direct_http_request_e2e():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test this flow in DecoratorMode")
+        raise pytest.skip("Can only test this flow in DecoratorMode")
     client = boto3.client("appsync", region_name="us-east-1")
     api_resp = client.create_api(
         name="events-api",

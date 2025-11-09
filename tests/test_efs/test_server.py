@@ -1,5 +1,4 @@
 import re
-from unittest import SkipTest
 
 import pytest
 
@@ -22,7 +21,7 @@ def fixture_aws_credentials(monkeypatch):
 @pytest.fixture(scope="function", name="efs_client")
 def fixture_efs_client(aws_credentials):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Using server directly - no point in testing ServerMode")
+        raise pytest.skip("Using server directly - no point in testing ServerMode")
 
     with mock_aws():
         yield server.create_backend_app("efs").test_client()

@@ -1,7 +1,8 @@
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 from tests import EXAMPLE_AMI_PARAVIRTUAL, EXAMPLE_AMI_WINDOWS
@@ -13,7 +14,7 @@ from tests import EXAMPLE_AMI_PARAVIRTUAL, EXAMPLE_AMI_WINDOWS
 @mock_aws
 def test_get_password_data():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     client = boto3.client("ec2", region_name="us-east-1")
 
     # Ensure non-windows instances return empty password data

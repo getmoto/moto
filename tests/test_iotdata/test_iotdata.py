@@ -1,7 +1,6 @@
 import json
 import sys
 from typing import Optional
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -101,7 +100,7 @@ def test_update(name: Optional[str] = None) -> None:
 @pytest.mark.aws_verified
 def test_create_named_shadows(name: Optional[str] = None) -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameter only available in newer versions")
+        raise pytest.skip("Parameter only available in newer versions")
     client = boto3.client("iot-data", region_name="ap-northeast-1")
     thing_name = name
 

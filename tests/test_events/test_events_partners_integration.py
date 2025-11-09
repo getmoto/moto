@@ -1,9 +1,10 @@
 import json
 import os
 from datetime import datetime
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 
@@ -26,7 +27,7 @@ def test_create_partner_event_bus():
 @mock_aws
 def test_describe_partner_event_busses():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't change accounts easily in ServerMode")
+        raise pytest.skip("Can't change accounts easily in ServerMode")
     # Having a separate partner account isn't 'strictly necessary - we could do that from the main account
     # But it makes it more obvious for the reader that we're accessing different accounts IMO
     partner_account = "111122223333"
@@ -57,7 +58,7 @@ def test_describe_partner_event_busses():
 @mock_aws
 def test_put_partner_events():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't change accounts easily in ServerMode")
+        raise pytest.skip("Can't change accounts easily in ServerMode")
 
     partner_account = "111122223333"
     client_account = "444455556666"

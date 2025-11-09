@@ -1,5 +1,4 @@
 import warnings
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -25,7 +24,7 @@ def sample_s3_dest_config():
 def test_warnings():
     """Test features that raise a warning as they're unimplemented."""
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't capture warnings in server mode")
+        raise pytest.skip("Can't capture warnings in server mode")
 
     client = boto3.client("firehose", region_name=TEST_REGION)
     s3_dest_config = sample_s3_dest_config()
@@ -499,7 +498,7 @@ def test_lookup_name_from_arn():
     to 'firehose_backends'.
     """
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't access firehose_backend in server mode")
+        raise pytest.skip("Can't access firehose_backend in server mode")
 
     client = boto3.client("firehose", region_name=TEST_REGION)
     s3_dest_config = sample_s3_dest_config()

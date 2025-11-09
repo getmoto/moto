@@ -2,7 +2,6 @@ import copy
 import json
 import unittest
 from random import randint
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -1850,7 +1849,7 @@ def test_filter_description():
 @mock_aws
 def test_filter_ip_permission__cidr():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "CIDR's might already exist due to other tests creating IP ranges"
         )
     ec2r = boto3.resource("ec2", region_name=REGION)
@@ -1897,7 +1896,7 @@ def test_filter_ip_permission__cidr():
 @mock_aws
 def test_filter_egress__ip_permission__cidr():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "CIDR's might already exist due to other tests creating IP ranges"
         )
     ec2r = boto3.resource("ec2", region_name=REGION)

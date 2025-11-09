@@ -1,12 +1,12 @@
 import os
 import sys
-from unittest import SkipTest
 
 import aws_xray_sdk.core as xray_core
 import aws_xray_sdk.core.patcher as xray_core_patcher
 import boto3
 import botocore.client
 import botocore.endpoint
+import pytest
 import requests
 
 from moto import mock_aws
@@ -35,7 +35,7 @@ def check_coverage_status():
     # If Coverage is not enabled in this test run, we're fine
     if "COV_CORE_SOURCE" not in os.environ:
         return
-    raise SkipTest("Can't run this test with Coverage 5.x")
+    raise pytest.skip("Can't run this test with Coverage 5.x")
 
 
 @mock_aws

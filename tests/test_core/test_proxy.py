@@ -1,6 +1,5 @@
 from http.server import BaseHTTPRequestHandler
 from typing import Any
-from unittest import SkipTest
 
 import pytest
 import requests
@@ -29,7 +28,7 @@ def server() -> Any:  # type: ignore[misc]
 
 def test_real_request_errors() -> None:
     if not settings.is_test_proxy_mode():
-        raise SkipTest("Can only be tested in ProxyMode")
+        raise pytest.skip("Can only be tested in ProxyMode")
 
     http_proxy = settings.test_proxy_mode_endpoint()
     https_proxy = settings.test_proxy_mode_endpoint()
@@ -45,7 +44,7 @@ def test_real_request_errors() -> None:
 
 def test_configure_passedthrough_urls() -> None:
     if not settings.is_test_proxy_mode():
-        raise SkipTest("Can only be tested in ProxyMode")
+        raise pytest.skip("Can only be tested in ProxyMode")
 
     http_proxy = settings.test_proxy_mode_endpoint()
     https_proxy = settings.test_proxy_mode_endpoint()
@@ -90,7 +89,7 @@ def test_configure_passedthrough_urls() -> None:
 
 def test_http_get_request_can_be_passed_through(server: Any) -> None:
     if not settings.is_test_proxy_mode():
-        raise SkipTest("Can only be tested in ProxyMode")
+        raise pytest.skip("Can only be tested in ProxyMode")
 
     http_proxy = settings.test_proxy_mode_endpoint()
     https_proxy = settings.test_proxy_mode_endpoint()
@@ -110,9 +109,9 @@ def test_http_get_request_can_be_passed_through(server: Any) -> None:
 
 
 def test_https_request_can_be_passed_through() -> None:
-    raise SkipTest("Times out regularly")
+    raise pytest.skip("Times out regularly")
     if not settings.is_test_proxy_mode():
-        raise SkipTest("Can only be tested in ProxyMode")
+        raise pytest.skip("Can only be tested in ProxyMode")
 
     http_proxy = settings.test_proxy_mode_endpoint()
     https_proxy = settings.test_proxy_mode_endpoint()

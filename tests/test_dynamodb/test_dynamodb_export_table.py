@@ -2,7 +2,7 @@ import gzip
 import json
 import os
 from time import sleep
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -97,7 +97,7 @@ def test_export_backup_to_s3_error(table_name=None, bucket_name=None):
         os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
     )
     if not settings.TEST_DECORATOR_MODE or aws_request:
-        raise SkipTest("Can't mock backup to s3 error in ServerMode/against AWS")
+        raise pytest.skip("Can't mock backup to s3 error in ServerMode/against AWS")
 
     client = boto3.client("dynamodb", region_name="us-east-1")
 

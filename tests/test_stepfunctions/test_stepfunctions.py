@@ -2,7 +2,7 @@ import json
 import os
 import re
 from datetime import datetime
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -919,7 +919,7 @@ def test_stepfunction_regions(test_region):
 @mock.patch.dict(os.environ, {"SF_EXECUTION_HISTORY_TYPE": "FAILURE"})
 def test_state_machine_get_execution_history_contains_expected_failure_events_when_started():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
-        raise SkipTest("Cant pass environment variable in server mode")
+        raise pytest.skip("Cant pass environment variable in server mode")
     expected_events = [
         {
             "timestamp": datetime(2020, 1, 1, 0, 0, 0, tzinfo=tzutc()),

@@ -1,6 +1,5 @@
 import random
 import uuid
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -477,7 +476,7 @@ def test_dhcp_options_get_by_key_filter():
 @mock_aws
 def test_dhcp_options_get_by_invalid_filter():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Will throw a generic 500 in ServerMode")
+        raise pytest.skip("Will throw a generic 500 in ServerMode")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     client = boto3.client("ec2", region_name="us-west-1")

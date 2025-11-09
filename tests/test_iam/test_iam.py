@@ -1,7 +1,6 @@
 import csv
 import json
 from datetime import datetime
-from unittest import SkipTest
 from urllib import parse
 from uuid import uuid4
 
@@ -792,7 +791,7 @@ def test_get_policy():
 )
 def test_get_aws_managed_policy(region, partition):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Policies not loaded in ServerMode")
+        raise pytest.skip("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name=region)
     managed_policy_arn = f"arn:{partition}:iam::aws:policy/IAMUserChangePassword"
     managed_policy_create_date = datetime.strptime(
@@ -830,7 +829,7 @@ def test_get_policy_version():
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy_version():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Policies not loaded in ServerMode")
+        raise pytest.skip("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = (
         "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
@@ -853,7 +852,7 @@ def test_get_aws_managed_policy_version():
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_aws_managed_policy_v8_version():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Policies not loaded in ServerMode")
+        raise pytest.skip("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-east-1")
     managed_policy_arn = "arn:aws:iam::aws:policy/job-function/SystemAdministrator"
     with pytest.raises(ClientError):
@@ -2036,7 +2035,7 @@ def test_get_access_key_last_used_when_used():
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_managed_policy():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Policies not loaded in ServerMode")
+        raise pytest.skip("Policies not loaded in ServerMode")
     conn = boto3.client("iam", region_name="us-west-1")
 
     conn.create_policy(
@@ -2449,7 +2448,7 @@ def test_delete_ssh_public_key():
 @mock_aws(config={"iam": {"load_aws_managed_policies": True}})
 def test_get_account_authorization_details():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Policies not loaded in ServerMode")
+        raise pytest.skip("Policies not loaded in ServerMode")
     test_policy = json.dumps(
         {
             "Version": "2012-10-17",
@@ -3736,7 +3735,7 @@ def test_role_list_config_discovered_resources():
 @mock_aws
 def test_role_config_dict():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Using backend directly - no point in testing ServerMode")
+        raise pytest.skip("Using backend directly - no point in testing ServerMode")
     from moto.iam.config import policy_config_query, role_config_query
     from moto.iam.utils import random_policy_id, random_role_id
 
@@ -4358,7 +4357,7 @@ def test_policy_list_config_discovered_resources():
 @mock_aws
 def test_policy_config_dict():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Using backend directly - no point in testing ServerMode")
+        raise pytest.skip("Using backend directly - no point in testing ServerMode")
     from moto.iam.config import policy_config_query, role_config_query
     from moto.iam.utils import random_policy_id
 

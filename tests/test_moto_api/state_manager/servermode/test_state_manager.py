@@ -1,6 +1,6 @@
 import json
-from unittest import SkipTest
 
+import pytest
 import requests
 
 from moto import settings
@@ -8,7 +8,7 @@ from moto import settings
 
 def test_set_transition():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest("We only want to test ServerMode here")
+        raise pytest.skip("We only want to test ServerMode here")
 
     post_body = {
         "model_name": "test_model0",
@@ -29,7 +29,7 @@ def test_set_transition():
 
 def test_unset_transition():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest("We only want to test ServerMode here")
+        raise pytest.skip("We only want to test ServerMode here")
 
     post_body = {
         "model_name": "test::model1",
@@ -55,7 +55,7 @@ def test_unset_transition():
 
 def test_get_default_transition():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest("We only want to test ServerMode here")
+        raise pytest.skip("We only want to test ServerMode here")
 
     resp = requests.get(
         "http://localhost:5000/moto-api/state-manager/get-transition?model_name=unknown"

@@ -1,4 +1,4 @@
-from unittest import SkipTest
+import pytest
 
 from moto import mock_aws, settings
 from moto.moto_api import state_manager
@@ -11,7 +11,7 @@ from tests.test_batch.test_batch_jobs import _wait_for_job_status, prepare_job
 @requires_docker
 def test_cancel_pending_job():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't use state_manager in ServerMode directly")
+        raise pytest.skip("Can't use state_manager in ServerMode directly")
 
     ec2_client, iam_client, _, _, batch_client = _get_clients()
     _, _, _, iam_arn = _setup(ec2_client, iam_client)

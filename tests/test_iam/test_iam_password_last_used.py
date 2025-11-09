@@ -1,6 +1,5 @@
-from unittest import SkipTest
-
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 from moto.backends import get_backend
@@ -11,7 +10,7 @@ from moto.core.utils import utcnow
 @mock_aws
 def test_password_last_used():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set password_last_used in ServerMode")
+        raise pytest.skip("Can't set password_last_used in ServerMode")
     client = boto3.client("iam", "us-east-1")
     username = "test.user"
     client.create_user(Path="/staff/", UserName=username)["User"]

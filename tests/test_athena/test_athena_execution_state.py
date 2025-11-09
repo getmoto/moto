@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -24,7 +22,7 @@ def execution_state_transition():
 def test_execution_with_manual_transition(execution_state_transition):
     if not settings.TEST_DECORATOR_MODE:
         # We already test the state transitions in ServerMode in other tests
-        raise SkipTest(
+        raise pytest.skip(
             "NO point in verifying state transitions when not using the decorator"
         )
 

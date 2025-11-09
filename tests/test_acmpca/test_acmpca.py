@@ -1,7 +1,6 @@
 import datetime
 import json
 import pickle
-from unittest import SkipTest
 
 import boto3
 import cryptography.hazmat.primitives.asymmetric.rsa
@@ -733,7 +732,7 @@ def test_policy_operations():
 @mock_aws
 def test_list_certificate_authorities():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot verify backend state in server mode")
+        raise pytest.skip("Cannot verify backend state in server mode")
 
     client = boto3.client("acm-pca", region_name="us-east-1")
 

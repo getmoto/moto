@@ -1,6 +1,6 @@
 import base64
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -138,7 +138,7 @@ def test_create_launch_configuration_additional_parameters():
 @mock_aws
 def test_create_launch_configuration_without_public_ip():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     ec2 = boto3.resource("ec2", "us-east-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
     subnet = ec2.create_subnet(VpcId=vpc.id, CidrBlock="10.0.0.0/27")
@@ -298,7 +298,7 @@ def test_invalid_launch_configuration_request_raises_error(request_params):
 @mock_aws
 def test_launch_config_with_block_device_mappings__volumes_are_created():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     as_client = boto3.client("autoscaling", "us-east-2")
     ec2_client = boto3.client("ec2", "us-east-2")
     random_image_id = ec2_client.describe_images()["Images"][0]["ImageId"]

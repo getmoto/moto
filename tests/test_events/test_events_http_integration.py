@@ -1,8 +1,9 @@
 import json
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
+import pytest
 import responses
 
 from moto import mock_aws, settings
@@ -12,7 +13,7 @@ from moto import mock_aws, settings
 @mock.patch.dict(os.environ, {"MOTO_EVENTS_INVOKE_HTTP": "true"})
 def test_invoke_http_request_on_event():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't intercept HTTP requests in ServerMode")
+        raise pytest.skip("Can't intercept HTTP requests in ServerMode")
     events = boto3.client("events", region_name="eu-west-1")
 
     #

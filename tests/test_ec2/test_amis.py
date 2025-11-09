@@ -1,6 +1,6 @@
 import os
 import random
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -20,7 +20,7 @@ from tests import EXAMPLE_AMI_ID, EXAMPLE_AMI_PARAVIRTUAL
 @mock_aws
 def test_snapshots_for_initial_amis():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     snapshots = ec2.describe_snapshots()["Snapshots"]
@@ -41,7 +41,7 @@ def test_snapshots_for_initial_amis():
 @mock_aws
 def test_ami_create_and_delete():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     ec2 = boto3.client("ec2", region_name="us-east-1")
 
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -196,7 +196,7 @@ def test_ami_copy_dryrun():
 @mock_aws
 def test_ami_copy():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     ec2 = boto3.client("ec2", region_name="us-west-1")
 
     reservation = ec2.run_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
@@ -287,7 +287,7 @@ def test_ami_copy_nonexisting_source_region():
 @mock_aws
 def test_copy_image_changes_owner_id():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     conn = boto3.client("ec2", region_name="us-east-1")
 
     # this source AMI ID is from moto/ec2/resources/amis.json
@@ -396,7 +396,7 @@ def test_ami_uses_account_id_if_valid_access_key_is_supplied():
 @mock_aws
 def test_ami_filters():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     image_name_A = f"test-ami-{str(uuid4())[0:6]}"
     kernel_value_A = f"k-{str(uuid4())[0:6]}"
     kernel_value_B = f"k-{str(uuid4())[0:6]}"
@@ -978,7 +978,7 @@ def test_ami_attribute_user_and_group_permissions():
 @mock_aws
 def test_filter_description():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     # https://github.com/getmoto/moto/issues/4460
     client = boto3.client("ec2", region_name="us-west-2")
 
@@ -1153,7 +1153,7 @@ def test_ami_filter_wildcard():
 @mock_aws
 def test_ami_filter_by_owner_id():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     client = boto3.client("ec2", region_name="us-east-1")
 
     ubuntu_id = "099720109477"
@@ -1342,7 +1342,7 @@ def test_ami_filter_by_source_instance_id():
 @mock_aws
 def test_ami_filter_by_ownerid():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     ec2_connection = boto3.client("ec2", region_name="us-east-1")
 
     images = ec2_connection.describe_images(
@@ -1444,7 +1444,7 @@ def test_delete_snapshot_from_create_image():
 @mock_aws
 def test_ami_describe_image_attribute_product_codes():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
 
@@ -1472,7 +1472,7 @@ def test_ami_describe_image_attribute_product_codes():
 @mock_aws
 def test_ami_describe_image_attribute():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
 
@@ -1506,7 +1506,7 @@ def test_ami_describe_image_attribute():
 @mock_aws
 def test_ami_describe_image_attribute_block_device_fail():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
     test_image = conn.describe_images()
@@ -1530,7 +1530,7 @@ def test_ami_describe_image_attribute_block_device_fail():
 @mock_aws
 def test_ami_describe_image_attribute_invalid_param():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     # Setup
     conn = boto3.client("ec2", region_name="us-east-1")
     test_image = conn.describe_images()

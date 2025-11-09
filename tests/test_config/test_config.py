@@ -2,7 +2,6 @@ import json
 import os
 import time
 from datetime import datetime, timedelta
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -1952,7 +1951,7 @@ def test_put_evaluations():
     assert ce.value.response["Error"]["Code"] == "InvalidResultTokenException"
 
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
-        raise SkipTest("Does not work in server mode due to error in Workzeug")
+        raise pytest.skip("Does not work in server mode due to error in Workzeug")
     else:
         # Try without TestMode supplied:
         with pytest.raises(NotImplementedError):
@@ -2509,7 +2508,7 @@ def test_put_resource_config():
 @mock_aws
 def test_delete_resource_config():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Test fails in server mode because the backend reference doesn't access the same instance that the client uses"
         )
 
@@ -2561,7 +2560,7 @@ def test_delete_resource_config():
 @mock_aws
 def test_select_resource_config_with_query_results_queue():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Test fails in server mode because the backend reference doesn't access the same instance that the client uses"
         )
 
@@ -2602,7 +2601,7 @@ def test_select_resource_config_with_query_results_queue():
 @mock_aws
 def test_select_resource_config_with_expression_results():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Test fails in server mode because the backend reference doesn't access the same instance that the client uses"
         )
 

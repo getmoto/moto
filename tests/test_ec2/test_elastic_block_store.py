@@ -1,5 +1,5 @@
 import os
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -1131,7 +1131,7 @@ def test_create_snapshots_multiple_volumes():
 @mock_aws
 def test_create_snapshots_multiple_volumes_without_boot():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")
 

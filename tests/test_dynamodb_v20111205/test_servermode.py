@@ -1,7 +1,7 @@
 import json
-from unittest import SkipTest
 from uuid import uuid4
 
+import pytest
 import requests
 
 from moto import settings
@@ -15,7 +15,7 @@ https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Appendix.APIv20
 
 def test_table_list():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest("Only run test with external server")
+        raise pytest.skip("Only run test with external server")
     headers = {
         "X-Amz-Target": "DynamoDB_20111205.ListTables",
         "AUTHORIZATION": "AWS4-HMAC-SHA256 Credential=ACCESS_KEY/20220226/us-east-1/dynamodb/aws4_request, SignedHeaders=content-type;host;x-amz-date;x-amz-target, Signature=sig",
@@ -28,7 +28,7 @@ def test_table_list():
 
 def test_create_table():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest("Only run test with external server")
+        raise pytest.skip("Only run test with external server")
 
     table_name = str(uuid4())
 

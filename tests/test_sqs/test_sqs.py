@@ -4,7 +4,7 @@ import os
 import re
 import sys
 import time
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -987,7 +987,7 @@ def test_receive_message_with_xml_content():
 @mock_aws
 def test_change_message_visibility_than_permitted():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     sqs = boto3.resource("sqs", region_name=REGION)
     conn = boto3.client("sqs", region_name=REGION)
@@ -2105,7 +2105,7 @@ def test_send_message_batch_with_empty_list():
 @mock_aws
 def test_batch_change_message_visibility():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.client("sqs", region_name=REGION)
@@ -2549,7 +2549,7 @@ def test_create_fifo_queue_with_dlq():
 @mock_aws
 def test_queue_with_dlq():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     sqs = boto3.client("sqs", region_name=REGION)
 
@@ -2772,7 +2772,7 @@ def test_receive_messages_with_message_group_id_on_requeue():
 @mock_aws
 def test_receive_messages_with_message_group_id_on_visibility_timeout():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     with freeze_time("2015-01-01 12:00:00"):
         sqs = boto3.resource("sqs", region_name=REGION)
@@ -2822,7 +2822,7 @@ def test_receive_message_for_queue_with_receive_message_wait_time_seconds_set():
 def test_list_queues_limits_to_1000_queues():
     if settings.TEST_SERVER_MODE:
         # Re-visit once we have a NextToken-implementation for list_queues
-        raise SkipTest("Too many queues for a persistent mode")
+        raise pytest.skip("Too many queues for a persistent mode")
     client = boto3.client("sqs", region_name=REGION)
 
     prefix_name = str(uuid4())[0:6]
@@ -2972,7 +2972,7 @@ def test_fifo_queue_deduplication_withoutid(msg_1, msg_2, expected_count):
 @mock_aws
 def test_fifo_queue_send_duplicate_messages_after_deduplication_time_limit():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant patch env variables in server mode")
+        raise pytest.skip("Cant patch env variables in server mode")
 
     sqs = boto3.resource("sqs", region_name=REGION)
     msg_queue = sqs.create_queue(

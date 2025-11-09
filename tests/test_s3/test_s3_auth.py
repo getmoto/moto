@@ -1,5 +1,4 @@
 import json
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -16,7 +15,7 @@ DEFAULT_REGION_NAME = "us-east-1"
 @set_initial_no_auth_action_count(0)
 def test_load_unexisting_object_without_auth_should_return_403():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Auth decorator does not work in server mode")
+        raise pytest.skip("Auth decorator does not work in server mode")
 
     # Head an S3 object we should have no access to.
     resource = boto3.resource("s3", region_name="us-east-1")
@@ -35,7 +34,7 @@ def test_load_unexisting_object_without_auth_should_return_403():
 @mock_aws
 def test_head_bucket_with_correct_credentials():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Auth decorator does not work in server mode")
+        raise pytest.skip("Auth decorator does not work in server mode")
 
     # These calls are all unauthenticated
     iam_keys = create_user_with_access_key_and_policy()
@@ -67,7 +66,7 @@ def test_head_bucket_with_correct_credentials():
 @mock_aws
 def test_head_bucket_with_incorrect_credentials():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Auth decorator does not work in server mode")
+        raise pytest.skip("Auth decorator does not work in server mode")
 
     # These calls are all authenticated
     iam_keys = create_user_with_access_key_and_policy()
@@ -153,7 +152,7 @@ def create_role_with_attached_policy_and_assume_it(
 @mock_aws
 def test_delete_objects_without_access_throws_custom_error():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Auth decorator does not work in server mode")
+        raise pytest.skip("Auth decorator does not work in server mode")
 
     role_name = "some-test-role"
     bucket_name = "some-test-bucket"

@@ -1,5 +1,4 @@
 from decimal import Decimal
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -1226,7 +1225,7 @@ class TestDuplicateProjectionExpressions(BaseTest):
 @mock_aws
 def test_put_item_wrong_datatype():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Unable to mock a session with Config in ServerMode")
+        raise pytest.skip("Unable to mock a session with Config in ServerMode")
     session = botocore.session.Session()
     config = botocore.client.Config(parameter_validation=False)
     table_name = f"T{uuid4()}"
@@ -1557,7 +1556,7 @@ def test_update_primary_key():
 @mock_aws
 def test_put_item__string_as_integer_value():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Unable to mock a session with Config in ServerMode")
+        raise pytest.skip("Unable to mock a session with Config in ServerMode")
     config = botocore.client.Config(parameter_validation=False)
     client = boto3.client("dynamodb", region_name="us-east-1", config=config)
     table_name = f"T{uuid4()}"

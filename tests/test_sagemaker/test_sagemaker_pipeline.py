@@ -2,7 +2,6 @@ import json
 from contextlib import contextmanager
 from datetime import datetime
 from time import sleep
-from unittest import SkipTest
 
 import boto3
 import botocore
@@ -208,7 +207,7 @@ def test_start_pipeline_execution(sagemaker_client):
 
 def test_start_pipeline_execution_contains_client_request_token(sagemaker_client):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Skipping test in server mode due to lack of access to sagemaker_backends."
         )
 
@@ -274,7 +273,7 @@ def test_describe_pipeline_execution(sagemaker_client):
 
 def test_load_pipeline_definition_from_s3():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Skipping test in server mode due to lack of access to s3_backend."
         )
 

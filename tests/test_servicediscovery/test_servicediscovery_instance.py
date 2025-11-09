@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -184,7 +182,7 @@ def test_update_instance_custom_health_status(client, ns_resp, srv_resp):
 @mock_aws
 def test_discover_instances_formatting(client, ns_resp, srv_resp):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
         )
 
@@ -211,7 +209,7 @@ def test_discover_instances_formatting(client, ns_resp, srv_resp):
 @mock_aws
 def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
         )
 
@@ -276,7 +274,7 @@ def test_discover_instances_attr_filters(client, ns_resp, srv_resp):
 @mock_aws
 def test_discover_instances_health_filters(client, ns_resp, srv_resp):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
         )
 
@@ -372,7 +370,7 @@ def test_discover_instances_health_filters(client, ns_resp, srv_resp):
 @mock_aws
 def test_max_results_discover_instances(client, ns_resp, srv_resp):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
         )
 
@@ -396,7 +394,7 @@ def test_max_results_discover_instances(client, ns_resp, srv_resp):
 @mock_aws
 def test_discover_instances_revision(client, ns_resp, srv_resp):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Endpoint for discovering instances is prefixed with 'data-', and we can't intercept calls to 'data-localhost'"
         )
 

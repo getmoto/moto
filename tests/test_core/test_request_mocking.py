@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import boto3
 import pytest
 import requests
@@ -57,7 +55,7 @@ def test_decorator_ordering() -> None:
 @mock_aws()
 def test_replace_and_remove_mock() -> None:
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Only need to test responses mock in decorator mode")
+        raise pytest.skip("Only need to test responses mock in decorator mode")
     rsp1 = Response(method="GET", url="http://example.com", body="test")
     responses_mock.add(rsp1)
 

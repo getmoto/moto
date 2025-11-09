@@ -1,5 +1,4 @@
 import re
-from unittest import SkipTest
 
 import pytest
 from botocore.exceptions import ClientError
@@ -254,7 +253,7 @@ def test_record_activity_task_heartbeat_with_wrong_token():
 @mock_aws
 def test_record_activity_task_heartbeat_sets_details_in_case_of_timeout():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Unable to manipulate time in ServerMode")
+        raise pytest.skip("Unable to manipulate time in ServerMode")
     client = setup_workflow()
     decision_token = client.poll_for_decision_task(
         domain="test-domain", taskList={"name": "queue"}

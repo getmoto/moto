@@ -2,7 +2,7 @@ import json
 import os
 import re
 from datetime import datetime
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -44,7 +44,7 @@ mockemail = "@".join([mockname, mockdomain])
 )
 def test_create_organization(region, partition):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Involves changing account using env variable")
+        raise pytest.skip("Involves changing account using env variable")
 
     client = boto3.client("organizations", region_name=region)
     response = client.create_organization(FeatureSet="ALL")
@@ -111,7 +111,7 @@ def test_create_organization_without_feature_set():
 @mock_aws
 def test_create_account_creates_role():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Involves changing account using env variable")
+        raise pytest.skip("Involves changing account using env variable")
     orgs_client = boto3.client("organizations", region_name="us-west-2")
     orgs_client.create_organization()
     account = orgs_client.create_account(AccountName="test", Email="test@test.xyz")
@@ -125,7 +125,7 @@ def test_create_account_creates_role():
 @mock_aws
 def test_create_account_creates_custom_role():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Involves changing account using env variable")
+        raise pytest.skip("Involves changing account using env variable")
 
     orgs_client = boto3.client("organizations", region_name="us-west-2")
     _ = orgs_client.create_organization()
@@ -144,7 +144,7 @@ def test_create_account_creates_custom_role():
 @mock_aws
 def test_describe_organization():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Involves changing account using env variable")
+        raise pytest.skip("Involves changing account using env variable")
 
     client = boto3.client("organizations", region_name="us-east-1")
     client.create_organization(FeatureSet="ALL")
@@ -192,7 +192,7 @@ def test_list_roots():
 @mock_aws
 def test_list_roots_for_new_account_in_organization():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Involves changing account using env variable")
+        raise pytest.skip("Involves changing account using env variable")
     client = boto3.client("organizations", region_name="us-east-1")
     org = client.create_organization()["Organization"]
     org_roots = client.list_roots()
@@ -714,7 +714,7 @@ def test_get_paginated_list_create_account_status():
 @mock_aws
 def test_remove_account_from_organization():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Involves changing account using env variable")
+        raise pytest.skip("Involves changing account using env variable")
 
     client = boto3.client("organizations", region_name="us-east-1")
     _ = client.create_organization(FeatureSet="ALL")["Organization"]

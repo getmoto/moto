@@ -3,9 +3,10 @@ Ensure that the responses module plays nice with our mocks
 """
 
 from http.server import BaseHTTPRequestHandler
-from unittest import SkipTest, TestCase
+from unittest import TestCase
 
 import boto3
+import pytest
 import requests
 import responses
 
@@ -20,7 +21,7 @@ from .utilities import SimpleServer
 class TestResponsesModule(TestCase):
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
-            raise SkipTest("No point in testing responses-decorator in ServerMode")
+            raise pytest.skip("No point in testing responses-decorator in ServerMode")
 
     @mock_aws
     @responses.activate
@@ -86,7 +87,7 @@ class TestResponsesMockWithPassThru(TestCase):
 
     def setUp(self) -> None:
         if RESPONSES_VERSION < LooseVersion("0.24.0"):
-            raise SkipTest("Can only test this with responses >= 0.24.0")
+            raise pytest.skip("Can only test this with responses >= 0.24.0")
 
         self.server = SimpleServer(WebRequestHandler)
         self.server.start()

@@ -1,5 +1,4 @@
 import json
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -116,7 +115,7 @@ def test_send_event_bridge_message():
     )
 
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Doesn't quite work right with the Proxy or Server")
+        raise pytest.skip("Doesn't quite work right with the Proxy or Server")
     # an event is correctly sent to the log group.
     _send_event_bridge_message(
         ACCOUNT_ID,

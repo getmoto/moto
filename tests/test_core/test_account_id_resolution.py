@@ -1,7 +1,7 @@
 import os
 from typing import Optional
-from unittest import SkipTest
 
+import pytest
 import requests
 import xmltodict
 
@@ -16,7 +16,7 @@ BASE_URL = f"http://localhost:{SERVER_PORT}/"
 class TestAccountIdResolution:
     def setup_method(self) -> None:
         if settings.TEST_SERVER_MODE:
-            raise SkipTest(
+            raise pytest.skip(
                 "No point in testing this in ServerMode, as we already start our own server"
             )
         self.server = ThreadedMotoServer(port=SERVER_PORT, verbose=False)

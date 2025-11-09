@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import UUID
 
 import boto3
@@ -174,7 +174,7 @@ def test_get_id():
 @mock.patch.dict(os.environ, {"MOTO_ALLOW_NONEXISTENT_REGION": "trUe"})
 def test_get_id__unknown_region():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set environemnt variables in ServerMode")
+        raise pytest.skip("Cannot set environemnt variables in ServerMode")
     conn = boto3.client("cognito-identity")
     identity_pool_data = conn.create_identity_pool(
         IdentityPoolName="test_identity_pool", AllowUnauthenticatedIdentities=True

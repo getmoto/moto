@@ -1,6 +1,5 @@
-from unittest import SkipTest
-
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 
@@ -8,7 +7,7 @@ from moto import mock_aws, settings
 @mock_aws
 def test_describe_nat_gateways():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to have no resources")
+        raise pytest.skip("ServerMode is not guaranteed to have no resources")
     conn = boto3.client("ec2", "us-east-1")
 
     response = conn.describe_nat_gateways()

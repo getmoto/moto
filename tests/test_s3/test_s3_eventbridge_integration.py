@@ -1,7 +1,6 @@
 import json
 from io import BytesIO
 from typing import Any
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -108,7 +107,7 @@ def test_put_object_notification_ObjectCreated_PUT(region, partition):
 @reduced_min_part_size
 def test_put_object_notification_ObjectCreated_POST():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Doesn't quite work right with the Proxy or Server")
+        raise pytest.skip("Doesn't quite work right with the Proxy or Server")
 
     resource_names = _seteup_bucket_notification_eventbridge()
     bucket_name = resource_names["bucket_name"]

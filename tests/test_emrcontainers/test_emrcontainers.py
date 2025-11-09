@@ -1,6 +1,5 @@
 import re
 from datetime import datetime, timedelta, timezone
-from unittest import SkipTest
 from unittest.mock import patch
 
 import boto3
@@ -22,7 +21,7 @@ def fixture_client():
 @pytest.fixture(scope="function", name="virtual_cluster_factory")
 def fixture_virtual_cluster_factory(client):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     cluster_state = ["RUNNING", "TERMINATING", "TERMINATED", "ARRESTED"]
 

@@ -1,5 +1,4 @@
-from unittest import SkipTest
-
+import pytest
 import requests
 
 from moto import settings
@@ -12,7 +11,7 @@ BASE_URL = f"http://localhost:{SERVER_PORT}/"
 class TestAccountIdResolution:
     def setup_method(self):
         if not settings.TEST_DECORATOR_MODE:
-            raise SkipTest(
+            raise pytest.skip(
                 "No point in testing this in ServerMode, as we already start our own server"
             )
         self.server = ThreadedMotoServer(port=SERVER_PORT, verbose=False)

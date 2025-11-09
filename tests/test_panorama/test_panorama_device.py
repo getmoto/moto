@@ -1,5 +1,4 @@
 from datetime import datetime
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -14,7 +13,7 @@ from moto.moto_api import state_manager
 @mock_aws
 def test_provision_device() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't use ManagedState in ServerMode")
+        raise pytest.skip("Can't use ManagedState in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     given_device_name = "test-device-name"
     state_manager.set_transition(
@@ -61,7 +60,7 @@ def test_provision_device() -> None:
 @mock_aws
 def test_describe_device() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     given_device_name = "test-device-name"
     state_manager.set_transition(
@@ -142,7 +141,7 @@ def test_describe_device() -> None:
 @mock_aws
 def test_provision_device_aggregated_status_lifecycle() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't use ManagedState in ServerMode")
+        raise pytest.skip("Can't use ManagedState in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     given_device_name = "test-device-name"
     state_manager.set_transition(
@@ -346,7 +345,7 @@ def test_list_devices_sort_order(sort_order: str, indexes: list[int]) -> None:
 @mock_aws
 def test_list_devices_sort_by(sort_by: str, indexes: list[int]) -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     state_manager.set_transition(
         model_name="panorama::device_test-device-name-2_aggregated_status",
@@ -375,7 +374,7 @@ def test_list_devices_sort_by(sort_by: str, indexes: list[int]) -> None:
 @mock_aws
 def test_list_devices_device_aggregated_status_filter() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't use ManagedState in ServerMode")
+        raise pytest.skip("Can't use ManagedState in ServerMode")
     client = boto3.client("panorama", region_name="eu-west-1")
     state_manager.set_transition(
         model_name="panorama::device_test-device-name-2_aggregated_status",

@@ -1,5 +1,4 @@
 import json
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -15,7 +14,9 @@ class TestBucketPolicy:
     @classmethod
     def setup_class(cls):
         if not settings.TEST_DECORATOR_MODE:
-            raise SkipTest("No point testing the ThreadedServer in Server/Proxy-mode")
+            raise pytest.skip(
+                "No point testing the ThreadedServer in Server/Proxy-mode"
+            )
         cls.server = ThreadedMotoServer(port="6000", verbose=False)
         cls.server.start()
 

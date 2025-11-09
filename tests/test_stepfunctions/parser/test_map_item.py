@@ -1,7 +1,7 @@
 import json
-from unittest import SkipTest
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 
@@ -11,7 +11,7 @@ from . import verify_execution_result
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_with_map_reader_csv():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     # Prepare CSV
     s3 = boto3.client("s3", "us-east-1")
@@ -48,7 +48,7 @@ def test_state_machine_with_map_reader_csv():
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_with_map_reader_csv_with_header():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
 
     # Prepare CSV
     s3 = boto3.client("s3", "us-east-1")

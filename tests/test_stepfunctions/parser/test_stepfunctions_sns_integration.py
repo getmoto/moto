@@ -1,7 +1,7 @@
 import json
-from unittest import SkipTest
 
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 from moto.sns.models import sns_backends
@@ -13,7 +13,7 @@ from . import verify_execution_result
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_state_machine_calling_sns_publish():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("No point in testing this in ServerMode")
+        raise pytest.skip("No point in testing this in ServerMode")
     sns = boto3.client("sns", "us-east-1")
     topic_arn = sns.create_topic(Name="mytopic")["TopicArn"]
 

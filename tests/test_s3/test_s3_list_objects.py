@@ -1,4 +1,4 @@
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -60,7 +60,7 @@ def test_s3_filter_with_manual_marker(bucket_name=None) -> None:
 @mock.patch.dict("os.environ", {"MOTO_S3_DEFAULT_MAX_KEYS": "5"})
 def test_list_object_versions_with_custom_limit():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only set env var in DecoratorMode")
+        raise pytest.skip("Can only set env var in DecoratorMode")
     s3_client = boto3.client("s3", region_name="us-east-1")
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     bucket_name = "foobar"

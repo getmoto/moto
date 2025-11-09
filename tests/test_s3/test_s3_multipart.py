@@ -2,7 +2,6 @@ import os
 import re
 from functools import wraps
 from io import BytesIO
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -1078,7 +1077,7 @@ def test_head_object_returns_part_count():
 @reduced_min_part_size
 def test_generate_presigned_url_for_multipart_upload():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("No point in testing this outside decorator mode")
+        raise pytest.skip("No point in testing this outside decorator mode")
     bucket_name = "mock-bucket"
     file_name = "mock-file"
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)

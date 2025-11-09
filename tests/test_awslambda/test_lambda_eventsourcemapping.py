@@ -2,7 +2,6 @@ import json
 import sys
 import time
 import uuid
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -28,7 +27,7 @@ botocore_version = sys.modules["botocore"].__version__
 @mock_aws
 def test_create_event_source_mapping():
     if LooseVersion(botocore_version) < LooseVersion("1.23.12"):
-        raise SkipTest("Parameter FilterCriteria is not available in older versions")
+        raise pytest.skip("Parameter FilterCriteria is not available in older versions")
 
     function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -531,7 +530,7 @@ def test_get_event_source_mapping():
 @mock_aws
 def test_update_event_source_mapping():
     if LooseVersion(botocore_version) < LooseVersion("1.23.12"):
-        raise SkipTest("Parameter FilterCriteria is not available in older versions")
+        raise pytest.skip("Parameter FilterCriteria is not available in older versions")
 
     function_name = str(uuid.uuid4())[0:6]
     sqs = boto3.resource("sqs", region_name="us-east-1")
@@ -667,7 +666,7 @@ def test_delete_event_source_mapping():
 @mock_aws
 def test_event_source_mapping_tagging_lifecycle():
     if LooseVersion(botocore_version) < LooseVersion("1.35.23"):
-        raise SkipTest(
+        raise pytest.skip(
             "Tagging support for Lambda event source mapping is not available in older Botocore versions"
         )
 

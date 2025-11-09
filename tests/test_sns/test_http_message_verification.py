@@ -1,10 +1,10 @@
 import base64
 import json
 from http.server import BaseHTTPRequestHandler
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
+import pytest
 import requests
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -46,7 +46,7 @@ class TestHTTPMessageVerification:
 
     def setup_method(self, *args):
         if not settings.TEST_DECORATOR_MODE:
-            raise SkipTest("Can only be tested using decorators")
+            raise pytest.skip("Can only be tested using decorators")
         self.server = SimpleServer(WebRequestHandler)
         self.server.start()
 

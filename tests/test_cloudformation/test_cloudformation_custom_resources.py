@@ -1,6 +1,5 @@
 import json
 import time
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -46,7 +45,7 @@ def test_create_custom_lambda_resource():
     # TEST: verify that this output is persisted
     ##########
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Needs a standalone MotoServer, as cfnresponse needs to connect to something"
         )
     # Create cloudformation stack
@@ -84,7 +83,7 @@ def test_create_custom_lambda_resource__verify_cfnresponse_failed():
     # TEST: verify that a failure message appears in the CloudwatchLogs
     ##########
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Verify this fails if MotoServer is not running")
+        raise pytest.skip("Verify this fails if MotoServer is not running")
     # Create cloudformation stack
     stack_name = f"stack{str(uuid4())[0:6]}"
     template_body = get_template(get_lambda_code())
@@ -135,7 +134,7 @@ def test_create_custom_lambda_resource__verify_manual_request():
     # TEST: verify that the stack has a CREATE_COMPLETE status afterwards
     ##########
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Verify HTTP request can be made manually if MotoServer is not running"
         )
     # Create cloudformation stack

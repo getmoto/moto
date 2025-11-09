@@ -1,5 +1,4 @@
 import random
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -183,7 +182,7 @@ def test_availability_zone_in_create_subnet():
 @mock_aws
 def test_default_subnet():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode will have conflicting CidrBlocks")
+        raise pytest.skip("ServerMode will have conflicting CidrBlocks")
     ec2 = boto3.resource("ec2", region_name="us-west-1")
 
     default_vpc = list(ec2.vpcs.all())[0]
@@ -651,7 +650,7 @@ def test_create_subnet_with_tags():
 @mock_aws
 def test_available_ip_addresses_in_subnet():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "ServerMode is not guaranteed to be empty - other subnets will affect the count"
         )
     ec2 = boto3.resource("ec2", region_name="us-west-1")
@@ -680,7 +679,7 @@ def test_available_ip_addresses_in_subnet():
 @mock_aws
 def test_available_ip_addresses_in_subnet_with_enis():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "ServerMode is not guaranteed to be empty - other ENI's will affect the count"
         )
     ec2 = boto3.resource("ec2", region_name="us-west-1")

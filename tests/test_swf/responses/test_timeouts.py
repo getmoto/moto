@@ -1,6 +1,6 @@
 from datetime import datetime
-from unittest import SkipTest
 
+import pytest
 from dateutil.parser import parse as dtparse
 from freezegun import freeze_time
 
@@ -14,7 +14,7 @@ from ..utils import SCHEDULE_ACTIVITY_TASK_DECISION, setup_workflow
 @mock_aws
 def test_activity_task_heartbeat_timeout():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Unable to manipulate time in ServerMode")
+        raise pytest.skip("Unable to manipulate time in ServerMode")
     with freeze_time("2015-01-01 12:00:00"):
         client = setup_workflow()
         decision_token = client.poll_for_decision_task(
@@ -57,7 +57,7 @@ def test_activity_task_heartbeat_timeout():
 @mock_aws
 def test_decision_task_start_to_close_timeout():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Unable to manipulate time in ServerMode")
+        raise pytest.skip("Unable to manipulate time in ServerMode")
 
     with freeze_time("2015-01-01 12:00:00 UTC"):
         client = setup_workflow()
@@ -108,7 +108,7 @@ def test_decision_task_start_to_close_timeout():
 @mock_aws
 def test_workflow_execution_start_to_close_timeout():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Unable to manipulate time in ServerMode")
+        raise pytest.skip("Unable to manipulate time in ServerMode")
     with freeze_time("2015-01-01 12:00:00 UTC"):
         client = setup_workflow()
 

@@ -1,5 +1,4 @@
 import os
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -256,7 +255,7 @@ def test_vote_on_proposal_no_greater_than():
 @mock_aws
 def test_vote_on_proposal_expiredproposal():
     if os.environ.get("TEST_SERVER_MODE", "false").lower() == "true":
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     votingpolicy = {
         "ApprovalThresholdPolicy": {

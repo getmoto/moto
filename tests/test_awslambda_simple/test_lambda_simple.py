@@ -1,7 +1,7 @@
 import json
-from unittest import SkipTest
 
 import boto3
+import pytest
 import requests
 
 from moto import mock_aws, settings
@@ -11,9 +11,6 @@ from ..test_awslambda.utilities import get_role_name, get_test_zip_file1
 LAMBDA_REGION = "us-west-2"
 PYTHON_VERSION = "3.11"
 FUNCTION_NAME = "test-function-123"
-
-if settings.TEST_SERVER_MODE:
-    raise SkipTest("No point in testing batch_simple in ServerMode")
 
 
 @mock_aws(config={"lambda": {"use_docker": False}})
@@ -56,11 +53,7 @@ def test_run_function_no_log():
 @mock_aws(config={"lambda": {"use_docker": False}})
 def test_set_lambda_simple_query_results():
     # Setup
-    base_url = (
-        settings.test_server_mode_endpoint()
-        if settings.TEST_SERVER_MODE
-        else "http://motoapi.amazonaws.com"
-    )
+    base_url = "http://motoapi.amazonaws.com"
     results = {"results": ["test", "test 2"], "region": LAMBDA_REGION}
     resp = requests.post(
         f"{base_url}/moto-api/static/lambda-simple/response",
@@ -91,6 +84,9 @@ def test_set_lambda_simple_query_results():
 
 
 def setup_lambda():
+    if settings.TEST_SERVER_MODE:
+        raise pytest.skip("No point in testing awslambda_simple in ServerMode")
+
     client = boto3.client("lambda", LAMBDA_REGION)
     zip_content = get_test_zip_file1()
     function_name = FUNCTION_NAME

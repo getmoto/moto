@@ -1,7 +1,6 @@
 """Unit tests for bedrock-supported APIs."""
 
 from datetime import datetime
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -666,7 +665,7 @@ def test_list_model_customization_jobs_name_contains():
 @mock_aws
 def test_list_model_customization_jobs_creation_time_before():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -700,7 +699,7 @@ def test_list_model_customization_jobs_creation_time_before():
 @mock_aws
 def test_list_model_customization_jobs_creation_time_after():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -767,7 +766,7 @@ def test_list_model_customization_jobs_status():
 @mock_aws
 def test_list_model_customization_jobs_ascending_sort():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -819,7 +818,7 @@ def test_list_model_customization_jobs_ascending_sort():
 @mock_aws
 def test_list_model_customization_jobs_descending_sort():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -881,7 +880,7 @@ def test_list_model_customization_jobs_bad_sort_order():
 @mock_aws
 def test_list_model_customization_jobs_bad_sort_by():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -987,7 +986,7 @@ def test_list_custom_models_name_contains():
 @mock_aws
 def test_list_custom_models_creation_time_before():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -1019,7 +1018,7 @@ def test_list_custom_models_creation_time_before():
 @mock_aws
 def test_list_custom_models_creation_time_after():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -1051,7 +1050,7 @@ def test_list_custom_models_creation_time_after():
 @mock_aws
 def test_list_custom_models_ascending_sort():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -1101,7 +1100,7 @@ def test_list_custom_models_ascending_sort():
 @mock_aws
 def test_list_custom_models_descending_sort():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -1151,7 +1150,7 @@ def test_list_custom_models_descending_sort():
 @mock_aws
 def test_list_custom_models_bad_sort_order():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(
@@ -1190,7 +1189,7 @@ def test_list_custom_models_bad_sort_order():
 @mock_aws
 def test_list_custom_models_bad_sort_by():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't freeze time in ServerMode")
+        raise pytest.skip("Can't freeze time in ServerMode")
     client = boto3.client("bedrock", region_name=DEFAULT_REGION)
     with freeze_time("2022-01-01 12:00:00"):
         client.create_model_customization_job(

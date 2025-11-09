@@ -1,11 +1,10 @@
 import json
-import os
 from functools import wraps
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
 import botocore
+import pytest
 
 from moto import mock_aws
 from tests import allow_aws_request
@@ -22,11 +21,7 @@ def sns_aws_verified(func):
 
     @wraps(func)
     def pagination_wrapper():
-        allow_aws_request = (
-            os.environ.get("MOTO_TEST_ALLOW_AWS_REQUEST", "false").lower() == "true"
-        )
-
-        if allow_aws_request:
+        if allow_aws_request():
             ssm = boto3.client("ssm", "us-east-1")
             try:
                 param = ssm.get_parameter(
@@ -44,7 +39,7 @@ def sns_aws_verified(func):
                 # AWS calls it 'API key', but Firebase calls it Server Key
                 #
                 # https://stackoverflow.com/a/75896532/13245310
-                raise SkipTest("Can't execute SNS tests without Firebase API key")
+                raise pytest.skip("Can't execute SNS tests without Firebase API key")
         else:
             with mock_aws():
                 resp = func("mock_api_key")

@@ -1,6 +1,5 @@
-from unittest import SkipTest
-
 import boto3
+import pytest
 
 from moto import mock_aws, settings
 from moto.apigatewaymanagementapi.models import apigatewaymanagementapi_backends
@@ -17,7 +16,7 @@ def test_delete_connection():
         # URL matching changed in 2.2.x - the root path '/@connections' cannot be found
         # 2.1.x works, 2.2.x is broken, and 2.3.x (and 3.x) works again
         # We could only skip 2.2.x - but only supporting >= 2.3.x is easier
-        raise SkipTest("Can't test this in older werkzeug versions")
+        raise pytest.skip("Can't test this in older werkzeug versions")
     client = boto3.client("apigatewaymanagementapi", region_name="eu-west-1")
     # NO-OP
     client.delete_connection(ConnectionId="anything")
@@ -28,7 +27,7 @@ def test_get_connection():
     if settings.TEST_SERVER_MODE and not is_werkzeug_2_3_x():
         # URL matching changed between 2.2.x and 2.3.x
         # 2.3.x has no problem matching the root path '/@connections', but 2.2.x refuses
-        raise SkipTest("Can't test this in older werkzeug versions")
+        raise pytest.skip("Can't test this in older werkzeug versions")
     client = boto3.client("apigatewaymanagementapi", region_name="us-east-2")
     conn = client.get_connection(ConnectionId="anything")
 
@@ -42,7 +41,7 @@ def test_post_to_connection():
     if settings.TEST_SERVER_MODE and not is_werkzeug_2_3_x():
         # URL matching changed between 2.2.x and 2.3.x
         # 2.3.x has no problem matching the root path '/@connections', but 2.2.x refuses
-        raise SkipTest("Can't test this in older werkzeug versions")
+        raise pytest.skip("Can't test this in older werkzeug versions")
     client = boto3.client("apigatewaymanagementapi", region_name="ap-southeast-1")
     client.post_to_connection(ConnectionId="anything", Data=b"my first bytes")
 
@@ -60,7 +59,7 @@ def test_post_to_connection():
 @mock_aws
 def test_post_to_connection_using_endpoint_url():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test this with decorators")
+        raise pytest.skip("Can only test this with decorators")
     client = boto3.client(
         "apigatewaymanagementapi",
         "us-west-2",

@@ -1,7 +1,6 @@
 import json
 import sys
 from typing import Any, Optional
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -228,7 +227,7 @@ def test_invalid_client_token_id() -> None:
 @mock_aws
 def test_auth_failure() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     client = boto3.client(
         "ec2",
         region_name="us-east-1",
@@ -269,7 +268,7 @@ def test_signature_does_not_match() -> None:
 @mock_aws
 def test_auth_failure_with_valid_access_key_id() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     access_key = create_user_with_access_key()
     client = boto3.client(
         "ec2",
@@ -291,7 +290,7 @@ def test_auth_failure_with_valid_access_key_id() -> None:
 @mock_aws
 def test_access_denied_with_no_policy() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     user_name = "test-user"
     access_key = create_user_with_access_key(user_name)
     client = boto3.client(
@@ -314,7 +313,7 @@ def test_access_denied_with_no_policy() -> None:
 @mock_aws
 def test_access_denied_with_not_allowing_policy() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     user_name = "test-user"
     inline_policy_document = {
         "Version": "2012-10-17",
@@ -384,7 +383,7 @@ def test_access_denied_explicitly_on_specific_resource() -> None:
 @mock_aws
 def test_access_denied_for_run_instances() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     # https://github.com/getmoto/moto/issues/2774
     # The run-instances method was broken between botocore versions 1.15.8 and 1.15.12
     # This was due to the inclusion of '"idempotencyToken":true' in the response, somehow altering the signature and breaking the authentication
@@ -419,7 +418,7 @@ def test_access_denied_for_run_instances() -> None:
 @mock_aws
 def test_access_denied_with_denying_policy() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     user_name = "test-user"
     inline_policy_document = {
         "Version": "2012-10-17",
@@ -582,7 +581,7 @@ def test_s3_access_denied_with_denying_inline_group_policy() -> None:
 @mock_aws
 def test_access_denied_with_many_irrelevant_policies() -> None:
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Error handling is different in newer versions")
+        raise pytest.skip("Error handling is different in newer versions")
     user_name = "test-user"
     inline_policy_document = {
         "Version": "2012-10-17",

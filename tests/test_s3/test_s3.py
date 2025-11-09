@@ -7,7 +7,6 @@ import zlib
 from gzip import GzipFile
 from io import BytesIO
 from time import sleep
-from unittest import SkipTest
 from urllib.parse import parse_qs, urlparse
 
 import boto3
@@ -123,7 +122,7 @@ def test_key_save_to_missing_bucket():
 @mock_aws
 def test_missing_key_request():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Only test status code in DecoratorMode")
+        raise pytest.skip("Only test status code in DecoratorMode")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="foobar")
 
@@ -364,7 +363,7 @@ def test_get_all_buckets():
 def test_post_to_bucket():
     if not settings.TEST_DECORATOR_MODE:
         # ServerMode does not allow unauthorized requests
-        raise SkipTest()
+        raise pytest.skip()
 
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="foobar")
@@ -381,7 +380,7 @@ def test_post_to_bucket():
 def test_post_with_metadata_to_bucket():
     if not settings.TEST_DECORATOR_MODE:
         # ServerMode does not allow unauthorized requests
-        raise SkipTest()
+        raise pytest.skip()
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     client.create_bucket(Bucket="foobar")
 
@@ -510,7 +509,7 @@ def test_bucket_name_with_special_chars(name):
 @mock_aws
 def test_key_with_special_characters(key):
     if settings.is_test_proxy_mode():
-        raise SkipTest("Keys starting with a / don't work well in ProxyMode")
+        raise pytest.skip("Keys starting with a / don't work well in ProxyMode")
     s3_resource = boto3.resource("s3", region_name=DEFAULT_REGION_NAME)
     client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     bucket = s3_resource.Bucket("testname")
@@ -620,7 +619,7 @@ def test_restore_key():
 @mock_aws
 def test_restore_key_transition():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
+        raise pytest.skip("Can't set transition directly in ServerMode")
 
     state_manager.set_transition(
         model_name="s3::keyrestore", transition={"progression": "manual", "times": 1}
@@ -1565,7 +1564,7 @@ def test_list_objects_v2_truncate_combined_keys_and_folders():
 def test_list_objects_v2__more_than_1000():
     # Verify that the default pagination size (1000) works
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Accessing backends directly")
+        raise pytest.skip("Accessing backends directly")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket="mybucket")
 
@@ -2630,7 +2629,7 @@ def test_paths_with_leading_slashes_work():
 @mock_aws
 def test_root_dir_with_empty_name_works():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Does not work in server mode due to error in Workzeug")
+        raise pytest.skip("Does not work in server mode due to error in Workzeug")
     store_and_read_back_a_key("/")
 
 
@@ -2639,7 +2638,7 @@ def test_root_dir_with_empty_name_works():
 def test_leading_slashes_not_removed(bucket_name):
     """Make sure that leading slashes are not removed internally."""
     if settings.is_test_proxy_mode():
-        raise SkipTest("Doesn't quite work right with the Proxy")
+        raise pytest.skip("Doesn't quite work right with the Proxy")
     s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
     s3_client.create_bucket(Bucket=bucket_name)
 

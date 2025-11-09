@@ -1,6 +1,5 @@
 import base64
 import json
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -191,7 +190,7 @@ class TestLambdaInvocations:
 @mock_aws
 def test_invoke_lambda_using_environment_port():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest("Can only test environment variables in server mode")
+        raise pytest.skip("Can only test environment variables in server mode")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     conn.create_function(
@@ -230,7 +229,7 @@ def test_invoke_lambda_using_networkmode():
     Test is only run in our CI (for now)
     """
     if not settings.moto_network_mode():
-        raise SkipTest("Can only test this when NETWORK_MODE is specified")
+        raise pytest.skip("Can only test this when NETWORK_MODE is specified")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     conn.create_function(
@@ -348,7 +347,7 @@ def test_invoke_function_large_response():
 @mock_aws
 def test_invoke_lambda_with_proxy():
     if not settings.is_test_proxy_mode():
-        raise SkipTest("We only want to test this in ProxyMode")
+        raise pytest.skip("We only want to test this in ProxyMode")
 
     conn = boto3.resource("ec2", _lambda_region)
     vol = conn.create_volume(Size=99, AvailabilityZone=_lambda_region)
@@ -386,7 +385,7 @@ def test_invoke_lambda_with_proxy():
 @requires_docker
 def test_invoke_lambda_with_entrypoint():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("ImageConfig parameter not available in older versions")
+        raise pytest.skip("ImageConfig parameter not available in older versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     conn.create_function(
@@ -425,7 +424,7 @@ def test_invoke_lambda_with_entrypoint():
 @mock_aws
 def test_lambda_request_unauthorized_user():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Auth decorator does not work in server mode")
+        raise pytest.skip("Auth decorator does not work in server mode")
     iam = boto3.client("iam", region_name="us-west-2")
     user_name = "test-user"
     iam.create_user(UserName=user_name)

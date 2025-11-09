@@ -2,7 +2,7 @@ import inspect
 import os
 import unittest
 from typing import Any
-from unittest import SkipTest, mock
+from unittest import mock
 
 import boto3
 import pytest
@@ -63,7 +63,7 @@ def test_context_decorator_exposes_bare_essentials(mock_class: Any) -> None:  # 
 @pytest.mark.network
 def test_decorator_start_and_stop() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Authentication always works in ServerMode")
+        raise pytest.skip("Authentication always works in ServerMode")
     my_mock = mock_aws()
     my_mock.start()
     client = boto3.client("ec2", region_name="us-west-1")

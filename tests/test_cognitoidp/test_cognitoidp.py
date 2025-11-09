@@ -7,7 +7,7 @@ import random
 import re
 import time
 import uuid
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import UUID
 
 import boto3
@@ -536,7 +536,7 @@ def test_create_user_pool_default_id_strategy():
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
 def test_create_user_pool_hash_id_strategy_with_equal_pool_name():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set environemnt variables in ServerMode")
+        raise pytest.skip("Cannot set environemnt variables in ServerMode")
 
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -550,7 +550,7 @@ def test_create_user_pool_hash_id_strategy_with_equal_pool_name():
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
 def test_create_user_pool_hash_id_strategy_with_different_pool_name():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set environemnt variables in ServerMode")
+        raise pytest.skip("Cannot set environemnt variables in ServerMode")
 
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -564,7 +564,7 @@ def test_create_user_pool_hash_id_strategy_with_different_pool_name():
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY": "HASH"})
 def test_create_user_pool_hash_id_strategy_with_different_attributes():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set environemnt variables in ServerMode")
+        raise pytest.skip("Cannot set environemnt variables in ServerMode")
 
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1002,7 +1002,7 @@ def test_create_user_pool_client_default_id_strategy():
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY": "HASH"})
 def test_create_user_pool_client_hash_id_strategy_with_equal_args():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set environemnt variables in ServerMode")
+        raise pytest.skip("Cannot set environemnt variables in ServerMode")
 
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -1024,7 +1024,7 @@ def test_create_user_pool_client_hash_id_strategy_with_equal_args():
 @mock.patch.dict(os.environ, {"MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY": "HASH"})
 def test_create_user_pool_client_hash_id_strategy_with_different_args():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cannot set environemnt variables in ServerMode")
+        raise pytest.skip("Cannot set environemnt variables in ServerMode")
 
     conn = boto3.client("cognito-idp", "us-west-2")
 
@@ -2860,7 +2860,7 @@ def test_list_users_inherent_attributes():
 @mock_aws
 def test_get_user_unconfirmed():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant patch attributes in server mode.")
+        raise pytest.skip("Cant patch attributes in server mode.")
     conn = boto3.client("cognito-idp", "us-west-2")
     outputs = authentication_flow(conn, "ADMIN_NO_SRP_AUTH")
 

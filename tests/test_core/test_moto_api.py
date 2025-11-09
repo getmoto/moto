@@ -1,5 +1,5 @@
 import json
-from unittest import SkipTest, TestCase
+from unittest import TestCase
 
 import boto3
 import pytest
@@ -43,7 +43,7 @@ def test_data_api() -> None:
 @mock_aws
 def test_overwriting_s3_object_still_returns_data() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point in testing this behaves the same in ServerMode")
+        raise pytest.skip("No point in testing this behaves the same in ServerMode")
     s3 = boto3.client("s3", region_name="us-east-1")
     s3.create_bucket(Bucket="test")
     s3.put_object(Bucket="test", Body=b"t", Key="file.txt")
@@ -55,7 +55,7 @@ def test_overwriting_s3_object_still_returns_data() -> None:
 @mock_aws
 def test_creation_error__data_api_still_returns_thing() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("No point in testing this behaves the same in ServerMode")
+        raise pytest.skip("No point in testing this behaves the same in ServerMode")
     # Timeline:
     #
     # When calling BaseModel.__new__, the created instance (of type FakeAutoScalingGroup) is stored in `model_data`
@@ -89,7 +89,7 @@ def test_creation_error__data_api_still_returns_thing() -> None:
 
 def test_model_data_is_emptied_as_necessary() -> None:
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("We're only interested in the decorator performance here")
+        raise pytest.skip("We're only interested in the decorator performance here")
 
     # Reset any residual data
     reset_model_data()
@@ -133,7 +133,7 @@ def test_model_data_is_emptied_as_necessary() -> None:
 class TestModelDataResetForClassDecorator(TestCase):
     def setUp(self) -> None:
         if settings.TEST_SERVER_MODE:
-            raise SkipTest("We're only interested in the decorator performance here")
+            raise pytest.skip("We're only interested in the decorator performance here")
 
         # No data is present at the beginning
         for classes_per_service in model_data.values():

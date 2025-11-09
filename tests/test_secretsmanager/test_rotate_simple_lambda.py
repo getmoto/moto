@@ -1,10 +1,10 @@
 import io
 import json
 import zipfile
-from unittest import SkipTest
 from unittest.mock import patch
 
 import boto3
+import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
@@ -23,7 +23,7 @@ def mock_lambda_invoke(*args, **kwarg):
 )
 def test_simple_lambda_is_invoked():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test patched code in DecoratorMode")
+        raise pytest.skip("Can only test patched code in DecoratorMode")
     sm_client = boto3.client("secretsmanager", region_name="us-east-1")
     secret_arn = sm_client.create_secret(Name="some", SecretString="secret")["ARN"]
 
@@ -44,7 +44,7 @@ def test_simple_lambda_is_invoked():
 )
 def test_simple_lambda_is_invoked__do_not_rotate_immediately():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only test patched code in DecoratorMode")
+        raise pytest.skip("Can only test patched code in DecoratorMode")
     sm_client = boto3.client("secretsmanager", region_name="us-east-1")
     secret_arn = sm_client.create_secret(Name="some", SecretString="secret")["ARN"]
 

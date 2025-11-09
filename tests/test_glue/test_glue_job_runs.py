@@ -1,5 +1,3 @@
-from unittest import SkipTest
-
 import pytest
 from botocore.client import ClientError
 
@@ -20,7 +18,7 @@ def test_start_job_run():
 @mock_aws
 def test_start_job_run__multiple_runs_allowed():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
+        raise pytest.skip("Can't set transition directly in ServerMode")
 
     state_manager.set_transition(
         model_name="glue::job_run", transition={"progression": "manual", "times": 2}
@@ -53,7 +51,7 @@ def test_start_job_run__multiple_runs_allowed():
 @mock_aws
 def test_start_job_run__single_run_allowed():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
+        raise pytest.skip("Can't set transition directly in ServerMode")
 
     state_manager.set_transition(
         model_name="glue::job_run", transition={"progression": "manual", "times": 2}
@@ -143,7 +141,7 @@ def test_get_job_runs_job_exists_but_no_runs():
 @mock_aws
 def test_job_run_transition():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set transition directly in ServerMode")
+        raise pytest.skip("Can't set transition directly in ServerMode")
 
     state_manager.set_transition(
         model_name="glue::job_run", transition={"progression": "manual", "times": 2}

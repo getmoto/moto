@@ -1,5 +1,6 @@
 import json
-from unittest import SkipTest
+
+import pytest
 
 from moto import mock_aws, settings
 
@@ -9,7 +10,7 @@ from . import verify_execution_result
 @mock_aws(config={"stepfunctions": {"execute_state_machine": True}})
 def test_comments_in_parameters():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Don't need to test this in ServerMode")
+        raise pytest.skip("Don't need to test this in ServerMode")
     tmpl_name = "comments/comments_in_parameters"
     exec_input = {"type": "Public"}
 

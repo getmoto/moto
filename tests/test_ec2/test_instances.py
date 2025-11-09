@@ -3,7 +3,7 @@ import ipaddress
 import json
 import os
 import warnings
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -1229,7 +1229,7 @@ def test_run_instance_with_default_placement():
 )
 def test_run_instance_with_invalid_instance_type(m_flag):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "It is not possible to set the environment variable in server mode"
         )
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1672,7 +1672,7 @@ def test_describe_instances_with_keypair_filter():
 )
 def test_run_instance_with_invalid_keypair(m_flag):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "It is not possible to set the environment variable in server mode"
         )
     ec2 = boto3.resource("ec2", region_name="us-east-1")
@@ -1836,7 +1836,7 @@ def test_run_instance_with_block_device_mappings_from_snapshot():
 @mock_aws
 def test_describe_instance_status_no_instances():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("ServerMode is not guaranteed to be empty")
+        raise pytest.skip("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", region_name="us-east-1")
     all_status = client.describe_instance_status()["InstanceStatuses"]
     assert len(all_status) == 0
@@ -2302,7 +2302,7 @@ def test_describe_instance_attribute():
 )
 def test_error_on_invalid_ami(m_flag):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't capture warnings in server mode.")
+        raise pytest.skip("Can't capture warnings in server mode.")
     ec2 = boto3.resource("ec2", "us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_instances(ImageId="ami-invalid", MinCount=1, MaxCount=1)
@@ -2323,7 +2323,7 @@ def test_error_on_invalid_ami(m_flag):
 )
 def test_error_on_invalid_ami_format(m_flag):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "It is not possible to set the environment variable in server mode"
         )
     ec2 = boto3.resource("ec2", "us-east-1")
@@ -2533,7 +2533,7 @@ def test_create_instance_with_launch_template_id_produces_no_warning(
     launch_template_kind,
 ):
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Can't set environment variables in ServerMode")
+        raise pytest.skip("Can't set environment variables in ServerMode")
     client, resource = (
         boto3.client("ec2", region_name="us-west-1"),
         boto3.resource("ec2", region_name="us-west-1"),

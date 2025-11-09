@@ -3,7 +3,6 @@ import re
 import string
 from datetime import datetime, timedelta, timezone
 from time import sleep
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -928,7 +927,7 @@ def test_cancel_rotate_secret_before_enable():
 @mock_aws
 def test_cancel_rotate_secret():
     if not settings.TEST_SERVER_MODE:
-        raise SkipTest("rotation requires a server to be running")
+        raise pytest.skip("rotation requires a server to be running")
     from tests.test_awslambda.utilities import get_role_name
 
     lambda_conn = boto3.client(
@@ -1251,7 +1250,7 @@ def lambda_handler(event, context):
 def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=None):
     role_name = iam_role_arn.split("/")[-1]
     if not allow_aws_request() and not settings.TEST_SERVER_MODE:
-        raise SkipTest("Can only test this in ServerMode")
+        raise pytest.skip("Can only test this in ServerMode")
 
     iam = boto3.client("iam", "us-east-1")
     if allow_aws_request():
@@ -1350,7 +1349,7 @@ def test_rotate_secret_using_lambda_dont_rotate_immediately(
 ):
     role_name = iam_role_arn.split("/")[-1]
     if not allow_aws_request() and not settings.TEST_SERVER_MODE:
-        raise SkipTest("Can only test this in ServerMode")
+        raise pytest.skip("Can only test this in ServerMode")
 
     iam = boto3.client("iam", "us-east-1")
     if allow_aws_request():

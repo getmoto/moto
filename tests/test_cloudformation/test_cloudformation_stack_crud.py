@@ -6,7 +6,6 @@ import sys
 import uuid
 from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
-from unittest import SkipTest
 from uuid import uuid4
 
 import boto3
@@ -1926,7 +1925,7 @@ def test_delete_change_set():
 @mock_aws
 def test_create_change_set_twice__no_changes():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     cf_client = boto3.client("cloudformation", region_name=REGION_NAME)
 
     # Execute once
@@ -1959,7 +1958,7 @@ def test_create_change_set_twice__no_changes():
 @mock_aws
 def test_create_change_set_twice__using_s3__no_changes():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     cf_client = boto3.client("cloudformation", region_name=REGION_NAME)
     s3 = boto3.client("s3", region_name=REGION_NAME)
     s3_conn = boto3.resource("s3", region_name=REGION_NAME)
@@ -2263,7 +2262,7 @@ def test_update_stack_replace_tags():
 @mock_aws
 def test_update_stack_when_rolled_back():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate backend in server mode")
+        raise pytest.skip("Cant manipulate backend in server mode")
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     stack = cf.create_stack(StackName=TEST_STACK_NAME, TemplateBody=dummy_template_json)
     stack_id = stack["StackId"]
@@ -2550,7 +2549,7 @@ def test_delete_stack_dynamo_template():
 @mock_aws
 def test_create_stack_lambda_and_dynamodb():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant set environment variables in server mode")
+        raise pytest.skip("Cant set environment variables in server mode")
     cf = boto3.client("cloudformation", region_name=REGION_NAME)
     template = {
         "AWSTemplateFormatVersion": "2010-09-09",

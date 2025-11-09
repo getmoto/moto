@@ -3,7 +3,7 @@ import hashlib
 import json
 import os
 import sys
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -38,9 +38,9 @@ boto3_version = sys.modules["botocore"].__version__
 @mock_aws
 def test_lambda_regions(region):
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only set EnvironVars in DecoratorMode")
+        raise pytest.skip("Can only set EnvironVars in DecoratorMode")
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("ISO-region not available in older versions")
+        raise pytest.skip("ISO-region not available in older versions")
     client = boto3.client("lambda", region_name=region)
     resp = client.list_functions()
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
@@ -74,7 +74,7 @@ def test_lambda_regions(region):
 @lambda_aws_verified
 def test_list_functions(iam_role_arn=None):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     sts = boto3.client("sts", "eu-west-2")
     account_id = sts.get_caller_identity()["Account"]
 
@@ -162,7 +162,7 @@ def test_create_based_on_s3_with_missing_bucket():
 @freeze_time("2015-01-01 00:00:00")
 def test_create_function_from_aws_bucket():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -206,7 +206,7 @@ def test_create_function_from_aws_bucket():
 @freeze_time("2015-01-01 00:00:00")
 def test_create_function_from_zipfile():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     zip_content = get_test_zip_file1()
     function_name = str(uuid4())[0:6]
@@ -256,7 +256,7 @@ def test_create_function_from_zipfile():
 @mock_aws
 def test_create_function_from_image():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
@@ -287,7 +287,7 @@ def test_create_function_from_image():
 @mock_aws
 def test_create_function_from_image_default_working_directory():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
@@ -317,7 +317,7 @@ def test_create_function_from_image_default_working_directory():
 @mock_aws
 def test_create_function_error_bad_architecture():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
@@ -344,7 +344,7 @@ def test_create_function_error_bad_architecture():
 @mock_aws
 def test_create_function_error_ephemeral_too_big():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
@@ -419,7 +419,7 @@ def ecr_repo_fixture():
 @mock_aws
 def test_create_function_from_stubbed_ecr():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     lambda_client = boto3.client("lambda", "us-east-1")
     fn_name = str(uuid4())[0:6]
     image_uri = "111122223333.dkr.ecr.us-east-1.amazonaws.com/testlambda:latest"
@@ -456,9 +456,9 @@ def test_create_function_from_mocked_ecr_image_tag(
     with_ecr_mock,
 ):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Envars not easily set in server mode, feature off by default, skipping..."
         )
 
@@ -500,9 +500,9 @@ def test_create_function_from_mocked_ecr_image_digest(
     with_ecr_mock,
 ):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Envars not easily set in server mode, feature off by default, skipping..."
         )
     lambda_client = boto3.client("lambda", "us-east-1")
@@ -529,9 +529,9 @@ def test_create_function_from_mocked_ecr_missing_image(
     with_ecr_mock,
 ):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Envars not easily set in server mode, feature off by default, skipping..."
         )
 
@@ -712,7 +712,7 @@ def test_get_function_configuration(key):
 @mock_aws
 def test_get_function_code_signing_config(key):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -941,7 +941,7 @@ def test_list_create_list_get_delete_list():
 
     """
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -1536,7 +1536,7 @@ def test_update_function_s3():
 @mock_aws
 def test_update_function_ecr():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     conn = boto3.client("lambda", _lambda_region)
     function_name = str(uuid4())[0:6]
     image_uri = f"{ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/testlambdaecr:prod"
@@ -1741,7 +1741,7 @@ def test_get_role_name_utility_race_condition():
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_success():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Envars not easily set in server mode, feature off by default, skipping..."
         )
     conn = boto3.client("lambda", _lambda_region)
@@ -1795,7 +1795,7 @@ def test_put_function_concurrency_not_enforced():
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_failure():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Envars not easily set in server mode, feature off by default, skipping..."
         )
     conn = boto3.client("lambda", _lambda_region)
@@ -1829,7 +1829,7 @@ def test_put_function_concurrency_failure():
 @mock.patch.dict(os.environ, {"MOTO_LAMBDA_CONCURRENCY_QUOTA": "1000"})
 def test_put_function_concurrency_i_can_has_math():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest(
+        raise pytest.skip(
             "Envars not easily set in server mode, feature off by default, skipping..."
         )
     conn = boto3.client("lambda", _lambda_region)

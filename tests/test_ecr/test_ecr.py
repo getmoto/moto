@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from unittest import SkipTest
 
 import boto3
 import pytest
@@ -444,7 +443,7 @@ def test_put_manifest_list():
 @mock_aws
 def test_put_image_with_push_date():
     if settings.TEST_SERVER_MODE:
-        raise SkipTest("Cant manipulate time in server mode")
+        raise pytest.skip("Cant manipulate time in server mode")
 
     client = boto3.client("ecr", region_name=ECR_REGION)
     _ = client.create_repository(repositoryName="test_repository")

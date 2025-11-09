@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from unittest import SkipTest, mock
+from unittest import mock
 from uuid import uuid4
 
 import boto3
@@ -43,7 +43,7 @@ def test_publish_lambda_layers__without_content():
 @mock.patch.dict(os.environ, {"VALIDATE_LAMBDA_S3": "false"})
 def test_publish_layer_with_unknown_s3_file():
     if not settings.TEST_DECORATOR_MODE:
-        raise SkipTest("Can only set env var in DecoratorMode")
+        raise pytest.skip("Can only set env var in DecoratorMode")
     conn = boto3.client("lambda", _lambda_region)
     content = conn.publish_layer_version(
         LayerName=str(uuid4())[0:6],
@@ -56,7 +56,7 @@ def test_publish_layer_with_unknown_s3_file():
 @s3_aws_verified
 def test_list_lambda_layers(account_id, bucket_name=None):
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     s3_conn = boto3.client("s3", "us-east-1")
 
     zip_content = get_test_zip_file1()
@@ -117,7 +117,7 @@ def test_list_lambda_layers(account_id, bucket_name=None):
 @mock_aws
 def test_create_function_with_layer():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -179,7 +179,7 @@ def test_list_lambda_layers_with_unknown_name():
 @mock_aws
 def test_create_function_with_unknown_layer():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
 
     conn = boto3.client("lambda", _lambda_region)
@@ -208,7 +208,7 @@ def test_create_function_with_unknown_layer():
 @mock_aws
 def test_get_layer_version():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -374,7 +374,7 @@ def test_get_layer_with_no_layer_versions():
 @mock_aws
 def test_add_layer_version_permission():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -412,7 +412,7 @@ def test_add_layer_version_permission():
 @mock_aws
 def test_get_layer_version_policy():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
@@ -456,7 +456,7 @@ def test_get_layer_version_policy():
 @mock_aws
 def test_remove_layer_version_permission():
     if LooseVersion(boto3_version) < LooseVersion("1.29.0"):
-        raise SkipTest("Parameters only available in newer versions")
+        raise pytest.skip("Parameters only available in newer versions")
     bucket_name = str(uuid4())
     s3_conn = boto3.client("s3", _lambda_region)
     s3_conn.create_bucket(
