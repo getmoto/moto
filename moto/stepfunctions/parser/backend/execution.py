@@ -129,11 +129,11 @@ class Execution:
         exec_arn: Arn,
         account_id: str,
         region_name: str,
-        input_data: str,
         state_machine: StateMachineInstance,
         start_date: Timestamp,
         cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
         activity_store: dict[Arn, Activity],
+        input_data: str,
         trace_header: Optional[TraceHeader] = None,
     ):
         self.name = name

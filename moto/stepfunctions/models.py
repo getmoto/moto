@@ -328,7 +328,6 @@ class Execution:
         self.name = execution_name
         self.start_date = datetime.now()
         self.state_machine_arn = state_machine_arn
-        assert isinstance(execution_input, str)
         self.execution_input = execution_input
         self.status = (
             "RUNNING"
