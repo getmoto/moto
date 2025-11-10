@@ -129,11 +129,11 @@ class Execution:
         exec_arn: Arn,
         account_id: str,
         region_name: str,
+        input_data: str,
         state_machine: StateMachineInstance,
         start_date: Timestamp,
         cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
         activity_store: Dict[Arn, Activity],
-        input_data: Optional[json] = None,
         trace_header: Optional[TraceHeader] = None,
     ):
         self.name = name
@@ -145,7 +145,7 @@ class Execution:
         self.region_name = region_name
         self.state_machine = state_machine
         self._cloud_watch_logging_session = cloud_watch_logging_session
-        self.input_data = input_data
+        self.input_data = json.loads(input_data)
         self.input_details = CloudWatchEventsExecutionDataDetails(included=True)
         self.trace_header = trace_header
         self.exec_status = None
@@ -160,6 +160,7 @@ class Execution:
         # Compatibility with mock SFN
         self.state_machine_arn = state_machine.arn
         self.start_date = start_date
+        #self.execution_input = json.dumps(input_data)
         self.execution_input = input_data
 
     @property
