@@ -308,3 +308,25 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             replication_subnet_group_identifier=replication_subnet_group_identifier,
         )
         return json.dumps({})
+
+    def test_connection(self) -> str:
+        replication_instance_arn = self._get_param("ReplicationInstanceArn")
+        endpoint_arn = self._get_param("EndpointArn")
+        connection = self.dms_backend.test_connection(
+            replication_instance_arn=replication_instance_arn,
+            endpoint_arn=endpoint_arn,
+        )
+        return json.dumps({"Connection": connection.to_dict()})
+
+    def describe_connections(self) -> str:
+        data = json.loads(self.body)
+        filters = data.get("Filters", [])
+        max_records = data.get("MaxRecords")
+        marker = data.get("Marker")
+
+        connections = self.dms_backend.describe_connections(
+            filters=filters, max_records=max_records, marker=marker
+        )
+        connection_list = [c.to_dict() for c in connections]
+        # TODO: Add Marker (optional) to the response
+        return json.dumps({"Connections": connection_list})
