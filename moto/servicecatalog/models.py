@@ -79,9 +79,9 @@ class Product(BaseModel):
         support_email: Optional[str],
         support_url: Optional[str],
         product_type: str,
-        tags: Optional[List[Dict[str, str]]],
-        provisioning_artifact_parameters: Optional[Dict[str, Any]],
-        source_connection: Optional[Dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
+        provisioning_artifact_parameters: Optional[dict[str, Any]],
+        source_connection: Optional[dict[str, Any]],
         accept_language: Optional[str],
         region_name: str,
         account_id: str,
@@ -111,7 +111,7 @@ class Product(BaseModel):
     def arn(self) -> str:
         return f"arn:{get_partition(self.region_name)}:catalog:{self.region_name}:{self.account_id}:product/{self.id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         product_view_summary = {
             "Id": self.id,  # ?
             "ProductId": self.id,  # ?
@@ -134,11 +134,11 @@ class ServiceCatalogBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.portfolio_access: Dict[str, List[str]] = {}
-        self.portfolios: Dict[str, Portfolio] = {}
-        self.idempotency_tokens: Dict[str, str] = {}
-        self.portfolio_share_tokens: Dict[str, List[str]] = {}
-        self.products: Dict[str, Product] = {}
+        self.portfolio_access: dict[str, list[str]] = {}
+        self.portfolios: dict[str, Portfolio] = {}
+        self.idempotency_tokens: dict[str, str] = {}
+        self.portfolio_share_tokens: dict[str, list[str]] = {}
+        self.products: dict[str, Product] = {}
         self.tagger = TaggingService()
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -381,10 +381,10 @@ class ServiceCatalogBackend(BaseBackend):
         support_email: Optional[str],
         support_url: Optional[str],
         product_type: str,
-        tags: List[Dict[str, str]],
-        provisioning_artifact_parameters: Optional[Dict[str, Any]],
+        tags: list[dict[str, str]],
+        provisioning_artifact_parameters: Optional[dict[str, Any]],
         idempotency_token: Optional[str] = None,
-        source_connection: Optional[Dict[str, Any]] = None,
+        source_connection: Optional[dict[str, Any]] = None,
         accept_language: Optional[str] = None,
     ) -> Product:
         if idempotency_token and idempotency_token in self.idempotency_tokens:
@@ -450,10 +450,10 @@ class ServiceCatalogBackend(BaseBackend):
 
         return None
 
-    def _tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def _tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def _list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def _list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         """
         Pagination is not yet implemented
         """
