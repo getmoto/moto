@@ -444,6 +444,8 @@ class ServiceCatalogBackend(BaseBackend):
             if name == product.name:
                 return product
 
+        return None
+
     def delete_product(self, accept_language: Optional[str], id: str) -> None:
         if id in self.products:
             del self.products[id]
