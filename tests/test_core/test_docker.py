@@ -14,7 +14,7 @@ def test_docker_package_is_available() -> None:
         import docker  # noqa: F401
     except ImportError as err:
         logger.error("error running docker: %s", err)
-        assert False, (
+        raise AssertionError(
             "Docker package cannot be imported. "
             + f"This causes various tests to fail. Err: {err}"
         )
@@ -30,7 +30,7 @@ def test_docker_is_running_and_available() -> None:
         docker.from_env()
     except DockerException as err:
         logger.error("error running docker: %s", err)
-        assert False, (
+        raise AssertionError(
             "Docker seems not to be running. "
             + f"This causes various tests to fail. Err: {err}"
         )

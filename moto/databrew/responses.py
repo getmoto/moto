@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -18,7 +18,7 @@ class DataBrewResponse(BaseResponse):
 
     # region Recipes
     @property
-    def parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def parameters(self) -> dict[str, Any]:  # type: ignore[misc]
         return json.loads(self.body)
 
     def create_recipe(self) -> str:

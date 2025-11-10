@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from typing import List, Optional
+from typing import Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskTimedOutEventDetails
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
@@ -35,13 +35,13 @@ class StateTask(ExecutionState, abc.ABC):
     credentials: Optional[Credentials]
 
     def __init__(self):
-        super(StateTask, self).__init__(
+        super().__init__(
             state_entered_event_type=HistoryEventType.TaskStateEntered,
             state_exited_event_type=HistoryEventType.TaskStateExited,
         )
 
     def from_state_props(self, state_props: StateProps) -> None:
-        super(StateTask, self).from_state_props(state_props)
+        super().from_state_props(state_props)
         self.resource = state_props.get(Resource)
         self.parargs = state_props.get(Parargs)
         self.credentials = state_props.get(Credentials)
@@ -51,7 +51,7 @@ class StateTask(ExecutionState, abc.ABC):
 
     def _eval_parameters(self, env: Environment) -> dict:
         # Eval raw parameters.
-        parameters = dict()
+        parameters = {}
         if self.parargs is not None:
             self.parargs.eval(env=env)
             parameters = env.stack.pop()
@@ -59,7 +59,7 @@ class StateTask(ExecutionState, abc.ABC):
         # Handle supported parameters.
         supported_parameters = self._get_supported_parameters()
         if supported_parameters:
-            unsupported_parameters: List[str] = [
+            unsupported_parameters: list[str] = [
                 parameter
                 for parameter in parameters.keys()
                 if parameter not in supported_parameters

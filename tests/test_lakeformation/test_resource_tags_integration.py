@@ -385,7 +385,7 @@ def test_lf_tags(bucket_name=None, db_name=None, table_name=None, column_name=No
     client.update_lf_tag(TagKey="tag1", TagValuesToDelete=["1a", "1c"])
 
     tags = client.list_lf_tags()["LFTags"]
-    assert set([x["CatalogId"] for x in tags]) == {account_id}
+    assert {x["CatalogId"] for x in tags} == {account_id}
     tag_keys = [x["TagKey"] for x in tags]
     assert "tag1" in tag_keys
     assert "tag2" in tag_keys

@@ -67,7 +67,7 @@ jobs:
         cp server_output.log serverlogs/server_output.log
     - name: Archive Server logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: motoserver-${{ matrix.python-version }}
         path: |

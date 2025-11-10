@@ -1,7 +1,7 @@
 import re
 import string
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -60,15 +60,15 @@ class ResourceShare(BaseModel):
         self.last_updated_time = utcnow()
         self.name = kwargs["name"]
         self.owning_account_id = account_id
-        self.principals: List[str] = []
-        self.resource_arns: List[str] = []
+        self.principals: list[str] = []
+        self.resource_arns: list[str] = []
         self.status = "ACTIVE"
 
     @property
     def organizations_backend(self) -> OrganizationsBackend:
         return organizations_backends[self.account_id][self.partition]
 
-    def add_principals(self, principals: List[str]) -> None:
+    def add_principals(self, principals: list[str]) -> None:
         for principal in principals:
             match = re.search(
                 r"^arn:aws:organizations::\d{12}:organization/(o-\w+)$", principal
@@ -118,7 +118,7 @@ class ResourceShare(BaseModel):
         for principal in principals:
             self.principals.append(principal)
 
-    def add_resources(self, resource_arns: List[str]) -> None:
+    def add_resources(self, resource_arns: list[str]) -> None:
         for resource in resource_arns:
             match = re.search(
                 r"^arn:aws:[a-z0-9-]+:[a-z0-9-]*:[0-9]{12}:([a-z-]+)[/:].*$", resource
@@ -140,7 +140,7 @@ class ResourceShare(BaseModel):
         self.last_updated_time = utcnow()
         self.status = "DELETED"
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "allowExternalPrincipals": self.allow_external_principals,
             "creationTime": unix_time(self.creation_time),
@@ -166,7 +166,7 @@ class ResourceType(BaseModel):
         self.service_name = service_name
         self.resource_region_scope = resource_region_scope
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "resourceType": self.resource_type,
             "serviceName": self.service_name,
@@ -211,7 +211,7 @@ class ManagedPermission(BaseModel):
         self.is_resource_type_default = is_resource_type_default
         self.permission_type = permission_type
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "arn": self.arn,
             "name": self.name,
@@ -231,8 +231,8 @@ class ResourceAccessManagerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.resource_shares: List[ResourceShare] = []
-        self.managed_permissions: List[ManagedPermission] = [
+        self.resource_shares: list[ResourceShare] = []
+        self.managed_permissions: list[ManagedPermission] = [
             ManagedPermission(
                 account_id=account_id,
                 region=region_name,
@@ -248,7 +248,7 @@ class ResourceAccessManagerBackend(BaseBackend):
             )
             for permission in AWS_MANAGED_PERMISSIONS
         ]
-        self.resource_types: List[ResourceType] = [
+        self.resource_types: list[ResourceType] = [
             ResourceType(
                 resource_type=resource_type["resourceType"],
                 service_name=resource_type["serviceName"],
@@ -261,7 +261,7 @@ class ResourceAccessManagerBackend(BaseBackend):
     def organizations_backend(self) -> OrganizationsBackend:
         return organizations_backends[self.account_id][self.partition]
 
-    def create_resource_share(self, **kwargs: Any) -> Dict[str, Any]:
+    def create_resource_share(self, **kwargs: Any) -> dict[str, Any]:
         resource = ResourceShare(self.account_id, self.region_name, **kwargs)
         resource.add_principals(kwargs.get("principals", []))
         resource.add_resources(kwargs.get("resourceArns", []))
@@ -271,9 +271,9 @@ class ResourceAccessManagerBackend(BaseBackend):
         response = resource.describe()
         response.pop("featureSet")
 
-        return dict(resourceShare=response)
+        return {"resourceShare": response}
 
-    def get_resource_shares(self, resource_owner: Optional[str]) -> Dict[str, Any]:
+    def get_resource_shares(self, resource_owner: Optional[str]) -> dict[str, Any]:
         if resource_owner not in ["SELF", "OTHER-ACCOUNTS"]:
             raise InvalidParameterException(
                 f"{resource_owner} is not a valid resource owner. "
@@ -287,14 +287,14 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         resources = [resource.describe() for resource in self.resource_shares]
 
-        return dict(resourceShares=resources)
+        return {"resourceShares": resources}
 
     def update_resource_share(
         self,
         resource_share_arn: Optional[str],
         allow_external_principals: bool,
         name: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         resource = next(
             (
                 resource
@@ -313,11 +313,11 @@ class ResourceAccessManagerBackend(BaseBackend):
         response = resource.describe()
         response.pop("featureSet")
 
-        return dict(resourceShare=response)
+        return {"resourceShare": response}
 
     def delete_resource_share(
         self, resource_share_arn: Optional[str]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         resource = next(
             (
                 resource
@@ -334,22 +334,22 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         resource.delete()
 
-        return dict(returnValue=True)
+        return {"returnValue": True}
 
-    def enable_sharing_with_aws_organization(self) -> Dict[str, Any]:
+    def enable_sharing_with_aws_organization(self) -> dict[str, Any]:
         if not self.organizations_backend.org:
             raise OperationNotPermittedException
 
-        return dict(returnValue=True)
+        return {"returnValue": True}
 
     def get_resource_share_associations(
         self,
         association_type: Optional[str],
         association_status: Optional[str],
-        resource_share_arns: List[str],
+        resource_share_arns: list[str],
         resource_arn: Optional[str],
         principal: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if association_type not in ["PRINCIPAL", "RESOURCE"]:
             raise InvalidParameterException(
                 f"{association_type} is not a valid association type. "
@@ -418,9 +418,9 @@ class ResourceAccessManagerBackend(BaseBackend):
                         }
                     )
 
-        return dict(resourceShareAssociations=associations)
+        return {"resourceShareAssociations": associations}
 
-    def list_resource_types(self, resource_region_scope: str) -> Dict[str, Any]:
+    def list_resource_types(self, resource_region_scope: str) -> dict[str, Any]:
         if resource_region_scope not in ["ALL", "REGIONAL", "GLOBAL"]:
             raise InvalidParameterException(
                 f"{resource_region_scope} is not a valid resource region "
@@ -439,11 +439,11 @@ class ResourceAccessManagerBackend(BaseBackend):
                 and resource_type_dict["resourceRegionScope"] == resource_region_scope
             ]
 
-        return dict(resourceTypes=resource_types)
+        return {"resourceTypes": resource_types}
 
     def list_permissions(
         self, resource_type: str, permission_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         permission_types_relation = {
             "AWS": "AWS_MANAGED",
             "LOCAL": "CUSTOMER_MANAGED",
@@ -486,7 +486,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                 == permission["permissionType"]
             ]
 
-        return dict(permissions=permissions)
+        return {"permissions": permissions}
 
 
 ram_backends = BackendDict(ResourceAccessManagerBackend, "ram")

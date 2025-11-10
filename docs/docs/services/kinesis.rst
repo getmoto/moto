@@ -65,6 +65,7 @@ kinesis
 - [ ] subscribe_to_shard
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_max_record_size
 - [X] update_shard_count
 - [X] update_stream_mode
 

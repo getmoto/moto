@@ -15,7 +15,7 @@ from . import dynamodb_aws_verified
 def test_import_from_missing_s3_table(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
 
-    table_name = "t" + str(uuid4())[0:6]
+    table_name = "t" + str(uuid4())
 
     import_description = client.import_table(
         S3BucketSource={"S3Bucket": f"{uuid4()}"},
@@ -48,7 +48,7 @@ def test_import_from_missing_s3_table(table_name=None):
 def test_import_has_regular_validation(table_name=None):
     client = boto3.client("dynamodb", region_name="us-east-1")
 
-    table_name = "t" + str(uuid4())[0:6]
+    table_name = "t" + str(uuid4())
 
     with pytest.raises(ClientError) as exc:
         client.import_table(
@@ -83,7 +83,8 @@ def test_import_from_empty_s3_bucket(table_name=None):
     s3 = boto3.client("s3", region_name="us-east-1")
 
     s3_bucket_name = f"inttest{uuid4()}"
-    table_name = "moto_test_" + str(uuid4())[0:6]
+    table_name = "moto_test_" + str(uuid4())
+    key_schema = [{"AttributeName": "pk", "KeyType": "HASH"}]
 
     s3.create_bucket(Bucket=s3_bucket_name)
 
@@ -93,12 +94,8 @@ def test_import_from_empty_s3_bucket(table_name=None):
         InputCompressionType="NONE",
         TableCreationParameters={
             "TableName": table_name,
-            "AttributeDefinitions": [
-                {"AttributeName": "pk", "AttributeType": "S"},
-            ],
-            "KeySchema": [
-                {"AttributeName": "pk", "KeyType": "HASH"},
-            ],
+            "AttributeDefinitions": [{"AttributeName": "pk", "AttributeType": "S"}],
+            "KeySchema": key_schema,
             "BillingMode": "PAY_PER_REQUEST",
         },
     )["ImportTableDescription"]
@@ -111,7 +108,9 @@ def test_import_from_empty_s3_bucket(table_name=None):
     assert import_details["ImportedItemCount"] == 0
     assert import_details["ProcessedSizeBytes"] == 0
 
-    assert table_name in client.list_tables()["TableNames"]
+    assert (
+        client.describe_table(TableName=table_name)["Table"]["KeySchema"] == key_schema
+    )
 
     assert client.scan(TableName=table_name)["Items"] == []
 
@@ -127,7 +126,7 @@ def test_import_table_single_file_with_multiple_items():
     s3 = boto3.client("s3", region_name="us-east-1")
 
     s3_bucket_name = f"inttest{uuid4()}"
-    table_name = "moto_test_" + str(uuid4())[0:6]
+    table_name = "moto_test_" + str(uuid4())
 
     s3.create_bucket(Bucket=s3_bucket_name)
 
@@ -203,7 +202,7 @@ def test_import_table_multiple_files():
     s3 = boto3.client("s3", region_name="us-east-1")
 
     s3_bucket_name = f"inttest{uuid4()}"
-    table_name = "moto_test_" + str(uuid4())[0:6]
+    table_name = "moto_test_" + str(uuid4())
 
     s3.create_bucket(Bucket=s3_bucket_name)
 
@@ -268,7 +267,7 @@ def test_some_successfull_files_and_some_with_unknown_data():
     s3 = boto3.client("s3", region_name="us-east-1")
 
     s3_bucket_name = f"inttest{uuid4()}"
-    table_name = "moto_test_" + str(uuid4())[0:6]
+    table_name = "moto_test_" + str(uuid4())
 
     s3.create_bucket(Bucket=s3_bucket_name)
 
@@ -332,7 +331,7 @@ def test_only_process_file_with_prefix():
     s3 = boto3.client("s3", region_name="us-east-1")
 
     s3_bucket_name = f"inttest{uuid4()}"
-    table_name = "moto_test_" + str(uuid4())[0:6]
+    table_name = "moto_test_" + str(uuid4())
 
     s3.create_bucket(Bucket=s3_bucket_name)
 
@@ -396,7 +395,7 @@ def test_process_gzipped_file():
     s3 = boto3.client("s3", region_name="us-east-1")
 
     s3_bucket_name = f"inttest{uuid4()}"
-    table_name = "moto_test_" + str(uuid4())[0:6]
+    table_name = "moto_test_" + str(uuid4())
 
     s3.create_bucket(Bucket=s3_bucket_name)
 

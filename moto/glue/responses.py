@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -33,7 +33,7 @@ class GlueResponse(BaseResponse):
         return glue_backends[self.current_account][self.region]
 
     @property
-    def parameters(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def parameters(self) -> dict[str, Any]:  # type: ignore[misc]
         return json.loads(self.body)
 
     def create_database(self) -> str:
@@ -296,15 +296,15 @@ class GlueResponse(BaseResponse):
         )
         filtered_crawler_names = self.filter_crawlers_by_tags(crawlers, tags)
         return json.dumps(
-            dict(
-                CrawlerNames=[crawler_name for crawler_name in filtered_crawler_names],
-                NextToken=next_token,
-            )
+            {
+                "CrawlerNames": list(filtered_crawler_names),
+                "NextToken": next_token,
+            }
         )
 
     def filter_crawlers_by_tags(
-        self, crawlers: List[FakeCrawler], tags: Dict[str, str]
-    ) -> List[str]:
+        self, crawlers: list[FakeCrawler], tags: dict[str, str]
+    ) -> list[str]:
         if not tags:
             return [crawler.get_name() for crawler in crawlers]
         return [
@@ -381,7 +381,7 @@ class GlueResponse(BaseResponse):
             execution_class=execution_class,
             source_control_details=source_control_details,
         )
-        return json.dumps(dict(Name=name))
+        return json.dumps({"Name": name})
 
     def get_job(self) -> str:
         name = self.parameters.get("JobName")
@@ -395,15 +395,15 @@ class GlueResponse(BaseResponse):
             next_token=next_token, max_results=max_results
         )
         return json.dumps(
-            dict(
-                Jobs=[job.as_dict() for job in jobs],
-                NextToken=next_token,
-            )
+            {
+                "Jobs": [job.as_dict() for job in jobs],
+                "NextToken": next_token,
+            }
         )
 
     def start_job_run(self) -> str:
         allocated_capacity = self._get_int_param("AllocatedCapacity")
-        notification_property = self._get_dict_param("NotificationProperty")
+        notification_property = self._get_param("NotificationProperty")
         number_of_workers = self._get_int_param("NumberOfWorkers")
         security_configuration = self._get_param("SecurityConfiguration")
         timeout = self._get_int_param("Timeout")
@@ -448,10 +448,10 @@ class GlueResponse(BaseResponse):
             max_results=max_results,
         )
         return json.dumps(
-            dict(
-                JobRuns=[job_run.as_dict() for job_run in job_runs],
-                NextToken=next_token,
-            )
+            {
+                "JobRuns": [job_run.as_dict() for job_run in job_runs],
+                "NextToken": next_token,
+            }
         )
 
     def list_jobs(self) -> str:
@@ -463,10 +463,10 @@ class GlueResponse(BaseResponse):
         )
         filtered_job_names = self.filter_jobs_by_tags(jobs, tags)
         return json.dumps(
-            dict(
-                JobNames=[job_name for job_name in filtered_job_names],
-                NextToken=next_token,
-            )
+            {
+                "JobNames": list(filtered_job_names),
+                "NextToken": next_token,
+            }
         )
 
     def delete_job(self) -> str:
@@ -492,15 +492,15 @@ class GlueResponse(BaseResponse):
         return 200, {}, "{}"
 
     def filter_jobs_by_tags(
-        self, jobs: List[FakeJob], tags: Dict[str, str]
-    ) -> List[str]:
+        self, jobs: list[FakeJob], tags: dict[str, str]
+    ) -> list[str]:
         if not tags:
             return [job.get_name() for job in jobs]
         return [job.get_name() for job in jobs if self.is_tags_match(job.arn, tags)]
 
     def filter_triggers_by_tags(
-        self, triggers: List[FakeTrigger], tags: Dict[str, str]
-    ) -> List[str]:
+        self, triggers: list[FakeTrigger], tags: dict[str, str]
+    ) -> list[str]:
         if not tags:
             return [trigger.get_name() for trigger in triggers]
         return [
@@ -509,7 +509,7 @@ class GlueResponse(BaseResponse):
             if self.is_tags_match(trigger.arn, tags)
         ]
 
-    def is_tags_match(self, resource_arn: str, tags: Dict[str, str]) -> bool:
+    def is_tags_match(self, resource_arn: str, tags: dict[str, str]) -> bool:
         glue_resource_tags = self.glue_backend.get_tags(resource_arn)
         mutual_keys = set(glue_resource_tags).intersection(tags)
         for key in mutual_keys:
@@ -645,19 +645,19 @@ class GlueResponse(BaseResponse):
         filtered_session_ids = self._filter_sessions_by_tags(sessions, tags)
 
         return json.dumps(
-            dict(
-                Ids=[session_id for session_id in filtered_session_ids],
-                Sessions=[
+            {
+                "Ids": list(filtered_session_ids),
+                "Sessions": [
                     self.glue_backend.get_session(session_id).as_dict()
                     for session_id in filtered_session_ids
                 ],
-                NextToken=next_token,
-            )
+                "NextToken": next_token,
+            }
         )
 
     def _filter_sessions_by_tags(
-        self, sessions: List[FakeSession], tags: Dict[str, str]
-    ) -> List[str]:
+        self, sessions: list[FakeSession], tags: dict[str, str]
+    ) -> list[str]:
         if not tags:
             return [session.get_id() for session in sessions]
         return [
@@ -680,7 +680,7 @@ class GlueResponse(BaseResponse):
         crawler_names = self._get_param("CrawlerNames")
         crawlers = self.glue_backend.batch_get_crawlers(crawler_names)
         crawlers_not_found = list(
-            set(crawler_names) - set(map(lambda crawler: crawler["Name"], crawlers))
+            set(crawler_names) - {crawler["Name"] for crawler in crawlers}
         )
         return json.dumps(
             {
@@ -692,7 +692,7 @@ class GlueResponse(BaseResponse):
     def batch_get_jobs(self) -> str:
         job_names = self._get_param("JobNames")
         jobs = self.glue_backend.batch_get_jobs(job_names)
-        jobs_not_found = list(set(job_names) - set(map(lambda job: job["Name"], jobs)))
+        jobs_not_found = list(set(job_names) - {job["Name"] for job in jobs})
         return json.dumps(
             {
                 "Jobs": jobs,
@@ -709,7 +709,7 @@ class GlueResponse(BaseResponse):
         trigger_type = self._get_param("Type")
         schedule = self._get_param("Schedule")
 
-        predicate_input: Optional[Dict[str, Union[str, List[Dict[str, str]]]]] = (
+        predicate_input: Optional[dict[str, Union[str, list[dict[str, str]]]]] = (
             self._get_param("Predicate")
         )
         if predicate_input:
@@ -757,10 +757,10 @@ class GlueResponse(BaseResponse):
             max_results=max_results,
         )
         return json.dumps(
-            dict(
-                Triggers=[trigger.as_dict() for trigger in triggers],
-                NextToken=next_token,
-            )
+            {
+                "Triggers": [trigger.as_dict() for trigger in triggers],
+                "NextToken": next_token,
+            }
         )
 
     def list_triggers(self) -> str:
@@ -775,17 +775,17 @@ class GlueResponse(BaseResponse):
         )
         filtered_trigger_names = self.filter_triggers_by_tags(triggers, tags)
         return json.dumps(
-            dict(
-                TriggerNames=[trigger_name for trigger_name in filtered_trigger_names],
-                NextToken=next_token,
-            )
+            {
+                "TriggerNames": list(filtered_trigger_names),
+                "NextToken": next_token,
+            }
         )
 
     def batch_get_triggers(self) -> str:
         trigger_names = self._get_param("TriggerNames")
         triggers = self.glue_backend.batch_get_triggers(trigger_names)
         triggers_not_found = list(
-            set(trigger_names) - set(map(lambda trigger: trigger["Name"], triggers))
+            set(trigger_names) - {trigger["Name"] for trigger in triggers}
         )
         return json.dumps(
             {
@@ -818,10 +818,10 @@ class GlueResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                DevEndpoints=[endpoint.as_dict() for endpoint in endpoints],
-                NextToken=next_token,
-            )
+            {
+                "DevEndpoints": [endpoint.as_dict() for endpoint in endpoints],
+                "NextToken": next_token,
+            }
         )
 
     def create_dev_endpoint(self) -> str:
@@ -880,7 +880,7 @@ class GlueResponse(BaseResponse):
             connection_input=connection_input,
             tags=tags,
         )
-        return json.dumps(dict(CreateConnectionStatus=create_connection_status))
+        return json.dumps({"CreateConnectionStatus": create_connection_status})
 
     def get_connection(self) -> str:
         catalog_id = self._get_param("CatalogId")
@@ -895,7 +895,7 @@ class GlueResponse(BaseResponse):
             hide_password=hide_password,
             apply_override_for_compute_environment=apply_override_for_compute_environment,
         )
-        return json.dumps(dict(Connection=connection.as_dict()))
+        return json.dumps({"Connection": connection.as_dict()})
 
     def get_connections(self) -> str:
         catalog_id = self._get_param("CatalogId")
@@ -911,7 +911,7 @@ class GlueResponse(BaseResponse):
             max_results=max_results,
         )
         connection_list = [connection.as_dict() for connection in connections]
-        return json.dumps(dict(ConnectionList=connection_list, NextToken=next_token))
+        return json.dumps({"ConnectionList": connection_list, "NextToken": next_token})
 
     def put_data_catalog_encryption_settings(self) -> str:
         params = self.parameters
@@ -1104,3 +1104,34 @@ class GlueResponse(BaseResponse):
             workflow_name, run_id, run_properties
         )
         return json.dumps({})
+
+    def create_security_configuration(self) -> str:
+        name = self._get_param("Name")
+        configuration = self._get_param("EncryptionConfiguration")
+
+        sc = self.glue_backend.create_security_configuration(name, configuration)
+        return json.dumps(
+            {"Name": sc.name, "CreatedTimestamp": sc.created_time.isoformat()}
+        )
+
+    def get_security_configuration(self) -> str:
+        name = self._get_param("Name")
+        security_configuration = self.glue_backend.get_security_configuration(name)
+        return json.dumps({"SecurityConfiguration": security_configuration.as_dict()})
+
+    def delete_security_configuration(self) -> str:
+        name = self._get_param("Name")
+        self.glue_backend.delete_security_configuration(name)
+        return ""
+
+    def get_security_configurations(self) -> str:
+        security_configurations = self.glue_backend.get_security_configurations()
+
+        return json.dumps(
+            {
+                "SecurityConfigurations": [
+                    sc.as_dict() for sc in security_configurations
+                ],
+                "NextToken": None,
+            }
+        )

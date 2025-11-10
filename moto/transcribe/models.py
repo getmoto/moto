@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -17,8 +17,8 @@ class BaseObject(BaseModel):
             words.append(word.title())
         return "".join(words)
 
-    def gen_response_object(self) -> Dict[str, Any]:
-        response_object: Dict[str, Any] = dict()
+    def gen_response_object(self) -> dict[str, Any]:
+        response_object: dict[str, Any] = {}
         for key, value in self.__dict__.items():
             if "_" in key:
                 response_object[self.camelCase(key)] = value
@@ -27,7 +27,7 @@ class BaseObject(BaseModel):
         return response_object
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         return self.gen_response_object()
 
 
@@ -40,18 +40,18 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         language_code: Optional[str],
         media_sample_rate_hertz: Optional[int],
         media_format: Optional[str],
-        media: Dict[str, str],
+        media: dict[str, str],
         output_bucket_name: Optional[str],
         output_key: Optional[str],
         output_encryption_kms_key_id: Optional[str],
-        settings: Optional[Dict[str, Any]],
-        model_settings: Optional[Dict[str, Optional[str]]],
-        job_execution_settings: Optional[Dict[str, Any]],
-        content_redaction: Optional[Dict[str, Any]],
+        settings: Optional[dict[str, Any]],
+        model_settings: Optional[dict[str, Optional[str]]],
+        job_execution_settings: Optional[dict[str, Any]],
+        content_redaction: Optional[dict[str, Any]],
         identify_language: Optional[bool],
         identify_multiple_languages: Optional[bool],
-        language_options: Optional[List[str]],
-        subtitles: Optional[Dict[str, Any]],
+        language_options: Optional[list[str]],
+        subtitles: Optional[dict[str, Any]],
     ):
         ManagedState.__init__(
             self,
@@ -66,11 +66,11 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         self._region_name = region_name
         self.transcription_job_name = transcription_job_name
         self.language_code = language_code
-        self.language_codes: Optional[List[Dict[str, Any]]] = None
+        self.language_codes: Optional[list[dict[str, Any]]] = None
         self.media_sample_rate_hertz = media_sample_rate_hertz
         self.media_format = media_format
         self.media = media
-        self.transcript: Optional[Dict[str, str]] = None
+        self.transcript: Optional[dict[str, str]] = None
         self.start_time: Optional[str] = None
         self.completion_time: Optional[str] = None
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -101,7 +101,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         )
         self.subtitles = subtitles or {"Formats": [], "OutputStartIndex": 0}
 
-    def response_object(self, response_type: str) -> Dict[str, Any]:  # type: ignore
+    def response_object(self, response_type: str) -> dict[str, Any]:  # type: ignore
         response_field_dict = {
             "CREATE": [
                 "TranscriptionJobName",
@@ -200,7 +200,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
                 self.identified_language_score = 0.999645948
                 # Identify first two languages passed in language_options
                 # If none is set, default to "en-US"
-                self.language_codes: List[Dict[str, Any]] = []  # type: ignore[no-redef]
+                self.language_codes: list[dict[str, Any]] = []  # type: ignore[no-redef]
                 if self.language_options is None or len(self.language_options) == 0:
                     self.language_codes.append(
                         {"LanguageCode": "en-US", "DurationInSeconds": 123.0}
@@ -255,7 +255,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         region_name: str,
         vocabulary_name: str,
         language_code: str,
-        phrases: Optional[List[str]],
+        phrases: Optional[list[str]],
         vocabulary_file_uri: Optional[str],
     ):
         # Configured ManagedState
@@ -273,7 +273,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         self.failure_reason = None
         self.download_uri = f"https://s3.{region_name}.amazonaws.com/aws-transcribe-dictionary-model-{region_name}-prod/{account_id}/{vocabulary_name}/{mock_random.uuid4()}/input.txt"
 
-    def response_object(self, response_type: str) -> Dict[str, Any]:  # type: ignore
+    def response_object(self, response_type: str) -> dict[str, Any]:  # type: ignore
         response_field_dict = {
             "CREATE": [
                 "VocabularyName",
@@ -323,10 +323,10 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
         language_code: str,
         media_sample_rate_hertz: Optional[int],
         media_format: Optional[str],
-        media: Dict[str, str],
+        media: dict[str, str],
         output_bucket_name: str,
         output_encryption_kms_key_id: Optional[str],
-        settings: Optional[Dict[str, Any]],
+        settings: Optional[dict[str, Any]],
         specialty: str,
         job_type: str,
     ):
@@ -345,7 +345,7 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
         self.media_sample_rate_hertz = media_sample_rate_hertz
         self.media_format = media_format
         self.media = media
-        self.transcript: Optional[Dict[str, str]] = None
+        self.transcript: Optional[dict[str, str]] = None
         self.start_time: Optional[str] = None
         self.completion_time: Optional[str] = None
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -360,7 +360,7 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
         self._output_encryption_kms_key_id = output_encryption_kms_key_id
         self.output_location_type = "CUSTOMER_BUCKET"
 
-    def response_object(self, response_type: str) -> Dict[str, Any]:  # type: ignore
+    def response_object(self, response_type: str) -> dict[str, Any]:  # type: ignore
         response_field_dict = {
             "CREATE": [
                 "MedicalTranscriptionJobName",
@@ -475,10 +475,10 @@ class FakeMedicalVocabulary(FakeVocabulary):
 class TranscribeBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.medical_transcriptions: Dict[str, FakeMedicalTranscriptionJob] = {}
-        self.transcriptions: Dict[str, FakeTranscriptionJob] = {}
-        self.medical_vocabularies: Dict[str, FakeMedicalVocabulary] = {}
-        self.vocabularies: Dict[str, FakeVocabulary] = {}
+        self.medical_transcriptions: dict[str, FakeMedicalTranscriptionJob] = {}
+        self.transcriptions: dict[str, FakeTranscriptionJob] = {}
+        self.medical_vocabularies: dict[str, FakeMedicalVocabulary] = {}
+        self.vocabularies: dict[str, FakeVocabulary] = {}
 
     def start_transcription_job(
         self,
@@ -486,19 +486,19 @@ class TranscribeBackend(BaseBackend):
         language_code: Optional[str],
         media_sample_rate_hertz: Optional[int],
         media_format: Optional[str],
-        media: Dict[str, str],
+        media: dict[str, str],
         output_bucket_name: Optional[str],
         output_key: Optional[str],
         output_encryption_kms_key_id: Optional[str],
-        settings: Optional[Dict[str, Any]],
-        model_settings: Optional[Dict[str, Optional[str]]],
-        job_execution_settings: Optional[Dict[str, Any]],
-        content_redaction: Optional[Dict[str, Any]],
+        settings: Optional[dict[str, Any]],
+        model_settings: Optional[dict[str, Optional[str]]],
+        job_execution_settings: Optional[dict[str, Any]],
+        content_redaction: Optional[dict[str, Any]],
         identify_language: Optional[bool],
         identify_multiple_languages: Optional[bool],
-        language_options: Optional[List[str]],
-        subtitles: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
+        language_options: Optional[list[str]],
+        subtitles: Optional[dict[str, Any]],
+    ) -> dict[str, Any]:
         if transcription_job_name in self.transcriptions:
             raise ConflictException(
                 message="The requested job name already exists. Use a different job name."
@@ -541,13 +541,13 @@ class TranscribeBackend(BaseBackend):
         language_code: str,
         media_sample_rate_hertz: Optional[int],
         media_format: Optional[str],
-        media: Dict[str, str],
+        media: dict[str, str],
         output_bucket_name: str,
         output_encryption_kms_key_id: Optional[str],
-        settings: Optional[Dict[str, Any]],
+        settings: Optional[dict[str, Any]],
         specialty: str,
         type_: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if medical_transcription_job_name in self.medical_transcriptions:
             raise ConflictException(
                 message="The requested job name already exists. Use a different job name."
@@ -580,7 +580,7 @@ class TranscribeBackend(BaseBackend):
 
         return transcription_job_object.response_object("CREATE")
 
-    def get_transcription_job(self, transcription_job_name: str) -> Dict[str, Any]:
+    def get_transcription_job(self, transcription_job_name: str) -> dict[str, Any]:
         try:
             job = self.transcriptions[transcription_job_name]
             job.advance()  # Fakes advancement through statuses.
@@ -593,7 +593,7 @@ class TranscribeBackend(BaseBackend):
 
     def get_medical_transcription_job(
         self, medical_transcription_job_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         try:
             job = self.medical_transcriptions[medical_transcription_job_name]
             job.advance()  # Fakes advancement through statuses.
@@ -630,7 +630,7 @@ class TranscribeBackend(BaseBackend):
         job_name_contains: str,
         next_token: str,
         max_results: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         jobs = list(self.transcriptions.values())
 
         if state_equals:
@@ -647,7 +647,7 @@ class TranscribeBackend(BaseBackend):
         )  # Arbitrarily selected...
         jobs_paginated = jobs[start_offset:end_offset]
 
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "TranscriptionJobSummaries": [
                 job.response_object("LIST") for job in jobs_paginated
             ]
@@ -660,7 +660,7 @@ class TranscribeBackend(BaseBackend):
 
     def list_medical_transcription_jobs(
         self, status: str, job_name_contains: str, next_token: str, max_results: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         jobs = list(self.medical_transcriptions.values())
 
         if status:
@@ -679,7 +679,7 @@ class TranscribeBackend(BaseBackend):
         )  # Arbitrarily selected...
         jobs_paginated = jobs[start_offset:end_offset]
 
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "MedicalTranscriptionJobSummaries": [
                 job.response_object("LIST") for job in jobs_paginated
             ]
@@ -694,9 +694,9 @@ class TranscribeBackend(BaseBackend):
         self,
         vocabulary_name: str,
         language_code: str,
-        phrases: Optional[List[str]],
+        phrases: Optional[list[str]],
         vocabulary_file_uri: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if (
             phrases is not None
             and vocabulary_file_uri is not None
@@ -736,7 +736,7 @@ class TranscribeBackend(BaseBackend):
         vocabulary_name: str,
         language_code: str,
         vocabulary_file_uri: Optional[str],
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if vocabulary_name in self.medical_vocabularies:
             raise ConflictException(
                 message="The requested vocabulary name already exists. "
@@ -755,7 +755,7 @@ class TranscribeBackend(BaseBackend):
 
         return medical_vocabulary_object.response_object("CREATE")
 
-    def get_vocabulary(self, vocabulary_name: str) -> Dict[str, Any]:
+    def get_vocabulary(self, vocabulary_name: str) -> dict[str, Any]:
         try:
             job = self.vocabularies[vocabulary_name]
             job.advance()  # Fakes advancement through statuses.
@@ -766,7 +766,7 @@ class TranscribeBackend(BaseBackend):
                 "Check the vocabulary name and try your request again."
             )
 
-    def get_medical_vocabulary(self, vocabulary_name: str) -> Dict[str, Any]:
+    def get_medical_vocabulary(self, vocabulary_name: str) -> dict[str, Any]:
         try:
             job = self.medical_vocabularies[vocabulary_name]
             job.advance()  # Fakes advancement through statuses.
@@ -795,7 +795,7 @@ class TranscribeBackend(BaseBackend):
 
     def list_vocabularies(
         self, state_equals: str, name_contains: str, next_token: str, max_results: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         vocabularies = list(self.vocabularies.values())
 
         if state_equals:
@@ -818,7 +818,7 @@ class TranscribeBackend(BaseBackend):
         )  # Arbitrarily selected...
         vocabularies_paginated = vocabularies[start_offset:end_offset]
 
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "Vocabularies": [
                 vocabulary.response_object("LIST")
                 for vocabulary in vocabularies_paginated
@@ -832,7 +832,7 @@ class TranscribeBackend(BaseBackend):
 
     def list_medical_vocabularies(
         self, state_equals: str, name_contains: str, next_token: str, max_results: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         vocabularies = list(self.medical_vocabularies.values())
 
         if state_equals:
@@ -855,7 +855,7 @@ class TranscribeBackend(BaseBackend):
         )  # Arbitrarily selected...
         vocabularies_paginated = vocabularies[start_offset:end_offset]
 
-        response: Dict[str, Any] = {
+        response: dict[str, Any] = {
             "Vocabularies": [
                 vocabulary.response_object("LIST")
                 for vocabulary in vocabularies_paginated

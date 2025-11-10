@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import threading
-from typing import Any, Final, List, Optional
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -54,11 +54,11 @@ class Environment:
     activity_store: Final[dict[Arn, Activity]]
     mock_test_case: Optional[MockTestCase] = None
 
-    _frames: Final[List[Environment]]
+    _frames: Final[list[Environment]]
     _is_frame: bool = False
 
-    heap: dict[str, Any] = dict()
-    stack: List[Any] = list()
+    heap: dict[str, Any] = {}
+    stack: list[Any] = []
     states: Final[States]
     variable_store: Final[VariableStore]
 
@@ -73,7 +73,7 @@ class Environment:
         variable_store: Optional[VariableStore] = None,
         mock_test_case: Optional[MockTestCase] = None,
     ):
-        super(Environment, self).__init__()
+        super().__init__()
         self._state_mutex = threading.RLock()
         self._program_state = None
         self.program_state_event = threading.Event()
@@ -93,11 +93,11 @@ class Environment:
 
         self.mock_test_case = mock_test_case
 
-        self._frames = list()
+        self._frames = []
         self._is_frame = False
 
-        self.heap = dict()
-        self.stack = list()
+        self.heap = {}
+        self.stack = []
         self.states = States(context=context)
         self.variable_store = variable_store or VariableStore()
 
@@ -152,7 +152,7 @@ class Environment:
             )
         frame.callback_pool_manager = env.callback_pool_manager
         frame.map_run_record_pool_manager = env.map_run_record_pool_manager
-        frame.heap = dict()
+        frame.heap = {}
         frame._program_state = copy.deepcopy(env._program_state)
         return frame
 

@@ -289,12 +289,12 @@ def test_detach_vpn_gateway():
     assert attachments == [{"State": "detached", "VpcId": vpc.id}]
 
 
-def retrieve_all(client, filters=[]):
-    resp = client.describe_vpn_gateways(Filters=filters)
+def retrieve_all(client, filters=None):
+    resp = client.describe_vpn_gateways(Filters=filters or [])
     all_gateways = resp["VpnGateways"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_vpn_gateways(Filters=filters)
+        resp = client.describe_vpn_gateways(Filters=filters or [])
         all_gateways.extend(resp["VpnGateways"])
         token = resp.get("NextToken")
     return all_gateways

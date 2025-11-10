@@ -52,15 +52,17 @@
 
 ## amp
 <details>
-<summary>43% implemented</summary>
+<summary>38% implemented</summary>
 
 - [ ] create_alert_manager_definition
+- [ ] create_anomaly_detector
 - [X] create_logging_configuration
 - [ ] create_query_logging_configuration
 - [X] create_rule_groups_namespace
 - [ ] create_scraper
 - [X] create_workspace
 - [ ] delete_alert_manager_definition
+- [ ] delete_anomaly_detector
 - [X] delete_logging_configuration
 - [ ] delete_query_logging_configuration
 - [ ] delete_resource_policy
@@ -69,6 +71,7 @@
 - [ ] delete_scraper_logging_configuration
 - [X] delete_workspace
 - [ ] describe_alert_manager_definition
+- [ ] describe_anomaly_detector
 - [X] describe_logging_configuration
 - [ ] describe_query_logging_configuration
 - [ ] describe_resource_policy
@@ -78,11 +81,13 @@
 - [X] describe_workspace
 - [ ] describe_workspace_configuration
 - [ ] get_default_scraper_configuration
+- [ ] list_anomaly_detectors
 - [X] list_rule_groups_namespaces
 - [ ] list_scrapers
 - [X] list_tags_for_resource
 - [X] list_workspaces
 - [ ] put_alert_manager_definition
+- [ ] put_anomaly_detector
 - [ ] put_resource_policy
 - [X] put_rule_groups_namespace
 - [X] tag_resource
@@ -2383,7 +2388,7 @@
 
 ## dms
 <details>
-<summary>8% implemented</summary>
+<summary>13% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2398,21 +2403,21 @@
 - [ ] create_migration_project
 - [ ] create_replication_config
 - [X] create_replication_instance
-- [ ] create_replication_subnet_group
+- [X] create_replication_subnet_group
 - [X] create_replication_task
 - [ ] delete_certificate
 - [ ] delete_connection
 - [ ] delete_data_migration
 - [ ] delete_data_provider
-- [ ] delete_endpoint
+- [X] delete_endpoint
 - [ ] delete_event_subscription
 - [ ] delete_fleet_advisor_collector
 - [ ] delete_fleet_advisor_databases
 - [ ] delete_instance_profile
 - [ ] delete_migration_project
 - [ ] delete_replication_config
-- [ ] delete_replication_instance
-- [ ] delete_replication_subnet_group
+- [X] delete_replication_instance
+- [X] delete_replication_subnet_group
 - [X] delete_replication_task
 - [ ] delete_replication_task_assessment_run
 - [ ] describe_account_attributes
@@ -2450,7 +2455,7 @@
 - [ ] describe_replication_configs
 - [ ] describe_replication_instance_task_logs
 - [X] describe_replication_instances
-- [ ] describe_replication_subnet_groups
+- [X] describe_replication_subnet_groups
 - [ ] describe_replication_table_statistics
 - [ ] describe_replication_task_assessment_results
 - [ ] describe_replication_task_assessment_runs
@@ -2587,14 +2592,17 @@
 
 ## dsql
 <details>
-<summary>22% implemented</summary>
+<summary>16% implemented</summary>
 
 - [X] create_cluster
 - [ ] delete_cluster
+- [ ] delete_cluster_policy
 - [X] get_cluster
+- [ ] get_cluster_policy
 - [ ] get_vpc_endpoint_service_name
 - [ ] list_clusters
 - [ ] list_tags_for_resource
+- [ ] put_cluster_policy
 - [ ] tag_resource
 - [ ] untag_resource
 - [ ] update_cluster
@@ -2687,7 +2695,7 @@
 
 ## ec2
 <details>
-<summary>30% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_capacity_reservation_billing_ownership
@@ -2777,6 +2785,8 @@
 - [ ] create_ipam
 - [ ] create_ipam_external_resource_verification_token
 - [ ] create_ipam_pool
+- [ ] create_ipam_prefix_list_resolver
+- [ ] create_ipam_prefix_list_resolver_target
 - [ ] create_ipam_resource_discovery
 - [ ] create_ipam_scope
 - [X] create_key_pair
@@ -2863,6 +2873,8 @@
 - [ ] delete_ipam
 - [ ] delete_ipam_external_resource_verification_token
 - [ ] delete_ipam_pool
+- [ ] delete_ipam_prefix_list_resolver
+- [ ] delete_ipam_prefix_list_resolver_target
 - [ ] delete_ipam_resource_discovery
 - [ ] delete_ipam_scope
 - [X] delete_key_pair
@@ -2952,6 +2964,7 @@
 - [ ] describe_capacity_manager_data_exports
 - [ ] describe_capacity_reservation_billing_requests
 - [ ] describe_capacity_reservation_fleets
+- [ ] describe_capacity_reservation_topology
 - [ ] describe_capacity_reservations
 - [X] describe_carrier_gateways
 - [ ] describe_classic_link_instances
@@ -3005,6 +3018,8 @@
 - [ ] describe_ipam_byoasn
 - [ ] describe_ipam_external_resource_verification_tokens
 - [ ] describe_ipam_pools
+- [ ] describe_ipam_prefix_list_resolver_targets
+- [ ] describe_ipam_prefix_list_resolvers
 - [ ] describe_ipam_resource_discoveries
 - [ ] describe_ipam_resource_discovery_associations
 - [ ] describe_ipam_scopes
@@ -3207,6 +3222,9 @@
 - [ ] get_ipam_discovered_resource_cidrs
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
+- [ ] get_ipam_prefix_list_resolver_rules
+- [ ] get_ipam_prefix_list_resolver_version_entries
+- [ ] get_ipam_prefix_list_resolver_versions
 - [ ] get_ipam_resource_cidrs
 - [X] get_launch_template_data
 - [ ] get_managed_prefix_list_associations
@@ -3272,6 +3290,8 @@
 - [ ] modify_instance_placement
 - [ ] modify_ipam
 - [ ] modify_ipam_pool
+- [ ] modify_ipam_prefix_list_resolver
+- [ ] modify_ipam_prefix_list_resolver_target
 - [ ] modify_ipam_resource_cidr
 - [ ] modify_ipam_resource_discovery
 - [ ] modify_ipam_scope
@@ -4201,14 +4221,14 @@
 
 ## fsx
 <details>
-<summary>10% implemented</summary>
+<summary>16% implemented</summary>
 
 - [ ] associate_file_system_aliases
 - [ ] cancel_data_repository_task
 - [ ] copy_backup
 - [ ] copy_snapshot_and_update_volume
 - [ ] create_and_attach_s3_access_point
-- [ ] create_backup
+- [X] create_backup
 - [ ] create_data_repository_association
 - [ ] create_data_repository_task
 - [ ] create_file_cache
@@ -4218,7 +4238,7 @@
 - [ ] create_storage_virtual_machine
 - [ ] create_volume
 - [ ] create_volume_from_backup
-- [ ] delete_backup
+- [X] delete_backup
 - [ ] delete_data_repository_association
 - [ ] delete_file_cache
 - [X] delete_file_system
@@ -4238,7 +4258,7 @@
 - [ ] describe_volumes
 - [ ] detach_and_delete_s3_access_point
 - [ ] disassociate_file_system_aliases
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] release_file_system_nfs_v3_locks
 - [ ] restore_volume_from_snapshot
 - [ ] start_misconfigured_state_recovery
@@ -4294,7 +4314,7 @@
 
 ## glue
 <details>
-<summary>35% implemented</summary>
+<summary>37% implemented</summary>
 
 - [X] batch_create_partition
 - [ ] batch_delete_connection
@@ -4340,7 +4360,7 @@
 - [X] create_registry
 - [X] create_schema
 - [ ] create_script
-- [ ] create_security_configuration
+- [X] create_security_configuration
 - [X] create_session
 - [X] create_table
 - [ ] create_table_optimizer
@@ -4371,7 +4391,7 @@
 - [X] delete_resource_policy
 - [X] delete_schema
 - [ ] delete_schema_versions
-- [ ] delete_security_configuration
+- [X] delete_security_configuration
 - [X] delete_session
 - [X] delete_table
 - [ ] delete_table_optimizer
@@ -4440,8 +4460,8 @@
 - [X] get_schema_by_definition
 - [X] get_schema_version
 - [ ] get_schema_versions_diff
-- [ ] get_security_configuration
-- [ ] get_security_configurations
+- [X] get_security_configuration
+- [X] get_security_configurations
 - [X] get_session
 - [ ] get_statement
 - [X] get_table
@@ -5412,7 +5432,7 @@
 
 ## kinesis
 <details>
-<summary>88% implemented</summary>
+<summary>86% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -5447,6 +5467,7 @@
 - [ ] subscribe_to_shard
 - [ ] tag_resource
 - [ ] untag_resource
+- [ ] update_max_record_size
 - [X] update_shard_count
 - [X] update_stream_mode
 </details>
@@ -6122,7 +6143,7 @@
 
 ## medialive
 <details>
-<summary>10% implemented</summary>
+<summary>9% implemented</summary>
 
 - [ ] accept_input_device_transfer
 - [ ] batch_delete
@@ -6189,10 +6210,12 @@
 - [ ] get_event_bridge_rule_template
 - [ ] get_event_bridge_rule_template_group
 - [ ] get_signal_map
+- [ ] list_alerts
 - [ ] list_channel_placement_groups
 - [X] list_channels
 - [ ] list_cloud_watch_alarm_template_groups
 - [ ] list_cloud_watch_alarm_templates
+- [ ] list_cluster_alerts
 - [ ] list_clusters
 - [ ] list_event_bridge_rule_template_groups
 - [ ] list_event_bridge_rule_templates
@@ -6200,6 +6223,7 @@
 - [ ] list_input_devices
 - [ ] list_input_security_groups
 - [X] list_inputs
+- [ ] list_multiplex_alerts
 - [ ] list_multiplex_programs
 - [ ] list_multiplexes
 - [ ] list_networks
@@ -7149,32 +7173,6 @@
 - [ ] synthesize_speech
 </details>
 
-## qldb
-<details>
-<summary>30% implemented</summary>
-
-- [ ] cancel_journal_kinesis_stream
-- [X] create_ledger
-- [X] delete_ledger
-- [ ] describe_journal_kinesis_stream
-- [ ] describe_journal_s3_export
-- [X] describe_ledger
-- [ ] export_journal_to_s3
-- [ ] get_block
-- [ ] get_digest
-- [ ] get_revision
-- [ ] list_journal_kinesis_streams_for_ledger
-- [ ] list_journal_s3_exports
-- [ ] list_journal_s3_exports_for_ledger
-- [ ] list_ledgers
-- [X] list_tags_for_resource
-- [ ] stream_journal_to_kinesis
-- [X] tag_resource
-- [ ] untag_resource
-- [X] update_ledger
-- [ ] update_ledger_permissions_mode
-</details>
-
 ## quicksight
 <details>
 <summary>13% implemented</summary>
@@ -7982,69 +7980,6 @@
 - [X] untag_resources
 </details>
 
-## robomaker
-<details>
-<summary>7% implemented</summary>
-
-- [ ] batch_delete_worlds
-- [ ] batch_describe_simulation_job
-- [ ] cancel_deployment_job
-- [ ] cancel_simulation_job
-- [ ] cancel_simulation_job_batch
-- [ ] cancel_world_export_job
-- [ ] cancel_world_generation_job
-- [ ] create_deployment_job
-- [ ] create_fleet
-- [ ] create_robot
-- [X] create_robot_application
-- [ ] create_robot_application_version
-- [ ] create_simulation_application
-- [ ] create_simulation_application_version
-- [ ] create_simulation_job
-- [ ] create_world_export_job
-- [ ] create_world_generation_job
-- [ ] create_world_template
-- [ ] delete_fleet
-- [ ] delete_robot
-- [X] delete_robot_application
-- [ ] delete_simulation_application
-- [ ] delete_world_template
-- [ ] deregister_robot
-- [ ] describe_deployment_job
-- [ ] describe_fleet
-- [ ] describe_robot
-- [X] describe_robot_application
-- [ ] describe_simulation_application
-- [ ] describe_simulation_job
-- [ ] describe_simulation_job_batch
-- [ ] describe_world
-- [ ] describe_world_export_job
-- [ ] describe_world_generation_job
-- [ ] describe_world_template
-- [ ] get_world_template_body
-- [ ] list_deployment_jobs
-- [ ] list_fleets
-- [X] list_robot_applications
-- [ ] list_robots
-- [ ] list_simulation_applications
-- [ ] list_simulation_job_batches
-- [ ] list_simulation_jobs
-- [ ] list_tags_for_resource
-- [ ] list_world_export_jobs
-- [ ] list_world_generation_jobs
-- [ ] list_world_templates
-- [ ] list_worlds
-- [ ] register_robot
-- [ ] restart_simulation_job
-- [ ] start_simulation_job_batch
-- [ ] sync_deployment_job
-- [ ] tag_resource
-- [ ] untag_resource
-- [ ] update_robot_application
-- [ ] update_simulation_application
-- [ ] update_world_template
-</details>
-
 ## route53
 <details>
 <summary>42% implemented</summary>
@@ -8490,6 +8425,28 @@
 - [X] update_table_metadata_location
 </details>
 
+## s3vectors
+<details>
+<summary>25% implemented</summary>
+
+- [ ] create_index
+- [X] create_vector_bucket
+- [ ] delete_index
+- [X] delete_vector_bucket
+- [ ] delete_vector_bucket_policy
+- [ ] delete_vectors
+- [ ] get_index
+- [X] get_vector_bucket
+- [ ] get_vector_bucket_policy
+- [ ] get_vectors
+- [ ] list_indexes
+- [X] list_vector_buckets
+- [ ] list_vectors
+- [ ] put_vector_bucket_policy
+- [ ] put_vectors
+- [ ] query_vectors
+</details>
+
 ## sagemaker
 <details>
 <summary>30% implemented</summary>
@@ -8613,10 +8570,12 @@
 - [ ] delete_optimization_job
 - [ ] delete_partner_app
 - [X] delete_pipeline
+- [ ] delete_processing_job
 - [ ] delete_project
 - [ ] delete_space
 - [ ] delete_studio_lifecycle_config
 - [X] delete_tags
+- [ ] delete_training_job
 - [X] delete_trial
 - [X] delete_trial_component
 - [ ] delete_user_profile
@@ -10198,7 +10157,7 @@
 
 ## vpc-lattice
 <details>
-<summary>13% implemented</summary>
+<summary>23% implemented</summary>
 
 - [ ] batch_update_rule
 - [X] create_access_log_subscription
@@ -10234,8 +10193,8 @@
 - [ ] get_resource_gateway
 - [ ] get_resource_policy
 - [ ] get_rule
-- [ ] get_service
-- [ ] get_service_network
+- [X] get_service
+- [X] get_service_network
 - [ ] get_service_network_resource_association
 - [ ] get_service_network_service_association
 - [ ] get_service_network_vpc_association
@@ -10250,16 +10209,16 @@
 - [ ] list_service_network_service_associations
 - [ ] list_service_network_vpc_associations
 - [ ] list_service_network_vpc_endpoint_associations
-- [ ] list_service_networks
-- [ ] list_services
-- [ ] list_tags_for_resource
+- [X] list_service_networks
+- [X] list_services
+- [X] list_tags_for_resource
 - [ ] list_target_groups
 - [ ] list_targets
 - [ ] put_auth_policy
 - [ ] put_resource_policy
 - [ ] register_targets
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_access_log_subscription
 - [ ] update_listener
 - [ ] update_resource_configuration
@@ -10527,7 +10486,6 @@
 - applicationcostprofiler
 - apprunner
 - appstream
-- apptest
 - arc-region-switch
 - arc-zonal-shift
 - artifact
@@ -10633,7 +10591,6 @@
 - iotdeviceadvisor
 - iotevents
 - iotevents-data
-- iotfleethub
 - iotfleetwise
 - iotsecuretunneling
 - iotsitewise
@@ -10661,8 +10618,6 @@
 - lightsail
 - location
 - lookoutequipment
-- lookoutmetrics
-- lookoutvision
 - m2
 - machinelearning
 - mailmanager
@@ -10715,7 +10670,6 @@
 - qapps
 - qbusiness
 - qconnect
-- qldb-session
 - rbin
 - redshift-serverless
 - repostspace
@@ -10725,9 +10679,9 @@
 - route53-recovery-control-config
 - route53-recovery-readiness
 - route53profiles
+- rtbfabric
 - rum
 - s3outposts
-- s3vectors
 - sagemaker-a2i-runtime
 - sagemaker-edge
 - sagemaker-featurestore-runtime

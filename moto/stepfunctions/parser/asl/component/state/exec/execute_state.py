@@ -3,7 +3,7 @@ import copy
 import logging
 import threading
 from threading import Thread
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskFailedEventDetails
 from moto.stepfunctions.parser.asl.component.common.catch.catch_decl import CatchDecl
@@ -184,8 +184,8 @@ class ExecutionState(CommonStateField, abc.ABC):
         frame: Environment = env.open_frame()
         frame.states.reset(input_value=env.states.get_input())
         frame.stack = copy.deepcopy(env.stack)
-        execution_outputs: List[Any] = list()
-        execution_exceptions: List[Optional[Exception]] = [None]
+        execution_outputs: list[Any] = []
+        execution_exceptions: list[Optional[Exception]] = [None]
         terminated_event = threading.Event()
 
         def _exec_and_notify():

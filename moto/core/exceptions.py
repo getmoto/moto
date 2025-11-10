@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from jinja2 import DictLoader, Environment
 from werkzeug.exceptions import HTTPException
@@ -121,7 +121,7 @@ class RESTError(HTTPException):
             )
             self.content_type = APP_XML
 
-    def get_headers(self, *args: Any, **kwargs: Any) -> List[Tuple[str, str]]:
+    def get_headers(self, *args: Any, **kwargs: Any) -> list[tuple[str, str]]:
         return [
             ("X-Amzn-ErrorType", self.relative_error_type or "UnknownError"),
             ("Content-Type", self.content_type),
@@ -140,13 +140,9 @@ class RESTError(HTTPException):
         return err
 
     @classmethod
-    def extended_environment(cls, extended_templates: Dict[str, str]) -> Environment:
+    def extended_environment(cls, extended_templates: dict[str, str]) -> Environment:
         templates = cls.templates | extended_templates
         return Environment(loader=DictLoader(templates))
-
-
-class DryRunClientError(RESTError):
-    code = 412
 
 
 class JsonRESTError(RESTError):

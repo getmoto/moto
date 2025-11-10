@@ -223,7 +223,7 @@ def test_remove_regions_from_replication():
 
     # Primary Secret knows about replicas
     replications = use1.describe_secret(SecretId=arn1)["ReplicationStatus"]
-    assert set([rep["Region"] for rep in replications]) == {"us-east-2", "us-west-2"}
+    assert {rep["Region"] for rep in replications} == {"us-east-2", "us-west-2"}
 
     # Remove us-east-2 replication
     use1.remove_regions_from_replication(
@@ -237,7 +237,7 @@ def test_remove_regions_from_replication():
 
     # Primary Secret no longer knows about us-east-2
     replications = use1.describe_secret(SecretId=arn1)["ReplicationStatus"]
-    assert set([rep["Region"] for rep in replications]) == {"us-west-2"}
+    assert {rep["Region"] for rep in replications} == {"us-west-2"}
 
     # Removing region is idempotent - invoking it again does not result in any errors
     use1.remove_regions_from_replication(

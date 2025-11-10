@@ -1,5 +1,5 @@
 import string
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,8 +16,8 @@ class Pipeline(BaseModel):
         input_bucket: str,
         output_bucket: str,
         role: str,
-        content_config: Dict[str, Any],
-        thumbnail_config: Dict[str, Any],
+        content_config: dict[str, Any],
+        thumbnail_config: dict[str, Any],
     ):
         a = "".join(random.choice(string.digits) for _ in range(13))
         b = "".join(random.choice(string.ascii_lowercase) for _ in range(6))
@@ -43,7 +43,7 @@ class Pipeline(BaseModel):
         if role:
             self.role = role
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Id": self.id,
             "Name": self.name,
@@ -66,7 +66,7 @@ class Pipeline(BaseModel):
 class ElasticTranscoderBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.pipelines: Dict[str, Pipeline] = {}
+        self.pipelines: dict[str, Pipeline] = {}
 
     def create_pipeline(
         self,
@@ -74,9 +74,9 @@ class ElasticTranscoderBackend(BaseBackend):
         input_bucket: str,
         output_bucket: str,
         role: str,
-        content_config: Dict[str, Any],
-        thumbnail_config: Dict[str, Any],
-    ) -> Tuple[Pipeline, List[str]]:
+        content_config: dict[str, Any],
+        thumbnail_config: dict[str, Any],
+    ) -> tuple[Pipeline, list[str]]:
         """
         The following parameters are not yet implemented:
         AWSKMSKeyArn, Notifications
@@ -92,10 +92,10 @@ class ElasticTranscoderBackend(BaseBackend):
             thumbnail_config,
         )
         self.pipelines[pipeline.id] = pipeline
-        warnings: List[str] = []
+        warnings: list[str] = []
         return pipeline, warnings
 
-    def list_pipelines(self) -> List[Dict[str, Any]]:
+    def list_pipelines(self) -> list[dict[str, Any]]:
         return [p.to_dict() for _, p in self.pipelines.items()]
 
     def read_pipeline(self, pipeline_id: str) -> Pipeline:
@@ -103,14 +103,14 @@ class ElasticTranscoderBackend(BaseBackend):
 
     def update_pipeline(
         self, pipeline_id: str, name: str, input_bucket: str, role: str
-    ) -> Tuple[Pipeline, List[str]]:
+    ) -> tuple[Pipeline, list[str]]:
         """
         The following parameters are not yet implemented:
         AWSKMSKeyArn, Notifications, ContentConfig, ThumbnailConfig
         """
         pipeline = self.read_pipeline(pipeline_id)
         pipeline.update(name, input_bucket, role)
-        warnings: List[str] = []
+        warnings: list[str] = []
         return pipeline, warnings
 
     def delete_pipeline(self, pipeline_id: str) -> None:

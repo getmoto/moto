@@ -86,7 +86,7 @@ jobs:
         docker stop motoserver
     - name: Archive Logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: custom_port
         path: |
@@ -142,7 +142,7 @@ jobs:
         cp server_output.log serverlogs2/server_output.log
     - name: Archive logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: custom_name
         path: |
@@ -199,7 +199,7 @@ jobs:
         cp server_output.log serverlogs3/server_output.log
     - name: Archive Logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: custom_mode
         path: |

@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 PAGINATION_MODEL = {
     "list_executions": {
         "input_token": "next_token",
@@ -22,9 +20,9 @@ PAGINATION_MODEL = {
 }
 
 
-def cfn_to_api_tags(cfn_tags_entry: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def cfn_to_api_tags(cfn_tags_entry: list[dict[str, str]]) -> list[dict[str, str]]:
     return [{k.lower(): v for k, v in d.items()} for d in cfn_tags_entry]
 
 
-def api_to_cfn_tags(api_tags: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def api_to_cfn_tags(api_tags: list[dict[str, str]]) -> list[dict[str, str]]:
     return [{k.capitalize(): v for k, v in d.items()} for d in api_tags]

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Type, Union
+from typing import Any, Union
 
 from moto.core.common_models import BaseModel
 
@@ -54,7 +54,7 @@ PAGINATION_MODEL = {
 class QuicksightBaseSearchFilter(BaseModel):
     """Base Search Filter."""
 
-    schema: Dict[str, Any] = {
+    schema: dict[str, Any] = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
     }
 
@@ -98,7 +98,7 @@ class QuicksightGroupSearchFilter(QuicksightBaseSearchFilter):
         return False
 
     @classmethod
-    def parse_filter(cls, filter: Dict[str, str]) -> QuicksightBaseSearchFilter:
+    def parse_filter(cls, filter: dict[str, str]) -> QuicksightBaseSearchFilter:
         return QuicksightGroupSearchFilter(
             operator=filter.get("Operator", ""),
             name=filter.get("Name", ""),
@@ -109,11 +109,11 @@ class QuicksightGroupSearchFilter(QuicksightBaseSearchFilter):
 class QuicksightSearchFilterList:
     """Generic QuickSight Search Filter List."""
 
-    def __init__(self, filters: List[QuicksightBaseSearchFilter]):
-        self.filters: List[QuicksightBaseSearchFilter] = filters
+    def __init__(self, filters: list[QuicksightBaseSearchFilter]):
+        self.filters: list[QuicksightBaseSearchFilter] = filters
 
     def match(self, input: BaseModel) -> bool:
-        return any([filter.match(input) for filter in self.filters])
+        return any(filter.match(input) for filter in self.filters)
 
 
 class QuicksightSearchFilterFactory:
@@ -121,7 +121,7 @@ class QuicksightSearchFilterFactory:
 
     @classmethod
     def validate_and_create_filter(
-        cls, model_type: Type[BaseModel], input: Union[List[Dict[str, str]], None]
+        cls, model_type: type[BaseModel], input: Union[list[dict[str, str]], None]
     ) -> QuicksightSearchFilterList:
         if issubclass(model_type, QuicksightGroup):
             if input is None:

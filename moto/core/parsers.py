@@ -65,13 +65,13 @@ class QueryParser(RequestParser):
         return parsed if parsed is not UNDEFINED else {}
 
     def _parse_shape(self, shape, node, prefix=""):
-        handler = getattr(self, "_handle_%s" % shape.type_name, self._default_handle)
+        handler = getattr(self, f"_handle_{shape.type_name}", self._default_handle)
         return handler(shape, node, prefix)
 
     def _gonna_recurse(self, query_params, prefix):
         if prefix == "":
             return False
-        return not any([param_key.startswith(prefix) for param_key in query_params])
+        return not any(param_key.startswith(prefix) for param_key in query_params)
 
     def _handle_structure(self, shape, query_params, prefix=""):
         if self._gonna_recurse(query_params, prefix):
@@ -82,7 +82,7 @@ class QueryParser(RequestParser):
             member_shape = members[member_name]
             member_prefix = self._get_serialized_name(member_shape, member_name)
             if prefix:
-                member_prefix = "%s.%s" % (prefix, member_prefix)
+                member_prefix = f"{prefix}.{member_prefix}"
             value = self._parse_shape(member_shape, query_params, member_prefix)
             parsed_key = self._parsed_key_name(member_name)
             if value is not UNDEFINED:
@@ -181,6 +181,30 @@ class QueryParser(RequestParser):
         return key_name
 
 
+class EC2QueryParser(QueryParser):
+    def _get_serialized_name(self, shape, default_name):
+        # https://smithy.io/2.0/aws/protocols/aws-ec2-query-protocol.html#query-key-resolution
+        if "queryName" in shape.serialization:
+            return shape.serialization["queryName"]
+        if "name" in shape.serialization:
+            name = shape.serialization["name"]
+            return name[0].upper() + name[1:]
+        return default_name
+
+    def _handle_list(self, shape, node, prefix=""):
+        parsed_list = []
+        i = 1
+        while True:
+            element_name = f"{prefix}.{i}"
+            element_shape = shape.member
+            value = self._parse_shape(element_shape, node, element_name)
+            if value is UNDEFINED:
+                break
+            parsed_list.append(value)
+            i += 1
+        return parsed_list if parsed_list != [] else UNDEFINED
+
+
 class JSONParser(RequestParser):
     DEFAULT_ENCODING = "utf-8"
 
@@ -207,7 +231,7 @@ class JSONParser(RequestParser):
         return original_parsed
 
     def _parse_shape(self, shape, node):
-        handler = getattr(self, "_handle_%s" % shape.type_name, self._default_handle)
+        handler = getattr(self, f"_handle_{shape.type_name}", self._default_handle)
         return handler(shape, node)
 
     def _default_handle(self, _, value):
@@ -233,9 +257,9 @@ class JSONParser(RequestParser):
         parsed = self.MAP_TYPE()
         key_shape = shape.key
         value_shape = shape.value
-        for key, value in value.items():
+        for key, item_value in value.items():
             actual_key = self._parse_shape(key_shape, key)
-            actual_value = self._parse_shape(value_shape, value)
+            actual_value = self._parse_shape(value_shape, item_value)
             parsed[actual_key] = actual_value
         return parsed
 
@@ -259,6 +283,7 @@ class JSONParser(RequestParser):
 
 
 PROTOCOL_PARSERS = {
+    "ec2": EC2QueryParser,
     "json": JSONParser,
     "query": QueryParser,
 }

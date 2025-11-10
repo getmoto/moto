@@ -49,9 +49,8 @@ class ElasticBlockStore(EC2BaseResponse):
         return template.render(snapshot=snapshot)
 
     def create_snapshots(self) -> str:
-        params = self._get_params()
-        instance_spec = params.get("InstanceSpecification")
-        description = params.get("Description", "")
+        instance_spec = self._get_param("InstanceSpecification", {})
+        description = self._get_param("Description", "")
         tags = self._parse_tag_specification()
         snapshot_tags = tags.get("snapshot", {})
 
@@ -70,10 +69,11 @@ class ElasticBlockStore(EC2BaseResponse):
         volume_type = self._get_param("VolumeType")
         tags = self._parse_tag_specification()
         volume_tags = tags.get("volume", {})
-        encrypted = self._get_bool_param("Encrypted", if_none=False)
+        encrypted = self._get_bool_param("Encrypted", False)
         kms_key_id = self._get_param("KmsKeyId")
         iops = self._get_param("Iops")
         throughput = self._get_param("Throughput")
+        multi_attach_enabled = self._get_param("MultiAttachEnabled")
 
         self.error_on_dryrun()
 
@@ -86,6 +86,7 @@ class ElasticBlockStore(EC2BaseResponse):
             volume_type=volume_type,
             iops=iops,
             throughput=throughput,
+            multi_attach_enabled=multi_attach_enabled,
         )
         volume.add_tags(volume_tags)
         template = self.response_template(CREATE_VOLUME_RESPONSE)
@@ -95,18 +96,26 @@ class ElasticBlockStore(EC2BaseResponse):
         volume_id = self._get_param("VolumeId")
         target_size = self._get_param("Size")
         target_volume_type = self._get_param("VolumeType")
+        target_iops = self._get_param("Iops")
+        target_throughput = self._get_param("Throughput")
+        target_multi_attach_enabled = self._get_param("MultiAttachEnabled")
 
         self.error_on_dryrun()
 
         volume = self.ec2_backend.modify_volume(
-            volume_id, target_size, target_volume_type
+            volume_id,
+            target_size,
+            target_volume_type,
+            target_iops,
+            target_throughput,
+            target_multi_attach_enabled,
         )
         template = self.response_template(MODIFY_VOLUME_RESPONSE)
         return template.render(volume=volume)
 
     def describe_volumes_modifications(self) -> str:
         filters = self._filters_from_querystring()
-        volume_ids = self._get_multi_param("VolumeId")
+        volume_ids = self._get_param("VolumeIds", [])
         modifications = self.ec2_backend.describe_volumes_modifications(
             volume_ids=volume_ids, filters=filters
         )
@@ -131,7 +140,7 @@ class ElasticBlockStore(EC2BaseResponse):
 
     def describe_snapshots(self) -> str:
         filters = self._filters_from_querystring()
-        snapshot_ids = self._get_multi_param("SnapshotId")
+        snapshot_ids = self._get_param("SnapshotIds", [])
         snapshots = self.ec2_backend.describe_snapshots(
             snapshot_ids=snapshot_ids, filters=filters
         )
@@ -140,7 +149,7 @@ class ElasticBlockStore(EC2BaseResponse):
 
     def describe_volumes(self) -> str:
         filters = self._filters_from_querystring()
-        volume_ids = self._get_multi_param("VolumeId")
+        volume_ids = self._get_param("VolumeIds", [])
         volumes = self.ec2_backend.describe_volumes(
             volume_ids=volume_ids, filters=filters
         )
@@ -192,8 +201,8 @@ class ElasticBlockStore(EC2BaseResponse):
     def modify_snapshot_attribute(self) -> ActionResult:
         snapshot_id = self._get_param("SnapshotId")
         operation_type = self._get_param("OperationType")
-        groups = self._get_multi_param("UserGroup")
-        user_ids = self._get_multi_param("UserId")
+        groups = self._get_param("GroupNames", [])
+        user_ids = self._get_param("UserIds", [])
 
         self.error_on_dryrun()
 
@@ -264,6 +273,9 @@ CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.co
   {% if volume.throughput %}
     <throughput>{{ volume.throughput }}</throughput>
   {% endif %}
+  {% if volume.multi_attach_enabled %}
+    <multiAttachEnabled>{{ volume.multi_attach_enabled|lower }}</multiAttachEnabled>
+  {% endif %}
 </CreateVolumeResponse>"""
 
 DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -315,6 +327,9 @@ DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazon
              {% endif %}
              {% if volume.throughput %}
                <throughput>{{ volume.throughput }}</throughput>
+             {% endif %}
+             {% if volume.multi_attach_enabled %}
+               <multiAttachEnabled>{{ volume.multi_attach_enabled|lower }}</multiAttachEnabled>
              {% endif %}
           </item>
       {% endfor %}
@@ -464,12 +479,38 @@ MODIFY_VOLUME_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     <volumeModification>
         {% set volume_modification = volume.modifications[-1] %}
         <modificationState>modifying</modificationState>
+        {% if volume_modification.original_size %}
         <originalSize>{{ volume_modification.original_size }}</originalSize>
-        <originalVolumeType>{{ volume_modification.original_volume_type }}</originalVolumeType>
+        {% endif %}
+        {% if volume_modification.original_volume_type %}
+            <originalVolumeType>{{ volume_modification.original_volume_type }}</originalVolumeType>
+        {% endif %}
+        {% if volume_modification.original_iops %}
+            <originalIops>{{ volume_modification.original_iops }}</originalIops>
+        {% endif %}
+        {% if volume_modification.original_throughput %}
+            <originalThroughput>{{ volume_modification.original_throughput }}</originalThroughput>
+        {% endif %}
+        {% if volume_modification.original_multi_attach_enabled is not none %}
+            <originalMultiAttachEnabled>{{ volume_modification.original_multi_attach_enabled|lower }}</originalMultiAttachEnabled>
+        {% endif %}
         <progress>0</progress>
         <startTime>{{ volume_modification.start_time }}</startTime>
-        <targetSize>{{ volume_modification.target_size }}</targetSize>
-        <targetVolumeType>{{ volume_modification.target_volume_type }}</targetVolumeType>
+        {% if volume_modification.target_size %}
+            <targetSize>{{ volume_modification.target_size }}</targetSize>
+        {% endif %}
+        {% if volume_modification.target_volume_type %}
+            <targetVolumeType>{{ volume_modification.target_volume_type }}</targetVolumeType>
+        {% endif %}
+        {% if volume_modification.target_iops %}
+            <targetIops>{{ volume_modification.target_iops }}</targetIops>
+        {% endif %}
+        {% if volume_modification.target_throughput %}
+            <targetThroughput>{{ volume_modification.target_throughput }}</targetThroughput>
+        {% endif %}
+        {% if volume_modification.target_multi_attach_enabled %}
+            <targetMultiAttachEnabled>{{ volume_modification.target_multi_attach_enabled|lower }}</targetMultiAttachEnabled>
+        {% endif %}
         <volumeId>{{ volume.id }}</volumeId>
     </volumeModification>
 </ModifyVolumeResponse>"""
@@ -483,12 +524,38 @@ DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE = """
         <item>
             <endTime>{{ modification.end_time }}</endTime>
             <modificationState>completed</modificationState>
-            <originalSize>{{ modification.original_size }}</originalSize>
-            <originalVolumeType>{{ modification.original_volume_type }}</originalVolumeType>
+            {% if modification.original_size %}
+                <originalSize>{{ modification.original_size }}</originalSize>
+            {% endif %}
+            {% if modification.original_volume_type %}
+                <originalVolumeType>{{ modification.original_volume_type }}</originalVolumeType>
+            {% endif %}
+            {% if modification.original_iops %}
+                <originalIops>{{ modification.original_iops }}</originalIops>
+            {% endif %}
+            {% if modification.original_throughput %}
+                <originalThroughput>{{ modification.original_throughput }}</originalThroughput>
+            {% endif %}
+            {% if modification.original_multi_attach_enabled %}
+                <originalMultiAttachEnabled>{{ modification.original_multi_attach_enabled|lower }}</originalMultiAttachEnabled>
+            {% endif %}
             <progress>100</progress>
             <startTime>{{ modification.start_time }}</startTime>
-            <targetSize>{{ modification.target_size }}</targetSize>
-            <targetVolumeType>{{ modification.target_volume_type }}</targetVolumeType>
+            {% if modification.target_size %}
+                <targetSize>{{ modification.target_size }}</targetSize>
+            {% endif %}
+            {% if modification.target_volume_type %}
+                <targetVolumeType>{{ modification.target_volume_type }}</targetVolumeType>
+            {% endif %}
+            {% if modification.target_iops %}
+                <targetIops>{{ modification.target_iops }}</targetIops>
+            {% endif %}
+            {% if modification.target_throughput %}
+                <targetThroughput>{{ modification.target_throughput }}</targetThroughput>
+            {% endif %}
+            {% if modification.target_multi_attach_enabled %}
+                <targetMultiAttachEnabled>{{ modification.target_multi_attach_enabled|lower }}</targetMultiAttachEnabled>
+            {% endif %}
             <volumeId>{{ modification.volume.id }}</volumeId>
         </item>
       {% endfor %}

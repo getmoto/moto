@@ -1,4 +1,5 @@
 import base64
+import binascii
 import itertools
 import json
 import os
@@ -51,10 +52,10 @@ def test_create_key_with_invalid_key_spec():
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert err["Message"] == (
-        "1 validation error detected: Value '{key_spec}' at 'KeySpec' failed "
+        f"1 validation error detected: Value '{unsupported_key_spec}' at 'KeySpec' failed "
         "to satisfy constraint: Member must satisfy enum value set: "
         "['ECC_NIST_P256', 'ECC_NIST_P384', 'ECC_NIST_P521', 'ECC_SECG_P256K1', 'HMAC_224', 'HMAC_256', 'HMAC_384', 'HMAC_512', 'RSA_2048', 'RSA_3072', 'RSA_4096', 'SM2', 'SYMMETRIC_DEFAULT']"
-    ).format(key_spec=unsupported_key_spec)
+    )
 
 
 @mock_aws
@@ -493,10 +494,10 @@ def test_generate_data_key():
     response = kms.generate_data_key(KeyId=key_id, NumberOfBytes=32)
 
     # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(response["CiphertextBlob"], validate=True)
     # Plaintext must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(response["Plaintext"], validate=True)
 
     assert response["KeyId"] == key_arn
@@ -704,11 +705,11 @@ def test_list_resource_tags_after_untagging():
 @pytest.mark.parametrize(
     "kwargs,expected_key_length",
     (
-        (dict(KeySpec="AES_256"), 32),
-        (dict(KeySpec="AES_128"), 16),
-        (dict(NumberOfBytes=64), 64),
-        (dict(NumberOfBytes=1), 1),
-        (dict(NumberOfBytes=1024), 1024),
+        ({"KeySpec": "AES_256"}, 32),
+        ({"KeySpec": "AES_128"}, 16),
+        ({"NumberOfBytes": 64}, 64),
+        ({"NumberOfBytes": 1}, 1),
+        ({"NumberOfBytes": 1024}, 1024),
     ),
 )
 @mock_aws
@@ -737,10 +738,10 @@ def test_generate_data_key_decrypt():
 @pytest.mark.parametrize(
     "kwargs",
     [
-        dict(KeySpec="AES_257"),
-        dict(KeySpec="AES_128", NumberOfBytes=16),
-        dict(NumberOfBytes=2048),
-        dict(),
+        {"KeySpec": "AES_257"},
+        {"KeySpec": "AES_128", "NumberOfBytes": 16},
+        {"NumberOfBytes": 2048},
+        {},
     ],
 )
 @mock_aws
@@ -1450,12 +1451,9 @@ def test_invalid_signing_algorithm_for_key_spec_type_ECDSA(
     err = ex.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert err["Message"] == (
-        "1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
+        f"1 validation error detected: Value '{signing_algorithm}' at 'SigningAlgorithm' failed "
         "to satisfy constraint: Member must satisfy enum value set: "
-        "{valid_sign_algorithms}"
-    ).format(
-        signing_algorithm=signing_algorithm,
-        valid_sign_algorithms=valid_signing_algorithms,
+        f"{valid_signing_algorithms}"
     )
 
 
@@ -1755,7 +1753,7 @@ def test_ensure_key_can_be_verified_manually():
     )
 
     raw_signature = response["Signature"]
-    sign_kwargs = dict(signature_algorithm=ec.ECDSA(hashes.SHA256()))
+    sign_kwargs = {"signature_algorithm": ec.ECDSA(hashes.SHA256())}
 
     public_key = serialization.load_der_public_key(public_key_data)
     public_key.verify(signature=raw_signature, data=message, **sign_kwargs)

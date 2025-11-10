@@ -2,8 +2,9 @@
 
 import random
 import uuid
+from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -73,12 +74,12 @@ class EntityRecognizer(BaseModel):
         region_name: str,
         account_id: str,
         language_code: str,
-        input_data_config: Dict[str, Any],
+        input_data_config: dict[str, Any],
         data_access_role_arn: str,
         version_name: str,
         recognizer_name: str,
         volume_kms_key_id: str,
-        vpc_config: Dict[str, List[str]],
+        vpc_config: dict[str, list[str]],
         model_kms_key_id: str,
         model_policy: str,
     ):
@@ -96,7 +97,7 @@ class EntityRecognizer(BaseModel):
         self.model_policy = model_policy
         self.status = "TRAINED"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "EntityRecognizerArn": self.arn,
             "LanguageCode": self.language_code,
@@ -118,14 +119,14 @@ class DocumentClassifier(BaseModel):
         account_id: str,
         language_code: str,
         version_name: str,
-        input_data_config: Dict[str, Any],
-        output_data_config: Dict[str, Any],
+        input_data_config: dict[str, Any],
+        output_data_config: dict[str, Any],
         data_access_role_arn: str,
         document_classifier_name: str,
         volume_kms_key_id: str,
         client_request_token: str,
         mode: str,
-        vpc_config: Dict[str, List[str]],
+        vpc_config: dict[str, list[str]],
         model_kms_key_id: str,
         model_policy: str,
     ):
@@ -144,7 +145,7 @@ class DocumentClassifier(BaseModel):
         self.model_policy = model_policy
         self.status = "TRAINING"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "DocumentClassifierArn": self.arn,
             "LanguageCode": self.language_code,
@@ -180,7 +181,7 @@ class Endpoint(BaseModel):
         self.desired_inference_units = desired_inference_units
         self.status = "IN_SERVICE"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "EndpointArn": self.arn,
             "ModelArn": self.model_arn,
@@ -200,10 +201,10 @@ class Flywheel(BaseModel):
         flywheel_name: str,
         active_model_arn: str,
         data_access_role_arn: str,
-        task_config: Dict[str, Any],
+        task_config: dict[str, Any],
         model_type: str,
         data_lake_s3_uri: str,
-        data_security_config: Dict[str, Any],
+        data_security_config: dict[str, Any],
         client_request_token: str,
     ):
         self.name = flywheel_name
@@ -217,7 +218,7 @@ class Flywheel(BaseModel):
         self.client_request_token = client_request_token
         self.status = "ACTIVE"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "FlywheelArn": self.arn,
             "ActiveModelArn": self.active_model_arn,
@@ -239,8 +240,8 @@ class ComprehendJob(BaseModel):
         region_name: str,
         job_type: str,
         job_name: Optional[str],
-        input_s3_config: Dict[str, Any],
-        output_s3_config: Dict[str, Any],
+        input_s3_config: dict[str, Any],
+        output_s3_config: dict[str, Any],
         data_access_role_arn: str,
         language_code: Optional[str],
         **kwargs: Any,
@@ -262,7 +263,7 @@ class ComprehendJob(BaseModel):
         ).lstrip("-")
         self.job_arn = f"arn:{get_partition(region_name)}:comprehend:{region_name}:{account_id}:{job_type_path}-job/{self.job_id}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         base_dict = {
             "JobId": self.job_id,
             "JobArn": self.job_arn,
@@ -310,16 +311,16 @@ class ComprehendBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.recognizers: Dict[str, EntityRecognizer] = dict()
+        self.recognizers: dict[str, EntityRecognizer] = {}
         self.tagger = TaggingService()
-        self.endpoints: Dict[str, Endpoint] = dict()
-        self.classifiers: Dict[str, DocumentClassifier] = dict()
-        self.flywheels: Dict[str, Flywheel] = dict()
-        self.resource_policies: Dict[str, Dict[str, Any]] = dict()
-        self.jobs: Dict[str, ComprehendJob] = {}
+        self.endpoints: dict[str, Endpoint] = {}
+        self.classifiers: dict[str, DocumentClassifier] = {}
+        self.flywheels: dict[str, Flywheel] = {}
+        self.resource_policies: dict[str, dict[str, Any]] = {}
+        self.jobs: dict[str, ComprehendJob] = {}
 
     def list_entity_recognizers(
-        self, _filter: Dict[str, Any]
+        self, _filter: dict[str, Any]
     ) -> Iterable[EntityRecognizer]:
         """
         Pagination is not yet implemented.
@@ -338,11 +339,11 @@ class ComprehendBackend(BaseBackend):
         recognizer_name: str,
         version_name: str,
         data_access_role_arn: str,
-        tags: List[Dict[str, str]],
-        input_data_config: Dict[str, Any],
+        tags: list[dict[str, str]],
+        input_data_config: dict[str, Any],
         language_code: str,
         volume_kms_key_id: str,
-        vpc_config: Dict[str, List[str]],
+        vpc_config: dict[str, list[str]],
         model_kms_key_id: str,
         model_policy: str,
     ) -> str:
@@ -378,19 +379,19 @@ class ComprehendBackend(BaseBackend):
         if recognizer.status == "TRAINING":
             recognizer.status = "STOP_REQUESTED"
 
-    def list_tags_for_resource(self, resource_arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
 
     def delete_entity_recognizer(self, entity_recognizer_arn: str) -> None:
         self.recognizers.pop(entity_recognizer_arn, None)
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def detect_pii_entities(self, text: str, language: str) -> List[Dict[str, Any]]:
+    def detect_pii_entities(self, text: str, language: str) -> list[dict[str, Any]]:
         if language not in self.detect_pii_entities_languages:
             raise DetectPIIValidationException(
                 language, self.detect_pii_entities_languages
@@ -400,7 +401,7 @@ class ComprehendBackend(BaseBackend):
             raise TextSizeLimitExceededException(text_size)
         return CANNED_DETECT_RESPONSE
 
-    def detect_key_phrases(self, text: str, language: str) -> List[Dict[str, Any]]:
+    def detect_key_phrases(self, text: str, language: str) -> list[dict[str, Any]]:
         if language not in self.detect_key_phrases_languages:
             raise DetectPIIValidationException(
                 language, self.detect_key_phrases_languages
@@ -410,7 +411,7 @@ class ComprehendBackend(BaseBackend):
             raise TextSizeLimitExceededException(text_size)
         return CANNED_PHRASES_RESPONSE
 
-    def detect_sentiment(self, text: str, language: str) -> Dict[str, Any]:
+    def detect_sentiment(self, text: str, language: str) -> dict[str, Any]:
         if language not in self.detect_key_phrases_languages:
             raise DetectPIIValidationException(
                 language, self.detect_key_phrases_languages
@@ -425,13 +426,13 @@ class ComprehendBackend(BaseBackend):
         document_classifier_name: str,
         version_name: str,
         data_access_role_arn: str,
-        tags: List[Dict[str, str]],
-        input_data_config: Dict[str, Any],
-        output_data_config: Dict[str, Any],
+        tags: list[dict[str, str]],
+        input_data_config: dict[str, Any],
+        output_data_config: dict[str, Any],
         client_request_token: str,
         language_code: str,
         volume_kms_key_id: str,
-        vpc_config: Dict[str, List[str]],
+        vpc_config: dict[str, list[str]],
         mode: str,
         model_kms_key_id: str,
         model_policy: str,
@@ -462,10 +463,10 @@ class ComprehendBackend(BaseBackend):
         model_arn: str,
         desired_inference_units: int,
         client_request_token: str,
-        tags: List[Dict[str, str]],
+        tags: list[dict[str, str]],
         data_access_role_arn: str,
         flywheel_arn: str,
-    ) -> Tuple[str, str]:
+    ) -> tuple[str, str]:
         endpoint = Endpoint(
             endpoint_name=endpoint_name,
             region_name=self.region_name,
@@ -485,13 +486,13 @@ class ComprehendBackend(BaseBackend):
         flywheel_name: str,
         active_model_arn: str,
         data_access_role_arn: str,
-        task_config: Dict[str, Any],
+        task_config: dict[str, Any],
         model_type: str,
         data_lake_s3_uri: str,
-        data_security_config: Dict[str, Any],
+        data_security_config: dict[str, Any],
         client_request_token: str,
-        tags: List[Dict[str, str]],
-    ) -> Tuple[str, str]:
+        tags: list[dict[str, str]],
+    ) -> tuple[str, str]:
         flywheel = Flywheel(
             region_name=self.region_name,
             account_id=self.account_id,
@@ -536,10 +537,10 @@ class ComprehendBackend(BaseBackend):
 
     def list_document_classifiers(
         self,
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Optional[dict[str, Any]] = None,
         next_token: Optional[str] = None,
         max_results: Optional[int] = None,
-    ) -> Tuple[List[Dict[str, Any]], None]:
+    ) -> tuple[list[dict[str, Any]], None]:
         """
         List document classifiers with optional filtering.
         Pagination is not yet implemented.
@@ -567,10 +568,10 @@ class ComprehendBackend(BaseBackend):
 
     def list_endpoints(
         self,
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Optional[dict[str, Any]] = None,
         next_token: Optional[str] = None,
         max_results: Optional[int] = None,
-    ) -> Tuple[List[Dict[str, Any]], None]:
+    ) -> tuple[list[dict[str, Any]], None]:
         """
         List endpoints with optional filtering.
         Pagination is not yet implemented.
@@ -596,10 +597,10 @@ class ComprehendBackend(BaseBackend):
 
     def list_flywheels(
         self,
-        filter: Optional[Dict[str, Any]] = None,
+        filter: Optional[dict[str, Any]] = None,
         next_token: Optional[str] = None,
         max_results: Optional[int] = None,
-    ) -> Tuple[List[Dict[str, Any]], None]:
+    ) -> tuple[list[dict[str, Any]], None]:
         """
         List flywheels with optional filtering.
         Pagination is not yet implemented.
@@ -629,7 +630,7 @@ class ComprehendBackend(BaseBackend):
 
     def start_flywheel_iteration(
         self, flywheel_arn: str, client_request_token: str
-    ) -> Tuple[str, int]:
+    ) -> tuple[str, int]:
         if flywheel_arn not in self.flywheels:
             raise ResourceNotFound
         flywheel_iteration_id = int(random.randint(0, 1000000))
@@ -670,7 +671,7 @@ class ComprehendBackend(BaseBackend):
         }
         return revision_id
 
-    def describe_resource_policy(self, resource_arn: str) -> Dict[str, Any]:
+    def describe_resource_policy(self, resource_arn: str) -> dict[str, Any]:
         policy_details = self.resource_policies.get(resource_arn)
         if not policy_details:
             raise ResourceNotFound
@@ -714,8 +715,8 @@ class ComprehendBackend(BaseBackend):
         return self.jobs[job_id]
 
     def _list_jobs(
-        self, job_type: str, job_filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, job_type: str, job_filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         """Generic method to list and filter jobs."""
         # Pagination is not yet implemented
         job_filter = job_filter or {}
@@ -747,8 +748,8 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_pii_entities_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("PiiEntitiesDetection", filter)
 
     def start_key_phrases_detection_job(self, **kwargs: Any) -> ComprehendJob:
@@ -761,8 +762,8 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_key_phrases_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("KeyPhrasesDetection", filter)
 
     def start_sentiment_detection_job(self, **kwargs: Any) -> ComprehendJob:
@@ -775,8 +776,8 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_sentiment_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("SentimentDetection", filter)
 
     def start_dominant_language_detection_job(self, **kwargs: Any) -> ComprehendJob:
@@ -789,8 +790,8 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_dominant_language_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("DominantLanguageDetection", filter)
 
     def start_entities_detection_job(self, **kwargs: Any) -> ComprehendJob:
@@ -807,8 +808,8 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_entities_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("EntitiesDetection", filter)
 
     def start_topics_detection_job(self, **kwargs: Any) -> ComprehendJob:
@@ -818,8 +819,8 @@ class ComprehendBackend(BaseBackend):
         return self._get_job(job_id)
 
     def list_topics_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("TopicsDetection", filter)
 
     def start_document_classification_job(self, **kwargs: Any) -> ComprehendJob:
@@ -833,8 +834,8 @@ class ComprehendBackend(BaseBackend):
         return self._get_job(job_id)
 
     def list_document_classification_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("DocumentClassification", filter)
 
     def start_events_detection_job(self, **kwargs: Any) -> ComprehendJob:
@@ -851,8 +852,8 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_events_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("EventsDetection", filter)
 
     def start_targeted_sentiment_detection_job(self, **kwargs: Any) -> ComprehendJob:
@@ -865,8 +866,8 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_targeted_sentiment_detection_jobs(
-        self, filter: Optional[Dict[str, Any]]
-    ) -> List[ComprehendJob]:
+        self, filter: Optional[dict[str, Any]]
+    ) -> list[ComprehendJob]:
         return self._list_jobs("TargetedSentimentDetection", filter)
 
 

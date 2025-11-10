@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 from moto.core.responses import BaseResponse
 from moto.route53domains.models import Route53DomainsBackend, route53domains_backends
@@ -78,7 +78,7 @@ class Route53DomainsResponse(BaseResponse):
         return json.dumps(res)
 
     @staticmethod
-    def __map_domains_to_info(domain: Route53Domain) -> Dict[str, Any]:  # type: ignore[misc]
+    def __map_domains_to_info(domain: Route53Domain) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "DomainName": domain.domain_name,
             "AutoRenew": domain.auto_renew,

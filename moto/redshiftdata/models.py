@@ -1,6 +1,7 @@
 import re
+from collections.abc import Iterable, Iterator
 from datetime import datetime
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -8,13 +9,13 @@ from moto.moto_api._internal import mock_random as random
 from moto.redshiftdata.exceptions import ResourceNotFoundException, ValidationException
 
 
-class Statement(Iterable[Tuple[str, Any]]):
+class Statement(Iterable[tuple[str, Any]]):
     def __init__(
         self,
         cluster_identifier: str,
         database: str,
         db_user: str,
-        query_parameters: List[Dict[str, str]],
+        query_parameters: list[dict[str, str]],
         query_string: str,
         secret_arn: str,
     ):
@@ -35,10 +36,10 @@ class Statement(Iterable[Tuple[str, Any]]):
         self.result_size = -1
         self.secret_arn = secret_arn
         self.status = "STARTED"
-        self.sub_statements: List[str] = []
+        self.sub_statements: list[str] = []
         self.updated_at = now
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    def __iter__(self) -> Iterator[tuple[str, Any]]:
         yield "Id", self.id
         yield "ClusterIdentifier", self.cluster_identifier
         yield "CreatedAt", self.created_at
@@ -58,11 +59,11 @@ class Statement(Iterable[Tuple[str, Any]]):
         yield "UpdatedAt", self.updated_at
 
 
-class StatementResult(Iterable[Tuple[str, Any]]):
+class StatementResult(Iterable[tuple[str, Any]]):
     def __init__(
         self,
-        column_metadata: List[Dict[str, Any]],
-        records: List[List[Dict[str, Any]]],
+        column_metadata: list[dict[str, Any]],
+        records: list[list[dict[str, Any]]],
         total_number_rows: int,
         next_token: Optional[str] = None,
     ):
@@ -71,14 +72,14 @@ class StatementResult(Iterable[Tuple[str, Any]]):
         self.total_number_rows = total_number_rows
         self.next_token = next_token
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    def __iter__(self) -> Iterator[tuple[str, Any]]:
         yield "ColumnMetadata", self.column_metadata
         yield "Records", self.records
         yield "TotalNumberRows", self.total_number_rows
         yield "NextToken", self.next_token
 
 
-class ColumnMetadata(Iterable[Tuple[str, Any]]):
+class ColumnMetadata(Iterable[tuple[str, Any]]):
     def __init__(
         self,
         column_default: Optional[str],
@@ -93,7 +94,7 @@ class ColumnMetadata(Iterable[Tuple[str, Any]]):
         self.name = name
         self.nullable = nullable
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    def __iter__(self) -> Iterator[tuple[str, Any]]:
         yield "columnDefault", self.column_default
         yield "isCaseSensitive", self.is_case_sensitive
         yield "isSigned", self.is_signed
@@ -101,11 +102,11 @@ class ColumnMetadata(Iterable[Tuple[str, Any]]):
         yield "nullable", self.nullable
 
 
-class Record(Iterable[Tuple[str, Any]]):
+class Record(Iterable[tuple[str, Any]]):
     def __init__(self, **kwargs: Any):
         self.kwargs = kwargs
 
-    def __iter__(self) -> Iterator[Tuple[str, Any]]:
+    def __iter__(self) -> Iterator[tuple[str, Any]]:
         if "long_value" in self.kwargs:
             yield "longValue", self.kwargs["long_value"]
         elif "string_value" in self.kwargs:
@@ -115,12 +116,12 @@ class Record(Iterable[Tuple[str, Any]]):
 class RedshiftDataAPIServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.statements: Dict[str, Statement] = {}
+        self.statements: dict[str, Statement] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
+        service_region: str, zones: list[str]
+    ) -> list[dict[str, str]]:
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "redshift-data", policy_supported=False
@@ -135,8 +136,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
 
             if statement.status != "STARTED":
                 raise ValidationException(
-                    "Could not cancel a query that is already in %s state with ID: %s"
-                    % (statement.status, statement_id)
+                    f"Could not cancel a query that is already in {statement.status} state with ID: {statement_id}"
                 )
 
             statement.status = "ABORTED"
@@ -160,7 +160,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
         cluster_identifier: str,
         database: str,
         db_user: str,
-        parameters: List[Dict[str, str]],
+        parameters: list[dict[str, str]],
         secret_arn: str,
         sql: str,
     ) -> Statement:

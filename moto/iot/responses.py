@@ -42,7 +42,11 @@ class IoTResponse(BaseResponse):
             billing_group_name=billing_group_name,
         )
         return json.dumps(
-            dict(thingName=thing.thing_name, thingArn=thing.arn, thingId=thing.thing_id)
+            {
+                "thingName": thing.thing_name,
+                "thingArn": thing.arn,
+                "thingId": thing.thing_id,
+            }
         )
 
     def create_thing_type(self) -> str:
@@ -52,7 +56,7 @@ class IoTResponse(BaseResponse):
             thing_type_name=thing_type_name, thing_type_properties=thing_type_properties
         )
         return json.dumps(
-            dict(thingTypeName=thing_type_name, thingTypeArn=thing_type_arn)
+            {"thingTypeName": thing_type_name, "thingTypeArn": thing_type_arn}
         )
 
     def list_thing_types(self) -> str:
@@ -75,7 +79,7 @@ class IoTResponse(BaseResponse):
                 else None
             )
 
-        return json.dumps(dict(thingTypes=result, nextToken=next_token))
+        return json.dumps({"thingTypes": result, "nextToken": next_token})
 
     def list_things(self) -> str:
         previous_next_token = self._get_param("nextToken")
@@ -93,7 +97,7 @@ class IoTResponse(BaseResponse):
             token=previous_next_token,
         )
 
-        return json.dumps(dict(things=things, nextToken=next_token))
+        return json.dumps({"things": things, "nextToken": next_token})
 
     def describe_thing(self) -> str:
         thing_name = self._get_param("thingName")
@@ -117,12 +121,12 @@ class IoTResponse(BaseResponse):
     def delete_thing(self) -> str:
         thing_name = self._get_param("thingName")
         self.iot_backend.delete_thing(thing_name=thing_name)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_thing_type(self) -> str:
         thing_type_name = self._get_param("thingTypeName")
         self.iot_backend.delete_thing_type(thing_type_name=thing_type_name)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def deprecate_thing_type(self) -> str:
         thing_type_name = self._get_param("thingTypeName")
@@ -143,7 +147,7 @@ class IoTResponse(BaseResponse):
             attribute_payload=attribute_payload,
             remove_thing_type=remove_thing_type,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_job(self) -> str:
         job_arn, job_id, description = self.iot_backend.create_job(
@@ -162,36 +166,38 @@ class IoTResponse(BaseResponse):
             timeout_config=self._get_param("timeoutConfig"),
         )
 
-        return json.dumps(dict(jobArn=job_arn, jobId=job_id, description=description))
+        return json.dumps(
+            {"jobArn": job_arn, "jobId": job_id, "description": description}
+        )
 
     def describe_job(self) -> str:
         job = self.iot_backend.describe_job(job_id=self._get_param("jobId"))
         return json.dumps(
-            dict(
-                documentSource=job.document_source,
-                job=dict(
-                    comment=job.comment,
-                    completedAt=job.completed_at,
-                    createdAt=job.created_at,
-                    description=job.description,
-                    documentParameters=job.document_parameters,
-                    forceCanceled=job.force,
-                    reasonCode=job.reason_code,
-                    jobArn=job.job_arn,
-                    jobExecutionsRolloutConfig=job.job_executions_rollout_config,
-                    jobExecutionsRetryConfig=job.job_execution_retry_config,
-                    schedulingConfig=job.scheduling_config,
-                    timeoutConfig=job.timeout_config,
-                    abortConfig=job.abort_config,
-                    jobId=job.job_id,
-                    jobProcessDetails=job.job_process_details,
-                    lastUpdatedAt=job.last_updated_at,
-                    presignedUrlConfig=job.presigned_url_config,
-                    status=job.status,
-                    targets=job.targets,
-                    targetSelection=job.target_selection,
-                ),
-            )
+            {
+                "documentSource": job.document_source,
+                "job": {
+                    "comment": job.comment,
+                    "completedAt": job.completed_at,
+                    "createdAt": job.created_at,
+                    "description": job.description,
+                    "documentParameters": job.document_parameters,
+                    "forceCanceled": job.force,
+                    "reasonCode": job.reason_code,
+                    "jobArn": job.job_arn,
+                    "jobExecutionsRolloutConfig": job.job_executions_rollout_config,
+                    "jobExecutionsRetryConfig": job.job_execution_retry_config,
+                    "schedulingConfig": job.scheduling_config,
+                    "timeoutConfig": job.timeout_config,
+                    "abortConfig": job.abort_config,
+                    "jobId": job.job_id,
+                    "jobProcessDetails": job.job_process_details,
+                    "lastUpdatedAt": job.last_updated_at,
+                    "presignedUrlConfig": job.presigned_url_config,
+                    "status": job.status,
+                    "targets": job.targets,
+                    "targetSelection": job.target_selection,
+                },
+            }
         )
 
     def delete_job(self) -> str:
@@ -200,7 +206,7 @@ class IoTResponse(BaseResponse):
 
         self.iot_backend.delete_job(job_id=job_id, force=force)
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def cancel_job(self) -> str:
         job_id = self._get_param("jobId")
@@ -233,7 +239,7 @@ class IoTResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(jobs=[job.to_dict() for job in jobs], nextToken=next_token)
+            {"jobs": [job.to_dict() for job in jobs], "nextToken": next_token}
         )
 
     def describe_job_execution(self) -> str:
@@ -244,7 +250,7 @@ class IoTResponse(BaseResponse):
             job_id=job_id, thing_name=thing_name, execution_number=execution_number
         )
 
-        return json.dumps(dict(execution=job_execution.to_get_dict()))
+        return json.dumps({"execution": job_execution.to_get_dict()})
 
     def cancel_job_execution(self) -> str:
         job_id = self._get_param("jobId")
@@ -255,7 +261,7 @@ class IoTResponse(BaseResponse):
             job_id=job_id, thing_name=thing_name, force=force
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_job_execution(self) -> str:
         job_id = self._get_param("jobId")
@@ -270,7 +276,7 @@ class IoTResponse(BaseResponse):
             force=force,
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_job_executions_for_job(self) -> str:
         job_id = self._get_param("jobId")
@@ -284,10 +290,10 @@ class IoTResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                executionSummaries=[je.to_dict() for je in job_executions],
-                nextToken=next_token,
-            )
+            {
+                "executionSummaries": [je.to_dict() for je in job_executions],
+                "nextToken": next_token,
+            }
         )
 
     def list_job_executions_for_thing(self) -> str:
@@ -305,10 +311,10 @@ class IoTResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                executionSummaries=[je.to_dict() for je in job_executions],
-                nextToken=next_token,
-            )
+            {
+                "executionSummaries": [je.to_dict() for je in job_executions],
+                "nextToken": next_token,
+            }
         )
 
     def create_keys_and_certificate(self) -> str:
@@ -317,24 +323,24 @@ class IoTResponse(BaseResponse):
             set_as_active=set_as_active
         )
         return json.dumps(
-            dict(
-                certificateArn=cert.arn,
-                certificateId=cert.certificate_id,
-                certificatePem=cert.certificate_pem,
-                keyPair=key_pair,
-            )
+            {
+                "certificateArn": cert.arn,
+                "certificateId": cert.certificate_id,
+                "certificatePem": cert.certificate_pem,
+                "keyPair": key_pair,
+            }
         )
 
     def delete_ca_certificate(self) -> str:
         certificate_id = self.path.split("/")[-1]
         self.iot_backend.delete_ca_certificate(certificate_id=certificate_id)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_certificate(self) -> str:
         certificate_id = self._get_param("certificateId")
         force_delete = self._get_bool_param("forceDelete", False)
         self.iot_backend.delete_certificate(certificate_id, force_delete)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_ca_certificate(self) -> str:
         certificate_id = self.path.split("/")[-1]
@@ -353,25 +359,23 @@ class IoTResponse(BaseResponse):
         certificate = self.iot_backend.describe_certificate(
             certificate_id=certificate_id
         )
-        return json.dumps(
-            dict(certificateDescription=certificate.to_description_dict())
-        )
+        return json.dumps({"certificateDescription": certificate.to_description_dict()})
 
     def get_registration_code(self) -> str:
         code = self.iot_backend.get_registration_code()
-        return json.dumps(dict(registrationCode=code))
+        return json.dumps({"registrationCode": code})
 
     def list_certificates(self) -> str:
         # page_size = self._get_int_param("pageSize")
         # marker = self._get_param("marker")
         # ascending_order = self._get_param("ascendingOrder")
         certificates = self.iot_backend.list_certificates()
-        return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
+        return json.dumps({"certificates": [_.to_dict() for _ in certificates]})
 
     def list_certificates_by_ca(self) -> str:
         ca_certificate_id = self._get_param("caCertificateId")
         certificates = self.iot_backend.list_certificates_by_ca(ca_certificate_id)
-        return json.dumps(dict(certificates=[_.to_dict() for _ in certificates]))
+        return json.dumps({"certificates": [_.to_dict() for _ in certificates]})
 
     def register_ca_certificate(self) -> str:
         ca_certificate = self._get_param("caCertificate")
@@ -384,7 +388,7 @@ class IoTResponse(BaseResponse):
             registration_config=registration_config,
         )
         return json.dumps(
-            dict(certificateId=cert.certificate_id, certificateArn=cert.arn)
+            {"certificateId": cert.certificate_id, "certificateArn": cert.arn}
         )
 
     def register_certificate(self) -> str:
@@ -400,7 +404,7 @@ class IoTResponse(BaseResponse):
             status=status,
         )
         return json.dumps(
-            dict(certificateId=cert.certificate_id, certificateArn=cert.arn)
+            {"certificateId": cert.certificate_id, "certificateArn": cert.arn}
         )
 
     def register_certificate_without_ca(self) -> str:
@@ -411,7 +415,7 @@ class IoTResponse(BaseResponse):
             certificate_pem=certificate_pem, status=status
         )
         return json.dumps(
-            dict(certificateId=cert.certificate_id, certificateArn=cert.arn)
+            {"certificateId": cert.certificate_id, "certificateArn": cert.arn}
         )
 
     def update_ca_certificate(self) -> str:
@@ -421,7 +425,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.update_ca_certificate(
             certificate_id=certificate_id, new_status=new_status, config=config
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def update_certificate(self) -> str:
         certificate_id = self._get_param("certificateId")
@@ -429,7 +433,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.update_certificate(
             certificate_id=certificate_id, new_status=new_status
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_policy(self) -> str:
         policy_name = self._get_param("policyName")
@@ -442,7 +446,7 @@ class IoTResponse(BaseResponse):
     def list_policies(self) -> str:
         policies = self.iot_backend.list_policies()
 
-        return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
+        return json.dumps({"policies": [_.to_dict() for _ in policies]})
 
     def get_policy(self) -> str:
         policy_name = self._get_param("policyName")
@@ -452,7 +456,7 @@ class IoTResponse(BaseResponse):
     def delete_policy(self) -> str:
         policy_name = self._get_param("policyName")
         self.iot_backend.delete_policy(policy_name=policy_name)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_policy_version(self) -> str:
         policy_name = self._get_param("policyName")
@@ -469,7 +473,7 @@ class IoTResponse(BaseResponse):
         version_id = self._get_param("policyVersionId")
         self.iot_backend.set_default_policy_version(policy_name, version_id)
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def get_policy_version(self) -> str:
         policy_name = self._get_param("policyName")
@@ -483,20 +487,20 @@ class IoTResponse(BaseResponse):
             policy_name=policy_name
         )
 
-        return json.dumps(dict(policyVersions=[_.to_dict() for _ in policiy_versions]))
+        return json.dumps({"policyVersions": [_.to_dict() for _ in policiy_versions]})
 
     def delete_policy_version(self) -> str:
         policy_name = self._get_param("policyName")
         version_id = self._get_param("policyVersionId")
         self.iot_backend.delete_policy_version(policy_name, version_id)
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def attach_policy(self) -> str:
         policy_name = self._get_param("policyName")
         target = self._get_param("target")
         self.iot_backend.attach_policy(policy_name=policy_name, target=target)
-        return json.dumps(dict())
+        return json.dumps({})
 
     @staticmethod
     def dispatch_attached_policies(  # type: ignore
@@ -518,7 +522,7 @@ class IoTResponse(BaseResponse):
     def list_attached_policies(self) -> str:
         principal = self._get_param("target")
         policies = self.iot_backend.list_attached_policies(target=principal)
-        return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
+        return json.dumps({"policies": [_.to_dict() for _ in policies]})
 
     def attach_principal_policy(self) -> str:
         policy_name = self._get_param("policyName")
@@ -526,13 +530,13 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_principal_policy(
             policy_name=policy_name, principal_arn=principal
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def detach_policy(self) -> str:
         policy_name = self._get_param("policyName")
         target = self._get_param("target")
         self.iot_backend.detach_policy(policy_name=policy_name, target=target)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def detach_principal_policy(self) -> str:
         policy_name = self._get_param("policyName")
@@ -540,23 +544,23 @@ class IoTResponse(BaseResponse):
         self.iot_backend.detach_principal_policy(
             policy_name=policy_name, principal_arn=principal
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_principal_policies(self) -> str:
         principal = self.headers.get("x-amzn-iot-principal")
         policies = self.iot_backend.list_principal_policies(principal_arn=principal)
-        return json.dumps(dict(policies=[_.to_dict() for _ in policies]))
+        return json.dumps({"policies": [_.to_dict() for _ in policies]})
 
     def list_policy_principals(self) -> str:
         policy_name = self.headers.get("x-amzn-iot-policy")
         principals = self.iot_backend.list_policy_principals(policy_name=policy_name)
-        return json.dumps(dict(principals=principals))
+        return json.dumps({"principals": principals})
 
     def list_targets_for_policy(self) -> str:
         """https://docs.aws.amazon.com/iot/latest/apireference/API_ListTargetsForPolicy.html"""
         policy_name = self._get_param("policyName")
         principals = self.iot_backend.list_targets_for_policy(policy_name=policy_name)
-        return json.dumps(dict(targets=principals))
+        return json.dumps({"targets": principals})
 
     def attach_thing_principal(self) -> str:
         thing_name = self._get_param("thingName")
@@ -564,7 +568,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.attach_thing_principal(
             thing_name=thing_name, principal_arn=principal
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def detach_thing_principal(self) -> str:
         thing_name = self._get_param("thingName")
@@ -572,7 +576,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.detach_thing_principal(
             thing_name=thing_name, principal_arn=principal
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_principal_things(self) -> str:
         next_token = self._get_param("nextToken")
@@ -581,12 +585,12 @@ class IoTResponse(BaseResponse):
         things = self.iot_backend.list_principal_things(principal_arn=principal)
         # TODO: implement pagination in the future
         next_token = None
-        return json.dumps(dict(things=things, nextToken=next_token))
+        return json.dumps({"things": things, "nextToken": next_token})
 
     def list_thing_principals(self) -> str:
         thing_name = self._get_param("thingName")
         principals = self.iot_backend.list_thing_principals(thing_name=thing_name)
-        return json.dumps(dict(principals=principals))
+        return json.dumps({"principals": principals})
 
     def describe_thing_group(self) -> str:
         thing_group_name = unquote(self.path.split("/thing-groups/")[-1])
@@ -609,17 +613,17 @@ class IoTResponse(BaseResponse):
             thing_group_properties=thing_group_properties,
         )
         return json.dumps(
-            dict(
-                thingGroupName=thing_group_name,
-                thingGroupArn=thing_group_arn,
-                thingGroupId=thing_group_id,
-            )
+            {
+                "thingGroupName": thing_group_name,
+                "thingGroupArn": thing_group_arn,
+                "thingGroupId": thing_group_id,
+            }
         )
 
     def delete_thing_group(self) -> str:
         thing_group_name = unquote(self.path.split("/thing-groups/")[-1])
         self.iot_backend.delete_thing_group(thing_group_name=thing_group_name)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_thing_groups(self) -> str:
         # next_token = self._get_param("nextToken")
@@ -637,7 +641,7 @@ class IoTResponse(BaseResponse):
             {"groupName": _.thing_group_name, "groupArn": _.arn} for _ in thing_groups
         ]
         # TODO: implement pagination in the future
-        return json.dumps(dict(thingGroups=rets, nextToken=next_token))
+        return json.dumps({"thingGroups": rets, "nextToken": next_token})
 
     def update_thing_group(self) -> str:
         thing_group_name = unquote(self.path.split("/thing-groups/")[-1])
@@ -648,7 +652,7 @@ class IoTResponse(BaseResponse):
             thing_group_properties=thing_group_properties,
             expected_version=expected_version,
         )
-        return json.dumps(dict(version=version))
+        return json.dumps({"version": version})
 
     def add_thing_to_thing_group(self) -> str:
         thing_group_name = self._get_param("thingGroupName")
@@ -661,7 +665,7 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name,
             thing_arn=thing_arn,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def remove_thing_from_thing_group(self) -> str:
         thing_group_name = self._get_param("thingGroupName")
@@ -674,7 +678,7 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name,
             thing_arn=thing_arn,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_things_in_thing_group(self) -> str:
         thing_group_name = self._get_param("thingGroupName")
@@ -683,7 +687,7 @@ class IoTResponse(BaseResponse):
         )
         next_token = None
         thing_names = [_.thing_name for _ in things]
-        return json.dumps(dict(things=thing_names, nextToken=next_token))
+        return json.dumps({"things": thing_names, "nextToken": next_token})
 
     def list_thing_groups_for_thing(self) -> str:
         thing_name = self._get_param("thingName")
@@ -693,7 +697,7 @@ class IoTResponse(BaseResponse):
             thing_name=thing_name
         )
         next_token = None
-        return json.dumps(dict(thingGroups=thing_groups, nextToken=next_token))
+        return json.dumps({"thingGroups": thing_groups, "nextToken": next_token})
 
     def update_thing_groups_for_thing(self) -> str:
         thing_name = self._get_param("thingName")
@@ -704,10 +708,10 @@ class IoTResponse(BaseResponse):
             thing_groups_to_add=thing_groups_to_add,
             thing_groups_to_remove=thing_groups_to_remove,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_topic_rules(self) -> str:
-        return json.dumps(dict(rules=self.iot_backend.list_topic_rules()))
+        return json.dumps({"rules": self.iot_backend.list_topic_rules()})
 
     def get_topic_rule(self) -> str:
         return json.dumps(
@@ -724,7 +728,7 @@ class IoTResponse(BaseResponse):
             sql=self._get_param("sql"),
             aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def replace_topic_rule(self) -> str:
         self.iot_backend.replace_topic_rule(
@@ -736,19 +740,19 @@ class IoTResponse(BaseResponse):
             sql=self._get_param("sql"),
             aws_iot_sql_version=self._get_param("awsIotSqlVersion"),
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_topic_rule(self) -> str:
         self.iot_backend.delete_topic_rule(rule_name=self._get_param("ruleName"))
-        return json.dumps(dict())
+        return json.dumps({})
 
     def enable_topic_rule(self) -> str:
         self.iot_backend.enable_topic_rule(rule_name=self._get_param("ruleName"))
-        return json.dumps(dict())
+        return json.dumps({})
 
     def disable_topic_rule(self) -> str:
         self.iot_backend.disable_topic_rule(rule_name=self._get_param("ruleName"))
-        return json.dumps(dict())
+        return json.dumps({})
 
     def create_domain_configuration(self) -> str:
         domain_configuration = self.iot_backend.create_domain_configuration(
@@ -764,7 +768,7 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_domain_configuration(
             domain_configuration_name=self._get_param("domainConfigurationName")
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_domain_configuration(self) -> str:
         domain_configuration = self.iot_backend.describe_domain_configuration(
@@ -774,7 +778,7 @@ class IoTResponse(BaseResponse):
 
     def list_domain_configurations(self) -> str:
         return json.dumps(
-            dict(domainConfigurations=self.iot_backend.list_domain_configurations())
+            {"domainConfigurations": self.iot_backend.list_domain_configurations()}
         )
 
     def update_domain_configuration(self) -> str:
@@ -803,10 +807,10 @@ class IoTResponse(BaseResponse):
             credential_duration_seconds=credential_duration_seconds,
         )
         return json.dumps(
-            dict(
-                roleAlias=created_role_alias.role_alias,
-                roleAliasArn=created_role_alias.arn,
-            )
+            {
+                "roleAlias": created_role_alias.role_alias,
+                "roleAliasArn": created_role_alias.arn,
+            }
         )
 
     def list_role_aliases(self) -> str:
@@ -814,9 +818,11 @@ class IoTResponse(BaseResponse):
         # marker = self._get_param("marker")
         # ascending_order = self._get_param("ascendingOrder")
         return json.dumps(
-            dict(
-                roleAliases=[_.role_alias for _ in self.iot_backend.list_role_aliases()]
-            )
+            {
+                "roleAliases": [
+                    _.role_alias for _ in self.iot_backend.list_role_aliases()
+                ]
+            }
         )
 
     def describe_role_alias(self) -> str:
@@ -840,7 +846,7 @@ class IoTResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(roleAlias=role_alias.role_alias, roleAliasArn=role_alias.arn)
+            {"roleAlias": role_alias.role_alias, "roleAliasArn": role_alias.arn}
         )
 
     def delete_role_alias(self) -> str:
@@ -872,10 +878,10 @@ class IoTResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(
-                jobTemplateArn=job_template.job_template_arn,
-                jobTemplateId=job_template.job_template_id,
-            )
+            {
+                "jobTemplateArn": job_template.job_template_arn,
+                "jobTemplateId": job_template.job_template_id,
+            }
         )
 
     def list_job_templates(self) -> str:
@@ -885,14 +891,16 @@ class IoTResponse(BaseResponse):
             max_results=max_results, next_token=current_next_token
         )
 
-        return json.dumps(dict(jobTemplates=job_templates, nextToken=future_next_token))
+        return json.dumps(
+            {"jobTemplates": job_templates, "nextToken": future_next_token}
+        )
 
     def delete_job_template(self) -> str:
         job_template_id = self._get_param("jobTemplateId")
 
         self.iot_backend.delete_job_template(job_template_id=job_template_id)
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def describe_job_template(self) -> str:
         job_template_id = self._get_param("jobTemplateId")
@@ -934,7 +942,7 @@ class IoTResponse(BaseResponse):
         billing_group_name = self._get_param("billingGroupName")
 
         self.iot_backend.delete_billing_group(billing_group_name=billing_group_name)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_billing_groups(self) -> str:
         name_prefix_filter = self._get_param("namePrefixFilter")
@@ -945,7 +953,7 @@ class IoTResponse(BaseResponse):
             name_prefix_filter=name_prefix_filter, max_results=max_results, token=token
         )
 
-        return json.dumps(dict(billingGroups=billing_groups, nextToken=next_token))
+        return json.dumps({"billingGroups": billing_groups, "nextToken": next_token})
 
     def update_billing_group(self) -> str:
         billing_group_name = self._get_param("billingGroupName")
@@ -958,7 +966,7 @@ class IoTResponse(BaseResponse):
             expected_version=expected_version,
         )
 
-        return json.dumps(dict(version=version))
+        return json.dumps({"version": version})
 
     def add_thing_to_billing_group(self) -> str:
         self.iot_backend.add_thing_to_billing_group(
@@ -968,7 +976,7 @@ class IoTResponse(BaseResponse):
             thing_arn=self._get_param("thingArn"),
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def remove_thing_from_billing_group(self) -> str:
         self.iot_backend.remove_thing_from_billing_group(
@@ -978,7 +986,7 @@ class IoTResponse(BaseResponse):
             thing_arn=self._get_param("thingArn"),
         )
 
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_things_in_billing_group(self) -> str:
         billing_group_name = self._get_param("billingGroupName")
@@ -990,5 +998,5 @@ class IoTResponse(BaseResponse):
             token=token,
         )
         return json.dumps(
-            dict(things=[thing.thing_name for thing in things], nextToken=next_token)
+            {"things": [thing.thing_name for thing in things], "nextToken": next_token}
         )

@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import json
 import threading
-from typing import Any, Final, List, Optional
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
 from moto.stepfunctions.parser.asl.component.common.flow.start_at import StartAt
@@ -37,7 +37,7 @@ from moto.stepfunctions.parser.utils import TMP_THREADS
 class InlineIterationComponentEvalInput:
     state_name: Final[str]
     max_concurrency: Final[int]
-    input_items: Final[List[json]]
+    input_items: Final[list[json]]
     parameters: Final[Optional[Parameters]]
     item_selector: Final[Optional[ItemSelector]]
 
@@ -45,7 +45,7 @@ class InlineIterationComponentEvalInput:
         self,
         state_name: str,
         max_concurrency: int,
-        input_items: List[json],
+        input_items: list[json],
         parameters: Optional[Parameters],
         item_selector: Optional[ItemSelector],
     ):
@@ -99,7 +99,7 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
         eval_input = env.stack.pop()
 
         max_concurrency: int = eval_input.max_concurrency
-        input_items: List[json] = eval_input.input_items
+        input_items: list[json] = eval_input.input_items
 
         input_item_program: Final[Program] = self._get_iteration_program()
         job_pool = JobPool(
@@ -120,7 +120,7 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
         if worker_exception is not None:
             raise worker_exception
 
-        closed_jobs: List[JobClosed] = job_pool.get_closed_jobs()
-        outputs: List[Any] = [closed_job.job_output for closed_job in closed_jobs]
+        closed_jobs: list[JobClosed] = job_pool.get_closed_jobs()
+        outputs: list[Any] = [closed_job.job_output for closed_job in closed_jobs]
 
         env.stack.append(outputs)

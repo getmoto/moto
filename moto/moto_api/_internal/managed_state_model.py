@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from moto.moto_api import state_manager
 
@@ -9,7 +9,7 @@ class ManagedState:
     Subclass this class to configure state-transitions
     """
 
-    def __init__(self, model_name: str, transitions: List[Tuple[Optional[str], str]]):
+    def __init__(self, model_name: str, transitions: list[tuple[Optional[str], str]]):
         # Indicate the possible transitions for this model
         # Example: [(initializing,queued), (queued, starting), (starting, ready)]
         self._transitions = transitions

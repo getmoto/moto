@@ -38,7 +38,7 @@ class MediaLiveResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(channel=channel.to_dict(exclude=["pipelinesRunningCount"]))
+            {"channel": channel.to_dict(exclude=["pipelinesRunningCount"])}
         )
 
     def list_channels(self) -> str:
@@ -51,7 +51,7 @@ class MediaLiveResponse(BaseResponse):
             c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
         ]
 
-        return json.dumps(dict(channels=channel_dicts, nextToken=next_token))
+        return json.dumps({"channels": channel_dicts, "nextToken": next_token})
 
     def describe_channel(self) -> str:
         channel_id = self._get_param("channelId")
@@ -94,7 +94,7 @@ class MediaLiveResponse(BaseResponse):
             name=name,
             role_arn=role_arn,
         )
-        return json.dumps(dict(channel=channel.to_dict()))
+        return json.dumps({"channel": channel.to_dict()})
 
     def create_input(self) -> str:
         destinations = self._get_param("destinations")
@@ -132,7 +132,7 @@ class MediaLiveResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(inputs=[i.to_dict() for i in inputs], nextToken=next_token)
+            {"inputs": [i.to_dict() for i in inputs], "nextToken": next_token}
         )
 
     def delete_input(self) -> str:
@@ -159,4 +159,4 @@ class MediaLiveResponse(BaseResponse):
             role_arn=role_arn,
             sources=sources,
         )
-        return json.dumps(dict(input=a_input.to_dict()))
+        return json.dumps({"input": a_input.to_dict()})

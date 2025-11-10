@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.ec2.models.instances import Instance
@@ -38,7 +38,7 @@ class IamInstanceProfileAssociation(CloudFormationModel):
 
 class IamInstanceProfileAssociationBackend:
     def __init__(self) -> None:
-        self.iam_instance_profile_associations: Dict[
+        self.iam_instance_profile_associations: dict[
             str, IamInstanceProfileAssociation
         ] = {}
 
@@ -74,12 +74,12 @@ class IamInstanceProfileAssociationBackend:
 
     def describe_iam_instance_profile_associations(
         self,
-        association_ids: List[str],
+        association_ids: list[str],
         filters: Any = None,
         max_results: int = 100,
         next_token: Optional[str] = None,
-    ) -> Tuple[List[IamInstanceProfileAssociation], Optional[str]]:
-        associations_list: List[IamInstanceProfileAssociation] = []
+    ) -> tuple[list[IamInstanceProfileAssociation], Optional[str]]:
+        associations_list: list[IamInstanceProfileAssociation] = []
         if association_ids:
             for association in self.iam_instance_profile_associations.values():
                 if association.association_id in association_ids:

@@ -32,7 +32,7 @@ def test_create_launch_configuration():
     assert launch_config["ImageId"] == EXAMPLE_AMI_ID
     assert launch_config["InstanceType"] == "t1.micro"
     assert launch_config["KeyName"] == "the_keys"
-    assert set(launch_config["SecurityGroups"]) == set(["default", "default2"])
+    assert set(launch_config["SecurityGroups"]) == {"default", "default2"}
     userdata = launch_config["UserData"]
     userdata = base64.b64decode(userdata)
     assert userdata == b"This is some user_data"

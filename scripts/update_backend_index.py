@@ -32,6 +32,8 @@ IGNORE_BACKENDS = [
     "s3bucket_path",
     "neptune",
     "opensearch",
+    "qldb",
+    "robomaker"
 ]
 
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel
 from moto.core.utils import underscores_to_camelcase, unix_time
@@ -67,7 +67,7 @@ class HistoryEvent(BaseModel):
                     value = value.to_short_dict()
                 self.event_attributes[camel_key] = value
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "eventId": self.event_id,
             "eventType": self.event_type,

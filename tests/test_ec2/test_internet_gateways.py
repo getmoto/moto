@@ -6,6 +6,8 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 
+from .helpers import assert_dryrun_error
+
 VPC_CIDR = "10.0.0.0/16"
 BAD_VPC = "vpc-deadbeef"
 BAD_IGW = "igw-deadbeef"
@@ -19,12 +21,7 @@ def test_igw_create():
 
     with pytest.raises(ClientError) as ex:
         client.create_internet_gateway(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateInternetGateway operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     igw = ec2.create_internet_gateway()
     assert igw.id.startswith("igw-")
@@ -46,12 +43,7 @@ def test_igw_attach():
 
     with pytest.raises(ClientError) as ex:
         vpc.attach_internet_gateway(InternetGatewayId=igw.id, DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AttachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     vpc.attach_internet_gateway(InternetGatewayId=igw.id)
 
@@ -104,12 +96,7 @@ def test_igw_detach():
         client.detach_internet_gateway(
             InternetGatewayId=igw.id, VpcId=vpc.id, DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DetachInternetGateway operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.detach_internet_gateway(InternetGatewayId=igw.id, VpcId=vpc.id)
     igw = igw = client.describe_internet_gateways(InternetGatewayIds=[igw.id])[
@@ -178,12 +165,7 @@ def test_igw_delete():
 
     with pytest.raises(ClientError) as ex:
         client.delete_internet_gateway(InternetGatewayId=igw.id, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteInternetGateway operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.delete_internet_gateway(InternetGatewayId=igw.id)
     assert igw.id not in [i["InternetGatewayId"] for i in (retrieve_all(client))]
@@ -311,12 +293,12 @@ def test_create_internet_gateway_with_tags():
     assert igw.tags == [{"Key": "test", "Value": "TestRouteTable"}]
 
 
-def retrieve_all(client, filters=[]):
-    resp = client.describe_internet_gateways(Filters=filters)
+def retrieve_all(client, filters=None):
+    resp = client.describe_internet_gateways(Filters=filters or [])
     all_igws = resp["InternetGateways"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_internet_gateways(NextToken=token, Filters=filters)
+        resp = client.describe_internet_gateways(NextToken=token, Filters=filters or [])
         all_igws.extend(resp["InternetGateways"])
         token = resp.get("NextToken")
     return all_igws

@@ -35,43 +35,43 @@ class MediaConnectResponse(BaseResponse):
             vpc_interfaces=vpc_interfaces,
             maintenance=maintenance,
         )
-        return json.dumps(dict(flow=flow.to_dict()))
+        return json.dumps({"flow": flow.to_dict()})
 
     def list_flows(self) -> str:
         max_results = self._get_int_param("maxResults")
         flows = self.mediaconnect_backend.list_flows(max_results=max_results)
-        return json.dumps(dict(flows=flows))
+        return json.dumps({"flows": flows})
 
     def describe_flow(self) -> str:
         flow_arn = self.get_flow_arn()
         flow = self.mediaconnect_backend.describe_flow(flow_arn=flow_arn)
-        return json.dumps(dict(flow=flow.to_dict()))
+        return json.dumps({"flow": flow.to_dict()})
 
     def delete_flow(self) -> str:
         flow_arn = self.get_flow_arn()
         flow = self.mediaconnect_backend.delete_flow(flow_arn=flow_arn)
-        return json.dumps(dict(flowArn=flow.flow_arn, status=flow.status))
+        return json.dumps({"flowArn": flow.flow_arn, "status": flow.status})
 
     def start_flow(self) -> str:
         flow_arn = self.get_flow_arn()
         flow = self.mediaconnect_backend.start_flow(flow_arn=flow_arn)
-        return json.dumps(dict(flowArn=flow.flow_arn, status=flow.status))
+        return json.dumps({"flowArn": flow.flow_arn, "status": flow.status})
 
     def stop_flow(self) -> str:
         flow_arn = self.get_flow_arn()
         flow = self.mediaconnect_backend.stop_flow(flow_arn=flow_arn)
-        return json.dumps(dict(flowArn=flow.flow_arn, status=flow.status))
+        return json.dumps({"flowArn": flow.flow_arn, "status": flow.status})
 
     def tag_resource(self) -> str:
         resource_arn = unquote(self.path.split("/tags/")[-1])
         tags = self._get_param("tags")
         self.mediaconnect_backend.tag_resource(resource_arn=resource_arn, tags=tags)
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.path.split("/tags/")[-1])
         tags = self.mediaconnect_backend.list_tags_for_resource(resource_arn)
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})
 
     def add_flow_vpc_interfaces(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -80,7 +80,7 @@ class MediaConnectResponse(BaseResponse):
             flow_arn=flow_arn, vpc_interfaces=vpc_interfaces
         )
         return json.dumps(
-            dict(flow_arn=flow.flow_arn, vpc_interfaces=flow.vpc_interfaces)
+            {"flow_arn": flow.flow_arn, "vpc_interfaces": flow.vpc_interfaces}
         )
 
     def remove_flow_vpc_interface(self) -> str:
@@ -90,7 +90,7 @@ class MediaConnectResponse(BaseResponse):
             flow_arn=flow_arn, vpc_interface_name=vpc_interface_name
         )
         return json.dumps(
-            dict(flow_arn=flow_arn, vpc_interface_name=vpc_interface_name)
+            {"flow_arn": flow_arn, "vpc_interface_name": vpc_interface_name}
         )
 
     def add_flow_outputs(self) -> str:
@@ -99,7 +99,7 @@ class MediaConnectResponse(BaseResponse):
         flow = self.mediaconnect_backend.add_flow_outputs(
             flow_arn=flow_arn, outputs=outputs
         )
-        return json.dumps(dict(flow_arn=flow.flow_arn, outputs=flow.outputs))
+        return json.dumps({"flow_arn": flow.flow_arn, "outputs": flow.outputs})
 
     def remove_flow_output(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -107,7 +107,7 @@ class MediaConnectResponse(BaseResponse):
         self.mediaconnect_backend.remove_flow_output(
             flow_arn=flow_arn, output_name=output_name
         )
-        return json.dumps(dict(flow_arn=flow_arn, output_name=output_name))
+        return json.dumps({"flow_arn": flow_arn, "output_name": output_name})
 
     def update_flow_output(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -148,7 +148,7 @@ class MediaConnectResponse(BaseResponse):
             stream_id=stream_id,
             vpc_interface_attachment=vpc_interface_attachment,
         )
-        return json.dumps(dict(flowArn=flow_arn, output=output))
+        return json.dumps({"flowArn": flow_arn, "output": output})
 
     def add_flow_sources(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -156,7 +156,7 @@ class MediaConnectResponse(BaseResponse):
         sources = self.mediaconnect_backend.add_flow_sources(
             flow_arn=flow_arn, sources=sources
         )
-        return json.dumps(dict(flow_arn=flow_arn, sources=sources))
+        return json.dumps({"flow_arn": flow_arn, "sources": sources})
 
     def update_flow_source(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -197,7 +197,7 @@ class MediaConnectResponse(BaseResponse):
             vpc_interface_name=vpc_interface_name,
             whitelist_cidr=whitelist_cidr,
         )
-        return json.dumps(dict(flow_arn=flow_arn, source=source))
+        return json.dumps({"flow_arn": flow_arn, "source": source})
 
     def grant_flow_entitlements(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -205,7 +205,7 @@ class MediaConnectResponse(BaseResponse):
         entitlements = self.mediaconnect_backend.grant_flow_entitlements(
             flow_arn=flow_arn, entitlements=entitlements
         )
-        return json.dumps(dict(flow_arn=flow_arn, entitlements=entitlements))
+        return json.dumps({"flow_arn": flow_arn, "entitlements": entitlements})
 
     def revoke_flow_entitlement(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -213,7 +213,7 @@ class MediaConnectResponse(BaseResponse):
         self.mediaconnect_backend.revoke_flow_entitlement(
             flow_arn=flow_arn, entitlement_arn=entitlement_arn
         )
-        return json.dumps(dict(flowArn=flow_arn, entitlementArn=entitlement_arn))
+        return json.dumps({"flowArn": flow_arn, "entitlementArn": entitlement_arn})
 
     def update_flow_entitlement(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -232,7 +232,7 @@ class MediaConnectResponse(BaseResponse):
             name=name,
             subscribers=subscribers,
         )
-        return json.dumps(dict(flowArn=flow_arn, entitlement=entitlement))
+        return json.dumps({"flowArn": flow_arn, "entitlement": entitlement})
 
     def get_flow_arn(self) -> str:
         # Parameter name changed to UpperCase in botocore==1.37.16

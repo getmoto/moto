@@ -26,7 +26,7 @@ def test_export_from_missing_table(table_name=None, bucket_name=None):
     account_id = sts.get_caller_identity()["Account"]
 
     s3_prefix = "prefix"
-    table_arn = f"arn:aws:dynamodb:us-east-1:{account_id}:table/{str(uuid4())[0:6]}"
+    table_arn = f"arn:aws:dynamodb:us-east-1:{account_id}:table/{str(uuid4())}"
 
     with pytest.raises(ClientError) as exc:
         client.export_table_to_point_in_time(

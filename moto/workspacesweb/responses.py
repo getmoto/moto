@@ -80,7 +80,7 @@ class WorkSpacesWebResponse(BaseResponse):
             customer_managed_key=customer_managed_key,
             tags=tags,
         )
-        return json.dumps(dict(browserSettingsArn=browser_settings_arn))
+        return json.dumps({"browserSettingsArn": browser_settings_arn})
 
     def create_network_settings(self) -> str:
         security_group_ids = self._get_param("securityGroupIds")
@@ -93,7 +93,7 @@ class WorkSpacesWebResponse(BaseResponse):
             tags=tags,
             vpc_id=vpc_id,
         )
-        return json.dumps(dict(networkSettingsArn=network_settings_arn))
+        return json.dumps({"networkSettingsArn": network_settings_arn})
 
     def get_network_settings(self) -> TYPE_RESPONSE:
         network_settings_arn = unquote(
@@ -102,7 +102,7 @@ class WorkSpacesWebResponse(BaseResponse):
         network_settings = self.workspacesweb_backend.get_network_settings(
             network_settings_arn=network_settings_arn,
         )
-        return 200, {}, json.dumps(dict(networkSettings=network_settings))
+        return 200, {}, json.dumps({"networkSettings": network_settings})
 
     def create_portal(self) -> str:
         additional_encryption_context = self._get_param("additionalEncryptionContext")
@@ -123,19 +123,19 @@ class WorkSpacesWebResponse(BaseResponse):
             max_concurrent_sessions=max_concurrent_sessions,
             tags=tags,
         )
-        return json.dumps(dict(portalArn=portal_arn, portalEndpoint=portal_endpoint))
+        return json.dumps({"portalArn": portal_arn, "portalEndpoint": portal_endpoint})
 
     def list_browser_settings(self) -> str:
         browser_settings = self.workspacesweb_backend.list_browser_settings()
-        return json.dumps(dict(browserSettings=browser_settings))
+        return json.dumps({"browserSettings": browser_settings})
 
     def list_network_settings(self) -> str:
         network_settings = self.workspacesweb_backend.list_network_settings()
-        return json.dumps(dict(networkSettings=network_settings))
+        return json.dumps({"networkSettings": network_settings})
 
     def list_portals(self) -> str:
         portals = self.workspacesweb_backend.list_portals()
-        return json.dumps(dict(portals=portals))
+        return json.dumps({"portals": portals})
 
     def get_browser_settings(self) -> TYPE_RESPONSE:
         browser_settings_arn = unquote(
@@ -144,7 +144,7 @@ class WorkSpacesWebResponse(BaseResponse):
         browser_settings = self.workspacesweb_backend.get_browser_settings(
             browser_settings_arn=browser_settings_arn,
         )
-        return 200, {}, json.dumps(dict(browserSettings=browser_settings))
+        return 200, {}, json.dumps({"browserSettings": browser_settings})
 
     def delete_browser_settings(self) -> TYPE_RESPONSE:
         browser_settings_arn = unquote(
@@ -167,7 +167,7 @@ class WorkSpacesWebResponse(BaseResponse):
     def get_portal(self) -> TYPE_RESPONSE:
         portal_arn = unquote(self.parsed_url.path.split("/portals/")[-1])
         portal = self.workspacesweb_backend.get_portal(portal_arn=portal_arn)
-        return 200, {}, json.dumps(dict(portal=portal))
+        return 200, {}, json.dumps({"portal": portal})
 
     def delete_portal(self) -> TYPE_RESPONSE:
         portal_arn = unquote(self.parsed_url.path.split("/portals/")[-1])
@@ -186,7 +186,7 @@ class WorkSpacesWebResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(browserSettingsArn=browser_settings_arn, portalArn=portal_arn)
+            {"browserSettingsArn": browser_settings_arn, "portalArn": portal_arn}
         )
 
     def associate_network_settings(self) -> str:
@@ -201,7 +201,7 @@ class WorkSpacesWebResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(networkSettingsArn=network_settings_arn, portalArn=portal_arn)
+            {"networkSettingsArn": network_settings_arn, "portalArn": portal_arn}
         )
 
     def create_user_settings(self) -> str:
@@ -237,14 +237,14 @@ class WorkSpacesWebResponse(BaseResponse):
             tags=tags,
             upload_allowed=upload_allowed,
         )
-        return json.dumps(dict(userSettingsArn=user_settings_arn))
+        return json.dumps({"userSettingsArn": user_settings_arn})
 
     def get_user_settings(self) -> TYPE_RESPONSE:
         user_settings_arn = unquote(self.parsed_url.path.split("/userSettings/")[-1])
         user_settings = self.workspacesweb_backend.get_user_settings(
             user_settings_arn=user_settings_arn,
         )
-        return 200, {}, json.dumps(dict(userSettings=user_settings))
+        return 200, {}, json.dumps({"userSettings": user_settings})
 
     def delete_user_settings(self) -> TYPE_RESPONSE:
         user_settings_arn = unquote(self.parsed_url.path.split("/userSettings/")[-1])
@@ -267,7 +267,7 @@ class WorkSpacesWebResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(userAccessLoggingSettingsArn=user_access_logging_settings_arn)
+            {"userAccessLoggingSettingsArn": user_access_logging_settings_arn}
         )
 
     def get_user_access_logging_settings(self) -> TYPE_RESPONSE:
@@ -282,7 +282,7 @@ class WorkSpacesWebResponse(BaseResponse):
         return (
             200,
             {},
-            json.dumps(dict(userAccessLoggingSettings=user_access_logging_settings)),
+            json.dumps({"userAccessLoggingSettings": user_access_logging_settings}),
         )
 
     def delete_user_access_logging_settings(self) -> TYPE_RESPONSE:
@@ -305,7 +305,9 @@ class WorkSpacesWebResponse(BaseResponse):
                 portal_arn=portal_arn,
             )
         )
-        return json.dumps(dict(userSettingsArn=user_settings_arn, portalArn=portal_arn))
+        return json.dumps(
+            {"userSettingsArn": user_settings_arn, "portalArn": portal_arn}
+        )
 
     def associate_user_access_logging_settings(self) -> str:
         user_access_logging_settings_arn = unquote(
@@ -323,21 +325,21 @@ class WorkSpacesWebResponse(BaseResponse):
             )
         )
         return json.dumps(
-            dict(
-                userAccessLoggingSettingsArn=user_access_logging_settings_arn,
-                portalArn=portal_arn,
-            )
+            {
+                "userAccessLoggingSettingsArn": user_access_logging_settings_arn,
+                "portalArn": portal_arn,
+            }
         )
 
     def list_user_settings(self) -> str:
         user_settings = self.workspacesweb_backend.list_user_settings()
-        return json.dumps(dict(userSettings=user_settings))
+        return json.dumps({"userSettings": user_settings})
 
     def list_user_access_logging_settings(self) -> str:
         user_access_logging_settings = (
             self.workspacesweb_backend.list_user_access_logging_settings()
         )
-        return json.dumps(dict(userAccessLoggingSettings=user_access_logging_settings))
+        return json.dumps({"userAccessLoggingSettings": user_access_logging_settings})
 
     def tag_resource(self) -> str:
         client_token = self._get_param("clientToken")
@@ -348,7 +350,7 @@ class WorkSpacesWebResponse(BaseResponse):
             resource_arn=resource_arn,
             tags=tags,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def untag_resource(self) -> str:
         tagKeys = self.__dict__["data"]["tagKeys"]
@@ -357,11 +359,11 @@ class WorkSpacesWebResponse(BaseResponse):
             resource_arn=resource_arn,
             tag_keys=tagKeys,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.parsed_url.path.split("/tags/")[-1])
         tags = self.workspacesweb_backend.list_tags_for_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(dict(tags=tags))
+        return json.dumps({"tags": tags})

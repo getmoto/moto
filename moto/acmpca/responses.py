@@ -36,7 +36,7 @@ class ACMPCAResponse(BaseResponse):
             security_standard=security_standard,
             tags=tags,
         )
-        return json.dumps(dict(CertificateAuthorityArn=certificate_authority_arn))
+        return json.dumps({"CertificateAuthorityArn": certificate_authority_arn})
 
     def describe_certificate_authority(self) -> str:
         params = json.loads(self.body)
@@ -44,7 +44,7 @@ class ACMPCAResponse(BaseResponse):
         certificate_authority = self.acmpca_backend.describe_certificate_authority(
             certificate_authority_arn=certificate_authority_arn,
         )
-        return json.dumps(dict(CertificateAuthority=certificate_authority.to_json()))
+        return json.dumps({"CertificateAuthority": certificate_authority.to_json()})
 
     def get_certificate_authority_certificate(self) -> str:
         params = json.loads(self.body)
@@ -55,7 +55,7 @@ class ACMPCAResponse(BaseResponse):
         ) = self.acmpca_backend.get_certificate_authority_certificate(
             certificate_authority_arn=certificate_authority_arn,
         )
-        response = dict(Certificate=certificate.decode("utf-8"))
+        response = {"Certificate": certificate.decode("utf-8")}
         if certificate_chain:
             try:
                 decoded_chain = base64.b64decode(certificate_chain)
@@ -74,7 +74,7 @@ class ACMPCAResponse(BaseResponse):
         csr = self.acmpca_backend.get_certificate_authority_csr(
             certificate_authority_arn=certificate_authority_arn,
         )
-        return json.dumps(dict(Csr=csr.decode("utf-8")))
+        return json.dumps({"Csr": csr.decode("utf-8").strip()})
 
     def list_tags(self) -> str:
         params = json.loads(self.body)
@@ -114,7 +114,7 @@ class ACMPCAResponse(BaseResponse):
             csr=csr,
             template_arn=template_arn,
         )
-        return json.dumps(dict(CertificateArn=certificate_arn))
+        return json.dumps({"CertificateArn": certificate_arn})
 
     def get_certificate(self) -> str:
         params = json.loads(self.body)
@@ -124,12 +124,14 @@ class ACMPCAResponse(BaseResponse):
             certificate_authority_arn=certificate_authority_arn,
             certificate_arn=certificate_arn,
         )
-        return json.dumps(
-            dict(
-                Certificate=certificate.decode("utf-8"),
-                CertificateChain=certificate_chain,
-            )
-        )
+
+        response = {"Certificate": certificate.decode("utf-8").strip()}
+
+        # Include CertificateChain if it exists (non-root certificates)
+        if certificate_chain:
+            response["CertificateChain"] = certificate_chain.decode("utf-8").strip()
+
+        return json.dumps(response)
 
     def import_certificate_authority_certificate(self) -> str:
         params = json.loads(self.body)

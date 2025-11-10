@@ -2,7 +2,7 @@
 
 import datetime
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -32,12 +32,12 @@ class Application(BaseModel):
         self.description = description
         self.creationTime = datetime.datetime.now()
         self.lastUpdateTime = self.creationTime
-        self.tags: Dict[str, str] = dict()
-        self.applicationTag: Dict[str, str] = {"awsApplication": self.arn}
+        self.tags: dict[str, str] = {}
+        self.applicationTag: dict[str, str] = {"awsApplication": self.arn}
 
-        self.associated_resources: Dict[str, AssociatedResource] = dict()
+        self.associated_resources: dict[str, AssociatedResource] = {}
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "arn": self.arn,
@@ -55,7 +55,7 @@ class AssociatedResource(BaseBackend):
         self,
         resource_type: str,
         resource: str,
-        options: List[str],
+        options: list[str],
         application: Application,
         account_id: str,
         region_name: str,
@@ -103,7 +103,7 @@ class AssociatedResource(BaseBackend):
         self.resource_type = resource_type
         self.options = options
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return_dict = {
             "name": self.name,
             "arn": self.resource,
@@ -120,12 +120,12 @@ class AppRegistryBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.applications: Dict[str, Application] = dict()
+        self.applications: dict[str, Application] = {}
         self.tagger = TaggingService()
-        self.configuration: Dict[str, Any] = {"tagQueryConfiguration": {}}
+        self.configuration: dict[str, Any] = {"tagQueryConfiguration": {}}
 
     def create_application(
-        self, name: str, description: str, tags: Dict[str, str], client_token: str
+        self, name: str, description: str, tags: dict[str, str], client_token: str
     ) -> Application:
         app = Application(
             name,
@@ -137,12 +137,12 @@ class AppRegistryBackend(BaseBackend):
         self._tag_resource(app.arn, tags)
         return app
 
-    def list_applications(self) -> List[Application]:
+    def list_applications(self) -> list[Application]:
         return list(self.applications.values())
 
     def associate_resource(
-        self, application: str, resource_type: str, resource: str, options: List[str]
-    ) -> Dict[str, Any]:
+        self, application: str, resource_type: str, resource: str, options: list[str]
+    ) -> dict[str, Any]:
         app = self.applications[application]
         new_resource = AssociatedResource(
             resource_type, resource, options, app, self.account_id, self.region_name
@@ -150,21 +150,21 @@ class AppRegistryBackend(BaseBackend):
         app.associated_resources[new_resource.resource] = new_resource
         return {"applicationArn": app.arn, "resourceArn": resource, "options": options}
 
-    def _list_tags_for_resource(self, arn: str) -> Dict[str, str]:
+    def _list_tags_for_resource(self, arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)
 
-    def _tag_resource(self, arn: str, tags: Dict[str, str]) -> None:
+    def _tag_resource(self, arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(arn, TaggingService.convert_dict_to_tags_input(tags))
 
-    def _untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def _untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
-    def put_configuration(self, configuration: Dict[str, Any]) -> None:
+    def put_configuration(self, configuration: dict[str, Any]) -> None:
         self.configuration = configuration
 
     def get_configuration(
         self,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         return self.configuration
 
 

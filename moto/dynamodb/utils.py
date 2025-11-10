@@ -1,7 +1,4 @@
-from typing import List
-
-
-def find_duplicates(input_list: List[str]) -> List[str]:
+def find_duplicates(input_list: list[str]) -> list[str]:
     input_list_copy = input_list.copy()
     while len(input_list_copy) > 0:
         # start at front of list
@@ -11,7 +8,7 @@ def find_duplicates(input_list: List[str]) -> List[str]:
     return []
 
 
-def find_path_overlaps(input_list: List[str]) -> List[str]:
+def find_path_overlaps(input_list: list[str]) -> list[str]:
     input_list_copy = input_list.copy()
     while len(input_list_copy) > 0:
         # start at front of list

@@ -275,16 +275,16 @@ def test_create_rule_with_targets():
         resources = cfn_client.list_stack_resources(StackName=stack_name)[
             "StackResourceSummaries"
         ]
-        queue = next((r for r in resources if r["LogicalResourceId"] == "DestQueue"))
+        queue = next(r for r in resources if r["LogicalResourceId"] == "DestQueue")
         q_url = queue["PhysicalResourceId"]
 
-        entry = dict(
-            Detail='{"a": "b"}',
-            DetailType="Malicious",
-            EventBusName="TestEventBusName",
-            Resources=["path/to/file"],
-            Source="my.source",
-        )
+        entry = {
+            "Detail": '{"a": "b"}',
+            "DetailType": "Malicious",
+            "EventBusName": "TestEventBusName",
+            "Resources": ["path/to/file"],
+            "Source": "my.source",
+        }
         entry_id = events_client.put_events(Entries=[entry])["Entries"][0]["EventId"]
 
         messages = sqs_client.receive_message(QueueUrl=q_url, WaitTimeSeconds=20)[

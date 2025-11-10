@@ -1,7 +1,8 @@
 import copy
 import re
 import string
-from typing import Any, Dict, Iterator, List, Tuple
+from collections.abc import Iterator
+from typing import Any
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random as random
@@ -35,7 +36,7 @@ class ReleaseLabel:
         self.patch = patch
 
     @classmethod
-    def parse(cls, release_label: str) -> Tuple[int, int, int]:
+    def parse(cls, release_label: str) -> tuple[int, int, int]:
         if not release_label:
             raise ValueError(f"Invalid empty ReleaseLabel: {release_label}")
 
@@ -54,7 +55,7 @@ class ReleaseLabel:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({str(self)})"
 
-    def __iter__(self) -> Iterator[Tuple[int, int, int]]:
+    def __iter__(self) -> Iterator[tuple[int, int, int]]:
         return iter((self.major, self.minor, self.patch))  # type: ignore
 
     def __eq__(self, other: Any) -> bool:
@@ -261,7 +262,7 @@ class EmrSecurityGroupManager:
         master_security_group: str,
         slave_security_group: str,
         service_access_security_group: str,
-    ) -> Tuple[Any, Any, Any]:
+    ) -> tuple[Any, Any, Any]:
         group_metadata = [
             (
                 master_security_group,
@@ -279,7 +280,7 @@ class EmrSecurityGroupManager:
                 EmrManagedServiceAccessSecurityGroup,
             ),
         ]
-        managed_groups: Dict[str, Any] = {}
+        managed_groups: dict[str, Any] = {}
         for name, kind, defaults in group_metadata:
             managed_groups[kind] = self._get_or_create_sg(name, defaults)
         self._add_rules_to(managed_groups)
@@ -302,7 +303,7 @@ class EmrSecurityGroupManager:
             group = create_sg(defaults.group_name, defaults.description(), self.vpc_id)
         return group
 
-    def _add_rules_to(self, managed_groups: Dict[str, Any]) -> None:
+    def _add_rules_to(self, managed_groups: dict[str, Any]) -> None:
         rules_metadata = [
             (self.MANAGED_RULES_EGRESS, self.ec2.authorize_security_group_egress),
             (self.MANAGED_RULES_INGRESS, self.ec2.authorize_security_group_ingress),
@@ -320,8 +321,8 @@ class EmrSecurityGroupManager:
 
     @staticmethod
     def _render_rules(  # type: ignore[misc]
-        rules: Any, managed_groups: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        rules: Any, managed_groups: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         rendered_rules = copy.deepcopy(rules)
         for rule in rendered_rules:
             rule["group_name_or_id"] = managed_groups[rule["group_name_or_id"]].id

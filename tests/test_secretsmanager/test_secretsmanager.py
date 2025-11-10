@@ -763,8 +763,10 @@ def test_get_random_too_short_password():
 def test_get_random_too_long_password():
     conn = boto3.client("secretsmanager", region_name="us-west-2")
 
-    with pytest.raises(Exception):
+    with pytest.raises(ClientError) as exc:
         conn.get_random_password(PasswordLength=5555)
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidParameterValue"
 
 
 @mock_aws
@@ -2185,7 +2187,7 @@ def test_update_secret_version_stage_manually(secret=None):
     current_secret = sm_client.get_secret_value(
         SecretId=secret["ARN"], VersionStage="AWSCURRENT"
     )
-    assert list(sorted(current_secret["VersionStages"])) == ["AWSCURRENT", "AWSPENDING"]
+    assert sorted(current_secret["VersionStages"]) == ["AWSCURRENT", "AWSPENDING"]
     assert current_secret["SecretString"] == "new_secret"
 
     previous_secret = sm_client.get_secret_value(

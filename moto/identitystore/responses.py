@@ -1,7 +1,7 @@
 """Handles incoming identitystore requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict, NamedTuple, Optional
+from typing import Any, NamedTuple, Optional
 
 from moto.core.responses import BaseResponse
 
@@ -28,7 +28,7 @@ class IdentityStoreResponse(BaseResponse):
             display_name=display_name,
             description=description,
         )
-        return json.dumps(dict(GroupId=group_id, IdentityStoreId=identity_store_id))
+        return json.dumps({"GroupId": group_id, "IdentityStoreId": identity_store_id})
 
     def create_group_membership(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
@@ -44,7 +44,7 @@ class IdentityStoreResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(MembershipId=membership_id, IdentityStoreId=identity_store_id)
+            {"MembershipId": membership_id, "IdentityStoreId": identity_store_id}
         )
 
     def create_user(self) -> str:
@@ -64,7 +64,7 @@ class IdentityStoreResponse(BaseResponse):
             self._get_param("Locale"),
             self._get_param("Timezone"),
         )
-        return json.dumps(dict(UserId=user_id, IdentityStoreId=identity_store_id))
+        return json.dumps({"UserId": user_id, "IdentityStoreId": identity_store_id})
 
     def get_group_id(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
@@ -73,7 +73,7 @@ class IdentityStoreResponse(BaseResponse):
             identity_store_id=identity_store_id,
             alternate_identifier=alternate_identifier,
         )
-        return json.dumps(dict(GroupId=group_id, IdentityStoreId=identity_store_id))
+        return json.dumps({"GroupId": group_id, "IdentityStoreId": identity_store_id})
 
     def get_user_id(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
@@ -82,7 +82,7 @@ class IdentityStoreResponse(BaseResponse):
             identity_store_id=identity_store_id,
             alternate_identifier=alternate_identifier,
         )
-        return json.dumps(dict(UserId=user_id, IdentityStoreId=identity_store_id))
+        return json.dumps({"UserId": user_id, "IdentityStoreId": identity_store_id})
 
     def describe_user(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
@@ -108,24 +108,24 @@ class IdentityStoreResponse(BaseResponse):
             user_id=user_id,
         )
         return json.dumps(
-            dict(
-                UserName=user_name,
-                UserId=user_id,
-                ExternalIds=None,
-                Name=self.named_tuple_to_dict(name),
-                DisplayName=display_name,
-                NickName=nick_name,
-                ProfileUrl=profile_url,
-                Emails=emails,
-                Addresses=addresses,
-                PhoneNumbers=phone_numbers,
-                UserType=user_type,
-                Title=title,
-                PreferredLanguage=preferred_language,
-                Locale=locale,
-                Timezone=timezone,
-                IdentityStoreId=identity_store_id,
-            )
+            {
+                "UserName": user_name,
+                "UserId": user_id,
+                "ExternalIds": None,
+                "Name": self.named_tuple_to_dict(name),
+                "DisplayName": display_name,
+                "NickName": nick_name,
+                "ProfileUrl": profile_url,
+                "Emails": emails,
+                "Addresses": addresses,
+                "PhoneNumbers": phone_numbers,
+                "UserType": user_type,
+                "Title": title,
+                "PreferredLanguage": preferred_language,
+                "Locale": locale,
+                "Timezone": timezone,
+                "IdentityStoreId": identity_store_id,
+            }
         )
 
     def list_group_memberships(self) -> str:
@@ -144,7 +144,7 @@ class IdentityStoreResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(GroupMemberships=group_memberships, NextToken=next_token)
+            {"GroupMemberships": group_memberships, "NextToken": next_token}
         )
 
     def list_group_memberships_for_member(self) -> str:
@@ -163,7 +163,7 @@ class IdentityStoreResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(GroupMemberships=group_memberships, NextToken=next_token)
+            {"GroupMemberships": group_memberships, "NextToken": next_token}
         )
 
     def list_groups(self) -> str:
@@ -182,7 +182,7 @@ class IdentityStoreResponse(BaseResponse):
         )
 
         return json.dumps(
-            dict(Groups=[g._asdict() for g in groups], NextToken=next_token)
+            {"Groups": [g._asdict() for g in groups], "NextToken": next_token}
         )
 
     def describe_group(self) -> str:
@@ -199,13 +199,13 @@ class IdentityStoreResponse(BaseResponse):
             group_id=group_id,
         )
         return json.dumps(
-            dict(
-                GroupId=group_id,
-                DisplayName=display_name,
-                ExternalIds=external_ids,
-                Description=description,
-                IdentityStoreId=identity_store_id,
-            )
+            {
+                "GroupId": group_id,
+                "DisplayName": display_name,
+                "ExternalIds": external_ids,
+                "Description": description,
+                "IdentityStoreId": identity_store_id,
+            }
         )
 
     def list_users(self) -> str:
@@ -223,7 +223,7 @@ class IdentityStoreResponse(BaseResponse):
             filters=filters,
         )
 
-        return json.dumps(dict(Users=users, NextToken=next_token))
+        return json.dumps({"Users": users, "NextToken": next_token})
 
     def delete_group(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
@@ -232,7 +232,7 @@ class IdentityStoreResponse(BaseResponse):
             identity_store_id=identity_store_id,
             group_id=group_id,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_group_membership(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
@@ -241,7 +241,7 @@ class IdentityStoreResponse(BaseResponse):
             identity_store_id=identity_store_id,
             membership_id=membership_id,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def delete_user(self) -> str:
         identity_store_id = self._get_param("IdentityStoreId")
@@ -250,11 +250,11 @@ class IdentityStoreResponse(BaseResponse):
             identity_store_id=identity_store_id,
             user_id=user_id,
         )
-        return json.dumps(dict())
+        return json.dumps({})
 
     def named_tuple_to_dict(
         self, value: Optional[NamedTuple]
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         if value:
             return value._asdict()
         return None

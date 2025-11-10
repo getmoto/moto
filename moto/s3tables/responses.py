@@ -1,7 +1,7 @@
 """Handles incoming s3tables requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, Dict
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.common_types import TYPE_RESPONSE
@@ -27,7 +27,7 @@ class S3TablesResponse(BaseResponse):
         bucket = self.s3tables_backend.create_table_bucket(
             name=name,
         )
-        return 200, self.default_response_headers, json.dumps(dict(arn=bucket.arn))
+        return 200, self.default_response_headers, json.dumps({"arn": bucket.arn})
 
     def list_table_buckets(self) -> TYPE_RESPONSE:
         params = self._get_params()
@@ -40,7 +40,7 @@ class S3TablesResponse(BaseResponse):
             max_buckets=int(max_buckets) if max_buckets else None,
         )
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "tableBuckets": [
                 {
                     "arn": b.arn,
@@ -67,12 +67,12 @@ class S3TablesResponse(BaseResponse):
             200,
             self.default_response_headers,
             json.dumps(
-                dict(
-                    arn=bucket.arn,
-                    name=bucket.name,
-                    ownerAccountId=bucket.account_id,
-                    createdAt=bucket.creation_date.isoformat(),
-                )
+                {
+                    "arn": bucket.arn,
+                    "name": bucket.name,
+                    "ownerAccountId": bucket.account_id,
+                    "createdAt": bucket.creation_date.isoformat(),
+                }
             ),
         )
 
@@ -97,7 +97,7 @@ class S3TablesResponse(BaseResponse):
             200,
             self.default_response_headers,
             json.dumps(
-                dict(tableBucketArn=table_bucket_arn, namespace=[namespace.name])
+                {"tableBucketArn": table_bucket_arn, "namespace": [namespace.name]}
             ),
         )
 
@@ -117,7 +117,7 @@ class S3TablesResponse(BaseResponse):
             max_namespaces=int(max_namespaces) if max_namespaces else None,
         )
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "namespaces": [
                 {
                     "namespace": [ns.name],
@@ -144,12 +144,12 @@ class S3TablesResponse(BaseResponse):
             200,
             self.default_response_headers,
             json.dumps(
-                dict(
-                    namespace=[namespace.name],
-                    createdAt=namespace.creation_date.isoformat(),
-                    createdBy=namespace.created_by,
-                    ownerAccountId=namespace.account_id,
-                )
+                {
+                    "namespace": [namespace.name],
+                    "createdAt": namespace.creation_date.isoformat(),
+                    "createdBy": namespace.created_by,
+                    "ownerAccountId": namespace.account_id,
+                }
             ),
         )
 
@@ -177,7 +177,7 @@ class S3TablesResponse(BaseResponse):
         return (
             200,
             self.default_response_headers,
-            json.dumps(dict(tableARN=table.arn, versionToken=table.version_token)),
+            json.dumps({"tableARN": table.arn, "versionToken": table.version_token}),
         )
 
     def get_table(self) -> TYPE_RESPONSE:
@@ -193,22 +193,22 @@ class S3TablesResponse(BaseResponse):
             200,
             self.default_response_headers,
             json.dumps(
-                dict(
-                    name=table.name,
-                    type=table.type,
-                    tableARN=table.arn,
-                    namespace=[namespace],
-                    versionToken=table.version_token,
-                    metadataLocation=table.metadata_location,
-                    warehouseLocation=table.warehouse_location,
-                    createdAt=table.creation_date.isoformat(),
-                    createdBy=table.account_id,
-                    managedByService=table.managed_by_service,
-                    modifiedAt=table.last_modified.isoformat(),
-                    modifiedBy=table.modified_by,
-                    ownerAccountId=table.account_id,
-                    format=table.format,
-                )
+                {
+                    "name": table.name,
+                    "type": table.type,
+                    "tableARN": table.arn,
+                    "namespace": [namespace],
+                    "versionToken": table.version_token,
+                    "metadataLocation": table.metadata_location,
+                    "warehouseLocation": table.warehouse_location,
+                    "createdAt": table.creation_date.isoformat(),
+                    "createdBy": table.account_id,
+                    "managedByService": table.managed_by_service,
+                    "modifiedAt": table.last_modified.isoformat(),
+                    "modifiedBy": table.modified_by,
+                    "ownerAccountId": table.account_id,
+                    "format": table.format,
+                }
             ),
         )
 
@@ -227,7 +227,7 @@ class S3TablesResponse(BaseResponse):
             continuation_token=continuation_token,
             max_tables=int(max_tables) if max_tables else None,
         )
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "tables": [
                 {
                     "namespace": [table.namespace],
@@ -269,11 +269,11 @@ class S3TablesResponse(BaseResponse):
             200,
             self.default_response_headers,
             json.dumps(
-                dict(
-                    versionToken=table.version_token,
-                    metadataLocation=table.metadata_location,
-                    warehouseLocation=table.warehouse_location,
-                )
+                {
+                    "versionToken": table.version_token,
+                    "metadataLocation": table.metadata_location,
+                    "warehouseLocation": table.warehouse_location,
+                }
             ),
         )
 
@@ -294,13 +294,13 @@ class S3TablesResponse(BaseResponse):
             200,
             self.default_response_headers,
             json.dumps(
-                dict(
-                    name=table.name,
-                    tableArn=table.arn,
-                    namespace=namespace,
-                    versionToken=table.version_token,
-                    metadataLocation=table.metadata_location,
-                )
+                {
+                    "name": table.name,
+                    "tableArn": table.arn,
+                    "namespace": namespace,
+                    "versionToken": table.version_token,
+                    "metadataLocation": table.metadata_location,
+                }
             ),
         )
 

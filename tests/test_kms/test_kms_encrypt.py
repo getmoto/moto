@@ -1,4 +1,5 @@
 import base64
+import binascii
 
 import boto3
 import pytest
@@ -55,7 +56,7 @@ def test_encrypt(plaintext):
     assert response["CiphertextBlob"] != plaintext
 
     # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(response["CiphertextBlob"], validate=True)
 
     assert response["KeyId"] == key_arn
@@ -127,13 +128,13 @@ def test_decrypt(plaintext):
 
     client.create_key(Description="key")
     # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(encrypt_response["CiphertextBlob"], validate=True)
 
     decrypt_response = client.decrypt(CiphertextBlob=encrypt_response["CiphertextBlob"])
 
     # Plaintext must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(decrypt_response["Plaintext"], validate=True)
 
     assert decrypt_response["Plaintext"] == _get_encoded_value(plaintext)
@@ -175,7 +176,7 @@ def test_re_encrypt_decrypt(plaintext):
     )
 
     # CiphertextBlob must NOT be base64-encoded
-    with pytest.raises(Exception):
+    with pytest.raises(binascii.Error):
         base64.b64decode(re_encrypt_response["CiphertextBlob"], validate=True)
 
     assert re_encrypt_response["SourceKeyId"] == key_1_arn

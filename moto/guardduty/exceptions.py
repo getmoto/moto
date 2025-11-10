@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple
+from typing import Any
 
 from moto.core.exceptions import JsonRESTError
 
@@ -16,7 +16,7 @@ class DetectorNotFoundException(GuardDutyException):
             "The request is rejected because the input detectorId is not owned by the current account.",
         )
 
-    def get_headers(self, *args: Any, **kwargs: Any) -> List[Tuple[str, str]]:
+    def get_headers(self, *args: Any, **kwargs: Any) -> list[tuple[str, str]]:
         return [("X-Amzn-ErrorType", "BadRequestException")]
 
 
@@ -29,5 +29,5 @@ class FilterNotFoundException(GuardDutyException):
             "The request is rejected since no such resource found.",
         )
 
-    def get_headers(self, *args: Any, **kwargs: Any) -> List[Tuple[str, str]]:
+    def get_headers(self, *args: Any, **kwargs: Any) -> list[tuple[str, str]]:
         return [("X-Amzn-ErrorType", "BadRequestException")]

@@ -555,7 +555,7 @@ def test_put_multiple_images_with_same_tag():
 
     images = client.describe_images(repositoryName=ECR_REPO)["imageDetails"]
     assert len(images) == 2
-    assert set([img["imageDigest"] for img in images]) == {image_2, image_3}
+    assert {img["imageDigest"] for img in images} == {image_2, image_3}
 
 
 @mock_aws
@@ -2918,7 +2918,7 @@ def test_ecr_image_tag_mutability():
     list_images_response = client.list_images(repositoryName=ECR_REPO)
     # There should be two images
     assert len(list_images_response["imageIds"]) == 2
-    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+    assert {image["imageDigest"] for image in list_images_response["imageIds"]} == {
         image_digest,
         new_image_digest,
     }
@@ -3036,7 +3036,7 @@ def test_ecr_image_tag_mutability_with_exclusion_filters():
     list_images_response = client.list_images(repositoryName=ECR_REPO)
     # There should be 5 "images"
     assert len(list_images_response["imageIds"]) == 5
-    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+    assert {image["imageDigest"] for image in list_images_response["imageIds"]} == {
         image_digest,
         new_image_digest,
     }
@@ -3112,7 +3112,7 @@ def test_ecr_image_tag_immutability():
     list_images_response = client.list_images(repositoryName=ECR_REPO)
     # There is only one image, but because it has two tags, the length is 2
     assert len(list_images_response["imageIds"]) == 2
-    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+    assert {image["imageDigest"] for image in list_images_response["imageIds"]} == {
         image_digest,
     }
 
@@ -3225,7 +3225,7 @@ def test_ecr_image_tag_immutability_with_exclusion_filters():
     list_images_response = client.list_images(repositoryName=ECR_REPO)
     # There should be 5 "images"
     assert len(list_images_response["imageIds"]) == 5
-    assert set(image["imageDigest"] for image in list_images_response["imageIds"]) == {
+    assert {image["imageDigest"] for image in list_images_response["imageIds"]} == {
         image_digest,
         new_image_digest,
     }

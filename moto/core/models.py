@@ -4,16 +4,14 @@ import itertools
 import os
 import re
 import unittest
+from contextlib import AbstractContextManager
 from threading import Lock
 from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    ContextManager,
-    Dict,
     Optional,
-    Set,
     TypeVar,
 )
 from unittest.mock import patch
@@ -48,7 +46,7 @@ DEFAULT_ACCOUNT_ID = "123456789012"
 T = TypeVar("T")
 
 
-class MockAWS(ContextManager["MockAWS"]):
+class MockAWS(AbstractContextManager["MockAWS"]):
     _nested_count = 0
     _mocks_active = False
     _mock_init_lock = Lock()
@@ -58,7 +56,7 @@ class MockAWS(ContextManager["MockAWS"]):
             "AWS_ACCESS_KEY_ID": "FOOBARKEY",
             "AWS_SECRET_ACCESS_KEY": "FOOBARSECRET",
         }
-        self._orig_creds: Dict[str, Optional[str]] = {}
+        self._orig_creds: dict[str, Optional[str]] = {}
         self._default_session_mock = patch("boto3.DEFAULT_SESSION", None)
         current_user_config = default_user_config.copy()
         current_user_config.update(config or {})
@@ -131,9 +129,7 @@ class MockAWS(ContextManager["MockAWS"]):
     def _decorate_class(self, klass: "Callable[P, T]") -> "Callable[P, T]":
         assert inspect.isclass(klass)  # Keep mypy happy
         direct_methods = get_direct_methods_of(klass)
-        defined_classes = set(
-            x for x, y in klass.__dict__.items() if inspect.isclass(y)
-        )
+        defined_classes = {x for x, y in klass.__dict__.items() if inspect.isclass(y)}
 
         # Get a list of all userdefined superclasses
         superclasses = [
@@ -155,7 +151,7 @@ class MockAWS(ContextManager["MockAWS"]):
                 continue
 
             attr_value = getattr(klass, attr)
-            if not hasattr(attr_value, "__call__"):
+            if not callable(attr_value):
                 continue
             if not hasattr(attr_value, "__name__"):
                 continue
@@ -245,12 +241,12 @@ class MockAWS(ContextManager["MockAWS"]):
         responses_mock.stop()
 
 
-def get_direct_methods_of(klass: object) -> Set[str]:
-    return set(
+def get_direct_methods_of(klass: object) -> set[str]:
+    return {
         x
         for x, y in klass.__dict__.items()
         if isinstance(y, (FunctionType, classmethod, staticmethod))
-    )
+    }
 
 
 RESPONSES_METHODS = [

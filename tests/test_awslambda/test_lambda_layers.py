@@ -47,7 +47,7 @@ def test_publish_layer_with_unknown_s3_file():
     conn = boto3.client("lambda", _lambda_region)
     content = conn.publish_layer_version(
         LayerName=str(uuid4())[0:6],
-        Content=dict(S3Bucket="my-bucket", S3Key="my-key.zip"),
+        Content={"S3Bucket": "my-bucket", "S3Key": "my-key.zip"},
     )["Content"]
     assert content["CodeSha256"] == ""
     assert content["CodeSize"] == 0

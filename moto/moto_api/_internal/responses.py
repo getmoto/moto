@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from botocore.awsrequest import AWSPreparedRequest
 
@@ -57,7 +57,7 @@ class MotoAPIResponse(BaseResponse):
     ) -> TYPE_RESPONSE:
         from moto.core.model_instances import model_data
 
-        results: Dict[str, Dict[str, List[Any]]] = {}
+        results: dict[str, dict[str, list[Any]]] = {}
         for service in sorted(model_data):
             models = model_data[service]
             results[service] = {}

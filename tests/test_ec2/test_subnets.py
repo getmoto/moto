@@ -10,6 +10,8 @@ from moto import mock_aws, settings
 from tests import DEFAULT_ACCOUNT_ID, EXAMPLE_AMI_ID
 from tests.test_ec2 import ec2_aws_verified, wait_for_ipv6_cidr_block_associations
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_subnets():
@@ -311,7 +313,7 @@ def test_subnet_get_by_id():
         "Subnets"
     ]
     assert len(subnets_by_id) == 2
-    subnets_by_id = tuple(map(lambda s: s["SubnetId"], subnets_by_id))
+    subnets_by_id = tuple(s["SubnetId"] for s in subnets_by_id)
     assert subnetA.id in subnets_by_id
     assert subnetB1.id in subnets_by_id
 
@@ -354,7 +356,7 @@ def test_get_subnets_filtering():
         Filters=[{"Name": "vpc-id", "Values": [vpcB.id]}]
     )["Subnets"]
     assert len(subnets_by_vpc) == 2
-    assert set([subnet["SubnetId"] for subnet in subnets_by_vpc]) == {
+    assert {subnet["SubnetId"] for subnet in subnets_by_vpc} == {
         subnetB1.id,
         subnetB2.id,
     }
@@ -927,12 +929,7 @@ def test_describe_subnets_dryrun():
 
     with pytest.raises(ClientError) as ex:
         client.describe_subnets(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DescribeSubnets operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @pytest.mark.aws_verified

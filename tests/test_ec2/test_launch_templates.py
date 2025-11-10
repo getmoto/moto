@@ -7,6 +7,8 @@ from botocore.client import ClientError
 from moto import mock_aws, settings
 from tests import EXAMPLE_AMI_ID
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_launch_template_create():
@@ -66,12 +68,7 @@ def test_create_launch_template__dryrun():
                 {"ResourceType": "instance", "Tags": [{"Key": "key", "Value": "value"}]}
             ],
         )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateLaunchTemplate operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(exc)
 
 
 @mock_aws
@@ -189,12 +186,7 @@ def test_create_launch_template_version__dryrun():
             LaunchTemplateData={"ImageId": "ami-def456"},
             VersionDescription="new ami",
         )
-    err = exc.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateLaunchTemplateVersion operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(exc)
 
 
 @mock_aws
@@ -568,12 +560,7 @@ def test_delete_launch_template__dryrun():
 
     with pytest.raises(ClientError) as exc:
         cli.delete_launch_template(DryRun=True, LaunchTemplateName=template_name)
-    err = exc.value.response["Error"]
-    assert err["Code"] == "DryRunOperation"
-    assert (
-        err["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteLaunchTemplate operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(exc)
 
     # Template still exists
     assert (
@@ -670,12 +657,14 @@ def test_delete_launch_template__by_id():
     )
 
 
-def retrieve_all_templates(client, filters=[]):
-    resp = client.describe_launch_templates(Filters=filters)
+def retrieve_all_templates(client, filters=None):
+    resp = client.describe_launch_templates(Filters=filters or [])
     all_templates = resp["LaunchTemplates"]
     next_token = resp.get("NextToken")
     while next_token:
-        resp = client.describe_launch_templates(Filters=filters, NextToken=next_token)
+        resp = client.describe_launch_templates(
+            Filters=filters or [], NextToken=next_token
+        )
         all_templates.extend(resp["LaunchTemplates"])
         next_token = resp.get("NextToken")
     return all_templates
