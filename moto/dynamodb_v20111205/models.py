@@ -1,6 +1,7 @@
 import json
 from collections import OrderedDict, defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from collections.abc import Iterable
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -20,12 +21,12 @@ def dynamo_json_dump(dynamo_object: Any) -> str:
     return json.dumps(dynamo_object, cls=DynamoJsonEncoder)
 
 
-class DynamoType(object):
+class DynamoType:
     """
     http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DataModel.html#DataModelDataTypes
     """
 
-    def __init__(self, type_as_dict: Dict[str, Any]):
+    def __init__(self, type_as_dict: dict[str, Any]):
         self.type = list(type_as_dict.keys())[0]
         self.value = list(type_as_dict.values())[0]
 
@@ -44,10 +45,10 @@ class DynamoType(object):
         if self.type == "N":
             self.value = str(int(self.value) + int(dyn_type.value))
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {self.type: self.value}
 
-    def compare(self, range_comparison: str, range_objs: List["DynamoType"]) -> Any:
+    def compare(self, range_comparison: str, range_objs: list["DynamoType"]) -> Any:
         """
         Compares this type against comparison filters
         """
@@ -63,7 +64,7 @@ class Item(BaseModel):
         hash_key_type: str,
         range_key: Optional[DynamoType],
         range_key_type: Optional[str],
-        attrs: Dict[str, Any],
+        attrs: dict[str, Any],
     ):
         self.hash_key = hash_key
         self.hash_key_type = hash_key_type
@@ -77,14 +78,14 @@ class Item(BaseModel):
     def __repr__(self) -> str:
         return f"Item: {self.to_json()}"
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         attributes = {}
         for attribute_key, attribute in self.attrs.items():
             attributes[attribute_key] = attribute.value
 
         return {"Attributes": attributes}
 
-    def describe_attrs(self, attributes: List[str]) -> Dict[str, Any]:
+    def describe_attrs(self, attributes: list[str]) -> dict[str, Any]:
         if attributes:
             included = {}
             for key, value in self.attrs.items():
@@ -116,7 +117,7 @@ class Table(BaseModel):
         self.read_capacity = read_capacity
         self.write_capacity = write_capacity
         self.created_at = utcnow()
-        self.items: Dict[DynamoType, Union[Item, Dict[DynamoType, Item]]] = defaultdict(
+        self.items: dict[DynamoType, Union[Item, dict[DynamoType, Item]]] = defaultdict(
             dict
         )
 
@@ -125,8 +126,8 @@ class Table(BaseModel):
         return self.range_key_attr is not None
 
     @property
-    def describe(self) -> Dict[str, Any]:  # type: ignore[misc]
-        results: Dict[str, Any] = {
+    def describe(self) -> dict[str, Any]:  # type: ignore[misc]
+        results: dict[str, Any] = {
             "Table": {
                 "CreationDateTime": unix_time(self.created_at),
                 "KeySchema": {
@@ -163,7 +164,7 @@ class Table(BaseModel):
     def __bool__(self) -> bool:
         return self.__nonzero__()
 
-    def put_item(self, item_attrs: Dict[str, Any]) -> Item:
+    def put_item(self, item_attrs: dict[str, Any]) -> Item:
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))  # type: ignore[arg-type]
         if self.has_range_key:
             range_value: Optional[DynamoType] = DynamoType(
@@ -199,7 +200,7 @@ class Table(BaseModel):
 
     def query(
         self, hash_key: DynamoType, range_comparison: str, range_objs: Any
-    ) -> Tuple[Iterable[Item], bool]:
+    ) -> tuple[Iterable[Item], bool]:
         results = []
         last_page = True  # Once pagination is implemented, change this
 
@@ -220,12 +221,11 @@ class Table(BaseModel):
     def all_items(self) -> Iterable[Item]:
         for hash_set in self.items.values():
             if self.range_key_attr:
-                for item in hash_set.values():  # type: ignore
-                    yield item
+                yield from hash_set.values()  # type: ignore[union-attr]
             else:
                 yield hash_set  # type: ignore[misc]
 
-    def scan(self, filters: Dict[str, Any]) -> Tuple[List[Item], int, bool]:
+    def scan(self, filters: dict[str, Any]) -> tuple[list[Item], int, bool]:
         results = []
         scanned_count = 0
         last_page = True  # Once pagination is implemented, change this
@@ -273,7 +273,7 @@ class Table(BaseModel):
         self,
         hash_key: DynamoType,
         range_key: Optional[DynamoType],
-        attr_updates: Dict[str, Any],
+        attr_updates: dict[str, Any],
     ) -> Optional[Item]:
         item = self.get_item(hash_key, range_key)
         if not item:
@@ -292,7 +292,7 @@ class Table(BaseModel):
 class DynamoDBBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.tables: Dict[str, Table] = OrderedDict()
+        self.tables: dict[str, Table] = OrderedDict()
 
     def create_table(self, name: str, **params: Any) -> Table:
         table = Table(self.account_id, name, **params)
@@ -310,7 +310,7 @@ class DynamoDBBackend(BaseBackend):
         table.write_capacity = new_write_units
         return table
 
-    def put_item(self, table_name: str, item_attrs: Dict[str, Any]) -> Optional[Item]:
+    def put_item(self, table_name: str, item_attrs: dict[str, Any]) -> Optional[Item]:
         table = self.tables.get(table_name)
         if not table:
             return None
@@ -320,8 +320,8 @@ class DynamoDBBackend(BaseBackend):
     def get_item(
         self,
         table_name: str,
-        hash_key_dict: Dict[str, Any],
-        range_key_dict: Optional[Dict[str, Any]],
+        hash_key_dict: dict[str, Any],
+        range_key_dict: Optional[dict[str, Any]],
     ) -> Optional[Item]:
         table = self.tables.get(table_name)
         if not table:
@@ -335,10 +335,10 @@ class DynamoDBBackend(BaseBackend):
     def query(
         self,
         table_name: str,
-        hash_key_dict: Dict[str, Any],
+        hash_key_dict: dict[str, Any],
         range_comparison: str,
-        range_value_dicts: List[Dict[str, Any]],
-    ) -> Tuple[Optional[Iterable[Item]], Optional[bool]]:
+        range_value_dicts: list[dict[str, Any]],
+    ) -> tuple[Optional[Iterable[Item]], Optional[bool]]:
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -349,8 +349,8 @@ class DynamoDBBackend(BaseBackend):
         return table.query(hash_key, range_comparison, range_values)
 
     def scan(
-        self, table_name: str, filters: Dict[str, Any]
-    ) -> Tuple[Optional[List[Item]], Optional[int], Optional[bool]]:
+        self, table_name: str, filters: dict[str, Any]
+    ) -> tuple[Optional[list[Item]], Optional[int], Optional[bool]]:
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
@@ -365,8 +365,8 @@ class DynamoDBBackend(BaseBackend):
     def delete_item(
         self,
         table_name: str,
-        hash_key_dict: Dict[str, Any],
-        range_key_dict: Optional[Dict[str, Any]],
+        hash_key_dict: dict[str, Any],
+        range_key_dict: Optional[dict[str, Any]],
     ) -> Optional[Item]:
         table = self.tables.get(table_name)
         if not table:
@@ -380,9 +380,9 @@ class DynamoDBBackend(BaseBackend):
     def update_item(
         self,
         table_name: str,
-        hash_key_dict: Dict[str, Any],
-        range_key_dict: Optional[Dict[str, Any]],
-        attr_updates: Dict[str, Any],
+        hash_key_dict: dict[str, Any],
+        range_key_dict: Optional[dict[str, Any]],
+        attr_updates: dict[str, Any],
     ) -> Optional[Item]:
         table = self.tables.get(table_name)
         if not table:

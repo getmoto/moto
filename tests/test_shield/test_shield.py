@@ -13,7 +13,7 @@ from tests import aws_verified
 
 @mock_aws
 def test_create_protection():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     resp = client.create_protection(
         Name="foobar",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -26,7 +26,7 @@ def test_create_protection():
 
 @mock_aws
 def test_create_protection_resource_already_exists():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     client.create_protection(
         Name="foobar",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -82,7 +82,7 @@ def test_protect_elastic_ip(account_id):
 
 @mock_aws
 def test_describe_protection_with_resource_arn():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     client.create_protection(
         Name="foobar",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -99,7 +99,7 @@ def test_describe_protection_with_resource_arn():
 
 @mock_aws
 def test_describe_protection_with_protection_id():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     protection = client.create_protection(
         Name="foobar",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -115,7 +115,7 @@ def test_describe_protection_with_protection_id():
 
 @mock_aws
 def test_describe_protection_with_both_resource_and_protection_id():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     with pytest.raises(ClientError) as exc:
         client.describe_protection(
             ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -127,7 +127,7 @@ def test_describe_protection_with_both_resource_and_protection_id():
 
 @mock_aws
 def test_describe_protection_resource_doesnot_exist():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     with pytest.raises(ClientError) as exc:
         client.describe_protection(
             ResourceArn="arn:aws:cloudfront::123456789012:distribution/donotexist"
@@ -138,7 +138,7 @@ def test_describe_protection_resource_doesnot_exist():
 
 @mock_aws
 def test_describe_protection_doesnot_exist():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     with pytest.raises(ClientError) as exc:
         client.describe_protection(ProtectionId="aaaaaaaa-bbbb-cccc-dddd-aaa221177777")
     err = exc.value.response["Error"]
@@ -147,7 +147,7 @@ def test_describe_protection_doesnot_exist():
 
 @mock_aws
 def test_list_protections():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -163,7 +163,7 @@ def test_list_protections():
 
 @mock_aws
 def test_list_protections_with_only_resource_arn():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -183,7 +183,7 @@ def test_list_protections_with_only_resource_arn():
 
 @mock_aws
 def test_list_protections_with_only_protection_name():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -203,7 +203,7 @@ def test_list_protections_with_only_protection_name():
 
 @mock_aws
 def test_list_protections_with_only_resource_type():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -233,7 +233,7 @@ def test_list_protections_with_only_resource_type():
 
 @mock_aws
 def test_list_protections_with_resource_arn_and_protection_name():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -254,7 +254,7 @@ def test_list_protections_with_resource_arn_and_protection_name():
 
 @mock_aws
 def test_list_protections_invalid_resource_arn():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     with pytest.raises(ClientError) as exc:
         client.list_protections(
             InclusionFilters={
@@ -270,7 +270,7 @@ def test_list_protections_invalid_resource_arn():
 
 @mock_aws
 def test_list_protections_invalid_protection_names():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     with pytest.raises(ClientError) as exc:
         client.list_protections(
             InclusionFilters={
@@ -283,7 +283,7 @@ def test_list_protections_invalid_protection_names():
 
 @mock_aws
 def test_list_protections_invalid_resource_types():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     with pytest.raises(ClientError) as exc:
         client.list_protections(
             InclusionFilters={
@@ -296,7 +296,7 @@ def test_list_protections_invalid_resource_types():
 
 @mock_aws
 def test_delete_protection():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     protection = client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/foobar",
@@ -316,7 +316,7 @@ def test_delete_protection():
 
 @mock_aws
 def test_delete_protection_invalid_protection_id():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     with pytest.raises(ClientError) as exc:
         client.delete_protection(ProtectionId="aaaaaaaa-bbbb-cccc-dddd-aaa221177777")
     err = exc.value.response["Error"]
@@ -325,7 +325,7 @@ def test_delete_protection_invalid_protection_id():
 
 @mock_aws
 def test_list_tags_for_resource():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     protection = client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -345,7 +345,7 @@ def test_list_tags_for_resource():
 
 @mock_aws
 def test_tag_resource():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     protection = client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",
@@ -367,7 +367,7 @@ def test_tag_resource():
 
 @mock_aws
 def test_untag_resource():
-    client = boto3.client("shield")
+    client = boto3.client("shield", "us-east-1")
     protection = client.create_protection(
         Name="shield1",
         ResourceArn="arn:aws:cloudfront::123456789012:distribution/foobar",

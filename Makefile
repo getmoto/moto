@@ -5,12 +5,12 @@ TEST_NAMES = "*"
 
 ifeq ($(TEST_SERVER_MODE), true)
 	# Exclude parallel tests
-	TEST_EXCLUDE := --ignore tests/test_acm --ignore tests/test_amp --ignore tests/test_awslambda --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs
+	TEST_EXCLUDE := --ignore tests/test_acm --ignore tests/test_amp --ignore tests/test_awslambda --ignore tests/test_batch --ignore tests/test_dynamodb --ignore tests/test_ec2 --ignore tests/test_sqs
 	# Parallel tests will be run separate
-	PARALLEL_TESTS := ./tests/test_acm/ ./tests/test_acmpca/ ./tests/test_amp/ ./tests/test_awslambda ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
+	PARALLEL_TESTS := ./tests/test_acm/ ./tests/test_acmpca/ ./tests/test_amp/ ./tests/test_awslambda ./tests/test_batch ./tests/test_dynamodb ./tests/test_ec2 ./tests/test_sqs
 else
-	TEST_EXCLUDE := --ignore tests/test_batch --ignore tests/test_ec2 --ignore tests/test_sqs
-	PARALLEL_TESTS := ./tests/test_batch ./tests/test_ec2 ./tests/test_sqs
+	TEST_EXCLUDE := --ignore tests/test_batch --ignore tests/test_dynamodb --ignore tests/test_ec2 --ignore tests/test_sqs
+	PARALLEL_TESTS := ./tests/test_batch ./tests/test_dynamodb ./tests/test_ec2 ./tests/test_sqs
 endif
 
 init:
@@ -34,7 +34,10 @@ test-only:
 	pytest -sv -rs --cov=moto --cov-report xml ./tests/ $(TEST_EXCLUDE)
 	# https://github.com/aws/aws-xray-sdk-python/issues/196 - Run these tests separately without Coverage enabled
 	pytest -sv -rs ./tests/test_xray
-	MOTO_CALL_RESET_API=false pytest -sv --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS) --dist loadscope
+	# Run tests that require a clean slate
+	pytest -sv --cov=moto --cov-report xml --cov-append ./tests/ -m requires_clean_slate
+	# Run parallel tests - except those that require a clean slate
+	MOTO_CALL_RESET_API=false pytest -sv --cov=moto --cov-report xml --cov-append -n 4 $(PARALLEL_TESTS) --dist loadscope -m "not requires_clean_slate"
 
 test: lint test-only
 

@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
 
-from .helpers import check_private_key
+from .helpers import assert_dryrun_error, check_private_key
 
 ED25519_PUBLIC_KEY_OPENSSH = b"""\
 ssh-ed25519 \
@@ -92,7 +92,7 @@ moto@github.com"""
 
 
 @mock_aws
-def test_key_pairs_empty_boto3():
+def test_key_pairs_empty():
     if settings.TEST_SERVER_MODE:
         raise SkipTest("ServerMode is not guaranteed to be empty")
     client = boto3.client("ec2", "us-west-1")
@@ -100,7 +100,7 @@ def test_key_pairs_empty_boto3():
 
 
 @mock_aws
-def test_key_pairs_invalid_id_boto3():
+def test_key_pairs_invalid_id():
     client = boto3.client("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -111,22 +111,17 @@ def test_key_pairs_invalid_id_boto3():
 
 
 @mock_aws
-def test_key_pairs_create_dryrun_boto3():
+def test_key_pairs_create_dryrun():
     ec2 = boto3.resource("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
         ec2.create_key_pair(KeyName="foo", DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
 @pytest.mark.parametrize("key_type, fingerprint_len", [("rsa", 59), ("ed25519", 95)])
-def test_key_pairs_create_boto3(key_type: str, fingerprint_len: int):
+def test_key_pairs_create(key_type: str, fingerprint_len: int):
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
@@ -141,7 +136,7 @@ def test_key_pairs_create_boto3(key_type: str, fingerprint_len: int):
     assert kp.key_material != kp2["KeyMaterial"]
 
     kps = client.describe_key_pairs()["KeyPairs"]
-    all_names = set([k["KeyName"] for k in kps])
+    all_names = {k["KeyName"] for k in kps}
     assert key_name in all_names
     assert key_name2 in all_names
 
@@ -158,7 +153,7 @@ def test_key_pairs_create_boto3(key_type: str, fingerprint_len: int):
 
 
 @mock_aws
-def test_key_pairs_create_exist_boto3():
+def test_key_pairs_create_exist():
     client = boto3.client("ec2", "us-west-1")
     key_name = str(uuid4())[0:6]
     client.create_key_pair(KeyName=key_name)
@@ -171,25 +166,20 @@ def test_key_pairs_create_exist_boto3():
 
 
 @mock_aws
-def test_key_pairs_delete_no_exist_boto3():
+def test_key_pairs_delete_no_exist():
     client = boto3.client("ec2", "us-west-1")
     client.delete_key_pair(KeyName=str(uuid4())[0:6])
 
 
 @mock_aws
-def test_key_pairs_delete_exist_boto3():
+def test_key_pairs_delete_exist():
     client = boto3.client("ec2", "us-west-1")
     key_name = str(uuid4())[0:6]
     client.create_key_pair(KeyName=key_name)
 
     with pytest.raises(ClientError) as ex:
         client.delete_key_pair(KeyName=key_name, DryRun=True)
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     client.delete_key_pair(KeyName=key_name)
     assert key_name not in [
@@ -217,7 +207,7 @@ def test_key_pairs_delete_exist_boto3():
         "ed25519",
     ],
 )
-def test_key_pairs_import_boto3(public_key, fingerprint):
+def test_key_pairs_import(public_key, fingerprint):
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
@@ -225,12 +215,7 @@ def test_key_pairs_import_boto3(public_key, fingerprint):
         client.import_key_pair(
             KeyName=key_name, PublicKeyMaterial=public_key, DryRun=True
         )
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ImportKeyPair operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     kp1 = client.import_key_pair(KeyName=key_name, PublicKeyMaterial=public_key)
 
@@ -256,7 +241,7 @@ def test_key_pairs_import_invalid_key():
 
 
 @mock_aws
-def test_key_pairs_import_exist_boto3():
+def test_key_pairs_import_exist():
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
@@ -275,7 +260,7 @@ def test_key_pairs_import_exist_boto3():
 
 
 @mock_aws
-def test_key_pairs_invalid_boto3():
+def test_key_pairs_invalid():
     client = boto3.client("ec2", "us-west-1")
 
     with pytest.raises(ClientError) as ex:
@@ -301,7 +286,7 @@ def test_key_pairs_invalid_boto3():
 
 
 @mock_aws
-def test_key_pair_filters_boto3():
+def test_key_pair_filters():
     ec2 = boto3.resource("ec2", "us-west-1")
     client = boto3.client("ec2", "us-west-1")
 
@@ -315,12 +300,12 @@ def test_key_pair_filters_boto3():
     kp_by_name = client.describe_key_pairs(
         Filters=[{"Name": "key-name", "Values": [key_name_2]}]
     )["KeyPairs"]
-    assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp2.name])
+    assert {kp["KeyName"] for kp in kp_by_name} == {kp2.name}
 
     kp_by_name = client.describe_key_pairs(
         Filters=[{"Name": "fingerprint", "Values": [kp3.key_fingerprint]}]
     )["KeyPairs"]
-    assert set([kp["KeyName"] for kp in kp_by_name]) == set([kp3.name])
+    assert {kp["KeyName"] for kp in kp_by_name} == {kp3.name}
 
 
 @mock_aws

@@ -191,7 +191,7 @@ def test_create_log_group(kms_key_id):
     # Given
     conn = boto3.client("logs", TEST_REGION)
 
-    create_logs_params = dict(logGroupName="dummy")
+    create_logs_params = {"logGroupName": "dummy"}
     if kms_key_id:
         create_logs_params["kmsKeyId"] = kms_key_id
 

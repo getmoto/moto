@@ -62,7 +62,7 @@ glue
         
 
 - [ ] create_script
-- [ ] create_security_configuration
+- [X] create_security_configuration
 - [X] create_session
 - [X] create_table
 - [ ] create_table_optimizer
@@ -93,7 +93,7 @@ glue
 - [X] delete_resource_policy
 - [X] delete_schema
 - [ ] delete_schema_versions
-- [ ] delete_security_configuration
+- [X] delete_security_configuration
 - [X] delete_session
 - [X] delete_table
 - [ ] delete_table_optimizer
@@ -174,8 +174,10 @@ glue
 - [X] get_schema_by_definition
 - [X] get_schema_version
 - [ ] get_schema_versions_diff
-- [ ] get_security_configuration
-- [ ] get_security_configurations
+- [X] get_security_configuration
+- [X] get_security_configurations
+  Pagination is not yet implemented
+
 - [X] get_session
 - [ ] get_statement
 - [X] get_table

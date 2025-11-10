@@ -1,6 +1,6 @@
 import hashlib
 from collections import OrderedDict
-from typing import Any, Dict, List
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -18,7 +18,7 @@ class Object(BaseModel):
         self.etag = etag
         self.storage_class = storage_class
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "ETag": self.etag,
             "Name": self.path,
@@ -33,7 +33,7 @@ class Object(BaseModel):
 class MediaStoreDataBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self._objects: Dict[str, Object] = OrderedDict()
+        self._objects: dict[str, Object] = OrderedDict()
 
     def put_object(
         self, body: str, path: str, storage_class: str = "TEMPORAL"
@@ -65,7 +65,7 @@ class MediaStoreDataBackend(BaseBackend):
             )
         return objects_found[0]
 
-    def list_items(self) -> List[Dict[str, Any]]:
+    def list_items(self) -> list[dict[str, Any]]:
         """
         The Path- and MaxResults-parameters are not yet supported.
         """

@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from moto.codepipeline.exceptions import (
     InvalidStructureException,
@@ -17,26 +17,26 @@ from moto.utilities.utils import get_partition
 
 
 class CodePipeline(BaseModel):
-    def __init__(self, account_id: str, region: str, pipeline: Dict[str, Any]):
+    def __init__(self, account_id: str, region: str, pipeline: dict[str, Any]):
         # the version number for a new pipeline is always 1
         pipeline["version"] = 1
 
         self.pipeline = self.add_default_values(pipeline)
-        self.tags: Dict[str, str] = {}
+        self.tags: dict[str, str] = {}
 
         self._arn = f"arn:{get_partition(region)}:codepipeline:{region}:{account_id}:{pipeline['name']}"
         self._created = utcnow()
         self._updated = utcnow()
 
     @property
-    def metadata(self) -> Dict[str, str]:
+    def metadata(self) -> dict[str, str]:
         return {
             "pipelineArn": self._arn,
             "created": iso_8601_datetime_with_milliseconds(self._created),
             "updated": iso_8601_datetime_with_milliseconds(self._updated),
         }
 
-    def add_default_values(self, pipeline: Dict[str, Any]) -> Dict[str, Any]:
+    def add_default_values(self, pipeline: dict[str, Any]) -> dict[str, Any]:
         for stage in pipeline["stages"]:
             for action in stage["actions"]:
                 if "runOrder" not in action:
@@ -50,7 +50,7 @@ class CodePipeline(BaseModel):
 
         return pipeline
 
-    def validate_tags(self, tags: List[Dict[str, str]]) -> None:
+    def validate_tags(self, tags: list[dict[str, str]]) -> None:
         for tag in tags:
             if tag["key"].startswith("aws:"):
                 raise InvalidTagsException(
@@ -66,12 +66,12 @@ class CodePipeline(BaseModel):
 class CodePipelineBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.pipelines: Dict[str, CodePipeline] = {}
+        self.pipelines: dict[str, CodePipeline] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
-        service_region: str, zones: List[str]
-    ) -> List[Dict[str, str]]:
+        service_region: str, zones: list[str]
+    ) -> list[dict[str, str]]:
         """Default VPC endpoint service."""
         return BaseBackend.default_vpc_endpoint_service_factory(
             service_region, zones, "codepipeline", policy_supported=False
@@ -82,8 +82,8 @@ class CodePipelineBackend(BaseBackend):
         return iam_backends[self.account_id][self.partition]
 
     def create_pipeline(
-        self, pipeline: Dict[str, Any], tags: List[Dict[str, str]]
-    ) -> Tuple[Dict[str, Any], List[Dict[str, str]]]:
+        self, pipeline: dict[str, Any], tags: list[dict[str, str]]
+    ) -> tuple[dict[str, Any], list[dict[str, str]]]:
         name = pipeline["name"]
         if name in self.pipelines:
             raise InvalidStructureException(
@@ -124,7 +124,7 @@ class CodePipelineBackend(BaseBackend):
 
         return pipeline, sorted(tags, key=lambda i: i["key"])
 
-    def get_pipeline(self, name: str) -> Tuple[Dict[str, Any], Dict[str, str]]:
+    def get_pipeline(self, name: str) -> tuple[dict[str, Any], dict[str, str]]:
         codepipeline = self.pipelines.get(name)
 
         if not codepipeline:
@@ -134,7 +134,7 @@ class CodePipelineBackend(BaseBackend):
 
         return codepipeline.pipeline, codepipeline.metadata
 
-    def update_pipeline(self, pipeline: Dict[str, Any]) -> Dict[str, Any]:
+    def update_pipeline(self, pipeline: dict[str, Any]) -> dict[str, Any]:
         codepipeline = self.pipelines.get(pipeline["name"])
 
         if not codepipeline:
@@ -149,7 +149,7 @@ class CodePipelineBackend(BaseBackend):
 
         return codepipeline.pipeline
 
-    def list_pipelines(self) -> List[Dict[str, str]]:
+    def list_pipelines(self) -> list[dict[str, str]]:
         pipelines = []
 
         for name, codepipeline in self.pipelines.items():
@@ -167,7 +167,7 @@ class CodePipelineBackend(BaseBackend):
     def delete_pipeline(self, name: str) -> None:
         self.pipelines.pop(name, None)
 
-    def list_tags_for_resource(self, arn: str) -> List[Dict[str, str]]:
+    def list_tags_for_resource(self, arn: str) -> list[dict[str, str]]:
         name = arn.split(":")[-1]
         pipeline = self.pipelines.get(name)
 
@@ -180,7 +180,7 @@ class CodePipelineBackend(BaseBackend):
 
         return sorted(tags, key=lambda i: i["key"])
 
-    def tag_resource(self, arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, arn: str, tags: list[dict[str, str]]) -> None:
         name = arn.split(":")[-1]
         pipeline = self.pipelines.get(name)
 
@@ -194,7 +194,7 @@ class CodePipelineBackend(BaseBackend):
         for tag in tags:
             pipeline.tags.update({tag["key"]: tag["value"]})
 
-    def untag_resource(self, arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         name = arn.split(":")[-1]
         pipeline = self.pipelines.get(name)
 

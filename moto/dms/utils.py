@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import string
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from moto.dms.models import FakeReplicationTask
@@ -17,22 +17,22 @@ def random_id(uppercase: bool = True, length: int = 13) -> str:
     return resource_id
 
 
-def match_task_arn(task: FakeReplicationTask, arns: List[str]) -> bool:
+def match_task_arn(task: FakeReplicationTask, arns: list[str]) -> bool:
     return task.arn in arns
 
 
-def match_task_id(task: FakeReplicationTask, ids: List[str]) -> bool:
+def match_task_id(task: FakeReplicationTask, ids: list[str]) -> bool:
     return task.id in ids
 
 
 def match_task_migration_type(
-    task: FakeReplicationTask, migration_types: List[str]
+    task: FakeReplicationTask, migration_types: list[str]
 ) -> bool:
     return task.migration_type in migration_types
 
 
 def match_task_endpoint_arn(
-    task: FakeReplicationTask, endpoint_arns: List[str]
+    task: FakeReplicationTask, endpoint_arns: list[str]
 ) -> bool:
     return (
         task.source_endpoint_arn in endpoint_arns
@@ -41,7 +41,7 @@ def match_task_endpoint_arn(
 
 
 def match_task_replication_instance_arn(
-    task: FakeReplicationTask, replication_instance_arns: List[str]
+    task: FakeReplicationTask, replication_instance_arns: list[str]
 ) -> bool:
     return task.replication_instance_arn in replication_instance_arns
 
@@ -56,7 +56,7 @@ task_filter_functions = {
 
 
 def filter_tasks(
-    tasks: List[FakeReplicationTask], filters: List[Dict[str, Any]]
+    tasks: list[FakeReplicationTask], filters: list[dict[str, Any]]
 ) -> Any:
     matching_tasks = tasks
 

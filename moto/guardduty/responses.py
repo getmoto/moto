@@ -38,7 +38,7 @@ class GuardDutyResponse(BaseResponse):
             enable, finding_publishing_frequency, data_sources, tags, features
         )
 
-        return json.dumps(dict(detectorId=detector_id))
+        return json.dumps({"detectorId": detector_id})
 
     def delete_detector(self) -> str:
         detector_id = self.path.split("/")[-1]

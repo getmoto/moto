@@ -550,7 +550,7 @@ def test_list_groups():
     batch_size = 3
     next_token = None
 
-    expected_groups = list()
+    expected_groups = []
     for _ in range(end):
         display_name, description, group_id = __create_test_group(
             client=client, store_id=identity_store_id
@@ -565,7 +565,7 @@ def test_list_groups():
             }
         )
 
-    groups = list()
+    groups = []
     for iteration in range(start, end, batch_size):
         last_iteration = end - iteration <= batch_size
         expected_size = batch_size if not last_iteration else end - iteration
@@ -760,12 +760,12 @@ def test_list_users():
     batch_size = 100
     next_token = None
 
-    expected_users = list()
+    expected_users = []
     for _ in range(end):
         dummy_user = __create_and_verify_sparse_user(client, identity_store_id)
         expected_users.append(dummy_user)
 
-    users = list()
+    users = []
     for iteration in range(start, end, batch_size):
         last_iteration = end - iteration <= batch_size
         expected_size = batch_size if not last_iteration else end - iteration

@@ -1,6 +1,6 @@
 import json
 import sys
-from typing import Dict, Optional
+from typing import Optional
 from unittest import SkipTest
 
 import boto3
@@ -322,10 +322,10 @@ def test_delete_field_from_device_shadow(name: Optional[str] = None) -> None:
     ],
 )
 def test_delta_calculation(
-    desired: Dict[str, Dict[str, Optional[bool]]],
-    initial_delta: Dict[str, Dict[str, Optional[bool]]],
-    reported: Dict[str, Dict[str, Optional[bool]]],
-    delta_after_report: Dict[str, Dict[str, Optional[bool]]],
+    desired: dict[str, dict[str, Optional[bool]]],
+    initial_delta: dict[str, dict[str, Optional[bool]]],
+    reported: dict[str, dict[str, Optional[bool]]],
+    delta_after_report: dict[str, dict[str, Optional[bool]]],
     name: Optional[str] = None,
 ) -> None:
     client = boto3.client("iot-data", region_name="ap-northeast-1")

@@ -1,7 +1,6 @@
 """CloudDirectoryBackend class with methods for supported APIs."""
 
 import datetime
-from typing import Dict, List
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -49,7 +48,7 @@ class Directory(BaseModel):
         self.creation_date_time = datetime.datetime.now()
         self.object_identifier = f"directory-{name}"
 
-    def to_dict(self) -> Dict[str, str]:
+    def to_dict(self) -> dict[str, str]:
         return {
             "Name": self.name,
             "SchemaArn": self.schema_arn,
@@ -65,8 +64,8 @@ class CloudDirectoryBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
-        self.directories: Dict[str, Directory] = {}
-        self.schemas_states: Dict[str, List[str]] = {
+        self.directories: dict[str, Directory] = {}
+        self.schemas_states: dict[str, list[str]] = {
             "development": [],
             "published": [],
             "applied": [],
@@ -115,15 +114,15 @@ class CloudDirectoryBackend(BaseBackend):
         return
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_development_schema_arns(self) -> List[str]:
+    def list_development_schema_arns(self) -> list[str]:
         return self.schemas_states["development"]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_published_schema_arns(self) -> List[str]:
+    def list_published_schema_arns(self) -> list[str]:
         return self.schemas_states["published"]
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_directories(self, state: str) -> List[Directory]:
+    def list_directories(self, state: str) -> list[Directory]:
         directories = list(self.directories.values())
         if state:
             directories = [
@@ -131,11 +130,11 @@ class CloudDirectoryBackend(BaseBackend):
             ]
         return directories
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
         return
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         if not isinstance(tag_keys, list):
             tag_keys = [tag_keys]
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
@@ -153,7 +152,7 @@ class CloudDirectoryBackend(BaseBackend):
 
     def list_tags_for_resource(
         self, resource_arn: str, next_token: str, max_results: int
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         tags = self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return tags
 

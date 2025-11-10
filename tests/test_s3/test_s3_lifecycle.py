@@ -474,7 +474,7 @@ def test_lifecycle_with_aimu():
 
 
 @mock_aws
-def test_lifecycle_with_glacier_transition_boto3():
+def test_lifecycle_with_glacier_transition():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
     s3_resource.create_bucket(Bucket="foobar")
@@ -505,7 +505,7 @@ def test_lifecycle_with_glacier_transition_boto3():
 
 
 @mock_aws
-def test_lifecycle_multi_boto3():
+def test_lifecycle_multi():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
     s3_resource.create_bucket(Bucket="foobar")
@@ -573,11 +573,11 @@ def test_lifecycle_multi_boto3():
             )
             assert rule["Transitions"][0]["StorageClass"] == storage_class
         else:
-            assert False, "Invalid rule id"
+            raise AssertionError("Invalid rule id")
 
 
 @mock_aws
-def test_lifecycle_delete_boto3():
+def test_lifecycle_delete():
     s3_resource = boto3.resource("s3", region_name="us-east-1")
     client = boto3.client("s3", region_name="us-east-1")
     s3_resource.create_bucket(Bucket="foobar")

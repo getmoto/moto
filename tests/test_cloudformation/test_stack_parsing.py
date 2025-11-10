@@ -393,7 +393,7 @@ def test_parse_stack_with_get_availability_zones():
 
 
 @mock_aws
-def test_parse_stack_with_bad_get_attribute_outputs_using_boto3():
+def test_parse_stack_with_bad_get_attribute_outputs_using():
     conn = boto3.client("cloudformation", region_name="us-west-1")
     with pytest.raises(ClientError) as exc:
         conn.create_stack(StackName="teststack", TemplateBody=bad_output_template_json)

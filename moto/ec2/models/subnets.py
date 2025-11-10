@@ -3,7 +3,7 @@ from __future__ import annotations
 import ipaddress
 import itertools
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -41,8 +41,8 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         cidr_block: str,
         ipv6_cidr_block: Optional[str],
         availability_zone: Zone,
-        default_for_az: str,
-        map_public_ip_on_launch: str,
+        default_for_az: bool,
+        map_public_ip_on_launch: bool,
         ipv6_native: bool = False,
     ):
         self.ec2_backend = ec2_backend
@@ -59,7 +59,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self.default_for_az = default_for_az
         self.map_public_ip_on_launch = map_public_ip_on_launch
         self.assign_ipv6_address_on_creation = ipv6_native
-        self.ipv6_cidr_block_associations: Dict[str, Dict[str, Any]] = {}
+        self.ipv6_cidr_block_associations: dict[str, dict[str, Any]] = {}
         if ipv6_cidr_block:
             self.attach_ipv6_cidr_block_associations(ipv6_cidr_block)
 
@@ -68,10 +68,10 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         self.reserved_ips = [
             next(iter(self._subnet_ip_generator)) for _ in range(0, 3)
         ]  # Reserved by AWS
-        self._unused_ips: Set[str] = (
+        self._unused_ips: set[str] = (
             set()
         )  # if instance is destroyed hold IP here for reuse
-        self._subnet_ips: Dict[str, "Instance"] = {}
+        self._subnet_ips: dict[str, Instance] = {}
         self.state = "available"
 
         # Placeholder for response templates until Ipv6 support implemented.
@@ -82,7 +82,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         return f"arn:aws:ec2:{self.ec2_backend.region_name}:{self.owner_id}:subnet/{self.id}"
 
     @property
-    def ipv6_cidr_block_association_set(self) -> List[Dict[str, str]]:
+    def ipv6_cidr_block_association_set(self) -> list[dict[str, str]]:
         association_set = [
             {
                 "ipv6CidrBlock": association["ipv6CidrBlock"],
@@ -117,7 +117,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "Subnet":
+    ) -> Subnet:
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
@@ -140,7 +140,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -218,7 +218,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
             raise NotImplementedError('"Fn::GetAtt" : [ "{0}" , "AvailabilityZone" ]"')
         raise UnformattedGetAttTemplateException()
 
-    def get_available_subnet_ip(self, instance: "Instance") -> str:
+    def get_available_subnet_ip(self, instance: Instance) -> str:
         try:
             new_ip = str(self._unused_ips.pop())
         except KeyError:
@@ -239,7 +239,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     # EFS calls this method as request_ip(str, MountTarget)
     # So technically it's not just Instances that are stored
-    def request_ip(self, ip: str, instance: "Instance") -> None:
+    def request_ip(self, ip: str, instance: Instance) -> None:
         if ipaddress.ip_address(ip) not in self.cidr:
             raise Exception(f"IP does not fall in the subnet CIDR of {self.cidr}")
 
@@ -261,7 +261,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
 
     def attach_ipv6_cidr_block_associations(
         self, ipv6_cidr_block: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         association = {
             "associationId": random_subnet_ipv6_cidr_block_association_id(),
             "ipv6CidrBlock": ipv6_cidr_block,
@@ -272,7 +272,7 @@ class Subnet(TaggedEC2Resource, CloudFormationModel):
         )
         return association
 
-    def detach_subnet_cidr_block(self, association_id: str) -> Dict[str, Any]:
+    def detach_subnet_cidr_block(self, association_id: str) -> dict[str, Any]:
         association = self.ipv6_cidr_block_associations.get(association_id)
         assert association is not None
         association["ipv6CidrBlockState"] = {"State": "disassociated"}
@@ -305,7 +305,7 @@ class SubnetRouteTableAssociation(CloudFormationModel):
         account_id: str,
         region_name: str,
         **kwargs: Any,
-    ) -> "SubnetRouteTableAssociation":
+    ) -> SubnetRouteTableAssociation:
         from ..models import ec2_backends
 
         properties = cloudformation_json["Properties"]
@@ -323,8 +323,8 @@ class SubnetRouteTableAssociation(CloudFormationModel):
 class SubnetBackend:
     def __init__(self) -> None:
         # maps availability zone to dict of (subnet_id, subnet)
-        self.subnets: Dict[str, Dict[str, Subnet]] = defaultdict(dict)
-        self.subnet_associations: Dict[str, SubnetRouteTableAssociation] = {}
+        self.subnets: dict[str, dict[str, Subnet]] = defaultdict(dict)
+        self.subnet_associations: dict[str, SubnetRouteTableAssociation] = {}
 
     def get_subnet(self, subnet_id: str) -> Subnet:
         for subnets_per_zone in self.subnets.values():
@@ -332,7 +332,7 @@ class SubnetBackend:
                 return subnets_per_zone[subnet_id]
         raise InvalidSubnetIdError(subnet_id)
 
-    def get_default_subnets(self) -> Dict[str, Subnet]:
+    def get_default_subnets(self) -> dict[str, Subnet]:
         return {
             subnet.availability_zone: subnet
             for subnet in self.describe_subnets()
@@ -367,7 +367,7 @@ class SubnetBackend:
         availability_zone: Optional[str] = None,
         availability_zone_id: Optional[str] = None,
         ipv6_native: bool = False,
-        tags: Optional[Dict[str, Dict[str, str]]] = None,
+        tags: Optional[dict[str, dict[str, str]]] = None,
     ) -> Subnet:
         subnet_id = random_subnet_id()
         # Validate VPC exists and the supplied CIDR block is a subnet of the VPC's
@@ -403,7 +403,7 @@ class SubnetBackend:
 
         # if this is the first subnet for an availability zone,
         # consider it the default
-        default_for_az = str(len(self.subnets.get(availability_zone, [])) == 0).lower()  # type: ignore[arg-type]
+        default_for_az = len(self.subnets.get(availability_zone, [])) == 0  # type: ignore[arg-type]
         map_public_ip_on_launch = default_for_az
 
         if availability_zone is None and not availability_zone_id:
@@ -456,8 +456,8 @@ class SubnetBackend:
         return subnet
 
     def describe_subnets(
-        self, subnet_ids: Optional[List[str]] = None, filters: Optional[Any] = None
-    ) -> List[Subnet]:
+        self, subnet_ids: Optional[list[str]] = None, filters: Optional[Any] = None
+    ) -> list[Subnet]:
         # Extract a list of all subnets
         matches = list(
             itertools.chain(*[x.copy().values() for x in self.subnets.copy().values()])
@@ -496,7 +496,7 @@ class SubnetBackend:
 
     def associate_subnet_cidr_block(
         self, subnet_id: str, ipv6_cidr_block: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         subnet = self.get_subnet(subnet_id)
         if not subnet:
             raise InvalidSubnetIdError(subnet_id)
@@ -505,7 +505,7 @@ class SubnetBackend:
 
     def disassociate_subnet_cidr_block(
         self, association_id: str
-    ) -> Tuple[str, Dict[str, str]]:
+    ) -> tuple[str, dict[str, str]]:
         subnet = self.get_subnet_from_ipv6_association(association_id)
         if not subnet:
             raise InvalidSubnetCidrBlockAssociationID(association_id)

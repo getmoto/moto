@@ -7,7 +7,7 @@ from email.encoders import encode_7or8bit
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr, getaddresses, parseaddr
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Literal, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -67,8 +67,8 @@ class SESFeedback(BaseModel):
     FORWARDING_ENABLED = "feedback_forwarding_enabled"
 
     @staticmethod
-    def generate_message(account_id: str, msg_type: str) -> Dict[str, Any]:  # type: ignore[misc]
-        msg: Dict[str, Any] = dict(COMMON_MAIL)
+    def generate_message(account_id: str, msg_type: str) -> dict[str, Any]:  # type: ignore[misc]
+        msg: dict[str, Any] = dict(COMMON_MAIL)
         msg["mail"]["sendingAccountId"] = account_id
         if msg_type == SESFeedback.BOUNCE:
             msg["bounce"] = BOUNCE
@@ -87,7 +87,7 @@ class Message(BaseModel):
         source: str,
         subject: str,
         body: str,
-        destinations: Dict[str, List[str]],
+        destinations: dict[str, list[str]],
     ):
         self.id = message_id
         self.source = source
@@ -115,7 +115,7 @@ class TemplateMessage(BaseModel):
 class BulkTemplateMessage(BaseModel):
     def __init__(
         self,
-        message_ids: List[str],
+        message_ids: list[str],
         source: str,
         template: str,
         template_data: str,
@@ -130,7 +130,7 @@ class BulkTemplateMessage(BaseModel):
 
 class RawMessage(BaseModel):
     def __init__(
-        self, message_id: str, source: str, destinations: List[str], raw_data: str
+        self, message_id: str, source: str, destinations: list[str], raw_data: str
     ):
         self.id = message_id
         self.source = source
@@ -152,7 +152,7 @@ class ReceiptRuleSet(BaseModel):
             datetime.timezone.utc
         ).isoformat()
         self.is_active = False  # By default, during creation
-        self.rules: List[Dict[str, Any]] = []
+        self.rules: list[dict[str, Any]] = []
 
     @property
     def metadata(self) -> dict[str, str]:
@@ -166,26 +166,26 @@ class ConfigurationSet(BaseModel):
     def __init__(
         self,
         configuration_set_name: str,
-        tracking_options: Optional[Dict[str, str]] = {},
-        delivery_options: Optional[Dict[str, Any]] = {},
-        reputation_options: Optional[Dict[str, Any]] = {},
-        sending_options: Optional[Dict[str, bool]] = {},
-        tags: Optional[List[Dict[str, str]]] = [],
-        suppression_options: Optional[Dict[str, List[str]]] = {},
-        vdm_options: Optional[Dict[str, Dict[str, str]]] = {},
+        tracking_options: Optional[dict[str, str]] = None,
+        delivery_options: Optional[dict[str, Any]] = None,
+        reputation_options: Optional[dict[str, Any]] = None,
+        sending_options: Optional[dict[str, bool]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        suppression_options: Optional[dict[str, list[str]]] = None,
+        vdm_options: Optional[dict[str, dict[str, str]]] = None,
     ) -> None:
         # Shared between SES and SESv2
         self.configuration_set_name = configuration_set_name
-        self.tracking_options = tracking_options
-        self.delivery_options = delivery_options
-        self.reputation_options = reputation_options
-        self.enabled = sending_options  # Enabled in v1, SendingOptions in v2
+        self.tracking_options = tracking_options or {}
+        self.delivery_options = delivery_options or {}
+        self.reputation_options = reputation_options or {}
+        self.enabled = sending_options or {}  # Enabled in v1, SendingOptions in v2
         # SESv2 specific fields
-        self.tags = tags
-        self.suppression_options = suppression_options
-        self.vdm_options = vdm_options
+        self.tags = tags or []
+        self.suppression_options = suppression_options or {}
+        self.vdm_options = vdm_options or {}
 
-    def to_dict_v2(self) -> Dict[str, Any]:
+    def to_dict_v2(self) -> dict[str, Any]:
         return {
             "ConfigurationSetName": self.configuration_set_name,
             "TrackingOptions": self.tracking_options,
@@ -203,19 +203,19 @@ class Contact(BaseModel):
         self,
         contact_list_name: str,
         email_address: str,
-        topic_preferences: List[Dict[str, str]],
+        topic_preferences: list[dict[str, str]],
         unsubscribe_all: bool,
     ) -> None:
         self.contact_list_name = contact_list_name
         self.email_address = email_address
-        self.topic_default_preferences: List[Dict[str, str]] = []
+        self.topic_default_preferences: list[dict[str, str]] = []
         self.topic_preferences = topic_preferences
         self.unsubscribe_all = unsubscribe_all
         self.created_timestamp = iso_8601_datetime_with_milliseconds()
         self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "ContactListName": self.contact_list_name,
             "EmailAddress": self.email_address,
@@ -232,16 +232,16 @@ class ContactList(BaseModel):
         self,
         contact_list_name: str,
         description: str,
-        topics: List[Dict[str, str]],
+        topics: list[dict[str, str]],
     ) -> None:
         self.contact_list_name = contact_list_name
         self.description = description
         self.topics = topics
         self.created_timestamp = iso_8601_datetime_with_milliseconds()
         self.last_updated_timestamp = iso_8601_datetime_with_milliseconds()
-        self.contacts: Dict[str, Contact] = {}
+        self.contacts: dict[str, Contact] = {}
 
-    def create_contact(self, contact_list_name: str, params: Dict[str, Any]) -> None:
+    def create_contact(self, contact_list_name: str, params: dict[str, Any]) -> None:
         email_address = params["EmailAddress"]
         topic_preferences = (
             [] if "TopicPreferences" not in params else params["TopicPreferences"]
@@ -254,7 +254,7 @@ class ContactList(BaseModel):
         )
         self.contacts[email_address] = new_contact
 
-    def list_contacts(self) -> List[Contact]:
+    def list_contacts(self) -> list[Contact]:
         return self.contacts.values()  # type: ignore[return-value]
 
     def get_contact(self, email: str) -> Contact:
@@ -269,7 +269,7 @@ class ContactList(BaseModel):
             del self.contacts[email]
 
     @property
-    def response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "ContactListName": self.contact_list_name,
             "Description": self.description,
@@ -283,7 +283,7 @@ class EmailIdentity(BaseModel):
     def __init__(
         self,
         email_identity: str,
-        tags: Optional[Dict[str, str]],
+        tags: Optional[dict[str, str]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> None:
@@ -296,7 +296,7 @@ class EmailIdentity(BaseModel):
         self.feedback_forwarding_status = False
         self.verification_status = "SUCCESS"
         self.sending_enabled = True
-        self.dkim_attributes: Dict[str, Any] = {}
+        self.dkim_attributes: dict[str, Any] = {}
         if not self.dkim_signing_attributes or not isinstance(
             self.dkim_signing_attributes, dict
         ):
@@ -314,10 +314,10 @@ class EmailIdentity(BaseModel):
             self.dkim_attributes["LastKeyGenerationTimestamp"] = (
                 iso_8601_datetime_with_milliseconds()
             )
-        self.policies: Dict[str, Any] = {}
+        self.policies: dict[str, Any] = {}
 
     @property
-    def get_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def get_response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "IdentityType": self.identity_type,
             "FeedbackForwardingStatus": self.feedback_forwarding_status,
@@ -330,7 +330,7 @@ class EmailIdentity(BaseModel):
         }
 
     @property
-    def list_response_object(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def list_response_object(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "IdentityType": self.identity_type,
             "IdentityName": self.email_identity,
@@ -341,13 +341,13 @@ class EmailIdentity(BaseModel):
 
 class DedicatedIpPool(BaseModel):
     def __init__(
-        self, pool_name: str, scaling_mode: str, tags: List[Dict[str, str]]
+        self, pool_name: str, scaling_mode: str, tags: list[dict[str, str]]
     ) -> None:
         self.pool_name = pool_name
         self.scaling_mode = scaling_mode
         self.tags = tags
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "PoolName": self.pool_name,
             "Tags": self.tags,
@@ -377,21 +377,21 @@ class SESBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.sent_messages: List[Any] = []
+        self.sent_messages: list[Any] = []
         self.sent_message_count = 0
         self.rejected_messages_count = 0
-        self.sns_topics: Dict[str, Dict[str, Any]] = {}
-        self.config_sets: Dict[str, ConfigurationSet] = {}
-        self.config_set_event_destination: Dict[str, Dict[str, Any]] = {}
-        self.event_destinations: Dict[str, int] = {}
-        self.identity_mail_from_domains: Dict[str, Dict[str, Any]] = {}
-        self.templates: Dict[str, Dict[str, str]] = {}
-        self.receipt_rule_set: Dict[str, ReceiptRuleSet] = {}
-        self.dkim_tokens: Dict[str, List[str]] = {}
-        self.contacts: Dict[str, Contact] = {}
-        self.contacts_lists: Dict[str, ContactList] = {}
-        self.email_identities: Dict[str, EmailIdentity] = {}
-        self.dedicated_ip_pools: Dict[str, DedicatedIpPool] = {}
+        self.sns_topics: dict[str, dict[str, Any]] = {}
+        self.config_sets: dict[str, ConfigurationSet] = {}
+        self.config_set_event_destination: dict[str, dict[str, Any]] = {}
+        self.event_destinations: dict[str, int] = {}
+        self.identity_mail_from_domains: dict[str, dict[str, Any]] = {}
+        self.templates: dict[str, dict[str, str]] = {}
+        self.receipt_rule_set: dict[str, ReceiptRuleSet] = {}
+        self.dkim_tokens: dict[str, list[str]] = {}
+        self.contacts: dict[str, Contact] = {}
+        self.contacts_lists: dict[str, ContactList] = {}
+        self.email_identities: dict[str, EmailIdentity] = {}
+        self.dedicated_ip_pools: dict[str, DedicatedIpPool] = {}
 
     def _is_verified_address(self, source: str) -> bool:
         _, address = parseaddr(source)
@@ -417,7 +417,7 @@ class SESBackend(BaseBackend):
     def create_email_identity_v2(
         self,
         email_identity: str,
-        tags: Optional[Dict[str, str]],
+        tags: Optional[dict[str, str]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
@@ -432,7 +432,7 @@ class SESBackend(BaseBackend):
 
     def list_identities(
         self, identity_type: Optional[Literal["EmailAddress", "Domain"]]
-    ) -> List[str]:
+    ) -> list[str]:
         if identity_type is not None:
             return [
                 (value.email_identity)
@@ -442,7 +442,7 @@ class SESBackend(BaseBackend):
             ]
         return [(value.email_identity) for _, value in self.email_identities.items()]
 
-    def list_verified_email_addresses(self) -> List[str]:
+    def list_verified_email_addresses(self) -> list[str]:
         x = [
             (value)
             for _, value in self.email_identities.items()
@@ -456,7 +456,7 @@ class SESBackend(BaseBackend):
             del self.email_identities[identity]
 
     def send_email(
-        self, source: str, subject: str, body: str, destinations: Dict[str, List[str]]
+        self, source: str, subject: str, body: str, destinations: dict[str, list[str]]
     ) -> Message:
         recipient_count = sum(map(len, destinations.values()))
         if recipient_count > RECIPIENT_LIMIT:
@@ -485,14 +485,14 @@ class SESBackend(BaseBackend):
         source: str,
         template: str,
         template_data: str,
-        destinations: List[Dict[str, Dict[str, List[str]]]],
+        destinations: list[dict[str, dict[str, list[str]]]],
     ) -> BulkTemplateMessage:
         recipient_count = len(destinations)
         if recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many destinations.")
 
         total_recipient_count = sum(
-            map(lambda d: sum(map(len, d["Destination"].values())), destinations)
+            sum(map(len, d["Destination"].values())) for d in destinations
         )
         if total_recipient_count > RECIPIENT_LIMIT:
             raise MessageRejectedError("Too many destinations.")
@@ -513,7 +513,7 @@ class SESBackend(BaseBackend):
         self.sent_messages.append(message)
         self.sent_message_count += total_recipient_count
 
-        ids = list(map(lambda x: get_random_message_id(), range(len(destinations))))
+        ids = [get_random_message_id() for x in range(len(destinations))]
         return BulkTemplateMessage(ids, source, template, template_data, destinations)
 
     def send_templated_email(
@@ -521,7 +521,7 @@ class SESBackend(BaseBackend):
         source: str,
         template: str,
         template_data: str,
-        destinations: Dict[str, List[str]],
+        destinations: dict[str, list[str]],
     ) -> TemplateMessage:
         recipient_count = sum(map(len, destinations.values()))
         if recipient_count > RECIPIENT_LIMIT:
@@ -572,7 +572,7 @@ class SESBackend(BaseBackend):
 
         return None
 
-    def __generate_feedback__(self, msg_type: str) -> Dict[str, Any]:
+    def __generate_feedback__(self, msg_type: str) -> dict[str, Any]:
         """Generates the SNS message for the feedback"""
         return SESFeedback.generate_message(self.account_id, msg_type)
 
@@ -593,7 +593,7 @@ class SESBackend(BaseBackend):
                         )
 
     def send_raw_email(
-        self, source: str, destinations: List[str], raw_data: str
+        self, source: str, destinations: list[str], raw_data: str
     ) -> RawMessage:
         if source is not None:
             _, source_email_address = parseaddr(source)
@@ -640,9 +640,9 @@ class SESBackend(BaseBackend):
         return SESQuota(self.sent_message_count)
 
     def get_identity_notification_attributes(
-        self, identities: List[str]
-    ) -> Dict[str, Dict[str, Any]]:
-        response: Dict[str, Dict[str, Any]] = {}
+        self, identities: list[str]
+    ) -> dict[str, dict[str, Any]]:
+        response: dict[str, dict[str, Any]] = {}
         for identity in identities:
             config = self.sns_topics.get(identity, {})
             response[identity] = {
@@ -682,13 +682,13 @@ class SESBackend(BaseBackend):
     def create_configuration_set_v2(
         self,
         configuration_set_name: str,
-        tracking_options: Dict[str, str],
-        delivery_options: Dict[str, Any],
-        reputation_options: Dict[str, Any],
-        sending_options: Dict[str, bool],
-        tags: List[Dict[str, str]],
-        suppression_options: Dict[str, List[str]],
-        vdm_options: Dict[str, Dict[str, str]],
+        tracking_options: dict[str, str],
+        delivery_options: dict[str, Any],
+        reputation_options: dict[str, Any],
+        sending_options: dict[str, bool],
+        tags: list[dict[str, str]],
+        suppression_options: dict[str, list[str]],
+        vdm_options: dict[str, dict[str, str]],
     ) -> None:
         if configuration_set_name in self.config_sets:
             raise ConfigurationSetAlreadyExists(
@@ -719,14 +719,14 @@ class SESBackend(BaseBackend):
         self.config_sets.pop(configuration_set_name)
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_configuration_sets(self) -> List[ConfigurationSet]:
+    def list_configuration_sets(self) -> list[ConfigurationSet]:
         return list(self.config_sets.values())
 
-    def _list_all_configuration_sets(self) -> List[ConfigurationSet]:
+    def _list_all_configuration_sets(self) -> list[ConfigurationSet]:
         return list(self.config_sets.values())
 
     def create_configuration_set_event_destination(
-        self, configuration_set_name: str, event_destination: Dict[str, Any]
+        self, configuration_set_name: str, event_destination: dict[str, Any]
     ) -> None:
         if self.config_sets.get(configuration_set_name) is None:
             raise ConfigurationSetDoesNotExist("Invalid Configuration Set Name.")
@@ -737,7 +737,7 @@ class SESBackend(BaseBackend):
         self.config_set_event_destination[configuration_set_name] = event_destination
         self.event_destinations[event_destination["Name"]] = 1
 
-    def get_send_statistics(self) -> Dict[str, Any]:
+    def get_send_statistics(self) -> dict[str, Any]:
         return {
             "DeliveryAttempts": self.sent_message_count,
             "Rejects": self.rejected_messages_count,
@@ -746,7 +746,7 @@ class SESBackend(BaseBackend):
             "Timestamp": utcnow(),
         }
 
-    def add_template(self, template_info: Dict[str, str]) -> None:
+    def add_template(self, template_info: dict[str, str]) -> None:
         template_name = template_info["template_name"]
         if not template_name:
             raise ValidationError(
@@ -763,7 +763,7 @@ class SESBackend(BaseBackend):
             raise InvalidParameterValue("The subject must be specified.")
         self.templates[template_name] = template_info
 
-    def update_template(self, template_info: Dict[str, str]) -> None:
+    def update_template(self, template_info: dict[str, str]) -> None:
         template_name = template_info["template_name"]
         if not template_name:
             raise ValidationError(
@@ -780,15 +780,15 @@ class SESBackend(BaseBackend):
             raise InvalidParameterValue("The subject must be specified.")
         self.templates[template_name] = template_info
 
-    def get_template(self, template_name: str) -> Dict[str, str]:
+    def get_template(self, template_name: str) -> dict[str, str]:
         if not self.templates.get(template_name, None):
             raise TemplateDoesNotExist("Invalid Template Name.")
         return self.templates[template_name]
 
-    def list_templates(self) -> List[Dict[str, str]]:
+    def list_templates(self) -> list[dict[str, str]]:
         return list(self.templates.values())
 
-    def render_template(self, render_data: Dict[str, Any]) -> str:
+    def render_template(self, render_data: dict[str, Any]) -> str:
         template_name = render_data.get("name", "")
         template = self.templates.get(template_name, None)
         if not template:
@@ -846,7 +846,7 @@ class SESBackend(BaseBackend):
         self.receipt_rule_set[rule_set_name] = ReceiptRuleSet(name=rule_set_name)
 
     def create_receipt_rule(
-        self, rule_set_name: str, rule: Dict[str, Any], after: Optional[str]
+        self, rule_set_name: str, rule: dict[str, Any], after: Optional[str]
     ) -> None:
         # Validate ruleSetName
         self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
@@ -932,7 +932,7 @@ class SESBackend(BaseBackend):
             raise CannotDelete(f"Cannot delete active rule set: {rule_set_name}")
         del self.receipt_rule_set[rule_set_name]
 
-    def list_receipt_rule_sets(self) -> List[ReceiptRuleSet]:
+    def list_receipt_rule_sets(self) -> list[ReceiptRuleSet]:
         # The receipt rule sets are ordered by name
         return sorted(self.receipt_rule_set.values(), key=lambda rs: rs.name)
 
@@ -951,7 +951,7 @@ class SESBackend(BaseBackend):
             raise ValidationError(f"Not a valid {param_name}: {name}")
         return
 
-    def _validate_receipt_rule_actions(self, rule: Dict[str, Any]) -> None:
+    def _validate_receipt_rule_actions(self, rule: dict[str, Any]) -> None:
         # Allowed to be empty
         actions = rule.get("Actions", [])
         for action in actions:
@@ -964,7 +964,7 @@ class SESBackend(BaseBackend):
             if "LambdaAction" in action:
                 self._validate_lambda_action(action["LambdaAction"])
 
-    def _validate_s3_action(self, s3_action: Dict[str, str]) -> None:
+    def _validate_s3_action(self, s3_action: dict[str, str]) -> None:
         from moto.s3.models import s3_backends
 
         # Raise an exception if the bucket does not exist
@@ -985,7 +985,7 @@ class SESBackend(BaseBackend):
         if s3_action.get("IamRoleArn"):
             self._validate_iam_role(s3_action["IamRoleArn"])
 
-    def _validate_lambda_action(self, lambda_action: Dict[str, str]) -> None:
+    def _validate_lambda_action(self, lambda_action: dict[str, str]) -> None:
         from moto.awslambda.models import lambda_backends
 
         # Raise an exception if the Lambda function does not exist
@@ -1043,7 +1043,7 @@ class SESBackend(BaseBackend):
 
     def describe_receipt_rule(
         self, rule_set_name: str, rule_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         rule_set = self.receipt_rule_set.get(rule_set_name)
 
         if rule_set is None:
@@ -1055,7 +1055,7 @@ class SESBackend(BaseBackend):
 
         raise RuleDoesNotExist(f"Rule does not exist: {rule_name}")
 
-    def update_receipt_rule(self, rule_set_name: str, rule: Dict[str, Any]) -> None:
+    def update_receipt_rule(self, rule_set_name: str, rule: dict[str, Any]) -> None:
         rule_set = self.receipt_rule_set.get(rule_set_name)
 
         if rule_set is None:
@@ -1101,8 +1101,8 @@ class SESBackend(BaseBackend):
         }
 
     def get_identity_mail_from_domain_attributes(
-        self, identities: Optional[List[str]] = None
-    ) -> Dict[str, Dict[str, str]]:
+        self, identities: Optional[list[str]] = None
+    ) -> dict[str, dict[str, str]]:
         if identities is None:
             actual_identities = []
         else:
@@ -1125,8 +1125,8 @@ class SESBackend(BaseBackend):
         return attributes_by_identity
 
     def get_identity_verification_attributes(
-        self, identities: Optional[List[str]] = None
-    ) -> Dict[str, Dict[str, str]]:
+        self, identities: Optional[list[str]] = None
+    ) -> dict[str, dict[str, str]]:
         if identities is None:
             actual_identities = []
         else:
@@ -1156,10 +1156,10 @@ class SESBackend(BaseBackend):
         config_set.reputation_options["ReputationMetricsEnabled"] = enabled
 
     def get_identity_dkim_attributes(
-        self, identities: List[str]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, identities: list[str]
+    ) -> dict[str, dict[str, Any]]:
         result = {}
-        actual_identities: List[EmailIdentity] = []
+        actual_identities: list[EmailIdentity] = []
         for ident in identities:
             if ident in self.email_identities.keys():
                 actual_identities.append(self.email_identities[ident])

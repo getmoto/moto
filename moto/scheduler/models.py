@@ -1,7 +1,8 @@
 """EventBridgeSchedulerBackend class with methods for supported APIs."""
 
 import datetime
-from typing import Any, Dict, Iterable, List, Optional, cast
+from collections.abc import Iterable
+from typing import Any, Optional, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -27,8 +28,8 @@ class Schedule(BaseModel):
         description: Optional[str],
         schedule_expression: str,
         schedule_expression_timezone: Optional[str],
-        flexible_time_window: Dict[str, Any],
-        target: Dict[str, Any],
+        flexible_time_window: dict[str, Any],
+        target: dict[str, Any],
         state: Optional[str],
         kms_key_arn: Optional[str],
         start_date: Optional[str],
@@ -51,7 +52,7 @@ class Schedule(BaseModel):
         self.creation_date = self.last_modified_date = unix_time()
 
     @staticmethod
-    def validate_target(target: Dict[str, Any]) -> Dict[str, Any]:  # type: ignore[misc]
+    def validate_target(target: dict[str, Any]) -> dict[str, Any]:  # type: ignore[misc]
         if "RetryPolicy" not in target:
             target["RetryPolicy"] = {
                 "MaximumEventAgeInSeconds": 86400,
@@ -75,8 +76,8 @@ class Schedule(BaseModel):
                     )
         return start_date
 
-    def to_dict(self, short: bool = False) -> Dict[str, Any]:
-        dct: Dict[str, Any] = {
+    def to_dict(self, short: bool = False) -> dict[str, Any]:
+        dct: dict[str, Any] = {
             "Arn": self.arn,
             "Name": self.name,
             "GroupName": self.group_name,
@@ -101,13 +102,13 @@ class Schedule(BaseModel):
         self,
         description: str,
         end_date: str,
-        flexible_time_window: Dict[str, Any],
+        flexible_time_window: dict[str, Any],
         kms_key_arn: str,
         schedule_expression: str,
         schedule_expression_timezone: str,
         start_date: str,
         state: str,
-        target: Dict[str, Any],
+        target: dict[str, Any],
     ) -> None:
         self.schedule_expression = schedule_expression
         self.schedule_expression_timezone = schedule_expression_timezone or "UTC"
@@ -125,7 +126,7 @@ class ScheduleGroup(BaseModel):
     def __init__(self, region: str, account_id: str, name: str):
         self.name = name
         self.arn = f"arn:{get_partition(region)}:scheduler:{region}:{account_id}:schedule-group/{name}"
-        self.schedules: Dict[str, Schedule] = dict()
+        self.schedules: dict[str, Schedule] = {}
         self.created_on = None if self.name == "default" else unix_time()
         self.last_modified = None if self.name == "default" else unix_time()
 
@@ -142,7 +143,7 @@ class ScheduleGroup(BaseModel):
             raise ScheduleNotFound(name)
         self.schedules.pop(name)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "CreationDate": self.created_on,
@@ -157,7 +158,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.schedules: List[Schedule] = list()
+        self.schedules: list[Schedule] = []
         self.schedule_groups = {
             "default": ScheduleGroup(
                 region=region_name, account_id=account_id, name="default"
@@ -169,7 +170,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         self,
         description: str,
         end_date: str,
-        flexible_time_window: Dict[str, Any],
+        flexible_time_window: dict[str, Any],
         group_name: str,
         kms_key_arn: str,
         name: str,
@@ -177,7 +178,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         schedule_expression_timezone: str,
         start_date: str,
         state: str,
-        target: Dict[str, Any],
+        target: dict[str, Any],
         action_after_completion: Optional[str],
     ) -> Schedule:
         """
@@ -217,7 +218,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         self,
         description: str,
         end_date: str,
-        flexible_time_window: Dict[str, Any],
+        flexible_time_window: dict[str, Any],
         group_name: str,
         kms_key_arn: str,
         name: str,
@@ -225,7 +226,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         schedule_expression_timezone: str,
         start_date: str,
         state: str,
-        target: Dict[str, Any],
+        target: dict[str, Any],
     ) -> Schedule:
         """
         The ClientToken is not yet implemented
@@ -259,7 +260,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         return results
 
     def create_schedule_group(
-        self, name: str, tags: List[Dict[str, str]]
+        self, name: str, tags: list[dict[str, str]]
     ) -> ScheduleGroup:
         """
         The ClientToken parameter is not yet implemented
@@ -287,13 +288,13 @@ class EventBridgeSchedulerBackend(BaseBackend):
 
     def list_tags_for_resource(
         self, resource_arn: str
-    ) -> Dict[str, List[Dict[str, str]]]:
+    ) -> dict[str, list[dict[str, str]]]:
         return self.tagger.list_tags_for_resource(resource_arn)
 
-    def tag_resource(self, resource_arn: str, tags: List[Dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def untag_resource(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
 

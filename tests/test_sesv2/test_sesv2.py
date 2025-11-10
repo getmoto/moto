@@ -8,7 +8,7 @@ from moto import mock_aws, settings
 from moto.ses.models import Message, RawMessage, ses_backends
 from tests import DEFAULT_ACCOUNT_ID
 
-from ..test_ses.test_ses_boto3 import get_raw_email
+from ..test_ses.test_ses import get_raw_email
 
 
 @pytest.fixture(scope="function")
@@ -22,20 +22,20 @@ def ses_v1():
 def test_send_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
-    kwargs = dict(
-        FromEmailAddress="test@example.com",
-        Destination={
+    kwargs = {
+        "FromEmailAddress": "test@example.com",
+        "Destination": {
             "ToAddresses": ["test_to@example.com"],
             "CcAddresses": ["test_cc@example.com"],
             "BccAddresses": ["test_bcc@example.com"],
         },
-        Content={
+        "Content": {
             "Simple": {
                 "Subject": {"Data": "test subject"},
                 "Body": {"Text": {"Data": "test body"}},
             },
         },
-    )
+    }
 
     # Execute
     with pytest.raises(ClientError) as e:
@@ -64,18 +64,18 @@ def test_send_html_email(ses_v1):
     # Setup
     conn = boto3.client("sesv2", region_name="us-east-1")
     conn.create_email_identity(EmailIdentity="example.com")
-    kwargs = dict(
-        FromEmailAddress="test@example.com",
-        Destination={
+    kwargs = {
+        "FromEmailAddress": "test@example.com",
+        "Destination": {
             "ToAddresses": ["test_to@example.com"],
         },
-        Content={
+        "Content": {
             "Simple": {
                 "Subject": {"Data": "test subject"},
                 "Body": {"Html": {"Data": "<h1>Test HTML</h1>"}},
             },
         },
-    )
+    }
 
     # Execute
     conn.send_email(**kwargs)
@@ -100,11 +100,11 @@ def test_send_raw_email(ses_v1):
     destination = {
         "ToAddresses": [x.strip() for x in message["To"].split(",")],
     }
-    kwargs = dict(
-        FromEmailAddress=message["From"],
-        Destination=destination,
-        Content={"Raw": {"Data": message.as_bytes()}},
-    )
+    kwargs = {
+        "FromEmailAddress": message["From"],
+        "Destination": destination,
+        "Content": {"Raw": {"Data": message.as_bytes()}},
+    }
 
     # Execute
     ses_v1.verify_email_identity(EmailAddress="test@example.com")
@@ -126,9 +126,9 @@ def test_send_raw_email__with_specific_message(
     # This particular message means that our base64-encoded body contains a '='
     # Testing this to ensure that we parse the body as JSON, not as a query-dict
     message["Subject"] = "Test-2"
-    kwargs = dict(
-        Content={"Raw": {"Data": message.as_bytes()}},
-    )
+    kwargs = {
+        "Content": {"Raw": {"Data": message.as_bytes()}},
+    }
 
     # Execute
     ses_v1.verify_email_identity(EmailAddress="test@example.com")
@@ -158,9 +158,9 @@ def test_send_raw_email__with_to_address_display_name(
     del message["To"]
     display_name = ",".join(["c" for _ in range(50)])
     message["To"] = f""""{display_name}" <to@example.com>, foo@example.com"""
-    kwargs = dict(
-        Content={"Raw": {"Data": message.as_bytes()}},
-    )
+    kwargs = {
+        "Content": {"Raw": {"Data": message.as_bytes()}},
+    }
 
     # Execute
     ses_v1.verify_email_identity(EmailAddress="test@example.com")
@@ -666,7 +666,7 @@ def test_get_configuration_set():
         "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
     }
 
-    client_v1.create_configuration_set(ConfigurationSet=dict({"Name": name_v1}))
+    client_v1.create_configuration_set(ConfigurationSet={"Name": name_v1})
 
     client_v2.create_configuration_set(
         ConfigurationSetName=name_v2,
@@ -732,7 +732,7 @@ def test_list_configuration_sets():
         "GuardianOptions": {"OptimizedSharedDelivery": "DISABLED"},
     }
 
-    client_v1.create_configuration_set(ConfigurationSet=dict({"Name": name_v1}))
+    client_v1.create_configuration_set(ConfigurationSet={"Name": name_v1})
 
     client_v2.create_configuration_set(
         ConfigurationSetName=name_v2,

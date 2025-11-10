@@ -1,5 +1,6 @@
 import base64
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from collections.abc import Iterable
+from typing import Any, Optional
 
 import xmltodict
 
@@ -74,7 +75,7 @@ class Configuration(BaseModel):
         self.engine_type = engine_type
         self.engine_version = engine_version
 
-        self.revisions: Dict[str, ConfigurationRevision] = dict()
+        self.revisions: dict[str, ConfigurationRevision] = {}
         default_desc = (
             f"Auto-generated default for {self.name} on {engine_type} {engine_version}"
         )
@@ -117,7 +118,7 @@ class User(BaseModel):
         broker_id: str,
         username: str,
         console_access: Optional[bool] = None,
-        groups: Optional[List[str]] = None,
+        groups: Optional[list[str]] = None,
     ):
         self.broker_id = broker_id
         self.username = username
@@ -125,7 +126,7 @@ class User(BaseModel):
         self.groups = groups or []
 
     def update(
-        self, console_access: Optional[bool], groups: Optional[List[str]]
+        self, console_access: Optional[bool], groups: Optional[list[str]]
     ) -> None:
         if console_access is not None:
             self.console_access = console_access
@@ -141,20 +142,20 @@ class Broker(BaseModel):
         region: str,
         authentication_strategy: str,
         auto_minor_version_upgrade: bool,
-        configuration: Dict[str, Any],
+        configuration: dict[str, Any],
         deployment_mode: str,
-        encryption_options: Optional[Dict[str, Any]],
+        encryption_options: Optional[dict[str, Any]],
         engine_type: str,
         engine_version: str,
         host_instance_type: str,
-        ldap_server_metadata: Optional[Dict[str, Any]],
-        logs: Dict[str, bool],
-        maintenance_window_start_time: Optional[Dict[str, Any]],
+        ldap_server_metadata: Optional[dict[str, Any]],
+        logs: dict[str, bool],
+        maintenance_window_start_time: Optional[dict[str, Any]],
         publicly_accessible: bool,
-        security_groups: List[str],
+        security_groups: list[str],
         storage_type: str,
-        subnet_ids: List[str],
-        users: List[Dict[str, Any]],
+        subnet_ids: list[str],
+        users: list[dict[str, Any]],
     ):
         self.name = name
         self.id = mock_random.get_random_hex(6)
@@ -204,7 +205,7 @@ class Broker(BaseModel):
             else:
                 self.subnet_ids = ["default-subnet"]
 
-        self._users: Dict[str, User] = dict()
+        self._users: dict[str, User] = {}
         for user in users:
             self.create_user(
                 username=user["username"],
@@ -212,7 +213,7 @@ class Broker(BaseModel):
                 console_access=user.get("consoleAccess", False),
             )
 
-        self.configurations: Dict[str, Any] = {"current": configuration, "history": []}
+        self.configurations: dict[str, Any] = {"current": configuration, "history": []}
         if self.engine_type.upper() == "RABBITMQ":
             console_url = f"https://0000.mq.{region}.amazonaws.com"
             endpoints = ["amqps://mockmq:5671"]
@@ -246,13 +247,13 @@ class Broker(BaseModel):
         self,
         authentication_strategy: Optional[str],
         auto_minor_version_upgrade: Optional[bool],
-        configuration: Optional[Dict[str, Any]],
+        configuration: Optional[dict[str, Any]],
         engine_version: Optional[str],
         host_instance_type: Optional[str],
-        ldap_server_metadata: Optional[Dict[str, Any]],
-        logs: Optional[Dict[str, bool]],
-        maintenance_window_start_time: Optional[Dict[str, str]],
-        security_groups: Optional[List[str]],
+        ldap_server_metadata: Optional[dict[str, Any]],
+        logs: Optional[dict[str, bool]],
+        maintenance_window_start_time: Optional[dict[str, str]],
+        security_groups: Optional[list[str]],
     ) -> None:
         if authentication_strategy:
             self.authentication_strategy = authentication_strategy
@@ -278,13 +279,13 @@ class Broker(BaseModel):
         pass
 
     def create_user(
-        self, username: str, console_access: bool, groups: List[str]
+        self, username: str, console_access: bool, groups: list[str]
     ) -> None:
         user = User(self.id, username, console_access, groups)
         self._users[username] = user
 
     def update_user(
-        self, username: str, console_access: bool, groups: List[str]
+        self, username: str, console_access: bool, groups: list[str]
     ) -> None:
         user = self.get_user(username)
         user.update(console_access, groups)
@@ -312,8 +313,8 @@ class MQBackend(BaseBackend):
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.brokers: Dict[str, Broker] = dict()
-        self.configs: Dict[str, Configuration] = dict()
+        self.brokers: dict[str, Broker] = {}
+        self.configs: dict[str, Configuration] = {}
         self.tagger = TaggingService()
 
     def create_broker(
@@ -321,22 +322,22 @@ class MQBackend(BaseBackend):
         authentication_strategy: str,
         auto_minor_version_upgrade: bool,
         broker_name: str,
-        configuration: Optional[Dict[str, Any]],
+        configuration: Optional[dict[str, Any]],
         deployment_mode: str,
-        encryption_options: Optional[Dict[str, Any]],
+        encryption_options: Optional[dict[str, Any]],
         engine_type: str,
         engine_version: str,
         host_instance_type: str,
-        ldap_server_metadata: Optional[Dict[str, Any]],
-        logs: Dict[str, bool],
-        maintenance_window_start_time: Optional[Dict[str, Any]],
+        ldap_server_metadata: Optional[dict[str, Any]],
+        logs: dict[str, bool],
+        maintenance_window_start_time: Optional[dict[str, Any]],
         publicly_accessible: bool,
-        security_groups: List[str],
+        security_groups: list[str],
         storage_type: str,
-        subnet_ids: List[str],
-        tags: Dict[str, str],
-        users: List[Dict[str, Any]],
-    ) -> Tuple[str, str]:
+        subnet_ids: list[str],
+        tags: dict[str, str],
+        users: list[dict[str, Any]],
+    ) -> tuple[str, str]:
         if configuration is None:
             # create default configuration
             default_config = self.create_configuration(
@@ -389,13 +390,13 @@ class MQBackend(BaseBackend):
         return self.brokers.values()
 
     def create_user(
-        self, broker_id: str, username: str, console_access: bool, groups: List[str]
+        self, broker_id: str, username: str, console_access: bool, groups: list[str]
     ) -> None:
         broker = self.describe_broker(broker_id)
         broker.create_user(username, console_access, groups)
 
     def update_user(
-        self, broker_id: str, console_access: bool, groups: List[str], username: str
+        self, broker_id: str, console_access: bool, groups: list[str], username: str
     ) -> None:
         broker = self.describe_broker(broker_id)
         broker.update_user(username, console_access, groups)
@@ -413,7 +414,7 @@ class MQBackend(BaseBackend):
         return broker.list_users()
 
     def create_configuration(
-        self, name: str, engine_type: str, engine_version: str, tags: Dict[str, str]
+        self, name: str, engine_type: str, engine_version: str, tags: dict[str, str]
     ) -> Configuration:
         if engine_type.upper() not in ["ACTIVEMQ", "RABBITMQ"]:
             raise UnknownEngineType(engine_type)
@@ -457,15 +458,15 @@ class MQBackend(BaseBackend):
         """
         return self.configs.values()
 
-    def create_tags(self, resource_arn: str, tags: Dict[str, str]) -> None:
+    def create_tags(self, resource_arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(
             resource_arn, self.tagger.convert_dict_to_tags_input(tags)
         )
 
-    def list_tags(self, arn: str) -> Dict[str, str]:
+    def list_tags(self, arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)
 
-    def delete_tags(self, resource_arn: str, tag_keys: List[str]) -> None:
+    def delete_tags(self, resource_arn: str, tag_keys: list[str]) -> None:
         if not isinstance(tag_keys, list):
             tag_keys = [tag_keys]
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
@@ -475,13 +476,13 @@ class MQBackend(BaseBackend):
         authentication_strategy: str,
         auto_minor_version_upgrade: bool,
         broker_id: str,
-        configuration: Dict[str, Any],
+        configuration: dict[str, Any],
         engine_version: str,
         host_instance_type: str,
-        ldap_server_metadata: Dict[str, Any],
-        logs: Dict[str, bool],
-        maintenance_window_start_time: Dict[str, str],
-        security_groups: List[str],
+        ldap_server_metadata: dict[str, Any],
+        logs: dict[str, bool],
+        maintenance_window_start_time: dict[str, str],
+        security_groups: list[str],
     ) -> None:
         broker = self.describe_broker(broker_id)
         broker.update(

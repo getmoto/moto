@@ -52,8 +52,8 @@ vpc-lattice
 - [ ] get_resource_gateway
 - [ ] get_resource_policy
 - [ ] get_rule
-- [ ] get_service
-- [ ] get_service_network
+- [X] get_service
+- [X] get_service_network
 - [ ] get_service_network_resource_association
 - [ ] get_service_network_service_association
 - [ ] get_service_network_vpc_association
@@ -68,16 +68,16 @@ vpc-lattice
 - [ ] list_service_network_service_associations
 - [ ] list_service_network_vpc_associations
 - [ ] list_service_network_vpc_endpoint_associations
-- [ ] list_service_networks
-- [ ] list_services
-- [ ] list_tags_for_resource
+- [X] list_service_networks
+- [X] list_services
+- [X] list_tags_for_resource
 - [ ] list_target_groups
 - [ ] list_targets
 - [ ] put_auth_policy
 - [ ] put_resource_policy
 - [ ] register_targets
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [X] update_access_log_subscription
 - [ ] update_listener
 - [ ] update_resource_configuration

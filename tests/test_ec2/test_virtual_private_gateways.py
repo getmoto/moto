@@ -97,7 +97,7 @@ def test_describe_vpn_connections_state_filter_attached():
 
 
 @mock_aws
-def test_virtual_private_gateways_boto3():
+def test_virtual_private_gateways():
     client = boto3.client("ec2", region_name="us-west-1")
 
     vpn_gateway = client.create_vpn_gateway(
@@ -111,7 +111,7 @@ def test_virtual_private_gateways_boto3():
 
 
 @mock_aws
-def test_describe_vpn_gateway_boto3():
+def test_describe_vpn_gateway():
     client = boto3.client("ec2", region_name="us-west-1")
     vpn_gateway = client.create_vpn_gateway(
         Type="ipsec.1", AvailabilityZone="us-east-1a"
@@ -213,7 +213,7 @@ def test_describe_vpn_connections_type_filter_miss():
 
 
 @mock_aws
-def test_vpn_gateway_vpc_attachment_boto3():
+def test_vpn_gateway_vpc_attachment():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
     vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
@@ -230,7 +230,7 @@ def test_vpn_gateway_vpc_attachment_boto3():
 
 
 @mock_aws
-def test_delete_vpn_gateway_boto3():
+def test_delete_vpn_gateway():
     client = boto3.client("ec2", region_name="us-west-1")
     vpn_gateway = client.create_vpn_gateway(
         Type="ipsec.1", AvailabilityZone="us-east-1a"
@@ -244,7 +244,7 @@ def test_delete_vpn_gateway_boto3():
 
 
 @mock_aws
-def test_vpn_gateway_tagging_boto3():
+def test_vpn_gateway_tagging():
     client = boto3.client("ec2", region_name="us-west-1")
     vpn_gateway = client.create_vpn_gateway(
         Type="ipsec.1", AvailabilityZone="us-east-1a"
@@ -265,7 +265,7 @@ def test_vpn_gateway_tagging_boto3():
 
 
 @mock_aws
-def test_detach_vpn_gateway_boto3():
+def test_detach_vpn_gateway():
     ec2 = boto3.resource("ec2", region_name="us-west-1")
     client = boto3.client("ec2", region_name="us-west-1")
 
@@ -289,12 +289,12 @@ def test_detach_vpn_gateway_boto3():
     assert attachments == [{"State": "detached", "VpcId": vpc.id}]
 
 
-def retrieve_all(client, filters=[]):
-    resp = client.describe_vpn_gateways(Filters=filters)
+def retrieve_all(client, filters=None):
+    resp = client.describe_vpn_gateways(Filters=filters or [])
     all_gateways = resp["VpnGateways"]
     token = resp.get("NextToken")
     while token:
-        resp = client.describe_vpn_gateways(Filters=filters)
+        resp = client.describe_vpn_gateways(Filters=filters or [])
         all_gateways.extend(resp["VpnGateways"])
         token = resp.get("NextToken")
     return all_gateways

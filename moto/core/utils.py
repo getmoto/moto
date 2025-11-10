@@ -5,7 +5,7 @@ import inspect
 import re
 from functools import cache
 from gzip import compress, decompress
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
@@ -71,7 +71,7 @@ def camelcase_to_pascal(argument: str) -> str:
     return argument[0].upper() + argument[1:]
 
 
-def method_names_from_class(clazz: object) -> List[str]:
+def method_names_from_class(clazz: object) -> list[str]:
     predicate = inspect.isfunction
     return [x[0] for x in inspect.getmembers(clazz, predicate=predicate)]
 
@@ -95,7 +95,7 @@ def convert_regex_to_flask_path(url_path: str) -> str:
     return url_path
 
 
-class convert_to_flask_response(object):
+class convert_to_flask_response:
     def __init__(self, callback: Callable[..., Any]):
         self.callback = callback
 
@@ -131,7 +131,7 @@ class convert_to_flask_response(object):
         return response
 
 
-class convert_flask_to_responses_response(object):
+class convert_flask_to_responses_response:
     def __init__(self, callback: Callable[..., Any]):
         self.callback = callback
 
@@ -276,28 +276,9 @@ def path_url(url: str) -> str:
     return path
 
 
-def tags_from_query_string(
-    querystring_dict: Dict[str, Any],
-    prefix: str = "Tag",
-    key_suffix: str = "Key",
-    value_suffix: str = "Value",
-) -> Dict[str, str]:
-    response_values = {}
-    for key in querystring_dict.keys():
-        if key.startswith(prefix) and key.endswith(key_suffix):
-            tag_index = key.replace(prefix + ".", "").replace("." + key_suffix, "")
-            tag_key = querystring_dict[f"{prefix}.{tag_index}.{key_suffix}"][0]
-            tag_value_key = f"{prefix}.{tag_index}.{value_suffix}"
-            if tag_value_key in querystring_dict:
-                response_values[tag_key] = querystring_dict[tag_value_key][0]
-            else:
-                response_values[tag_key] = None
-    return response_values
-
-
 def tags_from_cloudformation_tags_list(
-    tags_list: List[Dict[str, str]],
-) -> Dict[str, str]:
+    tags_list: list[dict[str, str]],
+) -> dict[str, str]:
     """Return tags in dict form from cloudformation resource tags form (list of dicts)"""
     tags = {}
     for entry in tags_list:
@@ -336,7 +317,7 @@ def remap_nested_keys(root: Any, key_transform: Callable[[str], str]) -> Any:
 
 
 def merge_dicts(
-    dict1: Dict[str, Any], dict2: Dict[str, Any], remove_nulls: bool = False
+    dict1: dict[str, Any], dict2: dict[str, Any], remove_nulls: bool = False
 ) -> None:
     """Given two arbitrarily nested dictionaries, merge the second dict into the first.
 
@@ -360,7 +341,7 @@ def merge_dicts(
                 dict1.pop(key)
 
 
-def remove_null_from_dict(dct: Dict[str, Any]) -> None:
+def remove_null_from_dict(dct: dict[str, Any]) -> None:
     for key in list(dct.keys()):
         if dct[key] is None:
             dct.pop(key)
@@ -397,7 +378,7 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     return region
 
 
-def params_sort_function(item: Tuple[str, Any]) -> Tuple[str, int, str]:
+def params_sort_function(item: tuple[str, Any]) -> tuple[str, int, str]:
     """
     sort by <string-prefix>.member.<integer>.<string-postfix>:
     in case there are more than 10 members, the default-string sort would lead to IndexError when parsing the content.
@@ -429,7 +410,7 @@ ISO_REGION_DOMAINS = {
 ALT_DOMAIN_SUFFIXES = list(ISO_REGION_DOMAINS.values()) + ["amazonaws.com.cn"]
 
 
-def get_equivalent_url_in_aws_domain(url: str) -> Tuple[ParseResult, bool]:
+def get_equivalent_url_in_aws_domain(url: str) -> tuple[ParseResult, bool]:
     """Parses a URL and converts non-standard AWS endpoint hostnames (from ISO
     regions or custom S3 endpoints) to the equivalent standard AWS domain.
 

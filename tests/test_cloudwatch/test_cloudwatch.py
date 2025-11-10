@@ -19,7 +19,7 @@ def test_put_metric_data_no_dimensions():
     conn = boto3.client("cloudwatch", region_name="us-east-1")
 
     conn.put_metric_data(
-        Namespace="tester", MetricData=[dict(MetricName="metric", Value=1.5)]
+        Namespace="tester", MetricData=[{"MetricName": "metric", "Value": 1.5}]
     )
 
     metrics = conn.list_metrics()["Metrics"]
@@ -204,13 +204,16 @@ def test_put_metric_data_value_and_statistics():
         conn.put_metric_data(
             Namespace="statistics",
             MetricData=[
-                dict(
-                    MetricName="stats",
-                    Value=123.0,
-                    StatisticValues=dict(
-                        Sum=10.0, Maximum=9.0, Minimum=1.0, SampleCount=2
-                    ),
-                )
+                {
+                    "MetricName": "stats",
+                    "Value": 123.0,
+                    "StatisticValues": {
+                        "Sum": 10.0,
+                        "Maximum": 9.0,
+                        "Minimum": 1.0,
+                        "SampleCount": 2,
+                    },
+                }
             ],
         )
     err = exc.value.response["Error"]
@@ -229,16 +232,19 @@ def test_put_metric_data_with_statistics():
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName="statmetric",
-                Timestamp=utc_now,
+            {
+                "MetricName": "statmetric",
+                "Timestamp": utc_now,
                 # no Value to test  https://github.com/getmoto/moto/issues/1615
-                StatisticValues=dict(
-                    SampleCount=3.0, Sum=123.0, Maximum=100.0, Minimum=12.0
-                ),
-                Unit="Milliseconds",
-                StorageResolution=123,
-            )
+                "StatisticValues": {
+                    "SampleCount": 3.0,
+                    "Sum": 123.0,
+                    "Maximum": 100.0,
+                    "Minimum": 12.0,
+                },
+                "Unit": "Milliseconds",
+                "StorageResolution": 123,
+            }
         ],
     )
 
@@ -270,12 +276,12 @@ def test_put_metric_data_with_statistics():
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName="statmetric",
-                Timestamp=utc_now,
-                Value=101.0,
-                Unit="Milliseconds",
-            )
+            {
+                "MetricName": "statmetric",
+                "Timestamp": utc_now,
+                "Value": 101.0,
+                "Unit": "Milliseconds",
+            }
         ],
     )
     # check stats again - should have changed, because there is one more datapoint
@@ -304,7 +310,7 @@ def test_get_metric_statistics():
 
     conn.put_metric_data(
         Namespace="tester",
-        MetricData=[dict(MetricName="metric", Value=1.5, Timestamp=utc_now)],
+        MetricData=[{"MetricName": "metric", "Value": 1.5, "Timestamp": utc_now}],
     )
 
     stats = conn.get_metric_statistics(
@@ -329,7 +335,7 @@ def test_get_metric_invalid_parameter_combination():
 
     conn.put_metric_data(
         Namespace="tester",
-        MetricData=[dict(MetricName="metric", Value=1.5, Timestamp=utc_now)],
+        MetricData=[{"MetricName": "metric", "Value": 1.5, "Timestamp": utc_now}],
     )
 
     with pytest.raises(ClientError) as exc:
@@ -359,34 +365,34 @@ def test_get_metric_statistics_dimensions():
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName=metric_name,
-                Value=1,
-                Timestamp=utc_now,
-                Dimensions=dimensions1,
-            )
+            {
+                "MetricName": metric_name,
+                "Value": 1,
+                "Timestamp": utc_now,
+                "Dimensions": dimensions1,
+            }
         ],
     )
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName=metric_name,
-                Value=2,
-                Timestamp=utc_now,
-                Dimensions=dimensions1,
-            )
+            {
+                "MetricName": metric_name,
+                "Value": 2,
+                "Timestamp": utc_now,
+                "Dimensions": dimensions1,
+            }
         ],
     )
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName=metric_name,
-                Value=6,
-                Timestamp=utc_now,
-                Dimensions=dimensions2,
-            )
+            {
+                "MetricName": metric_name,
+                "Value": 6,
+                "Timestamp": utc_now,
+                "Dimensions": dimensions2,
+            }
         ],
     )
 
@@ -511,11 +517,11 @@ def test_get_metric_statistics_starttime_endtime_ignore_miliseconds():
     cloudwatch.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName="metric",
-                Value=1.5,
-                Timestamp=utc_now.replace(microsecond=200 * 1000),
-            )
+            {
+                "MetricName": "metric",
+                "Value": 1.5,
+                "Timestamp": utc_now.replace(microsecond=200 * 1000),
+            }
         ],
     )
 
@@ -542,12 +548,12 @@ def test_duplicate_put_metric_data():
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName="metric",
-                Dimensions=[{"Name": "Name", "Value": "B"}],
-                Value=1.5,
-                Timestamp=utc_now,
-            )
+            {
+                "MetricName": "metric",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+                "Value": 1.5,
+                "Timestamp": utc_now,
+            }
         ],
     )
 
@@ -559,12 +565,12 @@ def test_duplicate_put_metric_data():
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName="metric",
-                Dimensions=[{"Name": "Name", "Value": "B"}],
-                Value=1.5,
-                Timestamp=utc_now,
-            )
+            {
+                "MetricName": "metric",
+                "Dimensions": [{"Name": "Name", "Value": "B"}],
+                "Value": 1.5,
+                "Timestamp": utc_now,
+            }
         ],
     )
 
@@ -583,15 +589,15 @@ def test_duplicate_put_metric_data():
     conn.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(
-                MetricName="metric",
-                Dimensions=[
+            {
+                "MetricName": "metric",
+                "Dimensions": [
                     {"Name": "Name", "Value": "B"},
                     {"Name": "Name", "Value": "C"},
                 ],
-                Value=1.5,
-                Timestamp=utc_now,
-            )
+                "Value": 1.5,
+                "Timestamp": utc_now,
+            }
         ],
     )
 
@@ -638,13 +644,13 @@ def test_custom_timestamp():
 
     cw.put_metric_data(
         Namespace="tester",
-        MetricData=[dict(MetricName="metric1", Value=1.5, Timestamp=time)],
+        MetricData=[{"MetricName": "metric1", "Value": 1.5, "Timestamp": time}],
     )
 
     cw.put_metric_data(
         Namespace="tester",
         MetricData=[
-            dict(MetricName="metric2", Value=1.5, Timestamp=datetime(2020, 2, 10))
+            {"MetricName": "metric2", "Value": 1.5, "Timestamp": datetime(2020, 2, 10)}
         ],
     )
 
@@ -943,7 +949,7 @@ def test_get_metric_data_within_timeframe():
     ]
     assert sum_["Label"] == "metric1 Sum"
     assert sum_["StatusCode"] == "Complete"
-    assert [val for val in sum_["Values"]] == [sum(values)]
+    assert list(sum_["Values"]) == [sum(values)]
 
     min_ = [
         res for res in response["MetricDataResults"] if res["Id"] == "result_Minimum"

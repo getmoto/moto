@@ -1,6 +1,6 @@
 import base64
 import string
-from typing import Any, Dict
+from typing import Any
 
 from moto.moto_api._internal import mock_random as random
 
@@ -65,9 +65,9 @@ def random_policy_id() -> str:
 
 
 def format_incoming_conditional_values(
-    data: Dict[str, str],
-) -> Dict[str, str]:
-    incoming_conditional_values: Dict[str, str] = {}
+    data: dict[str, str],
+) -> dict[str, str]:
+    incoming_conditional_values: dict[str, str] = {}
 
     if "ExternalId" in data:
         incoming_conditional_values["sts:ExternalId"] = data["ExternalId"][0]
@@ -75,5 +75,5 @@ def format_incoming_conditional_values(
     return incoming_conditional_values
 
 
-def is_role_resource(data: Dict[str, Any]) -> bool:
+def is_role_resource(data: dict[str, Any]) -> bool:
     return "RoleName" in data

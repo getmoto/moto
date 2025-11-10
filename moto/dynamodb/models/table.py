@@ -1,6 +1,7 @@
 import copy
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from collections.abc import Sequence
+from typing import Any, Optional, Union
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
@@ -22,15 +23,17 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
 RESULT_SIZE_LIMIT = 1000000  # DynamoDB has a 1MB size limit
+DEFAULT_WARM_THROUGHPUT_RCU = 12000
+DEFAULT_WARM_THROUGHPUT_WCU = 4000
 
 
 class SecondaryIndex(BaseModel):
     def __init__(
         self,
         index_name: str,
-        schema: List[Dict[str, str]],
-        projection: Dict[str, Any],
-        table_key_attrs: List[str],
+        schema: list[dict[str, str]],
+        projection: dict[str, Any],
+        table_key_attrs: list[str],
     ):
         self.name = index_name
         self.schema = schema
@@ -69,7 +72,7 @@ class SecondaryIndex(BaseModel):
 
 
 class LocalSecondaryIndex(SecondaryIndex):
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "IndexName": self.name,
             "KeySchema": self.schema,
@@ -78,7 +81,7 @@ class LocalSecondaryIndex(SecondaryIndex):
 
     @staticmethod
     def create(  # type: ignore[misc]
-        dct: Dict[str, Any], table_key_attrs: List[str]
+        dct: dict[str, Any], table_key_attrs: list[str]
     ) -> "LocalSecondaryIndex":
         return LocalSecondaryIndex(
             index_name=dct["IndexName"],
@@ -92,31 +95,45 @@ class GlobalSecondaryIndex(SecondaryIndex):
     def __init__(
         self,
         index_name: str,
-        schema: List[Dict[str, str]],
-        projection: Dict[str, Any],
-        table_key_attrs: List[str],
+        schema: list[dict[str, str]],
+        projection: dict[str, Any],
+        table_key_attrs: list[str],
         status: str = "ACTIVE",
-        throughput: Optional[Dict[str, Any]] = None,
+        throughput: Optional[dict[str, Any]] = None,
+        warm_throughput: Optional[dict[str, Any]] = None,
     ):
         super().__init__(index_name, schema, projection, table_key_attrs)
         self.status = status
-        self.throughput = throughput or {
-            "ReadCapacityUnits": 0,
-            "WriteCapacityUnits": 0,
-        }
+        if throughput:
+            self.throughput = throughput
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": throughput["ReadCapacityUnits"],
+                "WriteUnitsPerSecond": throughput["WriteCapacityUnits"],
+            }
+        else:
+            self.throughput = {
+                "ReadCapacityUnits": 0,
+                "WriteCapacityUnits": 0,
+            }
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_RCU,
+                "WriteUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_WCU,
+            }
+        self.warm_throughput["Status"] = "ACTIVE"
 
-    def describe(self) -> Dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return {
             "IndexName": self.name,
             "KeySchema": self.schema,
             "Projection": self.projection,
             "IndexStatus": self.status,
             "ProvisionedThroughput": self.throughput,
+            "WarmThroughput": self.warm_throughput,
         }
 
     @staticmethod
     def create(  # type: ignore[misc]
-        dct: Dict[str, Any], table_key_attrs: List[str]
+        dct: dict[str, Any], table_key_attrs: list[str]
     ) -> "GlobalSecondaryIndex":
         return GlobalSecondaryIndex(
             index_name=dct["IndexName"],
@@ -124,13 +141,16 @@ class GlobalSecondaryIndex(SecondaryIndex):
             projection=dct["Projection"],
             table_key_attrs=table_key_attrs,
             throughput=dct.get("ProvisionedThroughput", None),
+            warm_throughput=dct.get("WarmThroughput", None),
         )
 
-    def update(self, u: Dict[str, Any]) -> None:
+    def update(self, u: dict[str, Any]) -> None:
         self.name = u.get("IndexName", self.name)
         self.schema = u.get("KeySchema", self.schema)
         self.projection = u.get("Projection", self.projection)
         self.throughput = u.get("ProvisionedThroughput", self.throughput)
+        self.warm_throughput = u.get("WarmThroughput", self.warm_throughput)
+        self.warm_throughput["Status"] = "ACTIVE"
 
 
 class StreamRecord(BaseModel):
@@ -151,7 +171,7 @@ class StreamRecord(BaseModel):
         if table.range_key_attr is not None and rec is not None:
             keys[table.range_key_attr] = rec.range_key.to_json()  # type: ignore
 
-        self.record: Dict[str, Any] = {
+        self.record: dict[str, Any] = {
             "eventID": mock_random.uuid4().hex,
             "eventName": event_name,
             "eventSource": "aws:dynamodb",
@@ -176,7 +196,7 @@ class StreamRecord(BaseModel):
             dynamo_json_dump(self.record["dynamodb"])
         )
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return self.record
 
 
@@ -186,10 +206,10 @@ class StreamShard(BaseModel):
         self.table = table
         self.id = "shardId-00000001541626099285-f35f62ef"
         self.starting_sequence_number = 1100000000017454423009
-        self.items: List[StreamRecord] = []
+        self.items: list[StreamRecord] = []
         self.created_on = utcnow()
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         return {
             "ShardId": self.id,
             "SequenceNumberRange": {
@@ -220,7 +240,7 @@ class StreamShard(BaseModel):
         if result:
             self.items = []
 
-    def get(self, start: int, quantity: int) -> List[Dict[str, Any]]:
+    def get(self, start: int, quantity: int) -> list[dict[str, Any]]:
         start -= self.starting_sequence_number
         assert start >= 0
         end = start + quantity
@@ -233,16 +253,17 @@ class Table(CloudFormationModel):
         table_name: str,
         account_id: str,
         region: str,
-        schema: List[Dict[str, Any]],
-        attr: List[Dict[str, str]],
-        throughput: Optional[Dict[str, int]] = None,
+        schema: list[dict[str, Any]],
+        attr: list[dict[str, str]],
+        throughput: Optional[dict[str, int]] = None,
         billing_mode: Optional[str] = None,
-        indexes: Optional[List[Dict[str, Any]]] = None,
-        global_indexes: Optional[List[Dict[str, Any]]] = None,
-        streams: Optional[Dict[str, Any]] = None,
-        sse_specification: Optional[Dict[str, Any]] = None,
-        tags: Optional[List[Dict[str, str]]] = None,
+        indexes: Optional[list[dict[str, Any]]] = None,
+        global_indexes: Optional[list[dict[str, Any]]] = None,
+        streams: Optional[dict[str, Any]] = None,
+        sse_specification: Optional[dict[str, Any]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
         deletion_protection_enabled: Optional[bool] = False,
+        warm_throughput: Optional[dict[str, Any]] = None,
     ):
         self.name = table_name
         self.account_id = account_id
@@ -269,11 +290,23 @@ class Table(CloudFormationModel):
             key for key in (self.hash_key_attr, self.range_key_attr) if key is not None
         ]
         self.billing_mode = billing_mode
-        if throughput is None:
-            self.throughput = {"WriteCapacityUnits": 0, "ReadCapacityUnits": 0}
-        else:
+        if throughput:
             self.throughput = throughput
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": throughput["ReadCapacityUnits"],
+                "WriteUnitsPerSecond": throughput["WriteCapacityUnits"],
+            }
+        else:
+            self.throughput = {
+                "ReadCapacityUnits": 0,
+                "WriteCapacityUnits": 0,
+            }
+            self.warm_throughput = warm_throughput or {
+                "ReadUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_RCU,
+                "WriteUnitsPerSecond": DEFAULT_WARM_THROUGHPUT_WCU,
+            }
         self.throughput["NumberOfDecreasesToday"] = 0
+        self.warm_throughput["Status"] = "ACTIVE"
         self.indexes = [
             LocalSecondaryIndex.create(i, self.table_key_attrs)
             for i in (indexes if indexes else [])
@@ -290,12 +323,12 @@ class Table(CloudFormationModel):
             "TimeToLiveStatus": "DISABLED"  # One of 'ENABLING'|'DISABLING'|'ENABLED'|'DISABLED',
             # 'AttributeName': 'string'  # Can contain this
         }
-        self.stream_specification: Optional[Dict[str, Any]] = {"StreamEnabled": False}
+        self.stream_specification: Optional[dict[str, Any]] = {"StreamEnabled": False}
         self.latest_stream_label: Optional[str] = None
         self.stream_shard: Optional[StreamShard] = None
         self.set_stream_specification(streams)
-        self.lambda_event_source_mappings: Dict[str, Any] = {}
-        self.continuous_backups: Dict[str, Any] = {
+        self.lambda_event_source_mappings: dict[str, Any] = {}
+        self.continuous_backups: dict[str, Any] = {
             "ContinuousBackupsStatus": "ENABLED",  # One of 'ENABLED'|'DISABLED', it's enabled by default
             "PointInTimeRecoveryDescription": {
                 "PointInTimeRecoveryStatus": "DISABLED"  # One of 'ENABLED'|'DISABLED'
@@ -347,9 +380,9 @@ class Table(CloudFormationModel):
         return self.name
 
     @property
-    def attribute_keys(self) -> List[str]:
+    def attribute_keys(self) -> list[str]:
         # A set of all the hash or range attributes for all indexes
-        def keys_from_index(idx: SecondaryIndex) -> List[str]:
+        def keys_from_index(idx: SecondaryIndex) -> list[str]:
             schema = idx.schema
             return [attr["AttributeName"] for attr in schema]
 
@@ -371,7 +404,7 @@ class Table(CloudFormationModel):
     def create_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
         **kwargs: Any,
@@ -394,6 +427,7 @@ class Table(CloudFormationModel):
             "DeletionProtectionEnabled", False
         )
         params["sse_specification"] = properties.get("SSESpecification")
+        params["warm_throughput"] = properties.get("WarmThroughput")
 
         billing_mode = (
             "PAY_PER_REQUEST"
@@ -411,7 +445,7 @@ class Table(CloudFormationModel):
     def delete_from_cloudformation_json(  # type: ignore[misc]
         cls,
         resource_name: str,
-        cloudformation_json: Dict[str, Any],
+        cloudformation_json: dict[str, Any],
         account_id: str,
         region_name: str,
     ) -> None:
@@ -422,7 +456,7 @@ class Table(CloudFormationModel):
     def _generate_arn(self, name: str) -> str:
         return f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{name}"
 
-    def set_stream_specification(self, streams: Optional[Dict[str, Any]]) -> None:
+    def set_stream_specification(self, streams: Optional[dict[str, Any]]) -> None:
         self.stream_specification = streams
         if (
             self.stream_specification
@@ -435,8 +469,8 @@ class Table(CloudFormationModel):
         else:
             self.stream_specification = {"StreamEnabled": False}
 
-    def describe(self, base_key: str = "TableDescription") -> Dict[str, Any]:
-        results: Dict[str, Any] = {
+    def describe(self, base_key: str = "TableDescription") -> dict[str, Any]:
+        results: dict[str, Any] = {
             base_key: {
                 "AttributeDefinitions": self.attr,
                 "ProvisionedThroughput": self.throughput,
@@ -453,6 +487,7 @@ class Table(CloudFormationModel):
                 ],
                 "LocalSecondaryIndexes": [index.describe() for index in self.indexes],
                 "DeletionProtectionEnabled": self.deletion_protection_enabled,
+                "WarmThroughput": self.warm_throughput,
             }
         }
         if self.latest_stream_label:
@@ -476,7 +511,7 @@ class Table(CloudFormationModel):
         )
 
     @property
-    def hash_key_names(self) -> List[str]:
+    def hash_key_names(self) -> list[str]:
         keys = [self.hash_key_attr]
         for index in self.global_indexes:
             for key in index.schema:
@@ -485,7 +520,7 @@ class Table(CloudFormationModel):
         return keys
 
     @property
-    def range_key_names(self) -> List[str]:
+    def range_key_names(self) -> list[str]:
         keys = [self.range_key_attr] if self.has_range_key else []
         for index in self.global_indexes:
             for key in index.schema:
@@ -493,7 +528,7 @@ class Table(CloudFormationModel):
                     keys.append(key["AttributeName"])
         return keys  # type: ignore[return-value]
 
-    def _validate_key_sizes(self, item_attrs: Dict[str, Any]) -> None:
+    def _validate_key_sizes(self, item_attrs: dict[str, Any]) -> None:
         for hash_name in self.hash_key_names:
             hash_value = item_attrs.get(hash_name)
             if hash_value:
@@ -506,7 +541,7 @@ class Table(CloudFormationModel):
                     raise RangeKeyTooLong
 
     def _validate_item_types(
-        self, item_attrs: Dict[str, Any], attr: Optional[str] = None
+        self, item_attrs: dict[str, Any], attr: Optional[str] = None
     ) -> None:
         for key, value in item_attrs.items():
             if isinstance(value, dict):
@@ -527,11 +562,11 @@ class Table(CloudFormationModel):
 
     def put_item(
         self,
-        item_attrs: Dict[str, Any],
-        expected: Optional[Dict[str, Any]] = None,
+        item_attrs: dict[str, Any],
+        expected: Optional[dict[str, Any]] = None,
         condition_expression: Optional[str] = None,
-        expression_attribute_names: Optional[Dict[str, str]] = None,
-        expression_attribute_values: Optional[Dict[str, Any]] = None,
+        expression_attribute_names: Optional[dict[str, str]] = None,
+        expression_attribute_values: Optional[dict[str, Any]] = None,
         overwrite: bool = False,
         return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
@@ -620,7 +655,7 @@ class Table(CloudFormationModel):
         self,
         hash_key: DynamoType,
         range_key: Optional[DynamoType] = None,
-        projection_expression: Optional[List[List[str]]] = None,
+        projection_expression: Optional[list[list[str]]] = None,
     ) -> Optional[Item]:
         if self.has_range_key and not range_key:
             raise MockValidationException(
@@ -661,20 +696,20 @@ class Table(CloudFormationModel):
         self,
         hash_key: DynamoType,
         range_comparison: Optional[str],
-        range_objs: List[DynamoType],
+        range_objs: list[DynamoType],
         limit: int,
-        exclusive_start_key: Dict[str, Any],
+        exclusive_start_key: dict[str, Any],
         scan_index_forward: bool,
-        projection_expressions: Optional[List[List[str]]],
+        projection_expressions: Optional[list[list[str]]],
         index_name: Optional[str] = None,
         consistent_read: bool = False,
         filter_expression: Any = None,
         **filter_kwargs: Any,
-    ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
+    ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
         # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()
-            indexes_by_name = dict((i.name, i) for i in all_indexes)
+            indexes_by_name = {i.name: i for i in all_indexes}
             if index_name not in indexes_by_name:
                 all_names = ", ".join(indexes_by_name.keys())
                 raise MockValidationException(
@@ -756,7 +791,7 @@ class Table(CloudFormationModel):
             possible_results.reverse()
 
         # FILTER
-        results: List[Item] = []
+        results: list[Item] = []
         result_size = 0
         scanned_count = 0
         last_evaluated_key = None
@@ -835,8 +870,8 @@ class Table(CloudFormationModel):
 
         return results, scanned_count, last_evaluated_key
 
-    def all_items(self) -> List[Item]:
-        items: List[Item] = []
+    def all_items(self) -> list[Item]:
+        items: list[Item] = []
         for hash_set in self.items.values():
             if self.range_key_attr:
                 for item in hash_set.values():
@@ -853,18 +888,18 @@ class Table(CloudFormationModel):
 
     def get_index(self, index_name: str, error_if_not: bool = False) -> SecondaryIndex:
         all_indexes = self.all_indexes()
-        indexes_by_name = dict((i.name, i) for i in all_indexes)
+        indexes_by_name = {i.name: i for i in all_indexes}
         if error_if_not and index_name not in indexes_by_name:
             raise InvalidIndexNameError(
                 f"The table does not have the specified index: {index_name}"
             )
         return indexes_by_name[index_name]
 
-    def has_idx_items(self, index_name: str) -> List[Item]:
+    def has_idx_items(self, index_name: str) -> list[Item]:
         idx = self.get_index(index_name)
-        idx_col_set = set([i["AttributeName"] for i in idx.schema])
+        idx_col_set = {i["AttributeName"] for i in idx.schema}
 
-        items: List[Item] = []
+        items: list[Item] = []
 
         for hash_set in self.items.values():
             if self.range_key_attr:
@@ -878,16 +913,16 @@ class Table(CloudFormationModel):
 
     def scan(
         self,
-        filters: Dict[str, Any],
+        filters: dict[str, Any],
         limit: int,
-        exclusive_start_key: Dict[str, Any],
+        exclusive_start_key: dict[str, Any],
         filter_expression: Any = None,
         index_name: Optional[str] = None,
         consistent_read: bool = False,
-        projection_expression: Optional[List[List[str]]] = None,
-        segments: Union[Tuple[None, None], Tuple[int, int]] = (None, None),
-    ) -> Tuple[List[Item], int, Optional[Dict[str, Any]]]:
-        results: List[Item] = []
+        projection_expression: Optional[list[list[str]]] = None,
+        segments: Union[tuple[None, None], tuple[int, int]] = (None, None),
+    ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
+        results: list[Item] = []
         result_size = 0
         scanned_count = 0
 
@@ -1001,9 +1036,9 @@ class Table(CloudFormationModel):
     def _item_comes_before_dct(
         self,
         item: Item,
-        dct: Dict[str, Any],
-        hash_key_attrs: List[str],
-        range_key_attrs: List[Optional[str]],
+        dct: dict[str, Any],
+        hash_key_attrs: list[str],
+        range_key_attrs: list[Optional[str]],
         scan_index_forward: bool,
     ) -> bool:
         """
@@ -1033,10 +1068,10 @@ class Table(CloudFormationModel):
 
     def sorted_items(
         self,
-        hash_key_attrs: List[str],
-        range_key_attrs: List[Optional[str]],
-        items: List[Item],
-    ) -> List[Item]:
+        hash_key_attrs: list[str],
+        range_key_attrs: list[Optional[str]],
+        items: list[Item],
+    ) -> list[Item]:
         attrs_to_sort_by = self._generate_attr_to_sort_by(
             hash_key_attrs, range_key_attrs
         )
@@ -1046,8 +1081,8 @@ class Table(CloudFormationModel):
         return items
 
     def _generate_attr_to_sort_by(
-        self, hash_key_attrs: List[str], range_key_attrs: List[Optional[str]]
-    ) -> List[str]:
+        self, hash_key_attrs: list[str], range_key_attrs: list[Optional[str]]
+    ) -> list[str]:
         gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
         table_hash_key = str(
             hash_key_attrs[0] if gsi_hash_key is None else hash_key_attrs[1]
@@ -1069,7 +1104,7 @@ class Table(CloudFormationModel):
 
     def _get_last_evaluated_key(
         self, last_result: Item, index_name: Optional[str]
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         last_evaluated_key = {self.hash_key_attr: last_result.hash_key}
         if self.range_key_attr is not None and last_result.range_key is not None:
             last_evaluated_key[self.range_key_attr] = last_result.range_key
@@ -1117,7 +1152,7 @@ class Backup:
         return f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{self.table.name}/backup/{self.identifier}"
 
     @property
-    def details(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def details(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "BackupArn": self.arn,
             "BackupName": self.name,
@@ -1128,7 +1163,7 @@ class Backup:
         }
 
     @property
-    def summary(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def summary(self) -> dict[str, Any]:  # type: ignore[misc]
         return {
             "TableName": self.table.name,
             # 'TableId': 'string',
@@ -1143,7 +1178,7 @@ class Backup:
         }
 
     @property
-    def description(self) -> Dict[str, Any]:  # type: ignore[misc]
+    def description(self) -> dict[str, Any]:  # type: ignore[misc]
         source_table_details = self.table.describe()["TableDescription"]
         source_table_details["TableCreationDateTime"] = source_table_details[
             "CreationDateTime"
@@ -1167,14 +1202,14 @@ class RestoredTable(Table):
         self.source_table_arn = backup.table.table_arn
         self.restore_date_time = self.created_at
 
-    def _parse_params_from_backup(self, backup: "Backup") -> Dict[str, Any]:
+    def _parse_params_from_backup(self, backup: "Backup") -> dict[str, Any]:
         return {
             "schema": copy.deepcopy(backup.table.schema),
             "attr": copy.deepcopy(backup.table.attr),
             "throughput": copy.deepcopy(backup.table.throughput),
         }
 
-    def describe(self, base_key: str = "TableDescription") -> Dict[str, Any]:
+    def describe(self, base_key: str = "TableDescription") -> dict[str, Any]:
         result = super().describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceBackupArn": self.source_backup_arn,
@@ -1196,14 +1231,14 @@ class RestoredPITTable(Table):
         self.source_table_arn = source.table_arn
         self.restore_date_time = self.created_at
 
-    def _parse_params_from_table(self, table: Table) -> Dict[str, Any]:
+    def _parse_params_from_table(self, table: Table) -> dict[str, Any]:
         return {
             "schema": copy.deepcopy(table.schema),
             "attr": copy.deepcopy(table.attr),
             "throughput": copy.deepcopy(table.throughput),
         }
 
-    def describe(self, base_key: str = "TableDescription") -> Dict[str, Any]:
+    def describe(self, base_key: str = "TableDescription") -> dict[str, Any]:
         result = super().describe(base_key=base_key)
         result[base_key]["RestoreSummary"] = {
             "SourceTableArn": self.source_table_arn,

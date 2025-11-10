@@ -87,10 +87,12 @@ medialive
 - [ ] get_event_bridge_rule_template
 - [ ] get_event_bridge_rule_template_group
 - [ ] get_signal_map
+- [ ] list_alerts
 - [ ] list_channel_placement_groups
 - [X] list_channels
 - [ ] list_cloud_watch_alarm_template_groups
 - [ ] list_cloud_watch_alarm_templates
+- [ ] list_cluster_alerts
 - [ ] list_clusters
 - [ ] list_event_bridge_rule_template_groups
 - [ ] list_event_bridge_rule_templates
@@ -98,6 +100,7 @@ medialive
 - [ ] list_input_devices
 - [ ] list_input_security_groups
 - [X] list_inputs
+- [ ] list_multiplex_alerts
 - [ ] list_multiplex_programs
 - [ ] list_multiplexes
 - [ ] list_networks

@@ -1216,6 +1216,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "payment-cryptography": {
+                "Value": "payment-cryptography"
+              },
               "pca-connector-ad": {
                 "Value": "pca-connector-ad",
                 "endpoint": {
@@ -3593,6 +3596,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.ap-east-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -4084,6 +4096,15 @@
                 "Value": "fsx-windows",
                 "endpoint": {
                   "Value": "fsx.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -5706,6 +5727,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fargate": {
                 "Value": "fargate"
               },
@@ -6901,6 +6931,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.ap-northeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rtbfabric": {
+                "Value": "rtbfabric",
+                "endpoint": {
+                  "Value": "rtbfabric.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -11317,6 +11356,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-northeast-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "resource-explorer-2": {
                 "Value": "resource-explorer-2",
                 "endpoint": {
@@ -12669,6 +12717,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "evs": {
+                "Value": "evs"
               },
               "fargate": {
                 "Value": "fargate"
@@ -16787,6 +16838,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fargate": {
                 "Value": "fargate"
               },
@@ -17912,6 +17972,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "rtbfabric": {
+                "Value": "rtbfabric",
+                "endpoint": {
+                  "Value": "rtbfabric.ap-southeast-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "rum": {
                 "Value": "rum",
                 "endpoint": {
@@ -18699,15 +18768,6 @@
                 "Value": "appsync",
                 "endpoint": {
                   "Value": "appsync.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -19564,6 +19624,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "evs": {
+                "Value": "evs"
               },
               "fargate": {
                 "Value": "fargate"
@@ -24554,6 +24617,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "chatbot": {
+                "Value": "chatbot"
+              },
               "cloudcontrolapi": {
                 "Value": "cloudcontrolapi",
                 "endpoint": {
@@ -25190,6 +25256,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "managedservices": {
+                "Value": "managedservices"
+              },
               "marketplace": {
                 "Value": "marketplace"
               },
@@ -25356,6 +25425,15 @@
                 "Value": "redshift-data",
                 "endpoint": {
                   "Value": "redshift-data.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "redshift-serverless": {
+                "Value": "redshift-serverless",
+                "endpoint": {
+                  "Value": "redshift-serverless.ap-southeast-5.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -25694,6 +25772,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.ap-southeast-5.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -25894,6 +25981,24 @@
                 "Value": "config",
                 "endpoint": {
                   "Value": "config.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controlcatalog": {
+                "Value": "controlcatalog",
+                "endpoint": {
+                  "Value": "controlcatalog.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "controltower": {
+                "Value": "controltower",
+                "endpoint": {
+                  "Value": "controltower.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26138,6 +26243,15 @@
               },
               "marketplace": {
                 "Value": "marketplace"
+              },
+              "mq": {
+                "Value": "mq",
+                "endpoint": {
+                  "Value": "mq.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "oam": {
                 "Value": "oam",
@@ -27001,6 +27115,15 @@
               "gamelift": {
                 "Value": "gamelift"
               },
+              "globalaccelerator": {
+                "Value": "globalaccelerator",
+                "endpoint": {
+                  "Value": "globalaccelerator.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "glue": {
                 "Value": "glue",
                 "endpoint": {
@@ -27693,6 +27816,15 @@
                 },
                 "protocols": {
                   "Value": "https"
+                }
+              },
+              "ahl": {
+                "Value": "ahl",
+                "endpoint": {
+                  "Value": "healthlake.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "aiq": {
@@ -28549,6 +28681,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "evs": {
+                "Value": "evs"
               },
               "fargate": {
                 "Value": "fargate"
@@ -34543,15 +34678,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -35224,6 +35350,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "dsql": {
+                "Value": "dsql",
+                "endpoint": {
+                  "Value": "dsql.eu-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -35399,6 +35534,15 @@
                 "Value": "evidently",
                 "endpoint": {
                   "Value": "evidently.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36629,6 +36773,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rtbfabric": {
+                "Value": "rtbfabric",
+                "endpoint": {
+                  "Value": "rtbfabric.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -38211,6 +38364,15 @@
                 "Value": "pipes",
                 "endpoint": {
                   "Value": "pipes.eu-central-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "polly": {
+                "Value": "polly",
+                "endpoint": {
+                  "Value": "polly.eu-central-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -44269,6 +44431,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.eu-south-2.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -44571,6 +44742,15 @@
                 },
                 "protocols": {
                   "Value": "HTTPS, HTTP"
+                }
+              },
+              "b2bi": {
+                "Value": "b2bi",
+                "endpoint": {
+                  "Value": "b2bi.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
                 }
               },
               "backup": {
@@ -45291,6 +45471,15 @@
                 "Value": "evidently",
                 "endpoint": {
                   "Value": "evidently.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46608,6 +46797,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.eu-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rtbfabric": {
+                "Value": "rtbfabric",
+                "endpoint": {
+                  "Value": "rtbfabric.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48262,6 +48460,15 @@
                 "Value": "events",
                 "endpoint": {
                   "Value": "events.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -55114,6 +55321,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.me-central-1.api.aws"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "xray": {
                 "Value": "xray",
                 "endpoint": {
@@ -58206,15 +58422,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.sa-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -60426,15 +60633,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "apptest": {
-                "Value": "apptest",
-                "endpoint": {
-                  "Value": "apptest.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "aps": {
                 "Value": "aps",
                 "endpoint": {
@@ -61426,6 +61624,15 @@
                 "Value": "evidently",
                 "endpoint": {
                   "Value": "evidently.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62878,6 +63085,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rtbfabric": {
+                "Value": "rtbfabric",
+                "endpoint": {
+                  "Value": "rtbfabric.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64533,6 +64749,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fargate": {
                 "Value": "fargate"
               },
@@ -66160,6 +66385,15 @@
                 "Value": "wellarchitectedtool",
                 "endpoint": {
                   "Value": "wellarchitected.us-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "workspaces-instances": {
+                "Value": "workspaces-instances",
+                "endpoint": {
+                  "Value": "workspaces-instances.us-east-2.api.aws"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -72945,6 +73179,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fargate": {
                 "Value": "fargate"
               },
@@ -74248,6 +74491,15 @@
                 "Value": "route53resolver",
                 "endpoint": {
                   "Value": "route53resolver.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "rtbfabric": {
+                "Value": "rtbfabric",
+                "endpoint": {
+                  "Value": "rtbfabric.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"

@@ -122,7 +122,7 @@ def test_retry_lambda(fn_arn=None):
             break
         sleep(1)
     else:
-        assert False, "Should have failed already"
+        raise AssertionError("Should have failed already")
 
 
 @create_failing_lambda_func
@@ -177,4 +177,4 @@ def test_retry_lambda_jitter_none(fn_arn=None):
             break
         sleep(1)
     else:
-        assert False, "Should have failed already"
+        raise AssertionError("Should have failed already")

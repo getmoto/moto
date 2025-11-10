@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4
 
 import boto3
 import pytest
@@ -31,28 +32,17 @@ def ddb_resource(aws_credentials):
 
 
 @pytest.fixture
-def users_table_name():
-    return "users"
-
-
-@pytest.fixture
-def create_user_table(ddb_client, users_table_name):
-    ddb_client.create_table(
-        TableName=users_table_name,
+def user_table(ddb_resource):
+    table = ddb_resource.create_table(
+        TableName=f"T{uuid4()}",
         KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
-    ddb_client.put_item(
-        TableName="users", Item={"username": {"S": "user1"}, "binaryfoo": {"B": b"bar"}}
-    )
-    ddb_client.put_item(
-        TableName="users", Item={"username": {"S": "user2"}, "foo": {"S": "bar"}}
-    )
-    ddb_client.put_item(
-        TableName="users", Item={"username": {"S": "user3"}, "foo": {"S": "bar"}}
-    )
-    return ddb_client
+    table.put_item(Item={"username": "user1", "binaryfoo": b"bar"})
+    table.put_item(Item={"username": "user2", "foo": "bar"})
+    table.put_item(Item={"username": "user3", "foo": "bar"})
+    return table
 
 
 @pytest.fixture

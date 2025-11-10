@@ -16,7 +16,7 @@ def test_create_job():
     client = create_glue_client()
     job_name = str(uuid4())
     response = client.create_job(
-        Name=job_name, Role="test_role", Command=dict(Name="test_command")
+        Name=job_name, Role="test_role", Command={"Name": "test_command"}
     )
     assert response["Name"] == job_name
 
@@ -257,7 +257,7 @@ def create_test_job(client, tags=None):
     client.create_job(
         Name=job_name,
         Role="test_role",
-        Command=dict(Name="test_command"),
+        Command={"Name": "test_command"},
         Tags=tags or {},
     )
     return job_name
@@ -1625,3 +1625,212 @@ def test_delete_resource_policy_error_conditions():
     assert (
         error_info.value.response["Error"]["Code"] == "ConcurrentModificationException"
     )
+
+
+@mock_aws
+def test_create_connection_properties():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection-props",
+        "Description": "Test Connection for connection properties",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {
+            "USER_NAME": "moto_user",
+            "PASSWORD": "my_secret_moto_pass",
+        },
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    resp = client.create_connection(ConnectionInput=connection_input)
+    assert resp["CreateConnectionStatus"] == "READY"
+    connection = client.get_connection(Name="test-connection-props")["Connection"]
+    assert connection["ConnectionProperties"]["USER_NAME"] == "moto_user"
+    assert connection["ConnectionProperties"]["PASSWORD"] == "my_secret_moto_pass"
+
+    # Test duplicate name
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.create_connection(ConnectionInput=connection_input)
+
+
+@mock_aws
+def test_create_connection_n_props():
+    client = boto3.client("glue", region_name="us-east-2")
+    subnet_id = "subnet-1234567890abcdef0"
+    connection_input = {
+        "Name": "test-connection-athena-props",
+        "Description": "Test Connection for athena properties",
+        "ConnectionType": "JDBC",
+        "ConnectionProperties": {"key": "value"},
+        "AthenaProperties": {
+            "WorkGroup": "primary",
+            "EncryptionOption": "SSE_S3",
+            "S3OutputLocation": "s3://my-athena-query-results/",
+        },
+        "PythonProperties": {"APP_ID": "test_app_id"},
+        "SparkProperties": {"test": "test-value"},
+        "PhysicalConnectionRequirements": {
+            "SubnetId": subnet_id,
+            "SecurityGroupIdList": [],
+            "AvailabilityZone": "us-east-1a",
+        },
+    }
+    resp = client.create_connection(ConnectionInput=connection_input)
+    assert resp["CreateConnectionStatus"] == "READY"
+    connection = client.get_connection(Name="test-connection-athena-props")[
+        "Connection"
+    ]
+    assert connection["AthenaProperties"]["WorkGroup"] == "primary"
+    assert connection["AthenaProperties"]["EncryptionOption"] == "SSE_S3"
+    assert (
+        connection["AthenaProperties"]["S3OutputLocation"]
+        == "s3://my-athena-query-results/"
+    )
+    assert connection["PythonProperties"]["APP_ID"] == "test_app_id"
+    assert connection["SparkProperties"]["test"] == "test-value"
+
+    # Test duplicate name
+    with pytest.raises(client.exceptions.AlreadyExistsException):
+        client.create_connection(ConnectionInput=connection_input)
+
+
+@mock_aws
+def test_create_security_configuration():
+    client = create_glue_client()
+    security_configuration_name = "test-security-configuration"
+    encryption_configuration = {
+        "CloudWatchEncryption": {"CloudWatchEncryptionMode": "DISABLED"},
+        "JobBookmarksEncryption": {
+            "JobBookmarksEncryptionMode": "CSE-KMS",
+            "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+        },
+        "S3Encryption": [
+            {
+                "S3EncryptionMode": "SSE-KMS",
+                "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-s3-key-id",
+            }
+        ],
+    }
+
+    response = client.create_security_configuration(
+        Name=security_configuration_name,
+        EncryptionConfiguration=encryption_configuration,
+    )
+
+    assert response["Name"] == security_configuration_name
+    assert "CreatedTimestamp" in response
+
+    get_response = client.get_security_configuration(Name=security_configuration_name)
+    assert get_response["SecurityConfiguration"]["Name"] == security_configuration_name
+    assert (
+        get_response["SecurityConfiguration"]["EncryptionConfiguration"]
+        == encryption_configuration
+    )
+
+
+@mock_aws
+def test_get_security_configuration_not_found():
+    client = create_glue_client()
+    security_configuration_name = "nonexistent-security-configuration"
+
+    with pytest.raises(ClientError) as exc:
+        client.get_security_configuration(Name=security_configuration_name)
+
+    assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"SecurityConfiguration {security_configuration_name} not found"
+    )
+
+
+@mock_aws
+def test_delete_security_configuration():
+    client = create_glue_client()
+    security_configuration_name = "test-security-configuration"
+    encryption_configuration = {
+        "CloudWatchEncryption": {"CloudWatchEncryptionMode": "DISABLED"},
+        "JobBookmarksEncryption": {
+            "JobBookmarksEncryptionMode": "CSE-KMS",
+            "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-key-id",
+        },
+        "S3Encryption": [
+            {
+                "S3EncryptionMode": "SSE-KMS",
+                "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-s3-key-id",
+            }
+        ],
+    }
+
+    client.create_security_configuration(
+        Name=security_configuration_name,
+        EncryptionConfiguration=encryption_configuration,
+    )
+
+    client.delete_security_configuration(Name=security_configuration_name)
+
+    with pytest.raises(ClientError) as exc:
+        client.get_security_configuration(Name=security_configuration_name)
+
+    assert exc.value.response["Error"]["Code"] == "EntityNotFoundException"
+    assert (
+        exc.value.response["Error"]["Message"]
+        == f"SecurityConfiguration {security_configuration_name} not found"
+    )
+
+
+@mock_aws
+def test_get_security_configurations():
+    client = create_glue_client()
+
+    response = client.get_security_configurations()
+    assert response["SecurityConfigurations"] == []
+    assert "NextToken" not in response
+
+    encryption_configuration_1 = {
+        "CloudWatchEncryption": {"CloudWatchEncryptionMode": "DISABLED"},
+        "JobBookmarksEncryption": {
+            "JobBookmarksEncryptionMode": "CSE-KMS",
+            "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-key-id-1",
+        },
+        "S3Encryption": [
+            {
+                "S3EncryptionMode": "SSE-KMS",
+                "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-s3-key-id-1",
+            }
+        ],
+    }
+
+    encryption_configuration_2 = {
+        "CloudWatchEncryption": {"CloudWatchEncryptionMode": "DISABLED"},
+        "JobBookmarksEncryption": {
+            "JobBookmarksEncryptionMode": "CSE-KMS",
+            "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-key-id-2",
+        },
+        "S3Encryption": [
+            {
+                "S3EncryptionMode": "SSE-KMS",
+                "KmsKeyArn": "arn:aws:kms:us-east-1:123456789012:key/test-s3-key-id-2",
+            }
+        ],
+    }
+
+    client.create_security_configuration(
+        Name="test-security-configuration-1",
+        EncryptionConfiguration=encryption_configuration_1,
+    )
+    client.create_security_configuration(
+        Name="test-security-configuration-2",
+        EncryptionConfiguration=encryption_configuration_2,
+    )
+
+    response = client.get_security_configurations()
+    assert len(response["SecurityConfigurations"]) == 2
+    names = {sc["Name"] for sc in response["SecurityConfigurations"]}
+    assert names == {
+        "test-security-configuration-1",
+        "test-security-configuration-2",
+    }
+    assert "NextToken" not in response

@@ -72,7 +72,7 @@ class Reservation(EC2Object):
         self.instances: Any = []
 
     def __repr__(self) -> str:
-        return "Reservation:%s" % self.id
+        return f"Reservation:{self.id}"
 
 
 class Instance(TaggedEC2Object):
@@ -166,7 +166,7 @@ class Instance(TaggedEC2Object):
         self._placement = InstancePlacement()
 
     def __repr__(self) -> str:
-        return "Instance:%s" % self.id  # type: ignore
+        return f"Instance:{self.id}"  # type: ignore
 
     @property
     def state(self) -> str:

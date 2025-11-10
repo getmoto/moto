@@ -115,7 +115,7 @@ def test_update_identity_pool(key, initial_value, updated_value):
     res = conn.create_identity_pool(
         IdentityPoolName="TestPool",
         AllowUnauthenticatedIdentities=False,
-        **dict({key: initial_value}),
+        **{key: initial_value},
     )
 
     first = conn.describe_identity_pool(IdentityPoolId=res["IdentityPoolId"])
@@ -125,7 +125,7 @@ def test_update_identity_pool(key, initial_value, updated_value):
         IdentityPoolId=res["IdentityPoolId"],
         IdentityPoolName="TestPool",
         AllowUnauthenticatedIdentities=False,
-        **dict({key: updated_value}),
+        **{key: updated_value},
     )
     assert response[key] == updated_value
 

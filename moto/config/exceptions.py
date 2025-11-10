@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -47,7 +47,7 @@ class InvalidRecordingGroupException(JsonRESTError):
 class InvalidResourceTypeException(JsonRESTError):
     code = 400
 
-    def __init__(self, bad_list: List[str], good_list: Any):
+    def __init__(self, bad_list: list[str], good_list: Any):
         message = (
             f"{len(bad_list)} validation error detected: Value '{bad_list}' at "
             "'configurationRecorder.recordingGroup.resourceTypes' failed to satisfy constraint: "
@@ -316,7 +316,7 @@ class ResourceNotFoundException(JsonRESTError):
 class TooManyResourceKeys(JsonRESTError):
     code = 400
 
-    def __init__(self, bad_list: List[str]):
+    def __init__(self, bad_list: list[str]):
         message = (
             f"1 validation error detected: Value '{bad_list}' at "
             "'resourceKeys' failed to satisfy constraint: "

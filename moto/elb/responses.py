@@ -284,7 +284,7 @@ class ELBResponse(BaseResponse):
             if int(listner.load_balancer_port) == load_balancer_port
         ]
         if mb_listener:
-            policies = self._get_multi_param("PolicyNames.member")
+            policies = self._get_param("PolicyNames", [])
             self.elb_backend.set_load_balancer_policies_of_listener(
                 load_balancer_name, load_balancer_port, policies
             )
@@ -300,7 +300,7 @@ class ELBResponse(BaseResponse):
             b for b in load_balancer.backends if int(b.instance_port) == instance_port
         ]
         if mb_backend:
-            policies = self._get_multi_param("PolicyNames.member")
+            policies = self._get_param("PolicyNames", [])
             self.elb_backend.set_load_balancer_policies_for_backend_server(
                 load_balancer_name, instance_port, policies
             )

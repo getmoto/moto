@@ -10,7 +10,11 @@ from botocore.exceptions import ClientError
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
-from moto.ssm.models import PARAMETER_HISTORY_MAX_RESULTS, PARAMETER_VERSION_LIMIT
+from moto.ssm.models import (
+    PARAMETER_BY_PATH_MAX_RESULTS,
+    PARAMETER_HISTORY_MAX_RESULTS,
+    PARAMETER_VERSION_LIMIT,
+)
 from tests import EXAMPLE_AMI_ID, aws_verified
 
 SSM_REGION = "us-east-1"
@@ -101,13 +105,11 @@ def test_get_parameters_by_path():
 
     response = client.get_parameters_by_path(Path="/", Recursive=False)
     assert len(response["Parameters"]) == 2
-    assert {p["Value"] for p in response["Parameters"]} == set(["bar", "qux"])
-    assert {p["ARN"] for p in response["Parameters"]} == set(
-        [
-            f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/foo",
-            f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/baz",
-        ]
-    )
+    assert {p["Value"] for p in response["Parameters"]} == {"bar", "qux"}
+    assert {p["ARN"] for p in response["Parameters"]} == {
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/foo",
+        f"arn:aws:ssm:us-east-1:{ACCOUNT_ID}:parameter/baz",
+    }
     for p in response["Parameters"]:
         assert isinstance(p["LastModifiedDate"], datetime.datetime)
 
@@ -116,7 +118,7 @@ def test_get_parameters_by_path():
 
     response = client.get_parameters_by_path(Path="/foo")
     assert len(response["Parameters"]) == 2
-    assert {p["Value"] for p in response["Parameters"]} == set(["value1", "value2"])
+    assert {p["Value"] for p in response["Parameters"]} == {"value1", "value2"}
 
     response = client.get_parameters_by_path(Path="/bar", Recursive=False)
     assert len(response["Parameters"]) == 1
@@ -124,7 +126,7 @@ def test_get_parameters_by_path():
 
     response = client.get_parameters_by_path(Path="/bar", Recursive=True)
     assert len(response["Parameters"]) == 2
-    assert {p["Value"] for p in response["Parameters"]} == set(["value3", "value4"])
+    assert {p["Value"] for p in response["Parameters"]} == {"value3", "value4"}
 
     response = client.get_parameters_by_path(Path="/baz")
     assert len(response["Parameters"]) == 3
@@ -132,39 +134,35 @@ def test_get_parameters_by_path():
     filters = [{"Key": "Type", "Option": "Equals", "Values": ["StringList"]}]
     response = client.get_parameters_by_path(Path="/baz", ParameterFilters=filters)
     assert len(response["Parameters"]) == 1
-    assert {p["Name"] for p in response["Parameters"]} == set(["/baz/name1"])
+    assert {p["Name"] for p in response["Parameters"]} == {"/baz/name1"}
 
     # note: 'Option' is optional (default: 'Equals')
     filters = [{"Key": "Type", "Values": ["StringList"]}]
     response = client.get_parameters_by_path(Path="/baz", ParameterFilters=filters)
     assert len(response["Parameters"]) == 1
-    assert {p["Name"] for p in response["Parameters"]} == set(["/baz/name1"])
+    assert {p["Name"] for p in response["Parameters"]} == {"/baz/name1"}
 
     filters = [{"Key": "Type", "Option": "Equals", "Values": ["String"]}]
     response = client.get_parameters_by_path(Path="/baz", ParameterFilters=filters)
     assert len(response["Parameters"]) == 1
-    assert {p["Name"] for p in response["Parameters"]} == set(["/baz/name2"])
+    assert {p["Name"] for p in response["Parameters"]} == {"/baz/name2"}
 
     filters = [
         {"Key": "Type", "Option": "Equals", "Values": ["String", "SecureString"]}
     ]
     response = client.get_parameters_by_path(Path="/baz", ParameterFilters=filters)
     assert len(response["Parameters"]) == 2
-    assert {p["Name"] for p in response["Parameters"]} == set(
-        ["/baz/name2", "/baz/pwd"]
-    )
+    assert {p["Name"] for p in response["Parameters"]} == {"/baz/name2", "/baz/pwd"}
 
     filters = [{"Key": "Type", "Option": "BeginsWith", "Values": ["String"]}]
     response = client.get_parameters_by_path(Path="/baz", ParameterFilters=filters)
     assert len(response["Parameters"]) == 2
-    assert {p["Name"] for p in response["Parameters"]} == set(
-        ["/baz/name1", "/baz/name2"]
-    )
+    assert {p["Name"] for p in response["Parameters"]} == {"/baz/name1", "/baz/name2"}
 
     filters = [{"Key": "KeyId", "Option": "Equals", "Values": ["alias/aws/ssm"]}]
     response = client.get_parameters_by_path(Path="/baz", ParameterFilters=filters)
     assert len(response["Parameters"]) == 1
-    assert {p["Name"] for p in response["Parameters"]} == set(["/baz/pwd"])
+    assert {p["Name"] for p in response["Parameters"]} == {"/baz/pwd"}
 
     response = client.get_parameters_by_path(Path="/", Recursive=True, MaxResults=4)
     assert len(response["Parameters"]) == 4
@@ -204,13 +202,22 @@ def test_get_parameters_by_path():
         "Valid filter keys include: [Type, KeyId]."
     )
 
+    max_result_value = 23
+    with pytest.raises(ClientError) as client_err:
+        client.get_parameters_by_path(Path="/", MaxResults=max_result_value)
+    assert client_err.value.response["Error"]["Message"] == (
+        "1 validation error detected: "
+        f"Value {max_result_value} at 'maxResults' failed to satisfy constraint: "
+        f"Member must have value less than or equal to {PARAMETER_BY_PATH_MAX_RESULTS}"
+    )
+
     # Label filter in get_parameters_by_path
     client.label_parameter_version(Name="/foo/name2", Labels=["Label1"])
 
     filters = [{"Key": "Label", "Values": ["Label1"]}]
     response = client.get_parameters_by_path(Path="/foo", ParameterFilters=filters)
     assert len(response["Parameters"]) == 1
-    assert {p["Name"] for p in response["Parameters"]} == set(["/foo/name2"])
+    assert {p["Name"] for p in response["Parameters"]} == {"/foo/name2"}
 
 
 @pytest.mark.parametrize("name", ["test", "my-cool-parameter"])
@@ -721,7 +728,7 @@ def test_get_parameter_with_version_and_labels():
 def test_get_parameters_errors():
     client = boto3.client("ssm", region_name=SSM_REGION)
 
-    ssm_parameters = {name: "value" for name in string.ascii_lowercase[:11]}
+    ssm_parameters = dict.fromkeys(string.ascii_lowercase[:11], "value")
 
     for name, value in ssm_parameters.items():
         client.put_parameter(Name=name, Value=value, Type="String")
@@ -2208,9 +2215,7 @@ def test_parameter_version_limit():
 
     paginator = client.get_paginator("get_parameter_history")
     page_iterator = paginator.paginate(Name=parameter_name)
-    parameter_history = list(
-        item for page in page_iterator for item in page["Parameters"]
-    )
+    parameter_history = [item for page in page_iterator for item in page["Parameters"]]
 
     assert len(parameter_history) == PARAMETER_VERSION_LIMIT
     assert parameter_history[0]["Value"] == "value-2"

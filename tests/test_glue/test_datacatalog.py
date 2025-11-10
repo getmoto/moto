@@ -1109,7 +1109,7 @@ def test_batch_delete_partition_with_bad_partitions():
     )
 
     assert len(response["Errors"]) == 3
-    error_partitions = map(lambda x: x["PartitionValues"], response["Errors"])
+    error_partitions = (x["PartitionValues"] for x in response["Errors"])
     assert ["2018-11-01"] in error_partitions
     assert ["2018-11-02"] in error_partitions
     assert ["2018-11-03"] in error_partitions

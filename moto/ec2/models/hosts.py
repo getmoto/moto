@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from moto.core.utils import unix_time
 
@@ -45,7 +45,7 @@ class Host(TaggedEC2Resource):
 
 class HostsBackend:
     def __init__(self) -> None:
-        self.hosts: Dict[str, Host] = {}
+        self.hosts: dict[str, Host] = {}
 
     def allocate_hosts(
         self,
@@ -55,8 +55,8 @@ class HostsBackend:
         instance_type: str,
         instance_family: str,
         auto_placement: str,
-        tags: Dict[str, str],
-    ) -> List[str]:
+        tags: dict[str, str],
+    ) -> list[str]:
         hosts = [
             Host(
                 host_recovery,
@@ -75,8 +75,8 @@ class HostsBackend:
         return [host.id for host in hosts]
 
     def describe_hosts(
-        self, host_ids: List[str], filters: Dict[str, Any]
-    ) -> List[Host]:
+        self, host_ids: list[str], filters: dict[str, Any]
+    ) -> list[Host]:
         """
         Pagination is not yet implemented
         """
@@ -89,7 +89,7 @@ class HostsBackend:
 
     def modify_hosts(
         self,
-        host_ids: List[str],
+        host_ids: list[str],
         auto_placement: str,
         host_recovery: str,
         instance_type: str,
@@ -108,6 +108,6 @@ class HostsBackend:
                 host.instance_family = instance_family
                 host.instance_type = None
 
-    def release_hosts(self, host_ids: List[str]) -> None:
+    def release_hosts(self, host_ids: list[str]) -> None:
         for host_id in host_ids:
             self.hosts[host_id].release()

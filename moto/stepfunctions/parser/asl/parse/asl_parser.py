@@ -1,5 +1,5 @@
 import abc
-from typing import Final, List
+from typing import Final
 
 from antlr4 import CommonTokenStream, InputStream, ParserRuleContext
 from antlr4.error.ErrorListener import ErrorListener
@@ -11,11 +11,11 @@ from moto.stepfunctions.parser.asl.parse.preprocessor import Preprocessor
 
 
 class SyntaxErrorListener(ErrorListener):
-    errors: Final[List[str]]
+    errors: Final[list[str]]
 
     def __init__(self):
         super().__init__()
-        self.errors = list()
+        self.errors = []
 
     def syntaxError(
         self, recognizer, offending_symbol, line, column, message, exception
@@ -30,9 +30,9 @@ class SyntaxErrorListener(ErrorListener):
 
 
 class ASLParserException(Exception):
-    errors: Final[List[str]]
+    errors: Final[list[str]]
 
-    def __init__(self, errors: List[str]):
+    def __init__(self, errors: list[str]):
         self.errors = errors
 
     def __str__(self):

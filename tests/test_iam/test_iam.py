@@ -984,9 +984,7 @@ def test_create_policy_with_too_many_tags():
 
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.create_policy(
             PolicyName="TestCreatePolicyWithTags3",
             PolicyDocument=MOCK_POLICY,
@@ -1242,9 +1240,7 @@ def test_updating_existing_tagged_policy_with_too_many_tags():
 
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.tag_policy(
             PolicyArn=f"arn:aws:iam::{ACCOUNT_ID}:policy/TestTagPolicy",
             Tags=too_many_tags,
@@ -1469,7 +1465,7 @@ def test_untag_policy():
 
 
 @mock_aws
-def test_create_user_boto():
+def test_create_user():
     conn = boto3.client("iam", region_name="us-east-1")
     u = conn.create_user(UserName="my-user")["User"]
     assert u["Path"] == "/"
@@ -2058,12 +2054,12 @@ def test_managed_policy():
             aws_policies.append(policy)
         marker = response.get("Marker")
     aws_managed_policies = iam_backends[ACCOUNT_ID]["global"].aws_managed_policies
-    assert set(p.name for p in aws_managed_policies) == set(
+    assert {p.name for p in aws_managed_policies} == {
         p["PolicyName"] for p in aws_policies
-    )
+    }
 
     user_policies = conn.list_policies(Scope="Local")["Policies"]
-    assert set(["UserManagedPolicy"]) == set(p["PolicyName"] for p in user_policies)
+    assert {"UserManagedPolicy"} == {p["PolicyName"] for p in user_policies}
 
     marker = "0"
     all_policies = []
@@ -2072,9 +2068,9 @@ def test_managed_policy():
         for policy in response["Policies"]:
             all_policies.append(policy)
         marker = response.get("Marker")
-    assert set(p["PolicyName"] for p in aws_policies + user_policies) == set(
+    assert {p["PolicyName"] for p in aws_policies + user_policies} == {
         p["PolicyName"] for p in all_policies
-    )
+    }
 
     role_name = "my-new-role"
     conn.create_role(
@@ -2771,9 +2767,7 @@ def test_create_role_with_tags():
     # Test creating tags with invalid values:
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.create_role(
             RoleName="my-role3", AssumeRolePolicyDocument="{}", Tags=too_many_tags
         )
@@ -2914,9 +2908,7 @@ def test_tag_role():
     # Test creating tags with invalid values:
     # With more than 50 tags:
     with pytest.raises(ClientError) as ce:
-        too_many_tags = list(
-            map(lambda x: {"Key": str(x), "Value": str(x)}, range(0, 51))
-        )
+        too_many_tags = [{"Key": str(x), "Value": str(x)} for x in range(0, 51)]
         conn.tag_role(RoleName="my-role", Tags=too_many_tags)
     assert (
         "failed to satisfy constraint: Member must have length less than or equal to 50."
@@ -3699,8 +3691,8 @@ def test_role_list_config_discovered_resources():
     # The roles gets a random ID, so we can't directly test it
     role = result[0]
     assert role["type"] == "AWS::IAM::Role"
-    assert role["id"] in list(map(lambda p: p["id"], roles))
-    assert role["name"] in list(map(lambda p: p["name"], roles))
+    assert role["id"] in [p["id"] for p in roles]
+    assert role["name"] in [p["name"] for p in roles]
     assert role["region"] == "global"
 
     # test passing list of resource ids
@@ -4316,8 +4308,8 @@ def test_policy_list_config_discovered_resources():
 
     policy = result[0]
     assert policy["type"] == "AWS::IAM::Policy"
-    assert policy["id"] in list(map(lambda p: p["id"], policies))
-    assert policy["name"] in list(map(lambda p: p["name"], policies))
+    assert policy["id"] in [p["id"] for p in policies]
+    assert policy["name"] in [p["name"] for p in policies]
     assert policy["region"] == "global"
 
     # test passing list of resource ids
@@ -4793,8 +4785,8 @@ def test_list_roles():
     assert role2["Description"] == "desc"
     assert "Description" not in role3
 
-    assert all([role["CreateDate"] for role in all_roles])
-    assert all([role["MaxSessionDuration"] for role in all_roles])
+    assert all(role["CreateDate"] for role in all_roles)
+    assert all(role["MaxSessionDuration"] for role in all_roles)
 
 
 @mock_aws()

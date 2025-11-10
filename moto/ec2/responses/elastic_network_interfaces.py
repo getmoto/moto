@@ -1,6 +1,6 @@
 from moto.core.responses import ActionResult, EmptyResult
 from moto.ec2.exceptions import InvalidParameterValueErrorUnknownAttribute
-from moto.ec2.utils import add_tag_specification, get_attribute_value
+from moto.ec2.utils import add_tag_specification
 
 from ._base_response import EC2BaseResponse
 
@@ -9,14 +9,15 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
     def create_network_interface(self) -> ActionResult:
         subnet_id = self._get_param("SubnetId")
         private_ip_address = self._get_param("PrivateIpAddress")
-        private_ip_addresses = self._get_multi_param("PrivateIpAddresses")
-        ipv6_addresses = self._get_multi_param("Ipv6Addresses")
+        private_ip_addresses = self._get_param("PrivateIpAddresses", [])
+        ipv6_addresses = self._get_param("Ipv6Addresses", [])
+        ipv6_addresses = [i["Ipv6Address"] for i in ipv6_addresses]
         ipv6_address_count = self._get_int_param("Ipv6AddressCount", 0)
         secondary_ips_count = self._get_param("SecondaryPrivateIpAddressCount")
-        groups = self._get_multi_param("SecurityGroupId")
+        groups = self._get_param("Groups", [])
         subnet = self.ec2_backend.get_subnet(subnet_id)
         description = self._get_param("Description")
-        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
 
         self.error_on_dryrun()
 
@@ -64,7 +65,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_network_interfaces(self) -> ActionResult:
-        eni_ids = self._get_multi_param("NetworkInterfaceId")
+        eni_ids = self._get_param("NetworkInterfaceIds", [])
         filters = self._filters_from_querystring()
 
         self.error_on_dryrun()
@@ -99,9 +100,9 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
 
     def modify_network_interface_attribute(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
-        group_ids = self._get_multi_param("SecurityGroupId")
-        source_dest_check = get_attribute_value("SourceDestCheck", self.querystring)
-        description = get_attribute_value("Description", self.querystring)
+        group_ids = self._get_param("Groups", [])
+        source_dest_check = self._get_param("SourceDestCheck.Value")
+        description = self._get_param("Description.Value")
 
         self.error_on_dryrun()
 
@@ -120,7 +121,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
     def assign_private_ip_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         secondary_ips_count = self._get_int_param("SecondaryPrivateIpAddressCount", 0)
-        private_ip_addresses = self._get_multi_param("PrivateIpAddress")
+        private_ip_addresses = self._get_param("PrivateIpAddresses", [])
         eni = self.ec2_backend.assign_private_ip_addresses(
             eni_id, private_ip_addresses, secondary_ips_count
         )
@@ -132,14 +133,14 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
 
     def unassign_private_ip_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
-        private_ip_address = self._get_multi_param("PrivateIpAddress")
+        private_ip_address = self._get_param("PrivateIpAddresses", [])
         self.ec2_backend.unassign_private_ip_addresses(eni_id, private_ip_address)
         return EmptyResult()
 
     def assign_ipv6_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
         ipv6_count = self._get_int_param("Ipv6AddressCount", 0)
-        ipv6_addresses = self._get_multi_param("Ipv6Addresses")
+        ipv6_addresses = self._get_param("Ipv6Addresses", [])
         eni = self.ec2_backend.assign_ipv6_addresses(eni_id, ipv6_addresses, ipv6_count)
         result = {
             "AssignedIpv6Addresses": eni.ipv6_addresses,
@@ -149,7 +150,7 @@ class ElasticNetworkInterfaces(EC2BaseResponse):
 
     def unassign_ipv6_addresses(self) -> ActionResult:
         eni_id = self._get_param("NetworkInterfaceId")
-        ips = self._get_multi_param("Ipv6Addresses")
+        ips = self._get_param("Ipv6Addresses", [])
         unassigned_ipv6_addresses = self.ec2_backend.unassign_ipv6_addresses(
             eni_id, ips
         )

@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import copy
 import logging
-from typing import Any, Final, List, Optional
+from typing import Any, Final, Optional
 
 from botocore.model import ListShape, Shape, StringShape, StructureShape
 from botocore.response import StreamingBody
@@ -132,7 +132,7 @@ class StateTaskService(StateTask, abc.ABC):
             camel_to_snake_case(member_key): (member_key, member_value)
             for member_key, member_value in shape_members.items()
         }
-        parameters_bind_keys: List[str] = list(parameters.keys())
+        parameters_bind_keys: list[str] = list(parameters.keys())
         for parameter_key in parameters_bind_keys:
             norm_parameter_key = camel_to_snake_case(parameter_key)
             norm_member_bind: Optional[tuple[str, Optional[StructureShape]]] = (
@@ -176,7 +176,7 @@ class StateTaskService(StateTask, abc.ABC):
             return
 
         shape_members = structure_shape.members
-        response_bind_keys: List[str] = list(response.keys())
+        response_bind_keys: list[str] = list(response.keys())
         for response_key in response_bind_keys:
             norm_response_key = self._to_sfn_cased(response_key)
             if response_key in shape_members:

@@ -2,7 +2,7 @@ import json
 import os
 import pathlib
 from functools import lru_cache
-from typing import List, Optional
+from typing import Optional
 
 from moto.core.config import default_user_config
 
@@ -57,7 +57,7 @@ def get_sf_execution_history_type() -> str:
     return os.environ.get("SF_EXECUTION_HISTORY_TYPE", "SUCCESS")
 
 
-def get_s3_custom_endpoints() -> List[str]:
+def get_s3_custom_endpoints() -> list[str]:
     endpoints = os.environ.get("MOTO_S3_CUSTOM_ENDPOINTS")
     if endpoints:
         return endpoints.split(",")
@@ -116,7 +116,7 @@ def moto_proxy_port() -> str:
     return os.environ.get("MOTO_PROXY_PORT") or "5005"
 
 
-@lru_cache()
+@lru_cache
 def moto_server_host() -> str:
     if is_docker():
         return get_docker_host()

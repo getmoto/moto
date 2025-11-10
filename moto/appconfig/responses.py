@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, Tuple
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -121,7 +121,7 @@ class AppConfigResponse(BaseResponse):
         self.appconfig_backend.untag_resource(arn, tag_keys)  # type: ignore[arg-type]
         return "{}"
 
-    def create_hosted_configuration_version(self) -> Tuple[str, Dict[str, Any]]:
+    def create_hosted_configuration_version(self) -> tuple[str, dict[str, Any]]:
         app_id = self._get_param("ApplicationId")
         config_profile_id = self._get_param("ConfigurationProfileId")
         description = self.headers.get("Description")
@@ -138,7 +138,7 @@ class AppConfigResponse(BaseResponse):
         )
         return version.content, version.get_headers()
 
-    def get_hosted_configuration_version(self) -> Tuple[str, Dict[str, Any]]:
+    def get_hosted_configuration_version(self) -> tuple[str, dict[str, Any]]:
         app_id = self._get_param("ApplicationId")
         config_profile_id = self._get_param("ConfigurationProfileId")
         version_number = self._get_int_param("VersionNumber")

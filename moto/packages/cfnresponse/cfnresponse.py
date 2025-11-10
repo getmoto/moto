@@ -4,7 +4,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-from __future__ import print_function
 
 import json
 from typing import Any
@@ -33,9 +32,7 @@ def send(
     responseBody = {
         "Status": responseStatus,
         "Reason": reason
-        or "See the details in CloudWatch Log Stream: {}".format(
-            context.log_stream_name
-        ),
+        or f"See the details in CloudWatch Log Stream: {context.log_stream_name}",
         "PhysicalResourceId": physicalResourceId or context.log_stream_name,
         "StackId": event["StackId"],
         "RequestId": event["RequestId"],

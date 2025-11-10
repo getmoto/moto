@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from boto3 import Session
 
@@ -15,14 +15,14 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
         self,
         account_id: str,
         partition: str,
-        resource_ids: Optional[List[str]],
+        resource_ids: Optional[list[str]],
         resource_name: Optional[str],
         limit: int,
         next_token: Optional[str],
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
         aggregator: Any = None,
-    ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         # For the Account Public Access Block, they are the same for all regions. The resource ID is the AWS account ID
         # There is no resource name -- it should be a blank string "" if provided.
 
@@ -31,7 +31,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
             return [], None
 
         pab = None
-        regions = [region for region in Session().get_available_regions("config")]
+        regions = list(Session().get_available_regions("config"))
 
         # If a resource ID was passed in, then filter accordingly:
         if resource_ids:
@@ -103,7 +103,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
         resource_name: Optional[str] = None,
         backend_region: Optional[str] = None,
         resource_region: Optional[str] = None,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         # Do we even have this defined?
         backend = self.backends[account_id][partition]
         if not backend.public_access_block:
@@ -113,7 +113,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
         if resource_name is not None and resource_name != "":
             return None
 
-        regions = [region for region in Session().get_available_regions("config")]
+        regions = list(Session().get_available_regions("config"))
 
         # Is the resource ID correct?:
         if account_id == resource_id:
@@ -132,7 +132,7 @@ class S3AccountPublicAccessBlockConfigQuery(ConfigQueryModel[S3ControlBackend]):
 
         # Format the PAB to the AWS Config format:
         creation_time = utcnow()
-        config_data: Dict[str, Any] = {
+        config_data: dict[str, Any] = {
             "version": "1.3",
             "accountId": account_id,
             "configurationItemCaptureTime": str(creation_time),

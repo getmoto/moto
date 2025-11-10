@@ -1,6 +1,5 @@
 import json
 import re
-import time
 from datetime import datetime
 
 import boto3
@@ -258,7 +257,6 @@ def test_update_resource_share():
     arn = client.create_resource_share(name="test")["resourceShare"]["resourceShareArn"]
 
     # when
-    time.sleep(0.1)
     response = client.update_resource_share(resourceShareArn=arn, name="test-update")
 
     # then
@@ -311,7 +309,6 @@ def test_delete_resource_share():
     arn = client.create_resource_share(name="test")["resourceShare"]["resourceShareArn"]
 
     # when
-    time.sleep(0.1)
     response = client.delete_resource_share(resourceShareArn=arn)
 
     # then

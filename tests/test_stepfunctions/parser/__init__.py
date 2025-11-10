@@ -84,7 +84,7 @@ def verify_execution_result(
         sleep(10 if allow_aws_request() else 0.1)
     else:
         _teardown(client, iam, role_name, state_machine_arn)
-        assert False, "Should have failed already"
+        raise AssertionError("Should have failed already")
 
 
 def _teardown(client, iam, role_name, state_machine_arn):
