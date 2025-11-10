@@ -160,7 +160,6 @@ class Execution:
         # Compatibility with mock SFN
         self.state_machine_arn = state_machine.arn
         self.start_date = start_date
-        #self.execution_input = json.dumps(input_data)
         self.execution_input = input_data
 
     @property
