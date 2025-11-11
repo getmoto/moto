@@ -26,7 +26,7 @@ class KeyPairs(EC2BaseResponse):
 
     def import_key_pair(self) -> str:
         name = self._get_param("KeyName")
-        material = self._get_param("PublicKeyMaterial")
+        material = self._get_param("PublicKeyMaterial").decode("utf-8")  # type: str
         tags = self._parse_tag_specification("key-pair").get("key-pair", {})
         self.error_on_dryrun()
 
