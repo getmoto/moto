@@ -3058,7 +3058,7 @@
 - [ ] describe_reserved_instances
 - [ ] describe_reserved_instances_listings
 - [ ] describe_reserved_instances_modifications
-- [ ] describe_reserved_instances_offerings
+- [X] describe_reserved_instances_offerings
 - [ ] describe_route_server_endpoints
 - [ ] describe_route_server_peers
 - [ ] describe_route_servers
@@ -5432,7 +5432,7 @@
 
 ## kinesis
 <details>
-<summary>79% implemented</summary>
+<summary>86% implemented</summary>
 
 - [X] add_tags_to_stream
 - [X] create_stream
@@ -5440,7 +5440,6 @@
 - [X] delete_resource_policy
 - [X] delete_stream
 - [X] deregister_stream_consumer
-- [ ] describe_account_settings
 - [X] describe_limits
 - [X] describe_stream
 - [X] describe_stream_consumer
@@ -5468,11 +5467,9 @@
 - [ ] subscribe_to_shard
 - [ ] tag_resource
 - [ ] untag_resource
-- [ ] update_account_settings
 - [ ] update_max_record_size
 - [X] update_shard_count
 - [X] update_stream_mode
-- [ ] update_stream_warm_throughput
 </details>
 
 ## kinesis-video-archived-media
@@ -6465,9 +6462,9 @@
 
 ## neptune
 <details>
-<summary>64% implemented</summary>
+<summary>65% implemented</summary>
 
-- [ ] add_role_to_db_cluster
+- [X] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -7449,10 +7446,10 @@
 
 ## rds
 <details>
-<summary>50% implemented</summary>
+<summary>51% implemented</summary>
 
-- [ ] add_role_to_db_cluster
-- [ ] add_role_to_db_instance
+- [X] add_role_to_db_cluster
+- [X] add_role_to_db_instance
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -8430,19 +8427,19 @@
 
 ## s3vectors
 <details>
-<summary>25% implemented</summary>
+<summary>50% implemented</summary>
 
-- [ ] create_index
+- [X] create_index
 - [X] create_vector_bucket
-- [ ] delete_index
+- [X] delete_index
 - [X] delete_vector_bucket
 - [ ] delete_vector_bucket_policy
 - [ ] delete_vectors
-- [ ] get_index
+- [X] get_index
 - [X] get_vector_bucket
 - [ ] get_vector_bucket_policy
 - [ ] get_vectors
-- [ ] list_indexes
+- [X] list_indexes
 - [X] list_vector_buckets
 - [ ] list_vectors
 - [ ] put_vector_bucket_policy

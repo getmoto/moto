@@ -38,11 +38,13 @@ from .exceptions import (
     BlueGreenDeploymentNotFoundFault,
     DBClusterNotFoundError,
     DBClusterParameterGroupNotFoundError,
+    DBClusterRoleAlreadyExists,
     DBClusterSnapshotAlreadyExistsError,
     DBClusterSnapshotNotFoundError,
     DBClusterToBeDeletedHasActiveMembers,
     DBInstanceAlreadyExists,
     DBInstanceNotFoundError,
+    DBInstanceRoleAlreadyExists,
     DBParameterGroupAlreadyExistsError,
     DBParameterGroupNotFoundError,
     DBProxyAlreadyExistsFault,
@@ -484,6 +486,13 @@ class DomainMembership:
         self.dns_ips = dns_ips or []
 
 
+class AssociatedRole:
+    def __init__(self, role_arn: str, feature_name: str):
+        self.role_arn = role_arn
+        self.feature_name = feature_name
+        self.status = "ACTIVE"
+
+
 class DBCluster(RDSBaseModel):
     SUPPORTED_FILTERS = {
         "db-cluster-id": FilterDef(
@@ -679,6 +688,7 @@ class DBCluster(RDSBaseModel):
                     "IAM Authentication is currently not supported by Multi-AZ DB clusters."
                 )
         self.license_model = license_model
+        self._associated_roles: list[AssociatedRole] = []
 
     @property
     def db_cluster_identifier(self) -> str:
@@ -834,8 +844,8 @@ class DBCluster(RDSBaseModel):
         self.writer = promotion_list[0]
 
     @property
-    def associated_roles(self) -> list[dict[str, Any]]:  # type: ignore[misc]
-        return []
+    def associated_roles(self) -> list[AssociatedRole]:  # type: ignore[misc]
+        return self._associated_roles
 
     @property
     def scaling_configuration_info(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -1245,6 +1255,7 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
             default_option_group_name = f"default:{self.engine}-{option_suffix}"
             self.option_group_name = option_group_name or default_option_group_name
             self.storage_throughput = storage_throughput
+            self._associated_roles: list[AssociatedRole] = []
 
     @property
     def db_instance_identifier(self) -> str:
@@ -1399,6 +1410,10 @@ class DBInstance(EventMixin, CloudFormationModel, RDSBaseModel):
     @property
     def latest_restorable_time(self) -> datetime:
         return utcnow()
+
+    @property
+    def associated_roles(self) -> list[AssociatedRole]:  # type: ignore[misc]
+        return self._associated_roles
 
     def db_parameter_groups(self) -> list[DBParameterGroup]:
         if not self.db_parameter_group_name or self.is_default_parameter_group(
@@ -2967,6 +2982,52 @@ class RDSBackend(BaseBackend):
             return database
         else:
             raise DBInstanceNotFoundError(db_instance_identifier)
+
+    def add_role_to_db_instance(
+        self, db_instance_identifier: str, role_arn: str, feature_name: str
+    ) -> None:
+        self._validate_db_identifier(db_instance_identifier)
+        database = self.describe_db_instances(db_instance_identifier)[0]
+        if database.status != "available":
+            raise InvalidDBInstanceStateFault(
+                f"Instance {db_instance_identifier} should be in a valid state to add role."
+            )
+        for role in database._associated_roles:
+            if role.feature_name == feature_name:
+                raise DBInstanceRoleAlreadyExists(
+                    f"Feature {feature_name} alreday assigned to Instance {db_instance_identifier}"
+                )
+            if role.role_arn == role_arn:
+                raise DBInstanceRoleAlreadyExists(
+                    f"Role {role_arn} alreday assigned to Instance {db_instance_identifier}"
+                )
+        database._associated_roles.append(
+            AssociatedRole(role_arn=role_arn, feature_name=feature_name)
+        )
+
+    def add_role_to_db_cluster(
+        self, db_cluster_identifier: str, role_arn: str, feature_name: str
+    ) -> None:
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+        cluster = self.clusters[db_cluster_identifier]
+        if cluster.status != "available":
+            raise InvalidDBClusterStateFault(
+                f"Cluster {db_cluster_identifier} should be in a valid state to add role."
+            )
+        for role in cluster._associated_roles:
+            if role.feature_name == feature_name:
+                raise DBClusterRoleAlreadyExists(
+                    f"Feature {feature_name} alreday assigned to Cluster {db_cluster_identifier}"
+                )
+            if role.role_arn == role_arn:
+                raise DBClusterRoleAlreadyExists(
+                    f"Role {role_arn} alreday assigned to Cluster {db_cluster_identifier}"
+                )
+
+        cluster._associated_roles.append(
+            AssociatedRole(role_arn=role_arn, feature_name=feature_name)
+        )
 
     def create_db_security_group(
         self, group_name: str, description: str, tags: list[dict[str, str]]
