@@ -98,8 +98,8 @@ def validate_account(org, account):
         "JoinedMethod",
         "JoinedTimestamp",
         "Name",
-        "Status",
         "State",
+        "Status",
     ]
     assert re.match(utils.ACCOUNT_ID_REGEX, account["Id"])
     assert account["Arn"] == (
