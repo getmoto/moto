@@ -394,6 +394,7 @@ def test_close_account_puts_account_in_suspended_status():
 
     account = client.describe_account(AccountId=created_account_id)["Account"]
     assert account["Status"] == "SUSPENDED"
+    assert account["State"] == "SUSPENDED"
 
     with pytest.raises(ClientError) as exc:
         client.close_account(AccountId=created_account_id)
@@ -1844,6 +1845,7 @@ def test_register_delegated_administrator():
     assert admin["Email"] == mockemail
     assert admin["Name"] == mockname
     assert admin["Status"] == "ACTIVE"
+    assert admin["State"] == "ACTIVE"
     assert admin["JoinedMethod"] == "CREATED"
     assert isinstance(admin["JoinedTimestamp"], datetime)
     assert isinstance(admin["DelegationEnabledDate"], datetime)
@@ -1970,6 +1972,7 @@ def test_list_delegated_administrators():
     assert admin["Email"] == mockemail
     assert admin["Name"] == mockname
     assert admin["Status"] == "ACTIVE"
+    assert admin["State"] == "ACTIVE"
     assert admin["JoinedMethod"] == "CREATED"
     assert isinstance(admin["JoinedTimestamp"], datetime)
     assert isinstance(admin["DelegationEnabledDate"], datetime)

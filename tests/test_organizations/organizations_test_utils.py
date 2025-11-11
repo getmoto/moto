@@ -99,6 +99,7 @@ def validate_account(org, account):
         "JoinedTimestamp",
         "Name",
         "Status",
+        "State",
     ]
     assert re.match(utils.ACCOUNT_ID_REGEX, account["Id"])
     assert account["Arn"] == (
@@ -109,6 +110,7 @@ def validate_account(org, account):
     assert re.match(utils.EMAIL_REGEX, account["Email"])
     assert account["JoinedMethod"] in ["INVITED", "CREATED"]
     assert account["Status"] in ["ACTIVE", "SUSPENDED"]
+    assert account["State"] in ["ACTIVE", "SUSPENDED"]
     assert isinstance(account["Name"], str)
     assert isinstance(account["JoinedTimestamp"], datetime.datetime)
 
