@@ -221,9 +221,8 @@ class EventBridgePipesBackend(BaseBackend):
         for tag_key in tag_keys:
             pipe.tags.pop(tag_key, None)
 
-    # type: ignore[misc]
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_pipes(
+    def list_pipes(  # type: ignore[misc]
         self,
         name_prefix: Optional[str],
         desired_state: Optional[str],
