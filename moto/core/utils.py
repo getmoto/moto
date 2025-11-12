@@ -378,6 +378,10 @@ def extract_region_from_aws_authorization(string: str) -> Optional[str]:
     return region
 
 
+# Match: "member." followed by digits
+_PARAMS_SORT_REGEX = re.compile(r"member\.(\d+)")
+
+
 def params_sort_function(item: tuple[str, Any]) -> tuple[str, int, str]:
     """
     sort by <string-prefix>.member.<integer>.<string-postfix>:
@@ -387,9 +391,9 @@ def params_sort_function(item: tuple[str, Any]) -> tuple[str, int, str]:
     """
     key, _ = item
 
-    match = re.search(r"(.*?member)\.(\d+)(.*)", key)
+    match = _PARAMS_SORT_REGEX.search(key)
     if match:
-        return (match.group(1), int(match.group(2)), match.group(3))
+        return (key[: match.start() + 7], int(match.group(1)), key[match.end() :])
     return (key, 0, "")
 
 
