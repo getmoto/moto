@@ -12,14 +12,14 @@ from .models import EventBridgePipesBackend, pipes_backends
 class EventBridgePipesResponse(BaseResponse):
     """Handler for EventBridgePipes requests and responses."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(service_name="pipes")
 
     @property
     def pipes_backend(self) -> EventBridgePipesBackend:
         return pipes_backends[self.current_account][self.region]
 
-    def create_pipe(self):
+    def create_pipe(self) -> str:
         body_params = json.loads(self.body) if self.body else {}
 
         name = body_params.get("Name") or self.uri.split("/")[-1]
@@ -63,7 +63,7 @@ class EventBridgePipesResponse(BaseResponse):
             }
         )
 
-    def describe_pipe(self):
+    def describe_pipe(self) -> str:
         name = self.uri.split("?")[0].split("/")[-1]
         (
             arn,
@@ -87,7 +87,7 @@ class EventBridgePipesResponse(BaseResponse):
         ) = self.pipes_backend.describe_pipe(
             name=name,
         )
-        response_dict = {
+        response_dict: dict[str, Any] = {
             "Arn": arn,
             "Name": name,
             "DesiredState": desired_state,
@@ -121,7 +121,7 @@ class EventBridgePipesResponse(BaseResponse):
             response_dict["KmsKeyIdentifier"] = kms_key_identifier
         return json.dumps(response_dict)
 
-    def delete_pipe(self):
+    def delete_pipe(self) -> str:
         name = self.uri.split("?")[0].split("/")[-1]
 
         arn, name, desired_state, current_state, creation_time, last_modified_time = (
@@ -141,7 +141,9 @@ class EventBridgePipesResponse(BaseResponse):
             }
         )
 
-    def tag_resource(self):
+    def tag_resource(self) -> str:
+        if not self.uri_match:
+            raise ValueError("URI match not found")
         resource_arn = unquote(self.uri_match.group("resourceArn"))
         body_params = json.loads(self.body) if self.body else {}
         tags = body_params.get("Tags") or body_params.get("tags")
@@ -151,7 +153,9 @@ class EventBridgePipesResponse(BaseResponse):
         )
         return json.dumps({})
 
-    def untag_resource(self):
+    def untag_resource(self) -> str:
+        if not self.uri_match:
+            raise ValueError("URI match not found")
         resource_arn = unquote(self.uri_match.group("resourceArn"))
         tag_keys = self.querystring.get("tagKeys", [])
 
@@ -161,7 +165,7 @@ class EventBridgePipesResponse(BaseResponse):
         )
         return json.dumps({})
 
-    def list_pipes(self):
+    def list_pipes(self) -> str:
         params = json.loads(self.body) if self.body else {}
         if not params and self.querystring:
             params = {

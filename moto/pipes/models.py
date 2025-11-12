@@ -71,23 +71,23 @@ class Pipe(BaseModel):
 class EventBridgePipesBackend(BaseBackend):
     """Implementation of EventBridgePipes APIs."""
 
-    def __init__(self, region_name, account_id):
+    def __init__(self, region_name: str, account_id: str) -> None:
         super().__init__(region_name, account_id)
         self.pipes: dict[str, Pipe] = {}
         self.tagger = TaggingService()
 
     def create_pipe(
         self,
-        name: [str],
+        name: str,
         description: Optional[str],
         desired_state: Optional[str],
-        source: [str],
+        source: str,
         source_parameters: Optional[dict[str, Any]],
         enrichment: Optional[str],
         enrichment_parameters: Optional[dict[str, Any]],
-        target: [str],
+        target: str,
         target_parameters: Optional[dict[str, Any]],
-        role_arn: [str],
+        role_arn: str,
         tags: Optional[dict[str, str]],
         log_configuration: Optional[dict[str, Any]],
         kms_key_identifier: Optional[str],
@@ -122,7 +122,7 @@ class EventBridgePipesBackend(BaseBackend):
         )
 
     def describe_pipe(
-        self, name: Optional[str]
+        self, name: str
     ) -> tuple[
         str,
         str,
@@ -166,7 +166,7 @@ class EventBridgePipesBackend(BaseBackend):
             pipe.kms_key_identifier,
         )
 
-    def delete_pipe(self, name: Optional[str]) -> tuple[str, str, str, str, str, str]:
+    def delete_pipe(self, name: str) -> tuple[str, str, str, str, str, str]:
         pipe = self.pipes[name]
         pipe.desired_state = "DELETED"
         pipe.current_state = "DELETING"
@@ -221,7 +221,7 @@ class EventBridgePipesBackend(BaseBackend):
         for tag_key in tag_keys:
             pipe.tags.pop(tag_key, None)
 
-    @paginate(pagination_model=PAGINATION_MODEL)
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
     def list_pipes(
         self,
         name_prefix: Optional[str],

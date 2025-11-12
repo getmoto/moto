@@ -1,6 +1,7 @@
 """Exceptions raised by the pipes service."""
 
 import json
+from typing import Any
 
 from moto.core.exceptions import JsonRESTError
 
@@ -10,7 +11,7 @@ class ValidationException(JsonRESTError):
 
     def __init__(self, message: str, field_list: list[dict[str, str]] | None = None):
         super().__init__("ValidationException", message)
-        body = {"message": self.message}
+        body: dict[str, Any] = {"message": self.message}
         if field_list is not None:
             body["fieldList"] = field_list
         self.description = json.dumps(body)
@@ -26,7 +27,7 @@ class ConflictException(JsonRESTError):
         resource_type: str | None = None,
     ):
         super().__init__("ConflictException", message)
-        body = {"message": self.message}
+        body: dict[str, Any] = {"message": self.message}
         if resource_id is not None:
             body["resourceId"] = resource_id
         if resource_type is not None:
@@ -46,7 +47,7 @@ class InternalException(JsonRESTError):
 
     def __init__(self, message: str, retry_after_seconds: int | None = None):
         super().__init__("InternalException", message)
-        body = {"message": self.message}
+        body: dict[str, Any] = {"message": self.message}
         if retry_after_seconds is not None:
             body["retryAfterSeconds"] = retry_after_seconds
         self.description = json.dumps(body)
@@ -64,7 +65,7 @@ class ServiceQuotaExceededException(JsonRESTError):
         service_code: str | None = None,
     ):
         super().__init__("ServiceQuotaExceededException", message)
-        body = {"message": self.message}
+        body: dict[str, Any] = {"message": self.message}
         if quota_code is not None:
             body["quotaCode"] = quota_code
         if resource_id is not None:
@@ -87,7 +88,7 @@ class ThrottlingException(JsonRESTError):
         service_code: str | None = None,
     ):
         super().__init__("ThrottlingException", message)
-        body = {"message": self.message}
+        body: dict[str, Any] = {"message": self.message}
         if quota_code is not None:
             body["quotaCode"] = quota_code
         if retry_after_seconds is not None:
