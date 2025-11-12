@@ -6,6 +6,7 @@ from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
 
+from .exceptions import ValidationException
 from .models import EventBridgePipesBackend, pipes_backends
 
 
@@ -35,6 +36,14 @@ class EventBridgePipesResponse(BaseResponse):
         tags = body_params.get("Tags")
         log_configuration = body_params.get("LogConfiguration")
         kms_key_identifier = body_params.get("KmsKeyIdentifier")
+
+        if not source:
+            raise ValidationException("Source is a required parameter")
+        if not target:
+            raise ValidationException("Target is a required parameter")
+        if not role_arn:
+            raise ValidationException("RoleArn is a required parameter")
+
         arn, name, desired_state, current_state, creation_time, last_modified_time = (
             self.pipes_backend.create_pipe(
                 name=name,
@@ -147,6 +156,9 @@ class EventBridgePipesResponse(BaseResponse):
         resource_arn = unquote(self.uri_match.group("resourceArn"))
         body_params = json.loads(self.body) if self.body else {}
         tags = body_params.get("Tags") or body_params.get("tags")
+        if not tags:
+            raise ValidationException("Tags is a required parameter")
+
         self.pipes_backend.tag_resource(
             resource_arn=resource_arn,
             tags=tags,

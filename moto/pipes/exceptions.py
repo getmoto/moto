@@ -1,7 +1,7 @@
 """Exceptions raised by the pipes service."""
 
 import json
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -9,7 +9,7 @@ from moto.core.exceptions import JsonRESTError
 class ValidationException(JsonRESTError):
     code = 400
 
-    def __init__(self, message: str, field_list: list[dict[str, str]] | None = None):
+    def __init__(self, message: str, field_list: Optional[list[dict[str, str]]] = None):
         super().__init__("ValidationException", message)
         body: dict[str, Any] = {"message": self.message}
         if field_list is not None:
@@ -23,8 +23,8 @@ class ConflictException(JsonRESTError):
     def __init__(
         self,
         message: str,
-        resource_id: str | None = None,
-        resource_type: str | None = None,
+        resource_id: Optional[str] = None,
+        resource_type: Optional[str] = None,
     ):
         super().__init__("ConflictException", message)
         body: dict[str, Any] = {"message": self.message}
@@ -45,7 +45,7 @@ class NotFoundException(JsonRESTError):
 class InternalException(JsonRESTError):
     code = 500
 
-    def __init__(self, message: str, retry_after_seconds: int | None = None):
+    def __init__(self, message: str, retry_after_seconds: Optional[int] = None):
         super().__init__("InternalException", message)
         body: dict[str, Any] = {"message": self.message}
         if retry_after_seconds is not None:
@@ -59,10 +59,10 @@ class ServiceQuotaExceededException(JsonRESTError):
     def __init__(
         self,
         message: str,
-        quota_code: str | None = None,
-        resource_id: str | None = None,
-        resource_type: str | None = None,
-        service_code: str | None = None,
+        quota_code: Optional[str] = None,
+        resource_id: Optional[str] = None,
+        resource_type: Optional[str] = None,
+        service_code: Optional[str] = None,
     ):
         super().__init__("ServiceQuotaExceededException", message)
         body: dict[str, Any] = {"message": self.message}
@@ -83,9 +83,9 @@ class ThrottlingException(JsonRESTError):
     def __init__(
         self,
         message: str,
-        quota_code: str | None = None,
-        retry_after_seconds: int | None = None,
-        service_code: str | None = None,
+        quota_code: Optional[str] = None,
+        retry_after_seconds: Optional[int] = None,
+        service_code: Optional[str] = None,
     ):
         super().__init__("ThrottlingException", message)
         body: dict[str, Any] = {"message": self.message}
