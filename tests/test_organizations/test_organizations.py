@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import sys
 from datetime import datetime
 from unittest import SkipTest, mock
 
@@ -20,6 +21,7 @@ from moto.organizations.models import (
     FakeRoot,
     OrganizationsBackend,
 )
+from moto.utilities.distutils_version import LooseVersion
 
 from .organizations_test_utils import (
     validate_account,
@@ -30,6 +32,8 @@ from .organizations_test_utils import (
     validate_roots,
     validate_service_control_policy,
 )
+
+boto3_version = sys.modules["botocore"].__version__
 
 # Accounts
 mockname = "mock-account"
@@ -394,7 +398,8 @@ def test_close_account_puts_account_in_suspended_status():
 
     account = client.describe_account(AccountId=created_account_id)["Account"]
     assert account["Status"] == "SUSPENDED"
-    assert account["State"] == "SUSPENDED"
+    if LooseVersion(boto3_version) >= LooseVersion("1.40.27"):
+        assert account["State"] == "SUSPENDED"
 
     with pytest.raises(ClientError) as exc:
         client.close_account(AccountId=created_account_id)
@@ -1845,7 +1850,8 @@ def test_register_delegated_administrator():
     assert admin["Email"] == mockemail
     assert admin["Name"] == mockname
     assert admin["Status"] == "ACTIVE"
-    assert admin["State"] == "ACTIVE"
+    if LooseVersion(boto3_version) >= LooseVersion("1.40.27"):
+        assert admin["State"] == "ACTIVE"
     assert admin["JoinedMethod"] == "CREATED"
     assert isinstance(admin["JoinedTimestamp"], datetime)
     assert isinstance(admin["DelegationEnabledDate"], datetime)
@@ -1972,7 +1978,8 @@ def test_list_delegated_administrators():
     assert admin["Email"] == mockemail
     assert admin["Name"] == mockname
     assert admin["Status"] == "ACTIVE"
-    assert admin["State"] == "ACTIVE"
+    if LooseVersion(boto3_version) >= LooseVersion("1.40.27"):
+        assert admin["State"] == "ACTIVE"
     assert admin["JoinedMethod"] == "CREATED"
     assert isinstance(admin["JoinedTimestamp"], datetime)
     assert isinstance(admin["DelegationEnabledDate"], datetime)
