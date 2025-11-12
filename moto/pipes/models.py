@@ -221,7 +221,8 @@ class EventBridgePipesBackend(BaseBackend):
         for tag_key in tag_keys:
             pipe.tags.pop(tag_key, None)
 
-    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    # type: ignore[misc]
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_pipes(
         self,
         name_prefix: Optional[str],
@@ -229,7 +230,7 @@ class EventBridgePipesBackend(BaseBackend):
         current_state: Optional[str],
         source_prefix: Optional[str],
         target_prefix: Optional[str],
-    ) -> list[dict[str, Any]]:  # type: ignore[misc]
+    ) -> list[dict[str, Any]]:
         """List pipes with optional filtering and pagination."""
         filtered_pipes = list(self.pipes.values())
 
