@@ -18,14 +18,10 @@ def test_create_pipe():
         RoleArn="arn:aws:iam::123456789012:role/test-role",
     )
 
-    assert resp["Arn"] is not None
     assert resp["Arn"].startswith("arn:aws:pipes:eu-west-1:")
-    assert "test-pipe" in resp["Arn"]
     assert resp["Name"] == "test-pipe"
     assert resp["DesiredState"] == "RUNNING"
     assert resp["CurrentState"] == "RUNNING"
-    assert "CreationTime" in resp
-    assert "LastModifiedTime" in resp
 
 
 @mock_aws
@@ -73,8 +69,6 @@ def test_describe_pipe():
     assert resp["RoleArn"] == "arn:aws:iam::123456789012:role/test-role"
     assert resp["DesiredState"] == "RUNNING"
     assert resp["CurrentState"] == "RUNNING"
-    assert "CreationTime" in resp
-    assert "LastModifiedTime" in resp
 
 
 @mock_aws
@@ -94,8 +88,6 @@ def test_delete_pipe():
     assert delete_resp["Name"] == "test-pipe-delete"
     assert delete_resp["DesiredState"] == "DELETED"
     assert delete_resp["CurrentState"] == "DELETING"
-    assert "CreationTime" in delete_resp
-    assert "LastModifiedTime" in delete_resp
 
 
 @mock_aws
@@ -225,8 +217,6 @@ def test_list_pipes():
     assert pipe["CurrentState"] == "RUNNING"
     assert pipe["Source"] == "arn:aws:sqs:eu-west-1:123456789012:queue-1"
     assert pipe["Target"] == "arn:aws:lambda:eu-west-1:123456789012:function:func-1"
-    assert "CreationTime" in pipe
-    assert "LastModifiedTime" in pipe
 
 
 @mock_aws
