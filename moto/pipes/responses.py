@@ -151,9 +151,7 @@ class EventBridgePipesResponse(BaseResponse):
         )
 
     def tag_resource(self) -> str:
-        if not self.uri_match:
-            raise ValueError("URI match not found")
-        resource_arn = unquote(self.uri_match.group("resourceArn"))
+        resource_arn = unquote(self.uri.split("/tags/")[-1])
         body_params = json.loads(self.body) if self.body else {}
         tags = body_params.get("Tags") or body_params.get("tags")
         if not tags:
@@ -166,9 +164,7 @@ class EventBridgePipesResponse(BaseResponse):
         return json.dumps({})
 
     def untag_resource(self) -> str:
-        if not self.uri_match:
-            raise ValueError("URI match not found")
-        resource_arn = unquote(self.uri_match.group("resourceArn"))
+        resource_arn = unquote(self.uri.split("?")[0].split("/tags/")[-1])
         tag_keys = self.querystring.get("tagKeys", [])
 
         self.pipes_backend.untag_resource(
