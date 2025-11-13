@@ -2999,3 +2999,94 @@ def test_modify_instance_metadata_options():
         "HttpProtocolIpv6": "enabled",
         "InstanceMetadataTags": "enabled",
     }
+
+
+@mock_aws
+def test_run_instances_default_response():
+    ec2 = boto3.client("ec2", region_name="us-west-2")
+    resp = ec2.run_instances(
+        ImageId=EXAMPLE_AMI_ID,
+        MinCount=1,
+        MaxCount=1,
+        InstanceType="t2.micro",
+    )
+    instance = resp["Instances"][0]
+    assert instance["AmiLaunchIndex"] == 0
+    assert instance["Architecture"] == "x86_64"
+    assert len(instance["BlockDeviceMappings"]) == 1
+    bdm = instance["BlockDeviceMappings"][0]
+    assert bdm["DeviceName"] == "/dev/sda1"
+    assert bdm["Ebs"]["DeleteOnTermination"] is True
+    assert bdm["Ebs"]["Status"] == "in-use"
+    assert "ClientToken" in instance
+    assert instance["EbsOptimized"] is False
+    assert instance["Hypervisor"] == "xen"
+    assert instance["ImageId"] == EXAMPLE_AMI_ID
+    assert "InstanceId" in instance
+    assert instance["InstanceType"] == "t2.micro"
+    assert instance["KernelId"] == "None"
+    assert "LaunchTime" in instance
+    mo = instance["MetadataOptions"]
+    assert mo["HttpEndpoint"] == "enabled"
+    assert mo["HttpProtocolIpv6"] == "disabled"
+    assert mo["HttpPutResponseHopLimit"] == 1
+    assert mo["HttpTokens"] == "optional"
+    assert mo["InstanceMetadataTags"] == "disabled"
+    monitoring = instance["Monitoring"]
+    assert monitoring["State"] == " disabled "
+    assert len(instance["NetworkInterfaces"]) == 1
+    nif = instance["NetworkInterfaces"][0]
+    assert nif["Association"]["IpOwnerId"] == ACCOUNT_ID
+    assert "PublicIp" in nif["Association"]
+    nif_attachment = nif["Attachment"]
+    assert "AttachTime" in nif_attachment
+    assert "AttachmentId" in nif_attachment
+    assert nif_attachment["DeleteOnTermination"] is True
+    assert nif_attachment["DeviceIndex"] == 0
+    assert nif_attachment["Status"] == "attached"
+    assert nif["Description"] == "Primary network interface"
+    nif_groups = nif["Groups"]
+    assert len(nif_groups) == 1
+    assert "GroupId" in nif_groups[0]
+    assert nif_groups[0]["GroupName"] == "default"
+    assert "MacAddress" in nif
+    assert "NetworkInterfaceId" in nif
+    assert nif["OwnerId"] == ACCOUNT_ID
+    assert len(nif["PrivateIpAddresses"]) == 1
+    private_ip = nif["PrivateIpAddresses"][0]
+    assert private_ip["Primary"] is True
+    assert (
+        private_ip["PrivateIpAddress"]
+        == nif["PrivateIpAddress"]
+        == instance["PrivateIpAddress"]
+    )
+    assert private_ip["Association"]["IpOwnerId"] == ACCOUNT_ID
+    assert private_ip["Association"]["PublicIp"] == instance["PublicIpAddress"]
+    assert nif["SourceDestCheck"] is True
+    assert nif["Status"] == "in-use"
+    assert nif["SubnetId"] == instance["SubnetId"]
+    assert nif["VpcId"] == instance["VpcId"]
+    placement = instance["Placement"]
+    assert placement["AvailabilityZone"].startswith("us-west-2")
+    assert placement["GroupName"] == ""
+    assert placement["Tenancy"] == "default"
+    private_ip_address_name = instance["PrivateIpAddress"].replace(".", "-")
+    assert (
+        instance["PrivateDnsName"]
+        == f"ip-{private_ip_address_name}.us-west-2.compute.internal"
+    )
+    public_ip_address_name = instance["PublicIpAddress"].replace(".", "-")
+    assert (
+        instance["PublicDnsName"]
+        == f"ec2-{public_ip_address_name}.us-west-2.compute.amazonaws.com"
+    )
+    assert instance["RootDeviceName"] == "/dev/sda1"
+    assert instance["RootDeviceType"] == "ebs"
+    assert instance["SecurityGroups"] == []
+    assert instance["SourceDestCheck"] is True
+    assert instance["State"] == {"Code": 0, "Name": "pending"}
+    assert instance["StateReason"] == {"Code": "", "Message": ""}
+    assert instance["StateTransitionReason"] == ""
+    assert "Tags" not in instance
+    assert instance["VirtualizationType"] == "paravirtual"
+    assert "VpcId" in instance
