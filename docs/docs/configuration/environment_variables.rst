@@ -14,8 +14,8 @@ The following is a non-exhaustive list of the environment variables that can be 
 +---------------------------------------+----------+-----------+-----------------------------------------------------------------------------------------+
 | Key                                   | Value    | Default   | Explanation                                                                             |
 +=======================================+==========+===========+=========================================================================================+
-| TEST_SERVER_MODE                      | bool     | False     | Useful when you want to run decorated tests against an existing MotoServer.            |
-|                                       |          |           | :raw-html:`<br />` All boto3-clients/resources created within the test will point to   |
+| TEST_SERVER_MODE                      | bool     | False     | Useful when you want to run decorated tests against an existing MotoServer.             |
+|                                       |          |           | :raw-html:`<br />` All boto3-clients/resources created within the test will point to    |
 |                                       |          |           | `http://localhost:5000`.                                                                |
 +---------------------------------------+----------+-----------+-----------------------------------------------------------------------------------------+
 | INITIAL_NO_AUTH_ACTION_COUNT          | int      | 0         | See :ref:`iam access control`.                                                          |
