@@ -3783,6 +3783,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "chatbot": {
+                "Value": "chatbot"
+              },
               "cloudcontrolapi": {
                 "Value": "cloudcontrolapi",
                 "endpoint": {
@@ -4270,6 +4273,15 @@
                 "Value": "network-firewall",
                 "endpoint": {
                   "Value": "network-firewall.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12719,7 +12731,13 @@
                 }
               },
               "evs": {
-                "Value": "evs"
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "fargate": {
                 "Value": "fargate"
@@ -15819,9 +15837,6 @@
               "Value": "SG-01"
             },
             "local-zones": {
-              "apse1-bkk1-az1": {
-                "Value": "apse1-bkk1-az1"
-              },
               "apse1-mnl1-az1": {
                 "Value": "apse1-mnl1-az1"
               }
@@ -19626,7 +19641,13 @@
                 }
               },
               "evs": {
-                "Value": "evs"
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "fargate": {
                 "Value": "fargate"
@@ -25932,6 +25953,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "chatbot": {
+                "Value": "chatbot"
+              },
               "cloudcontrolapi": {
                 "Value": "cloudcontrolapi",
                 "endpoint": {
@@ -26248,6 +26272,15 @@
                 "Value": "mq",
                 "endpoint": {
                   "Value": "mq.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26757,6 +26790,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "chatbot": {
+                "Value": "chatbot"
               },
               "cloudcontrolapi": {
                 "Value": "cloudcontrolapi",
@@ -27320,6 +27356,15 @@
                 "Value": "network-firewall",
                 "endpoint": {
                   "Value": "network-firewall.ap-southeast-7.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28683,7 +28728,13 @@
                 }
               },
               "evs": {
-                "Value": "evs"
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "fargate": {
                 "Value": "fargate"
@@ -41793,6 +41844,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fargate": {
                 "Value": "fargate"
               },
@@ -50889,6 +50949,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "evs": {
+                "Value": "evs",
+                "endpoint": {
+                  "Value": "evs.eu-west-3.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "fargate": {
                 "Value": "fargate"
               },
@@ -54664,6 +54733,15 @@
               "marketplace": {
                 "Value": "marketplace"
               },
+              "mcs": {
+                "Value": "mcs",
+                "endpoint": {
+                  "Value": "cassandra.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, TLS"
+                }
+              },
               "mediaconnect": {
                 "Value": "mediaconnect",
                 "endpoint": {
@@ -57248,6 +57326,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "chatbot": {
+                "Value": "chatbot"
+              },
               "cloudcontrolapi": {
                 "Value": "cloudcontrolapi",
                 "endpoint": {
@@ -57789,6 +57870,15 @@
                 "Value": "network-firewall",
                 "endpoint": {
                   "Value": "network-firewall.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "networkmanager": {
+                "Value": "networkmanager",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60426,9 +60516,6 @@
               },
               "use1-phl1-az1": {
                 "Value": "use1-phl1-az1"
-              },
-              "use1-qro1-az1": {
-                "Value": "use1-qro1-az1"
               },
               "use1-scl1-az1": {
                 "Value": "use1-scl1-az1"
