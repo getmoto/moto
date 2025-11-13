@@ -206,3 +206,15 @@ def load_iam_aws_managed_policies() -> bool:
 #
 def iot_use_valid_cert() -> bool:
     return default_user_config.get("iot", {}).get("use_valid_cert", False)
+
+
+def sqs_disable_crc32_validation() -> bool:
+    """
+    Disable CRC32 header generation for SQS responses.
+
+    Ensures compatibility with certain SDK versions (like dotnet AWS SDK v4)
+    that may have issues with CRC32 validation.
+    """
+    return (
+        os.environ.get("MOTO_SQS_DISABLE_CRC32_VALIDATION", "false").lower() == "true"
+    )

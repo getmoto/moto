@@ -38,29 +38,55 @@ def gen_amzn_requestid_long(headerdict: Optional[dict[str, Any]] = None) -> str:
     return req_id
 
 
-def amz_crc32(f: TypeDec) -> GenericFunction:
-    @wraps(f)
-    def _wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
-        response = f(*args, **kwargs)
+def amz_crc32(
+    f: Optional[TypeDec] = None, *, skip_crc_check: Optional[Callable[[], bool]] = None
+) -> GenericFunction:  # type: ignore[misc]
+    """
+    Decorator that adds x-amz-crc32 header to responses.
 
-        headers = {}
-        status = 200
+    Args:
+        f: The function to wrap
+        skip_crc_check: Optional callable that returns True if CRC32 should be skipped
 
-        if isinstance(response, str):
-            body = response
-        else:
-            if len(response) == 2:
-                body, new_headers = response
-                status = new_headers.get("status", status)
+    Usage:
+        @amz_crc32
+        def my_method(self): ...
+
+        @amz_crc32(skip_crc_check=some_function)
+        def my_method(self): ...
+    """
+
+    def decorator(func: Callable[..., Any]) -> GenericFunction:
+        @wraps(func)
+        def _wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            response = func(*args, **kwargs)
+
+            headers = {}
+            status = 200
+
+            if isinstance(response, str):
+                body = response
             else:
-                status, new_headers, body = response
-            headers.update(new_headers)
-            # Cast status to string
-            if "status" in headers:
-                headers["status"] = str(headers["status"])
+                if len(response) == 2:
+                    body, new_headers = response
+                    status = new_headers.get("status", status)
+                else:
+                    status, new_headers, body = response
+                headers.update(new_headers)
+                # Cast status to string
+                if "status" in headers:
+                    headers["status"] = str(headers["status"])
 
-        gen_amz_crc32(body, headers)
+            # Only add CRC32 if skip_crc_check is not provided or returns False
+            if skip_crc_check is None or not skip_crc_check():
+                gen_amz_crc32(body, headers)
 
-        return status, headers, body
+            return status, headers, body
 
-    return _wrapper
+        return _wrapper  # type: ignore[return-value]
+
+    # Support both @amz_crc32 and @amz_crc32(skip_crc_check=...)
+    if f is None:
+        return decorator  # type: ignore[return-value]
+    else:
+        return decorator(f)

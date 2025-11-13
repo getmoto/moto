@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.settings import sqs_disable_crc32_validation
 from moto.utilities.aws_headers import amz_crc32
 
 from .constants import (
@@ -59,8 +60,10 @@ class SQSResponse(BaseResponse):
             raise ValueError
         return visibility_timeout
 
-    @amz_crc32  # crc last as request_id can edit XML
-    def call_action(self) -> TYPE_RESPONSE:
+    @amz_crc32(
+        skip_crc_check=sqs_disable_crc32_validation
+    )  # crc last as request_id can edit XML
+    def call_action(self) -> TYPE_RESPONSE:  # type: ignore[misc]
         return super().call_action()
 
     def create_queue(self) -> ActionResult:
