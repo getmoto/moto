@@ -56,7 +56,7 @@ def amz_crc32(
         def my_method(self): ...
     """
 
-    def decorator(func: Callable[..., Any]) -> GenericFunction:
+    def _decorator(func: Callable[..., Any]) -> GenericFunction:
         @wraps(func)
         def _wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
             response = func(*args, **kwargs)
@@ -87,6 +87,6 @@ def amz_crc32(
 
     # Support both @amz_crc32 and @amz_crc32(skip_crc_check=...)
     if f is None:
-        return decorator  # type: ignore[return-value]
+        return _decorator  # type: ignore[return-value]
     else:
-        return decorator(f)
+        return _decorator(f)
