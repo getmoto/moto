@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.core.serialize import never_return
 from moto.core.utils import camelcase_to_underscores
 
 from .models import EC2ContainerServiceBackend, ecs_backends
@@ -582,9 +581,3 @@ class EC2ContainerServiceResponse(BaseResponse):
                 "failures": failures,
             }
         )
-
-    def _include_in_response(self, response_key_path: str) -> None:
-        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = lambda x: x
-
-    def _exclude_from_response(self, response_key_path: str) -> None:
-        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = never_return

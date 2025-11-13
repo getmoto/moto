@@ -26,6 +26,8 @@ class EC2BaseResponse(BaseResponse):
             "Code": 0,
             "Name": "pending",
         },
+        # Key Pairs
+        "KeyPair.Tags": return_if_not_empty,
     }
 
     @property
