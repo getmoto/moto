@@ -143,6 +143,8 @@ class EventBridgePipesBackend(BaseBackend):
         Optional[dict[str, Any]],
         Optional[str],
     ]:
+        if name not in self.pipes:
+            raise NotFoundException(f"Pipe {name} not found")
         pipe = self.pipes[name]
 
         return (
@@ -167,6 +169,8 @@ class EventBridgePipesBackend(BaseBackend):
         )
 
     def delete_pipe(self, name: str) -> tuple[str, str, str, str, str, str]:
+        if name not in self.pipes:
+            raise NotFoundException(f"Pipe {name} not found")
         pipe = self.pipes[name]
         pipe.desired_state = "DELETED"
         pipe.current_state = "DELETING"
