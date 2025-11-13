@@ -38,3 +38,19 @@ sqs
 - [X] tag_queue
 - [X] untag_queue
 
+
+|start-h3| Configuration |end-h3|
+
+CRC32 Header Generation
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, Moto generates CRC32 checksums for SQS responses and includes them in the ``x-amz-crc32`` header.
+
+However, some SDK versions (such as the .NET AWS SDK v4) may have compatibility issues with CRC32 validation. To disable CRC32 header generation for SQS responses, set:
+
+.. code-block:: bash
+
+    MOTO_SQS_DISABLE_CRC32_VALIDATION=true
+
+When disabled, the ``x-amz-crc32`` header will not be included in SQS responses.
+
