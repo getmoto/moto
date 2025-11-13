@@ -5,7 +5,8 @@ from pytest import ExceptionInfo
 
 
 def check_private_key(private_key_material, key_type):
-    assert isinstance(private_key_material, bytes)
+    if isinstance(private_key_material, str):
+        private_key_material = private_key_material.encode()
 
     if key_type == "rsa":
         private_key = serialization.load_pem_private_key(
