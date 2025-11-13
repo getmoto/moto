@@ -820,3 +820,25 @@ class RDSResponse(BaseResponse):
         if len(all_resources) > start + page_size:
             next_marker = paginated_resources[-1].resource_id
         return paginated_resources, next_marker
+
+    def add_role_to_db_instance(self) -> ActionResult:
+        db_instance_identifier = self.params.get("DBInstanceIdentifier")
+        role_arn = self.params.get("RoleArn")
+        feature_name = self.params.get("FeatureName")
+        self.backend.add_role_to_db_instance(
+            db_instance_identifier=db_instance_identifier,
+            role_arn=role_arn,
+            feature_name=feature_name,
+        )
+        return ActionResult({})
+
+    def add_role_to_db_cluster(self) -> ActionResult:
+        db_cluster_identifier = self.params.get("DBClusterIdentifier")
+        role_arn = self.params.get("RoleArn")
+        feature_name = self.params.get("FeatureName")
+        self.backend.add_role_to_db_cluster(
+            db_cluster_identifier=db_cluster_identifier,
+            role_arn=role_arn,
+            feature_name=feature_name,
+        )
+        return ActionResult({})

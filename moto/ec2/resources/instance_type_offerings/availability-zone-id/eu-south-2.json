@@ -6000,6 +6000,42 @@
   "Location": "eus2-az3"
  },
  {
+  "InstanceType": "r6gd.12xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.16xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.2xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.4xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.8xlarge",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.large",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.medium",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.metal",
+  "Location": "eus2-az3"
+ },
+ {
+  "InstanceType": "r6gd.xlarge",
+  "Location": "eus2-az3"
+ },
+ {
   "InstanceType": "r6id.12xlarge",
   "Location": "eus2-az3"
  },

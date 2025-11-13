@@ -2106,3 +2106,119 @@ def test_db_cluster_with_security_group():
     vpc_security_groups = instance["VpcSecurityGroups"]
     assert len(vpc_security_groups) == 1
     assert vpc_security_groups[0]["VpcSecurityGroupId"] == sg2_id
+
+
+@mock_aws
+def test_add_role_to_db_instance(client):
+    db_cluster_identifier = create_db_cluster()
+    instances = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert instances["DBClusters"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert len(instances["DBClusters"][0]["AssociatedRoles"]) == 1
+    role = instances["DBClusters"][0]["AssociatedRoles"][0]
+    assert role["FeatureName"] == "S3_INTERGRATION"
+    assert role["RoleArn"] == "role-to-for-rds-to-access-s3"
+    assert role["Status"] == "ACTIVE"
+
+
+@mock_aws
+def test_add_role_to_db_cluster_adding_feature_a_second_time_throws_DBClusterRoleAlreadyExists(
+    client,
+):
+    db_cluster_identifier = create_db_cluster()
+    client.add_role_to_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    clusters = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert len(clusters["DBClusters"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier=db_cluster_identifier,
+            RoleArn="a-different-role",
+            FeatureName="S3_INTERGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "DBClusterRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Feature S3_INTERGRATION alreday assigned to Cluster {db_cluster_identifier}"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_cluster_adding_role_a_second_time_throws_DBClusterRoleAlreadyExists(
+    client,
+):
+    db_cluster_identifier = create_db_cluster()
+
+    client.add_role_to_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    clusters = client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    assert len(clusters["DBClusters"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier=db_cluster_identifier,
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="ANOTHER_FEATURE",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "DBClusterRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Role role-to-for-rds-to-access-s3 alreday assigned to Cluster {db_cluster_identifier}"
+    )
+
+
+@mock_aws
+def test_add_role_to_non_existant_db_cluster_throws_DBClusterNotFoundError(
+    client,
+):
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier="not-a-valid-cluster",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="ANOTHER_FEATURE",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "DBClusterNotFoundFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "DBCluster not-a-valid-cluster not found."
+    )
+
+
+@mock_aws
+def test_add_role_to_db_cluster_cluster_in_invalid_state_throws_InvalidDBInstanceStateFault(
+    client,
+):
+    db_cluster_identifier = create_db_cluster()
+    client.stop_db_cluster(DBClusterIdentifier=db_cluster_identifier)
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_cluster(
+            DBClusterIdentifier=db_cluster_identifier,
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="S3_INTERGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBCluster"
+    assert ex.value.response["Error"]["Code"] == "InvalidDBClusterStateFault"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == f"Cluster {db_cluster_identifier} should be in a valid state to add role."
+    )

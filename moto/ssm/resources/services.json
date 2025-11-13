@@ -4850,7 +4850,7 @@
           "appstream": {
             "Value": "appstream",
             "longName": {
-              "Value": "Amazon AppStream 2.0"
+              "Value": "Amazon WorkSpaces Applications"
             },
             "marketingHomeURL": {
               "Value": "https://aws.amazon.com/appstream2/"
@@ -9660,6 +9660,9 @@
               "ap-east-1": {
                 "Value": "ap-east-1"
               },
+              "ap-east-2": {
+                "Value": "ap-east-2"
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1"
               },
@@ -9689,6 +9692,12 @@
               },
               "ap-southeast-5": {
                 "Value": "ap-southeast-5"
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6"
+              },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7"
               },
               "ca-central-1": {
                 "Value": "ca-central-1"
@@ -9728,6 +9737,9 @@
               },
               "me-south-1": {
                 "Value": "me-south-1"
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1"
               },
               "sa-east-1": {
                 "Value": "sa-east-1"
@@ -28740,7 +28752,13 @@
                 }
               },
               "ap-south-1": {
-                "Value": "ap-south-1"
+                "Value": "ap-south-1",
+                "endpoint": {
+                  "Value": "evs.ap-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ap-southeast-1": {
                 "Value": "ap-southeast-1",
@@ -28752,15 +28770,36 @@
                 }
               },
               "ap-southeast-2": {
-                "Value": "ap-southeast-2"
+                "Value": "ap-southeast-2",
+                "endpoint": {
+                  "Value": "evs.ap-southeast-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "ca-central-1": {
-                "Value": "ca-central-1"
+                "Value": "ca-central-1",
+                "endpoint": {
+                  "Value": "evs.ca-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "eu-central-1": {
                 "Value": "eu-central-1",
                 "endpoint": {
                   "Value": "evs.eu-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-south-1": {
+                "Value": "eu-south-1",
+                "endpoint": {
+                  "Value": "evs.eu-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -28779,6 +28818,15 @@
                 "Value": "eu-west-2",
                 "endpoint": {
                   "Value": "evs.eu-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "eu-west-3": {
+                "Value": "eu-west-3",
+                "endpoint": {
+                  "Value": "evs.eu-west-3.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -45347,6 +45395,15 @@
                   "Value": "HTTPS, TLS"
                 }
               },
+              "me-central-1": {
+                "Value": "me-central-1",
+                "endpoint": {
+                  "Value": "cassandra.me-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS, TLS"
+                }
+              },
               "me-south-1": {
                 "Value": "me-south-1",
                 "endpoint": {
@@ -49653,6 +49710,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ap-east-2": {
+                "Value": "ap-east-2",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "ap-northeast-1": {
                 "Value": "ap-northeast-1",
                 "endpoint": {
@@ -49736,6 +49802,24 @@
               },
               "ap-southeast-5": {
                 "Value": "ap-southeast-5",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-6": {
+                "Value": "ap-southeast-6",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ap-southeast-7": {
+                "Value": "ap-southeast-7",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
@@ -49853,6 +49937,15 @@
               },
               "me-south-1": {
                 "Value": "me-south-1",
+                "endpoint": {
+                  "Value": "networkmanager.us-west-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "mx-central-1": {
+                "Value": "mx-central-1",
                 "endpoint": {
                   "Value": "networkmanager.us-west-2.amazonaws.com"
                 },
@@ -60773,7 +60866,10 @@
           "rtbfabric": {
             "Value": "rtbfabric",
             "longName": {
-              "Value": "RTBFabric"
+              "Value": "AWS RTB Fabric"
+            },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/rtb-fabric/"
             },
             "regions": {
               "ap-northeast-1": {
