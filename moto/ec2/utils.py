@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Optional,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -570,7 +571,13 @@ def simple_aws_filter_to_re(filter_string: str) -> str:
     return tmp_filter
 
 
-def random_ed25519_key_pair() -> dict[str, str]:
+class KeyDetails(TypedDict):
+    fingerprint: str
+    material: bytes
+    material_public: bytes
+
+
+def random_ed25519_key_pair() -> KeyDetails:
     private_key = Ed25519PrivateKey.generate()
     private_key_material = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -587,12 +594,12 @@ def random_ed25519_key_pair() -> dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "material": private_key_material.decode("ascii"),
-        "material_public": public_key_material.decode("ascii"),
+        "material": private_key_material,
+        "material_public": public_key_material,
     }
 
 
-def random_rsa_key_pair() -> dict[str, str]:
+def random_rsa_key_pair() -> KeyDetails:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -611,8 +618,8 @@ def random_rsa_key_pair() -> dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "material": private_key_material.decode("ascii"),
-        "material_public": public_key_material.decode("ascii"),
+        "material": private_key_material,
+        "material_public": public_key_material,
     }
 
 
@@ -738,13 +745,8 @@ def _convert_rfc4716(data: bytes) -> bytes:
     return b" ".join(result_parts)
 
 
-def public_key_parse(
-    key_material: Union[str, bytes],
-) -> Union[RSAPublicKey, Ed25519PublicKey]:
+def public_key_parse(key_material: bytes) -> Union[RSAPublicKey, Ed25519PublicKey]:
     try:
-        if isinstance(key_material, str):
-            key_material = key_material.encode("ascii")
-
         if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
             # cryptography doesn't parse RFC4716 key format, so we have to convert it first
             key_material = _convert_rfc4716(key_material)

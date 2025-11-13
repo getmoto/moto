@@ -20,6 +20,8 @@ class EC2BaseResponse(BaseResponse):
         "AssociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "associating",
         "DisassociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "disassociating",
         "ReplaceIamInstanceProfileAssociationResult.IamInstanceProfileAssociation.State": lambda _: "associating",
+        # Key Pairs
+        "KeyPair.Tags": return_if_not_empty,
     }
 
     @property
