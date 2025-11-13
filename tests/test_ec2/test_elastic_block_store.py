@@ -11,6 +11,8 @@ from moto.core import DEFAULT_ACCOUNT_ID as OWNER_ID
 from moto.ec2.models.elastic_block_store import IOPS_REQUIRED_VOLUME_TYPES
 from tests import EXAMPLE_AMI_ID
 
+from .helpers import assert_dryrun_error
+
 
 @mock_aws
 def test_create_and_delete_volume():
@@ -28,12 +30,7 @@ def test_create_and_delete_volume():
 
     with pytest.raises(ClientError) as ex:
         volume.delete(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DeleteVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     volume.delete()
 
@@ -179,12 +176,7 @@ def test_create_encrypted_volume_dryrun():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     with pytest.raises(ClientError) as ex:
         ec2.create_volume(Size=80, AvailabilityZone="us-east-1a", DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws
@@ -364,12 +356,7 @@ def test_volume_attach_and_detach():
         volume.attach_to_instance(
             InstanceId=instance["InstanceId"], Device="/dev/sdh", DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the AttachVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     volume.attach_to_instance(InstanceId=instance["InstanceId"], Device="/dev/sdh")
 
@@ -379,12 +366,7 @@ def test_volume_attach_and_detach():
 
     with pytest.raises(ClientError) as ex:
         volume.detach_from_instance(DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the DetachVolume operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     volume.detach_from_instance(InstanceId=instance["InstanceId"])
 
@@ -418,12 +400,7 @@ def test_create_snapshot():
 
     with pytest.raises(ClientError) as ex:
         volume.create_snapshot(Description="a dryrun snapshot", DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateSnapshot operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     snapshot = volume.create_snapshot(Description="a test snapshot")
     snapshot.reload()
@@ -791,12 +768,7 @@ def test_modify_attribute_blockDeviceMapping():
             ],
             DryRun=True,
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the ModifyInstanceAttribute operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     instance.modify_attribute(
         BlockDeviceMappings=[
@@ -820,12 +792,7 @@ def test_volume_tag_escaping():
 
     with pytest.raises(ClientError) as ex:
         snapshot.create_tags(Tags=[{"Key": "key", "Value": "</closed>"}], DryRun=True)
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateTags operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
     assert len(snapshot.tags) == 0
 
@@ -1022,12 +989,7 @@ def test_create_snapshots_dryrun():
         client.create_snapshots(
             InstanceSpecification={"InstanceId": "asf"}, DryRun=True
         )
-    assert ex.value.response["ResponseMetadata"]["HTTPStatusCode"] == 412
-    assert ex.value.response["Error"]["Code"] == "DryRunOperation"
-    assert (
-        ex.value.response["Error"]["Message"]
-        == "An error occurred (DryRunOperation) when calling the CreateSnapshots operation: Request would have succeeded, but DryRun flag is set"
-    )
+    assert_dryrun_error(ex)
 
 
 @mock_aws

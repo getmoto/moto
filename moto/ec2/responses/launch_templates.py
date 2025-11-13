@@ -56,7 +56,7 @@ class LaunchTemplates(EC2BaseResponse):
         version_description = self._get_param("VersionDescription")
         tag_spec = self._parse_tag_specification()
 
-        parsed_template_data = self._get_multi_param_dict("LaunchTemplateData")
+        parsed_template_data = self._get_param("LaunchTemplateData", {})
 
         self.error_on_dryrun()
 
@@ -108,7 +108,7 @@ class LaunchTemplates(EC2BaseResponse):
 
         version_description = self._get_param("VersionDescription")
 
-        template_data = self._get_multi_param_dict("LaunchTemplateData")
+        template_data = self._get_param("LaunchTemplateData", {})
 
         self.error_on_dryrun()
 
@@ -163,7 +163,7 @@ class LaunchTemplates(EC2BaseResponse):
             template = None
 
         max_results = self._get_int_param("MaxResults", 15)
-        versions = self._get_multi_param("LaunchTemplateVersion")
+        versions = self._get_param("Versions", [])
         min_version = self._get_int_param("MinVersion")
         max_version = self._get_int_param("MaxVersion")
 
@@ -224,8 +224,8 @@ class LaunchTemplates(EC2BaseResponse):
 
     def describe_launch_templates(self) -> str:
         max_results = self._get_int_param("MaxResults", 15)
-        template_names = self._get_multi_param("LaunchTemplateName")
-        template_ids = self._get_multi_param("LaunchTemplateId")
+        template_names = self._get_param("LaunchTemplateNames", [])
+        template_ids = self._get_param("LaunchTemplateIds", [])
         filters = self._filters_from_querystring()
 
         self.error_on_dryrun()
@@ -267,7 +267,7 @@ class LaunchTemplates(EC2BaseResponse):
     def modify_launch_template(self) -> str:
         template_name = self._get_param("LaunchTemplateName")
         template_id = self._get_param("LaunchTemplateId")
-        default_version = self._get_param("SetDefaultVersion")
+        default_version = self._get_param("DefaultVersion")
 
         self.error_on_dryrun()
 

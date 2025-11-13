@@ -3,7 +3,12 @@ from typing import Any, Optional
 from moto.core.responses import BaseResponse
 from moto.core.serialize import return_if_not_empty
 
-from ..exceptions import EC2ClientError, EmptyTagSpecError, InvalidParameter
+from ..exceptions import (
+    DryRunClientError,
+    EC2ClientError,
+    EmptyTagSpecError,
+    InvalidParameter,
+)
 from ..utils import convert_tag_spec
 
 
@@ -15,6 +20,8 @@ class EC2BaseResponse(BaseResponse):
         "AssociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "associating",
         "DisassociateIamInstanceProfileResult.IamInstanceProfileAssociation.State": lambda _: "disassociating",
         "ReplaceIamInstanceProfileAssociationResult.IamInstanceProfileAssociation.State": lambda _: "associating",
+        # Key Pairs
+        "KeyPair.Tags": return_if_not_empty,
     }
 
     @property
@@ -25,10 +32,13 @@ class EC2BaseResponse(BaseResponse):
 
     def _filters_from_querystring(self) -> dict[str, str]:
         # [{"Name": x1, "Value": y1}, ..]
-        _filters = self._get_multi_param("Filter.", skip_result_conversion=True)
+        _filters = self._get_param("Filters", [])
+        # EC2 is inconsistent with parameter name, so check singular as well.
+        if not _filters:
+            _filters = self._get_param("Filter", [])
         # return {x1: y1, ...}
         try:
-            return {f["Name"]: f.get("Value", []) for f in _filters}
+            return {f["Name"]: f.get("Values", []) for f in _filters}
         except KeyError:
             raise EC2ClientError(
                 "InvalidParameterValue", "The filter 'null' is invalid."
@@ -38,13 +48,9 @@ class EC2BaseResponse(BaseResponse):
         self, expected_type: Optional[str] = None
     ) -> dict[str, dict[str, str]]:
         # [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
-        tag_spec_set = self._get_multi_param(
-            "TagSpecification", skip_result_conversion=True
-        )
+        tag_spec_set = self._get_param("TagSpecification", [])
         if not tag_spec_set:
-            tag_spec_set = self._get_multi_param(
-                "TagSpecifications", skip_result_conversion=True
-            )
+            tag_spec_set = self._get_param("TagSpecifications", [])
         if not tag_spec_set:
             return {}
 
@@ -57,9 +63,13 @@ class EC2BaseResponse(BaseResponse):
             raise InvalidParameter(
                 f"'{tags_dict['ResourceType']}' is not a valid taggable resource type for this operation."
             )
-        if "Tag" not in tags_dict:
+        if "Tags" not in tags_dict:
             if tags_dict.get("ResourceType") == "subnet":
                 raise InvalidParameter("Tag specification must have at least one tag")
             raise EmptyTagSpecError
 
         return convert_tag_spec(tag_spec_set)
+
+    def error_on_dryrun(self) -> None:
+        if self._get_param("DryRun", False):
+            raise DryRunClientError()

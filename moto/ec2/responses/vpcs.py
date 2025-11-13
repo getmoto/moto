@@ -14,11 +14,11 @@ class VPCs(EC2BaseResponse):
 
     def create_vpc(self) -> ActionResult:
         cidr_block = self._get_param("CidrBlock")
-        tags = self._get_multi_param("TagSpecification")
+        tags = self._get_param("TagSpecifications", [])
         instance_tenancy = self._get_param("InstanceTenancy", if_none="default")
         amazon_provided_ipv6_cidr_block = self._get_param(
-            "AmazonProvidedIpv6CidrBlock"
-        ) in ["true", "True"]
+            "AmazonProvidedIpv6CidrBlock", False
+        )
         ipv6_cidr_block_network_border_group = self._get_param(
             "Ipv6CidrBlockNetworkBorderGroup"
         )
@@ -26,7 +26,7 @@ class VPCs(EC2BaseResponse):
         if not ipv6_cidr_block_network_border_group:
             ipv6_cidr_block_network_border_group = self.region
         if tags:
-            tags = tags[0].get("Tag")
+            tags = tags[0].get("Tags")
         vpc = self.ec2_backend.create_vpc(
             cidr_block,
             instance_tenancy,
@@ -44,7 +44,7 @@ class VPCs(EC2BaseResponse):
 
     def describe_vpcs(self) -> ActionResult:
         self.error_on_dryrun()
-        vpc_ids = self._get_multi_param("VpcId")
+        vpc_ids = self._get_param("VpcIds", [])
         filters = self._filters_from_querystring()
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         result = {"Vpcs": vpcs}
@@ -65,7 +65,7 @@ class VPCs(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_vpc_classic_link_dns_support(self) -> ActionResult:
-        vpc_ids = self._get_multi_param("VpcIds")
+        vpc_ids = self._get_param("VpcIds")
         filters = self._filters_from_querystring()
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         result = {
@@ -90,7 +90,7 @@ class VPCs(EC2BaseResponse):
         return ActionResult({"Return": ret})
 
     def describe_vpc_classic_link(self) -> ActionResult:
-        vpc_ids = self._get_multi_param("VpcId")
+        vpc_ids = self._get_param("VpcIds")
         filters = self._filters_from_querystring()
         vpcs = self.ec2_backend.describe_vpcs(vpc_ids=vpc_ids, filters=filters)
         result = {
@@ -122,9 +122,9 @@ class VPCs(EC2BaseResponse):
             "EnableDnsHostnames",
             "EnableNetworkAddressUsageMetrics",
         ):
-            if self.querystring.get(f"{attribute}.Value"):
+            if self._get_param(f"{attribute}.Value") is not None:
                 attr_name = camelcase_to_underscores(attribute)
-                attr_value = self.querystring[f"{attribute}.Value"][0]
+                attr_value = self._get_param(f"{attribute}.Value")
                 self.ec2_backend.modify_vpc_attribute(vpc_id, attr_name, attr_value)
         return EmptyResult()
 
@@ -186,15 +186,15 @@ class VPCs(EC2BaseResponse):
     def create_vpc_endpoint(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
         service_name = self._get_param("ServiceName")
-        route_table_ids = self._get_multi_param("RouteTableId")
-        subnet_ids = self._get_multi_param("SubnetId")
+        route_table_ids = self._get_param("RouteTableIds", [])
+        subnet_ids = self._get_param("SubnetIds", [])
         endpoint_type = self._get_param("VpcEndpointType")
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
         private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
-        security_group_ids = self._get_multi_param("SecurityGroupId")
+        security_group_ids = self._get_param("SecurityGroupIds", [])
 
-        tags = add_tag_specification(self._get_multi_param("TagSpecification"))
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
             vpc_id=vpc_id,
             service_name=service_name,
@@ -212,13 +212,13 @@ class VPCs(EC2BaseResponse):
 
     def modify_vpc_endpoint(self) -> ActionResult:
         vpc_id = self._get_param("VpcEndpointId")
-        add_subnets = self._get_multi_param("AddSubnetId")
-        remove_subnets = self._get_multi_param("RemoveSubnetId")
-        add_route_tables = self._get_multi_param("AddRouteTableId")
-        remove_route_tables = self._get_multi_param("RemoveRouteTableId")
+        add_subnets = self._get_param("AddSubnetIds", [])
+        remove_subnets = self._get_param("RemoveSubnetIds", [])
+        add_route_tables = self._get_param("AddRouteTableIds", [])
+        remove_route_tables = self._get_param("RemoveRouteTableIds", [])
         policy_doc = self._get_param("PolicyDocument")
-        add_security_groups = self._get_multi_param("AddSecurityGroupId")
-        remove_security_groups = self._get_multi_param("RemoveSecurityGroupId")
+        add_security_groups = self._get_param("AddSecurityGroupIds", [])
+        remove_security_groups = self._get_param("RemoveSecurityGroupIds", [])
         self.ec2_backend.modify_vpc_endpoint(
             vpc_id=vpc_id,
             policy_doc=policy_doc,
@@ -233,8 +233,8 @@ class VPCs(EC2BaseResponse):
 
     def describe_vpc_endpoint_services(self) -> ActionResult:
         vpc_end_point_services = self.ec2_backend.describe_vpc_endpoint_services(
-            service_names=self._get_multi_param("ServiceName"),
-            filters=self._get_multi_param("Filter"),
+            service_names=self._get_param("ServiceNames", []),
+            filters=self._get_param("Filters", []),
             max_results=self._get_int_param("MaxResults"),
             next_token=self._get_param("NextToken"),
             region=self.region,
@@ -247,7 +247,7 @@ class VPCs(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_vpc_endpoints(self) -> ActionResult:
-        vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
+        vpc_end_points_ids = self._get_param("VpcEndpointIds", [])
         filters = self._filters_from_querystring()
         vpc_end_points = self.ec2_backend.describe_vpc_endpoints(
             vpc_end_point_ids=vpc_end_points_ids, filters=filters
@@ -256,7 +256,7 @@ class VPCs(EC2BaseResponse):
         return ActionResult(result)
 
     def delete_vpc_endpoints(self) -> ActionResult:
-        vpc_end_points_ids = self._get_multi_param("VpcEndpointId")
+        vpc_end_points_ids = self._get_param("VpcEndpointIds", [])
         self.ec2_backend.delete_vpc_endpoints(vpce_ids=vpc_end_points_ids)
         return ActionResult({"Unsuccessful": []})
 
@@ -264,7 +264,7 @@ class VPCs(EC2BaseResponse):
         address_family = self._get_param("AddressFamily")
         max_entries = self._get_param("MaxEntries")
         prefix_list_name = self._get_param("PrefixListName")
-        entry = self._get_multi_param("Entry")
+        entry = self._get_param("Entries", [])
 
         tags = self._parse_tag_specification().get("prefix-list", {})
 
@@ -279,7 +279,7 @@ class VPCs(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_managed_prefix_lists(self) -> ActionResult:
-        prefix_list_ids = self._get_multi_param("PrefixListId")
+        prefix_list_ids = self._get_param("PrefixListIds", [])
         filters = self._filters_from_querystring()
         managed_prefix_lists = self.ec2_backend.describe_managed_prefix_lists(
             prefix_list_ids=prefix_list_ids, filters=filters
@@ -315,7 +315,7 @@ class VPCs(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_prefix_lists(self) -> ActionResult:
-        prefix_list_ids = self._get_multi_param("PrefixListId")
+        prefix_list_ids = self._get_param("PrefixListIds", [])
         filters = self._filters_from_querystring()
         managed_pls = self.ec2_backend.describe_managed_prefix_lists(
             prefix_list_ids=prefix_list_ids, filters=filters
@@ -330,11 +330,11 @@ class VPCs(EC2BaseResponse):
         return ActionResult(result)
 
     def modify_managed_prefix_list(self) -> ActionResult:
-        add_entry = self._get_multi_param("AddEntry")
+        add_entry = self._get_param("AddEntries", [])
         prefix_list_id = self._get_param("PrefixListId")
         current_version = self._get_param("CurrentVersion")
         prefix_list_name = self._get_param("PrefixListName")
-        remove_entry = self._get_multi_param("RemoveEntry")
+        remove_entry = self._get_param("RemoveEntries", [])
 
         current_version = int(current_version) if current_version else None
 

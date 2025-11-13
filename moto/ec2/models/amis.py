@@ -223,7 +223,7 @@ class AmiBackend:
         for tag_specification in tag_specifications:
             resource_type = tag_specification["ResourceType"]
             if resource_type == "image":
-                tags += tag_specification["Tag"]
+                tags += tag_specification["Tags"]
             elif resource_type == "snapshot":
                 raise NotImplementedError()
             else:

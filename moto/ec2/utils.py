@@ -8,6 +8,7 @@ from typing import (
     Any,
     Callable,
     Optional,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -331,18 +332,6 @@ def split_route_id(route_id: str) -> tuple[str, str]:
     return values[0], values[1]
 
 
-def get_attribute_value(
-    parameter: str, querystring_dict: dict[str, list[str]]
-) -> Union[None, bool, str]:
-    for key, value in querystring_dict.items():
-        match = re.search(rf"{parameter}.Value", key)
-        if match:
-            if value[0].lower() in ["true", "false"]:
-                return True if value[0].lower() in ["true"] else False
-            return value[0]
-    return None
-
-
 def get_object_value(obj: Any, attr: str) -> Any:
     keys = attr.split(".")
     val = obj
@@ -389,7 +378,7 @@ def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> set[str]:
 
 def add_tag_specification(tags: Any) -> dict[str, str]:
     tags = tags[0] if isinstance(tags, list) and len(tags) == 1 else tags
-    tags = (tags or {}).get("Tag", [])
+    tags = (tags or {}).get("Tags", [])
     tags = {t["Key"]: t["Value"] for t in tags}
     return tags
 
@@ -462,6 +451,9 @@ def instance_value_in_filter_values(instance_value: Any, filter_values: Any) -> 
     if isinstance(instance_value, list):
         if not set(filter_values).intersection(set(instance_value)):
             return False
+    elif isinstance(instance_value, bool):
+        if str(instance_value).lower() not in filter_values:
+            return False
     elif instance_value not in filter_values:
         return False
     return True
@@ -529,6 +521,11 @@ def is_filter_matching(obj: Any, _filter: str, filter_value: Any) -> bool:
             return True
         return False
 
+    if isinstance(value, int):
+        if str(value) in filter_value:
+            return True
+        return False
+
     if isinstance(value, str):
         if not isinstance(filter_value, list):
             filter_value = [filter_value]
@@ -574,7 +571,13 @@ def simple_aws_filter_to_re(filter_string: str) -> str:
     return tmp_filter
 
 
-def random_ed25519_key_pair() -> dict[str, str]:
+class KeyDetails(TypedDict):
+    fingerprint: str
+    material: bytes
+    material_public: bytes
+
+
+def random_ed25519_key_pair() -> KeyDetails:
     private_key = Ed25519PrivateKey.generate()
     private_key_material = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -591,12 +594,12 @@ def random_ed25519_key_pair() -> dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "material": private_key_material.decode("ascii"),
-        "material_public": public_key_material.decode("ascii"),
+        "material": private_key_material,
+        "material_public": public_key_material,
     }
 
 
-def random_rsa_key_pair() -> dict[str, str]:
+def random_rsa_key_pair() -> KeyDetails:
     private_key = rsa.generate_private_key(
         public_exponent=65537, key_size=2048, backend=default_backend()
     )
@@ -615,8 +618,8 @@ def random_rsa_key_pair() -> dict[str, str]:
 
     return {
         "fingerprint": fingerprint,
-        "material": private_key_material.decode("ascii"),
-        "material_public": public_key_material.decode("ascii"),
+        "material": private_key_material,
+        "material_public": public_key_material,
     }
 
 
@@ -742,14 +745,8 @@ def _convert_rfc4716(data: bytes) -> bytes:
     return b" ".join(result_parts)
 
 
-def public_key_parse(
-    key_material: Union[str, bytes],
-) -> Union[RSAPublicKey, Ed25519PublicKey]:
+def public_key_parse(key_material: bytes) -> Union[RSAPublicKey, Ed25519PublicKey]:
     try:
-        if isinstance(key_material, str):
-            key_material = key_material.encode("ascii")
-        key_material = base64.b64decode(key_material)
-
         if key_material.startswith(b"---- BEGIN SSH2 PUBLIC KEY ----"):
             # cryptography doesn't parse RFC4716 key format, so we have to convert it first
             key_material = _convert_rfc4716(key_material)
@@ -921,7 +918,7 @@ def gen_moto_amis(
 
 
 def convert_tag_spec(
-    tag_spec_set: list[dict[str, Any]], tag_key: str = "Tag"
+    tag_spec_set: list[dict[str, Any]], tag_key: str = "Tags"
 ) -> dict[str, dict[str, str]]:
     # IN:   [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
     #  (or) [{"ResourceType": _type, "Tags": [{"Key": k, "Value": v}, ..]}] <-- special cfn case

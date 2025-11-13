@@ -3,7 +3,7 @@ from ._base_response import EC2BaseResponse
 
 class SpotInstances(EC2BaseResponse):
     def cancel_spot_instance_requests(self) -> str:
-        request_ids = self._get_multi_param("SpotInstanceRequestId")
+        request_ids = self._get_param("SpotInstanceRequestIds", [])
 
         self.error_on_dryrun()
 
@@ -31,7 +31,7 @@ class SpotInstances(EC2BaseResponse):
         )
 
     def describe_spot_instance_requests(self) -> str:
-        spot_instance_ids = self._get_multi_param("SpotInstanceRequestId")
+        spot_instance_ids = self._get_param("SpotInstanceRequestIds", [])
         filters = self._filters_from_querystring()
         requests = self.ec2_backend.describe_spot_instance_requests(
             filters=filters, spot_instance_ids=spot_instance_ids
@@ -40,7 +40,7 @@ class SpotInstances(EC2BaseResponse):
         return template.render(requests=requests)
 
     def describe_spot_price_history(self) -> str:
-        instance_types_filters = self._get_multi_param("InstanceType")
+        instance_types_filters = self._get_param("InstanceTypes", [])
         filter_dict = self._filters_from_querystring()
         prices = self.ec2_backend.describe_spot_price_history(
             instance_types_filters, filter_dict
@@ -58,7 +58,7 @@ class SpotInstances(EC2BaseResponse):
         launch_group = self._get_param("LaunchGroup")
         availability_zone_group = self._get_param("AvailabilityZoneGroup")
         key_name = self._get_param("LaunchSpecification.KeyName")
-        security_groups = self._get_multi_param("LaunchSpecification.SecurityGroup")
+        security_groups = self._get_param("LaunchSpecification.SecurityGroups", [])
         user_data = self._get_param("LaunchSpecification.UserData")
         instance_type = self._get_param("LaunchSpecification.InstanceType", "m1.small")
         placement = self._get_param("LaunchSpecification.Placement.AvailabilityZone")
@@ -143,10 +143,10 @@ REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http:/
       <launchGroup>{{ request.launch_group }}</launchGroup>
       <createTime>2015-01-01T00:00:00.000Z</createTime>
       {% if request.valid_from %}
-      <validFrom>{{ request.valid_from }}</validFrom>
+      <validFrom>{{ request.valid_from_as_string }}</validFrom>
       {% endif %}
       {% if request.valid_until %}
-      <validUntil>{{ request.valid_until }}</validUntil>
+      <validUntil>{{ request.valid_until_as_string }}</validUntil>
       {% endif %}
       <productDescription>Linux/UNIX</productDescription>
     </item>
@@ -222,10 +222,10 @@ DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmln
       {% endif %}
         <createTime>2015-01-01T00:00:00.000Z</createTime>
       {% if request.valid_from %}
-        <validFrom>{{ request.valid_from }}</validFrom>
+        <validFrom>{{ request.valid_from_as_string }}</validFrom>
       {% endif %}
       {% if request.valid_until %}
-        <validUntil>{{ request.valid_until }}</validUntil>
+        <validUntil>{{ request.valid_until_as_string }}</validUntil>
       {% endif %}
       <productDescription>Linux/UNIX</productDescription>
       <instanceInterruptionBehavior>{{ request.instance_interruption_behaviour }}</instanceInterruptionBehavior>

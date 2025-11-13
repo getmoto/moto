@@ -32,7 +32,7 @@ class VirtualPrivateGateways(EC2BaseResponse):
 
     def describe_vpn_gateways(self) -> str:
         filters = self._filters_from_querystring()
-        vpn_gw_ids = self._get_multi_param("VpnGatewayId")
+        vpn_gw_ids = self._get_param("VpnGatewayIds", [])
         vpn_gateways = self.ec2_backend.describe_vpn_gateways(filters, vpn_gw_ids)
         template = self.response_template(DESCRIBE_VPN_GATEWAYS_RESPONSE)
         return template.render(vpn_gateways=vpn_gateways)

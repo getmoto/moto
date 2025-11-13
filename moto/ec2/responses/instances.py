@@ -1,3 +1,4 @@
+import base64
 from copy import deepcopy
 from typing import Any, Optional
 
@@ -9,6 +10,7 @@ from moto.ec2.exceptions import (
 )
 from moto.ec2.utils import filter_iam_instance_profiles
 
+from ...core.parsers import default_blob_parser
 from ._base_response import EC2BaseResponse
 
 
@@ -22,7 +24,7 @@ class InstanceResponse(EC2BaseResponse):
                 "The parameter instancesSet cannot be used with the parameter maxResults"
             )
         filter_dict = self._filters_from_querystring()
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
         token = self._get_param("NextToken")
         if instance_ids:
             reservations = self.ec2_backend.get_reservations_by_instance_ids(
@@ -54,13 +56,15 @@ class InstanceResponse(EC2BaseResponse):
         )
 
     def run_instances(self) -> str:
-        min_count = int(self._get_param("MinCount", if_none="1"))
+        min_count = int(self._get_param("MinCount", "1"))
         image_id = self._get_param("ImageId")
         owner_id = self._get_param("OwnerId")
         user_data = self._get_param("UserData")
-        security_group_names = self._get_multi_param("SecurityGroup")
+        if user_data:
+            user_data = default_blob_parser(user_data)  # type: ignore[no-untyped-call]
+        security_group_names = self._get_param("SecurityGroups", [])
         kwargs = {
-            "instance_type": self._get_param("InstanceType", if_none="m1.small"),
+            "instance_type": self._get_param("InstanceType", "m1.small"),
             "is_instance_type_default": not self._get_param("InstanceType"),
             "placement": self._get_param("Placement.AvailabilityZone"),
             "placement_hostid": self._get_param("Placement.HostId"),
@@ -68,31 +72,28 @@ class InstanceResponse(EC2BaseResponse):
             "subnet_id": self._get_param("SubnetId"),
             "owner_id": owner_id,
             "key_name": self._get_param("KeyName"),
-            "security_group_ids": self._get_multi_param("SecurityGroupId"),
-            "nics": self._get_multi_param("NetworkInterface."),
+            "security_group_ids": self._get_param("SecurityGroupIds", []),
+            "nics": self._get_param("NetworkInterfaces", []),
             "private_ip": self._get_param("PrivateIpAddress"),
             "associate_public_ip": self._get_param("AssociatePublicIpAddress"),
             "tags": self._parse_tag_specification(),
             "ebs_optimized": self._get_param("EbsOptimized") or False,
             "disable_api_stop": self._get_param("DisableApiStop") or False,
             "instance_market_options": self._get_param(
-                "InstanceMarketOptions.MarketType"
-            )
-            or {},
+                "InstanceMarketOptions.MarketType", {}
+            ),
             "instance_initiated_shutdown_behavior": self._get_param(
                 "InstanceInitiatedShutdownBehavior"
             ),
-            "launch_template": self._get_multi_param_dict("LaunchTemplate"),
-            "hibernation_options": self._get_multi_param_dict("HibernationOptions"),
-            "iam_instance_profile_name": self._get_param("IamInstanceProfile.Name")
-            or None,
-            "iam_instance_profile_arn": self._get_param("IamInstanceProfile.Arn")
-            or None,
+            "launch_template": self._get_param("LaunchTemplate", {}),
+            "hibernation_options": self._get_param("HibernationOptions", {}),
+            "iam_instance_profile_name": self._get_param("IamInstanceProfile.Name"),
+            "iam_instance_profile_arn": self._get_param("IamInstanceProfile.Arn"),
             "monitoring_state": "enabled"
-            if self._get_param("Monitoring.Enabled") == "true"
+            if self._get_param("Monitoring.Enabled")
             else "disabled",
             "ipv6_address_count": self._get_int_param("Ipv6AddressCount"),
-            "metadata_options": self._get_multi_param_dict("MetadataOptions"),
+            "metadata_options": self._get_param("MetadataOptions", {}),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(
@@ -139,7 +140,7 @@ class InstanceResponse(EC2BaseResponse):
         )
 
     def terminate_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
 
         self.error_on_dryrun()
 
@@ -157,7 +158,7 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def reboot_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
 
         self.error_on_dryrun()
 
@@ -166,7 +167,7 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def stop_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
 
         self.error_on_dryrun()
 
@@ -175,35 +176,20 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def start_instances(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
         self.error_on_dryrun()
 
         instances = self.ec2_backend.start_instances(instance_ids)
         template = self.response_template(EC2_START_INSTANCES)
         return template.render(instances=instances)
 
-    def _get_list_of_dict_params(
-        self, param_prefix: str, _dct: dict[str, Any]
-    ) -> list[Any]:
-        """
-        Simplified version of _get_dict_param
-        Allows you to pass in a custom dict instead of using self.querystring by default
-        """
-        params = []
-        for key, value in _dct.items():
-            if key.startswith(param_prefix):
-                params.append(value)
-        return params
-
     def describe_instance_status(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
-        include_all_instances = self._get_param("IncludeAllInstances") == "true"
-        filters = self._get_list_prefix("Filter")
+        instance_ids = self._get_param("InstanceIds", [])
+        include_all_instances = self._get_bool_param("IncludeAllInstances", False)
         filters = [
-            {"name": f["name"], "values": self._get_list_of_dict_params("value.", f)}
-            for f in filters
+            {"name": k, "values": v}
+            for k, v in self._filters_from_querystring().items()
         ]
-
         instances = self.ec2_backend.describe_instance_status(
             instance_ids, include_all_instances, filters
         )
@@ -212,7 +198,7 @@ class InstanceResponse(EC2BaseResponse):
         return template.render(instances=instances)
 
     def describe_instance_types(self) -> str:
-        instance_type_filters = self._get_multi_param("InstanceType")
+        instance_type_filters = self._get_param("InstanceTypes", [])
         filter_dict = self._filters_from_querystring()
         instance_types = self.ec2_backend.describe_instance_types(
             instance_type_filters, filter_dict
@@ -240,13 +226,19 @@ class InstanceResponse(EC2BaseResponse):
 
         if attribute == "groupSet":
             template = self.response_template(EC2_DESCRIBE_INSTANCE_GROUPSET_ATTRIBUTE)
+        elif attribute in ["disableApiStop", "sourceDestCheck"]:
+            template = self.response_template(EC2_DESCRIBE_BOOL_INSTANCE_ATTRIBUTE)
+        elif attribute == "userData":
+            if value is not None:
+                value = base64.b64encode(value).decode("utf-8")
+            template = self.response_template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
         else:
             template = self.response_template(EC2_DESCRIBE_INSTANCE_ATTRIBUTE)
 
         return template.render(instance=instance, attribute=attribute, value=value)
 
     def describe_instance_credit_specifications(self) -> str:
-        instance_ids = self._get_multi_param("InstanceId")
+        instance_ids = self._get_param("InstanceIds", [])
         instance = self.ec2_backend.describe_instance_credit_specifications(
             instance_ids
         )
@@ -306,61 +298,54 @@ class InstanceResponse(EC2BaseResponse):
                 }]
             )
 
-        The querystring contains information similar to:
-
-            BlockDeviceMapping.1.Ebs.DeleteOnTermination : ['true']
-            BlockDeviceMapping.1.DeviceName : ['/dev/sda1']
-
         For now we only support the "BlockDeviceMapping.1.Ebs.DeleteOnTermination"
         configuration, but it should be trivial to add anything else.
         """
-        mapping_counter = 1
-        mapping_device_name_fmt = "BlockDeviceMapping.%s.DeviceName"
-        mapping_del_on_term_fmt = "BlockDeviceMapping.%s.Ebs.DeleteOnTermination"
-        while True:
-            mapping_device_name = mapping_device_name_fmt % mapping_counter
-            if mapping_device_name not in self.querystring.keys():
-                break
-
-            mapping_del_on_term = mapping_del_on_term_fmt % mapping_counter
-            del_on_term_value_str = self.querystring[mapping_del_on_term][0]
-            del_on_term_value = True if "true" == del_on_term_value_str else False
-            device_name_value = self.querystring[mapping_device_name][0]
+        attribute_modified = False
+        for mapping in self._get_param("BlockDeviceMappings", []):
+            device_name = mapping.get("DeviceName")
+            del_on_term_value = mapping.get("Ebs", {}).get("DeleteOnTermination")
 
             instance_id = self._get_param("InstanceId")
             instance = self.ec2_backend.get_instance(instance_id)
 
             self.error_on_dryrun()
 
-            block_device_type = instance.block_device_mapping[device_name_value]
+            if del_on_term_value is None:
+                continue
+            block_device_type = instance.block_device_mapping[device_name]
             block_device_type.delete_on_termination = del_on_term_value
 
-            # +1 for the next device
-            mapping_counter += 1
+            attribute_modified = True
 
-        if mapping_counter > 1:
+        if attribute_modified:
             return EC2_MODIFY_INSTANCE_ATTRIBUTE
         return None
 
     def _dot_value_instance_attribute_handler(self) -> Optional[str]:
-        attribute_key = None
-        for key in self.querystring:
-            if ".Value" in key:
-                attribute_key = key
+        attribute_modified = False
+        for attribute in (
+            "InstanceType",
+            "Kernel",
+            "UserData",
+            "DisableApiTermination",
+            "SourceDestCheck",
+            "EbsOptimized",
+            "DisableApiStop",
+        ):
+            if self._get_param(f"{attribute}.Value") is not None:
+                self.error_on_dryrun()
+                instance_id = self._get_param("InstanceId")
+                attr_name = camelcase_to_underscores(attribute)
+                attr_value = self._get_param(f"{attribute}.Value")
+                self.ec2_backend.modify_instance_attribute(
+                    instance_id, attr_name, attr_value
+                )
+                attribute_modified = True
                 break
-
-        if not attribute_key:
-            return None
-
-        self.error_on_dryrun()
-
-        value = self.querystring.get(attribute_key)[0]  # type: ignore
-        normalized_attribute = camelcase_to_underscores(attribute_key.split(".")[0])
-        instance_id = self._get_param("InstanceId")
-        self.ec2_backend.modify_instance_attribute(
-            instance_id, normalized_attribute, value
-        )
-        return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        if attribute_modified:
+            return EC2_MODIFY_INSTANCE_ATTRIBUTE
+        return None
 
     def _attribute_value_handler(self) -> Optional[str]:
         attribute_key = self._get_param("Attribute")
@@ -378,46 +363,45 @@ class InstanceResponse(EC2BaseResponse):
         )
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
-    def _security_grp_instance_attribute_handler(self) -> str:
-        new_security_grp_list = []
-        for key in self.querystring:
-            if "GroupId." in key:
-                new_security_grp_list.append(self.querystring.get(key)[0])  # type: ignore
-
-        instance_id = self._get_param("InstanceId")
+    def _security_grp_instance_attribute_handler(self) -> Optional[str]:
+        new_security_grp_list = self._get_param("Groups")
+        if new_security_grp_list is None:
+            return None
         self.error_on_dryrun()
-
+        instance_id = self._get_param("InstanceId")
         self.ec2_backend.modify_instance_security_groups(
             instance_id, new_security_grp_list
         )
         return EC2_MODIFY_INSTANCE_ATTRIBUTE
 
     def _parse_block_device_mapping(self) -> list[dict[str, Any]]:
-        device_mappings = self._get_list_prefix("BlockDeviceMapping")
+        device_mappings = self._get_param("BlockDeviceMappings", [])
         mappings = []
         for device_mapping in device_mappings:
             self._validate_block_device_mapping(device_mapping)
             device_template: dict[str, Any] = deepcopy(BLOCK_DEVICE_MAPPING_TEMPLATE)
-            device_template["VirtualName"] = device_mapping.get("virtual_name")
-            device_template["DeviceName"] = device_mapping.get("device_name")
-            device_template["Ebs"]["SnapshotId"] = device_mapping.get(
-                "ebs._snapshot_id"
+            device_template["VirtualName"] = device_mapping.get("VirtualName")
+            device_template["DeviceName"] = device_mapping.get("DeviceName")
+            device_template["Ebs"]["SnapshotId"] = device_mapping.get("Ebs", {}).get(
+                "SnapshotId"
             )
-            device_template["Ebs"]["VolumeSize"] = device_mapping.get(
-                "ebs._volume_size"
+            device_template["Ebs"]["VolumeSize"] = device_mapping.get("Ebs", {}).get(
+                "VolumeSize"
             )
-            device_template["Ebs"]["DeleteOnTermination"] = self._convert_to_bool(
-                device_mapping.get("ebs._delete_on_termination", False)
+            device_template["Ebs"]["DeleteOnTermination"] = device_mapping.get(
+                "Ebs", {}
+            ).get("DeleteOnTermination", False)
+            device_template["Ebs"]["VolumeType"] = device_mapping.get("Ebs", {}).get(
+                "VolumeType"
             )
-            device_template["Ebs"]["VolumeType"] = device_mapping.get(
-                "ebs._volume_type"
+            device_template["Ebs"]["Iops"] = device_mapping.get("Ebs", {}).get("Iops")
+            device_template["Ebs"]["Encrypted"] = device_mapping.get("Ebs", {}).get(
+                "VolumeSize", False
             )
-            device_template["Ebs"]["Iops"] = device_mapping.get("ebs._iops")
-            device_template["Ebs"]["Encrypted"] = self._convert_to_bool(
-                device_mapping.get("ebs._encrypted", False)
+            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("Ebs", {}).get(
+                "KmsKeyId"
             )
-            device_template["Ebs"]["KmsKeyId"] = device_mapping.get("ebs._kms_key_id")
-            device_template["NoDevice"] = device_mapping.get("no_device")
+            device_template["NoDevice"] = device_mapping.get("NoDevice")
             mappings.append(device_template)
 
         return mappings
@@ -426,11 +410,11 @@ class InstanceResponse(EC2BaseResponse):
     def _validate_block_device_mapping(device_mapping: dict[str, Any]) -> None:  # type: ignore[misc]
         from botocore import __version__ as botocore_version
 
-        if "no_device" in device_mapping:
-            assert isinstance(device_mapping["no_device"], str), (
+        if "NoDevice" in device_mapping:
+            assert isinstance(device_mapping["NoDevice"], str), (
                 f"botocore {botocore_version} isn't limiting NoDevice to str type anymore, it is type:{type(device_mapping['no_device'])}"
             )
-            if device_mapping["no_device"] == "":
+            if device_mapping["NoDevice"] == "":
                 # the only legit value it can have is empty string
                 # and none of the other checks here matter if NoDevice
                 # is being used
@@ -438,23 +422,12 @@ class InstanceResponse(EC2BaseResponse):
             else:
                 raise InvalidRequest()
 
-        if not any(mapping for mapping in device_mapping if mapping.startswith("ebs.")):
+        if "Ebs" not in device_mapping:
             raise MissingParameterError("ebs")
-        if (
-            "ebs._volume_size" not in device_mapping
-            and "ebs._snapshot_id" not in device_mapping
-        ):
+        if not device_mapping.get("Ebs", {}).get(
+            "VolumeSize"
+        ) and not device_mapping.get("Ebs", {}).get("SnapshotId"):
             raise MissingParameterError("size or snapshotId")
-
-    @staticmethod
-    def _convert_to_bool(bool_str: Any) -> bool:  # type: ignore[misc]
-        if isinstance(bool_str, bool):
-            return bool_str
-
-        if isinstance(bool_str, str):
-            return str(bool_str).lower() == "true"
-
-        return False
 
 
 BLOCK_DEVICE_MAPPING_TEMPLATE = {
@@ -528,7 +501,7 @@ INSTANCE_TEMPLATE = """<item>
           {% if instance.nics[0].public_ip %}
               <ipAddress>{{ instance.nics[0].public_ip }}</ipAddress>
           {% endif %}
-          <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
+          <sourceDestCheck>{{ instance.source_dest_check|lower }}</sourceDestCheck>
           <groupSet>
              {% for group in instance.dynamic_group_list %}
              <item>
@@ -571,16 +544,16 @@ INSTANCE_TEMPLATE = """<item>
           <hypervisor>xen</hypervisor>
           {% if instance.hibernation_options %}
           <hibernationOptions>
-            <configured>{{ instance.hibernation_options.get("Configured") }}</configured>
+            <configured>{{ instance.hibernation_options.get('Configured')|lower }}</configured>
           </hibernationOptions>
           {% endif %}
           {% if instance.metadata_options %}
           <metadataOptions>
-            <httpTokens>{{ instance.metadata_options.get("HttpTokens") }}</httpTokens>
-            <httpPutResponseHopLimit>{{ instance.metadata_options.get("HttpPutResponseHopLimit") }}</httpPutResponseHopLimit>
-            <httpEndpoint>{{ instance.metadata_options.get("HttpEndpoint") }}</httpEndpoint>
-            <httpProtocolIpv6>{{ instance.metadata_options.get("HttpProtocolIpv6") }}</httpProtocolIpv6>
-            <instanceMetadataTags>{{ instance.metadata_options.get("InstanceMetadataTags") }}</instanceMetadataTags>
+            <httpTokens>{{ instance.metadata_options.get('HttpTokens') }}</httpTokens>
+            <httpPutResponseHopLimit>{{ instance.metadata_options.get('HttpPutResponseHopLimit') }}</httpPutResponseHopLimit>
+            <httpEndpoint>{{ instance.metadata_options.get('HttpEndpoint') }}</httpEndpoint>
+            <httpProtocolIpv6>{{ instance.metadata_options.get('HttpProtocolIpv6') }}</httpProtocolIpv6>
+            <instanceMetadataTags>{{ instance.metadata_options.get('InstanceMetadataTags') }}</instanceMetadataTags>
           </metadataOptions>
           {% endif %}
           {% if instance.get_tags() %}
@@ -608,7 +581,7 @@ INSTANCE_TEMPLATE = """<item>
                 <status>in-use</status>
                 <macAddress>1b:2b:3c:4d:5e:6f</macAddress>
                 <privateIpAddress>{{ nic.private_ip_address }}</privateIpAddress>
-                <sourceDestCheck>{{ instance.source_dest_check }}</sourceDestCheck>
+                <sourceDestCheck>{{ instance.source_dest_check|lower }}</sourceDestCheck>
                 <groupSet>
                   {% for group in nic.group_set %}
                   <item>
@@ -662,7 +635,7 @@ INSTANCE_TEMPLATE = """<item>
         </item>"""
 
 EC2_RUN_INSTANCES = (
-    """<RunInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    """<RunInstancesResponse xmlns='http://ec2.amazonaws.com/doc/2013-10-15/'>
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <reservationId>{{ reservation.id }}</reservationId>
   <ownerId>{{ account_id }}</ownerId>
@@ -787,9 +760,18 @@ EC2_DESCRIBE_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="h
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <instanceId>{{ instance.id }}</instanceId>
   <{{ attribute }}>
-    {% if value is not none %}
-    <value>{{ value }}</value>
-    {% endif %}
+  {% if value is not none %}
+    <value>{{ value }}</value>{% endif %}
+  </{{ attribute }}>
+</DescribeInstanceAttributeResponse>"""
+
+EC2_DESCRIBE_BOOL_INSTANCE_ATTRIBUTE = """<DescribeInstanceAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <instanceId>{{ instance.id }}</instanceId>  
+  <{{ attribute }}>
+  {% if value is not none %}
+    <value>{{ value|lower }}</value>
+  {% endif %}
   </{{ attribute }}>
 </DescribeInstanceAttributeResponse>"""
 
