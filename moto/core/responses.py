@@ -36,6 +36,7 @@ from moto.core.serialize import (
     ResponseSerializer,
     XFormedAttributePicker,
     get_serializer_class,
+    never_return,
 )
 from moto.core.utils import (
     camelcase_to_underscores,
@@ -885,3 +886,9 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
     @property
     def request_json(self) -> bool:
         return "JSON" in self.querystring.get("ContentType", [])
+
+    def _include_in_response(self, response_key_path: str) -> None:
+        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = lambda x: x
+
+    def _exclude_from_response(self, response_key_path: str) -> None:
+        self.RESPONSE_KEY_PATH_TO_TRANSFORMER[response_key_path] = never_return
