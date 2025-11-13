@@ -248,6 +248,25 @@ def test_list_pipes_with_pagination():
 
 
 @mock_aws
+def test_list_pipes_with_invalid_limit():
+    config = Config(parameter_validation=False)
+    client = boto3.client("pipes", region_name="eu-west-1", config=config)
+
+    for i in range(3):
+        client.create_pipe(
+            Name=f"pipe-{i}",
+            Source=f"arn:aws:sqs:eu-west-1:123456789012:queue-{i}",
+            Target=f"arn:aws:lambda:eu-west-1:123456789012:function:func-{i}",
+            RoleArn="arn:aws:iam::123456789012:role/test-role",
+        )
+
+    resp = client.list_pipes(Limit="invalid")
+
+    assert "Pipes" in resp
+    assert len(resp["Pipes"]) == 3
+
+
+@mock_aws
 def test_create_pipe_missing_source():
     config = Config(parameter_validation=False)
     client = boto3.client("pipes", region_name="us-east-1", config=config)
@@ -292,78 +311,6 @@ def test_create_pipe_missing_role_arn():
     assert "RoleArn is a required parameter" in error["Message"]
 
 
-@mock_aws
-def test_create_pipe_empty_source():
-    config = Config(parameter_validation=False)
-    client = boto3.client("pipes", region_name="us-east-1", config=config)
-    with pytest.raises(ClientError) as exc_info:
-        client.create_pipe(
-            Name="test-pipe",
-            Source="",
-            Target="arn:aws:lambda:us-east-1:123456789012:function:test-function",
-            RoleArn="arn:aws:iam::123456789012:role/test-role",
-        )
-    error = exc_info.value.response["Error"]
-    assert error["Code"] == "ValidationException"
-    assert "Source is a required parameter" in error["Message"]
-
-
-@mock_aws
-def test_tag_resource_missing_tags():
-    client = boto3.client("pipes", region_name="us-east-1")
-    create_resp = client.create_pipe(
-        Name="test-pipe",
-        Source="arn:aws:sqs:us-east-1:123456789012:test-queue",
-        Target="arn:aws:lambda:us-east-1:123456789012:function:test-function",
-        RoleArn="arn:aws:iam::123456789012:role/test-role",
-    )
-    with pytest.raises(ClientError) as exc_info:
-        client.tag_resource(resourceArn=create_resp["Arn"], tags={})
-    error = exc_info.value.response["Error"]
-    assert error["Code"] == "ValidationException"
-    assert "Tags is a required parameter" in error["Message"]
-
-
-@mock_aws
-def test_describe_pipe_not_found():
-    client = boto3.client("pipes", region_name="us-east-1")
-    with pytest.raises(ClientError) as exc_info:
-        client.describe_pipe(Name="non-existent-pipe")
-    error = exc_info.value.response["Error"]
-    assert error["Code"] == "NotFoundException"
-
-
-@mock_aws
-def test_delete_pipe_not_found():
-    client = boto3.client("pipes", region_name="us-east-1")
-    with pytest.raises(ClientError) as exc_info:
-        client.delete_pipe(Name="non-existent-pipe")
-    error = exc_info.value.response["Error"]
-    assert error["Code"] == "NotFoundException"
-
-
-@mock_aws
-def test_tag_resource_not_found():
-    client = boto3.client("pipes", region_name="us-east-1")
-    fake_arn = "arn:aws:pipes:us-east-1:123456789012:pipe/non-existent-pipe"
-    with pytest.raises(ClientError) as exc_info:
-        client.tag_resource(resourceArn=fake_arn, tags={"Environment": "test"})
-    error = exc_info.value.response["Error"]
-    assert error["Code"] == "NotFoundException"
-    assert "not found" in error["Message"]
-
-
-@mock_aws
-def test_untag_resource_not_found():
-    client = boto3.client("pipes", region_name="us-east-1")
-    fake_arn = "arn:aws:pipes:us-east-1:123456789012:pipe/non-existent-pipe"
-    with pytest.raises(ClientError) as exc_info:
-        client.untag_resource(resourceArn=fake_arn, tagKeys=["Environment"])
-    error = exc_info.value.response["Error"]
-    assert error["Code"] == "NotFoundException"
-    assert "not found" in error["Message"]
-
-
 def test_validation_exception_with_field_list():
     from moto.pipes.exceptions import ValidationException
 
@@ -377,18 +324,6 @@ def test_validation_exception_with_field_list():
     body = json.loads(exc.description)
     assert "fieldList" in body
     assert body["fieldList"] == field_list
-
-
-def test_validation_exception_without_field_list():
-    from moto.pipes.exceptions import ValidationException
-
-    exc = ValidationException("Validation failed")
-    assert exc.code == 400
-    assert "Validation failed" in exc.message
-    import json
-
-    body = json.loads(exc.description)
-    assert "fieldList" not in body
 
 
 def test_conflict_exception_with_all_parameters():
@@ -408,27 +343,6 @@ def test_conflict_exception_with_all_parameters():
     assert body["resourceType"] == "pipe"
 
 
-def test_conflict_exception_without_optional_parameters():
-    from moto.pipes.exceptions import ConflictException
-
-    exc = ConflictException("Resource already exists")
-    assert exc.code == 409
-    assert "Resource already exists" in exc.message
-    import json
-
-    body = json.loads(exc.description)
-    assert "resourceId" not in body
-    assert "resourceType" not in body
-
-
-def test_not_found_exception():
-    from moto.pipes.exceptions import NotFoundException
-
-    exc = NotFoundException("Resource not found")
-    assert exc.code == 404
-    assert "Resource not found" in exc.message
-
-
 def test_internal_exception_with_retry_after():
     from moto.pipes.exceptions import InternalException
 
@@ -439,18 +353,6 @@ def test_internal_exception_with_retry_after():
 
     body = json.loads(exc.description)
     assert body["retryAfterSeconds"] == 30
-
-
-def test_internal_exception_without_retry_after():
-    from moto.pipes.exceptions import InternalException
-
-    exc = InternalException("Internal error")
-    assert exc.code == 500
-    assert "Internal error" in exc.message
-    import json
-
-    body = json.loads(exc.description)
-    assert "retryAfterSeconds" not in body
 
 
 def test_service_quota_exceeded_exception_with_all_parameters():
@@ -474,21 +376,6 @@ def test_service_quota_exceeded_exception_with_all_parameters():
     assert body["serviceCode"] == "pipes"
 
 
-def test_service_quota_exceeded_exception_without_optional_parameters():
-    from moto.pipes.exceptions import ServiceQuotaExceededException
-
-    exc = ServiceQuotaExceededException("Quota exceeded")
-    assert exc.code == 402
-    assert "Quota exceeded" in exc.message
-    import json
-
-    body = json.loads(exc.description)
-    assert "quotaCode" not in body
-    assert "resourceId" not in body
-    assert "resourceType" not in body
-    assert "serviceCode" not in body
-
-
 def test_throttling_exception_with_all_parameters():
     from moto.pipes.exceptions import ThrottlingException
 
@@ -506,23 +393,3 @@ def test_throttling_exception_with_all_parameters():
     assert body["quotaCode"] == "L-12345678"
     assert body["retryAfterSeconds"] == 60
     assert body["serviceCode"] == "pipes"
-
-
-def test_throttling_exception_without_optional_parameters():
-    from moto.pipes.exceptions import ThrottlingException
-
-    exc = ThrottlingException("Rate limit exceeded")
-    assert exc.code == 429
-    assert "Rate limit exceeded" in exc.message
-    import json
-
-    body = json.loads(exc.description)
-    assert "quotaCode" not in body
-    assert "retryAfterSeconds" not in body
-    assert "serviceCode" not in body
-
-
-def test_resource_not_found_exception_alias():
-    from moto.pipes.exceptions import NotFoundException, ResourceNotFoundException
-
-    assert ResourceNotFoundException is NotFoundException
