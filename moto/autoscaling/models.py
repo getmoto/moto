@@ -947,41 +947,66 @@ class FakeAutoScalingGroup(CloudFormationModel):
         else:
             self.desired_capacity = new_capacity
 
-        # Measure of capacity depends on the request
-        if self.mixed_instances_policy and len(self.mixed_instances_policy.get('LaunchTemplate', {}).get('Overrides', [])):
-            # Use weighted capacities if using mixed instances
-            weights = self.mixed_instances_policy['LaunchTemplate']['Overrides']
+        current_instance_count = len(self.active_instances())
 
-            # Instance types are expected to be in priority order. Use the highest priority instance type
-            instance_type = weights[0]['InstanceType']
-            weighted_capacity = weights[0]['WeightedCapacity']
+        is_mixed_instances = self.mixed_instances_policy and len(
+            self.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", [])
+        )
 
-            current_set_capacity = ...
+        if is_mixed_instances:
+            overrides = self.mixed_instances_policy["LaunchTemplate"]["Overrides"]
+            distribution = self.mixed_instances_policy.get("InstancesDistribution", {})
+
+            total_desired_capacity = self.desired_capacity
+            on_demand_base = int(distribution.get("OnDemandBaseCapacity", 0))
+            percent_above_base = int(distribution.get("OnDemandPercentageAboveBaseCapacity", 100))
+
+            primary_weight_str = overrides[0].get("WeightedCapacity", "1")
+            primary_weight = int(primary_weight_str) if primary_weight_str.isdigit() else 1
+            if primary_weight == 0:
+                primary_weight = 1
+
+
+            if on_demand_base >= total_desired_capacity:
+                # If the base capacity meets or exceeds desired capacity, the entire desired capacity is fulfilled by On-Demand.
+                total_on_demand_capacity = total_desired_capacity
+                total_spot_capacity = 0
+
+            else:
+                above_base_capacity = total_desired_capacity - on_demand_base
+
+                on_demand_above_base_capacity = (above_base_capacity * percent_above_base) / 100.0
+                spot_above_base_capacity = above_base_capacity - on_demand_above_base_capacity
+
+                total_on_demand_capacity = on_demand_base + on_demand_above_base_capacity
+                total_spot_capacity = spot_above_base_capacity
+
+            on_demand_instances = math.ceil(total_on_demand_capacity / primary_weight)
+            spot_instances = math.ceil(total_spot_capacity / primary_weight)
+
+            total_target_instances = on_demand_instances + spot_instances
+
         else:
-            # Use number of instances
-            current_set_capacity = len(self.active_instances())
+            total_target_instances = self.desired_capacity
 
-        # Use bin packing?
+        instance_count_delta = total_target_instances - current_instance_count
 
-        count_delta = 0  # Represents the change in instance counts
-
-        if self.desired_capacity == current_set_capacity:
-            pass  # Nothing to do here
-        elif self.desired_capacity > current_set_capacity:  # type: ignore[operator]
-            # Need more instances
-            count_needed = int(self.desired_capacity) - int(current_set_capacity)  # type: ignore[arg-type]
-
+        if instance_count_delta == 0:
+            pass
+        elif instance_count_delta > 0:
+            count_needed = instance_count_delta
             propagated_tags = self.get_propagated_tags()
             self.replace_autoscaling_group_instances(count_needed, propagated_tags)
         else:
-            # Need to remove some instances
-            count_to_remove = current_set_capacity - self.desired_capacity  # type: ignore[operator]
-            instances_to_remove = [  # only remove unprotected
-                state
-                for state in self.instance_states
-                if not state.protected_from_scale_in
-            ][:count_to_remove]
-            if instances_to_remove:  # just in case not instances to remove
+            count_to_remove = abs(instance_count_delta)
+
+            instances_to_remove = [
+                                      state
+                                      for state in self.instance_states
+                                      if not state.protected_from_scale_in
+                                  ][:count_to_remove]
+
+            if instances_to_remove:
                 instance_ids_to_remove = [
                     instance.instance.id for instance in instances_to_remove
                 ]
