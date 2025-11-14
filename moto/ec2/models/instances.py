@@ -170,13 +170,6 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
 
         self.metadata_options = MetadataOptions(kwargs.get("metadata_options", {}))
 
-        # handle weird bug around user_data -- something grabs the repr(), so
-        # it must be clean
-        if isinstance(self.user_data, list) and len(self.user_data) > 0:
-            if isinstance(self.user_data[0], bytes):
-                # string will have a "b" prefix -- need to get rid of it
-                self.user_data[0] = self.user_data[0].decode("utf-8")
-
         if self._subnet_id:
             subnet: Subnet = ec2_backend.get_subnet(self.subnet_id)
             self._placement.zone = subnet.availability_zone
