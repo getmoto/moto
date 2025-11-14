@@ -103,6 +103,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.ec2_backend = ec2_backend
         self.id = random_instance_id()
         self.owner_id = ec2_backend.account_id
+        self.client_token = kwargs.get("client_token")
         self.lifecycle: Optional[str] = kwargs.get("lifecycle")
 
         nics = copy.deepcopy(kwargs.get("nics", []))
@@ -166,6 +167,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.root_device_type = "ebs"
         self.disable_api_stop = kwargs.get("disable_api_stop", False)
         self.iam_instance_profile = kwargs.get("iam_instance_profile")
+        self.kernel_id = ami.kernel_id if ami else "None"
 
         self.metadata_options = MetadataOptions(kwargs.get("metadata_options", {}))
 
@@ -596,6 +598,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
             "SubnetId": self.subnet_id,
             "PrivateIpAddress": private_ip,
             "AssociatePublicIpAddress": associate_public_ip,
+            "Description": "Primary network interface",
         }
         primary_nic = {k: v for k, v in primary_nic.items() if v}
 
@@ -659,6 +662,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
                     group_ids=group_ids,
                     delete_on_termination=nic.get("DeleteOnTermination") is True,
                     ipv6_address_count=ipv6_address_count,
+                    description=nic.get("Description"),
                 )
 
             self.attach_eni(use_nic, device_index)

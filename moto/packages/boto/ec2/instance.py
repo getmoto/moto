@@ -45,8 +45,8 @@ class InstancePlacement:
 
     def __init__(self, zone: Any = None, group_name: Any = None, tenancy: Any = None):
         self.zone = zone
-        self.group_name = group_name
-        self.tenancy = tenancy
+        self.group_name = group_name or ""
+        self.tenancy = tenancy or "default"
         self.host_id: Optional[str] = None
 
     @property
@@ -156,7 +156,7 @@ class Instance(TaggedEC2Object):
         self.groups: Any = []
         self.platform = None
         self.interfaces: Any = []
-        self.hypervisor = None
+        self.hypervisor = "xen"
         self.virtualization_type: Optional[str] = None
         self.architecture: Optional[str] = None
         self.instance_profile = None

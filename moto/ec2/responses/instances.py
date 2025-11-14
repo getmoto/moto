@@ -86,6 +86,7 @@ class InstanceResponse(EC2BaseResponse):
             else "disabled",
             "ipv6_address_count": self._get_int_param("Ipv6AddressCount"),
             "metadata_options": self._get_param("MetadataOptions", {}),
+            "client_token": self._get_param("ClientToken", "ABCDE"),
         }
         if len(kwargs["nics"]) and kwargs["subnet_id"]:
             raise InvalidParameterCombination(

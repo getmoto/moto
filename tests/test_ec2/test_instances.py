@@ -3043,7 +3043,7 @@ def test_run_instances_default_response():
     nif_attachment = nif["Attachment"]
     assert "AttachTime" in nif_attachment
     assert "AttachmentId" in nif_attachment
-    assert nif_attachment["DeleteOnTermination"] is True
+    assert nif_attachment["DeleteOnTermination"] is False
     assert nif_attachment["DeviceIndex"] == 0
     assert nif_attachment["Status"] == "attached"
     assert nif["Description"] == "Primary network interface"
