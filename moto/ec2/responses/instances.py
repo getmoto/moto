@@ -1,4 +1,3 @@
-import base64
 from copy import deepcopy
 from typing import Any
 
@@ -11,7 +10,6 @@ from moto.ec2.exceptions import (
 )
 from moto.ec2.utils import filter_iam_instance_profiles
 
-from ...core.parsers import default_blob_parser
 from ._base_response import EC2BaseResponse
 
 
@@ -51,8 +49,6 @@ class InstanceResponse(EC2BaseResponse):
         min_count = int(self._get_param("MinCount", if_none="1"))
         image_id = self._get_param("ImageId")
         user_data = self._get_param("UserData")
-        if user_data:
-            user_data = default_blob_parser(user_data)  # type: ignore[no-untyped-call]
         security_group_names = self._get_param("SecurityGroups", [])
         kwargs = {
             "instance_type": self._get_param("InstanceType", "m1.small"),
@@ -230,10 +226,6 @@ class InstanceResponse(EC2BaseResponse):
         if attribute_name == "GroupSet":
             attribute_name = "Groups"
             attribute_value = [{"GroupId": group.id} for group in value]
-        # TODO: Might be able to address this with a `moto-extras` model update.
-        elif attribute_name == "UserData" and value:
-            encoded_value = base64.b64encode(value).strip().decode("utf-8")
-            attribute_value = {"Value": encoded_value}
         result = {"InstanceId": instance.id, attribute_name: attribute_value}
         return ActionResult(result)
 
