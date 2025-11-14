@@ -707,6 +707,10 @@ class ComprehendBackend(BaseBackend):
             **kwargs,
         )
         self.jobs[job.job_id] = job
+
+        if "Tags" in kwargs:
+            self.tagger.tag_resource(job.job_arn, kwargs["Tags"])
+
         return job
 
     def _get_job(self, job_id: str) -> ComprehendJob:
@@ -795,10 +799,6 @@ class ComprehendBackend(BaseBackend):
         return self._list_jobs("DominantLanguageDetection", filter)
 
     def start_entities_detection_job(self, **kwargs: Any) -> ComprehendJob:
-        if "EntityRecognizerArn" not in kwargs:
-            raise InvalidRequestException(
-                "The request is missing the required parameter: EntityRecognizerArn."
-            )
         return self._start_job("EntitiesDetection", **kwargs)
 
     def describe_entities_detection_job(self, job_id: str) -> ComprehendJob:
@@ -824,10 +824,6 @@ class ComprehendBackend(BaseBackend):
         return self._list_jobs("TopicsDetection", filter)
 
     def start_document_classification_job(self, **kwargs: Any) -> ComprehendJob:
-        if "DocumentClassifierArn" not in kwargs:
-            raise InvalidRequestException(
-                "The request is missing the required parameter: DocumentClassifierArn."
-            )
         return self._start_job("DocumentClassification", **kwargs)
 
     def describe_document_classification_job(self, job_id: str) -> ComprehendJob:
