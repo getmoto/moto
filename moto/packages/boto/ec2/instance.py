@@ -69,10 +69,10 @@ class Reservation(EC2Object):
                      Reservation.
     """
 
-    def __init__(self, reservation_id: Any) -> None:
+    def __init__(self, reservation_id: Any, owner_id: Any = None) -> None:
         super().__init__(connection=None)
         self.id = reservation_id
-        self.owner_id = None
+        self.owner_id = owner_id
         self.groups: Any = []
         self.instances: Any = []
 

@@ -804,7 +804,10 @@ class InstanceBackend:
             else:
                 security_groups.append(sg_id)
 
-        new_reservation = Reservation(reservation_id=random_reservation_id())
+        new_reservation = Reservation(
+            reservation_id=random_reservation_id(),
+            owner_id=self.account_id,  # type: ignore[attr-defined]
+        )
 
         self.reservations[new_reservation.id] = new_reservation
 

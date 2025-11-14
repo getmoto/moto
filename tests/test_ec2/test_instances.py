@@ -3012,6 +3012,9 @@ def test_run_instances_default_response():
         MaxCount=1,
         InstanceType="t2.micro",
     )
+    assert "ReservationId" in resp
+    assert resp["OwnerId"] == ACCOUNT_ID
+    assert resp["Groups"] == []
     instance = resp["Instances"][0]
     assert instance["AmiLaunchIndex"] == 0
     assert instance["Architecture"] == "x86_64"

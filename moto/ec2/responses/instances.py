@@ -50,7 +50,6 @@ class InstanceResponse(EC2BaseResponse):
     def run_instances(self) -> ActionResult:
         min_count = int(self._get_param("MinCount", if_none="1"))
         image_id = self._get_param("ImageId")
-        owner_id = self._get_param("OwnerId")
         user_data = self._get_param("UserData")
         if user_data:
             user_data = default_blob_parser(user_data)  # type: ignore[no-untyped-call]
@@ -62,7 +61,6 @@ class InstanceResponse(EC2BaseResponse):
             "placement_hostid": self._get_param("Placement.HostId"),
             "region_name": self.region,
             "subnet_id": self._get_param("SubnetId"),
-            "owner_id": owner_id,
             "key_name": self._get_param("KeyName"),
             "security_group_ids": self._get_param("SecurityGroupIds", []),
             "nics": self._get_param("NetworkInterfaces", []),
