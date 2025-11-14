@@ -263,7 +263,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
     def subnet_id(self) -> Optional[str]:
         if self._subnet_id:
             return self._subnet_id
-        if self.nics and 0 in self.nics:
+        if self.nics:
             return self.nics[0].subnet.id
         return None
 
