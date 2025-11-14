@@ -4,7 +4,6 @@ from urllib.parse import urlparse
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.utilities.aws_headers import amz_crc32
 
 from .constants import (
     DEFAULT_RECEIVED_MESSAGES,
@@ -59,7 +58,6 @@ class SQSResponse(BaseResponse):
             raise ValueError
         return visibility_timeout
 
-    @amz_crc32  # crc last as request_id can edit XML
     def call_action(self) -> TYPE_RESPONSE:
         return super().call_action()
 
