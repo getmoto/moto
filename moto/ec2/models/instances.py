@@ -43,7 +43,6 @@ from ..utils import (
     random_instance_id,
     random_private_ip,
     random_reservation_id,
-    utc_date_and_time,
 )
 from .core import TaggedEC2Resource
 
@@ -142,7 +141,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self.ebs_optimized = kwargs.get("ebs_optimized", False)
         self.monitoring_state = kwargs.get("monitoring_state", "disabled")
         self.source_dest_check = True
-        self.launch_time = utc_date_and_time()
+        self.launch_time = utcnow()
         self.ami_launch_index = kwargs.get("ami_launch_index", 0)
         self.disable_api_termination = kwargs.get("disable_api_termination", False)
         self.instance_initiated_shutdown_behavior = (
@@ -674,7 +673,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         # This is used upon associate/disassociate public IP.
         eni.instance = self
         eni.attachment_id = random_eni_attach_id()
-        eni.attach_time = utc_date_and_time()
+        eni.attach_time = utcnow()
         eni.status = "in-use"
         eni.device_index = device_index
 

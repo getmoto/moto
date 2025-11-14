@@ -13,6 +13,8 @@ from .core import TaggedEC2Resource
 from .security_groups import SecurityGroup
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from .instances import Instance
 from ..utils import (
     generate_dns_from_ip,
@@ -66,7 +68,7 @@ class NetworkInterface(TaggedEC2Resource, CloudFormationModel):
             self.subnet = self.ec2_backend.get_subnet(subnet)
         self.instance: Optional[Instance] = None
         self.attachment_id: Optional[str] = None
-        self.attach_time: Optional[str] = None
+        self.attach_time: Optional[datetime] = None
         self.delete_on_termination = delete_on_termination
         self.description = description or ""
         self.source_dest_check = True
