@@ -229,6 +229,9 @@ def random_transit_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"])
 
 
+def random_traffic_mirror_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror"])
+
 def random_transit_gateway_route_table_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"])
 
