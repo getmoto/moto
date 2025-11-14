@@ -387,11 +387,6 @@ class ServiceCatalogBackend(BaseBackend):
         source_connection: Optional[dict[str, Any]] = None,
         accept_language: Optional[str] = None,
     ) -> Product:
-        if idempotency_token and idempotency_token in self.idempotency_tokens:
-            product_id = self.idempotency_tokens[idempotency_token]
-            product = self.products[product_id]
-            return product
-
         token = idempotency_token or str(uuid.uuid4())
         existing_id = self.idempotency_tokens.get(token)
         if existing_id:
@@ -456,9 +451,6 @@ class ServiceCatalogBackend(BaseBackend):
         self.tagger.tag_resource(resource_arn, tags)
 
     def _list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
-        """
-        Pagination is not yet implemented
-        """
         if self.tagger.has_tags(resource_arn):
             return self.tagger.list_tags_for_resource(resource_arn)["Tags"]
         return []
