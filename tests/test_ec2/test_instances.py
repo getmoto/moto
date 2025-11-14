@@ -3033,7 +3033,7 @@ def test_run_instances_default_response():
     assert mo["HttpTokens"] == "optional"
     assert mo["InstanceMetadataTags"] == "disabled"
     monitoring = instance["Monitoring"]
-    assert monitoring["State"] == " disabled "
+    assert monitoring["State"] == "disabled"
     assert len(instance["NetworkInterfaces"]) == 1
     nif = instance["NetworkInterfaces"][0]
     assert nif["Association"]["IpOwnerId"] == ACCOUNT_ID
