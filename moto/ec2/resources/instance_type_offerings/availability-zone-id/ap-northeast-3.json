@@ -572,6 +572,46 @@
   "Location": "apne3-az1"
  },
  {
+  "InstanceType": "i8g.12xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.16xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.24xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.2xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.48xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.4xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.8xlarge",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.large",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.metal-24xl",
+  "Location": "apne3-az1"
+ },
+ {
+  "InstanceType": "i8g.xlarge",
+  "Location": "apne3-az1"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "apne3-az1"
  },
@@ -1908,6 +1948,46 @@
   "Location": "apne3-az2"
  },
  {
+  "InstanceType": "i8g.12xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.16xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.24xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.2xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.48xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.4xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.8xlarge",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.large",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.metal-24xl",
+  "Location": "apne3-az2"
+ },
+ {
+  "InstanceType": "i8g.xlarge",
+  "Location": "apne3-az2"
+ },
+ {
   "InstanceType": "m5.12xlarge",
   "Location": "apne3-az2"
  },
@@ -3233,6 +3313,46 @@
  },
  {
   "InstanceType": "i4i.xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.12xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.16xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.24xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.2xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.48xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.4xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.8xlarge",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.large",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.metal-24xl",
+  "Location": "apne3-az3"
+ },
+ {
+  "InstanceType": "i8g.xlarge",
   "Location": "apne3-az3"
  },
  {

@@ -1242,7 +1242,7 @@
 
 ## cloudfront
 <details>
-<summary>15% implemented</summary>
+<summary>17% implemented</summary>
 
 - [ ] associate_alias
 - [ ] associate_distribution_tenant_web_acl
@@ -1367,9 +1367,9 @@
 - [X] list_tags_for_resource
 - [ ] list_vpc_origins
 - [ ] publish_function
-- [ ] tag_resource
+- [X] tag_resource
 - [ ] test_function
-- [ ] untag_resource
+- [X] untag_resource
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
 - [ ] update_connection_group
@@ -2388,7 +2388,7 @@
 
 ## dms
 <details>
-<summary>13% implemented</summary>
+<summary>15% implemented</summary>
 
 - [ ] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -2423,7 +2423,7 @@
 - [ ] describe_account_attributes
 - [ ] describe_applicable_individual_assessments
 - [ ] describe_certificates
-- [ ] describe_connections
+- [X] describe_connections
 - [ ] describe_conversion_configuration
 - [ ] describe_data_migrations
 - [ ] describe_data_providers
@@ -2500,7 +2500,7 @@
 - [ ] stop_data_migration
 - [ ] stop_replication
 - [X] stop_replication_task
-- [ ] test_connection
+- [X] test_connection
 - [ ] update_subscriptions_to_event_bridge
 </details>
 
@@ -3058,7 +3058,7 @@
 - [ ] describe_reserved_instances
 - [ ] describe_reserved_instances_listings
 - [ ] describe_reserved_instances_modifications
-- [ ] describe_reserved_instances_offerings
+- [X] describe_reserved_instances_offerings
 - [ ] describe_route_server_endpoints
 - [ ] describe_route_server_peers
 - [ ] describe_route_servers
@@ -6462,9 +6462,9 @@
 
 ## neptune
 <details>
-<summary>64% implemented</summary>
+<summary>65% implemented</summary>
 
-- [ ] add_role_to_db_cluster
+- [X] add_role_to_db_cluster
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -7446,10 +7446,10 @@
 
 ## rds
 <details>
-<summary>50% implemented</summary>
+<summary>51% implemented</summary>
 
-- [ ] add_role_to_db_cluster
-- [ ] add_role_to_db_instance
+- [X] add_role_to_db_cluster
+- [X] add_role_to_db_instance
 - [ ] add_source_identifier_to_subscription
 - [X] add_tags_to_resource
 - [ ] apply_pending_maintenance_action
@@ -8427,19 +8427,19 @@
 
 ## s3vectors
 <details>
-<summary>25% implemented</summary>
+<summary>50% implemented</summary>
 
-- [ ] create_index
+- [X] create_index
 - [X] create_vector_bucket
-- [ ] delete_index
+- [X] delete_index
 - [X] delete_vector_bucket
 - [ ] delete_vector_bucket_policy
 - [ ] delete_vectors
-- [ ] get_index
+- [X] get_index
 - [X] get_vector_bucket
 - [ ] get_vector_bucket_policy
 - [ ] get_vectors
-- [ ] list_indexes
+- [X] list_indexes
 - [X] list_vector_buckets
 - [ ] list_vectors
 - [ ] put_vector_bucket_policy

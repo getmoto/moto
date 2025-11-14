@@ -3692,3 +3692,114 @@ def test_db_instance_identifier_is_case_insensitive(client):
 
     response = client.describe_db_instances()
     assert len(response["DBInstances"]) == 0
+
+
+@mock_aws
+def test_add_role_to_db_instance(client):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+    role = instances["DBInstances"][0]["AssociatedRoles"][0]
+    assert role["FeatureName"] == "S3_INTERGRATION"
+    assert role["RoleArn"] == "role-to-for-rds-to-access-s3"
+    assert role["Status"] == "ACTIVE"
+
+
+@mock_aws
+def test_add_role_to_db_instance_adding_feature_a_second_time_throws_DBInstanceRoleAlreadyExists(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="a-different-role",
+            FeatureName="S3_INTERGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "DBInstanceRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Feature S3_INTERGRATION alreday assigned to Instance db-master-1"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_instance_adding_role_a_second_time_throws_DBInstanceRoleAlreadyExists(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    client.add_role_to_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        RoleArn="role-to-for-rds-to-access-s3",
+        FeatureName="S3_INTERGRATION",
+    )
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert len(instances["DBInstances"][0]["AssociatedRoles"]) == 1
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="ANOTHER_FEATURE",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "DBInstanceRoleAlreadyExists"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Role role-to-for-rds-to-access-s3 alreday assigned to Instance db-master-1"
+    )
+
+
+@mock_aws
+def test_add_role_to_db_instance_in_invalid_state_throws_InvalidDBInstanceStateFault(
+    client,
+):
+    create_db_instance(DBInstanceIdentifier="db-master-1")
+    instances = client.describe_db_instances(DBInstanceIdentifier="db-master-1")
+    assert instances["DBInstances"][0]["AssociatedRoles"] == []
+
+    response = client.stop_db_instance(
+        DBInstanceIdentifier="db-master-1",
+        DBSnapshotIdentifier="rocky4570-rds-snap",
+    )
+    assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
+    assert response["DBInstance"]["DBInstanceStatus"] == "stopped"
+
+    with pytest.raises(ClientError) as ex:
+        client.add_role_to_db_instance(
+            DBInstanceIdentifier="db-master-1",
+            RoleArn="role-to-for-rds-to-access-s3",
+            FeatureName="S3_INTEGRATION",
+        )
+
+    assert ex.value.operation_name == "AddRoleToDBInstance"
+    assert ex.value.response["Error"]["Code"] == "InvalidDBInstanceState"
+    assert (
+        ex.value.response["Error"]["Message"]
+        == "Instance db-master-1 should be in a valid state to add role."
+    )

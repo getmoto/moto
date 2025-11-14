@@ -6356,6 +6356,10 @@
   "Location": "eu-west-1b"
  },
  {
+  "InstanceType": "u7i-6tb.112xlarge",
+  "Location": "eu-west-1b"
+ },
+ {
   "InstanceType": "vt1.24xlarge",
   "Location": "eu-west-1b"
  },

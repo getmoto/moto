@@ -168,7 +168,9 @@ def test_key_pairs_create_exist():
 @mock_aws
 def test_key_pairs_delete_no_exist():
     client = boto3.client("ec2", "us-west-1")
-    client.delete_key_pair(KeyName=str(uuid4())[0:6])
+    resp = client.delete_key_pair(KeyName=str(uuid4())[0:6])
+    assert resp["Return"] is True
+    assert "KeyPairId" not in resp
 
 
 @mock_aws
@@ -189,14 +191,14 @@ def test_key_pairs_delete_exist():
 
 @mock_aws
 @pytest.mark.parametrize(
-    "public_key,fingerprint",
+    "public_key,fingerprint,key_type",
     [
-        (RSA_PUBLIC_KEY_OPENSSH, RSA_PUBLIC_KEY_FINGERPRINT),
-        (RSA_PUBLIC_KEY_RFC4716_1, RSA_PUBLIC_KEY_FINGERPRINT),
-        (RSA_PUBLIC_KEY_RFC4716_2, RSA_PUBLIC_KEY_FINGERPRINT),
-        (RSA_PUBLIC_KEY_RFC4716_3, RSA_PUBLIC_KEY_FINGERPRINT),
-        (RSA_PUBLIC_KEY_RFC4716_4, RSA_PUBLIC_KEY_FINGERPRINT),
-        (ED25519_PUBLIC_KEY_OPENSSH, ED25519_PUBLIC_KEY_FINGERPRINT),
+        (RSA_PUBLIC_KEY_OPENSSH, RSA_PUBLIC_KEY_FINGERPRINT, "rsa"),
+        (RSA_PUBLIC_KEY_RFC4716_1, RSA_PUBLIC_KEY_FINGERPRINT, "rsa"),
+        (RSA_PUBLIC_KEY_RFC4716_2, RSA_PUBLIC_KEY_FINGERPRINT, "rsa"),
+        (RSA_PUBLIC_KEY_RFC4716_3, RSA_PUBLIC_KEY_FINGERPRINT, "rsa"),
+        (RSA_PUBLIC_KEY_RFC4716_4, RSA_PUBLIC_KEY_FINGERPRINT, "rsa"),
+        (ED25519_PUBLIC_KEY_OPENSSH, ED25519_PUBLIC_KEY_FINGERPRINT, "ed25519"),
     ],
     ids=[
         "rsa-openssh",
@@ -207,7 +209,7 @@ def test_key_pairs_delete_exist():
         "ed25519",
     ],
 )
-def test_key_pairs_import(public_key, fingerprint):
+def test_key_pairs_import(public_key, fingerprint, key_type):
     client = boto3.client("ec2", "us-west-1")
 
     key_name = str(uuid4())[0:6]
@@ -223,9 +225,22 @@ def test_key_pairs_import(public_key, fingerprint):
     assert kp1["KeyName"] == key_name
     assert kp1["KeyFingerprint"] == fingerprint
 
-    all_kps = client.describe_key_pairs()["KeyPairs"]
-    all_names = [kp["KeyName"] for kp in all_kps]
-    assert kp1["KeyName"] in all_names
+    resp = client.describe_key_pairs(
+        Filters=[{"Name": "key-pair-id", "Values": [kp1["KeyPairId"]]}]
+    )
+    key_pair = resp["KeyPairs"][0]
+    assert key_pair["KeyPairId"] == kp1["KeyPairId"]
+    assert key_pair["KeyFingerprint"] == kp1["KeyFingerprint"]
+    assert key_pair["KeyName"] == kp1["KeyName"]
+    assert key_pair["KeyType"] == key_type
+    assert "PublicKey" not in key_pair
+
+    resp = client.describe_key_pairs(
+        IncludePublicKey=True,
+        Filters=[{"Name": "key-pair-id", "Values": [kp1["KeyPairId"]]}],
+    )
+    key_pair = resp["KeyPairs"][0]
+    assert key_pair["PublicKey"] == public_key.decode("utf-8")
 
 
 @mock_aws

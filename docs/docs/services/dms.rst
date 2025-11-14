@@ -52,7 +52,7 @@ dms
 - [ ] describe_account_attributes
 - [ ] describe_applicable_individual_assessments
 - [ ] describe_certificates
-- [ ] describe_connections
+- [X] describe_connections
 - [ ] describe_conversion_configuration
 - [ ] describe_data_migrations
 - [ ] describe_data_providers
@@ -140,6 +140,6 @@ dms
 - [ ] stop_data_migration
 - [ ] stop_replication
 - [X] stop_replication_task
-- [ ] test_connection
+- [X] test_connection
 - [ ] update_subscriptions_to_event_bridge
 

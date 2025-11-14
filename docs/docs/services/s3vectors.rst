@@ -16,17 +16,19 @@ s3vectors
 
 |start-h3| Implemented features for this service |end-h3|
 
-- [ ] create_index
+- [X] create_index
 - [X] create_vector_bucket
-- [ ] delete_index
+- [X] delete_index
 - [X] delete_vector_bucket
 - [ ] delete_vector_bucket_policy
 - [ ] delete_vectors
-- [ ] get_index
+- [X] get_index
 - [X] get_vector_bucket
 - [ ] get_vector_bucket_policy
 - [ ] get_vectors
-- [ ] list_indexes
+- [X] list_indexes
+  Pagination is not yet implemented. The prefix-parameter is also not yet implemented.
+
 - [X] list_vector_buckets
 - [ ] list_vectors
 - [ ] put_vector_bucket_policy
