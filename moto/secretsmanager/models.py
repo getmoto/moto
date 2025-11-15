@@ -1163,9 +1163,11 @@ class SecretsManagerBackend(BaseBackend):
                 v
                 for v in secret.versions
                 if "AWSCURRENT" in secret.versions[v]["version_stages"]
-            ][0]
-            err = f"The parameter RemoveFromVersionId can't be empty. Staging label AWSCURRENT is currently attached to version {current_version}, so you must explicitly reference that version in RemoveFromVersionId."
-            raise InvalidParameterException(err)
+            ]
+            # only fail if there is a AWSCURRENT version (may be the initial version being set to AWSCURRENT)
+            if current_version:
+                err = f"The parameter RemoveFromVersionId can't be empty. Staging label AWSCURRENT is currently attached to version {current_version[0]}, so you must explicitly reference that version in RemoveFromVersionId."
+                raise InvalidParameterException(err)
 
         if move_to_version_id:
             if move_to_version_id not in secret.versions:
