@@ -90,6 +90,7 @@ guardduty
 - [ ] list_threat_entity_sets
 - [ ] list_threat_intel_sets
 - [ ] list_trusted_entity_sets
+- [ ] send_object_malware_scan
 - [ ] start_malware_scan
 - [ ] start_monitoring_members
 - [ ] stop_monitoring_members

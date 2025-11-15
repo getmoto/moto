@@ -345,6 +345,8 @@ ec2
 - [ ] describe_instance_event_notification_attributes
 - [ ] describe_instance_event_windows
 - [ ] describe_instance_image_metadata
+- [ ] describe_instance_sql_ha_history_states
+- [ ] describe_instance_sql_ha_states
 - [X] describe_instance_status
 - [ ] describe_instance_topology
 - [X] describe_instance_type_offerings
@@ -495,6 +497,7 @@ ec2
 - [ ] disable_image_block_public_access
 - [ ] disable_image_deprecation
 - [ ] disable_image_deregistration_protection
+- [ ] disable_instance_sql_ha_standby_detections
 - [ ] disable_ipam_organization_admin_account
 - [ ] disable_route_server_propagation
 - [ ] disable_serial_console_access
@@ -532,6 +535,7 @@ ec2
 - [ ] enable_image_block_public_access
 - [ ] enable_image_deprecation
 - [ ] enable_image_deregistration_protection
+- [ ] enable_instance_sql_ha_standby_detections
 - [ ] enable_ipam_organization_admin_account
 - [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_route_server_propagation
@@ -566,6 +570,7 @@ ec2
 - [ ] get_flow_logs_integration_template
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
+- [ ] get_image_ancestry
 - [ ] get_image_block_public_access_state
 - [ ] get_instance_metadata_defaults
 - [ ] get_instance_tpm_ek_pub

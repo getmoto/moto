@@ -23,6 +23,7 @@ iam
 - [ ] change_password
 - [X] create_access_key
 - [X] create_account_alias
+- [ ] create_delegation_request
 - [X] create_group
 - [X] create_instance_profile
 - [X] create_login_profile
