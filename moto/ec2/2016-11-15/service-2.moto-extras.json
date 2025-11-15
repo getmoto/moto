@@ -10,6 +10,14 @@
           "httpStatusCode": 412
         },
         "exception": true
+      },
+      "GetConsoleOutputResult": {
+        "members": {
+          "Output": {
+            "shape": "Blob",
+            "documentation": "Botocore model has this as a string, but it should be base64-encoded."
+          }
+        }
       }
     }
   }

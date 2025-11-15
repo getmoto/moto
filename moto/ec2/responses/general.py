@@ -1,25 +1,29 @@
+from datetime import datetime
+
+from moto.core.responses import ActionResult
+
 from ._base_response import EC2BaseResponse
+
+SAMPLE_CONSOLE_OUTPUT = """Linux version 2.6.16-xenU (builder@patchbat.amazonsa) (gcc version 4.0.1 20050727 (Red Hat 4.0.1-5)) #1 SMP Thu Oct 26 08:41:26 SAST 2006
+BIOS-provided physical RAM map:
+Xen: 0000000000000000 - 000000006a400000 (usable)
+980MB HIGHMEM available.
+727MB LOWMEM available.
+NX (Execute Disable) protection: active
+IRQ lockup detection disabled
+Built 1 zonelists
+Kernel command line: root=/dev/sda1 ro 4
+Enabling fast FPU save and restore... done.
+"""
 
 
 class General(EC2BaseResponse):
-    def get_console_output(self) -> str:
+    def get_console_output(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
         instance = self.ec2_backend.get_instance(instance_id)
-        template = self.response_template(GET_CONSOLE_OUTPUT_RESULT)
-        return template.render(instance=instance)
-
-
-GET_CONSOLE_OUTPUT_RESULT = """
-<GetConsoleOutputResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
-  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
-  <instanceId>{{ instance.id }}</instanceId>
-  <timestamp>2010-10-14T01:12:41.000Z</timestamp>
-  <output>TGludXggdmVyc2lvbiAyLjYuMTYteGVuVSAoYnVpbGRlckBwYXRjaGJhdC5hbWF6b25zYSkgKGdj
-YyB2ZXJzaW9uIDQuMC4xIDIwMDUwNzI3IChSZWQgSGF0IDQuMC4xLTUpKSAjMSBTTVAgVGh1IE9j
-dCAyNiAwODo0MToyNiBTQVNUIDIwMDYKQklPUy1wcm92aWRlZCBwaHlzaWNhbCBSQU0gbWFwOgpY
-ZW46IDAwMDAwMDAwMDAwMDAwMDAgLSAwMDAwMDAwMDZhNDAwMDAwICh1c2FibGUpCjk4ME1CIEhJ
-R0hNRU0gYXZhaWxhYmxlLgo3MjdNQiBMT1dNRU0gYXZhaWxhYmxlLgpOWCAoRXhlY3V0ZSBEaXNh
-YmxlKSBwcm90ZWN0aW9uOiBhY3RpdmUKSVJRIGxvY2t1cCBkZXRlY3Rpb24gZGlzYWJsZWQKQnVp
-bHQgMSB6b25lbGlzdHMKS2VybmVsIGNvbW1hbmQgbGluZTogcm9vdD0vZGV2L3NkYTEgcm8gNApF
-bmFibGluZyBmYXN0IEZQVSBzYXZlIGFuZCByZXN0b3JlLi4uIGRvbmUuCg==</output>
-</GetConsoleOutputResponse>"""
+        result = {
+            "InstanceId": instance.id,
+            "Timestamp": datetime(2015, 1, 1),
+            "Output": SAMPLE_CONSOLE_OUTPUT,
+        }
+        return ActionResult(result)
