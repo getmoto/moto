@@ -830,9 +830,8 @@ def test_describe_secret_with_KmsKeyId():
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
     assert secret_description["KmsKeyId"] == "dummy_arn"
-    assert (
-        conn.list_secrets()["SecretList"][0]["KmsKeyId"]
-        == (secret_description["KmsKeyId"])
+    assert conn.list_secrets()["SecretList"][0]["KmsKeyId"] == (
+        secret_description["KmsKeyId"]
     )
 
 
@@ -2199,7 +2198,7 @@ def test_update_secret_version_stage_manually(secret=None):
 
 @secretsmanager_aws_verified
 @pytest.mark.aws_verified
-def test_update_secret_version_stage_dont_specify_current_stage(secret=None):
+def test_update_secret_version_stage_wrong_current_stage(secret=None):
     sm_client = boto3.client("secretsmanager", "us-east-1")
     current_version = sm_client.put_secret_value(
         SecretId=secret["ARN"],
@@ -2218,7 +2217,9 @@ def test_update_secret_version_stage_dont_specify_current_stage(secret=None):
     # Without specifying version that currently has stage AWSCURRENT
     with pytest.raises(ClientError) as exc:
         sm_client.update_secret_version_stage(
-            SecretId=secret["ARN"], VersionStage="AWSCURRENT", MoveToVersionId=token
+            SecretId=secret["ARN"],
+            VersionStage="AWSCURRENT",
+            MoveToVersionId=token,
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "InvalidParameterException"
@@ -2226,6 +2227,40 @@ def test_update_secret_version_stage_dont_specify_current_stage(secret=None):
         err["Message"]
         == f"The parameter RemoveFromVersionId can't be empty. Staging label AWSCURRENT is currently attached to version {current_version}, so you must explicitly reference that version in RemoveFromVersionId."
     )
+
+@mock_aws
+@pytest.mark.aws_verified
+def test_update_secret_version_stage_initial_secret_no_awscurrent():
+    sm_client = boto3.client("secretsmanager", "us-east-1")
+    
+    created_secret = sm_client.create_secret(
+        Name="test-secret", KmsKeyId="foo_arn"
+    )
+
+    pending_version = sm_client.put_secret_value(
+        SecretId=created_secret["ARN"],
+        SecretString="new_secret",
+        VersionStages=["AWSPENDING"],
+    )["VersionId"]
+
+    # No version has AWSCURRENT tag yet
+    sm_client.update_secret_version_stage(
+        SecretId=created_secret["ARN"],
+        VersionStage="AWSCURRENT",
+        MoveToVersionId=pending_version,
+    )
+
+    current_secret = sm_client.get_secret_value(
+        SecretId=created_secret["ARN"], VersionStage="AWSCURRENT"
+    )
+    assert sorted(current_secret["VersionStages"]) == ["AWSCURRENT", "AWSPENDING"]
+    assert current_secret["SecretString"] == "new_secret"
+
+    with pytest.raises(ClientError) as exc:
+        sm_client.get_secret_value(SecretId=created_secret["ARN"], VersionStage="AWSPREVIOUS")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ResourceNotFoundException"
+    assert err["Message"] == f"Secrets Manager can't find the specified secret."
 
 
 @mock_aws
