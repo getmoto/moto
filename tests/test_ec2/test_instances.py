@@ -2973,6 +2973,7 @@ def test_modify_instance_metadata_options():
         "HttpEndpoint": "enabled",
         "HttpProtocolIpv6": "disabled",
         "InstanceMetadataTags": "disabled",
+        "State": "applied",
     }
 
     # Change the defaults
@@ -2998,6 +2999,7 @@ def test_modify_instance_metadata_options():
         "HttpEndpoint": "disabled",
         "HttpProtocolIpv6": "enabled",
         "InstanceMetadataTags": "enabled",
+        "State": "applied",
     }
 
 
@@ -3010,6 +3012,9 @@ def test_run_instances_default_response():
         MaxCount=1,
         InstanceType="t2.micro",
     )
+    assert "ReservationId" in resp
+    assert resp["OwnerId"] == ACCOUNT_ID
+    assert resp["Groups"] == []
     instance = resp["Instances"][0]
     assert instance["AmiLaunchIndex"] == 0
     assert instance["Architecture"] == "x86_64"
@@ -3041,7 +3046,7 @@ def test_run_instances_default_response():
     nif_attachment = nif["Attachment"]
     assert "AttachTime" in nif_attachment
     assert "AttachmentId" in nif_attachment
-    assert nif_attachment["DeleteOnTermination"] is True
+    assert nif_attachment["DeleteOnTermination"] is False
     assert nif_attachment["DeviceIndex"] == 0
     assert nif_attachment["Status"] == "attached"
     assert nif["Description"] == "Primary network interface"
