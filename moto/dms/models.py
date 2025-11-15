@@ -896,7 +896,7 @@ class FakeConnection(ManagedState):
         ManagedState.__init__(
             self,
             model_name="dms::connection",
-            transitions=[("testing", "success")],
+            transitions=[("testing", "successful")],
         )
 
         self.replication_instance_arn = replication_instance_arn
