@@ -2,7 +2,6 @@ import re
 from typing import Any, Optional
 from urllib.parse import urlparse
 
-from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
 from .constants import (
@@ -57,9 +56,6 @@ class SQSResponse(BaseResponse):
         if visibility_timeout > MAXIMUM_VISIBILITY_TIMEOUT:
             raise ValueError
         return visibility_timeout
-
-    def call_action(self) -> TYPE_RESPONSE:
-        return super().call_action()
 
     def create_queue(self) -> ActionResult:
         request_url = urlparse(self.uri)
