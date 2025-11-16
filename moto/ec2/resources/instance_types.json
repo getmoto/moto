@@ -37219,7 +37219,7 @@
      "Name": "L4"
     }
    ],
-   "TotalGpuMemoryInMiB": 2861
+   "TotalGpuMemoryInMiB": 0
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -37622,7 +37622,7 @@
      "Name": "L4"
     }
    ],
-   "TotalGpuMemoryInMiB": 11444
+   "TotalGpuMemoryInMiB": 0
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
