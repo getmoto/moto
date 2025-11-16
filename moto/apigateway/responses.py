@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -28,7 +28,7 @@ class APIGatewayResponse(BaseResponse):
     def backend(self) -> APIGatewayBackend:
         return apigateway_backends[self.current_account][self.region]
 
-    def __validate_api_key_source(self, api_key_source: str) -> Optional[TYPE_RESPONSE]:
+    def __validate_api_key_source(self, api_key_source: str) -> TYPE_RESPONSE | None:
         if api_key_source and api_key_source not in API_KEY_SOURCES:
             return self.error(
                 "ValidationException",
@@ -43,7 +43,7 @@ class APIGatewayResponse(BaseResponse):
 
     def __validate_endpoint_configuration(
         self, endpoint_configuration: dict[str, str]
-    ) -> Optional[TYPE_RESPONSE]:
+    ) -> TYPE_RESPONSE | None:
         if endpoint_configuration and "types" in endpoint_configuration:
             invalid_types = list(
                 set(endpoint_configuration["types"]) - set(ENDPOINT_CONFIGURATION_TYPES)
@@ -106,7 +106,7 @@ class APIGatewayResponse(BaseResponse):
 
     def __validte_rest_patch_operations(
         self, patch_operations: list[dict[str, str]]
-    ) -> Optional[TYPE_RESPONSE]:
+    ) -> TYPE_RESPONSE | None:
         for op in patch_operations:
             path = op["path"]
             if "apiKeySource" in path:

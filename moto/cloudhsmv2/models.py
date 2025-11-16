@@ -1,7 +1,7 @@
 """CloudHSMV2Backend class with methods for supported APIs."""
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
@@ -13,12 +13,12 @@ from .exceptions import ResourceNotFoundException
 class Cluster:
     def __init__(
         self,
-        backup_retention_policy: Optional[dict[str, str]],
+        backup_retention_policy: dict[str, str] | None,
         hsm_type: str,
-        source_backup_id: Optional[str],
+        source_backup_id: str | None,
         subnet_ids: list[str],
         network_type: str = "IPV4",
-        tag_list: Optional[list[dict[str, str]]] = None,
+        tag_list: list[dict[str, str]] | None = None,
         mode: str = "DEFAULT",
         region_name: str = "us-east-1",
     ):
@@ -73,10 +73,10 @@ class Backup:
         cluster_id: str,
         hsm_type: str,
         mode: str,
-        tag_list: Optional[list[dict[str, str]]],
-        source_backup: Optional[str] = None,
-        source_cluster: Optional[str] = None,
-        source_region: Optional[str] = None,
+        tag_list: list[dict[str, str]] | None,
+        source_backup: str | None = None,
+        source_cluster: str | None = None,
+        source_region: str | None = None,
         never_expires: bool = False,
         region_name: str = "us-east-1",
     ):
@@ -153,7 +153,7 @@ class CloudHSMV2Backend(BaseBackend):
 
     def list_tags(
         self, resource_id: str, next_token: str, max_results: int
-    ) -> tuple[list[dict[str, str]], Optional[str]]:
+    ) -> tuple[list[dict[str, str]], str | None]:
         """
         Pagination is not yet implemented
         """
@@ -194,13 +194,13 @@ class CloudHSMV2Backend(BaseBackend):
 
     def create_cluster(
         self,
-        backup_retention_policy: Optional[dict[str, str]],
+        backup_retention_policy: dict[str, str] | None,
         hsm_type: str,
-        source_backup_id: Optional[str],
+        source_backup_id: str | None,
         subnet_ids: list[str],
-        network_type: Optional[str],
-        tag_list: Optional[list[dict[str, str]]],
-        mode: Optional[str],
+        network_type: str | None,
+        tag_list: list[dict[str, str]] | None,
+        mode: str | None,
     ) -> dict[str, Any]:
         cluster = Cluster(
             backup_retention_policy=backup_retention_policy,
@@ -237,7 +237,7 @@ class CloudHSMV2Backend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_clusters(
-        self, filters: Optional[dict[str, list[str]]] = None
+        self, filters: dict[str, list[str]] | None = None
     ) -> list[dict[str, str]]:
         clusters = list(self.clusters.values())
 
@@ -253,15 +253,15 @@ class CloudHSMV2Backend(BaseBackend):
         clusters = sorted(clusters, key=lambda x: x.create_timestamp)
         return [c.to_dict() for c in clusters]
 
-    def get_resource_policy(self, resource_arn: str) -> Optional[str]:
+    def get_resource_policy(self, resource_arn: str) -> str | None:
         return self.resource_policies.get(resource_arn)
 
     @paginate(PAGINATION_MODEL)
     def describe_backups(
         self,
-        filters: Optional[dict[str, list[str]]],
-        shared: Optional[bool],
-        sort_ascending: Optional[bool],
+        filters: dict[str, list[str]] | None,
+        shared: bool | None,
+        sort_ascending: bool | None,
     ) -> list[Backup]:
         backups = list(self.backups.values())
 

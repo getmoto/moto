@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import CloudFormationModel
 from moto.moto_api._internal import mock_random
@@ -73,7 +73,7 @@ class VPCServiceConfigurationBackend:
 
     def get_vpc_endpoint_service(
         self, resource_id: str
-    ) -> Optional[VPCServiceConfiguration]:
+    ) -> VPCServiceConfiguration | None:
         return self.configurations.get(resource_id)
 
     def create_vpc_endpoint_service_configuration(
@@ -100,7 +100,7 @@ class VPCServiceConfigurationBackend:
         return config
 
     def describe_vpc_endpoint_service_configurations(
-        self, service_ids: Optional[list[str]]
+        self, service_ids: list[str] | None
     ) -> list[VPCServiceConfiguration]:
         """
         The Filters, MaxResults, NextToken parameters are not yet implemented
@@ -141,8 +141,8 @@ class VPCServiceConfigurationBackend:
     def modify_vpc_endpoint_service_configuration(
         self,
         service_id: str,
-        acceptance_required: Optional[str],
-        private_dns_name: Optional[str],
+        acceptance_required: str | None,
+        private_dns_name: str | None,
         add_network_lbs: list[str],
         remove_network_lbs: list[str],
         add_gateway_lbs: list[str],

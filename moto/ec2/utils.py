@@ -3,11 +3,10 @@ import fnmatch
 import hashlib
 import ipaddress
 import re
+from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
     TypeVar,
     Union,
 )
@@ -27,7 +26,7 @@ from moto.moto_api._internal import mock_random as random
 from moto.utilities.utils import md5_hash
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 
     HashType: TypeAlias = hashlib._Hash
 
@@ -264,7 +263,7 @@ def random_dedicated_host_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"])
 
 
-def random_private_ip(cidr: Optional[str] = None, ipv6: bool = False) -> str:
+def random_private_ip(cidr: str | None = None, ipv6: bool = False) -> str:
     # prefix - ula.prefixlen : get number of remaing length for the IP.
     #                          prefix will be 32 for IPv4 and 128 for IPv6.
     #  random.getrandbits() will generate remaining bits for IPv6 or Ipv4 in decimal format
@@ -302,9 +301,9 @@ def random_ipv6_cidr() -> str:
 
 def generate_route_id(
     route_table_id: str,
-    cidr_block: Optional[str],
-    ipv6_cidr_block: Optional[str] = None,
-    prefix_list: Optional[str] = None,
+    cidr_block: str | None,
+    ipv6_cidr_block: str | None = None,
+    prefix_list: str | None = None,
 ) -> str:
     if ipv6_cidr_block and not cidr_block:
         cidr_block = ipv6_cidr_block
@@ -371,7 +370,7 @@ def is_tag_filter(filter_name: str) -> bool:
     )
 
 
-def get_obj_tag(obj: Any, filter_name: str) -> Optional[str]:
+def get_obj_tag(obj: Any, filter_name: str) -> str | None:
     tag_name = filter_name.replace("tag:", "", 1)
     tags = {tag["key"]: tag["value"] for tag in obj.get_tags()}
     return tags.get(tag_name)
@@ -382,7 +381,7 @@ def get_obj_tag_names(obj: Any) -> set[str]:
     return tags
 
 
-def get_obj_tag_values(obj: Any, key: Optional[str] = None) -> set[str]:
+def get_obj_tag_values(obj: Any, key: str | None = None) -> set[str]:
     tags = {tag["value"] for tag in obj.get_tags() if tag["key"] == key or key is None}
     return tags
 
@@ -813,8 +812,8 @@ def filter_iam_instance_profile_associations(
 def filter_iam_instance_profiles(
     account_id: str,
     partition: str,
-    iam_instance_profile_arn: Optional[str],
-    iam_instance_profile_name: Optional[str],
+    iam_instance_profile_arn: str | None,
+    iam_instance_profile_name: str | None,
 ) -> Any:
     instance_profile = None
     instance_profile_by_name = None

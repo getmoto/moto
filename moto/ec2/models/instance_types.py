@@ -1,6 +1,6 @@
 import pathlib
 from os import listdir
-from typing import Any, Optional
+from typing import Any
 
 from moto.utilities.utils import load_resource
 
@@ -144,7 +144,7 @@ class InstanceTypeBackend:
     instance_types = list(map(InstanceType, INSTANCE_TYPES.keys()))
 
     def describe_instance_types(
-        self, instance_types: Optional[list[str]] = None, filters: Any = None
+        self, instance_types: list[str] | None = None, filters: Any = None
     ) -> list[InstanceType]:
         matches = self.instance_types
         if instance_types:
@@ -164,8 +164,8 @@ class InstanceTypeBackend:
 class InstanceTypeOfferingBackend:
     def describe_instance_type_offerings(
         self,
-        location_type: Optional[str] = None,
-        filters: Optional[dict[str, Any]] = None,
+        location_type: str | None = None,
+        filters: dict[str, Any] | None = None,
     ) -> list[Any]:
         location_type = location_type or "region"
         matches = INSTANCE_TYPE_OFFERINGS[location_type]

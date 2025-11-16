@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 from copy import copy
 from datetime import datetime, timedelta
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -67,7 +67,7 @@ class Grant(BaseModel):
 class Key(CloudFormationModel):
     def __init__(
         self,
-        policy: Optional[str],
+        policy: str | None,
         key_usage: str,
         key_spec: str,
         description: str,
@@ -96,7 +96,7 @@ class Key(CloudFormationModel):
                 "ReplicaKeys": [],
             }
         self.key_rotation_status = False
-        self.deletion_date: Optional[datetime] = None
+        self.deletion_date: datetime | None = None
         self.key_material = generate_master_key()
         self.origin = origin
         self.key_manager = "CUSTOMER"
@@ -177,7 +177,7 @@ class Key(CloudFormationModel):
         return self.id
 
     @property
-    def encryption_algorithms(self) -> Optional[list[str]]:
+    def encryption_algorithms(self) -> list[str] | None:
         if self.key_usage == "SIGN_VERIFY":
             return None
         elif self.key_spec == "SYMMETRIC_DEFAULT":
@@ -290,13 +290,13 @@ class KmsBackend(BaseBackend):
         }
     }
 
-    def __init__(self, region_name: str, account_id: Optional[str] = None):
+    def __init__(self, region_name: str, account_id: str | None = None):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
         self.keys: dict[str, Key] = {}
         self.key_to_aliases: dict[str, set[str]] = defaultdict(set)
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
 
-    def _generate_default_keys(self, alias_name: str) -> Optional[str]:
+    def _generate_default_keys(self, alias_name: str) -> str | None:
         """Creates default kms keys"""
         if alias_name in RESERVED_ALIASES:
             key = self.create_key(
@@ -312,11 +312,11 @@ class KmsBackend(BaseBackend):
 
     def create_key(
         self,
-        policy: Optional[str],
+        policy: str | None,
         key_usage: str,
         key_spec: str,
         description: str,
-        tags: Optional[list[dict[str, str]]],
+        tags: list[dict[str, str]] | None,
         multi_region: bool = False,
         origin: str = "AWS_KMS",
     ) -> Key:
@@ -457,7 +457,7 @@ class KmsBackend(BaseBackend):
     def list_aliases(self) -> dict[str, set[str]]:
         return self.key_to_aliases
 
-    def get_key_id_from_alias(self, alias_name: str) -> Optional[str]:
+    def get_key_id_from_alias(self, alias_name: str) -> str | None:
         for key_id, aliases in dict(self.key_to_aliases).items():
             if alias_name in ",".join(aliases):
                 return key_id

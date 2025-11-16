@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Final, Optional
+from typing import Any, Final
 
 
 class MockedResponse(abc.ABC):
@@ -203,7 +203,7 @@ def _mock_test_case_from_raw(
 
 def load_mock_test_case_for(
     state_machine_name: str, test_case_name: str
-) -> Optional[MockTestCase]:
+) -> MockTestCase | None:
     raw_mock_config = None
     if raw_mock_config is None:
         return None

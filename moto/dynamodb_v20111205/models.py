@@ -1,7 +1,7 @@
 import json
 from collections import OrderedDict, defaultdict
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -12,7 +12,7 @@ from .comparisons import get_comparison_func
 
 
 class DynamoJsonEncoder(json.JSONEncoder):
-    def default(self, o: Any) -> Optional[str]:  # type: ignore[return]
+    def default(self, o: Any) -> str | None:  # type: ignore[return]
         if hasattr(o, "to_json"):
             return o.to_json()
 
@@ -62,8 +62,8 @@ class Item(BaseModel):
         self,
         hash_key: DynamoType,
         hash_key_type: str,
-        range_key: Optional[DynamoType],
-        range_key_type: Optional[str],
+        range_key: DynamoType | None,
+        range_key_type: str | None,
         attrs: dict[str, Any],
     ):
         self.hash_key = hash_key
@@ -103,10 +103,10 @@ class Table(BaseModel):
         name: str,
         hash_key_attr: str,
         hash_key_type: str,
-        range_key_attr: Optional[str] = None,
-        range_key_type: Optional[str] = None,
-        read_capacity: Optional[str] = None,
-        write_capacity: Optional[str] = None,
+        range_key_attr: str | None = None,
+        range_key_type: str | None = None,
+        read_capacity: str | None = None,
+        write_capacity: str | None = None,
     ):
         self.account_id = account_id
         self.name = name
@@ -167,7 +167,7 @@ class Table(BaseModel):
     def put_item(self, item_attrs: dict[str, Any]) -> Item:
         hash_value = DynamoType(item_attrs.get(self.hash_key_attr))  # type: ignore[arg-type]
         if self.has_range_key:
-            range_value: Optional[DynamoType] = DynamoType(
+            range_value: DynamoType | None = DynamoType(
                 item_attrs.get(self.range_key_attr)  # type: ignore[arg-type]
             )
         else:
@@ -184,8 +184,8 @@ class Table(BaseModel):
         return item
 
     def get_item(
-        self, hash_key: DynamoType, range_key: Optional[DynamoType]
-    ) -> Optional[Item]:
+        self, hash_key: DynamoType, range_key: DynamoType | None
+    ) -> Item | None:
         if self.has_range_key and not range_key:
             raise ValueError(
                 "Table has a range key, but no range key was passed into get_item"
@@ -259,8 +259,8 @@ class Table(BaseModel):
         return results, scanned_count, last_page
 
     def delete_item(
-        self, hash_key: DynamoType, range_key: Optional[DynamoType]
-    ) -> Optional[Item]:
+        self, hash_key: DynamoType, range_key: DynamoType | None
+    ) -> Item | None:
         try:
             if range_key:
                 return self.items[hash_key].pop(range_key)  # type: ignore
@@ -272,9 +272,9 @@ class Table(BaseModel):
     def update_item(
         self,
         hash_key: DynamoType,
-        range_key: Optional[DynamoType],
+        range_key: DynamoType | None,
         attr_updates: dict[str, Any],
-    ) -> Optional[Item]:
+    ) -> Item | None:
         item = self.get_item(hash_key, range_key)
         if not item:
             return None
@@ -299,7 +299,7 @@ class DynamoDBBackend(BaseBackend):
         self.tables[name] = table
         return table
 
-    def delete_table(self, name: str) -> Optional[Table]:
+    def delete_table(self, name: str) -> Table | None:
         return self.tables.pop(name, None)
 
     def update_table_throughput(
@@ -310,7 +310,7 @@ class DynamoDBBackend(BaseBackend):
         table.write_capacity = new_write_units
         return table
 
-    def put_item(self, table_name: str, item_attrs: dict[str, Any]) -> Optional[Item]:
+    def put_item(self, table_name: str, item_attrs: dict[str, Any]) -> Item | None:
         table = self.tables.get(table_name)
         if not table:
             return None
@@ -321,8 +321,8 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         hash_key_dict: dict[str, Any],
-        range_key_dict: Optional[dict[str, Any]],
-    ) -> Optional[Item]:
+        range_key_dict: dict[str, Any] | None,
+    ) -> Item | None:
         table = self.tables.get(table_name)
         if not table:
             return None
@@ -338,7 +338,7 @@ class DynamoDBBackend(BaseBackend):
         hash_key_dict: dict[str, Any],
         range_comparison: str,
         range_value_dicts: list[dict[str, Any]],
-    ) -> tuple[Optional[Iterable[Item]], Optional[bool]]:
+    ) -> tuple[Iterable[Item] | None, bool | None]:
         table = self.tables.get(table_name)
         if not table:
             return None, None
@@ -350,7 +350,7 @@ class DynamoDBBackend(BaseBackend):
 
     def scan(
         self, table_name: str, filters: dict[str, Any]
-    ) -> tuple[Optional[list[Item]], Optional[int], Optional[bool]]:
+    ) -> tuple[list[Item] | None, int | None, bool | None]:
         table = self.tables.get(table_name)
         if not table:
             return None, None, None
@@ -366,8 +366,8 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         hash_key_dict: dict[str, Any],
-        range_key_dict: Optional[dict[str, Any]],
-    ) -> Optional[Item]:
+        range_key_dict: dict[str, Any] | None,
+    ) -> Item | None:
         table = self.tables.get(table_name)
         if not table:
             return None
@@ -381,9 +381,9 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         hash_key_dict: dict[str, Any],
-        range_key_dict: Optional[dict[str, Any]],
+        range_key_dict: dict[str, Any] | None,
         attr_updates: dict[str, Any],
-    ) -> Optional[Item]:
+    ) -> Item | None:
         table = self.tables.get(table_name)
         if not table:
             return None

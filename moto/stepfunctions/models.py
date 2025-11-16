@@ -2,7 +2,7 @@ import json
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional
+from typing import Any
 
 from dateutil.tz import tzlocal
 
@@ -39,9 +39,9 @@ class StateMachineInstance:
         name: str,
         definition: str,
         roleArn: str,
-        encryptionConfiguration: Optional[dict[str, Any]] = None,
-        loggingConfiguration: Optional[dict[str, Any]] = None,
-        tracingConfiguration: Optional[dict[str, Any]] = None,
+        encryptionConfiguration: dict[str, Any] | None = None,
+        loggingConfiguration: dict[str, Any] | None = None,
+        tracingConfiguration: dict[str, Any] | None = None,
     ):
         self.creation_date = iso_8601_datetime_with_milliseconds()
         self.update_date = self.creation_date
@@ -57,12 +57,12 @@ class StateMachineInstance:
         self.loggingConfiguration = loggingConfiguration or {"level": "OFF"}
         self.tracingConfiguration = tracingConfiguration or {"enabled": False}
         self.sm_type = "STANDARD"  # or express
-        self.description: Optional[str] = None
+        self.description: str | None = None
 
 
 class StateMachineVersion(StateMachineInstance, CloudFormationModel):
     def __init__(
-        self, source: StateMachineInstance, version: int, description: Optional[str]
+        self, source: StateMachineInstance, version: int, description: str | None
     ):
         version_arn = f"{source.arn}:{version}"
         StateMachineInstance.__init__(
@@ -88,9 +88,9 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         definition: str,
         roleArn: str,
         backend: "StepFunctionBackend",
-        encryptionConfiguration: Optional[dict[str, Any]] = None,
-        loggingConfiguration: Optional[dict[str, Any]] = None,
-        tracingConfiguration: Optional[dict[str, Any]] = None,
+        encryptionConfiguration: dict[str, Any] | None = None,
+        loggingConfiguration: dict[str, Any] | None = None,
+        tracingConfiguration: dict[str, Any] | None = None,
     ):
         StateMachineInstance.__init__(
             self,
@@ -104,10 +104,10 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         )
         self.latest_version_number = 0
         self.versions: dict[int, StateMachineVersion] = {}
-        self.latest_version: Optional[StateMachineVersion] = None
+        self.latest_version: StateMachineVersion | None = None
         self.backend = backend
 
-    def publish(self, description: Optional[str]) -> None:
+    def publish(self, description: str | None) -> None:
         new_version_number = self.latest_version_number + 1
         new_version = StateMachineVersion(
             source=self, version=new_version_number, description=description
@@ -320,13 +320,13 @@ class Execution:
             if settings.get_sf_execution_history_type() == "SUCCESS"
             else "FAILED"
         )
-        self.stop_date: Optional[datetime] = None
+        self.stop_date: datetime | None = None
         self.account_id = account_id
         self.region_name = region_name
-        self.output: Optional[str] = None
-        self.output_details: Optional[str] = None
-        self.cause: Optional[str] = None
-        self.error: Optional[str] = None
+        self.output: str | None = None
+        self.output_details: str | None = None
+        self.cause: str | None = None
+        self.error: str | None = None
 
     def get_execution_history(self, roleArn: str) -> list[dict[str, Any]]:
         sf_execution_history_type = settings.get_sf_execution_history_type()
@@ -437,7 +437,7 @@ class Activity:
         self,
         arn: str,
         name: str,
-        encryption_configuration: Optional[dict[str, Any]] = None,
+        encryption_configuration: dict[str, Any] | None = None,
     ):
         self.arn = arn
         self.name = name
@@ -595,12 +595,12 @@ class StepFunctionBackend(BaseBackend):
         name: str,
         definition: str,
         roleArn: str,
-        tags: Optional[list[dict[str, str]]] = None,
-        publish: Optional[bool] = None,
-        loggingConfiguration: Optional[dict[str, Any]] = None,
-        tracingConfiguration: Optional[dict[str, Any]] = None,
-        encryptionConfiguration: Optional[dict[str, Any]] = None,
-        version_description: Optional[str] = None,
+        tags: list[dict[str, str]] | None = None,
+        publish: bool | None = None,
+        loggingConfiguration: dict[str, Any] | None = None,
+        tracingConfiguration: dict[str, Any] | None = None,
+        encryptionConfiguration: dict[str, Any] | None = None,
+        version_description: str | None = None,
     ) -> StateMachine:
         self._validate_name(name)
         self._validate_role_arn(roleArn)
@@ -660,13 +660,13 @@ class StepFunctionBackend(BaseBackend):
     def update_state_machine(
         self,
         arn: str,
-        definition: Optional[str] = None,
-        role_arn: Optional[str] = None,
-        logging_configuration: Optional[dict[str, bool]] = None,
-        tracing_configuration: Optional[dict[str, bool]] = None,
-        encryption_configuration: Optional[dict[str, Any]] = None,
-        publish: Optional[bool] = None,
-        version_description: Optional[str] = None,
+        definition: str | None = None,
+        role_arn: str | None = None,
+        logging_configuration: dict[str, bool] | None = None,
+        tracing_configuration: dict[str, bool] | None = None,
+        encryption_configuration: dict[str, Any] | None = None,
+        publish: bool | None = None,
+        version_description: str | None = None,
     ) -> StateMachine:
         sm = self.describe_state_machine(arn)
         updates: dict[str, Any] = {
@@ -704,7 +704,7 @@ class StepFunctionBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_executions(
-        self, state_machine_arn: str, status_filter: Optional[str] = None
+        self, state_machine_arn: str, status_filter: str | None = None
     ) -> list[Execution]:
         executions = self.describe_state_machine(state_machine_arn).executions
 
@@ -758,7 +758,7 @@ class StepFunctionBackend(BaseBackend):
     def get_tags_list_for_state_machine(self, arn: str) -> list[dict[str, str]]:
         return self.list_tags_for_resource(arn)[self.tagger.tag_name]
 
-    def send_task_failure(self, task_token: str, error: Optional[str] = None) -> None:
+    def send_task_failure(self, task_token: str, error: str | None = None) -> None:
         pass
 
     def send_task_heartbeat(self, task_token: str) -> None:
@@ -858,8 +858,8 @@ class StepFunctionBackend(BaseBackend):
     def create_activity(
         self,
         name: str,
-        tags: Optional[list[dict[str, str]]] = None,
-        encryption_configuration: Optional[dict[str, Any]] = None,
+        tags: list[dict[str, str]] | None = None,
+        encryption_configuration: dict[str, Any] | None = None,
     ) -> Activity:
         self._validate_name(name)
 

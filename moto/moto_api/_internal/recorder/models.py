@@ -2,7 +2,7 @@ import base64
 import io
 import json
 import os
-from typing import Any, Optional, Union
+from typing import Any, Union
 from urllib.parse import urlparse
 
 import requests
@@ -15,7 +15,7 @@ class Recorder:
         self._os_enabled = bool(os.environ.get("MOTO_ENABLE_RECORDING", False))
         self._user_enabled = self._os_enabled
 
-    def _record_request(self, request: Any, body: Optional[bytes] = None) -> None:
+    def _record_request(self, request: Any, body: bytes | None = None) -> None:
         """
         Record the current request
         """
@@ -108,7 +108,7 @@ class Recorder:
         with open(filepath) as file:
             return file.read()
 
-    def replay_recording(self, target_host: Optional[str] = None) -> None:
+    def replay_recording(self, target_host: str | None = None) -> None:
         """
         Replays the current log, i.e. replay all requests that were made after the recorder was started.
         Download the recording if you want to manually verify the correct requests will be replayed.

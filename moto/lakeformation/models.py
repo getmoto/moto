@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -129,7 +129,7 @@ class PermissionCatalog:
 
 
 class ListPermissionsResourceDatabase:
-    def __init__(self, catalog_id: Optional[str], name: str):
+    def __init__(self, catalog_id: str | None, name: str):
         self.name = name
         self.catalog_id = catalog_id
 
@@ -137,12 +137,11 @@ class ListPermissionsResourceDatabase:
 class ListPermissionsResourceTable:
     def __init__(
         self,
-        catalog_id: Optional[str],
+        catalog_id: str | None,
         database_name: str,
-        name: Optional[str],
-        table_wildcard: Optional[
-            dict[str, str]
-        ],  # Placeholder type, table_wildcard is an empty dict in docs
+        name: str | None,
+        table_wildcard: dict[str, str]
+        | None,  # Placeholder type, table_wildcard is an empty dict in docs
     ):
         if name is None and table_wildcard is None:
             raise InvalidInput("Table name and table wildcard cannot both be empty.")
@@ -162,7 +161,7 @@ class ExcludedColumnNames:
 class ListPermissionsResourceTableWithColumns:
     def __init__(
         self,
-        catalog_id: Optional[str],
+        catalog_id: str | None,
         database_name: str,
         name: str,
         column_names: list[str],
@@ -176,7 +175,7 @@ class ListPermissionsResourceTableWithColumns:
 
 
 class ListPermissionsResourceDataLocation:
-    def __init__(self, catalog_id: Optional[str], resource_arn: str):
+    def __init__(self, catalog_id: str | None, resource_arn: str):
         self.catalog_id = catalog_id
         self.resource_arn = resource_arn
 
@@ -214,16 +213,15 @@ class ListPermissionsResourceLFTagPolicy:
 class ListPermissionsResource:
     def __init__(
         self,
-        catalog: Optional[
-            dict[str, str]
-        ],  # Placeholder type, catalog is an empty dict in docs
-        database: Optional[ListPermissionsResourceDatabase],
-        table: Optional[ListPermissionsResourceTable],
-        table_with_columns: Optional[ListPermissionsResourceTableWithColumns],
-        data_location: Optional[ListPermissionsResourceDataLocation],
-        data_cells_filter: Optional[ListPermissionsResourceDataCellsFilter],
-        lf_tag: Optional[ListPermissionsResourceLFTag],
-        lf_tag_policy: Optional[ListPermissionsResourceLFTagPolicy],
+        catalog: dict[str, str]
+        | None,  # Placeholder type, catalog is an empty dict in docs
+        database: ListPermissionsResourceDatabase | None,
+        table: ListPermissionsResourceTable | None,
+        table_with_columns: ListPermissionsResourceTableWithColumns | None,
+        data_location: ListPermissionsResourceDataLocation | None,
+        data_cells_filter: ListPermissionsResourceDataCellsFilter | None,
+        lf_tag: ListPermissionsResourceLFTag | None,
+        lf_tag_policy: ListPermissionsResourceLFTagPolicy | None,
     ):
         if (
             catalog is None
@@ -349,9 +347,9 @@ class LakeFormationBackend(BaseBackend):
     def list_permissions(
         self,
         catalog_id: str,
-        principal: Optional[dict[str, str]] = None,
-        resource: Optional[ListPermissionsResource] = None,
-        resource_type: Optional[RessourceType] = None,
+        principal: dict[str, str] | None = None,
+        resource: ListPermissionsResource | None = None,
+        resource_type: RessourceType | None = None,
     ) -> list[dict[str, Any]]:
         """
         No pagination has been implemented yet.

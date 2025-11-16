@@ -2,7 +2,7 @@ import io
 import re
 import urllib.parse
 from collections.abc import Iterator
-from typing import Any, Optional, Union
+from typing import Any, Union
 from urllib.parse import parse_qs, unquote, urlencode, urlparse, urlunparse
 from xml.dom import minidom
 from xml.parsers.expat import ExpatError
@@ -766,7 +766,7 @@ class S3Response(BaseResponse):
                 result_folders.append(key)
         return result_keys, result_folders
 
-    def _get_location_constraint(self) -> Optional[str]:
+    def _get_location_constraint(self) -> str | None:
         try:
             if self.body:
                 return xmltodict.parse(self.body)["CreateBucketConfiguration"][
@@ -1005,7 +1005,7 @@ class S3Response(BaseResponse):
         return template.render(rules=rules)
 
     def get_bucket_location(self) -> str:
-        location: Optional[str] = self.backend.get_bucket_location(self.bucket_name)
+        location: str | None = self.backend.get_bucket_location(self.bucket_name)
         template = self.response_template(S3_BUCKET_LOCATION)
 
         # us-east-1 is different - returns a None location
@@ -1825,9 +1825,7 @@ class S3Response(BaseResponse):
         response_headers.pop("content-length", None)
         return 200, response_headers, ""
 
-    def _get_checksum(
-        self, response_headers: dict[str, Any]
-    ) -> tuple[str, Optional[str]]:
+    def _get_checksum(self, response_headers: dict[str, Any]) -> tuple[str, str | None]:
         checksum_algorithm = self.headers.get("x-amz-sdk-checksum-algorithm", "")
         checksum_header = f"x-amz-checksum-{checksum_algorithm.lower()}"
         checksum_value = self.headers.get(checksum_header)
@@ -1960,7 +1958,7 @@ class S3Response(BaseResponse):
 
     def _get_lock_details(
         self, bucket: "FakeBucket", lock_enabled: bool
-    ) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    ) -> tuple[str | None, str | None, str | None]:
         lock_mode = self.headers.get("x-amz-object-lock-mode")
         lock_until = self.headers.get("x-amz-object-lock-retain-until-date")
         legal_hold = self.headers.get("x-amz-object-lock-legal-hold")
@@ -2213,7 +2211,7 @@ class S3Response(BaseResponse):
 
         return response_dict
 
-    def _acl_from_body(self) -> Optional[FakeAcl]:
+    def _acl_from_body(self) -> FakeAcl | None:
         parsed_xml = xmltodict.parse(self.body)
         if not parsed_xml.get("AccessControlPolicy"):
             raise MalformedACLError()
@@ -2281,7 +2279,7 @@ class S3Response(BaseResponse):
 
         return grants
 
-    def _acl_from_headers(self, headers: dict[str, str]) -> Optional[FakeAcl]:
+    def _acl_from_headers(self, headers: dict[str, str]) -> FakeAcl | None:
         canned_acl = headers.get("x-amz-acl", "")
 
         grants = []
@@ -2367,7 +2365,7 @@ class S3Response(BaseResponse):
 
         return [parsed_xml["CORSConfiguration"]["CORSRule"]]
 
-    def _mode_until_from_body(self) -> tuple[Optional[str], Optional[str]]:
+    def _mode_until_from_body(self) -> tuple[str | None, str | None]:
         parsed_xml = xmltodict.parse(self.body)
         return (
             parsed_xml.get("Retention", None).get("Mode", None),
@@ -2632,7 +2630,7 @@ class S3Response(BaseResponse):
                 and existing.multipart.id == multipart_id
             ):
                 # Operation is idempotent
-                key: Optional[FakeKey] = existing
+                key: FakeKey | None = existing
             else:
                 if self.headers.get("If-None-Match") == "*" and existing is not None:
                     raise PreconditionFailed("If-None-Match")

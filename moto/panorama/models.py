@@ -2,7 +2,7 @@ import base64
 import json
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from dateutil.tz import tzutc
 
@@ -73,10 +73,10 @@ class Device(BaseObject):
         self,
         account_id: str,
         region_name: str,
-        description: Optional[str],
+        description: str | None,
         name: str,
-        network_configuration: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        network_configuration: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ) -> None:
         # ManagedState is a class that helps us manage the state of a resource.
         # A Panorama Device has a lot of different states that has their own lifecycle.
@@ -403,10 +403,10 @@ class PanoramaBackend(BaseBackend):
 
     def provision_device(
         self,
-        description: Optional[str],
+        description: str | None,
         name: str,
-        networking_configuration: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        networking_configuration: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ) -> Device:
         device_obj = Device(
             account_id=self.account_id,
@@ -514,7 +514,7 @@ class PanoramaBackend(BaseBackend):
 
     def create_application_instance(
         self,
-        application_instance_id_to_replace: Optional[str],
+        application_instance_id_to_replace: str | None,
         default_runtime_context_device: str,
         description: str,
         manifest_overrides_payload: dict[str, str],
@@ -566,8 +566,8 @@ class PanoramaBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_application_instances(
         self,
-        device_id: Optional[str],
-        status_filter: Optional[str],
+        device_id: str | None,
+        status_filter: str | None,
     ) -> list[ApplicationInstance]:
         filtered_application_instances = filter(
             lambda x: x.status == status_filter if status_filter else True,

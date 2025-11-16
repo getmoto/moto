@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from antlr4 import ParserRuleContext
 from antlr4.tree.Tree import ParseTree, TerminalNodeImpl
@@ -396,7 +396,7 @@ class Preprocessor(ASLParserVisitor):
             )
 
     @staticmethod
-    def _inner_string_of(parser_rule_context: ParserRuleContext) -> Optional[str]:
+    def _inner_string_of(parser_rule_context: ParserRuleContext) -> str | None:
         if is_terminal(parser_rule_context, ASLLexer.NULL):
             return None
         inner_str = parser_rule_context.getText()
@@ -430,7 +430,7 @@ class Preprocessor(ASLParserVisitor):
     def visitStates_decl(self, ctx: ASLParser.States_declContext) -> States:
         states = States()
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, CommonStateField):
                 # TODO move check to setter or checker layer?
                 if cmp.name in states.states:
@@ -451,7 +451,7 @@ class Preprocessor(ASLParserVisitor):
 
     def visitEnd_decl(self, ctx: ASLParser.End_declContext) -> End:
         bool_child: ParseTree = ctx.children[-1]
-        bool_term: Optional[TerminalNodeImpl] = is_terminal(bool_child)
+        bool_term: TerminalNodeImpl | None = is_terminal(bool_child)
         if bool_term is None:
             raise ValueError(
                 f"Could not derive End from declaration context '{ctx.getText()}'"
@@ -474,7 +474,7 @@ class Preprocessor(ASLParserVisitor):
         return ResultPath(result_path_src=inner_str)
 
     def visitInput_path_decl(self, ctx: ASLParser.Input_path_declContext) -> InputPath:
-        string_sampler: Optional[StringSampler] = None
+        string_sampler: StringSampler | None = None
         if not is_terminal(pt=ctx.children[-1], token_type=ASLLexer.NULL):
             string_sampler: StringSampler = self.visitString_sampler(
                 ctx.string_sampler()
@@ -487,7 +487,7 @@ class Preprocessor(ASLParserVisitor):
         self._raise_if_query_language_is_not(
             query_language_mode=QueryLanguageMode.JSONPath, ctx=ctx
         )
-        string_sampler: Optional[StringSampler] = None
+        string_sampler: StringSampler | None = None
         if is_production(ctx.children[-1], ASLParser.RULE_string_sampler):
             string_sampler: StringSampler = self.visitString_sampler(ctx.children[-1])
         return OutputPath(string_sampler=string_sampler)
@@ -559,7 +559,7 @@ class Preprocessor(ASLParserVisitor):
     def visitBranches_decl(self, ctx: ASLParser.Branches_declContext) -> BranchesDecl:
         programs: list[Program] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, Program):
                 programs.append(cmp)
         return BranchesDecl(programs=programs)
@@ -568,7 +568,7 @@ class Preprocessor(ASLParserVisitor):
         self._open_query_language_scope(ctx)
         state_props = StateProps()
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             state_props.add(cmp)
         if state_props.get(QueryLanguage) is None:
             state_props.add(self._get_current_query_language())
@@ -619,7 +619,7 @@ class Preprocessor(ASLParserVisitor):
             query_language_mode=QueryLanguageMode.JSONata, ctx=ctx
         )
         bool_child: ParseTree = ctx.children[-1]
-        bool_term: Optional[TerminalNodeImpl] = is_terminal(bool_child)
+        bool_term: TerminalNodeImpl | None = is_terminal(bool_child)
         if bool_term is None:
             raise ValueError(
                 f"Could not derive boolean literal from declaration context '{ctx.getText()}'."
@@ -695,7 +695,7 @@ class Preprocessor(ASLParserVisitor):
         self._raise_if_query_language_is_not(
             query_language_mode=QueryLanguageMode.JSONPath, ctx=ctx
         )
-        pt: Optional[TerminalNodeImpl] = is_terminal(ctx.children[0])
+        pt: TerminalNodeImpl | None = is_terminal(ctx.children[0])
         if not pt:
             raise ValueError(
                 f"Could not derive ChoiceOperator in block '{ctx.getText()}'."
@@ -708,7 +708,7 @@ class Preprocessor(ASLParserVisitor):
         choice_op: ComparisonComposite.ChoiceOp = self.visit(ctx.choice_operator())
         rules: list[ChoiceRule] = []
         for child in ctx.children[1:]:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if not cmp:
                 continue
             elif isinstance(cmp, ChoiceRule):
@@ -730,7 +730,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> ChoiceRule:
         composite_stmts = ComparisonCompositeProps()
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             composite_stmts.add(cmp)
         return ChoiceRule(
             comparison=composite_stmts.get(
@@ -750,7 +750,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> ChoiceRule:
         comparison_stmts = StateProps()
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             comparison_stmts.add(cmp)
         if self._is_query_language(query_language_mode=QueryLanguageMode.JSONPath):
             variable: Variable = comparison_stmts.get(
@@ -797,7 +797,7 @@ class Preprocessor(ASLParserVisitor):
     def visitChoices_decl(self, ctx: ASLParser.Choices_declContext) -> ChoicesDecl:
         rules: list[ChoiceRule] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if not cmp:
                 continue
             elif isinstance(cmp, ChoiceRule):
@@ -1168,7 +1168,7 @@ class Preprocessor(ASLParserVisitor):
     def visitRetry_decl(self, ctx: ASLParser.Retry_declContext) -> RetryDecl:
         retriers: list[RetrierDecl] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, RetrierDecl):
                 retriers.append(cmp)
         return RetryDecl(retriers=retriers)
@@ -1176,7 +1176,7 @@ class Preprocessor(ASLParserVisitor):
     def visitRetrier_decl(self, ctx: ASLParser.Retrier_declContext) -> RetrierDecl:
         props = RetrierProps()
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             props.add(cmp)
         return RetrierDecl.from_retrier_props(props=props)
 
@@ -1197,7 +1197,7 @@ class Preprocessor(ASLParserVisitor):
         pt = ctx.children[0]
 
         # Case: StatesErrorName.
-        prc: Optional[ParserRuleContext] = is_production(
+        prc: ParserRuleContext | None = is_production(
             pt=pt, rule_index=ASLParser.RULE_states_error_name
         )
         if prc:
@@ -1210,7 +1210,7 @@ class Preprocessor(ASLParserVisitor):
     def visitStates_error_name(
         self, ctx: ASLParser.States_error_nameContext
     ) -> StatesErrorName:
-        pt: Optional[TerminalNodeImpl] = is_terminal(ctx.children[0])
+        pt: TerminalNodeImpl | None = is_terminal(ctx.children[0])
         if not pt:
             raise ValueError(f"Could not derive ErrorName in block '{ctx.getText()}'.")
         states_error_name_type = StatesErrorNameType(pt.symbol.type)
@@ -1240,7 +1240,7 @@ class Preprocessor(ASLParserVisitor):
         self, ctx: ASLParser.Jitter_strategy_declContext
     ) -> JitterStrategyDecl:
         last_child: ParseTree = ctx.children[-1]
-        strategy_child: Optional[TerminalNodeImpl] = is_terminal(last_child)
+        strategy_child: TerminalNodeImpl | None = is_terminal(last_child)
         strategy_value = strategy_child.getSymbol().type
         jitter_strategy = JitterStrategy(strategy_value)
         return JitterStrategyDecl(jitter_strategy=jitter_strategy)
@@ -1248,7 +1248,7 @@ class Preprocessor(ASLParserVisitor):
     def visitCatch_decl(self, ctx: ASLParser.Catch_declContext) -> CatchDecl:
         catchers: list[CatcherDecl] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, CatcherDecl):
                 catchers.append(cmp)
         return CatchDecl(catchers=catchers)
@@ -1256,7 +1256,7 @@ class Preprocessor(ASLParserVisitor):
     def visitCatcher_decl(self, ctx: ASLParser.Catcher_declContext) -> CatcherDecl:
         props = CatcherProps()
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             props.add(cmp)
         if self._is_query_language(QueryLanguageMode.JSONPath) and not props.get(
             ResultPath
@@ -1278,7 +1278,7 @@ class Preprocessor(ASLParserVisitor):
         self, ctx: ASLParser.Payload_value_boolContext
     ) -> PayloadValueBool:
         bool_child: ParseTree = ctx.children[0]
-        bool_term: Optional[TerminalNodeImpl] = is_terminal(bool_child)
+        bool_term: TerminalNodeImpl | None = is_terminal(bool_child)
         if bool_term is None:
             raise ValueError(
                 f"Could not derive PayloadValueBool from declaration context '{ctx.getText()}'."
@@ -1330,7 +1330,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> PayloadArr:
         payload_values: list[PayloadValue] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, PayloadValue):
                 payload_values.append(cmp)
         return PayloadArr(payload_values=payload_values)
@@ -1340,7 +1340,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> PayloadTmpl:
         payload_bindings: list[PayloadBinding] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, PayloadBinding):
                 payload_bindings.append(cmp)
         return PayloadTmpl(payload_bindings=payload_bindings)
@@ -1355,7 +1355,7 @@ class Preprocessor(ASLParserVisitor):
         self._open_query_language_scope(ctx)
         props = TypedProps()
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             props.add(cmp)
         if props.get(QueryLanguage) is None:
             props.add(self._get_current_query_language())
@@ -1446,7 +1446,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> AssignTemplateValueArray:
         values: list[AssignTemplateValue] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, AssignTemplateValue):
                 values.append(cmp)
         return AssignTemplateValueArray(values=values)
@@ -1456,7 +1456,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> AssignTemplateValueObject:
         bindings: list[AssignTemplateBinding] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, AssignTemplateBinding):
                 bindings.append(cmp)
         return AssignTemplateValueObject(bindings=bindings)
@@ -1495,7 +1495,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> list[AssignDeclBinding]:
         bindings: list[AssignDeclBinding] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, AssignDeclBinding):
                 bindings.append(cmp)
         return bindings
@@ -1552,7 +1552,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> JSONataTemplateValueArray:
         values: list[JSONataTemplateValue] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, JSONataTemplateValue):
                 values.append(cmp)
         return JSONataTemplateValueArray(values=values)
@@ -1562,7 +1562,7 @@ class Preprocessor(ASLParserVisitor):
     ) -> JSONataTemplateValueObject:
         bindings: list[JSONataTemplateBinding] = []
         for child in ctx.children:
-            cmp: Optional[Component] = self.visit(child)
+            cmp: Component | None = self.visit(child)
             if isinstance(cmp, JSONataTemplateBinding):
                 bindings.append(cmp)
         return JSONataTemplateValueObject(bindings=bindings)

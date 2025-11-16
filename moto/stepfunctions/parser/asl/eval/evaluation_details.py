@@ -1,4 +1,4 @@
-from typing import Any, Final, Optional
+from typing import Any, Final
 
 from moto.stepfunctions.parser.api import Arn, Definition, LongArn, StateMachineType
 
@@ -18,7 +18,7 @@ class ExecutionDetails:
     arn: Final[LongArn]
     name: Final[str]
     role_arn: Final[Arn]
-    inpt: Final[Optional[Any]]
+    inpt: Final[Any | None]
     start_time: Final[str]
 
     def __init__(
@@ -26,7 +26,7 @@ class ExecutionDetails:
         arn: LongArn,
         name: str,
         role_arn: Arn,
-        inpt: Optional[Any],
+        inpt: Any | None,
         start_time: str,
     ):
         self.arn = arn

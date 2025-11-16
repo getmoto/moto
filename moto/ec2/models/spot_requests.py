@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
@@ -20,12 +20,12 @@ from .instance_types import INSTANCE_TYPE_OFFERINGS
 class LaunchSpecification(BaseModel):
     def __init__(
         self,
-        kernel_id: Optional[str],
-        ramdisk_id: Optional[str],
-        image_id: Optional[str],
-        key_name: Optional[str],
+        kernel_id: str | None,
+        ramdisk_id: str | None,
+        image_id: str | None,
+        key_name: str | None,
         instance_type: str,
-        placement: Optional[str],
+        placement: str | None,
         monitored: bool,
         subnet_id: str,
     ):
@@ -49,22 +49,22 @@ class SpotInstanceRequest(TaggedEC2Resource):
         price: str,
         image_id: str,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
-        launch_group: Optional[str],
-        availability_zone_group: Optional[str],
+        valid_from: str | None,
+        valid_until: str | None,
+        launch_group: str | None,
+        availability_zone_group: str | None,
         key_name: str,
         security_groups: list[str],
         user_data: dict[str, Any],
         instance_type: str,
-        placement: Optional[str],
-        kernel_id: Optional[str],
-        ramdisk_id: Optional[str],
+        placement: str | None,
+        kernel_id: str | None,
+        ramdisk_id: str | None,
         monitoring_enabled: bool,
         subnet_id: str,
         tags: dict[str, dict[str, str]],
-        spot_fleet_id: Optional[str],
-        instance_interruption_behaviour: Optional[str],
+        spot_fleet_id: str | None,
+        instance_interruption_behaviour: str | None,
     ):
         super().__init__()
         self.ec2_backend = ec2_backend
@@ -114,9 +114,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
         self.status = "fulfilled"
         self.status_message = ""
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         if filter_name == "state":
             return self.state
         elif filter_name == "spot-instance-request-id":
@@ -184,9 +182,9 @@ class SpotFleetRequest(TaggedEC2Resource, CloudFormationModel):
         iam_fleet_role: str,
         allocation_strategy: str,
         launch_specs: list[dict[str, Any]],
-        launch_template_config: Optional[list[dict[str, Any]]],
-        instance_interruption_behaviour: Optional[str],
-        tag_specifications: Optional[list[dict[str, Any]]],
+        launch_template_config: list[dict[str, Any]] | None,
+        instance_interruption_behaviour: str | None,
+        tag_specifications: list[dict[str, Any]] | None,
     ):
         self.ec2_backend = ec2_backend
         self.spot_backend = spot_backend
@@ -390,22 +388,22 @@ class SpotRequestBackend:
         image_id: str,
         count: int,
         spot_instance_type: str,
-        valid_from: Optional[str],
-        valid_until: Optional[str],
-        launch_group: Optional[str],
-        availability_zone_group: Optional[str],
+        valid_from: str | None,
+        valid_until: str | None,
+        launch_group: str | None,
+        availability_zone_group: str | None,
         key_name: str,
         security_groups: list[str],
         user_data: dict[str, Any],
         instance_type: str,
-        placement: Optional[str],
-        kernel_id: Optional[str],
-        ramdisk_id: Optional[str],
+        placement: str | None,
+        kernel_id: str | None,
+        ramdisk_id: str | None,
         monitoring_enabled: bool,
         subnet_id: str,
-        tags: Optional[dict[str, dict[str, str]]] = None,
-        spot_fleet_id: Optional[str] = None,
-        instance_interruption_behaviour: Optional[str] = None,
+        tags: dict[str, dict[str, str]] | None = None,
+        spot_fleet_id: str | None = None,
+        instance_interruption_behaviour: str | None = None,
     ) -> list[SpotInstanceRequest]:
         requests = []
         tags = tags or {}
@@ -439,7 +437,7 @@ class SpotRequestBackend:
         return requests
 
     def describe_spot_instance_requests(
-        self, filters: Any = None, spot_instance_ids: Optional[list[str]] = None
+        self, filters: Any = None, spot_instance_ids: list[str] | None = None
     ) -> list[SpotInstanceRequest]:
         requests = list(self.spot_instance_requests.values())
 
@@ -463,9 +461,9 @@ class SpotRequestBackend:
         iam_fleet_role: str,
         allocation_strategy: str,
         launch_specs: list[dict[str, Any]],
-        launch_template_config: Optional[list[dict[str, Any]]] = None,
-        instance_interruption_behaviour: Optional[str] = None,
-        tag_specifications: Optional[list[dict[str, Any]]] = None,
+        launch_template_config: list[dict[str, Any]] | None = None,
+        instance_interruption_behaviour: str | None = None,
+        tag_specifications: list[dict[str, Any]] | None = None,
     ) -> SpotFleetRequest:
         spot_fleet_request_id = random_spot_fleet_request_id()
         request = SpotFleetRequest(
@@ -486,7 +484,7 @@ class SpotRequestBackend:
 
     def get_spot_fleet_request(
         self, spot_fleet_request_id: str
-    ) -> Optional[SpotFleetRequest]:
+    ) -> SpotFleetRequest | None:
         return self.spot_fleet_requests.get(spot_fleet_request_id)
 
     def describe_spot_fleet_instances(
@@ -538,7 +536,7 @@ class SpotRequestBackend:
             spot_fleet_request.terminate_instances()
 
     def describe_spot_price_history(
-        self, instance_types: Optional[list[str]] = None, filters: Any = None
+        self, instance_types: list[str] | None = None, filters: Any = None
     ) -> list[dict[str, str]]:
         matches = INSTANCE_TYPE_OFFERINGS["availability-zone"]
         matches = matches.get(self.region_name, [])  # type: ignore[attr-defined]

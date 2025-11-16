@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, NamedTuple, Optional
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from botocore.exceptions import ParamValidationError
 
@@ -20,21 +20,21 @@ if TYPE_CHECKING:
 class Group(NamedTuple):
     GroupId: str
     DisplayName: str
-    ExternalIds: list[Optional[dict[str, str]]]
+    ExternalIds: list[dict[str, str] | None]
     Description: str
     IdentityStoreId: str
 
 
 class Name(NamedTuple):
-    Formatted: Optional[str]
-    FamilyName: Optional[str]
-    GivenName: Optional[str]
-    MiddleName: Optional[str]
-    HonorificPrefix: Optional[str]
-    HonorificSuffix: Optional[str]
+    Formatted: str | None
+    FamilyName: str | None
+    GivenName: str | None
+    MiddleName: str | None
+    HonorificPrefix: str | None
+    HonorificSuffix: str | None
 
     @classmethod
-    def from_dict(cls, name_dict: dict[str, str]) -> "Optional[Self]":
+    def from_dict(cls, name_dict: dict[str, str]) -> "Self | None":
         if not name_dict:
             return None
         return cls(
@@ -51,7 +51,7 @@ class User(NamedTuple):
     UserId: str
     IdentityStoreId: str
     UserName: str
-    Name: Optional[Name]
+    Name: Name | None
     DisplayName: str
     NickName: str
     ProfileUrl: str

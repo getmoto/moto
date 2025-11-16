@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.core.exceptions import ServiceException
 
 
@@ -24,7 +22,7 @@ class ClusterSecurityGroupNotFoundError(RedshiftClientError):
     code = "ClusterSecurityGroupNotFound"
     message = "The cluster security group name does not refer to an existing cluster security group."
 
-    def __init__(self, group_identifier: Optional[str] = None):
+    def __init__(self, group_identifier: str | None = None):
         if group_identifier:
             super().__init__(f"Security group {group_identifier} not found.")
 
@@ -83,9 +81,9 @@ class InvalidParameterValueError(RedshiftClientError):
 class ResourceNotFoundFaultError(RedshiftClientError):
     def __init__(
         self,
-        resource_type: Optional[str] = None,
-        resource_name: Optional[str] = None,
-        message: Optional[str] = None,
+        resource_type: str | None = None,
+        resource_name: str | None = None,
+        message: str | None = None,
     ):
         if resource_type and not resource_name:
             msg = f"resource of type '{resource_type}' not found."

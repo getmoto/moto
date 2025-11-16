@@ -11,7 +11,6 @@ from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from typing import (
     Any,
-    Optional,
     TypeVar,
     Union,
 )
@@ -283,7 +282,7 @@ def resource_class_from_type(resource_type: str) -> type[CloudFormationModel]:
     return get_model_map()[resource_type]
 
 
-def resource_name_property_from_type(resource_type: str) -> Optional[str]:
+def resource_name_property_from_type(resource_type: str) -> str | None:
     for model in get_model_list():
         if model.cloudformation_type() == resource_type:
             return model.cloudformation_name_type()
@@ -373,7 +372,7 @@ def parse_and_create_resource(
     resources_map: "ResourceMap",
     account_id: str,
     region_name: str,
-) -> Optional[CF_MODEL]:
+) -> CF_MODEL | None:
     condition = resource_json.get("Condition")
     if condition and not resources_map.lazy_condition_map[condition]:
         # If this has a False condition, don't create the resource
@@ -405,8 +404,8 @@ def parse_and_update_resource(
     resources_map: "ResourceMap",
     account_id: str,
     region_name: str,
-) -> Optional[CF_MODEL]:
-    resource_tuple: Optional[tuple[type[CloudFormationModel], dict[str, Any], str]] = (
+) -> CF_MODEL | None:
+    resource_tuple: tuple[type[CloudFormationModel], dict[str, Any], str] | None = (
         parse_resource_and_generate_name(logical_id, resource_json, resources_map)
     )
     if not resource_tuple:
@@ -481,7 +480,7 @@ def parse_condition(  # type: ignore[return]
 
 def parse_output(
     output_logical_id: str, output_json: Any, resources_map: "ResourceMap"
-) -> Optional[Output]:
+) -> Output | None:
     if "Condition" in output_json and not resources_map.lazy_condition_map.get(
         output_json["Condition"]
     ):
@@ -528,7 +527,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         region_name: str,
         account_id: str,
         template: dict[str, Any],
-        cross_stack_resources: Optional[dict[str, "Export"]],
+        cross_stack_resources: dict[str, "Export"] | None,
     ):
         self._template = template
         self._resource_json_map: dict[str, Any] = (
@@ -553,7 +552,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
             "AWS::Partition": "aws",
         }
 
-    def __getitem__(self, key: str) -> Optional[CF_MODEL]:
+    def __getitem__(self, key: str) -> CF_MODEL | None:
         resource_logical_id = key
 
         if resource_logical_id in self._parsed_resources:
@@ -773,7 +772,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
     def build_resource_diff(
         self,
         other_template: dict[str, Any],
-        parameters: Optional[dict[str, Any]] = None,
+        parameters: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         old = self._resource_json_map
         new = other_template["Resources"]
@@ -830,7 +829,7 @@ class ResourceMap(collections_abc.Mapping):  # type: ignore[type-arg]
         return resources_by_action
 
     def update(
-        self, template: dict[str, Any], parameters: Optional[dict[str, Any]] = None
+        self, template: dict[str, Any], parameters: dict[str, Any] | None = None
     ) -> None:
         resource_names_by_action = self.build_resource_diff(template, parameters)
 
@@ -970,7 +969,7 @@ class OutputMap(collections_abc.Mapping):  # type: ignore[type-arg]
         self._resource_map = resources
         self._parsed_outputs: dict[str, Output] = {}
 
-    def __getitem__(self, key: str) -> Optional[Output]:
+    def __getitem__(self, key: str) -> Output | None:
         output_logical_id = key
 
         if output_logical_id in self._parsed_outputs:

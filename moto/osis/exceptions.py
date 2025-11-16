@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -18,9 +17,7 @@ class PipelineAlreadyExistsException(OpensearchIngestionExceptions):
 
 
 class PipelineInvalidStateException(OpensearchIngestionExceptions):
-    def __init__(
-        self, action: str, valid_states: list[str], current_state: Optional[str]
-    ):
+    def __init__(self, action: str, valid_states: list[str], current_state: str | None):
         super().__init__(
             "ConflictException",
             f"Only pipelines with one of the following statuses are eligible for {action}: {valid_states}. The current status is {current_state}.",

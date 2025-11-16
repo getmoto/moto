@@ -3,7 +3,7 @@
 import copy
 import random
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -149,19 +149,19 @@ class MemoryDBCluster(BaseModel):
 
     def update(
         self,
-        description: Optional[str],
-        security_group_ids: Optional[list[str]],
-        maintenance_window: Optional[str],
-        sns_topic_arn: Optional[str],
-        sns_topic_status: Optional[str],
-        parameter_group_name: Optional[str],
-        snapshot_window: Optional[str],
-        snapshot_retention_limit: Optional[int],
-        node_type: Optional[str],
-        engine_version: Optional[str],
-        replica_configuration: Optional[dict[str, int]],
-        shard_configuration: Optional[dict[str, int]],
-        acl_name: Optional[str],
+        description: str | None,
+        security_group_ids: list[str] | None,
+        maintenance_window: str | None,
+        sns_topic_arn: str | None,
+        sns_topic_status: str | None,
+        parameter_group_name: str | None,
+        snapshot_window: str | None,
+        snapshot_retention_limit: int | None,
+        node_type: str | None,
+        engine_version: str | None,
+        replica_configuration: dict[str, int] | None,
+        shard_configuration: dict[str, int] | None,
+        acl_name: str | None,
     ) -> None:
         if description is not None:
             self.description = description
@@ -238,7 +238,7 @@ class MemoryDBSubnetGroup(BaseModel):
         subnet_group_name: str,
         description: str,
         subnet_ids: list[str],
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         self.ec2_backend = ec2_backend
         self.subnet_group_name = subnet_group_name
@@ -279,9 +279,9 @@ class MemoryDBSnapshot(BaseModel):
         region_name: str,
         cluster: MemoryDBCluster,
         snapshot_name: str,
-        kms_key_id: Optional[str],
-        tags: Optional[list[dict[str, str]]],
-        source: Optional[str],
+        kms_key_id: str | None,
+        tags: list[dict[str, str]] | None,
+        source: str | None,
     ):
         self.cluster = copy.copy(cluster)
         self.cluster_name = self.cluster.cluster_name
@@ -442,7 +442,7 @@ class MemoryDBBackend(BaseBackend):
         subnet_group_name: str,
         description: str,
         subnet_ids: list[str],
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> MemoryDBSubnetGroup:
         if subnet_group_name in self.subnet_groups:
             raise SubnetGroupAlreadyExistsFault(
@@ -466,8 +466,8 @@ class MemoryDBBackend(BaseBackend):
         self,
         cluster_name: str,
         snapshot_name: str,
-        kms_key_id: Optional[str] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: str | None = None,
+        tags: list[dict[str, str]] | None = None,
         source: str = "manual",
     ) -> MemoryDBSnapshot:
         if cluster_name not in self.clusters:
@@ -493,7 +493,7 @@ class MemoryDBBackend(BaseBackend):
         return snapshot
 
     def describe_clusters(
-        self, cluster_name: Optional[str] = None
+        self, cluster_name: str | None = None
     ) -> list[MemoryDBCluster]:
         if cluster_name:
             if cluster_name in self.clusters:
@@ -506,9 +506,9 @@ class MemoryDBBackend(BaseBackend):
 
     def describe_snapshots(
         self,
-        cluster_name: Optional[str] = None,
-        snapshot_name: Optional[str] = None,
-        source: Optional[str] = None,
+        cluster_name: str | None = None,
+        snapshot_name: str | None = None,
+        source: str | None = None,
     ) -> list[MemoryDBSnapshot]:
         sources = ["automated", "manual"] if source is None else [source]
 
@@ -614,19 +614,19 @@ class MemoryDBBackend(BaseBackend):
     def update_cluster(
         self,
         cluster_name: str,
-        description: Optional[str],
-        security_group_ids: Optional[list[str]],
-        maintenance_window: Optional[str],
-        sns_topic_arn: Optional[str],
-        sns_topic_status: Optional[str],
-        parameter_group_name: Optional[str],
-        snapshot_window: Optional[str],
-        snapshot_retention_limit: Optional[int],
-        node_type: Optional[str],
-        engine_version: Optional[str],
-        replica_configuration: Optional[dict[str, int]],
-        shard_configuration: Optional[dict[str, int]],
-        acl_name: Optional[str],
+        description: str | None,
+        security_group_ids: list[str] | None,
+        maintenance_window: str | None,
+        sns_topic_arn: str | None,
+        sns_topic_status: str | None,
+        parameter_group_name: str | None,
+        snapshot_window: str | None,
+        snapshot_retention_limit: int | None,
+        node_type: str | None,
+        engine_version: str | None,
+        replica_configuration: dict[str, int] | None,
+        shard_configuration: dict[str, int] | None,
+        acl_name: str | None,
     ) -> MemoryDBCluster:
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]
@@ -649,7 +649,7 @@ class MemoryDBBackend(BaseBackend):
         raise ClusterNotFoundFault(msg="Cluster not found.")
 
     def delete_cluster(
-        self, cluster_name: str, final_snapshot_name: Optional[str]
+        self, cluster_name: str, final_snapshot_name: str | None
     ) -> MemoryDBCluster:
         if cluster_name in self.clusters:
             cluster = self.clusters[cluster_name]

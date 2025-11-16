@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
@@ -42,7 +42,7 @@ class QuickSightBackend(BaseBackend):
         self,
         data_set_id: str,
         name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> QuicksightDataSet:
         dataset = QuicksightDataSet(
             self.account_id, self.region_name, data_set_id, name=name
@@ -176,7 +176,7 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         namespace: str,
         user_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> QuicksightUser:
         """
         The following parameters are not yet implemented:
@@ -326,10 +326,10 @@ class QuickSightBackend(BaseBackend):
         data_source_id: str,
         name: str,
         data_source_type: str,
-        data_source_parameters: Optional[dict[str, dict[str, Any]]] = None,
-        vpc_connection_properties: Optional[dict[str, Any]] = None,
-        ssl_properties: Optional[dict[str, Any]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        data_source_parameters: dict[str, dict[str, Any]] | None = None,
+        vpc_connection_properties: dict[str, Any] | None = None,
+        ssl_properties: dict[str, Any] | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> QuickSightDataSource:
         data_source = QuickSightDataSource(
             account_id=aws_account_id,
@@ -358,9 +358,9 @@ class QuickSightBackend(BaseBackend):
         aws_account_id: str,
         data_source_id: str,
         name: str,
-        data_source_parameters: Optional[dict[str, Any]] = None,
-        vpc_connection_properties: Optional[dict[str, Any]] = None,
-        ssl_properties: Optional[dict[str, Any]] = None,
+        data_source_parameters: dict[str, Any] | None = None,
+        vpc_connection_properties: dict[str, Any] | None = None,
+        ssl_properties: dict[str, Any] | None = None,
     ) -> QuickSightDataSource:
         data_source = self.data_sources.get(data_source_id)
 

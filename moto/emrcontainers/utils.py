@@ -1,6 +1,6 @@
 # import json
 import string
-from typing import Any, Optional
+from typing import Any
 
 from moto.moto_api._internal import mock_random as random
 
@@ -19,8 +19,8 @@ def random_job_id() -> str:
 
 
 def paginated_list(
-    full_list: list[Any], sort_key: str, max_results: int, next_token: Optional[str]
-) -> tuple[list[Any], Optional[str]]:
+    full_list: list[Any], sort_key: str, max_results: int, next_token: str | None
+) -> tuple[list[Any], str | None]:
     """
     Returns a tuple containing a slice of the full list starting at next_token and ending with at most the max_results
     number of elements, and the new next_token which can be passed back in for the next segment of the full list.

@@ -1,6 +1,6 @@
 import datetime
 import hashlib
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -27,7 +27,7 @@ class Job(BaseModel):
 
 
 class ArchiveJob(Job):
-    def __init__(self, job_id: str, tier: str, arn: str, archive_id: Optional[str]):
+    def __init__(self, job_id: str, tier: str, arn: str, archive_id: str | None):
         self.job_id = job_id
         self.tier = tier
         self.arn = arn
@@ -149,7 +149,7 @@ class Vault(BaseModel):
     def delete_archive(self, archive_id: str) -> dict[str, Any]:
         return self.archives.pop(archive_id)
 
-    def initiate_job(self, job_type: str, tier: str, archive_id: Optional[str]) -> str:
+    def initiate_job(self, job_type: str, tier: str, archive_id: str | None) -> str:
         job_id = get_job_id()
 
         if job_type == "inventory-retrieval":
@@ -162,7 +162,7 @@ class Vault(BaseModel):
     def list_jobs(self) -> list[Job]:
         return list(self.jobs.values())
 
-    def describe_job(self, job_id: str) -> Optional[Job]:
+    def describe_job(self, job_id: str) -> Job | None:
         return self.jobs.get(job_id)
 
     def job_ready(self, job_id: str) -> str:
@@ -205,13 +205,13 @@ class GlacierBackend(BaseBackend):
         self.vaults.pop(vault_name)
 
     def initiate_job(
-        self, vault_name: str, job_type: str, tier: str, archive_id: Optional[str]
+        self, vault_name: str, job_type: str, tier: str, archive_id: str | None
     ) -> str:
         vault = self.describe_vault(vault_name)
         job_id = vault.initiate_job(job_type, tier, archive_id)
         return job_id
 
-    def describe_job(self, vault_name: str, archive_id: str) -> Optional[Job]:
+    def describe_job(self, vault_name: str, archive_id: str) -> Job | None:
         vault = self.describe_vault(vault_name)
         return vault.describe_job(archive_id)
 

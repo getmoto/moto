@@ -1,6 +1,6 @@
 """TimestreamQueryBackend class with methods for supported APIs."""
 
-from typing import Any, Optional, Union
+from typing import Any, Union
 from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -20,11 +20,11 @@ class ScheduledQuery(BaseModel):
         query_string: str,
         schedule_configuration: dict[str, str],
         notification_configuration: dict[str, dict[str, str]],
-        target_configuration: Optional[dict[str, Any]],
+        target_configuration: dict[str, Any] | None,
         scheduled_query_execution_role_arn: str,
-        tags: Optional[list[dict[str, str]]],
-        kms_key_id: Optional[str],
-        error_report_configuration: Optional[dict[str, dict[str, str]]],
+        tags: list[dict[str, str]] | None,
+        kms_key_id: str | None,
+        error_report_configuration: dict[str, dict[str, str]] | None,
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -67,7 +67,7 @@ class TimestreamQueryBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.scheduled_queries: dict[str, ScheduledQuery] = {}
 
-        self.query_result_queue: dict[Optional[str], list[dict[str, Any]]] = {}
+        self.query_result_queue: dict[str | None, list[dict[str, Any]]] = {}
         self.query_results: dict[str, dict[str, Any]] = {}
 
     def create_scheduled_query(
@@ -76,10 +76,10 @@ class TimestreamQueryBackend(BaseBackend):
         query_string: str,
         schedule_configuration: dict[str, str],
         notification_configuration: dict[str, dict[str, str]],
-        target_configuration: Optional[dict[str, Any]],
+        target_configuration: dict[str, Any] | None,
         scheduled_query_execution_role_arn: str,
-        tags: Optional[list[dict[str, str]]],
-        kms_key_id: Optional[str],
+        tags: list[dict[str, str]] | None,
+        kms_key_id: str | None,
         error_report_configuration: dict[str, dict[str, str]],
     ) -> ScheduledQuery:
         query = ScheduledQuery(

@@ -1,7 +1,7 @@
 """DirectoryServiceBackend class with methods for supported APIs."""
 
 import copy
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -60,9 +60,9 @@ class Trust(BaseModel):
         remote_domain_name: str,
         trust_password: str,
         trust_direction: str,
-        trust_type: Optional[str],
-        conditional_forwarder_ip_addrs: Optional[list[str]],
-        selective_auth: Optional[str],
+        trust_type: str | None,
+        conditional_forwarder_ip_addrs: list[str] | None,
+        selective_auth: str | None,
     ) -> None:
         self.trust_id = f"t-{mock_random.get_random_hex(10)}"
         self.created_date_time = unix_time()
@@ -125,12 +125,12 @@ class Directory(BaseModel):
         name: str,
         password: str,
         directory_type: str,
-        size: Optional[str] = None,
-        vpc_settings: Optional[dict[str, Any]] = None,
-        connect_settings: Optional[dict[str, Any]] = None,
-        short_name: Optional[str] = None,
-        description: Optional[str] = None,
-        edition: Optional[str] = None,
+        size: str | None = None,
+        vpc_settings: dict[str, Any] | None = None,
+        connect_settings: dict[str, Any] | None = None,
+        short_name: str | None = None,
+        description: str | None = None,
+        edition: str | None = None,
     ):
         self.account_id = account_id
         self.region = region
@@ -538,8 +538,8 @@ class DirectoryServiceBackend(BaseBackend):
     def disable_sso(
         self,
         directory_id: str,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        username: str | None = None,
+        password: str | None = None,
     ) -> None:
         """Disable single-sign on for a directory."""
         self._validate_directory_id(directory_id)
@@ -550,8 +550,8 @@ class DirectoryServiceBackend(BaseBackend):
     def enable_sso(
         self,
         directory_id: str,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        username: str | None = None,
+        password: str | None = None,
     ) -> None:
         """Enable single-sign on for a directory."""
         self._validate_directory_id(directory_id)
@@ -568,7 +568,7 @@ class DirectoryServiceBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_directories(
-        self, directory_ids: Optional[list[str]] = None
+        self, directory_ids: list[str] | None = None
     ) -> list[Directory]:
         """Return info on all directories or directories with matching IDs."""
         for directory_id in directory_ids or self.directories:
@@ -634,9 +634,9 @@ class DirectoryServiceBackend(BaseBackend):
         remote_domain_name: str,
         trust_password: str,
         trust_direction: str,
-        trust_type: Optional[str],
-        conditional_forwarder_ip_addrs: Optional[list[str]],
-        selective_auth: Optional[str],
+        trust_type: str | None,
+        conditional_forwarder_ip_addrs: list[str] | None,
+        selective_auth: str | None,
     ) -> str:
         self._validate_directory_id(directory_id)
         validate_args(
@@ -661,7 +661,7 @@ class DirectoryServiceBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_trusts(
-        self, directory_id: Optional[str], trust_ids: Optional[list[str]]
+        self, directory_id: str | None, trust_ids: list[str] | None
     ) -> list[Trust]:
         if directory_id:
             self._validate_directory_id(directory_id)
@@ -680,7 +680,7 @@ class DirectoryServiceBackend(BaseBackend):
         return queried_trusts
 
     def delete_trust(
-        self, trust_id: str, delete_associated_conditional_forwarder: Optional[bool]
+        self, trust_id: str, delete_associated_conditional_forwarder: bool | None
     ) -> str:
         # TODO: Implement handle for delete_associated_conditional_forwarder once conditional forwarder is implemented
         delete_associated_conditional_forwarder = (
@@ -721,7 +721,7 @@ class DirectoryServiceBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_settings(
-        self, directory_id: str, status: Optional[str]
+        self, directory_id: str, status: str | None
     ) -> list[dict[str, str]]:
         """Describe settings for a Directory"""
         self._validate_directory_id(directory_id)

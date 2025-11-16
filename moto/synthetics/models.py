@@ -2,7 +2,6 @@
 
 import datetime
 import uuid
-from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -25,12 +24,12 @@ class Canary(BaseModel):  # pylint: disable=too-many-instance-attributes,too-few
         success_retention_period_in_days: int,
         failure_retention_period_in_days: int,
         runtime_version: str,
-        vpc_config: Optional[dict[str, object]],
-        resources_to_replicate_tags: Optional[list[str]],
-        provisioned_resource_cleanup: Optional[str],
-        browser_configs: Optional[list[dict[str, object]]],
-        tags: Optional[dict[str, str]],
-        artifact_config: Optional[dict[str, object]],
+        vpc_config: dict[str, object] | None,
+        resources_to_replicate_tags: list[str] | None,
+        provisioned_resource_cleanup: str | None,
+        browser_configs: list[dict[str, object]] | None,
+        tags: dict[str, str] | None,
+        artifact_config: dict[str, object] | None,
     ):
         self.name = name
         self.id = str(uuid.uuid4())
@@ -117,12 +116,12 @@ class SyntheticsBackend(BaseBackend):
         success_retention_period_in_days: int,
         failure_retention_period_in_days: int,
         runtime_version: str,
-        vpc_config: Optional[dict[str, object]],
-        resources_to_replicate_tags: Optional[list[str]],
-        provisioned_resource_cleanup: Optional[str],
-        browser_configs: Optional[list[dict[str, object]]],
-        tags: Optional[dict[str, str]],
-        artifact_config: Optional[dict[str, object]],
+        vpc_config: dict[str, object] | None,
+        resources_to_replicate_tags: list[str] | None,
+        provisioned_resource_cleanup: str | None,
+        browser_configs: list[dict[str, object]] | None,
+        tags: dict[str, str] | None,
+        artifact_config: dict[str, object] | None,
     ) -> Canary:
         canary = Canary(
             name,
@@ -144,7 +143,7 @@ class SyntheticsBackend(BaseBackend):
         self.canaries[name] = canary
         return canary
 
-    def get_canary(self, name: str, dry_run_id: Optional[str] = None) -> Canary:  # pylint: disable=unused-argument
+    def get_canary(self, name: str, dry_run_id: str | None = None) -> Canary:  # pylint: disable=unused-argument
         """
         The dry-run_id-parameter is not yet supported
         """
@@ -153,9 +152,9 @@ class SyntheticsBackend(BaseBackend):
 
     def describe_canaries(
         self,
-        next_token: Optional[str],  # pylint: disable=unused-argument
-        max_results: Optional[int],  # pylint: disable=unused-argument
-        names: Optional[list[str]],
+        next_token: str | None,  # pylint: disable=unused-argument
+        max_results: int | None,  # pylint: disable=unused-argument
+        names: list[str] | None,
     ) -> tuple[list[Canary], None]:
         """
         Pagination is not yet supported

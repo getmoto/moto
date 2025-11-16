@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -12,7 +12,7 @@ class DynamoHandler(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="dynamodb")
 
-    def get_endpoint_name(self, headers: dict[str, str]) -> Optional[str]:  # type: ignore[return]
+    def get_endpoint_name(self, headers: dict[str, str]) -> str | None:  # type: ignore[return]
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
 

@@ -18,7 +18,7 @@ import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
 from re import Match
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from botocore.auth import S3SigV4Auth, SigV4Auth
 from botocore.awsrequest import AWSRequest
@@ -428,8 +428,8 @@ class IAMPolicy:
         self,
         action: str,
         resource: str = "*",
-        principal: Optional[str] = None,
-        incoming_condition_values: Optional[dict[str, str]] = None,
+        principal: str | None = None,
+        incoming_condition_values: dict[str, str] | None = None,
     ) -> "PermissionResult":
         permitted = False
         if isinstance(self._policy_json["Statement"], list):
@@ -465,8 +465,8 @@ class IAMPolicyStatement:
         self,
         action: str,
         resource: str = "*",
-        principal: Optional[str] = None,
-        incoming_condition_values: Optional[dict[str, str]] = None,
+        principal: str | None = None,
+        incoming_condition_values: dict[str, str] | None = None,
     ) -> "PermissionResult":
         is_action_concerned = False
 
@@ -501,7 +501,7 @@ class IAMPolicyStatement:
         else:
             return PermissionResult.NEUTRAL
 
-    def is_unknown_principal(self, principal: Optional[str]) -> bool:
+    def is_unknown_principal(self, principal: str | None) -> bool:
         # https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-bucket-user-policy-specifying-principal-intro.html
         # For now, Moto only verifies principal == *
         # 'Unknown' principals are not verified
@@ -538,7 +538,7 @@ class IAMPolicyStatement:
         )
 
     def _check_conditions(
-        self, incoming_condition_values: Optional[dict[str, str]]
+        self, incoming_condition_values: dict[str, str] | None
     ) -> bool:
         expected_conditions = self._statement.get("Condition")
         if not expected_conditions:
@@ -562,7 +562,7 @@ class IAMPolicyStatement:
         return True
 
     @staticmethod
-    def _match(pattern: str, string: str) -> Optional[Match[str]]:
+    def _match(pattern: str, string: str) -> Match[str] | None:
         pattern = pattern.replace("*", ".*")
         pattern = f"^{pattern}$"
         return re.match(pattern, string)

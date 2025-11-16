@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -89,7 +89,7 @@ class Channel(BaseModel):
         self.tags = kwargs.get("tags")
         self._previous_state = None
 
-    def to_dict(self, exclude: Optional[list[str]] = None) -> dict[str, Any]:
+    def to_dict(self, exclude: list[str] | None = None) -> dict[str, Any]:
         data = {
             "arn": self.arn,
             "cdiInputSpecification": self.cdi_input_specification,

@@ -30,7 +30,7 @@ Every version number class implements the following interface:
 """
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 
 class Version:
@@ -40,7 +40,7 @@ class Version:
     rich comparisons to _cmp.
     """
 
-    def __init__(self, vstring: Optional[str] = None):
+    def __init__(self, vstring: str | None = None):
         if vstring:
             self.parse(vstring)  # type: ignore[attr-defined]
 
@@ -194,7 +194,7 @@ class LooseVersion(Version):
 
     component_re = re.compile(r"(\d+ | [a-z]+ | \.)", re.VERBOSE)
 
-    def __init__(self, vstring: Optional[str] = None):
+    def __init__(self, vstring: str | None = None):
         if vstring:
             self.parse(vstring)
 

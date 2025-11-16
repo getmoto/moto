@@ -104,8 +104,8 @@ class ApplicationAutoscalingBackend(BaseBackend):
         namespace: str,
         r_id: str,
         dimension: str,
-        min_capacity: Optional[int],
-        max_capacity: Optional[int],
+        min_capacity: int | None,
+        max_capacity: int | None,
         role_arn: str,
         suspended_state: str,
     ) -> "FakeScalableTarget":
@@ -204,9 +204,9 @@ class ApplicationAutoscalingBackend(BaseBackend):
         service_namespace: str,
         resource_id: str,
         scalable_dimension: str,
-        max_results: Optional[int],
+        max_results: int | None,
         next_token: str,
-    ) -> tuple[Optional[str], list["FakeApplicationAutoscalingPolicy"]]:
+    ) -> tuple[str | None, list["FakeApplicationAutoscalingPolicy"]]:
         max_results = max_results or 100
         policies = [
             policy
@@ -404,8 +404,8 @@ class FakeScalableTarget(BaseModel):
         service_namespace: str,
         resource_id: str,
         scalable_dimension: str,
-        min_capacity: Optional[int],
-        max_capacity: Optional[int],
+        min_capacity: int | None,
+        max_capacity: int | None,
         role_arn: str,
         suspended_state: str,
     ) -> None:
@@ -422,8 +422,8 @@ class FakeScalableTarget(BaseModel):
 
     def update(
         self,
-        min_capacity: Optional[int],
-        max_capacity: Optional[int],
+        min_capacity: int | None,
+        max_capacity: int | None,
         suspended_state: str,
     ) -> None:
         if min_capacity is not None:
@@ -443,7 +443,7 @@ class FakeApplicationAutoscalingPolicy(BaseModel):
         service_namespace: str,
         resource_id: str,
         scalable_dimension: str,
-        policy_type: Optional[str],
+        policy_type: str | None,
         policy_body: dict[str, Any],
     ) -> None:
         self.step_scaling_policy_configuration = None

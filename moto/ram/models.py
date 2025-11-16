@@ -1,7 +1,7 @@
 import re
 import string
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -152,7 +152,7 @@ class ResourceShare(BaseModel):
             "status": self.status,
         }
 
-    def update(self, allow_external_principals: bool, name: Optional[str]) -> None:
+    def update(self, allow_external_principals: bool, name: str | None) -> None:
         self.allow_external_principals = allow_external_principals
         self.last_updated_time = utcnow()
         self.name = name
@@ -184,8 +184,8 @@ class ManagedPermission(BaseModel):
         version: str = "1",
         default_version: bool = True,
         status: str = "ATTACHABLE",
-        creation_time: Optional[str] = None,
-        last_updated_time: Optional[str] = None,
+        creation_time: str | None = None,
+        last_updated_time: str | None = None,
         is_resource_type_default: bool = False,
         permission_type: str = "AWS_MANAGED",  # or "CUSTOMER_MANAGED",
     ):
@@ -273,7 +273,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return {"resourceShare": response}
 
-    def get_resource_shares(self, resource_owner: Optional[str]) -> dict[str, Any]:
+    def get_resource_shares(self, resource_owner: str | None) -> dict[str, Any]:
         if resource_owner not in ["SELF", "OTHER-ACCOUNTS"]:
             raise InvalidParameterException(
                 f"{resource_owner} is not a valid resource owner. "
@@ -291,9 +291,9 @@ class ResourceAccessManagerBackend(BaseBackend):
 
     def update_resource_share(
         self,
-        resource_share_arn: Optional[str],
+        resource_share_arn: str | None,
         allow_external_principals: bool,
-        name: Optional[str],
+        name: str | None,
     ) -> dict[str, Any]:
         resource = next(
             (
@@ -315,9 +315,7 @@ class ResourceAccessManagerBackend(BaseBackend):
 
         return {"resourceShare": response}
 
-    def delete_resource_share(
-        self, resource_share_arn: Optional[str]
-    ) -> dict[str, Any]:
+    def delete_resource_share(self, resource_share_arn: str | None) -> dict[str, Any]:
         resource = next(
             (
                 resource
@@ -344,11 +342,11 @@ class ResourceAccessManagerBackend(BaseBackend):
 
     def get_resource_share_associations(
         self,
-        association_type: Optional[str],
-        association_status: Optional[str],
+        association_type: str | None,
+        association_status: str | None,
         resource_share_arns: list[str],
-        resource_arn: Optional[str],
-        principal: Optional[str],
+        resource_arn: str | None,
+        principal: str | None,
     ) -> dict[str, Any]:
         if association_type not in ["PRINCIPAL", "RESOURCE"]:
             raise InvalidParameterException(

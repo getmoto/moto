@@ -1,7 +1,7 @@
 import re
 from collections import OrderedDict
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any
 
 from botocore.exceptions import ParamValidationError
 
@@ -62,10 +62,10 @@ class FakeHealthStatus(BaseModel):
         self,
         instance_id: str,
         port: str,
-        health_port: Optional[str],
+        health_port: str | None,
         status: str,
-        reason: Optional[str] = None,
-        description: Optional[str] = None,
+        reason: str | None = None,
+        description: str | None = None,
     ):
         self.instance_id = instance_id
         self.port = port
@@ -82,7 +82,7 @@ class FakeHealthStatus(BaseModel):
         }
 
     @property
-    def target_health(self) -> dict[str, Optional[str]]:
+    def target_health(self) -> dict[str, str | None]:
         return {
             "State": self.status,
             "Reason": self.reason,
@@ -101,18 +101,18 @@ class FakeTargetGroup(CloudFormationModel):
         vpc_id: str,
         protocol: str,
         port: str,
-        protocol_version: Optional[str] = None,
-        healthcheck_protocol: Optional[str] = None,
-        healthcheck_port: Optional[str] = None,
-        healthcheck_path: Optional[str] = None,
-        healthcheck_interval_seconds: Optional[int] = None,
-        healthcheck_timeout_seconds: Optional[int] = None,
-        healthcheck_enabled: Optional[str] = None,
-        healthy_threshold_count: Optional[str] = None,
-        unhealthy_threshold_count: Optional[str] = None,
-        matcher: Optional[dict[str, Any]] = None,
-        target_type: Optional[str] = None,
-        ip_address_type: Optional[str] = None,
+        protocol_version: str | None = None,
+        healthcheck_protocol: str | None = None,
+        healthcheck_port: str | None = None,
+        healthcheck_path: str | None = None,
+        healthcheck_interval_seconds: int | None = None,
+        healthcheck_timeout_seconds: int | None = None,
+        healthcheck_enabled: str | None = None,
+        healthy_threshold_count: str | None = None,
+        unhealthy_threshold_count: str | None = None,
+        matcher: dict[str, Any] | None = None,
+        target_type: str | None = None,
+        ip_address_type: str | None = None,
     ):
         # TODO: default values differs when you add Network Load balancer
         self.name = name
@@ -332,9 +332,9 @@ class FakeListener(CloudFormationModel):
         protocol: str,
         port: str,
         ssl_policy: str,
-        certificate: Optional[str],
+        certificate: str | None,
         default_actions: list["FakeAction"],
-        alpn_policy: Optional[list[str]],
+        alpn_policy: list[str] | None,
     ):
         self.load_balancer_arn = load_balancer_arn
         self.arn = arn
@@ -596,7 +596,7 @@ class FakeLoadBalancer(CloudFormationModel):
         dns_name: str,
         state: str,
         scheme: str = "internet-facing",
-        loadbalancer_type: Optional[str] = None,
+        loadbalancer_type: str | None = None,
     ):
         self.name = name
         self.created_time = iso_8601_datetime_with_milliseconds()
@@ -732,10 +732,10 @@ class ELBv2Backend(BaseBackend):
         name: str,
         security_groups: list[str],
         subnet_ids: list[str],
-        subnet_mappings: Optional[list[dict[str, str]]] = None,
+        subnet_mappings: list[dict[str, str]] | None = None,
         scheme: str = "internet-facing",
-        loadbalancer_type: Optional[str] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        loadbalancer_type: str | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> FakeLoadBalancer:
         vpc_id = None
         subnets = []
@@ -802,7 +802,7 @@ class ELBv2Backend(BaseBackend):
         conditions: list[dict[str, Any]],
         priority: int,
         actions: list[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> FakeListenerRule:
         fake_actions = [FakeAction(action) for action in actions]
         listeners = self.describe_listeners(None, [listener_arn])
@@ -1022,7 +1022,7 @@ class ELBv2Backend(BaseBackend):
                 raise InvalidActionTypeError(action_type, index)
 
     def _validate_port_and_protocol(
-        self, loadbalancer_type: str, port: Optional[str], protocol: Optional[str]
+        self, loadbalancer_type: str, port: str | None, protocol: str | None
     ) -> None:
         if loadbalancer_type in {"application", "network"}:
             if port is None:
@@ -1387,10 +1387,10 @@ Member must satisfy regular expression pattern: {expression}"
         protocol: str,
         port: str,
         ssl_policy: str,
-        certificate: Optional[str],
+        certificate: str | None,
         actions: list[dict[str, Any]],
-        alpn_policy: Optional[list[str]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        alpn_policy: list[str] | None = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> FakeListener:
         default_actions = [FakeAction(action) for action in actions]
         balancer = self.load_balancers.get(load_balancer_arn)
@@ -1436,7 +1436,7 @@ Member must satisfy regular expression pattern: {expression}"
         return listener
 
     def describe_load_balancers(
-        self, arns: Optional[list[str]], names: Optional[list[str]]
+        self, arns: list[str] | None, names: list[str] | None
     ) -> list[FakeLoadBalancer]:
         balancers = list(self.load_balancers.values())
         arns = arns or []
@@ -1472,7 +1472,7 @@ Member must satisfy regular expression pattern: {expression}"
         return matched_balancers
 
     def describe_rules(
-        self, listener_arn: Optional[str], rule_arns: Optional[list[str]]
+        self, listener_arn: str | None, rule_arns: list[str] | None
     ) -> list[FakeRule]:
         if listener_arn is None and not rule_arns:
             raise InvalidDescribeRulesRequest(
@@ -1500,9 +1500,9 @@ Member must satisfy regular expression pattern: {expression}"
 
     def describe_target_groups(
         self,
-        load_balancer_arn: Optional[str],
+        load_balancer_arn: str | None,
         target_group_arns: list[str],
-        names: Optional[list[str]],
+        names: list[str] | None,
     ) -> Iterable[FakeTargetGroup]:
         args = sum(bool(arg) for arg in [load_balancer_arn, target_group_arns, names])
 
@@ -1545,7 +1545,7 @@ Member must satisfy regular expression pattern: {expression}"
         return sorted(self.target_groups.values(), key=lambda tg: tg.name)
 
     def describe_listeners(
-        self, load_balancer_arn: Optional[str], listener_arns: list[str]
+        self, load_balancer_arn: str | None, listener_arns: list[str]
     ) -> list[FakeListener]:
         if load_balancer_arn:
             if load_balancer_arn not in self.load_balancers:
@@ -1577,7 +1577,7 @@ Member must satisfy regular expression pattern: {expression}"
         # should raise RuleNotFound Error according to the AWS API doc
         # however, boto3 does't raise error even if rule is not found
 
-    def delete_target_group(self, target_group_arn: str) -> Optional[FakeTargetGroup]:  # type: ignore[return]
+    def delete_target_group(self, target_group_arn: str) -> FakeTargetGroup | None:  # type: ignore[return]
         if target_group_arn not in self.target_groups:
             raise TargetGroupNotFoundError()
 
@@ -1795,15 +1795,15 @@ Member must satisfy regular expression pattern: {expression}"
     def modify_target_group(
         self,
         arn: str,
-        health_check_proto: Optional[str] = None,
-        health_check_port: Optional[str] = None,
-        health_check_path: Optional[str] = None,
-        health_check_interval: Optional[int] = None,
-        health_check_timeout: Optional[int] = None,
-        healthy_threshold_count: Optional[str] = None,
-        unhealthy_threshold_count: Optional[str] = None,
-        http_codes: Optional[str] = None,
-        health_check_enabled: Optional[bool] = None,
+        health_check_proto: str | None = None,
+        health_check_port: str | None = None,
+        health_check_path: str | None = None,
+        health_check_interval: int | None = None,
+        health_check_timeout: int | None = None,
+        healthy_threshold_count: str | None = None,
+        unhealthy_threshold_count: str | None = None,
+        http_codes: str | None = None,
+        health_check_enabled: bool | None = None,
     ) -> FakeTargetGroup:
         target_group = self.target_groups.get(arn)
         if target_group is None:
@@ -1842,11 +1842,11 @@ Member must satisfy regular expression pattern: {expression}"
     def modify_listener(
         self,
         arn: str,
-        port: Optional[str] = None,
-        protocol: Optional[str] = None,
-        ssl_policy: Optional[str] = None,
-        certificates: Optional[list[dict[str, Any]]] = None,
-        actions: Optional[list[dict[str, Any]]] = None,
+        port: str | None = None,
+        protocol: str | None = None,
+        ssl_policy: str | None = None,
+        certificates: list[dict[str, Any]] | None = None,
+        actions: list[dict[str, Any]] | None = None,
     ) -> FakeListener:
         default_actions = [FakeAction(action) for action in actions]  # type: ignore
         listener = self.describe_listeners(load_balancer_arn=None, listener_arns=[arn])[

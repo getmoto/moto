@@ -3,7 +3,7 @@
 import hashlib
 import string
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import yaml
 
@@ -157,23 +157,23 @@ class Authorizer(BaseModel):
 class Integration(BaseModel):
     def __init__(
         self,
-        connection_id: Optional[str],
+        connection_id: str | None,
         connection_type: str,
-        content_handling_strategy: Optional[str],
-        credentials_arn: Optional[str],
+        content_handling_strategy: str | None,
+        credentials_arn: str | None,
         description: str,
         integration_method: str,
         integration_type: str,
         integration_uri: str,
-        passthrough_behavior: Optional[str],
-        payload_format_version: Optional[str],
-        integration_subtype: Optional[str],
-        request_parameters: Optional[dict[str, str]],
-        request_templates: Optional[dict[str, str]],
-        response_parameters: Optional[dict[str, dict[str, str]]],
-        template_selection_expression: Optional[str],
-        timeout_in_millis: Optional[str],
-        tls_config: Optional[dict[str, str]],
+        passthrough_behavior: str | None,
+        payload_format_version: str | None,
+        integration_subtype: str | None,
+        request_parameters: dict[str, str] | None,
+        request_templates: dict[str, str] | None,
+        response_parameters: dict[str, dict[str, str]] | None,
+        template_selection_expression: str | None,
+        timeout_in_millis: str | None,
+        tls_config: dict[str, str] | None,
     ):
         self.id = "".join(random.choice(string.ascii_lowercase) for _ in range(8))
         self.connection_id = connection_id
@@ -282,7 +282,7 @@ class Integration(BaseModel):
         request_templates: dict[str, str],
         response_parameters: dict[str, dict[str, str]],
         template_selection_expression: str,
-        timeout_in_millis: Optional[int],
+        timeout_in_millis: int | None,
         tls_config: dict[str, str],
     ) -> None:
         if connection_id is not None:
@@ -450,14 +450,14 @@ class Route(BaseModel):
         self,
         api_key_required: bool,
         authorization_scopes: list[str],
-        authorization_type: Optional[str],
-        authorizer_id: Optional[str],
-        model_selection_expression: Optional[str],
-        operation_name: Optional[str],
-        request_models: Optional[dict[str, str]],
-        request_parameters: Optional[dict[str, dict[str, bool]]],
+        authorization_type: str | None,
+        authorizer_id: str | None,
+        model_selection_expression: str | None,
+        operation_name: str | None,
+        request_models: dict[str, str] | None,
+        request_parameters: dict[str, dict[str, bool]] | None,
         route_key: str,
-        route_response_selection_expression: Optional[str],
+        route_response_selection_expression: str | None,
         target: str,
     ):
         self.route_id = "".join(random.choice(string.ascii_lowercase) for _ in range(8))
@@ -502,8 +502,8 @@ class Route(BaseModel):
 
     def update(
         self,
-        api_key_required: Optional[bool],
-        authorization_scopes: Optional[list[str]],
+        api_key_required: bool | None,
+        authorization_scopes: list[str] | None,
         authorization_type: str,
         authorizer_id: str,
         model_selection_expression: str,
@@ -562,7 +562,7 @@ class Api(BaseModel):
         region: str,
         name: str,
         api_key_selection_expression: str,
-        cors_configuration: Optional[str],
+        cors_configuration: str | None,
         description: str,
         disable_execute_api_endpoint: str,
         disable_schema_validation: str,
@@ -774,18 +774,18 @@ class Api(BaseModel):
         integration_method: str,
         integration_type: str,
         integration_uri: str,
-        connection_id: Optional[str] = None,
-        content_handling_strategy: Optional[str] = None,
-        credentials_arn: Optional[str] = None,
-        passthrough_behavior: Optional[str] = None,
-        payload_format_version: Optional[str] = None,
-        integration_subtype: Optional[str] = None,
-        request_parameters: Optional[dict[str, str]] = None,
-        request_templates: Optional[dict[str, str]] = None,
-        response_parameters: Optional[dict[str, dict[str, str]]] = None,
-        template_selection_expression: Optional[str] = None,
-        timeout_in_millis: Optional[str] = None,
-        tls_config: Optional[dict[str, str]] = None,
+        connection_id: str | None = None,
+        content_handling_strategy: str | None = None,
+        credentials_arn: str | None = None,
+        passthrough_behavior: str | None = None,
+        payload_format_version: str | None = None,
+        integration_subtype: str | None = None,
+        request_parameters: dict[str, str] | None = None,
+        request_templates: dict[str, str] | None = None,
+        response_parameters: dict[str, dict[str, str]] | None = None,
+        template_selection_expression: str | None = None,
+        timeout_in_millis: str | None = None,
+        tls_config: dict[str, str] | None = None,
     ) -> Integration:
         integration = Integration(
             connection_id=connection_id,
@@ -838,7 +838,7 @@ class Api(BaseModel):
         request_templates: dict[str, str],
         response_parameters: dict[str, dict[str, str]],
         template_selection_expression: str,
-        timeout_in_millis: Optional[int],
+        timeout_in_millis: int | None,
         tls_config: dict[str, str],
     ) -> Integration:
         integration = self.integrations[integration_id]
@@ -925,13 +925,13 @@ class Api(BaseModel):
         authorization_scopes: list[str],
         route_key: str,
         target: str,
-        authorization_type: Optional[str] = None,
-        authorizer_id: Optional[str] = None,
-        model_selection_expression: Optional[str] = None,
-        operation_name: Optional[str] = None,
-        request_models: Optional[dict[str, str]] = None,
-        request_parameters: Optional[dict[str, dict[str, bool]]] = None,
-        route_response_selection_expression: Optional[str] = None,
+        authorization_type: str | None = None,
+        authorizer_id: str | None = None,
+        model_selection_expression: str | None = None,
+        operation_name: str | None = None,
+        request_models: dict[str, str] | None = None,
+        request_parameters: dict[str, dict[str, bool]] | None = None,
+        route_response_selection_expression: str | None = None,
     ) -> Route:
         route = Route(
             api_key_required=api_key_required,
@@ -967,7 +967,7 @@ class Api(BaseModel):
     def update_route(
         self,
         route_id: str,
-        api_key_required: Optional[bool],
+        api_key_required: bool | None,
         authorization_scopes: list[str],
         authorization_type: str,
         authorizer_id: str,
@@ -1363,8 +1363,8 @@ class ApiGatewayV2Backend(BaseBackend):
         authorizer_id: str,
         model_selection_expression: str,
         operation_name: str,
-        request_models: Optional[dict[str, str]],
-        request_parameters: Optional[dict[str, dict[str, bool]]],
+        request_models: dict[str, str] | None,
+        request_parameters: dict[str, dict[str, bool]] | None,
         route_key: str,
         route_response_selection_expression: str,
         target: str,
@@ -1484,9 +1484,9 @@ class ApiGatewayV2Backend(BaseBackend):
         integration_uri: str,
         passthrough_behavior: str,
         payload_format_version: str,
-        request_parameters: Optional[dict[str, str]],
-        request_templates: Optional[dict[str, str]],
-        response_parameters: Optional[dict[str, dict[str, str]]],
+        request_parameters: dict[str, str] | None,
+        request_templates: dict[str, str] | None,
+        response_parameters: dict[str, dict[str, str]] | None,
         template_selection_expression: str,
         timeout_in_millis: str,
         tls_config: dict[str, str],
@@ -1548,7 +1548,7 @@ class ApiGatewayV2Backend(BaseBackend):
         request_templates: dict[str, str],
         response_parameters: dict[str, dict[str, str]],
         template_selection_expression: str,
-        timeout_in_millis: Optional[int],
+        timeout_in_millis: int | None,
         tls_config: dict[str, str],
     ) -> Integration:
         api = self.get_api(api_id)

@@ -23,7 +23,7 @@ class Domain(BaseModel):
         retention: int,
         account_id: str,
         region_name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         self.name = name
         self.retention = retention
@@ -94,7 +94,7 @@ class Domain(BaseModel):
     def get_workflow_execution(
         self,
         workflow_id: str,
-        run_id: Optional[str] = None,
+        run_id: str | None = None,
         raise_if_none: bool = True,
         raise_if_closed: bool = False,
     ) -> Optional["WorkflowExecution"]:

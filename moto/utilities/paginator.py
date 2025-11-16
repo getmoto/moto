@@ -1,7 +1,8 @@
 import inspect
+from collections.abc import Callable
 from copy import deepcopy
 from functools import wraps
-from typing import TYPE_CHECKING, Any, Callable, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from botocore.paginate import TokenDecoder, TokenEncoder
 
@@ -21,13 +22,13 @@ T = TypeVar("T")
 class GenericFunction(Protocol):
     def __call__(
         self, func: "Callable[P1, list[T]]"
-    ) -> "Callable[P2, tuple[list[T], Optional[str]]]": ...
+    ) -> "Callable[P2, tuple[list[T], str | None]]": ...
 
 
 def paginate(pagination_model: dict[str, Any]) -> GenericFunction:
     def pagination_decorator(
         func: Callable[..., list[T]],
-    ) -> Callable[..., tuple[list[T], Optional[str]]]:
+    ) -> Callable[..., tuple[list[T], str | None]]:
         @wraps(func)
         def pagination_wrapper(*args: Any, **kwargs: Any) -> Any:  # type: ignore
             method = func.__name__
@@ -100,7 +101,7 @@ class Paginator:
         self._param_checksum = self._calculate_parameter_checksum()
         self._parsed_token = self._parse_starting_token()
 
-    def _parse_starting_token(self) -> Optional[dict[str, Any]]:
+    def _parse_starting_token(self) -> dict[str, Any] | None:
         if self._starting_token is None:
             return None
         # The starting token is a dict passed as a base64 encoded string.
@@ -114,7 +115,7 @@ class Paginator:
             raise InvalidToken(f"Input inconsistent with page token: {str(next_token)}")
         return next_token
 
-    def _raise_exception_if_required(self, token: Optional[str]) -> None:
+    def _raise_exception_if_required(self, token: str | None) -> None:
         if self._fail_on_invalid_token:
             if isinstance(self._fail_on_invalid_token, type):
                 # we need to raise a custom exception
@@ -169,7 +170,7 @@ class Paginator:
         token_dict["uniqueAttributes"] = "|".join(range_keys)
         return self._token_encoder.encode(token_dict)
 
-    def paginate(self, results: list[Any]) -> tuple[list[Any], Optional[str]]:
+    def paginate(self, results: list[Any]) -> tuple[list[Any], str | None]:
         index_start = 0
         if self._starting_token:
             try:

@@ -1,5 +1,6 @@
 import json
-from typing import Any, Callable, Final, Optional
+from collections.abc import Callable
+from typing import Any, Final
 
 from botocore.exceptions import ClientError
 
@@ -52,7 +53,7 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> Optional[set[str]]:
+    def _get_supported_parameters(self) -> set[str] | None:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:
@@ -91,8 +92,8 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
     def _normalise_parameters(
         self,
         parameters: dict,
-        boto_service_name: Optional[str] = None,
-        service_action_name: Optional[str] = None,
+        boto_service_name: str | None = None,
+        service_action_name: str | None = None,
     ) -> None:
         if service_action_name is None:
             if self._get_boto_service_action() == "start_execution":
@@ -117,7 +118,7 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
         state_credentials: StateCredentials,
-    ) -> Callable[[], Optional[Any]]:
+    ) -> Callable[[], Any | None]:
         sfn_client = boto_client_for(
             service="stepfunctions",
             region=resource_runtime_part.region,
@@ -126,7 +127,7 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
         submission_output: dict = env.stack.pop()
         execution_arn: str = submission_output["ExecutionArn"]
 
-        def _sync_resolver() -> Optional[Any]:
+        def _sync_resolver() -> Any | None:
             describe_execution_output = sfn_client.describe_execution(
                 executionArn=execution_arn
             )
@@ -182,7 +183,7 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
         state_credentials: StateCredentials,
-    ) -> Callable[[], Optional[Any]]:
+    ) -> Callable[[], Any | None]:
         sfn_client = boto_client_for(
             region=resource_runtime_part.region,
             service="stepfunctions",
@@ -191,7 +192,7 @@ class StateTaskServiceSfn(StateTaskServiceCallback):
         submission_output: dict = env.stack.pop()
         execution_arn: str = submission_output["ExecutionArn"]
 
-        def _sync2_resolver() -> Optional[Any]:
+        def _sync2_resolver() -> Any | None:
             describe_execution_output = sfn_client.describe_execution(
                 executionArn=execution_arn
             )

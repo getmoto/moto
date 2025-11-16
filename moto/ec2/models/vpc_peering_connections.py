@@ -1,7 +1,7 @@
 import weakref
 from collections import defaultdict
 from collections.abc import Iterator
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import CloudFormationModel
 
@@ -59,7 +59,7 @@ class VPCPeeringConnection(TaggedEC2Resource, CloudFormationModel):
         vpc_pcx_id: str,
         vpc: VPC,
         peer_vpc: VPC,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ):
         self.id = vpc_pcx_id
         self.ec2_backend = backend
@@ -121,7 +121,7 @@ class VPCPeeringConnectionBackend:
                 yield inst
 
     def create_vpc_peering_connection(
-        self, vpc: VPC, peer_vpc: VPC, tags: Optional[dict[str, str]] = None
+        self, vpc: VPC, peer_vpc: VPC, tags: dict[str, str] | None = None
     ) -> VPCPeeringConnection:
         vpc_pcx_id = random_vpc_peering_connection_id()
         vpc_pcx = VPCPeeringConnection(self, vpc_pcx_id, vpc, peer_vpc, tags)
@@ -139,7 +139,7 @@ class VPCPeeringConnectionBackend:
         return vpc_pcx
 
     def describe_vpc_peering_connections(
-        self, vpc_peering_ids: Optional[list[str]] = None
+        self, vpc_peering_ids: list[str] | None = None
     ) -> list[VPCPeeringConnection]:
         all_pcxs = list(self.vpc_pcxs.values())
         if vpc_peering_ids:
@@ -199,8 +199,8 @@ class VPCPeeringConnectionBackend:
     def modify_vpc_peering_connection_options(
         self,
         vpc_pcx_id: str,
-        accepter_options: Optional[dict[str, Any]] = None,
-        requester_options: Optional[dict[str, Any]] = None,
+        accepter_options: dict[str, Any] | None = None,
+        requester_options: dict[str, Any] | None = None,
     ) -> None:
         vpc_pcx = self.get_vpc_peering_connection(vpc_pcx_id)
         if not vpc_pcx:

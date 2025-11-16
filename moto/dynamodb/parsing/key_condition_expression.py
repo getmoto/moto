@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.dynamodb.exceptions import KeyIsEmptyStringException, MockValidationException
 from moto.utilities.tokenizer import GenericTokenizer
@@ -13,7 +13,7 @@ class EXPRESSION_STAGES(Enum):
     EOF = "EOF"
 
 
-def get_key(schema: list[dict[str, str]], key_type: str) -> Optional[str]:
+def get_key(schema: list[dict[str, str]], key_type: str) -> str | None:
     keys = [key for key in schema if key["KeyType"] == key_type]
     return keys[0]["AttributeName"] if keys else None
 
@@ -23,7 +23,7 @@ def parse_expression(
     expression_attribute_values: dict[str, dict[str, str]],
     expression_attribute_names: dict[str, str],
     schema: list[dict[str, str]],
-) -> tuple[dict[str, Any], Optional[str], list[dict[str, Any]], list[str]]:
+) -> tuple[dict[str, Any], str | None, list[dict[str, Any]], list[str]]:
     """
     Parse a KeyConditionExpression using the provided expression attribute names/values
 
@@ -33,7 +33,7 @@ def parse_expression(
     schema:                      [{'AttributeName': 'hashkey', 'KeyType': 'HASH'}, {"AttributeName": "sortkey", "KeyType": "RANGE"}]
     """
 
-    current_stage: Optional[EXPRESSION_STAGES] = None
+    current_stage: EXPRESSION_STAGES | None = None
     current_phrase = ""
     key_name = comparison = ""
     key_values: list[Union[dict[str, str], str]] = []
@@ -206,7 +206,7 @@ def parse_expression(
 # Validate that the schema-keys are encountered in our query
 def validate_schema(
     results: Any, schema: list[dict[str, str]]
-) -> tuple[dict[str, Any], Optional[str], list[dict[str, Any]]]:
+) -> tuple[dict[str, Any], str | None, list[dict[str, Any]]]:
     index_hash_key = get_key(schema, "HASH")
     comparison, hash_value = next(
         (

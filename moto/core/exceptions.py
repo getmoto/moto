@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any
 
 from jinja2 import DictLoader, Environment
 from werkzeug.exceptions import HTTPException
@@ -209,14 +209,14 @@ class AuthFailureError(RESTError):
 
 
 class AWSError(JsonRESTError):
-    TYPE: Optional[str] = None
+    TYPE: str | None = None
     STATUS = 400
 
     def __init__(
         self,
         message: str,
-        exception_type: Optional[str] = None,
-        status: Optional[int] = None,
+        exception_type: str | None = None,
+        status: int | None = None,
     ):
         super().__init__(exception_type or self.TYPE, message)  # type: ignore[arg-type]
         self.code = status or self.STATUS

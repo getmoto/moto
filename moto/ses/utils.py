@@ -1,6 +1,5 @@
 import string
 from email.utils import parseaddr
-from typing import Optional
 
 from moto.moto_api._internal import mock_random as random
 
@@ -13,7 +12,7 @@ def get_random_message_id() -> str:
     return f"{random_hex(16)}-{random_hex(8)}-{random_hex(4)}-{random_hex(4)}-{random_hex(4)}-{random_hex(12)}-{random_hex(6)}"
 
 
-def is_valid_address(addr: str) -> Optional[str]:
+def is_valid_address(addr: str) -> str | None:
     _, address = parseaddr(addr)
     address_parts = address.split("@")
     if len(address_parts) != 2 or not address_parts[1]:

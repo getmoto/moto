@@ -8,7 +8,7 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from gzip import GzipFile
 from operator import attrgetter
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -96,8 +96,8 @@ class Shard(BaseModel):
         shard_id: int,
         starting_hash: int,
         ending_hash: int,
-        parent: Optional[str] = None,
-        adjacent_parent: Optional[str] = None,
+        parent: str | None = None,
+        adjacent_parent: str | None = None,
     ):
         self._shard_id = shard_id
         self.starting_hash = starting_hash
@@ -112,7 +112,7 @@ class Shard(BaseModel):
         return f"shardId-{str(self._shard_id).zfill(12)}"
 
     def get_records(
-        self, last_sequence_id: str, limit: Optional[int]
+        self, last_sequence_id: str, limit: int | None
     ) -> tuple[list[Record], int, int]:
         last_sequence_int = int(last_sequence_id)
         results = []
@@ -197,8 +197,8 @@ class Stream(CloudFormationModel):
         self,
         stream_name: str,
         shard_count: int,
-        stream_mode: Optional[dict[str, str]],
-        retention_period_hours: Optional[int],
+        stream_mode: dict[str, str] | None,
+        retention_period_hours: int | None,
         account_id: str,
         region_name: str,
     ):
@@ -212,7 +212,7 @@ class Stream(CloudFormationModel):
         self.shards: dict[str, Shard] = {}
         self.tags: dict[str, str] = {}
         self.status = "ACTIVE"
-        self.shard_count: Optional[int] = None
+        self.shard_count: int | None = None
         self.stream_mode = stream_mode or {"StreamMode": "PROVISIONED"}
         if self.stream_mode.get("StreamMode", "") == "ON_DEMAND":
             shard_count = 4
@@ -220,14 +220,14 @@ class Stream(CloudFormationModel):
         self.retention_period_hours = retention_period_hours or 24
         self.shard_level_metrics: list[str] = []
         self.encryption_type = "NONE"
-        self.key_id: Optional[str] = None
+        self.key_id: str | None = None
         self.consumers: list[Consumer] = []
         self.lambda_event_source_mappings: dict[str, EventSourceMapping] = {}
 
     def delete_consumer(self, consumer_arn: str) -> None:
         self.consumers = [c for c in self.consumers if c.consumer_arn != consumer_arn]
 
-    def get_consumer_by_arn(self, consumer_arn: str) -> Optional[Consumer]:
+    def get_consumer_by_arn(self, consumer_arn: str) -> Consumer | None:
         return next((c for c in self.consumers if c.consumer_arn == consumer_arn), None)
 
     def init_shards(self, shard_count: int) -> None:
@@ -383,7 +383,7 @@ class Stream(CloudFormationModel):
 
     def get_shard_for_key(
         self, partition_key: str, explicit_hash_key: str
-    ) -> Optional[Shard]:
+    ) -> Shard | None:
         if not isinstance(partition_key, str):
             raise InvalidArgumentError("partition_key")
         if len(partition_key) > 256:
@@ -429,7 +429,7 @@ class Stream(CloudFormationModel):
 
         return sequence_number, shard.shard_id
 
-    def to_json(self, shard_limit: Optional[int] = None) -> dict[str, Any]:
+    def to_json(self, shard_limit: int | None = None) -> dict[str, Any]:
         all_shards = list(self.shards.values())
         requested_shards = all_shards[0 : shard_limit or len(all_shards)]
         return {
@@ -597,8 +597,8 @@ class KinesisBackend(BaseBackend):
         self,
         stream_name: str,
         shard_count: int,
-        stream_mode: Optional[dict[str, str]] = None,
-        retention_period_hours: Optional[int] = None,
+        stream_mode: dict[str, str] | None = None,
+        retention_period_hours: int | None = None,
     ) -> Stream:
         if stream_name in self.streams:
             raise ResourceInUseError(stream_name)
@@ -614,7 +614,7 @@ class KinesisBackend(BaseBackend):
         return stream
 
     def describe_stream(
-        self, stream_arn: Optional[str], stream_name: Optional[str]
+        self, stream_arn: str | None, stream_name: str | None
     ) -> Stream:
         if stream_name and stream_name in self.streams:
             return self.streams[stream_name]
@@ -627,23 +627,21 @@ class KinesisBackend(BaseBackend):
         raise StreamNotFoundError(stream_name, self.account_id)  # type: ignore
 
     def describe_stream_summary(
-        self, stream_arn: Optional[str], stream_name: Optional[str]
+        self, stream_arn: str | None, stream_name: str | None
     ) -> Stream:
         return self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
 
     def list_streams(self) -> Iterable[Stream]:
         return self.streams.values()
 
-    def delete_stream(
-        self, stream_arn: Optional[str], stream_name: Optional[str]
-    ) -> Stream:
+    def delete_stream(self, stream_arn: str | None, stream_name: str | None) -> Stream:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
         return self.streams.pop(stream.stream_name)
 
     def get_shard_iterator(
         self,
-        stream_arn: Optional[str],
-        stream_name: Optional[str],
+        stream_arn: str | None,
+        stream_name: str | None,
         shard_id: str,
         shard_iterator_type: str,
         starting_sequence_number: int,
@@ -668,7 +666,7 @@ class KinesisBackend(BaseBackend):
         return shard_iterator
 
     def get_records(
-        self, stream_arn: Optional[str], shard_iterator: str, limit: Optional[int]
+        self, stream_arn: str | None, shard_iterator: str, limit: int | None
     ) -> tuple[str, list[Record], int]:
         decomposed = decompose_shard_iterator(shard_iterator)
         stream_name, shard_id, last_sequence_id = decomposed
@@ -807,15 +805,15 @@ class KinesisBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_shards(
-        self, stream_arn: Optional[str], stream_name: Optional[str]
+        self, stream_arn: str | None, stream_name: str | None
     ) -> list[Shard]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
         return sorted(stream.shards.values(), key=lambda x: x.shard_id)
 
     def increase_stream_retention_period(
         self,
-        stream_arn: Optional[str],
-        stream_name: Optional[str],
+        stream_arn: str | None,
+        stream_name: str | None,
         retention_period_hours: int,
     ) -> None:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
@@ -833,8 +831,8 @@ class KinesisBackend(BaseBackend):
 
     def decrease_stream_retention_period(
         self,
-        stream_arn: Optional[str],
-        stream_name: Optional[str],
+        stream_arn: str | None,
+        stream_name: str | None,
         retention_period_hours: int,
     ) -> None:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
@@ -854,8 +852,8 @@ class KinesisBackend(BaseBackend):
         self,
         stream_arn: str,
         stream_name: str,
-        exclusive_start_tag_key: Optional[str] = None,
-        limit: Optional[int] = None,
+        exclusive_start_tag_key: str | None = None,
+        limit: int | None = None,
     ) -> dict[str, Any]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
 
@@ -874,15 +872,15 @@ class KinesisBackend(BaseBackend):
 
     def add_tags_to_stream(
         self,
-        stream_arn: Optional[str],
-        stream_name: Optional[str],
+        stream_arn: str | None,
+        stream_name: str | None,
         tags: dict[str, str],
     ) -> None:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
         stream.tags.update(tags)
 
     def remove_tags_from_stream(
-        self, stream_arn: Optional[str], stream_name: Optional[str], tag_keys: list[str]
+        self, stream_arn: str | None, stream_name: str | None, tag_keys: list[str]
     ) -> None:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
         for key in tag_keys:
@@ -891,8 +889,8 @@ class KinesisBackend(BaseBackend):
 
     def enable_enhanced_monitoring(
         self,
-        stream_arn: Optional[str],
-        stream_name: Optional[str],
+        stream_arn: str | None,
+        stream_name: str | None,
         shard_level_metrics: list[str],
     ) -> tuple[str, str, list[str], list[str]]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
@@ -908,8 +906,8 @@ class KinesisBackend(BaseBackend):
 
     def disable_enhanced_monitoring(
         self,
-        stream_arn: Optional[str],
-        stream_name: Optional[str],
+        stream_arn: str | None,
+        stream_name: str | None,
         to_be_disabled: list[str],
     ) -> tuple[str, str, list[str], list[str]]:
         stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)

@@ -1,6 +1,5 @@
 import re
 from collections import defaultdict
-from typing import Optional
 
 from ..exceptions import (
     InvalidParameterValueErrorTagNull,
@@ -55,7 +54,7 @@ class TagBackend:
         return True
 
     def describe_tags(
-        self, filters: Optional[dict[str, list[str]]] = None
+        self, filters: dict[str, list[str]] | None = None
     ) -> list[dict[str, str]]:
         results = []
         key_filters = []

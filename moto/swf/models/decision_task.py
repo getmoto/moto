@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
@@ -19,9 +19,9 @@ class DecisionTask(BaseModel):
         self.workflow_type = workflow_execution.workflow_type
         self.task_token = str(mock_random.uuid4())
         self.scheduled_event_id = scheduled_event_id
-        self.previous_started_event_id: Optional[int] = None
-        self.started_event_id: Optional[int] = None
-        self.started_timestamp: Optional[float] = None
+        self.previous_started_event_id: int | None = None
+        self.started_event_id: int | None = None
+        self.started_timestamp: float | None = None
         self.start_to_close_timeout = (
             self.workflow_execution.task_start_to_close_timeout
         )
@@ -29,7 +29,7 @@ class DecisionTask(BaseModel):
         # this is *not* necessarily coherent with workflow execution history,
         # but that shouldn't be a problem for tests
         self.scheduled_at = utcnow()
-        self.timeout_type: Optional[str] = None
+        self.timeout_type: str | None = None
 
     @property
     def started(self) -> bool:
@@ -54,7 +54,7 @@ class DecisionTask(BaseModel):
         return hsh
 
     def start(
-        self, started_event_id: int, previous_started_event_id: Optional[int] = None
+        self, started_event_id: int, previous_started_event_id: int | None = None
     ) -> None:
         self.state = "STARTED"
         self.started_timestamp = unix_time()
@@ -65,7 +65,7 @@ class DecisionTask(BaseModel):
         self._check_workflow_execution_open()
         self.state = "COMPLETED"
 
-    def first_timeout(self) -> Optional[Timeout]:
+    def first_timeout(self) -> Timeout | None:
         if not self.started or not self.workflow_execution.open:
             return None
         # TODO: handle the "NONE" case

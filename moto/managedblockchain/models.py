@@ -1,6 +1,6 @@
 import datetime
 import re
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -61,7 +61,7 @@ class ManagedBlockchainNetwork(BaseModel):
         voting_policy: dict[str, Any],
         member_configuration: dict[str, Any],
         region: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         self.creationdate = utcnow()
         self.id = network_id
@@ -94,7 +94,7 @@ class ManagedBlockchainNetwork(BaseModel):
         return self.creationdate.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
 
     @property
-    def network_description(self) -> Optional[str]:
+    def network_description(self) -> str | None:
         return self.description
 
     @property
@@ -126,7 +126,7 @@ class ManagedBlockchainProposal(BaseModel):
         network_expiration: float,
         network_threshold: float,
         network_threshold_comp: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         # In general, passing all values instead of creating
         # an apparatus to look them up
@@ -217,7 +217,7 @@ class ManagedBlockchainNetworkSummary(BaseModel):
         self,
         networkid: str,
         networkname: str,
-        networkdescription: Optional[str],
+        networkdescription: str | None,
         networkframework: str,
         networkframeworkversion: str,
         networkcreationdate: str,
@@ -241,7 +241,7 @@ class ManagedBlockchainInvitation(BaseModel):
         networkframeworkversion: str,
         networkcreationdate: str,
         region: str,
-        networkdescription: Optional[str] = None,
+        networkdescription: str | None = None,
     ):
         self.id = invitation_id
         self.network_summary = ManagedBlockchainNetworkSummary(
@@ -375,7 +375,7 @@ class ManagedBlockchainBackend(BaseBackend):
         frameworkconfiguration: dict[str, Any],
         voting_policy: dict[str, Any],
         member_configuration: dict[str, Any],
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> dict[str, str]:
         # Check framework
         if framework not in FRAMEWORKS:
@@ -434,7 +434,7 @@ class ManagedBlockchainBackend(BaseBackend):
         networkid: str,
         memberid: str,
         actions: dict[str, Any],
-        description: Optional[str] = None,
+        description: str | None = None,
     ) -> dict[str, str]:
         # Check if network exists
         if networkid not in self.networks:
@@ -829,7 +829,7 @@ class ManagedBlockchainBackend(BaseBackend):
         return {"NodeId": node_id}
 
     def list_nodes(
-        self, networkid: str, memberid: str, status: Optional[str] = None
+        self, networkid: str, memberid: str, status: str | None = None
     ) -> list[ManagedBlockchainNode]:
         if networkid not in self.networks:
             raise ResourceNotFoundException(

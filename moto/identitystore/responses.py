@@ -252,9 +252,7 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps({})
 
-    def named_tuple_to_dict(
-        self, value: Optional[NamedTuple]
-    ) -> Optional[dict[str, Any]]:
+    def named_tuple_to_dict(self, value: Optional[NamedTuple]) -> dict[str, Any] | None:
         if value:
             return value._asdict()
         return None

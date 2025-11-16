@@ -3,9 +3,10 @@ from __future__ import annotations
 import datetime
 import inspect
 import re
+from collections.abc import Callable
 from functools import cache
 from gzip import compress, decompress
-from typing import Any, Callable, Optional
+from typing import Any
 from urllib.parse import ParseResult, urlparse
 
 from botocore.exceptions import ClientError
@@ -156,7 +157,7 @@ class convert_flask_to_responses_response:
 
 
 def iso_8601_datetime_with_milliseconds(
-    value: Optional[datetime.datetime] = None,
+    value: datetime.datetime | None = None,
 ) -> str:
     date_to_use = value or utcnow()
     return date_to_use.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
@@ -173,7 +174,7 @@ def iso_8601_datetime_without_milliseconds(value: datetime.datetime) -> str:
 
 def iso_8601_datetime_without_milliseconds_s3(
     value: datetime.datetime,
-) -> Optional[str]:
+) -> str | None:
     return value.strftime("%Y-%m-%dT%H:%M:%S.000Z") if value else None
 
 
@@ -222,14 +223,14 @@ def str_to_rfc_1123_datetime(value: str) -> datetime.datetime:
     return datetime.datetime.strptime(value, RFC1123)
 
 
-def unix_time(dt: Optional[datetime.datetime] = None) -> float:
+def unix_time(dt: datetime.datetime | None = None) -> float:
     dt = dt or utcnow()
     epoch = utcfromtimestamp(0)
     delta = dt - epoch
     return (delta.days * 86400) + (delta.seconds + (delta.microseconds / 1e6))
 
 
-def unix_time_millis(dt: Optional[datetime.datetime] = None) -> float:
+def unix_time_millis(dt: datetime.datetime | None = None) -> float:
     return unix_time(dt) * 1000.0
 
 
@@ -389,7 +390,7 @@ def aws_api_matches(pattern: str, string: Any) -> bool:
         return False
 
 
-def extract_region_from_aws_authorization(string: str) -> Optional[str]:
+def extract_region_from_aws_authorization(string: str) -> str | None:
     auth = string or ""
     region = re.sub(r".*Credential=[^/]+/[^/]+/([^/]+)/.*", r"\1", auth)
     if region == auth:

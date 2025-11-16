@@ -3,7 +3,7 @@
 import re
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -32,8 +32,8 @@ class FakeCluster(BaseModel):
         account_id: str,
         region_name: str,
         aws_partition: str,
-        tags: Optional[dict[str, str]] = None,
-        virtual_cluster_id: Optional[str] = None,
+        tags: dict[str, str] | None = None,
+        virtual_cluster_id: str | None = None,
     ):
         self.id = virtual_cluster_id or random_cluster_id()
 
@@ -90,7 +90,7 @@ class FakeJob(BaseModel):
         account_id: str,
         region_name: str,
         aws_partition: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ):
         self.id = random_job_id()
         self.name = name
@@ -112,8 +112,8 @@ class FakeJob(BaseModel):
             datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         )
         self.created_by = None
-        self.finished_at: Optional[str] = None
-        self.state_details: Optional[str] = None
+        self.finished_at: str | None = None
+        self.state_details: str | None = None
         self.failure_reason = None
         self.tags = tags
 
@@ -174,7 +174,7 @@ class EMRContainersBackend(BaseBackend):
         name: str,
         container_provider: dict[str, Any],
         client_token: str,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> FakeCluster:
         occupied_namespaces = [
             virtual_cluster.namespace
@@ -219,10 +219,10 @@ class EMRContainersBackend(BaseBackend):
         container_provider_type: str,
         created_after: str,
         created_before: str,
-        states: Optional[list[str]],
+        states: list[str] | None,
         max_results: int,
-        next_token: Optional[str],
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        next_token: str | None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
         virtual_clusters = [
             virtual_cluster.to_dict()
             for virtual_cluster in self.virtual_clusters.values()
@@ -338,10 +338,10 @@ class EMRContainersBackend(BaseBackend):
         created_before: str,
         created_after: str,
         name: str,
-        states: Optional[list[str]],
+        states: list[str] | None,
         max_results: int,
-        next_token: Optional[str],
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        next_token: str | None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
         jobs = [job.to_dict() for job in self.jobs.values()]
 
         jobs = [job for job in jobs if job["virtualClusterId"] == virtual_cluster_id]

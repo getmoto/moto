@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from gzip import GzipFile
 from sys import platform
-from typing import Any, Optional, TypedDict, Union
+from typing import Any, TypedDict, Union
 
 import requests.exceptions
 
@@ -127,7 +127,7 @@ class _DockerDataVolumeContext:
 
     def __init__(self, lambda_func: LambdaFunction):
         self._lambda_func = lambda_func
-        self._vol_ref: Optional[_VolumeRefCount] = None
+        self._vol_ref: _VolumeRefCount | None = None
 
     @property
     def name(self) -> str:
@@ -193,7 +193,7 @@ class _DockerDataVolumeLayerContext:
     def __init__(self, lambda_func: LambdaFunction):
         self._lambda_func = lambda_func
         self._layers: list[LayerDataType] = self._lambda_func.layers
-        self._vol_ref: Optional[_VolumeRefCount] = None
+        self._vol_ref: _VolumeRefCount | None = None
 
     @property
     def name(self) -> str:
@@ -292,7 +292,7 @@ def _s3_content(key: Any) -> tuple[bytes, int, str, str]:
 
 def _validate_s3_bucket_and_key(
     account_id: str, partition: str, data: dict[str, Any]
-) -> Optional[FakeKey]:
+) -> FakeKey | None:
     key = None
     try:
         # FIXME: does not validate bucket region
@@ -445,7 +445,7 @@ class LayerVersion(CloudFormationModel):
         self.created_date = utcnow().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+0000"
         self.version: int = 1
         self._attached = False
-        self._layer: Optional[Layer] = None
+        self._layer: Layer | None = None
 
         if "ZipFile" in self.content:
             (
@@ -560,9 +560,9 @@ class LambdaAlias(BaseModel):
 
     def update(
         self,
-        description: Optional[str],
-        function_version: Optional[str],
-        routing_config: Optional[str],
+        description: str | None,
+        function_version: str | None,
+        routing_config: str | None,
     ) -> None:
         if description is not None:
             self.description = description
@@ -636,7 +636,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self.logs_backend = logs_backends[account_id][self.region]
         self.environment_vars = spec.get("Environment", {}).get("Variables", {})
         self.policy = Policy(self)  # type: ignore[no-untyped-call]
-        self.url_config: Optional[FunctionUrlConfig] = None
+        self.url_config: FunctionUrlConfig | None = None
         self.state = "Active"
         self.reserved_concurrency = spec.get("ReservedConcurrentExecutions", None)
 
@@ -732,7 +732,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         self._ephemeral_storage = ephemeral_storage
 
     @property
-    def vpc_config(self) -> Optional[dict[str, Any]]:  # type: ignore[misc]
+    def vpc_config(self) -> dict[str, Any] | None:  # type: ignore[misc]
         if not self._vpc_config:
             return None
         config = self._vpc_config.copy()
@@ -964,7 +964,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
         except Exception:
             return s
 
-    def _invoke_lambda(self, event: Optional[str] = None) -> tuple[str, bool, str]:
+    def _invoke_lambda(self, event: str | None = None) -> tuple[str, bool, str]:
         import docker
         import docker.errors
 
@@ -1329,9 +1329,7 @@ class EventSourceMapping(CloudFormationModel):
         self.function_arn: str = spec["FunctionArn"]
         self.last_modified = time.mktime(utcnow().timetuple())
 
-    def _get_service_source_from_arn(
-        self, event_source_arn: Optional[str] = None
-    ) -> str:
+    def _get_service_source_from_arn(self, event_source_arn: str | None = None) -> str:
         arn = event_source_arn or self.event_source_arn
         service = arn.split(":")[2].lower()
         if service == "sqs" and arn.endswith(".fifo"):
@@ -1356,7 +1354,7 @@ class EventSourceMapping(CloudFormationModel):
         return self._batch_size
 
     @batch_size.setter
-    def batch_size(self, new_batch_size: Optional[int]) -> None:
+    def batch_size(self, new_batch_size: int | None) -> None:
         batch_size_service_map = {
             "kinesis": (100, 10000),
             "dynamodb": (100, 10000),
@@ -1517,7 +1515,7 @@ class LambdaStorage:
     def _get_latest(self, name: str) -> LambdaFunction:
         return self._functions[name]["latest"]
 
-    def _get_version(self, name: str, version: str) -> Optional[LambdaFunction]:
+    def _get_version(self, name: str, version: str) -> LambdaFunction | None:
         for config in self._functions[name]["versions"]:
             if str(config.version) == version:
                 return config
@@ -1602,7 +1600,7 @@ class LambdaStorage:
         return self._get_latest(name)
 
     def get_function_by_name_with_qualifier(
-        self, name: str, qualifier: Optional[str] = None
+        self, name: str, qualifier: str | None = None
     ) -> LambdaFunction:
         """
         Get function by name with an optional qualifier
@@ -1659,11 +1657,11 @@ class LambdaStorage:
         aliases = self._get_function_aliases(function_name)
         return sorted(aliases.values(), key=lambda alias: alias.name)
 
-    def get_arn(self, arn: str) -> Optional[LambdaFunction]:
+    def get_arn(self, arn: str) -> LambdaFunction | None:
         [arn_without_qualifier, _, _] = self.split_function_arn(arn)
         return self._arns.get(arn_without_qualifier, None)
 
-    def split_function_arn(self, arn: str) -> tuple[str, str, Optional[str]]:
+    def split_function_arn(self, arn: str) -> tuple[str, str, str | None]:
         """
         Handy utility to parse an ARN into:
         - ARN without qualifier
@@ -1701,7 +1699,7 @@ class LambdaStorage:
             return self.get_function_by_name_forbid_qualifier(name_or_arn)
 
     def get_function_by_name_or_arn_with_qualifier(
-        self, name_or_arn: str, qualifier: Optional[str] = None
+        self, name_or_arn: str, qualifier: str | None = None
     ) -> LambdaFunction:
         """
         Get function by name or arn with an optional qualifier
@@ -1717,7 +1715,7 @@ class LambdaStorage:
             return self.get_function_by_name_with_qualifier(name_or_arn, qualifier)
 
     def construct_unknown_function_exception(
-        self, name_or_arn: str, qualifier: Optional[str] = None
+        self, name_or_arn: str, qualifier: str | None = None
     ) -> UnknownFunctionException:
         if re.match(ARN_PARTITION_REGEX, name_or_arn):
             arn = name_or_arn
@@ -1752,7 +1750,7 @@ class LambdaStorage:
 
     def publish_version(
         self, name_or_arn: str, description: str = ""
-    ) -> Optional[LambdaFunction]:
+    ) -> LambdaFunction | None:
         function = self.get_function_by_name_or_arn_forbid_qualifier(name_or_arn)
         name = function.function_name
         if name not in self._functions:
@@ -1779,7 +1777,7 @@ class LambdaStorage:
         self._arns[fn.function_arn] = fn
         return fn
 
-    def del_function(self, name_or_arn: str, qualifier: Optional[str] = None) -> None:
+    def del_function(self, name_or_arn: str, qualifier: str | None = None) -> None:
         # Qualifier may be explicitly passed or part of function name or ARN, extract it here
         if re.match(ARN_PARTITION_REGEX, name_or_arn):
             # Extract from ARN
@@ -1888,9 +1886,7 @@ class LayerStorage:
             return list(iter(self._layers[layer_name].layer_versions.values()))
         return []
 
-    def get_layer_version_by_arn(
-        self, layer_version_arn: str
-    ) -> Optional[LayerVersion]:
+    def get_layer_version_by_arn(self, layer_version_arn: str) -> LayerVersion | None:
         split_arn = split_layer_arn(layer_version_arn)
         if split_arn.layer_name in self._layers:
             return self._layers[split_arn.layer_name].layer_versions.get(
@@ -2163,16 +2159,16 @@ class LambdaBackend(BaseBackend):
     def list_layer_versions(self, layer_name: str) -> Iterable[LayerVersion]:
         return self._layers.get_layer_versions(layer_name)
 
-    def layers_versions_by_arn(self, layer_version_arn: str) -> Optional[LayerVersion]:
+    def layers_versions_by_arn(self, layer_version_arn: str) -> LayerVersion | None:
         return self._layers.get_layer_version_by_arn(layer_version_arn)
 
     def publish_version(
         self, function_name: str, description: str = ""
-    ) -> Optional[LambdaFunction]:
+    ) -> LambdaFunction | None:
         return self._lambdas.publish_version(function_name, description)
 
     def get_function(
-        self, function_name_or_arn: str, qualifier: Optional[str] = None
+        self, function_name_or_arn: str, qualifier: str | None = None
     ) -> LambdaFunction:
         return self._lambdas.get_function_by_name_or_arn_with_qualifier(
             function_name_or_arn, qualifier
@@ -2184,15 +2180,15 @@ class LambdaBackend(BaseBackend):
     def list_aliases(self, function_name: str) -> Iterable[LambdaAlias]:
         return self._lambdas.list_aliases(function_name)
 
-    def get_event_source_mapping(self, uuid: str) -> Optional[EventSourceMapping]:
+    def get_event_source_mapping(self, uuid: str) -> EventSourceMapping | None:
         return self._event_source_mappings.get(uuid)
 
-    def delete_event_source_mapping(self, uuid: str) -> Optional[EventSourceMapping]:
+    def delete_event_source_mapping(self, uuid: str) -> EventSourceMapping | None:
         return self._event_source_mappings.pop(uuid, None)
 
     def update_event_source_mapping(
         self, uuid: str, spec: dict[str, Any]
-    ) -> Optional[EventSourceMapping]:
+    ) -> EventSourceMapping | None:
         esm = self.get_event_source_mapping(uuid)
         if not esm:
             return None
@@ -2251,16 +2247,14 @@ class LambdaBackend(BaseBackend):
             esms = list(filter(lambda x: x.function_name == function_name, esms))
         return esms
 
-    def get_function_by_arn(self, function_arn: str) -> Optional[LambdaFunction]:
+    def get_function_by_arn(self, function_arn: str) -> LambdaFunction | None:
         return self._lambdas.get_arn(function_arn)
 
-    def delete_function(
-        self, function_name: str, qualifier: Optional[str] = None
-    ) -> None:
+    def delete_function(self, function_name: str, qualifier: str | None = None) -> None:
         self._lambdas.del_function(function_name, qualifier)
 
     def list_functions(
-        self, func_version: Optional[str] = None
+        self, func_version: str | None = None
     ) -> Iterable[LambdaFunction]:
         if func_version == "ALL":
             return self._lambdas.all()
@@ -2355,8 +2349,8 @@ class LambdaBackend(BaseBackend):
         self,
         function_name: str,
         message: str,
-        subject: Optional[str] = None,
-        qualifier: Optional[str] = None,
+        subject: str | None = None,
+        qualifier: str | None = None,
     ) -> None:
         event = {
             "Records": [
@@ -2479,7 +2473,7 @@ class LambdaBackend(BaseBackend):
         fn = self.get_function(function_name)
         return fn.get_function_code_signing_config()
 
-    def get_policy(self, function_name: str, qualifier: Optional[str] = None) -> str:
+    def get_policy(self, function_name: str, qualifier: str | None = None) -> str:
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(
             function_name, qualifier
         )
@@ -2487,7 +2481,7 @@ class LambdaBackend(BaseBackend):
 
     def update_function_code(
         self, function_name: str, qualifier: str, body: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         fn: LambdaFunction = self.get_function(function_name, qualifier)
         fn.update_function_code(body)
 
@@ -2498,7 +2492,7 @@ class LambdaBackend(BaseBackend):
 
     def update_function_configuration(
         self, function_name: str, qualifier: str, body: dict[str, Any]
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         fn = self.get_function(function_name, qualifier)
 
         return fn.update_configuration(body)
@@ -2506,11 +2500,11 @@ class LambdaBackend(BaseBackend):
     def invoke(
         self,
         function_name: str,
-        qualifier: Optional[str],
+        qualifier: str | None,
         body: Any,
         headers: Any,
         response_headers: Any,
-    ) -> Optional[Union[str, bytes]]:
+    ) -> Union[str, bytes] | None:
         """
         Invoking a Function with PackageType=Image is not yet supported.
 
@@ -2555,7 +2549,7 @@ class LambdaBackend(BaseBackend):
         variable prior to testing.
         """
 
-        quota: Optional[str] = os.environ.get("MOTO_LAMBDA_CONCURRENCY_QUOTA")
+        quota: str | None = os.environ.get("MOTO_LAMBDA_CONCURRENCY_QUOTA")
         if quota is not None:
             # Enforce concurrency limits as described above
             available = int(quota) - int(reserved_concurrency)
@@ -2571,12 +2565,12 @@ class LambdaBackend(BaseBackend):
         fn.reserved_concurrency = reserved_concurrency
         return fn.reserved_concurrency
 
-    def delete_function_concurrency(self, function_name: str) -> Optional[str]:
+    def delete_function_concurrency(self, function_name: str) -> str | None:
         fn = self.get_function(function_name)
         fn.reserved_concurrency = None
         return fn.reserved_concurrency
 
-    def get_function_concurrency(self, function_name: str) -> Optional[str]:
+    def get_function_concurrency(self, function_name: str) -> str | None:
         fn = self.get_function(function_name)
         return fn.reserved_concurrency
 

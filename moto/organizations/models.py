@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -411,7 +411,7 @@ class OrganizationsBackend(BaseBackend):
         self._reset()
 
     def _reset(self) -> None:
-        self.org: Optional[FakeOrganization] = None
+        self.org: FakeOrganization | None = None
         self.accounts: list[FakeAccount] = []
         self.ou: list[FakeOrganizationalUnit] = []
         self.policies: list[FakePolicy] = []
@@ -1037,7 +1037,7 @@ class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):
         backend: Any,
         service_name: str,
         use_boto3_regions: bool = True,
-        additional_regions: Optional[list[str]] = None,
+        additional_regions: list[str] | None = None,
     ):
         super().__init__(backend, service_name, use_boto3_regions, additional_regions)
 

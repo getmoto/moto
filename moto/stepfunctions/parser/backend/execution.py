@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 import json
 import logging
-from typing import Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -103,21 +102,21 @@ class Execution:
 
     state_machine: StateMachineInstance
     start_date: Timestamp
-    input_data: Optional[json]
-    input_details: Optional[CloudWatchEventsExecutionDataDetails]
-    trace_header: Optional[TraceHeader]
-    _cloud_watch_logging_session: Optional[CloudWatchLoggingSession]
+    input_data: json | None
+    input_details: CloudWatchEventsExecutionDataDetails | None
+    trace_header: TraceHeader | None
+    _cloud_watch_logging_session: CloudWatchLoggingSession | None
 
-    exec_status: Optional[ExecutionStatus]
-    stop_date: Optional[Timestamp]
+    exec_status: ExecutionStatus | None
+    stop_date: Timestamp | None
 
-    output: Optional[json]
-    output_details: Optional[CloudWatchEventsExecutionDataDetails]
+    output: json | None
+    output_details: CloudWatchEventsExecutionDataDetails | None
 
-    error: Optional[SensitiveError]
-    cause: Optional[SensitiveCause]
+    error: SensitiveError | None
+    cause: SensitiveCause | None
 
-    exec_worker: Optional[ExecutionWorker]
+    exec_worker: ExecutionWorker | None
 
     _activity_store: dict[Arn, Activity]
 
@@ -131,10 +130,10 @@ class Execution:
         region_name: str,
         state_machine: StateMachineInstance,
         start_date: Timestamp,
-        cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
+        cloud_watch_logging_session: CloudWatchLoggingSession | None,
         activity_store: dict[Arn, Activity],
-        input_data: Optional[json] = None,
-        trace_header: Optional[TraceHeader] = None,
+        input_data: json | None = None,
+        trace_header: TraceHeader | None = None,
     ):
         self.name = name
         self.sm_type = sm_type
@@ -295,10 +294,8 @@ class Execution:
         self.exec_status = ExecutionStatus.RUNNING
         self.exec_worker.start()
 
-    def stop(
-        self, stop_date: datetime.datetime, error: Optional[str], cause: Optional[str]
-    ):
-        exec_worker: Optional[ExecutionWorker] = self.exec_worker
+    def stop(self, stop_date: datetime.datetime, error: str | None, cause: str | None):
+        exec_worker: ExecutionWorker | None = self.exec_worker
         if exec_worker:
             exec_worker.stop(stop_date=stop_date, cause=cause, error=error)
 
@@ -318,7 +315,7 @@ class SyncExecutionWorkerCommunication(BaseExecutionWorkerCommunication):
 
 
 class SyncExecution(Execution):
-    sync_execution_status: Optional[SyncExecutionStatus] = None
+    sync_execution_status: SyncExecutionStatus | None = None
 
     def _get_start_execution_worker(self) -> SyncExecutionWorker:
         return SyncExecutionWorker(

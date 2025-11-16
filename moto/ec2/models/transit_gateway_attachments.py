@@ -1,7 +1,7 @@
 import weakref
 from collections import defaultdict
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 from moto.utilities.utils import filter_resources, merge_multiple_dicts
@@ -27,7 +27,7 @@ class TransitGatewayAttachment(TaggedEC2Resource):
         resource_id: str,
         resource_type: str,
         transit_gateway: "TransitGateway",
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ):
         self.ec2_backend = backend
         self.association: dict[str, str] = {}
@@ -66,8 +66,8 @@ class TransitGatewayVpcAttachment(TransitGatewayAttachment):
         transit_gateway: "TransitGateway",
         vpc_id: str,
         subnet_ids: list[str],
-        tags: Optional[dict[str, str]] = None,
-        options: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
+        options: dict[str, str] | None = None,
     ):
         super().__init__(
             backend=backend,
@@ -134,7 +134,7 @@ class TransitGatewayAttachmentBackend:
         self,
         vpn_id: str,
         transit_gateway_id: str,
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> TransitGatewayAttachment:
         transit_gateway = self.transit_gateways[transit_gateway_id]  # type: ignore[attr-defined]
         transit_gateway_vpn_attachment = TransitGatewayAttachment(
@@ -154,8 +154,8 @@ class TransitGatewayAttachmentBackend:
         transit_gateway_id: str,
         vpc_id: str,
         subnet_ids: list[str],
-        tags: Optional[dict[str, str]] = None,
-        options: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
+        options: dict[str, str] | None = None,
     ) -> TransitGatewayVpcAttachment:
         # Validate that the TransitGateway exists
         if not (transit_gateway := self.transit_gateways.get(transit_gateway_id)):  # type: ignore[attr-defined]
@@ -185,7 +185,7 @@ class TransitGatewayAttachmentBackend:
 
     def describe_transit_gateway_attachments(
         self,
-        transit_gateways_attachment_ids: Optional[list[str]] = None,
+        transit_gateways_attachment_ids: list[str] | None = None,
         filters: Any = None,
     ) -> list[TransitGatewayAttachment]:
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
@@ -213,7 +213,7 @@ class TransitGatewayAttachmentBackend:
 
     def describe_transit_gateway_vpc_attachments(
         self,
-        transit_gateways_attachment_ids: Optional[list[str]] = None,
+        transit_gateways_attachment_ids: list[str] | None = None,
         filters: Any = None,
     ) -> list[TransitGatewayAttachment]:
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())
@@ -266,9 +266,9 @@ class TransitGatewayAttachmentBackend:
     def modify_transit_gateway_vpc_attachment(
         self,
         transit_gateway_attachment_id: str,
-        add_subnet_ids: Optional[list[str]] = None,
-        options: Optional[dict[str, str]] = None,
-        remove_subnet_ids: Optional[list[str]] = None,
+        add_subnet_ids: list[str] | None = None,
+        options: dict[str, str] | None = None,
+        remove_subnet_ids: list[str] | None = None,
     ) -> TransitGatewayAttachment:
         tgw_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
         if remove_subnet_ids:
@@ -356,7 +356,7 @@ class TransitGatewayAttachmentBackend:
 
     def describe_transit_gateway_peering_attachments(
         self,
-        transit_gateways_attachment_ids: Optional[list[str]] = None,
+        transit_gateways_attachment_ids: list[str] | None = None,
         filters: Any = None,
     ) -> list[TransitGatewayAttachment]:
         transit_gateway_attachments = list(self.transit_gateway_attachments.values())

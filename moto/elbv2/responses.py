@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.core.exceptions import RESTError
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 from moto.core.serialize import return_if_not_empty
@@ -374,7 +372,7 @@ def transform_dict(data: dict[str, str]) -> list[dict[str, str]]:
     return transformed
 
 
-def transform_certificates(data: list[str]) -> Optional[list[dict[str, str]]]:
+def transform_certificates(data: list[str]) -> list[dict[str, str]] | None:
     return [{"CertificateArn": cert} for cert in data] or None
 
 

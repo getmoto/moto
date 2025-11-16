@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time, utcnow
@@ -28,11 +28,11 @@ class ActivityTask(BaseModel):
         self.input = workflow_input
         self.last_heartbeat_timestamp = unix_time()
         self.scheduled_event_id = scheduled_event_id
-        self.started_event_id: Optional[int] = None
+        self.started_event_id: int | None = None
         self.state = "SCHEDULED"
         self.task_token = str(mock_random.uuid4())
         self.timeouts = timeouts
-        self.timeout_type: Optional[str] = None
+        self.timeout_type: str | None = None
         self.workflow_execution = workflow_execution
         # this is *not* necessarily coherent with workflow execution history,
         # but that shouldn't be a problem for tests
@@ -73,7 +73,7 @@ class ActivityTask(BaseModel):
     def reset_heartbeat_clock(self) -> None:
         self.last_heartbeat_timestamp = unix_time()
 
-    def first_timeout(self) -> Optional[Timeout]:
+    def first_timeout(self) -> Timeout | None:
         if not self.open or not self.workflow_execution.open:
             return None
 

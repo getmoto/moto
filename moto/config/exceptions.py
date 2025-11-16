@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.exceptions import JsonRESTError
 
@@ -18,7 +18,7 @@ class NameTooLongException(JsonRESTError):
 class InvalidConfigurationRecorderNameException(JsonRESTError):
     code = 400
 
-    def __init__(self, name: Optional[str]):
+    def __init__(self, name: str | None):
         message = (
             f"The configuration recorder name '{name}' is not valid, blank string."
         )
@@ -84,7 +84,7 @@ class NoSuchConfigurationRecorderException(JsonRESTError):
 class InvalidDeliveryChannelNameException(JsonRESTError):
     code = 400
 
-    def __init__(self, name: Optional[str]):
+    def __init__(self, name: str | None):
         message = f"The delivery channel name '{name}' is not valid, blank string."
         super().__init__("InvalidDeliveryChannelNameException", message)
 
@@ -136,7 +136,7 @@ class InvalidSNSTopicARNException(JsonRESTError):
 class InvalidDeliveryFrequency(JsonRESTError):
     code = 400
 
-    def __init__(self, value: Optional[str], good_list: Any):
+    def __init__(self, value: str | None, good_list: Any):
         message = (
             f"1 validation error detected: Value '{value}' at "
             "'deliveryChannel.configSnapshotDeliveryProperties.deliveryFrequency' failed to satisfy "

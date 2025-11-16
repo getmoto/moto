@@ -4,7 +4,7 @@ import inspect
 import re
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -149,12 +149,12 @@ class FakeJobRun(BaseModel):
         region_name: str,
         release_label: str,
         application_type: str,
-        job_driver: Optional[dict[str, dict[str, Union[str, list[str]]]]],
-        configuration_overrides: Optional[dict[str, Union[list[Any], dict[str, Any]]]],
-        tags: Optional[dict[str, str]],
-        network_configuration: Optional[dict[str, list[str]]],
-        execution_timeout_minutes: Optional[int],
-        name: Optional[str],
+        job_driver: dict[str, dict[str, Union[str, list[str]]]] | None,
+        configuration_overrides: dict[str, Union[list[Any], dict[str, Any]]] | None,
+        tags: dict[str, str] | None,
+        network_configuration: dict[str, list[str]] | None,
+        execution_timeout_minutes: int | None,
+        name: str | None,
     ):
         self.name = name
         self.application_id = application_id
@@ -180,9 +180,9 @@ class FakeJobRun(BaseModel):
         self.application_type = application_type
 
         self.state = JOB_STATUS
-        self.state_details: Optional[str] = None
+        self.state_details: str | None = None
 
-        self.created_by: Optional[str] = None
+        self.created_by: str | None = None
 
         self.created_at: str = iso_8601_datetime_without_milliseconds(
             datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -308,8 +308,8 @@ class EMRServerlessBackend(BaseBackend):
         return self.applications[application_id].to_dict()
 
     def list_applications(
-        self, next_token: Optional[str], max_results: int, states: Optional[list[str]]
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        self, next_token: str | None, max_results: int, states: list[str] | None
+    ) -> tuple[list[dict[str, Any]], str | None]:
         applications = [
             application.to_dict() for application in self.applications.values()
         ]
@@ -335,11 +335,11 @@ class EMRServerlessBackend(BaseBackend):
     def update_application(
         self,
         application_id: str,
-        initial_capacity: Optional[str],
-        maximum_capacity: Optional[str],
-        auto_start_configuration: Optional[str],
-        auto_stop_configuration: Optional[str],
-        network_configuration: Optional[str],
+        initial_capacity: str | None,
+        maximum_capacity: str | None,
+        auto_start_configuration: str | None,
+        auto_stop_configuration: str | None,
+        network_configuration: str | None,
     ) -> dict[str, Any]:
         if application_id not in self.applications.keys():
             raise ResourceNotFoundException(application_id)
@@ -384,11 +384,11 @@ class EMRServerlessBackend(BaseBackend):
         application_id: str,
         client_token: str,
         execution_role_arn: str,
-        job_driver: Optional[dict[str, dict[str, Union[str, list[str]]]]],
-        configuration_overrides: Optional[dict[str, Union[list[Any], dict[str, Any]]]],
-        tags: Optional[dict[str, str]],
-        execution_timeout_minutes: Optional[int],
-        name: Optional[str],
+        job_driver: dict[str, dict[str, Union[str, list[str]]]] | None,
+        configuration_overrides: dict[str, Union[list[Any], dict[str, Any]]] | None,
+        tags: dict[str, str] | None,
+        execution_timeout_minutes: int | None,
+        name: str | None,
     ) -> FakeJobRun:
         role_account_id = execution_role_arn.split(":")[4]
         if role_account_id != self.account_id:
@@ -458,11 +458,11 @@ class EMRServerlessBackend(BaseBackend):
         self,
         application_id: str,
         max_results: int,
-        next_token: Optional[str],
-        created_at_after: Optional[str],
-        created_at_before: Optional[str],
-        states: Optional[list[str]],
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        next_token: str | None,
+        created_at_after: str | None,
+        created_at_before: str | None,
+        states: list[str] | None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
         if application_id not in self.job_runs.keys():
             raise ResourceNotFoundException(application_id, "Application")
         job_runs = self.job_runs[application_id]

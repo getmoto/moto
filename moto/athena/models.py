@@ -1,6 +1,6 @@
 import time
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.athena.exceptions import InvalidArgumentException, QueryStillRunning
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -110,8 +110,8 @@ class Execution(ManagedState):
         query: str,
         context: str,
         config: dict[str, Any],
-        workgroup: Optional[WorkGroup],
-        execution_parameters: Optional[list[str]],
+        workgroup: WorkGroup | None,
+        execution_parameters: list[str] | None,
     ):
         ManagedState.__init__(
             self,
@@ -240,7 +240,7 @@ class AthenaBackend(BaseBackend):
         configuration: dict[str, Any],
         description: str,
         tags: list[dict[str, str]],
-    ) -> Optional[WorkGroup]:
+    ) -> WorkGroup | None:
         if name in self.work_groups:
             return None
         work_group = WorkGroup(self, name, configuration, description, tags)
@@ -259,7 +259,7 @@ class AthenaBackend(BaseBackend):
             for wg in self.work_groups.values()
         ]
 
-    def get_work_group(self, name: str) -> Optional[dict[str, Any]]:
+    def get_work_group(self, name: str) -> dict[str, Any] | None:
         if name not in self.work_groups:
             return None
         wg = self.work_groups[name]
@@ -280,7 +280,7 @@ class AthenaBackend(BaseBackend):
         context: str,
         config: dict[str, Any],
         workgroup: str,
-        execution_parameters: Optional[list[str]],
+        execution_parameters: list[str] | None,
     ) -> str:
         execution = Execution(
             query=query,
@@ -306,7 +306,7 @@ class AthenaBackend(BaseBackend):
         execution.advance()
         return execution
 
-    def list_query_executions(self, workgroup: Optional[str]) -> dict[str, Execution]:
+    def list_query_executions(self, workgroup: str | None) -> dict[str, Execution]:
         # Note: We do not advance the execution status here, only in `get_query_execution`
         # This method simply returns the QueryExecutionIds to the user
         # They will always have to call `get_query_execution` to get the status
@@ -418,7 +418,7 @@ class AthenaBackend(BaseBackend):
         self.tagger.tag_resource(cr.arn, tags)
         return None
 
-    def get_capacity_reservation(self, name: str) -> Optional[CapacityReservation]:
+    def get_capacity_reservation(self, name: str) -> CapacityReservation | None:
         return self.capacity_reservations.get(name)
 
     def list_capacity_reservations(self) -> list[dict[str, Any]]:
@@ -451,7 +451,7 @@ class AthenaBackend(BaseBackend):
         self.named_queries[nq.id] = nq
         return nq.id
 
-    def get_named_query(self, query_id: str) -> Optional[NamedQuery]:
+    def get_named_query(self, query_id: str) -> NamedQuery | None:
         return self.named_queries[query_id] if query_id in self.named_queries else None
 
     def list_data_catalogs(self) -> list[dict[str, str]]:
@@ -460,7 +460,7 @@ class AthenaBackend(BaseBackend):
             for dc in self.data_catalogs.values()
         ]
 
-    def get_data_catalog(self, name: str) -> Optional[dict[str, str]]:
+    def get_data_catalog(self, name: str) -> dict[str, str] | None:
         if name not in self.data_catalogs:
             return None
         dc = self.data_catalogs[name]
@@ -478,7 +478,7 @@ class AthenaBackend(BaseBackend):
         description: str,
         parameters: str,
         tags: list[dict[str, str]],
-    ) -> Optional[DataCatalog]:
+    ) -> DataCatalog | None:
         if name in self.data_catalogs:
             return None
         data_catalog = DataCatalog(
@@ -513,21 +513,19 @@ class AthenaBackend(BaseBackend):
 
     def get_prepared_statement(
         self, statement_name: str, work_group: WorkGroup
-    ) -> Optional[PreparedStatement]:
+    ) -> PreparedStatement | None:
         if statement_name in self.prepared_statements:
             ps = self.prepared_statements[statement_name]
             if ps.workgroup == work_group:
                 return ps
         return None
 
-    def get_query_runtime_statistics(
-        self, query_execution_id: str
-    ) -> Optional[Execution]:
+    def get_query_runtime_statistics(self, query_execution_id: str) -> Execution | None:
         if query_execution_id in self.executions:
             return self.executions[query_execution_id]
         return None
 
-    def list_tags_for_resource(self, resource_arn: str) -> Optional[dict[str, Any]]:
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, Any] | None:
         if self.tagger.has_tags(resource_arn):
             return self.tagger.list_tags_for_resource(resource_arn)
         return None

@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend, InstanceTrackerMeta
 from moto.core.common_models import BaseModel
@@ -134,7 +134,7 @@ class DataBrewBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_recipes(
-        self, recipe_version: Optional[str] = None
+        self, recipe_version: str | None = None
     ) -> list["FakeRecipeVersion"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
         if recipe_version == FakeRecipe.LATEST_WORKING:
@@ -168,7 +168,7 @@ class DataBrewBackend(BaseBackend):
         return [r for r in recipe_versions if r is not None]
 
     def describe_recipe(
-        self, recipe_name: str, recipe_version: Optional[str] = None
+        self, recipe_name: str, recipe_version: str | None = None
     ) -> "FakeRecipeVersion":
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
         self.validate_length(recipe_name, "name", 255)
@@ -196,9 +196,7 @@ class DataBrewBackend(BaseBackend):
             )
         return recipe
 
-    def publish_recipe(
-        self, recipe_name: str, description: Optional[str] = None
-    ) -> None:
+    def publish_recipe(self, recipe_name: str, description: str | None = None) -> None:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_PublishRecipe.html
         self.validate_length(recipe_name, "name", 255)
         try:
@@ -406,7 +404,7 @@ class DataBrewBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_jobs(
-        self, dataset_name: Optional[str] = None, project_name: Optional[str] = None
+        self, dataset_name: str | None = None, project_name: str | None = None
     ) -> list["FakeJob"]:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         if dataset_name is not None:
@@ -469,9 +467,9 @@ class FakeRecipe(BaseModel):
             version=self.INITIAL_VERSION,
         )
         self.latest_working = self.versions[self.INITIAL_VERSION]
-        self.latest_published: Optional[FakeRecipeVersion] = None
+        self.latest_published: FakeRecipeVersion | None = None
 
-    def publish(self, description: Optional[str] = None) -> None:
+    def publish(self, description: str | None = None) -> None:
         self.latest_published = self.latest_working
         self.latest_working = deepcopy(self.latest_working)
         self.latest_published.publish(description)
@@ -484,7 +482,7 @@ class FakeRecipe(BaseModel):
         self.versions[self.latest_working.version] = self.latest_working
 
     def update(
-        self, description: Optional[str], steps: Optional[list[dict[str, Any]]]
+        self, description: str | None, steps: list[dict[str, Any]] | None
     ) -> None:
         if description is not None:
             self.latest_working.description = description
@@ -524,7 +522,7 @@ class FakeRecipeVersion(BaseModel):
         self.steps = recipe_steps
         self.created_time = datetime.now()
         self.tags = tags
-        self.published_date: Optional[datetime] = None
+        self.published_date: datetime | None = None
         self.version = version
 
     def as_dict(self) -> dict[str, Any]:
@@ -541,7 +539,7 @@ class FakeRecipeVersion(BaseModel):
 
         return dict_recipe
 
-    def publish(self, description: Optional[str]) -> None:
+    def publish(self, description: str | None) -> None:
         self.version = float(math.ceil(self.version))
         self.published_date = datetime.now()
         if description is not None:

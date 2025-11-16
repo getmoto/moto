@@ -4,7 +4,7 @@ import json
 import re
 import time
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.config.exceptions import (
     DuplicateTags,
@@ -231,12 +231,12 @@ class ConfigRecorderStatus(ConfigEmptyDictable):
 
         self.name = name
         self.recording = False
-        self.last_start_time: Optional[int] = None
-        self.last_stop_time: Optional[int] = None
-        self.last_status: Optional[str] = None
-        self.last_error_code: Optional[str] = None
-        self.last_error_message: Optional[str] = None
-        self.last_status_change_time: Optional[int] = None
+        self.last_start_time: int | None = None
+        self.last_stop_time: int | None = None
+        self.last_status: str | None = None
+        self.last_error_code: str | None = None
+        self.last_error_message: str | None = None
+        self.last_status_change_time: int | None = None
 
     def start(self) -> None:
         self.recording = True
@@ -262,10 +262,10 @@ class ConfigDeliveryChannel(ConfigEmptyDictable):
         self,
         name: str,
         s3_bucket_name: str,
-        prefix: Optional[str] = None,
-        sns_arn: Optional[str] = None,
-        s3_kms_key_arn: Optional[str] = None,
-        snapshot_properties: Optional[ConfigDeliverySnapshotProperties] = None,
+        prefix: str | None = None,
+        sns_arn: str | None = None,
+        s3_kms_key_arn: str | None = None,
+        snapshot_properties: ConfigDeliverySnapshotProperties | None = None,
     ):
         super().__init__()
 
@@ -293,9 +293,9 @@ class RecordingGroup(ConfigEmptyDictable):
         self,
         all_supported: bool = True,
         include_global_resource_types: bool = False,
-        resource_types: Optional[list[str]] = None,
-        exclusion_by_resource_types: Optional[dict[str, list[str]]] = None,
-        recording_strategy: Optional[dict[str, str]] = None,
+        resource_types: list[str] | None = None,
+        exclusion_by_resource_types: dict[str, list[str]] | None = None,
+        recording_strategy: dict[str, str] | None = None,
     ):
         super().__init__()
 
@@ -312,7 +312,7 @@ class ConfigRecorder(ConfigEmptyDictable):
         role_arn: str,
         recording_group: RecordingGroup,
         name: str = "default",
-        status: Optional[ConfigRecorderStatus] = None,
+        status: ConfigRecorderStatus | None = None,
     ):
         super().__init__()
 
@@ -330,8 +330,8 @@ class AccountAggregatorSource(ConfigEmptyDictable):
     def __init__(
         self,
         account_ids: list[str],
-        aws_regions: Optional[list[str]] = None,
-        all_aws_regions: Optional[bool] = None,
+        aws_regions: list[str] | None = None,
+        all_aws_regions: bool | None = None,
     ):
         super().__init__(capitalize_start=True)
 
@@ -363,8 +363,8 @@ class OrganizationAggregationSource(ConfigEmptyDictable):
     def __init__(
         self,
         role_arn: str,
-        aws_regions: Optional[list[str]] = None,
-        all_aws_regions: Optional[bool] = None,
+        aws_regions: list[str] | None = None,
+        all_aws_regions: bool | None = None,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
@@ -397,9 +397,9 @@ class ConfigAggregator(ConfigEmptyDictable):
         name: str,
         account_id: str,
         region: str,
-        account_sources: Optional[list[AccountAggregatorSource]] = None,
-        org_source: Optional[OrganizationAggregationSource] = None,
-        tags: Optional[dict[str, str]] = None,
+        account_sources: list[AccountAggregatorSource] | None = None,
+        org_source: OrganizationAggregationSource | None = None,
+        tags: dict[str, str] | None = None,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
@@ -458,9 +458,9 @@ class OrganizationConformancePack(ConfigEmptyDictable):
         region: str,
         name: str,
         delivery_s3_bucket: str,
-        delivery_s3_key_prefix: Optional[str] = None,
-        input_parameters: Optional[list[dict[str, Any]]] = None,
-        excluded_accounts: Optional[list[str]] = None,
+        delivery_s3_key_prefix: str | None = None,
+        input_parameters: list[dict[str, Any]] | None = None,
+        excluded_accounts: list[str] | None = None,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
@@ -505,10 +505,10 @@ class Scope(ConfigEmptyDictable):
 
     def __init__(
         self,
-        compliance_resource_types: Optional[list[str]] = None,
-        tag_key: Optional[str] = None,
-        tag_value: Optional[str] = None,
-        compliance_resource_id: Optional[str] = None,
+        compliance_resource_types: list[str] | None = None,
+        tag_key: str | None = None,
+        tag_value: str | None = None,
+        compliance_resource_id: str | None = None,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
         self.tags = None
@@ -563,9 +563,9 @@ class SourceDetail(ConfigEmptyDictable):
 
     def __init__(
         self,
-        event_source: Optional[str] = None,
-        message_type: Optional[str] = None,
-        maximum_execution_frequency: Optional[str] = None,
+        event_source: str | None = None,
+        message_type: str | None = None,
+        maximum_execution_frequency: str | None = None,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
@@ -645,7 +645,7 @@ class Source(ConfigEmptyDictable):
         region: str,
         owner: str,
         source_identifier: str,
-        source_details: Optional[SourceDetail] = None,
+        source_details: SourceDetail | None = None,
     ):
         super().__init__(capitalize_start=True, capitalize_arn=False)
         if owner not in Source.OWNERS:
@@ -899,7 +899,7 @@ class ConfigRule(ConfigEmptyDictable):
 
 
 class RetentionConfiguration(ConfigEmptyDictable):
-    def __init__(self, retention_period_in_days: int, name: Optional[str] = None):
+    def __init__(self, retention_period_in_days: int, name: str | None = None):
         super().__init__(capitalize_start=True, capitalize_arn=False)
 
         self.name = name or "default"
@@ -917,7 +917,7 @@ class ConfigBackend(BaseBackend):
         self.config_schema = get_service_model("config")
         self.query_results: dict[str, list[dict[str, Any]]] = {}
         self.query_results_queue: list[list[dict[str, Any]]] = []
-        self.retention_configuration: Optional[RetentionConfiguration] = None
+        self.retention_configuration: RetentionConfiguration | None = None
         self._custom_resources: dict[str, dict[str, Any]] = {}
         self._expression_results: dict[str, list[dict[str, Any]]] = {}
         self.config_rules: dict[str, ConfigRule] = {}
@@ -953,8 +953,8 @@ class ConfigBackend(BaseBackend):
         if len(config_aggr_name) > 256:
             raise NameTooLongException(config_aggr_name, "configurationAggregatorName")
 
-        account_sources: Optional[list[AccountAggregatorSource]] = None
-        org_source: Optional[OrganizationAggregationSource] = None
+        account_sources: list[AccountAggregatorSource] | None = None
+        org_source: OrganizationAggregationSource | None = None
 
         # Tag validation:
         tags = validate_tags(config_aggregator.get("Tags", []))
@@ -1032,7 +1032,7 @@ class ConfigBackend(BaseBackend):
         return aggregator.to_dict()
 
     def describe_configuration_aggregators(
-        self, names: list[str], token: str, limit: Optional[int]
+        self, names: list[str], token: str, limit: int | None
     ) -> dict[str, Any]:
         limit = DEFAULT_PAGE_SIZE if not limit or limit < 0 else limit
         agg_list = []
@@ -1110,7 +1110,7 @@ class ConfigBackend(BaseBackend):
         return agg_auth.to_dict()
 
     def describe_aggregation_authorizations(
-        self, token: Optional[str], limit: Optional[int]
+        self, token: str | None, limit: int | None
     ) -> dict[str, Any]:
         limit = DEFAULT_PAGE_SIZE if not limit or limit < 0 else limit
         result: dict[str, Any] = {"AggregationAuthorizations": []}
@@ -1285,7 +1285,7 @@ class ConfigBackend(BaseBackend):
         )
 
     def describe_configuration_recorders(
-        self, recorder_names: Optional[list[str]]
+        self, recorder_names: list[str] | None
     ) -> list[dict[str, Any]]:
         recorders: list[dict[str, Any]] = []
 
@@ -1532,8 +1532,8 @@ class ConfigBackend(BaseBackend):
         aggregator_name: str,
         resource_type: str,
         filters: dict[str, str],
-        limit: Optional[int],
-        next_token: Optional[str],
+        limit: int | None,
+        next_token: str | None,
     ) -> dict[str, Any]:
         """Queries AWS Config listing function that must exist for resource backend.
 
@@ -1774,9 +1774,9 @@ class ConfigBackend(BaseBackend):
 
     def put_evaluations(
         self,
-        evaluations: Optional[list[dict[str, Any]]] = None,
-        result_token: Optional[str] = None,
-        test_mode: Optional[bool] = False,
+        evaluations: list[dict[str, Any]] | None = None,
+        result_token: str | None = None,
+        test_mode: bool | None = False,
     ) -> dict[str, list[Any]]:
         if not evaluations:
             raise InvalidParameterValueException(
@@ -2002,7 +2002,7 @@ class ConfigBackend(BaseBackend):
         }
 
     def put_config_rule(
-        self, config_rule: dict[str, Any], tags: Optional[list[dict[str, str]]] = None
+        self, config_rule: dict[str, Any], tags: list[dict[str, str]] | None = None
     ) -> str:
         """Add/Update config rule for evaluating resource compliance.
 
@@ -2066,7 +2066,7 @@ class ConfigBackend(BaseBackend):
         return ""
 
     def describe_config_rules(
-        self, config_rule_names: Optional[list[str]], next_token: Optional[str]
+        self, config_rule_names: list[str] | None, next_token: str | None
     ) -> dict[str, Any]:
         """Return details for the given ConfigRule names or for all rules."""
         result: dict[str, Any] = {"ConfigRules": []}
@@ -2130,7 +2130,7 @@ class ConfigBackend(BaseBackend):
         return {"RetentionConfiguration": self.retention_configuration.to_dict()}
 
     def describe_retention_configurations(
-        self, retention_configuration_names: Optional[list[str]]
+        self, retention_configuration_names: list[str] | None
     ) -> list[dict[str, Any]]:
         """
         This will return the retention configuration if one is present.
@@ -2176,9 +2176,9 @@ class ConfigBackend(BaseBackend):
     def select_resource_config(
         self,
         expression: str,
-        limit: Optional[int] = None,
-        next_token: Optional[str] = None,
-    ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, str]]], Optional[str]]:
+        limit: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, str]]], str | None]:
         """
         This method doesn't actually execute SQL but uses predefined results
         that can be configured through the moto API. Modeled after AWS Athena's approach.
@@ -2211,7 +2211,7 @@ class ConfigBackend(BaseBackend):
         resource_id: str,
         resource_name: str,
         configuration: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> None:
         if resource_type.split("::")[0].lower() in [
             "amzn",

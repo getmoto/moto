@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,9 +16,9 @@ class FakeResourceGroup(BaseModel):
         region_name: str,
         name: str,
         resource_query: dict[str, str],
-        description: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
-        configuration: Optional[list[dict[str, Any]]] = None,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
+        configuration: list[dict[str, Any]] | None = None,
     ):
         self.errors: list[str] = []
         description = description or ""
@@ -313,9 +313,9 @@ class ResourceGroupsBackend(BaseBackend):
         self,
         name: str,
         resource_query: dict[str, str],
-        description: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
-        configuration: Optional[list[dict[str, Any]]] = None,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
+        configuration: list[dict[str, Any]] | None = None,
     ) -> FakeResourceGroup:
         tags = tags or {}
         group = FakeResourceGroup(
@@ -368,7 +368,7 @@ class ResourceGroupsBackend(BaseBackend):
             del group.tags[key]
 
     def update_group(
-        self, group_name: str, description: Optional[str] = None
+        self, group_name: str, description: str | None = None
     ) -> FakeResourceGroup:
         if description:
             self.groups.by_name[group_name].description = description
@@ -381,9 +381,7 @@ class ResourceGroupsBackend(BaseBackend):
         self.groups.by_name[group_name].resource_query = resource_query
         return self.groups.by_name[group_name]
 
-    def get_group_configuration(
-        self, group_name: str
-    ) -> Optional[list[dict[str, Any]]]:
+    def get_group_configuration(self, group_name: str) -> list[dict[str, Any]] | None:
         group = self.groups.by_name[group_name]
         return group.configuration
 

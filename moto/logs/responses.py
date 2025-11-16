@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from moto.core.responses import BaseResponse
 
@@ -18,7 +19,7 @@ def validate_param(
     param_value: str,
     constraint: str,
     constraint_expression: Callable[[str], bool],
-    pattern: Optional[str] = None,
+    pattern: str | None = None,
 ) -> None:
     try:
         assert constraint_expression(param_value)
@@ -50,7 +51,7 @@ class LogsResponse(BaseResponse):
         param: str,
         constraint: str,
         constraint_expression: Callable[[str], bool],
-        pattern: Optional[str] = None,
+        pattern: str | None = None,
     ) -> Any:
         param_value = self._get_param(param)
         validate_param(param, param_value, constraint, constraint_expression, pattern)

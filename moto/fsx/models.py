@@ -1,7 +1,7 @@
 """FSxBackend class with methods for supported APIs."""
 
 import time
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -32,12 +32,12 @@ class FileSystem(BaseModel):
         storage_type: str,
         subnet_ids: list[str],
         security_group_ids: list[str],
-        tags: Optional[list[dict[str, str]]],
-        kms_key_id: Optional[str],
-        windows_configuration: Optional[dict[str, Any]],
-        lustre_configuration: Optional[dict[str, Any]],
-        ontap_configuration: Optional[dict[str, Any]],
-        open_zfs_configuration: Optional[dict[str, Any]],
+        tags: list[dict[str, str]] | None,
+        kms_key_id: str | None,
+        windows_configuration: dict[str, Any] | None,
+        lustre_configuration: dict[str, Any] | None,
+        ontap_configuration: dict[str, Any] | None,
+        open_zfs_configuration: dict[str, Any] | None,
         backend: "FSxBackend",
     ) -> None:
         self.file_system_id = f"fs-{uuid4().hex[:8]}"
@@ -87,9 +87,9 @@ class Backup(BaseModel):
         account_id: str,
         region_name: str,
         file_system_id: str,
-        client_request_token: Optional[str],
-        volume_id: Optional[str],
-        tags: Optional[list[dict[str, str]]],
+        client_request_token: str | None,
+        volume_id: str | None,
+        tags: list[dict[str, str]] | None,
         backend: "FSxBackend",
     ) -> None:
         self.backup_id = f"backup-{uuid4().hex[:8]}"
@@ -136,13 +136,13 @@ class FSxBackend(BaseBackend):
         storage_type: str,
         subnet_ids: list[str],
         security_group_ids: list[str],
-        tags: Optional[list[dict[str, str]]],
-        kms_key_id: Optional[str],
-        windows_configuration: Optional[dict[str, Any]],
-        lustre_configuration: Optional[dict[str, Any]],
-        ontap_configuration: Optional[dict[str, Any]],
-        file_system_type_version: Optional[str],
-        open_zfs_configuration: Optional[dict[str, Any]],
+        tags: list[dict[str, str]] | None,
+        kms_key_id: str | None,
+        windows_configuration: dict[str, Any] | None,
+        lustre_configuration: dict[str, Any] | None,
+        ontap_configuration: dict[str, Any] | None,
+        file_system_type_version: str | None,
+        open_zfs_configuration: dict[str, Any] | None,
     ) -> FileSystem:
         file_system = FileSystem(
             account_id=self.account_id,
@@ -183,15 +183,15 @@ class FSxBackend(BaseBackend):
         self,
         file_system_id: str,
         client_request_token: str,
-        windows_configuration: Optional[dict[str, Any]],
-        lustre_configuration: Optional[dict[str, Any]],
-        open_zfs_configuration: Optional[dict[str, Any]],
+        windows_configuration: dict[str, Any] | None,
+        lustre_configuration: dict[str, Any] | None,
+        open_zfs_configuration: dict[str, Any] | None,
     ) -> tuple[
         str,
         str,
-        Optional[dict[str, Any]],
-        Optional[dict[str, Any]],
-        Optional[dict[str, Any]],
+        dict[str, Any] | None,
+        dict[str, Any] | None,
+        dict[str, Any] | None,
     ]:
         response_template = {"FinalBackUpId": "", "FinalBackUpTags": []}
 
@@ -222,9 +222,9 @@ class FSxBackend(BaseBackend):
     def create_backup(
         self,
         file_system_id: str,
-        client_request_token: Optional[str],
-        volume_id: Optional[str],
-        tags: Optional[list[dict[str, str]]],
+        client_request_token: str | None,
+        volume_id: str | None,
+        tags: list[dict[str, str]] | None,
     ) -> Backup:
         backup = Backup(
             account_id=self.account_id,
@@ -245,7 +245,7 @@ class FSxBackend(BaseBackend):
         return backup
 
     def delete_backup(
-        self, backup_id: str, client_request_token: Optional[str]
+        self, backup_id: str, client_request_token: str | None
     ) -> dict[str, Any]:
         if backup_id not in self.backups:
             raise ResourceNotFoundException(

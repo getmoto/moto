@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -18,12 +18,12 @@ class Application(BaseModel):
         account_id: str,
         region_name: str,
         application_name: str,
-        application_description: Optional[str],
+        application_description: str | None,
         runtime_environment: str,
         service_execution_role: str,
-        application_configuration: Optional[dict[str, Any]],
-        cloud_watch_logging_options: Optional[list[dict[str, str]]],
-        application_mode: Optional[str],
+        application_configuration: dict[str, Any] | None,
+        cloud_watch_logging_options: list[dict[str, str]] | None,
+        application_mode: str | None,
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -53,7 +53,7 @@ class Application(BaseModel):
         return f"arn:aws:kinesisanalytics:{self.region_name}:{self.account_id}:application/{self.application_name}"
 
     def _generate_logging_options(
-        self, cloud_watch_logging_options: Optional[list[dict[str, str]]]
+        self, cloud_watch_logging_options: list[dict[str, str]] | None
     ) -> list[dict[str, str]] | None:
         cloud_watch_logging_option_descriptions = []
         option_id = f"{str(random.randint(1, 100))}.1"
@@ -249,13 +249,13 @@ class KinesisAnalyticsV2Backend(BaseBackend):
     def create_application(
         self,
         application_name: str,
-        application_description: Optional[str],
+        application_description: str | None,
         runtime_environment: str,
         service_execution_role: str,
-        application_configuration: Optional[dict[str, Any]],
-        cloud_watch_logging_options: Optional[list[dict[str, str]]],
-        tags: Optional[list[dict[str, str]]],
-        application_mode: Optional[str],
+        application_configuration: dict[str, Any] | None,
+        cloud_watch_logging_options: list[dict[str, str]] | None,
+        tags: list[dict[str, str]] | None,
+        application_mode: str | None,
     ) -> dict[str, Any]:
         app = Application(
             account_id=self.account_id,

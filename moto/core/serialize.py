@@ -57,13 +57,11 @@ import base64
 import calendar
 import json
 from collections import namedtuple
-from collections.abc import Generator, Mapping, MutableMapping
+from collections.abc import Callable, Generator, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import (
     Any,
-    Callable,
-    Optional,
     TypedDict,
     Union,
 )
@@ -94,7 +92,7 @@ class ResponseDict(TypedDict):
 
 
 class SerializationContext:
-    def __init__(self, request_id: Optional[str] = None) -> None:
+    def __init__(self, request_id: str | None = None) -> None:
         self.request_id = request_id or "request-id"
 
 
@@ -225,8 +223,8 @@ class ResponseSerializer:
     def __init__(
         self,
         operation_model: OperationModel,
-        context: Optional[SerializationContext] = None,
-        pretty_print: Optional[bool] = False,
+        context: SerializationContext | None = None,
+        pretty_print: bool | None = False,
         value_picker: Any = None,
     ) -> None:
         self.operation_model = operation_model
@@ -291,7 +289,7 @@ class ResponseSerializer:
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         raise NotImplementedError("Must be implemented in subclass.")
@@ -433,7 +431,7 @@ class BaseJSONSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         resp["body"] = self._serialize_body(serialized_result)
@@ -584,7 +582,7 @@ class BaseXMLSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         result_key = f"{self.operation_model.name}Result"
@@ -682,7 +680,7 @@ class BaseRestSerializer(ResponseSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         if "payload" in serialized_result:
@@ -796,7 +794,7 @@ class QuerySerializer(BaseXMLSerializer):
         self,
         resp: ResponseDict,
         result: Any,
-        shape: Optional[StructureShape],
+        shape: StructureShape | None,
         serialized_result: MutableMapping[str, Any],
     ) -> ResponseDict:
         response_key = f"{self.operation_model.name}Response"

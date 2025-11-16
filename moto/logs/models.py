@@ -2,7 +2,7 @@ import re
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 from gzip import compress as gzip_compress
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -36,7 +36,7 @@ class Destination(BaseModel):
         destination_name: str,
         role_arn: str,
         target_arn: str,
-        access_policy: Optional[str] = None,
+        access_policy: str | None = None,
     ):
         self.access_policy = access_policy
         self.arn = f"arn:{get_partition(region)}:logs:{region}:{account_id}:destination:{destination_name}"
@@ -135,7 +135,7 @@ class LogStream(BaseModel):
         self.creation_time = int(unix_time_millis())
         self.first_event_timestamp = None
         self.last_event_timestamp = None
-        self.last_ingestion_time: Optional[int] = None
+        self.last_ingestion_time: int | None = None
         self.log_stream_name = name
         self.stored_bytes = 0
         # I'm  guessing this is token needed for sequenceToken by put_events
@@ -249,9 +249,9 @@ class LogStream(BaseModel):
         start_time: str,
         end_time: str,
         limit: int,
-        next_token: Optional[str],
+        next_token: str | None,
         start_from_head: str,
-    ) -> tuple[list[dict[str, Any]], Optional[str], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], str | None, str | None]:
         if limit is None:
             limit = 10000
 
@@ -265,8 +265,8 @@ class LogStream(BaseModel):
             return True
 
         def get_index_and_direction_from_token(
-            token: Optional[str],
-        ) -> tuple[Optional[str], int]:
+            token: str | None,
+        ) -> tuple[str | None, int]:
             if token is not None:
                 try:
                     return token[0], int(token[2:])
@@ -463,8 +463,8 @@ class LogGroup(CloudFormationModel):
         log_stream_name_prefix: str,
         order_by: str,
         limit: int,
-        next_token: Optional[str] = None,
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        next_token: str | None = None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
         # responses only log_stream_name, creation_time, arn, stored_bytes when no events are stored.
 
         log_streams = [
@@ -525,9 +525,9 @@ class LogGroup(CloudFormationModel):
         start_time: str,
         end_time: str,
         limit: int,
-        next_token: Optional[str],
+        next_token: str | None,
         start_from_head: str,
-    ) -> tuple[list[dict[str, Any]], Optional[str], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], str | None, str | None]:
         if log_stream_name not in self.streams:
             raise ResourceNotFoundException()
         stream = self.streams[log_stream_name]
@@ -545,11 +545,11 @@ class LogGroup(CloudFormationModel):
         log_stream_names: list[str],
         start_time: int,
         end_time: int,
-        limit: Optional[int],
-        next_token: Optional[str],
+        limit: int | None,
+        next_token: str | None,
         filter_pattern: str,
         interleaved: bool,
-    ) -> tuple[list[dict[str, Any]], Optional[str], list[dict[str, Any]]]:
+    ) -> tuple[list[dict[str, Any]], str | None, list[dict[str, Any]]]:
         if not limit:
             limit = 10000
         streams = [
@@ -616,7 +616,7 @@ class LogGroup(CloudFormationModel):
             log_group["kmsKeyId"] = self.kms_key_id
         return log_group
 
-    def set_retention_policy(self, retention_in_days: Optional[str]) -> None:
+    def set_retention_policy(self, retention_in_days: str | None) -> None:
         self.retention_in_days = retention_in_days
 
     def describe_subscription_filters(self) -> Iterable[SubscriptionFilter]:
@@ -769,10 +769,10 @@ class DeliveryDestination(BaseModel):
         account_id: str,
         region: str,
         name: str,
-        output_format: Optional[str],
+        output_format: str | None,
         delivery_destination_configuration: dict[str, str],
-        tags: Optional[dict[str, str]],
-        policy: Optional[str] = None,
+        tags: dict[str, str] | None,
+        policy: str | None = None,
     ):
         self.name = name
         self.output_format = output_format
@@ -811,7 +811,7 @@ class DeliverySource(BaseModel):
         name: str,
         resource_arn: str,
         log_type: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ):
         res_arns = []
         res_arns.append(resource_arn)
@@ -843,10 +843,10 @@ class Delivery(BaseModel):
         delivery_source_name: str,
         delivery_destination_arn: str,
         destination_type: str,
-        record_fields: Optional[list[str]],
-        field_delimiter: Optional[str],
-        s3_delivery_configuration: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        record_fields: list[str] | None,
+        field_delimiter: str | None,
+        s3_delivery_configuration: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ):
         self.id = mock_random.get_random_string(length=16)
         self.arn = f"arn:aws:logs:{region}:{account_id}:delivery:{self.id}"
@@ -966,7 +966,7 @@ class LogsBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_log_groups(
-        self, log_group_name_prefix: Optional[str] = None
+        self, log_group_name_prefix: str | None = None
     ) -> list[LogGroup]:
         groups = [
             group
@@ -1008,8 +1008,8 @@ class LogsBackend(BaseBackend):
         return
 
     def describe_destinations(
-        self, destination_name_prefix: str, limit: int, next_token: Optional[int] = None
-    ) -> tuple[list[dict[str, Any]], Optional[int]]:
+        self, destination_name_prefix: str, limit: int, next_token: int | None = None
+    ) -> tuple[list[dict[str, Any]], int | None]:
         if limit > 50:
             raise InvalidParameterException(
                 constraint="Member must have value less than or equal to 50",
@@ -1065,9 +1065,9 @@ class LogsBackend(BaseBackend):
         log_group_name: str,
         log_group_id: str,
         log_stream_name_prefix: str,
-        next_token: Optional[str],
+        next_token: str | None,
         order_by: str,
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], str | None]:
         log_group = self._find_log_group(log_group_id, log_group_name)
         if limit > 50:
             raise InvalidParameterException(
@@ -1137,9 +1137,9 @@ class LogsBackend(BaseBackend):
         start_time: str,
         end_time: str,
         limit: int,
-        next_token: Optional[str],
+        next_token: str | None,
         start_from_head: str,
-    ) -> tuple[list[dict[str, Any]], Optional[str], Optional[str]]:
+    ) -> tuple[list[dict[str, Any]], str | None, str | None]:
         log_group = self._find_log_group(
             log_group_id=log_group_id, log_group_name=log_group_name
         )
@@ -1159,11 +1159,11 @@ class LogsBackend(BaseBackend):
         log_stream_names: list[str],
         start_time: int,
         end_time: int,
-        limit: Optional[int],
-        next_token: Optional[str],
+        limit: int | None,
+        next_token: str | None,
         filter_pattern: str,
         interleaved: bool,
-    ) -> tuple[list[dict[str, Any]], Optional[str], list[dict[str, Any]]]:
+    ) -> tuple[list[dict[str, Any]], str | None, list[dict[str, Any]]]:
         """
         The following filter patterns are currently supported: Single Terms, Multiple Terms, Exact Phrases.
         If the pattern is not supported, all events are returned.
@@ -1266,10 +1266,10 @@ class LogsBackend(BaseBackend):
 
     def describe_metric_filters(
         self,
-        prefix: Optional[str] = None,
-        log_group_name: Optional[str] = None,
-        metric_name: Optional[str] = None,
-        metric_namespace: Optional[str] = None,
+        prefix: str | None = None,
+        log_group_name: str | None = None,
+        metric_name: str | None = None,
+        metric_namespace: str | None = None,
     ) -> list[dict[str, Any]]:
         filters = self.filters.get_matching_filters(
             prefix, log_group_name, metric_name, metric_namespace
@@ -1277,7 +1277,7 @@ class LogsBackend(BaseBackend):
         return filters
 
     def delete_metric_filter(
-        self, filter_name: Optional[str] = None, log_group_name: Optional[str] = None
+        self, filter_name: str | None = None, log_group_name: str | None = None
     ) -> None:
         self.filters.delete_filter(filter_name, log_group_name)
 
@@ -1378,7 +1378,7 @@ class LogsBackend(BaseBackend):
         return query_id
 
     def describe_queries(
-        self, log_stream_name: str, status: Optional[str]
+        self, log_stream_name: str, status: str | None
     ) -> list[LogQuery]:
         """
         Pagination is not yet implemented
@@ -1492,7 +1492,7 @@ class LogsBackend(BaseBackend):
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
     def _find_log_group(self, log_group_id: str, log_group_name: str) -> LogGroup:
-        log_group: Optional[LogGroup] = None
+        log_group: LogGroup | None = None
         if log_group_name:
             log_group = self.groups.get(log_group_name)
         elif log_group_id:
@@ -1514,9 +1514,9 @@ class LogsBackend(BaseBackend):
     def put_delivery_destination(
         self,
         name: str,
-        output_format: Optional[str],
+        output_format: str | None,
         delivery_destination_configuration: dict[str, str],
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> DeliveryDestination:
         if output_format and output_format not in [
             "w3c",
@@ -1659,10 +1659,10 @@ class LogsBackend(BaseBackend):
         self,
         delivery_source_name: str,
         delivery_destination_arn: str,
-        record_fields: Optional[list[str]],
-        field_delimiter: Optional[str],
-        s3_delivery_configuration: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        record_fields: list[str] | None,
+        field_delimiter: str | None,
+        s3_delivery_configuration: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ) -> Delivery:
         if delivery_source_name not in self.delivery_sources:
             raise ResourceNotFoundException(

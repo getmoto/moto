@@ -4,7 +4,7 @@ import random
 import uuid
 from collections.abc import Iterable
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -239,11 +239,11 @@ class ComprehendJob(BaseModel):
         account_id: str,
         region_name: str,
         job_type: str,
-        job_name: Optional[str],
+        job_name: str | None,
         input_s3_config: dict[str, Any],
         output_s3_config: dict[str, Any],
         data_access_role_arn: str,
-        language_code: Optional[str],
+        language_code: str | None,
         **kwargs: Any,
     ):
         self.job_id = str(uuid.uuid4())
@@ -537,9 +537,9 @@ class ComprehendBackend(BaseBackend):
 
     def list_document_classifiers(
         self,
-        filter: Optional[dict[str, Any]] = None,
-        next_token: Optional[str] = None,
-        max_results: Optional[int] = None,
+        filter: dict[str, Any] | None = None,
+        next_token: str | None = None,
+        max_results: int | None = None,
     ) -> tuple[list[dict[str, Any]], None]:
         """
         List document classifiers with optional filtering.
@@ -568,9 +568,9 @@ class ComprehendBackend(BaseBackend):
 
     def list_endpoints(
         self,
-        filter: Optional[dict[str, Any]] = None,
-        next_token: Optional[str] = None,
-        max_results: Optional[int] = None,
+        filter: dict[str, Any] | None = None,
+        next_token: str | None = None,
+        max_results: int | None = None,
     ) -> tuple[list[dict[str, Any]], None]:
         """
         List endpoints with optional filtering.
@@ -597,9 +597,9 @@ class ComprehendBackend(BaseBackend):
 
     def list_flywheels(
         self,
-        filter: Optional[dict[str, Any]] = None,
-        next_token: Optional[str] = None,
-        max_results: Optional[int] = None,
+        filter: dict[str, Any] | None = None,
+        next_token: str | None = None,
+        max_results: int | None = None,
     ) -> tuple[list[dict[str, Any]], None]:
         """
         List flywheels with optional filtering.
@@ -650,7 +650,7 @@ class ComprehendBackend(BaseBackend):
         self,
         resource_arn: str,
         resource_policy: str,
-        policy_revision_id: Optional[str] = None,
+        policy_revision_id: str | None = None,
     ) -> str:
         """
         The PolicyRevisionId-parameter for conditional updates is not yet implemented.
@@ -678,7 +678,7 @@ class ComprehendBackend(BaseBackend):
         return policy_details
 
     def delete_resource_policy(
-        self, resource_arn: str, policy_revision_id: Optional[str] = None
+        self, resource_arn: str, policy_revision_id: str | None = None
     ) -> None:
         """
         The PolicyRevisionId-parameter for conditional deletion is not yet implemented.
@@ -715,7 +715,7 @@ class ComprehendBackend(BaseBackend):
         return self.jobs[job_id]
 
     def _list_jobs(
-        self, job_type: str, job_filter: Optional[dict[str, Any]]
+        self, job_type: str, job_filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         """Generic method to list and filter jobs."""
         # Pagination is not yet implemented
@@ -748,7 +748,7 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_pii_entities_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("PiiEntitiesDetection", filter)
 
@@ -762,7 +762,7 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_key_phrases_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("KeyPhrasesDetection", filter)
 
@@ -776,7 +776,7 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_sentiment_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("SentimentDetection", filter)
 
@@ -790,7 +790,7 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_dominant_language_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("DominantLanguageDetection", filter)
 
@@ -808,7 +808,7 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_entities_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("EntitiesDetection", filter)
 
@@ -819,7 +819,7 @@ class ComprehendBackend(BaseBackend):
         return self._get_job(job_id)
 
     def list_topics_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("TopicsDetection", filter)
 
@@ -834,7 +834,7 @@ class ComprehendBackend(BaseBackend):
         return self._get_job(job_id)
 
     def list_document_classification_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("DocumentClassification", filter)
 
@@ -852,7 +852,7 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_events_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("EventsDetection", filter)
 
@@ -866,7 +866,7 @@ class ComprehendBackend(BaseBackend):
         self._get_job(job_id).stop()
 
     def list_targeted_sentiment_detection_jobs(
-        self, filter: Optional[dict[str, Any]]
+        self, filter: dict[str, Any] | None
     ) -> list[ComprehendJob]:
         return self._list_jobs("TargetedSentimentDetection", filter)
 

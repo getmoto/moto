@@ -1,8 +1,9 @@
 import copy
 import itertools
 import json
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Any, Union
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -92,7 +93,7 @@ def include_consumed_capacity(
 
 
 def validate_put_has_empty_keys(
-    field_updates: dict[str, Any], table: Table, custom_error_msg: Optional[str] = None
+    field_updates: dict[str, Any], table: Table, custom_error_msg: str | None = None
 ) -> None:
     """
     Error if any keys have an empty value. Checks Global index attributes as well
@@ -163,7 +164,7 @@ def validate_put_has_gsi_keys_set_to_none(item: dict[str, Any], table: Table) ->
 
 
 def validate_attributes_used(
-    attribute_names: Optional[dict[str, Any]],
+    attribute_names: dict[str, Any] | None,
     names_used: list[str],
     provided_attr: str = "Names",
 ) -> None:
@@ -192,8 +193,8 @@ def check_projection_expression(expression: str) -> None:
 class ProjectionExpressionParser:
     def __init__(
         self,
-        projection_expression: Optional[str],
-        expression_attribute_names: Optional[dict[str, str]],
+        projection_expression: str | None,
+        expression_attribute_names: dict[str, str] | None,
     ):
         self.projection_expression = projection_expression
         self.expression_attribute_names = (
@@ -232,7 +233,7 @@ class DynamoHandler(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="dynamodb")
 
-    def get_endpoint_name(self, headers: Any) -> Optional[str]:
+    def get_endpoint_name(self, headers: Any) -> str | None:
         """Parses request headers and extracts part od the X-Amz-Target
         that corresponds to a method of DynamoHandler
 
@@ -319,12 +320,12 @@ class DynamoHandler(BaseResponse):
     def _validate_table_creation(
         self,
         billing_mode: str,
-        throughput: Optional[dict[str, Any]],
+        throughput: dict[str, Any] | None,
         key_schema: list[dict[str, str]],
-        global_indexes: Optional[list[dict[str, Any]]],
-        local_secondary_indexes: Optional[list[dict[str, Any]]],
+        global_indexes: list[dict[str, Any]] | None,
+        local_secondary_indexes: list[dict[str, Any]] | None,
         attr: list[dict[str, str]],
-        warm_throughput: Optional[dict[str, Any]],
+        warm_throughput: dict[str, Any] | None,
     ) -> None:
         # Validate Throughput
         if billing_mode == "PAY_PER_REQUEST" and throughput:
@@ -515,7 +516,7 @@ class DynamoHandler(BaseResponse):
                     + dump_list(actual_attrs)
                 )
 
-    def _get_filter_expression(self) -> Optional[str]:
+    def _get_filter_expression(self) -> str | None:
         filter_expression = self.body.get("FilterExpression")
         if filter_expression == "":
             raise MockValidationException(
@@ -523,7 +524,7 @@ class DynamoHandler(BaseResponse):
             )
         return filter_expression
 
-    def _get_projection_expression(self) -> Optional[str]:
+    def _get_projection_expression(self) -> str | None:
         expression = self.body.get("ProjectionExpression")
         if expression == "":
             raise MockValidationException(

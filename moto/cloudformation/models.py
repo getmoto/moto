@@ -4,7 +4,7 @@ import json
 from collections import OrderedDict
 from collections.abc import Iterable
 from datetime import timedelta
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import yaml
 from yaml.parser import ParserError
@@ -46,12 +46,12 @@ class StackSet(BaseModel):
         name: str,
         template: str,
         region: str,
-        description: Optional[str],
+        description: str | None,
         parameters: dict[str, str],
         permission_model: str,
-        tags: Optional[dict[str, str]],
-        admin_role: Optional[str],
-        execution_role: Optional[str],
+        tags: dict[str, str] | None,
+        admin_role: str | None,
+        execution_role: str | None,
     ):
         self.id = stackset_id
         self.arn = generate_stackset_arn(stackset_id, region, account_id)
@@ -93,8 +93,8 @@ class StackSet(BaseModel):
         operation_id: str,
         action: str,
         status: str,
-        accounts: Optional[list[str]] = None,
-        regions: Optional[list[str]] = None,
+        accounts: list[str] | None = None,
+        regions: list[str] | None = None,
     ) -> dict[str, Any]:
         accounts = accounts or []
         regions = regions or []
@@ -161,7 +161,7 @@ class StackSet(BaseModel):
         self,
         accounts: list[str],
         regions: list[str],
-        deployment_targets: Optional[dict[str, Any]],
+        deployment_targets: dict[str, Any] | None,
         parameters: list[dict[str, Any]],
     ) -> str:
         if self.permission_model == "SERVICE_MANAGED":
@@ -234,7 +234,7 @@ class StackInstance(BaseModel):
         stack_name: str,
         name: str,
         template: str,
-        parameters: Optional[list[dict[str, Any]]],
+        parameters: list[dict[str, Any]] | None,
         permission_model: str,
     ):
         self.account_id = account_id
@@ -325,7 +325,7 @@ class StackInstances(BaseModel):
         self,
         accounts: list[str],
         regions: list[str],
-        parameters: Optional[list[dict[str, Any]]],
+        parameters: list[dict[str, Any]] | None,
         deployment_targets: dict[str, Any],
         permission_model: str,
     ) -> list[dict[str, Any]]:
@@ -363,7 +363,7 @@ class StackInstances(BaseModel):
         self,
         accounts: list[str],
         regions: list[str],
-        parameters: Optional[list[dict[str, Any]]],
+        parameters: list[dict[str, Any]] | None,
     ) -> Any:
         for account in accounts:
             for region in regions:
@@ -400,13 +400,13 @@ class Stack(CloudFormationModel):
         parameters: dict[str, str],
         account_id: str,
         region_name: str,
-        notification_arns: Optional[list[str]] = None,
-        tags: Optional[dict[str, str]] = None,
-        role_arn: Optional[str] = None,
-        cross_stack_resources: Optional[dict[str, Export]] = None,
-        enable_termination_protection: Optional[bool] = False,
-        timeout_in_mins: Optional[int] = None,
-        stack_policy_body: Optional[str] = None,
+        notification_arns: list[str] | None = None,
+        tags: dict[str, str] | None = None,
+        role_arn: str | None = None,
+        cross_stack_resources: dict[str, Export] | None = None,
+        enable_termination_protection: bool | None = False,
+        timeout_in_mins: int | None = None,
+        stack_policy_body: str | None = None,
     ):
         self.stack_id = stack_id
         self.name = name
@@ -468,8 +468,8 @@ class Stack(CloudFormationModel):
     def _add_stack_event(
         self,
         resource_status: str,
-        resource_status_reason: Optional[str] = None,
-        resource_properties: Optional[str] = None,
+        resource_status_reason: str | None = None,
+        resource_properties: str | None = None,
     ) -> None:
         event = Event(
             stack_id=self.stack_id,
@@ -518,8 +518,8 @@ class Stack(CloudFormationModel):
         return self.resource_map.values()
 
     @property
-    def outputs(self) -> Optional[list[dict[str, Any]]]:
-        def get_export_name(output_value: Any) -> Optional[str]:
+    def outputs(self) -> list[dict[str, Any]] | None:
+        def get_export_name(output_value: Any) -> str | None:
             for export in self.exports:
                 if output_value == export.value:
                     return export.name
@@ -542,7 +542,7 @@ class Stack(CloudFormationModel):
         return self.output_map.exports
 
     @property
-    def template_description(self) -> Optional[str]:
+    def template_description(self) -> str | None:
         return self.template_dict.get("Description")
 
     def add_custom_resource(self, custom_resource: CustomModel) -> None:
@@ -570,9 +570,9 @@ class Stack(CloudFormationModel):
     def update(
         self,
         template: str,
-        role_arn: Optional[str] = None,
-        parameters: Optional[dict[str, Any]] = None,
-        tags: Optional[dict[str, str]] = None,
+        role_arn: str | None = None,
+        parameters: dict[str, Any] | None = None,
+        tags: dict[str, str] | None = None,
     ) -> None:
         self._add_stack_event(
             "UPDATE_IN_PROGRESS", resource_status_reason="User Initiated"
@@ -683,9 +683,9 @@ class ChangeSet(BaseModel):
         template: str,
         parameters: dict[str, str],
         description: str,
-        notification_arns: Optional[list[str]] = None,
-        tags: Optional[dict[str, str]] = None,
-        role_arn: Optional[str] = None,
+        notification_arns: list[str] | None = None,
+        tags: dict[str, str] | None = None,
+        role_arn: str | None = None,
     ):
         self.change_set_type = change_set_type
         self.change_set_id = change_set_id
@@ -705,9 +705,9 @@ class ChangeSet(BaseModel):
         self.creation_time = utcnow()
         self.changes = self.diff()
 
-        self.status: Optional[str] = None
-        self.execution_status: Optional[str] = None
-        self.status_reason: Optional[str] = None
+        self.status: str | None = None
+        self.execution_status: str | None = None
+        self.status_reason: str | None = None
 
     def _parse_template(self) -> None:
         yaml.add_multi_constructor("", yaml_tag_constructor)
@@ -745,8 +745,8 @@ class Event(BaseModel):
         physical_resource_id: str,
         resource_type: str,
         resource_status: str,
-        resource_status_reason: Optional[str],
-        resource_properties: Optional[str],
+        resource_status_reason: str | None,
+        resource_properties: str | None,
     ):
         self.stack_id = stack_id
         self.stack_name = stack_name
@@ -782,7 +782,7 @@ ClientRequestToken='{self.client_request_token}'"""
 
 
 def filter_stacks(
-    all_stacks: list[Stack], status_filter: Optional[list[str]]
+    all_stacks: list[Stack], status_filter: list[str] | None
 ) -> list[Stack]:
     filtered_stacks = []
     if not status_filter:
@@ -843,9 +843,9 @@ class CloudFormationBackend(BaseBackend):
         parameters: dict[str, str],
         tags: dict[str, str],
         permission_model: str,
-        admin_role: Optional[str],
-        exec_role: Optional[str],
-        description: Optional[str],
+        admin_role: str | None,
+        exec_role: str | None,
+        description: str | None,
     ) -> StackSet:
         """
         The following parameters are not yet implemented: StackId, AdministrationRoleARN, AutoDeployment, ExecutionRoleName, CallAs, ClientRequestToken, ManagedExecution
@@ -880,7 +880,7 @@ class CloudFormationBackend(BaseBackend):
         raise StackSetNotFoundException(name)
 
     def delete_stack_set(self, name: str) -> None:
-        stackset_to_delete: Optional[StackSet] = None
+        stackset_to_delete: StackSet | None = None
         if name in self.stacksets:
             stackset_to_delete = self.stacksets[name]
         for stackset in self.stacksets.values():
@@ -923,7 +923,7 @@ class CloudFormationBackend(BaseBackend):
         accounts: list[str],
         regions: list[str],
         parameters: list[dict[str, str]],
-        deployment_targets: Optional[dict[str, Any]],
+        deployment_targets: dict[str, Any] | None,
     ) -> str:
         """
         The following parameters are not yet implemented: DeploymentTargets.AccountFilterType, DeploymentTargets.AccountsUrl, OperationPreferences, CallAs
@@ -996,12 +996,12 @@ class CloudFormationBackend(BaseBackend):
         name: str,
         template: str,
         parameters: dict[str, Any],
-        notification_arns: Optional[list[str]] = None,
-        tags: Optional[dict[str, str]] = None,
-        role_arn: Optional[str] = None,
-        enable_termination_protection: Optional[bool] = False,
-        timeout_in_mins: Optional[int] = None,
-        stack_policy_body: Optional[str] = None,
+        notification_arns: list[str] | None = None,
+        tags: dict[str, str] | None = None,
+        role_arn: str | None = None,
+        enable_termination_protection: bool | None = False,
+        timeout_in_mins: int | None = None,
+        stack_policy_body: str | None = None,
     ) -> Stack:
         """
         The functionality behind EnableTerminationProtection is not yet implemented.
@@ -1042,9 +1042,9 @@ class CloudFormationBackend(BaseBackend):
         parameters: dict[str, str],
         description: str,
         change_set_type: str,
-        notification_arns: Optional[list[str]] = None,
-        tags: Optional[dict[str, str]] = None,
-        role_arn: Optional[str] = None,
+        notification_arns: list[str] | None = None,
+        tags: dict[str, str] | None = None,
+        role_arn: str | None = None,
     ) -> tuple[str, str]:
         validate_create_change_set(change_set_name)
         if change_set_type == "UPDATE":
@@ -1114,7 +1114,7 @@ class CloudFormationBackend(BaseBackend):
                     break
             del self.change_sets[to_delete]
 
-    def describe_change_set(self, change_set_name: str) -> Optional[ChangeSet]:
+    def describe_change_set(self, change_set_name: str) -> ChangeSet | None:
         change_set = None
         if change_set_name in self.change_sets:
             # This means arn was passed in
@@ -1128,7 +1128,7 @@ class CloudFormationBackend(BaseBackend):
         return change_set
 
     def execute_change_set(
-        self, change_set_name: str, stack_name: Optional[str] = None
+        self, change_set_name: str, stack_name: str | None = None
     ) -> None:
         if change_set_name in self.change_sets:
             # This means arn was passed in
@@ -1193,7 +1193,7 @@ class CloudFormationBackend(BaseBackend):
     def list_change_sets(self) -> Iterable[ChangeSet]:
         return self.change_sets.values()
 
-    def list_stacks(self, status_filter: Optional[list[str]] = None) -> list[Stack]:
+    def list_stacks(self, status_filter: list[str] | None = None) -> list[Stack]:
         total_stacks = list(self.stacks.values()) + list(self.deleted_stacks.values())
         return filter_stacks(total_stacks, status_filter)
 
@@ -1213,9 +1213,9 @@ class CloudFormationBackend(BaseBackend):
         self,
         name: str,
         template: str,
-        role_arn: Optional[str],
+        role_arn: str | None,
         parameters: list[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> Stack:
         stack = self.get_stack(name)
         resolved_parameters = self._resolve_update_parameters(
@@ -1290,9 +1290,7 @@ class CloudFormationBackend(BaseBackend):
                 if stack.name == name_or_stack_id:
                     self.delete_stack(stack.stack_id)
 
-    def list_exports(
-        self, tokenstr: Optional[str]
-    ) -> tuple[list[Export], Optional[str]]:
+    def list_exports(self, tokenstr: str | None) -> tuple[list[Export], str | None]:
         all_exports = list(self.exports.values())
         if tokenstr is None:
             exports = all_exports[0:100]

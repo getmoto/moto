@@ -1,6 +1,6 @@
 """AgentsforBedrockBackend class with methods for supported APIs."""
 
-from typing import Any, Optional
+from typing import Any
 
 from moto.bedrockagent.exceptions import (
     ConflictException,
@@ -23,13 +23,13 @@ class Agent(BaseModel):
         agent_resource_role_arn: str,
         region_name: str,
         account_id: str,
-        client_token: Optional[str],
-        instruction: Optional[str],
-        foundation_model: Optional[str],
-        description: Optional[str],
-        idle_session_ttl_in_seconds: Optional[int],
-        customer_encryption_key_arn: Optional[str],
-        prompt_override_configuration: Optional[dict[str, Any]],
+        client_token: str | None,
+        instruction: str | None,
+        foundation_model: str | None,
+        description: str | None,
+        idle_session_ttl_in_seconds: int | None,
+        customer_encryption_key_arn: str | None,
+        prompt_override_configuration: dict[str, Any] | None,
     ):
         self.agent_name = agent_name
         self.client_token = client_token
@@ -96,8 +96,8 @@ class KnowledgeBase(BaseModel):
         account_id: str,
         knowledge_base_configuration: dict[str, Any],
         storage_configuration: dict[str, Any],
-        client_token: Optional[str],
-        description: Optional[str],
+        client_token: str | None,
+        description: str | None,
     ):
         self.client_token = client_token
         self.name = name
@@ -192,14 +192,14 @@ class AgentsforBedrockBackend(BaseBackend):
         self,
         agent_name: str,
         agent_resource_role_arn: str,
-        client_token: Optional[str],
-        instruction: Optional[str],
-        foundation_model: Optional[str],
-        description: Optional[str],
-        idle_session_ttl_in_seconds: Optional[int],
-        customer_encryption_key_arn: Optional[str],
-        tags: Optional[dict[str, str]],
-        prompt_override_configuration: Optional[dict[str, Any]],
+        client_token: str | None,
+        instruction: str | None,
+        foundation_model: str | None,
+        description: str | None,
+        idle_session_ttl_in_seconds: int | None,
+        customer_encryption_key_arn: str | None,
+        tags: dict[str, str] | None,
+        prompt_override_configuration: dict[str, Any] | None,
     ) -> Agent:
         agent = Agent(
             agent_name,
@@ -229,7 +229,7 @@ class AgentsforBedrockBackend(BaseBackend):
         return list(self.agents.values())
 
     def delete_agent(
-        self, agent_id: str, skip_resource_in_use_check: Optional[bool]
+        self, agent_id: str, skip_resource_in_use_check: bool | None
     ) -> tuple[str, str]:
         if agent_id in self.agents:
             if (
@@ -251,9 +251,9 @@ class AgentsforBedrockBackend(BaseBackend):
         role_arn: str,
         knowledge_base_configuration: dict[str, Any],
         storage_configuration: dict[str, Any],
-        client_token: Optional[str],
-        description: Optional[str],
-        tags: Optional[dict[str, str]],
+        client_token: str | None,
+        description: str | None,
+        tags: dict[str, str] | None,
     ) -> KnowledgeBase:
         knowledge_base = KnowledgeBase(
             name,

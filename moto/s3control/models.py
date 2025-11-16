@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -47,7 +47,7 @@ class AccessPoint(BaseModel):
         self.bucket = bucket
         self.created = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
         self.arn = f"arn:{get_partition(region_name)}:s3:us-east-1:{account_id}:accesspoint/{name}"
-        self.policy: Optional[str] = None
+        self.policy: str | None = None
         self.network_origin = "VPC" if vpc_configuration else "Internet"
         self.vpc_id = (vpc_configuration or {}).get("VpcId")
         pubc = public_access_block_configuration or {}
@@ -74,7 +74,7 @@ class StorageLensConfiguration(BaseModel):
         account_id: str,
         config_id: str,
         storage_lens_configuration: dict[str, Any],
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ):
         self.account_id = account_id
         self.config_id = config_id
@@ -86,7 +86,7 @@ class StorageLensConfiguration(BaseModel):
 class S3ControlBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.public_access_block: Optional[PublicAccessBlock] = None
+        self.public_access_block: PublicAccessBlock | None = None
         self.access_points: dict[str, dict[str, AccessPoint]] = defaultdict(dict)
         self.storage_lens_configs: dict[str, StorageLensConfiguration] = {}
         self.tagger = TaggingService()
@@ -178,7 +178,7 @@ class S3ControlBackend(BaseBackend):
         config_id: str,
         account_id: str,
         storage_lens_configuration: dict[str, Any],
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> None:
         # The account ID should equal the account id that is set for Moto:
         if account_id != self.account_id:
@@ -212,9 +212,9 @@ class S3ControlBackend(BaseBackend):
     def list_access_points(
         self,
         account_id: str,
-        bucket: Optional[str] = None,
-        max_results: Optional[int] = None,
-        next_token: Optional[str] = None,
+        bucket: str | None = None,
+        max_results: int | None = None,
+        next_token: str | None = None,
     ) -> list[AccessPoint]:
         account_access_points = self.access_points.get(account_id, {})
         all_access_points = list(account_access_points.values())

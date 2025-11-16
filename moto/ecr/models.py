@@ -8,7 +8,7 @@ from collections import namedtuple
 from collections.abc import Iterable
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from botocore.exceptions import ParamValidationError
 
@@ -66,13 +66,12 @@ class Repository(CloudFormationModel, BaseModel):
         account_id: str,
         region_name: str,
         repository_name: str,
-        registry_id: Optional[str],
-        encryption_config: Optional[dict[str, str]],
+        registry_id: str | None,
+        encryption_config: dict[str, str] | None,
         image_scan_config: str,
         image_tag_mutability: str,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ] = None,
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None = None,
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -94,8 +93,8 @@ class Repository(CloudFormationModel, BaseModel):
         self.encryption_configuration = self._determine_encryption_config(
             encryption_config
         )
-        self.policy: Optional[str] = None
-        self.lifecycle_policy: Optional[str] = None
+        self.policy: str | None = None
+        self.lifecycle_policy: str | None = None
         self.images: list[Image] = []
         self.scanning_config = {
             "repositoryArn": self.arn,
@@ -106,7 +105,7 @@ class Repository(CloudFormationModel, BaseModel):
         }
 
     def _determine_encryption_config(
-        self, encryption_config: Optional[dict[str, str]]
+        self, encryption_config: dict[str, str] | None
     ) -> dict[str, str]:
         if not encryption_config:
             return {"encryptionType": "AES256"}
@@ -116,9 +115,7 @@ class Repository(CloudFormationModel, BaseModel):
             )
         return encryption_config
 
-    def _determine_image_tag_mutability(
-        self, image_tag_mutability: Optional[str]
-    ) -> str:
+    def _determine_image_tag_mutability(self, image_tag_mutability: str | None) -> str:
         if not image_tag_mutability:
             return RepoTagMutability.MUTABLE
         elif image_tag_mutability == RepoTagMutability.MUTABLE_WITH_EXCLUSION or (
@@ -140,9 +137,7 @@ class Repository(CloudFormationModel, BaseModel):
             RepoTagMutability.IMMUTABLE_WITH_EXCLUSION,
         ]
 
-    def _get_image(
-        self, image_tag: Optional[str], image_digest: Optional[str]
-    ) -> Image:
+    def _get_image(self, image_tag: str | None, image_digest: str | None) -> Image:
         # you can either search for one or both
         image = next(
             (
@@ -173,10 +168,9 @@ class Repository(CloudFormationModel, BaseModel):
 
     def _update_image_tag_mutability(
         self,
-        image_tag_mutability: Optional[str],
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ],
+        image_tag_mutability: str | None,
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None,
     ) -> None:
         self.image_tag_mutability_exclusion_filters = (
             image_tag_mutability_exclusion_filters
@@ -186,7 +180,7 @@ class Repository(CloudFormationModel, BaseModel):
         )
 
     def _update_image_scanning_configuration(
-        self, image_scanning_configuration: Optional[dict[str, bool]]
+        self, image_scanning_configuration: dict[str, bool] | None
     ) -> None:
         if image_scanning_configuration:
             self.image_scanning_configuration = image_scanning_configuration
@@ -332,8 +326,8 @@ class Repository(CloudFormationModel, BaseModel):
     @classmethod
     def _convert_cfn_mutability_exclusion_filters(
         cls,
-        exclusion_filters: Optional[list[dict[str, str]]],
-    ) -> Optional[list[ImageTagMutabilityExclusionFilterT]]:
+        exclusion_filters: list[dict[str, str]] | None,
+    ) -> list[ImageTagMutabilityExclusionFilterT] | None:
         if not exclusion_filters:
             return None
         image_tag_mutability_exclusion_filters: list[
@@ -360,9 +354,9 @@ class Image(BaseModel):
         tag: str,
         manifest: str,
         repository: str,
-        image_manifest_mediatype: Optional[str] = None,
-        digest: Optional[str] = None,
-        registry_id: Optional[str] = None,
+        image_manifest_mediatype: str | None = None,
+        digest: str | None = None,
+        registry_id: str | None = None,
     ):
         self.image_tag = tag
         self.image_tags = [tag] if tag is not None else []
@@ -372,7 +366,7 @@ class Image(BaseModel):
         self.registry_id = registry_id or account_id
         self._image_digest = digest
         self.image_pushed_at = int(datetime.now(timezone.utc).timestamp())
-        self.last_scan: Optional[datetime] = None
+        self.last_scan: datetime | None = None
 
         self.scan_finding_results_queue: list[Any] = []
         self.scan_finding_results: dict[str, Any] = {}
@@ -411,7 +405,7 @@ class Image(BaseModel):
             self._create_digest()
         return self._image_digest  # type: ignore[return-value]
 
-    def get_image_size_in_bytes(self) -> Optional[int]:
+    def get_image_size_in_bytes(self) -> int | None:
         image_manifest = json.loads(self.image_manifest)
         if "layers" in image_manifest:
             try:
@@ -439,7 +433,7 @@ class Image(BaseModel):
 class ECRBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
-        self.registry_policy: Optional[str] = None
+        self.registry_policy: str | None = None
         self.replication_config: dict[str, Any] = {"rules": []}
         self.repositories: dict[str, Repository] = {}
         self.registry_scanning_configuration: dict[str, Any] = {
@@ -477,9 +471,7 @@ class ECRBackend(BaseBackend):
             service_region, zones, "api.ecr", special_service_name="ecr.api"
         ) + [docker_endpoint]
 
-    def _get_repository(
-        self, name: str, registry_id: Optional[str] = None
-    ) -> Repository:
+    def _get_repository(self, name: str, registry_id: str | None = None) -> Repository:
         repo = self.repositories.get(name)
         reg_id = registry_id or self.account_id
 
@@ -499,8 +491,8 @@ class ECRBackend(BaseBackend):
 
     def describe_repositories(
         self,
-        registry_id: Optional[str] = None,
-        repository_names: Optional[list[str]] = None,
+        registry_id: str | None = None,
+        repository_names: list[str] | None = None,
     ) -> list[Repository]:
         """
         maxResults and nextToken not implemented
@@ -529,14 +521,13 @@ class ECRBackend(BaseBackend):
     def create_repository(
         self,
         repository_name: str,
-        registry_id: Optional[str],
+        registry_id: str | None,
         encryption_config: dict[str, str],
         image_scan_config: Any,
         image_tag_mutability: str,
         tags: list[dict[str, str]],
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ] = None,
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None = None,
     ) -> Repository:
         if self.repositories.get(repository_name):
             raise RepositoryAlreadyExistsException(repository_name, self.account_id)
@@ -599,7 +590,7 @@ class ECRBackend(BaseBackend):
     def delete_repository(
         self,
         repository_name: str,
-        registry_id: Optional[str] = None,
+        registry_id: str | None = None,
         force: bool = False,
     ) -> Repository:
         repo = self._get_repository(repository_name, registry_id)
@@ -613,7 +604,7 @@ class ECRBackend(BaseBackend):
         return self.repositories.pop(repository_name)
 
     def list_images(
-        self, repository_name: str, registry_id: Optional[str] = None
+        self, repository_name: str, registry_id: str | None = None
     ) -> list[Image]:
         """
         maxResults and filtering not implemented
@@ -638,8 +629,8 @@ class ECRBackend(BaseBackend):
     def describe_images(
         self,
         repository_name: str,
-        registry_id: Optional[str] = None,
-        image_ids: Optional[list[dict[str, str]]] = None,
+        registry_id: str | None = None,
+        image_ids: list[dict[str, str]] | None = None,
     ) -> Iterable[Image]:
         repository = self._get_repository(repository_name, registry_id)
 
@@ -659,8 +650,8 @@ class ECRBackend(BaseBackend):
         repository_name: str,
         image_manifest: str,
         image_tag: str,
-        image_manifest_mediatype: Optional[str] = None,
-        digest: Optional[str] = None,
+        image_manifest_mediatype: str | None = None,
+        digest: str | None = None,
     ) -> Image:
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
@@ -816,8 +807,8 @@ class ECRBackend(BaseBackend):
     def batch_get_image(
         self,
         repository_name: str,
-        registry_id: Optional[str] = None,
-        image_ids: Optional[list[dict[str, Any]]] = None,
+        registry_id: str | None = None,
+        image_ids: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """
         The parameter AcceptedMediaTypes has not yet been implemented
@@ -862,8 +853,8 @@ class ECRBackend(BaseBackend):
     def batch_delete_image(
         self,
         repository_name: str,
-        registry_id: Optional[str] = None,
-        image_ids: Optional[list[dict[str, str]]] = None,
+        registry_id: str | None = None,
+        image_ids: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         if repository_name in self.repositories:
             repository = self.repositories[repository_name]
@@ -1005,9 +996,8 @@ class ECRBackend(BaseBackend):
         registry_id: str,
         repository_name: str,
         image_tag_mutability: str,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ] = None,
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None = None,
     ) -> dict[str, str]:
         if image_tag_mutability not in list(RepoTagMutability):
             raise InvalidParameterException(
@@ -1434,10 +1424,9 @@ class ECRBackend(BaseBackend):
 
     def _validate_mutability_exclusion_filters(
         self,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ],
-    ) -> Optional[str]:
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None,
+    ) -> str | None:
         if image_tag_mutability_exclusion_filters is None:
             # It is not mandatory
             return None
@@ -1455,9 +1444,8 @@ class ECRBackend(BaseBackend):
     @staticmethod
     def validate_image_tag_mutability_params_compatibility(
         image_tag_mutability: str,
-        image_tag_mutability_exclusion_filters: Optional[
-            list[ImageTagMutabilityExclusionFilterT]
-        ],
+        image_tag_mutability_exclusion_filters: list[ImageTagMutabilityExclusionFilterT]
+        | None,
     ) -> None:
         # If imageTagMutabilityExclusionFilters isn't null, then imageTagMutability can only be the _EXCLUSION variant
         if image_tag_mutability_exclusion_filters is not None:

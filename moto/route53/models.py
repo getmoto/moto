@@ -6,7 +6,7 @@ import re
 import string
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from jinja2 import Template
 
@@ -47,7 +47,7 @@ class HostedZoneIdentifier(ResourceIdentifier):
     service = "route53"
     resource = "hosted_zone"
 
-    def __init__(self, account_id: str, name: str, delegation_set_id: Optional[str]):
+    def __init__(self, account_id: str, name: str, delegation_set_id: str | None):
         # the region is left blank as route53 is a global service
         super().__init__(
             account_id=account_id,
@@ -81,8 +81,8 @@ class DelegationSet(BaseModel):
     def __init__(
         self,
         caller_reference: str,
-        name_servers: Optional[list[str]],
-        delegation_set_id: Optional[str],
+        name_servers: list[str] | None,
+        delegation_set_id: str | None,
     ):
         self.caller_reference = caller_reference
         self.name_servers = name_servers or [
@@ -374,8 +374,8 @@ class FakeZone(CloudFormationModel):
         id_: str,
         private_zone: bool,
         caller_reference: str,
-        comment: Optional[str] = None,
-        delegation_set: Optional[DelegationSet] = None,
+        comment: str | None = None,
+        delegation_set: DelegationSet | None = None,
     ):
         self.name = name
         self.id = id_
@@ -422,9 +422,7 @@ class FakeZone(CloudFormationModel):
             if record_set.set_identifier != set_identifier
         ]
 
-    def add_vpc(
-        self, vpc_id: Optional[str], vpc_region: Optional[str]
-    ) -> dict[str, Any]:
+    def add_vpc(self, vpc_id: str | None, vpc_region: str | None) -> dict[str, Any]:
         vpc = {}
         if vpc_id is not None:
             vpc["vpc_id"] = vpc_id
@@ -563,7 +561,7 @@ class Route53Backend(BaseBackend):
         self.delegation_sets: dict[str, DelegationSet] = {}
 
     def _has_prev_conflicting_domain(
-        self, name: str, delegation_set_id: Optional[str]
+        self, name: str, delegation_set_id: str | None
     ) -> bool:
         """Check if a conflicting domain exists in the backend"""
         if not delegation_set_id:
@@ -584,11 +582,11 @@ class Route53Backend(BaseBackend):
         self,
         name: str,
         private_zone: bool,
-        caller_reference: Optional[str] = None,
-        vpcid: Optional[str] = None,
-        vpcregion: Optional[str] = None,
-        comment: Optional[str] = None,
-        delegation_set_id: Optional[str] = None,
+        caller_reference: str | None = None,
+        vpcid: str | None = None,
+        vpcregion: str | None = None,
+        comment: str | None = None,
+        delegation_set_id: str | None = None,
     ) -> FakeZone:
         if self._has_prev_conflicting_domain(name, delegation_set_id):
             raise ConflictingDomainExists(name, delegation_set_id)
@@ -692,7 +690,7 @@ class Route53Backend(BaseBackend):
 
     def list_resource_record_sets(
         self, zone_id: str, start_type: str, start_name: str, max_items: int
-    ) -> tuple[list[RecordSet], Optional[str], Optional[str], bool]:
+    ) -> tuple[list[RecordSet], str | None, str | None, bool]:
         """
         The StartRecordIdentifier-parameter is not yet implemented
         """
@@ -784,8 +782,8 @@ class Route53Backend(BaseBackend):
         return list(self.zones.values())
 
     def list_hosted_zones_by_name(
-        self, dnsnames: Optional[list[str]]
-    ) -> tuple[Optional[str], list[FakeZone]]:
+        self, dnsnames: list[str] | None
+    ) -> tuple[str | None, list[FakeZone]]:
         if dnsnames:
             dnsname = dnsnames[0]
             if dnsname[-1] != ".":
@@ -834,13 +832,13 @@ class Route53Backend(BaseBackend):
     def get_hosted_zone_count(self) -> int:
         return len(self.zones.values())
 
-    def get_hosted_zone_by_name(self, name: str) -> Optional[FakeZone]:
+    def get_hosted_zone_by_name(self, name: str) -> FakeZone | None:
         for zone in self.zones.values():
             if zone.name == name:
                 return zone
         return None
 
-    def delete_hosted_zone(self, id_: str) -> Optional[FakeZone]:
+    def delete_hosted_zone(self, id_: str) -> FakeZone | None:
         # Verify it exists
         zone = self.get_hosted_zone(id_)
         if len(zone.rrsets) > 0:
@@ -981,7 +979,7 @@ class Route53Backend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_query_logging_configs(
-        self, hosted_zone_id: Optional[str] = None
+        self, hosted_zone_id: str | None = None
     ) -> list[QueryLoggingConfig]:
         """Return a list of query logging configs."""
         if hosted_zone_id:
@@ -998,10 +996,10 @@ class Route53Backend(BaseBackend):
     def create_reusable_delegation_set(
         self,
         caller_reference: str,
-        delegation_set_id: Optional[str] = None,
-        hosted_zone_id: Optional[str] = None,
+        delegation_set_id: str | None = None,
+        hosted_zone_id: str | None = None,
     ) -> DelegationSet:
-        name_servers: Optional[list[str]] = None
+        name_servers: list[str] | None = None
         if hosted_zone_id:
             hosted_zone = self.get_hosted_zone(hosted_zone_id)
             name_servers = hosted_zone.delegation_set.name_servers  # type: ignore

@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import CloudFormationModel
 from moto.packages.boto.ec2.blockdevicemapping import BlockDeviceType
@@ -34,11 +34,11 @@ class VolumeModification:
     def __init__(
         self,
         volume: "Volume",
-        target_size: Optional[int] = None,
-        target_volume_type: Optional[str] = None,
-        target_iops: Optional[int] = None,
-        target_throughput: Optional[int] = None,
-        target_multi_attach_enabled: Optional[bool] = None,
+        target_size: int | None = None,
+        target_volume_type: str | None = None,
+        target_iops: int | None = None,
+        target_throughput: int | None = None,
+        target_multi_attach_enabled: bool | None = None,
     ):
         if not any(
             [
@@ -141,20 +141,20 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         volume_id: str,
         size: int,
         zone: Any,
-        snapshot_id: Optional[str] = None,
+        snapshot_id: str | None = None,
         encrypted: bool = False,
-        kms_key_id: Optional[str] = None,
-        volume_type: Optional[str] = None,
-        iops: Optional[int] = None,
-        throughput: Optional[int] = None,
-        multi_attach_enabled: Optional[bool] = None,
+        kms_key_id: str | None = None,
+        volume_type: str | None = None,
+        iops: int | None = None,
+        throughput: int | None = None,
+        multi_attach_enabled: bool | None = None,
     ):
         self.id = volume_id
         self.volume_type = volume_type or "gp2"
         self.size = size
         self.zone = zone
         self.create_time = utc_date_and_time()
-        self.attachment: Optional[VolumeAttachment] = None
+        self.attachment: VolumeAttachment | None = None
         self.snapshot_id = snapshot_id
         self.ec2_backend = ec2_backend
         self.encrypted = encrypted
@@ -166,11 +166,11 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
 
     def modify(
         self,
-        target_size: Optional[int] = None,
-        target_volume_type: Optional[str] = None,
-        target_iops: Optional[int] = None,
-        target_throughput: Optional[int] = None,
-        target_multi_attach_enabled: Optional[bool] = None,
+        target_size: int | None = None,
+        target_volume_type: str | None = None,
+        target_iops: int | None = None,
+        target_throughput: int | None = None,
+        target_multi_attach_enabled: bool | None = None,
     ) -> None:
         modification = VolumeModification(
             volume=self,
@@ -232,9 +232,7 @@ class Volume(TaggedEC2Resource, CloudFormationModel):
         else:
             return "available"
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         if filter_name.startswith("attachment") and not self.attachment:
             return None
         elif filter_name == "attachment.attach-time":
@@ -271,9 +269,9 @@ class Snapshot(TaggedEC2Resource):
         volume: Any,
         description: str,
         encrypted: bool = False,
-        kms_key_id: Optional[str] = None,
-        owner_id: Optional[str] = None,
-        from_ami: Optional[str] = None,
+        kms_key_id: str | None = None,
+        owner_id: str | None = None,
+        from_ami: str | None = None,
     ):
         self.id = snapshot_id
         self.volume = volume
@@ -288,9 +286,7 @@ class Snapshot(TaggedEC2Resource):
         self.from_ami = from_ami
         self.kms_key_id = kms_key_id
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         if filter_name == "description":
             return self.description
         elif filter_name == "snapshot-id":
@@ -324,13 +320,13 @@ class EBSBackend:
         self,
         size: int,
         zone_name: str,
-        snapshot_id: Optional[str] = None,
+        snapshot_id: str | None = None,
         encrypted: bool = False,
-        kms_key_id: Optional[str] = None,
-        volume_type: Optional[str] = None,
-        iops: Optional[int] = None,
-        throughput: Optional[int] = None,
-        multi_attach_enabled: Optional[bool] = None,
+        kms_key_id: str | None = None,
+        volume_type: str | None = None,
+        iops: int | None = None,
+        throughput: int | None = None,
+        multi_attach_enabled: bool | None = None,
     ) -> Volume:
         if kms_key_id and not encrypted:
             raise InvalidParameterDependency("KmsKeyId", "Encrypted")
@@ -378,7 +374,7 @@ class EBSBackend:
         return volume
 
     def describe_volumes(
-        self, volume_ids: Optional[list[str]] = None, filters: Any = None
+        self, volume_ids: list[str] | None = None, filters: Any = None
     ) -> list[Volume]:
         matches = list(self.volumes.values())
         if volume_ids:
@@ -393,11 +389,11 @@ class EBSBackend:
     def modify_volume(
         self,
         volume_id: str,
-        target_size: Optional[int] = None,
-        target_volume_type: Optional[str] = None,
-        target_iops: Optional[int] = None,
-        target_throughput: Optional[int] = None,
-        target_multi_attach_enabled: Optional[bool] = None,
+        target_size: int | None = None,
+        target_volume_type: str | None = None,
+        target_iops: int | None = None,
+        target_throughput: int | None = None,
+        target_multi_attach_enabled: bool | None = None,
     ) -> Volume:
         volume = self.get_volume(volume_id)
         volume.modify(
@@ -410,7 +406,7 @@ class EBSBackend:
         return volume
 
     def describe_volumes_modifications(
-        self, volume_ids: Optional[list[str]] = None, filters: Any = None
+        self, volume_ids: list[str] | None = None, filters: Any = None
     ) -> list[VolumeModification]:
         volumes = self.describe_volumes(volume_ids)
         modifications = []
@@ -440,7 +436,7 @@ class EBSBackend:
         instance_id: str,
         device_path: str,
         delete_on_termination: bool = False,
-    ) -> Optional[VolumeAttachment]:
+    ) -> VolumeAttachment | None:
         volume = self.get_volume(volume_id)
         instance = self.get_instance(instance_id)  # type: ignore[attr-defined]
 
@@ -484,8 +480,8 @@ class EBSBackend:
         self,
         volume_id: str,
         description: str,
-        owner_id: Optional[str] = None,
-        from_ami: Optional[str] = None,
+        owner_id: str | None = None,
+        from_ami: str | None = None,
     ) -> Snapshot:
         snapshot_id = random_snapshot_id()
         volume = self.get_volume(volume_id)
@@ -530,7 +526,7 @@ class EBSBackend:
         return snapshots
 
     def describe_snapshots(
-        self, snapshot_ids: Optional[list[str]] = None, filters: Any = None
+        self, snapshot_ids: list[str] | None = None, filters: Any = None
     ) -> list[Snapshot]:
         matches = list(self.snapshots.values())
         if snapshot_ids:
@@ -546,7 +542,7 @@ class EBSBackend:
         source_snapshot_id: str,
         source_region: str,
         description: str,
-        kms_key_id: Optional[str],
+        kms_key_id: str | None,
     ) -> Snapshot:
         from ..models import ec2_backends
 
@@ -603,8 +599,8 @@ class EBSBackend:
     def remove_create_volume_permission(
         self,
         snapshot_id: str,
-        user_ids: Optional[list[str]] = None,
-        groups: Optional[Iterable[str]] = None,
+        user_ids: list[str] | None = None,
+        groups: Iterable[str] | None = None,
     ) -> None:
         snapshot = self.get_snapshot(snapshot_id)
         if user_ids:

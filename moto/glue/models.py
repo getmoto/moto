@@ -4,7 +4,7 @@ import re
 import time
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -76,11 +76,11 @@ class FakeDevEndpoint(BaseModel):
         glue_version: str = "1.0",
         number_of_workers: int = 5,
         number_of_nodes: int = 5,
-        extra_python_libs_s3_path: Optional[str] = None,
-        extra_jars_s3_path: Optional[str] = None,
-        security_configuration: Optional[str] = None,
-        arguments: Optional[dict[str, str]] = None,
-        tags: Optional[dict[str, str]] = None,
+        extra_python_libs_s3_path: str | None = None,
+        extra_jars_s3_path: str | None = None,
+        security_configuration: str | None = None,
+        arguments: dict[str, str] | None = None,
+        tags: dict[str, str] | None = None,
     ):
         pubkey = """ssh-rsa
         AAAAB3NzaC1yc2EAAAADAQABAAABAQDV5+voluw2zmzqpqCAqtsyoP01TQ8Ydx1eS1yD6wUsHcPqMIqpo57YxiC8XPwrdeKQ6GG6MC3bHsgXoPypGP0LyixbiuLTU31DnnqorcHt4bWs6rQa7dK2pCCflz2fhYRt5ZjqSNsAKivIbqkH66JozN0SySIka3kEV79GdB0BicioKeEJlCwM9vvxafyzjWf/z8E0lh4ni3vkLpIVJ0t5l+Qd9QMJrT6Is0SCQPVagTYZoi8+fWDoGsBa8vyRwDjEzBl28ZplKh9tSyDkRIYszWTpmK8qHiqjLYZBfAxXjGJbEYL1iig4ZxvbYzKEiKSBi1ZMW9iWjHfZDZuxXAmB
@@ -257,7 +257,7 @@ class GlueBackend(BaseBackend):
         self,
         database_name: str,
         database_input: dict[str, Any],
-        tags: Optional[dict[str, str]] = None,
+        tags: dict[str, str] | None = None,
     ) -> "FakeDatabase":
         if database_name in self.databases:
             raise DatabaseAlreadyExistsException()
@@ -314,7 +314,7 @@ class GlueBackend(BaseBackend):
             raise TableNotFoundException(table_name)
 
     def get_tables(
-        self, database_name: str, expression: Optional[str]
+        self, database_name: str, expression: str | None
     ) -> list["FakeTable"]:
         database = self.get_database(database_name)
         if expression:
@@ -493,52 +493,52 @@ class GlueBackend(BaseBackend):
         for filter in filters:
             if filter.field_name == FilterField.CRAWL_ID:
 
-                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                def get_field(crawl: FakeCrawl) -> str | None:
                     return crawl.crawl_id
 
             elif filter.field_name == FilterField.STATE:
 
-                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                def get_field(crawl: FakeCrawl) -> str | None:
                     return crawl.status
 
             elif filter.field_name == FilterField.START_TIME:
 
-                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                def get_field(crawl: FakeCrawl) -> str | None:
                     return crawl.start_time.isoformat()
 
             elif filter.field_name == FilterField.END_TIME:
 
-                def get_field(crawl: FakeCrawl) -> Optional[str]:
+                def get_field(crawl: FakeCrawl) -> str | None:
                     return crawl.end_time.isoformat() if crawl.end_time else None
 
             if filter.operator == FilterOperator.GT:
 
-                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                def compare(crawl_value: str | None, field_value: str) -> bool:
                     return crawl_value > field_value if crawl_value else False
 
             elif filter.operator == FilterOperator.GE:
 
-                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                def compare(crawl_value: str | None, field_value: str) -> bool:
                     return crawl_value >= field_value if crawl_value else False
 
             elif filter.operator == FilterOperator.LT:
 
-                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                def compare(crawl_value: str | None, field_value: str) -> bool:
                     return crawl_value < field_value if crawl_value else False
 
             elif filter.operator == FilterOperator.LE:
 
-                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                def compare(crawl_value: str | None, field_value: str) -> bool:
                     return crawl_value <= field_value if crawl_value else False
 
             elif filter.operator == FilterOperator.EQ:
 
-                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                def compare(crawl_value: str | None, field_value: str) -> bool:
                     return crawl_value == field_value
 
             elif filter.operator == FilterOperator.NE:
 
-                def compare(crawl_value: Optional[str], field_value: str) -> bool:
+                def compare(crawl_value: str | None, field_value: str) -> bool:
                     return crawl_value != field_value
 
             def filter_function(crawl: FakeCrawl) -> bool:
@@ -620,15 +620,15 @@ class GlueBackend(BaseBackend):
     def start_job_run(
         self,
         name: str,
-        arguments: Optional[dict[str, str]],
-        allocated_capacity: Optional[int],
-        max_capacity: Optional[float],
-        timeout: Optional[int],
-        worker_type: Optional[str],
-        security_configuration: Optional[str],
-        number_of_workers: Optional[int],
-        notification_property: Optional[dict[str, int]],
-        previous_run_id: Optional[str],
+        arguments: dict[str, str] | None,
+        allocated_capacity: int | None,
+        max_capacity: float | None,
+        timeout: int | None,
+        worker_type: str | None,
+        security_configuration: str | None,
+        number_of_workers: int | None,
+        notification_property: dict[str, int] | None,
+        previous_run_id: str | None,
     ) -> str:
         job = self.get_job(name)
         return job.start_job_run(
@@ -663,7 +663,7 @@ class GlueBackend(BaseBackend):
     def get_tags(self, resource_id: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_id)
 
-    def tag_resource(self, resource_arn: str, tags: Optional[dict[str, str]]) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str] | None) -> None:
         tag_list = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tag_list)
 
@@ -673,8 +673,8 @@ class GlueBackend(BaseBackend):
     def create_registry(
         self,
         registry_name: str,
-        description: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         # If registry name id default-registry, create default-registry
         if registry_name == DEFAULT_REGISTRY_NAME:
@@ -707,8 +707,8 @@ class GlueBackend(BaseBackend):
         data_format: str,
         compatibility: str,
         schema_definition: str,
-        description: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """
         The following parameters/features are not yet implemented: Glue Schema Registry: compatibility checks NONE | BACKWARD | BACKWARD_ALL | FORWARD | FORWARD_ALL | FULL | FULL_ALL and  Data format parsing and syntax validation.
@@ -829,9 +829,9 @@ class GlueBackend(BaseBackend):
 
     def get_schema_version(
         self,
-        schema_id: Optional[dict[str, str]] = None,
-        schema_version_id: Optional[str] = None,
-        schema_version_number: Optional[dict[str, Any]] = None,
+        schema_id: dict[str, str] | None = None,
+        schema_version_id: str | None = None,
+        schema_version_number: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         # Validate Schema Parameters
         (
@@ -1083,7 +1083,7 @@ class GlueBackend(BaseBackend):
         workflow_name: str,
         trigger_type: str,
         schedule: str,
-        predicate: Optional[Predicate],
+        predicate: Predicate | None,
         actions: list[Action],
         description: str,
         start_on_creation: bool,
@@ -1278,19 +1278,19 @@ class GlueBackend(BaseBackend):
         self,
         endpoint_name: str,
         role_arn: str,
-        security_group_ids: Optional[list[str]] = None,
-        subnet_id: Optional[str] = None,
-        public_key: Optional[str] = None,
-        public_keys: Optional[list[str]] = None,
-        number_of_nodes: Optional[int] = None,
+        security_group_ids: list[str] | None = None,
+        subnet_id: str | None = None,
+        public_key: str | None = None,
+        public_keys: list[str] | None = None,
+        number_of_nodes: int | None = None,
         worker_type: str = "Standard",
         glue_version: str = "5.0",
-        number_of_workers: Optional[int] = None,
-        extra_python_libs_s3_path: Optional[str] = None,
-        extra_jars_s3_path: Optional[str] = None,
-        security_configuration: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
-        arguments: Optional[dict[str, str]] = None,
+        number_of_workers: int | None = None,
+        extra_python_libs_s3_path: str | None = None,
+        extra_jars_s3_path: str | None = None,
+        security_configuration: str | None = None,
+        tags: dict[str, str] | None = None,
+        arguments: dict[str, str] | None = None,
     ) -> FakeDevEndpoint:
         if endpoint_name in self.dev_endpoints:
             raise AlreadyExistsException(f"DevEndpoint {endpoint_name} already exists")
@@ -1367,7 +1367,7 @@ class GlueBackend(BaseBackend):
 
     def put_data_catalog_encryption_settings(
         self,
-        catalog_id: Optional[str],
+        catalog_id: str | None,
         data_catalog_encryption_settings: dict[str, Any],
     ) -> dict[str, Any]:
         if catalog_id is None:
@@ -1379,7 +1379,7 @@ class GlueBackend(BaseBackend):
         return {}
 
     def get_data_catalog_encryption_settings(
-        self, catalog_id: Optional[str]
+        self, catalog_id: str | None
     ) -> dict[str, Any]:
         if catalog_id is None or catalog_id == "":
             catalog_id = self.account_id
@@ -1406,10 +1406,10 @@ class GlueBackend(BaseBackend):
     def put_resource_policy(
         self,
         policy_in_json: str,
-        resource_arn: Optional[str] = None,
-        policy_hash_condition: Optional[str] = None,
-        policy_exists_condition: Optional[str] = None,
-        enable_hybrid: Optional[str] = None,
+        resource_arn: str | None = None,
+        policy_hash_condition: str | None = None,
+        policy_exists_condition: str | None = None,
+        enable_hybrid: str | None = None,
     ) -> dict[str, str]:
         if resource_arn is None:
             resource_arn = self.default_catalog_arn
@@ -1460,7 +1460,7 @@ class GlueBackend(BaseBackend):
 
         return {"PolicyHash": policy_hash}
 
-    def get_resource_policy(self, resource_arn: Optional[str] = None) -> dict[str, Any]:
+    def get_resource_policy(self, resource_arn: str | None = None) -> dict[str, Any]:
         if resource_arn is None:
             resource_arn = self.default_catalog_arn
 
@@ -1488,8 +1488,8 @@ class GlueBackend(BaseBackend):
 
     def delete_resource_policy(
         self,
-        resource_arn: Optional[str] = None,
-        policy_hash_condition: Optional[str] = None,
+        resource_arn: str | None = None,
+        policy_hash_condition: str | None = None,
     ) -> dict[str, str]:
         if resource_arn is None:
             resource_arn = self.default_catalog_arn
@@ -1515,10 +1515,10 @@ class GlueBackend(BaseBackend):
     def create_workflow(
         self,
         name: str,
-        default_run_properties: Optional[dict[str, str]],
-        description: Optional[str],
-        max_concurrent_runs: Optional[int],
-        tags: Optional[dict[str, str]],
+        default_run_properties: dict[str, str] | None,
+        description: str | None,
+        max_concurrent_runs: int | None,
+        tags: dict[str, str] | None,
     ) -> str:
         self.workflows[name] = FakeWorkflow(
             name, default_run_properties, description, max_concurrent_runs, tags
@@ -1542,9 +1542,9 @@ class GlueBackend(BaseBackend):
     def update_workflow(
         self,
         name: str,
-        default_run_properties: Optional[dict[str, str]],
-        description: Optional[str],
-        max_concurrent_runs: Optional[int],
+        default_run_properties: dict[str, str] | None,
+        description: str | None,
+        max_concurrent_runs: int | None,
     ) -> str:
         workflow = self.workflows.get(name)
         if workflow:
@@ -1588,7 +1588,7 @@ class GlueBackend(BaseBackend):
         return [run.as_dict() for run in workflow.runs.values()]
 
     def start_workflow_run(
-        self, workflow_name: str, properties: Optional[dict[str, str]]
+        self, workflow_name: str, properties: dict[str, str] | None
     ) -> str:
         workflow = self.workflows.get(workflow_name)
         if not workflow:
@@ -1704,7 +1704,7 @@ class FakeTable(BaseModel):
         self.catalog_id = catalog_id
         self.partitions: dict[str, FakePartition] = OrderedDict()
         self.created_time = utcnow()
-        self.updated_time: Optional[datetime] = None
+        self.updated_time: datetime | None = None
         self._current_version = 1
         self.versions: dict[str, dict[str, Any]] = {
             str(self._current_version): table_input
@@ -1729,7 +1729,7 @@ class FakeTable(BaseModel):
     def delete_version(self, version_id: str) -> None:
         self.versions.pop(version_id)
 
-    def as_dict(self, version: Optional[str] = None) -> dict[str, Any]:
+    def as_dict(self, version: str | None = None) -> dict[str, Any]:
         version = version or self._current_version  # type: ignore
         obj = {
             "DatabaseName": self.database_name,
@@ -1937,7 +1937,7 @@ class FakeCrawl(ManagedState):
         )
         self.crawl_id = str(mock_random.uuid4())
         self.dpu_hour = 100
-        self.end_time: Optional[datetime] = None
+        self.end_time: datetime | None = None
         self.log_group = "/aws-glue/crawlers"
         self.log_stream = crawler_name
         self.message_prefix = self.crawl_id
@@ -2060,15 +2060,15 @@ class FakeJob:
 
     def start_job_run(
         self,
-        allocated_capacity: Optional[int],
-        max_capacity: Optional[float],
-        timeout: Optional[int],
-        worker_type: Optional[str],
-        security_configuration: Optional[str],
-        number_of_workers: Optional[int],
-        notification_property: Optional[dict[str, int]],
-        previous_run_id: Optional[str],
-        arguments: Optional[dict[str, str]],
+        allocated_capacity: int | None,
+        max_capacity: float | None,
+        timeout: int | None,
+        worker_type: str | None,
+        security_configuration: str | None,
+        number_of_workers: int | None,
+        notification_property: dict[str, int] | None,
+        previous_run_id: str | None,
+        arguments: dict[str, str] | None,
     ) -> str:
         running_jobs = len(
             [jr for jr in self.job_runs if jr.status in ["STARTING", "RUNNING"]]
@@ -2115,15 +2115,15 @@ class FakeJobRun(ManagedState):
     def __init__(
         self,
         job_name: str,
-        job_run_id: Optional[str] = None,
-        arguments: Optional[dict[str, Any]] = None,
-        allocated_capacity: Optional[int] = 10,
-        max_capacity: Optional[float] = 10.0,
-        timeout: Optional[int] = None,
-        worker_type: Optional[str] = "Standard",
-        notification_property: Optional[dict[str, int]] = None,
-        security_configuration: Optional[str] = None,
-        number_of_workers: Optional[int] = 10,
+        job_run_id: str | None = None,
+        arguments: dict[str, Any] | None = None,
+        allocated_capacity: int | None = 10,
+        max_capacity: float | None = 10.0,
+        timeout: int | None = None,
+        worker_type: str | None = "Standard",
+        notification_property: dict[str, int] | None = None,
+        security_configuration: str | None = None,
+        number_of_workers: int | None = 10,
     ):
         ManagedState.__init__(
             self,
@@ -2184,8 +2184,8 @@ class FakeRegistry(BaseModel):
         self,
         backend: GlueBackend,
         registry_name: str,
-        description: Optional[str] = None,
-        tags: Optional[dict[str, str]] = None,
+        description: str | None = None,
+        tags: dict[str, str] | None = None,
     ):
         self.name = registry_name
         self.description = description
@@ -2214,7 +2214,7 @@ class FakeSchema(BaseModel):
         data_format: str,
         compatibility: str,
         schema_version_id: str,
-        description: Optional[str] = None,
+        description: str | None = None,
     ):
         self.registry_name = registry_name
         self.registry_arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:registry/{self.registry_name}"
@@ -2387,7 +2387,7 @@ class FakeTrigger(BaseModel):
         workflow_name: str,
         trigger_type: str,  # to avoid any issues with built-in function type()
         schedule: str,
-        predicate: Optional[Predicate],
+        predicate: Predicate | None,
         actions: list[Action],
         description: str,
         start_on_creation: bool,
@@ -2493,8 +2493,8 @@ class FakeWorkflowRun:
     def __init__(
         self,
         workflow_name: str,
-        previous_run_id: Optional[str] = None,
-        properties: Optional[dict[str, str]] = None,
+        previous_run_id: str | None = None,
+        properties: dict[str, str] | None = None,
     ) -> None:
         self.workflow_name = workflow_name
         self.run_id = f"wr_{mock_random.get_random_hex(64)}"
@@ -2502,7 +2502,7 @@ class FakeWorkflowRun:
         self.properties = properties or {}
         self.status = "RUNNING"
         self.started_on = utcnow()
-        self.completed_on: Optional[datetime] = None
+        self.completed_on: datetime | None = None
 
     def as_dict(self) -> dict[str, Union[str, dict[str, str]]]:
         return_dict: dict[str, Union[str, dict[str, str]]] = {
@@ -2524,10 +2524,10 @@ class FakeWorkflow:
     def __init__(
         self,
         name: str,
-        default_run_properties: Optional[dict[str, str]],
-        description: Optional[str],
-        max_concurrent_runs: Optional[int],
-        tags: Optional[dict[str, str]],
+        default_run_properties: dict[str, str] | None,
+        description: str | None,
+        max_concurrent_runs: int | None,
+        tags: dict[str, str] | None,
     ) -> None:
         self.name = name
         self.default_run_properties = default_run_properties
@@ -2554,7 +2554,7 @@ class FakeWorkflow:
             return_dict["LastRun"] = self.runs[next(reversed(self.runs))].as_dict()
         return return_dict
 
-    def start_run(self, properties: Optional[dict[str, str]]) -> str:
+    def start_run(self, properties: dict[str, str] | None) -> str:
         run_properties = (
             self.default_run_properties.copy() if self.default_run_properties else {}
         )

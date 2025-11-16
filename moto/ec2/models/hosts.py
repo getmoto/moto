@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.utils import unix_time
 
@@ -20,8 +20,8 @@ class Host(TaggedEC2Resource):
         self.state = "available"
         self.host_recovery = host_recovery or "off"
         self.zone = zone
-        self.instance_type: Optional[str] = instance_type
-        self.instance_family: Optional[str] = instance_family
+        self.instance_type: str | None = instance_type
+        self.instance_family: str | None = instance_family
         self.auto_placement = auto_placement or "on"
         self.ec2_backend = backend
         self.allocation_time = unix_time()
@@ -29,9 +29,7 @@ class Host(TaggedEC2Resource):
     def release(self) -> None:
         self.state = "released"
 
-    def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
-    ) -> Any:
+    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
         if filter_name == "availability-zone":
             return self.zone
         if filter_name == "state":

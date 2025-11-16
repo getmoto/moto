@@ -1,7 +1,7 @@
 """AWS Config integration for SNS resources."""
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import ConfigQueryModel
 from moto.sns import sns_backends
@@ -15,14 +15,14 @@ class SNSConfigQuery(ConfigQueryModel[SNSBackend]):
         self,
         account_id: str,
         partition: str,
-        resource_ids: Optional[list[str]],
-        resource_name: Optional[str],
+        resource_ids: list[str] | None,
+        resource_name: str | None,
         limit: int,
-        next_token: Optional[str],
-        backend_region: Optional[str] = None,
-        resource_region: Optional[str] = None,
-        aggregator: Optional[dict[str, Any]] = None,
-    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        next_token: str | None,
+        backend_region: str | None = None,
+        resource_region: str | None = None,
+        aggregator: dict[str, Any] | None = None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
         region = resource_region or backend_region or "us-east-1"
         backend = self.backends[account_id][region]
 
@@ -40,10 +40,10 @@ class SNSConfigQuery(ConfigQueryModel[SNSBackend]):
         account_id: str,
         partition: str,
         resource_id: str,
-        resource_name: Optional[str] = None,
-        backend_region: Optional[str] = None,
-        resource_region: Optional[str] = None,
-    ) -> Optional[dict[str, Any]]:
+        resource_name: str | None = None,
+        backend_region: str | None = None,
+        resource_region: str | None = None,
+    ) -> dict[str, Any] | None:
         region = resource_region or backend_region or "us-east-1"
         backend = self.backends[account_id][region]
 

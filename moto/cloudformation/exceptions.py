@@ -1,5 +1,3 @@
-from typing import Optional
-
 from moto.core.exceptions import ServiceException
 
 
@@ -21,7 +19,7 @@ class AlreadyExistsException(CloudFormationError):
 class ValidationError(CloudFormationError):
     code = "ValidationError"
 
-    def __init__(self, name_or_id: Optional[str] = None, message: Optional[str] = None):
+    def __init__(self, name_or_id: str | None = None, message: str | None = None):
         # FIXME: The "stack does not exist" message should be provided by the caller, not here.
         if message is None:
             message = f"Stack with id {name_or_id} does not exist"

@@ -1,7 +1,7 @@
 import random
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -19,11 +19,11 @@ class VPCLatticeService(BaseModel):
         region: str,
         account_id: str,
         auth_type: str,
-        certificate_arn: Optional[str],
+        certificate_arn: str | None,
         client_token: str,
-        custom_domain_name: Optional[str],
+        custom_domain_name: str | None,
         name: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> None:
         self.id: str = f"svc-{str(uuid.uuid4())[:17]}"
         self.auth_type: str = auth_type
@@ -59,8 +59,8 @@ class VPCLatticeServiceNetwork(BaseModel):
         auth_type: str,
         client_token: str,
         name: str,
-        sharing_config: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        sharing_config: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ) -> None:
         self.auth_type: str = auth_type
         self.client_token: str = client_token
@@ -88,9 +88,9 @@ class VPCLatticeServiceNetworkVpcAssociation(BaseModel):
         region: str,
         account_id: str,
         client_token: str,
-        security_group_ids: Optional[list[str]],
+        security_group_ids: list[str] | None,
         service_network_identifier: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
         vpc_identifier: str,
     ) -> None:
         self.id: str = f"snva-{service_network_identifier[:4]}-{vpc_identifier[:4]}"
@@ -158,7 +158,7 @@ class VPCLatticeDNSEntry:
         self,
         region_name: str,
         service_id: str,
-        custom_domain_name: Optional[str] = None,
+        custom_domain_name: str | None = None,
     ) -> None:
         self.domain_name: str = (
             custom_domain_name or f"{service_id}.{region_name}.vpclattice.amazonaws.com"
@@ -177,8 +177,8 @@ class VPCLatticeAccessLogSubscription(BaseModel):
         destinationArn: str,
         resourceArn: str,
         resourceId: str,  # resourceIdentifier
-        serviceNetworkLogType: Optional[str],
-        tags: Optional[dict[str, str]],
+        serviceNetworkLogType: str | None,
+        tags: dict[str, str] | None,
     ) -> None:
         self.id: str = f"als-{str(uuid.uuid4())[:17]}"
         self.arn: str = (
@@ -236,11 +236,11 @@ class VPCLatticeBackend(BaseBackend):
     def create_service(
         self,
         auth_type: str,
-        certificate_arn: Optional[str],
+        certificate_arn: str | None,
         client_token: str,
-        custom_domain_name: Optional[str],
+        custom_domain_name: str | None,
         name: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
     ) -> VPCLatticeService:
         service = VPCLatticeService(
             self.region_name,
@@ -271,8 +271,8 @@ class VPCLatticeBackend(BaseBackend):
         auth_type: str,
         client_token: str,
         name: str,
-        sharing_config: Optional[dict[str, Any]],
-        tags: Optional[dict[str, str]],
+        sharing_config: dict[str, Any] | None,
+        tags: dict[str, str] | None,
     ) -> VPCLatticeServiceNetwork:
         """
         WARNING: This method currently does NOT fail if there is a disassociation in progress.
@@ -305,9 +305,9 @@ class VPCLatticeBackend(BaseBackend):
     def create_service_network_vpc_association(
         self,
         client_token: str,
-        security_group_ids: Optional[list[str]],
+        security_group_ids: list[str] | None,
         service_network_identifier: str,
-        tags: Optional[dict[str, str]],
+        tags: dict[str, str] | None,
         vpc_identifier: str,
     ) -> VPCLatticeServiceNetworkVpcAssociation:
         assoc = VPCLatticeServiceNetworkVpcAssociation(
@@ -366,9 +366,9 @@ class VPCLatticeBackend(BaseBackend):
         self,
         resourceIdentifier: str,
         destinationArn: str,
-        client_token: Optional[str],
-        serviceNetworkLogType: Optional[str],
-        tags: Optional[dict[str, str]],
+        client_token: str | None,
+        serviceNetworkLogType: str | None,
+        tags: dict[str, str] | None,
     ) -> VPCLatticeAccessLogSubscription:
         resource: Any = None
         if resourceIdentifier.startswith("sn-"):
@@ -409,8 +409,8 @@ class VPCLatticeBackend(BaseBackend):
     def list_access_log_subscriptions(
         self,
         resourceIdentifier: str,
-        maxResults: Optional[int] = None,
-        nextToken: Optional[str] = None,
+        maxResults: int | None = None,
+        nextToken: str | None = None,
     ) -> list[VPCLatticeAccessLogSubscription]:
         return [
             sub

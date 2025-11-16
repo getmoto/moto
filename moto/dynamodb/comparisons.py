@@ -1,7 +1,7 @@
 import re
 from collections import deque, namedtuple
 from collections.abc import Iterable
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from moto.dynamodb.exceptions import ConditionAttributeIsReservedKeyword
 from moto.dynamodb.models.dynamo_type import Item
@@ -9,17 +9,17 @@ from moto.dynamodb.parsing.reserved_keywords import ReservedKeywords
 
 
 def create_condition_expression_parser(
-    expr: Optional[str],
-    names: Optional[dict[str, str]],
-    values: Optional[dict[str, dict[str, str]]],
+    expr: str | None,
+    names: dict[str, str] | None,
+    values: dict[str, dict[str, str]] | None,
 ) -> "ConditionExpressionParser":
     return ConditionExpressionParser(expr, names, values)
 
 
 def get_filter_expression(
-    expr: Optional[str],
-    names: Optional[dict[str, str]],
-    values: Optional[dict[str, dict[str, str]]],
+    expr: str | None,
+    names: dict[str, str] | None,
+    values: dict[str, dict[str, str]] | None,
 ) -> Union["Op", "Func"]:
     """
     Parse a filter expression into an Op.
@@ -98,7 +98,7 @@ class Op:
         self.lhs = lhs
         self.rhs = rhs
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         raise NotImplementedError(f"Expr not defined for {type(self)}")
 
     def __repr__(self) -> str:
@@ -152,9 +152,9 @@ class RecursionStopIteration(StopIteration):
 class ConditionExpressionParser:
     def __init__(
         self,
-        condition_expression: Optional[str],
-        expression_attribute_names: Optional[dict[str, str]],
-        expression_attribute_values: Optional[dict[str, dict[str, str]]],
+        condition_expression: str | None,
+        expression_attribute_names: dict[str, str] | None,
+        expression_attribute_values: dict[str, dict[str, str]] | None,
     ):
         self.condition_expression = condition_expression
         self.expression_attribute_names = expression_attribute_names
@@ -896,10 +896,10 @@ class ConditionExpressionParser:
 
 
 class Operand:
-    def expr(self, item: Optional[Item]) -> Any:
+    def expr(self, item: Item | None) -> Any:
         raise NotImplementedError
 
-    def get_type(self, item: Optional[Item]) -> Optional[str]:
+    def get_type(self, item: Item | None) -> str | None:
         raise NotImplementedError
 
 
@@ -915,7 +915,7 @@ class AttributePath(Operand):
         assert len(path) >= 1
         self.path = path
 
-    def _get_attr(self, item: Optional[Item]) -> Any:
+    def _get_attr(self, item: Item | None) -> Any:
         if item is None:
             return None
 
@@ -931,14 +931,14 @@ class AttributePath(Operand):
 
         return attr
 
-    def expr(self, item: Optional[Item]) -> Any:
+    def expr(self, item: Item | None) -> Any:
         attr = self._get_attr(item)
         if attr is None:
             return None
         else:
             return attr.cast_value
 
-    def get_type(self, item: Optional[Item]) -> Optional[str]:
+    def get_type(self, item: Item | None) -> str | None:
         attr = self._get_attr(item)
         if attr is None:
             return None
@@ -962,7 +962,7 @@ class AttributeValue(Operand):
         self.type = list(value.keys())[0]
         self.value = value[self.type]
 
-    def expr(self, item: Optional[Item]) -> Any:
+    def expr(self, item: Item | None) -> Any:
         # TODO: Reuse DynamoType code
         if self.type == "N":
             try:
@@ -980,7 +980,7 @@ class AttributeValue(Operand):
             return self.value
         return self.value
 
-    def get_type(self, item: Optional[Item]) -> str:
+    def get_type(self, item: Item | None) -> str:
         return self.type
 
     def __repr__(self) -> str:
@@ -990,7 +990,7 @@ class AttributeValue(Operand):
 class OpDefault(Op):
     OP = "NONE"
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         """If no condition is specified, always True."""
         return True
 
@@ -1001,7 +1001,7 @@ class OpNot(Op):
     def __init__(self, lhs: Union["Func", Op]):
         super().__init__(lhs, None)  # type: ignore[arg-type]
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         return not lhs
 
@@ -1012,7 +1012,7 @@ class OpNot(Op):
 class OpAnd(Op):
     OP = "AND"
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         return lhs and self.rhs.expr(item)
 
@@ -1020,7 +1020,7 @@ class OpAnd(Op):
 class OpLessThan(Op):
     OP = "<"
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
@@ -1033,7 +1033,7 @@ class OpLessThan(Op):
 class OpGreaterThan(Op):
     OP = ">"
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
@@ -1046,7 +1046,7 @@ class OpGreaterThan(Op):
 class OpEqual(Op):
     OP = "="
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         return lhs == rhs
@@ -1055,7 +1055,7 @@ class OpEqual(Op):
 class OpNotEqual(Op):
     OP = "<>"
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         return lhs != rhs
@@ -1064,7 +1064,7 @@ class OpNotEqual(Op):
 class OpLessThanOrEqual(Op):
     OP = "<="
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
@@ -1077,7 +1077,7 @@ class OpLessThanOrEqual(Op):
 class OpGreaterThanOrEqual(Op):
     OP = ">="
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         rhs = self.rhs.expr(item)
         # In python3 None is not a valid comparator when using < or > so must be handled specially
@@ -1090,7 +1090,7 @@ class OpGreaterThanOrEqual(Op):
 class OpOr(Op):
     OP = "OR"
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         lhs = self.lhs.expr(item)
         return lhs or self.rhs.expr(item)
 
@@ -1105,7 +1105,7 @@ class Func:
     def __init__(self, *arguments: Any):
         self.arguments = arguments
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         raise NotImplementedError
 
     def __repr__(self) -> str:
@@ -1119,7 +1119,7 @@ class FuncAttrExists(Func):
         self.attr = attribute
         super().__init__(attribute)
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         return self.attr.get_type(item) is not None
 
 
@@ -1135,7 +1135,7 @@ class FuncAttrType(Func):
         self.type = _type
         super().__init__(attribute, _type)
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         return self.attr.get_type(item) == self.type.expr(item)  # type: ignore[comparison-overlap]
 
 
@@ -1147,7 +1147,7 @@ class FuncBeginsWith(Func):
         self.substr = substr
         super().__init__(attribute, substr)
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         if self.attr.get_type(item) != "S":
             return False
         if self.substr.get_type(item) != "S":
@@ -1163,7 +1163,7 @@ class FuncContains(Func):
         self.operand = operand
         super().__init__(attribute, operand)
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         if self.attr.get_type(item) in ("S", "SS", "NS", "BS", "L"):
             try:
                 return self.operand.expr(item) in self.attr.expr(item)
@@ -1183,7 +1183,7 @@ class FuncSize(Func):
         self.attr = attribute
         super().__init__(attribute)
 
-    def expr(self, item: Optional[Item]) -> int:  # type: ignore[override]
+    def expr(self, item: Item | None) -> int:  # type: ignore[override]
         if self.attr.get_type(item) is None:
             raise ValueError(f"Invalid attribute name {self.attr}")
 
@@ -1201,7 +1201,7 @@ class FuncBetween(Func):
         self.end = end
         super().__init__(attribute, start, end)
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         # In python3 None is not a valid comparator when using < or > so must be handled specially
         start = self.start.expr(item)
         attr = self.attr.expr(item)
@@ -1229,7 +1229,7 @@ class FuncIn(Func):
         self.possible_values = possible_values
         super().__init__(attribute, *possible_values)
 
-    def expr(self, item: Optional[Item]) -> bool:
+    def expr(self, item: Item | None) -> bool:
         for possible_value in self.possible_values:
             if self.attr.expr(item) == possible_value.expr(item):
                 return True

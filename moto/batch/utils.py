@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from moto.utilities.utils import get_partition
 
@@ -82,7 +82,7 @@ class JobStatus(str, Enum):
         ]
 
     @classmethod
-    def status_transitions(self) -> list[tuple[Optional[str], str]]:
+    def status_transitions(self) -> list[tuple[str | None, str]]:
         return [
             (JobStatus.SUBMITTED.value, JobStatus.PENDING.value),
             (JobStatus.PENDING.value, JobStatus.RUNNABLE.value),

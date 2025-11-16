@@ -3,7 +3,7 @@ import hashlib
 import json
 import pkgutil
 from collections.abc import Iterator, MutableMapping
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from requests.structures import CaseInsensitiveDict as _CaseInsensitiveDict
@@ -31,7 +31,7 @@ def get_partition(region: str) -> str:
     return DEFAULT_PARTITION
 
 
-def str2bool(v: Any) -> Optional[bool]:
+def str2bool(v: Any) -> bool | None:
     if v in ("yes", True, "true", "True", "TRUE", "t", "1"):
         return True
     elif v in ("no", False, "false", "False", "FALSE", "f", "0"):

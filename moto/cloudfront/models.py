@@ -1,6 +1,6 @@
 import string
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -397,7 +397,7 @@ class CloudFrontBackend(BaseBackend):
 
     def _distribution_with_caller_reference(
         self, reference: str
-    ) -> Optional[Distribution]:
+    ) -> Distribution | None:
         for dist in self.distributions.values():
             config = dist.distribution_config
             if config.caller_reference == reference:

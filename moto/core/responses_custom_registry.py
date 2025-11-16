@@ -1,6 +1,6 @@
 # This will only exist in responses >= 0.17
 from collections import defaultdict
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlunparse
 
 import responses
@@ -52,7 +52,7 @@ class CustomRegistry(responses.registries.FirstMatchRegistry):
     def reset(self) -> None:
         self._registered.clear()
 
-    def find(self, request: Any) -> tuple[Optional[responses.BaseResponse], list[str]]:
+    def find(self, request: Any) -> tuple[responses.BaseResponse | None, list[str]]:
         # We don't have to search through all possible methods - only the ones registered for this particular method
         all_possibles = (
             responses._default_mock._registry.registered

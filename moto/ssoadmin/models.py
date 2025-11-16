@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -129,7 +129,7 @@ class Instance:
         self.instance_arn = f"arn:{get_partition(region)}:sso:::instance/ssoins-{random.get_random_string(length=16, lower_case=True)}"
         self.account_id = account_id
         self.status = "ACTIVE"
-        self.name: Optional[str] = None
+        self.name: str | None = None
 
         self.provisioned_permission_sets: list[PermissionSet] = []
 
@@ -152,7 +152,7 @@ class SSOAdminBackend(BaseBackend):
         self.account_assignments: list[AccountAssignment] = []
         self.deleted_account_assignments: list[AccountAssignment] = []
         self.permission_sets: list[PermissionSet] = []
-        self.aws_managed_policies: Optional[dict[str, Any]] = None
+        self.aws_managed_policies: dict[str, Any] | None = None
         self.instances: list[Instance] = []
 
         self.instances.append(Instance(self.account_id, self.region_name))

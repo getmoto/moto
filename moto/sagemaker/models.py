@@ -6,7 +6,7 @@ import string
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any, Optional, Union, cast
+from typing import Any, Union, cast
 
 from dateutil.tz import tzutc
 
@@ -266,7 +266,7 @@ class FakePipeline(BaseObject):
         now_string = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.creation_time = now_string
         self.last_modified_time = now_string
-        self.last_execution_time: Optional[str] = None
+        self.last_execution_time: str | None = None
 
         self.pipeline_status = "Active"
         fake_user_profile_name = "fake-user-profile-name"
@@ -939,8 +939,8 @@ class Model(BaseObject, CloudFormationModel):
         execution_role_arn: str,
         primary_container: dict[str, Any],
         vpc_config: dict[str, Any],
-        containers: Optional[list[dict[str, Any]]] = None,
-        tags: Optional[list[dict[str, str]]] = None,
+        containers: list[dict[str, Any]] | None = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         self.model_name = model_name
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1058,7 +1058,7 @@ class ModelPackageGroup(BaseObject):
         model_package_group_description: str,
         account_id: str,
         region_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> None:
         model_package_group_arn = arn_formatter(
             region_name=region_name,
@@ -1115,10 +1115,10 @@ class FakeModelCard(BaseObject):
         model_card_version: int,
         content: str,
         model_card_status: str,
-        security_config: Optional[dict[str, str]] = None,
-        tags: Optional[list[dict[str, Any]]] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        security_config: dict[str, str] | None = None,
+        tags: list[dict[str, Any]] | None = None,
+        creation_time: str | None = None,
+        last_modified_time: str | None = None,
     ) -> None:
         datetime_now = str(datetime.now(tzutc()))
         self.arn = arn_formatter("model-card", model_card_name, account_id, region_name)
@@ -1178,7 +1178,7 @@ class FeatureGroup(BaseObject):
         feature_definitions: list[dict[str, str]],
         offline_store_config: dict[str, Any],
         role_arn: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> None:
         self.feature_group_name = feature_group_name
         self.record_identifier_feature_name = record_identifier_feature_name
@@ -1228,17 +1228,17 @@ class ModelPackage(BaseObject):
     def __init__(
         self,
         model_package_name: str,
-        model_package_group_name: Optional[str],
-        model_package_version: Optional[int],
-        model_package_description: Optional[str],
+        model_package_group_name: str | None,
+        model_package_version: int | None,
+        model_package_description: str | None,
         inference_specification: Any,
         source_algorithm_specification: Any,
         validation_specification: Any,
         certify_for_marketplace: bool,
-        model_approval_status: Optional[str],
+        model_approval_status: str | None,
         metadata_properties: Any,
         model_metrics: Any,
-        approval_description: Optional[str],
+        approval_description: str | None,
         customer_metadata_properties: Any,
         drift_check_baselines: Any,
         domain: str,
@@ -1249,7 +1249,7 @@ class ModelPackage(BaseObject):
         region_name: str,
         account_id: str,
         model_package_type: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> None:
         fake_user_profile_name = "fake-user-profile-name"
         fake_domain_id = "fake-domain-id"
@@ -1295,7 +1295,7 @@ class ModelPackage(BaseObject):
             ],
         }
         self.certify_for_marketplace = certify_for_marketplace
-        self.model_approval_status: Optional[str] = None
+        self.model_approval_status: str | None = None
         self.set_model_approval_status(model_approval_status)
         self.created_by = {
             "UserProfileArn": fake_user_profile_arn,
@@ -1304,20 +1304,20 @@ class ModelPackage(BaseObject):
         }
         self.metadata_properties = metadata_properties
         self.model_metrics = model_metrics
-        self.last_modified_time: Optional[datetime] = None
+        self.last_modified_time: datetime | None = None
         self.approval_description = approval_description
         self.customer_metadata_properties = customer_metadata_properties
         self.drift_check_baselines = drift_check_baselines
         self.domain = domain
         self.task = task
         self.sample_payload_url = sample_payload_url
-        self.additional_inference_specifications: Optional[list[Any]] = None
+        self.additional_inference_specifications: list[Any] | None = None
         self.add_additional_inference_specifications(
             additional_inference_specifications
         )
         self.tags = tags
         self.model_package_status = "Completed"
-        self.last_modified_by: Optional[dict[str, str]] = None
+        self.last_modified_by: dict[str, str] | None = None
         self.client_token = client_token
 
     def gen_response_object(self) -> dict[str, Any]:
@@ -1371,7 +1371,7 @@ class ModelPackage(BaseObject):
         self.last_modified_time = datetime.now(tzutc())
         self.last_modified_by = self.created_by
 
-    def set_model_approval_status(self, model_approval_status: Optional[str]) -> None:
+    def set_model_approval_status(self, model_approval_status: str | None) -> None:
         if model_approval_status is not None:
             validate_model_approval_status(model_approval_status)
         self.model_approval_status = model_approval_status
@@ -1384,7 +1384,7 @@ class ModelPackage(BaseObject):
                 self.customer_metadata_properties.pop(customer_metadata_property, None)
 
     def add_additional_inference_specifications(
-        self, additional_inference_specifications_to_add: Optional[list[Any]]
+        self, additional_inference_specifications_to_add: list[Any] | None
     ) -> None:
         self.validate_additional_inference_specifications(
             additional_inference_specifications_to_add
@@ -1402,7 +1402,7 @@ class ModelPackage(BaseObject):
             )
 
     def validate_additional_inference_specifications(
-        self, additional_inference_specifications: Optional[list[dict[str, Any]]]
+        self, additional_inference_specifications: list[dict[str, Any]] | None
     ) -> None:
         specifications_to_validate = additional_inference_specifications or []
         for additional_inference_specification in specifications_to_validate:
@@ -1633,7 +1633,7 @@ class Cluster(BaseObject):
         account_id: str,
         instance_groups: list[dict[str, Any]],
         vpc_config: dict[str, list[str]],
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -1740,7 +1740,7 @@ class ClusterNode(BaseObject):
         life_cycle_config: dict[str, Any],
         execution_role: str,
         node_id: str,
-        threads_per_core: Optional[int] = None,
+        threads_per_core: int | None = None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -1786,10 +1786,10 @@ class CompilationJob(BaseObject):
         account_id: str,
         output_config: dict[str, Any],
         stopping_condition: dict[str, Any],
-        model_package_version_arn: Optional[str],
-        input_config: Optional[dict[str, Any]],
-        vpc_config: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
+        model_package_version_arn: str | None,
+        input_config: dict[str, Any] | None,
+        vpc_config: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
     ):
         self.compilation_job_name = compilation_job_name
         if (
@@ -1887,11 +1887,11 @@ class AutoMLJob(BaseObject):
         role_arn: str,
         region_name: str,
         account_id: str,
-        security_config: Optional[dict[str, Any]],
-        auto_ml_job_objective: Optional[dict[str, Any]],
-        model_deploy_config: Optional[dict[str, Any]],
-        data_split_config: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]] = None,
+        security_config: dict[str, Any] | None,
+        auto_ml_job_objective: dict[str, Any] | None,
+        model_deploy_config: dict[str, Any] | None,
+        data_split_config: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None = None,
     ):
         self.region_name = region_name
         self.account_id = account_id
@@ -2137,13 +2137,13 @@ class Domain(BaseObject):
         vpc_id: str,
         account_id: str,
         region_name: str,
-        domain_settings: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
-        app_network_access_type: Optional[str],
-        home_efs_file_system_kms_key_id: Optional[str],
-        kms_key_id: Optional[str],
-        app_security_group_management: Optional[str],
-        default_space_settings: Optional[dict[str, Any]],
+        domain_settings: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
+        app_network_access_type: str | None,
+        home_efs_file_system_kms_key_id: str | None,
+        kms_key_id: str | None,
+        app_security_group_management: str | None,
+        default_space_settings: dict[str, Any] | None,
     ):
         self.domain_name = domain_name
         if domain_name in sagemaker_backends[account_id][region_name].domains:
@@ -2226,17 +2226,17 @@ class ModelExplainabilityJobDefinition(BaseObject):
     def __init__(
         self,
         job_definition_name: str,
-        model_explainability_baseline_config: Optional[dict[str, Any]],
+        model_explainability_baseline_config: dict[str, Any] | None,
         model_explainability_app_specification: dict[str, Any],
         model_explainability_job_input: dict[str, Any],
         model_explainability_job_output_config: dict[str, Any],
         job_resources: dict[str, Any],
-        network_config: Optional[dict[str, Any]],
+        network_config: dict[str, Any] | None,
         role_arn: str,
-        stopping_condition: Optional[dict[str, Any]],
+        stopping_condition: dict[str, Any] | None,
         region_name: str,
         account_id: str,
-        tags: Optional[list[dict[str, str]]],
+        tags: list[dict[str, str]] | None,
     ):
         self.job_definition_name = job_definition_name
         if (
@@ -2306,11 +2306,11 @@ class HyperParameterTuningJob(BaseObject):
         hyper_parameter_tuning_job_config: dict[str, Any],
         region_name: str,
         account_id: str,
-        training_job_definition: Optional[dict[str, Any]],
-        training_job_definitions: Optional[list[dict[str, Any]]],
-        warm_start_config: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
-        autotune: Optional[dict[str, Any]],
+        training_job_definition: dict[str, Any] | None,
+        training_job_definitions: list[dict[str, Any]] | None,
+        warm_start_config: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
+        autotune: dict[str, Any] | None,
     ):
         self.hyper_parameter_tuning_job_name = hyper_parameter_tuning_job_name
         if (
@@ -2436,15 +2436,15 @@ class ModelQualityJobDefinition(BaseObject):
     def __init__(
         self,
         job_definition_name: str,
-        model_quality_baseline_config: Optional[dict[str, Any]],
+        model_quality_baseline_config: dict[str, Any] | None,
         model_quality_app_specification: dict[str, Any],
         model_quality_job_input: dict[str, Any],
         model_quality_job_output_config: dict[str, Any],
         job_resources: dict[str, Any],
-        network_config: Optional[dict[str, Any]],
+        network_config: dict[str, Any] | None,
         role_arn: str,
-        stopping_condition: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
+        stopping_condition: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
         region_name: str,
         account_id: str,
     ):
@@ -2539,17 +2539,17 @@ class FakeSagemakerNotebookInstance(CloudFormationModel):
         notebook_instance_name: str,
         instance_type: str,
         role_arn: str,
-        subnet_id: Optional[str],
-        security_group_ids: Optional[list[str]],
-        kms_key_id: Optional[str],
-        tags: Optional[list[dict[str, str]]],
-        lifecycle_config_name: Optional[str],
+        subnet_id: str | None,
+        security_group_ids: list[str] | None,
+        kms_key_id: str | None,
+        tags: list[dict[str, str]] | None,
+        lifecycle_config_name: str | None,
         direct_internet_access: str,
         volume_size_in_gb: int,
-        accelerator_types: Optional[list[str]],
-        default_code_repository: Optional[str],
-        additional_code_repositories: Optional[list[str]],
-        root_access: Optional[str],
+        accelerator_types: list[str] | None,
+        default_code_repository: str | None,
+        additional_code_repositories: list[str] | None,
+        root_access: str | None,
     ):
         self.validate_volume_size_in_gb(volume_size_in_gb)
         self.validate_instance_type(instance_type)
@@ -2967,10 +2967,10 @@ class SageMakerModelBackend(BaseBackend):
         self,
         model_name: str,
         execution_role_arn: str,
-        primary_container: Optional[dict[str, Any]],
-        vpc_config: Optional[dict[str, Any]],
-        containers: Optional[list[dict[str, Any]]],
-        tags: Optional[list[dict[str, str]]],
+        primary_container: dict[str, Any] | None,
+        vpc_config: dict[str, Any] | None,
+        containers: list[dict[str, Any]] | None,
+        tags: list[dict[str, str]] | None,
     ) -> Model:
         model_obj = Model(
             account_id=self.account_id,
@@ -3214,8 +3214,8 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_trials(
         self,
-        experiment_name: Optional[str] = None,
-        trial_component_name: Optional[str] = None,
+        experiment_name: str | None = None,
+        trial_component_name: str | None = None,
     ) -> list["FakeTrial"]:
         trials_fetched = list(self.trials.values())
 
@@ -3241,13 +3241,13 @@ class SageMakerModelBackend(BaseBackend):
         trial_component_name: str,
         trial_name: str,
         status: dict[str, str],
-        start_time: Optional[datetime],
-        end_time: Optional[datetime],
-        display_name: Optional[str],
-        parameters: Optional[dict[str, dict[str, Union[str, float]]]],
-        input_artifacts: Optional[dict[str, dict[str, str]]],
-        output_artifacts: Optional[dict[str, dict[str, str]]],
-        metadata_properties: Optional[dict[str, str]],
+        start_time: datetime | None,
+        end_time: datetime | None,
+        display_name: str | None,
+        parameters: dict[str, dict[str, Union[str, float]]] | None,
+        input_artifacts: dict[str, dict[str, str]] | None,
+        output_artifacts: dict[str, dict[str, str]] | None,
+        metadata_properties: dict[str, str] | None,
     ) -> dict[str, Any]:
         trial_component = FakeTrialComponent(
             account_id=self.account_id,
@@ -3294,7 +3294,7 @@ class SageMakerModelBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_trial_components(
-        self, trial_name: Optional[str] = None
+        self, trial_name: str | None = None
     ) -> list["FakeTrialComponent"]:
         trial_components_fetched = list(self.trial_components.values())
 
@@ -3344,16 +3344,16 @@ class SageMakerModelBackend(BaseBackend):
     def update_trial_component(
         self,
         trial_component_name: str,
-        status: Optional[dict[str, str]],
-        display_name: Optional[str],
-        start_time: Optional[datetime],
-        end_time: Optional[datetime],
-        parameters: Optional[dict[str, dict[str, Union[str, float]]]],
-        parameters_to_remove: Optional[list[str]],
-        input_artifacts: Optional[dict[str, dict[str, str]]],
-        input_artifacts_to_remove: Optional[list[str]],
-        output_artifacts: Optional[dict[str, dict[str, str]]],
-        output_artifacts_to_remove: Optional[list[str]],
+        status: dict[str, str] | None,
+        display_name: str | None,
+        start_time: datetime | None,
+        end_time: datetime | None,
+        parameters: dict[str, dict[str, Union[str, float]]] | None,
+        parameters_to_remove: list[str] | None,
+        input_artifacts: dict[str, dict[str, str]] | None,
+        input_artifacts_to_remove: list[str] | None,
+        output_artifacts: dict[str, dict[str, str]] | None,
+        output_artifacts_to_remove: list[str] | None,
     ) -> dict[str, str]:
         try:
             trial_component = self.trial_components[trial_component_name]
@@ -3402,17 +3402,17 @@ class SageMakerModelBackend(BaseBackend):
         notebook_instance_name: str,
         instance_type: str,
         role_arn: str,
-        subnet_id: Optional[str] = None,
-        security_group_ids: Optional[list[str]] = None,
-        kms_key_id: Optional[str] = None,
-        tags: Optional[list[dict[str, str]]] = None,
-        lifecycle_config_name: Optional[str] = None,
+        subnet_id: str | None = None,
+        security_group_ids: list[str] | None = None,
+        kms_key_id: str | None = None,
+        tags: list[dict[str, str]] | None = None,
+        lifecycle_config_name: str | None = None,
         direct_internet_access: str = "Enabled",
         volume_size_in_gb: int = 5,
-        accelerator_types: Optional[list[str]] = None,
-        default_code_repository: Optional[str] = None,
-        additional_code_repositories: Optional[list[str]] = None,
-        root_access: Optional[str] = None,
+        accelerator_types: list[str] | None = None,
+        default_code_repository: str | None = None,
+        additional_code_repositories: list[str] | None = None,
+        root_access: str | None = None,
     ) -> FakeSagemakerNotebookInstance:
         self._validate_unique_notebook_instance_name(notebook_instance_name)
 
@@ -3477,8 +3477,8 @@ class SageMakerModelBackend(BaseBackend):
         self,
         sort_by: str,
         sort_order: str,
-        name_contains: Optional[str],
-        status: Optional[str],
+        name_contains: str | None,
+        status: str | None,
     ) -> list[FakeSagemakerNotebookInstance]:
         """
         The following parameters are not yet implemented:
@@ -4400,7 +4400,7 @@ class SageMakerModelBackend(BaseBackend):
         self,
         model_package_group_name: str,
         model_package_group_description: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
     ) -> str:
         self.model_package_groups[model_package_group_name] = ModelPackageGroup(
             model_package_group_name=model_package_group_name,
@@ -4412,7 +4412,7 @@ class SageMakerModelBackend(BaseBackend):
         return self.model_package_groups[model_package_group_name].arn
 
     def _get_versioned_or_not(
-        self, model_package_type: Optional[str], model_package_version: Optional[int]
+        self, model_package_type: str | None, model_package_version: int | None
     ) -> bool:
         if model_package_type == "Versioned":
             return model_package_version is not None
@@ -4425,11 +4425,11 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_package_groups(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
-        name_contains: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
+        creation_time_after: int | None,
+        creation_time_before: int | None,
+        name_contains: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
     ) -> list[ModelPackageGroup]:
         if isinstance(creation_time_before, int):
             creation_time_before_datetime = datetime.fromtimestamp(
@@ -4486,14 +4486,14 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_packages(
         self,
-        creation_time_after: Optional[int],
-        creation_time_before: Optional[int],
-        name_contains: Optional[str],
-        model_approval_status: Optional[str],
-        model_package_group_name: Optional[str],
-        model_package_type: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
+        creation_time_after: int | None,
+        creation_time_before: int | None,
+        name_contains: str | None,
+        model_approval_status: str | None,
+        model_package_group_name: str | None,
+        model_package_type: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
     ) -> list[ModelPackage]:
         if isinstance(creation_time_before, int):
             creation_time_before_datetime = datetime.fromtimestamp(
@@ -4558,11 +4558,11 @@ class SageMakerModelBackend(BaseBackend):
     def update_model_package(
         self,
         model_package_arn: str,
-        model_approval_status: Optional[str],
-        approval_description: Optional[str],
-        customer_metadata_properties: Optional[dict[str, str]],
+        model_approval_status: str | None,
+        approval_description: str | None,
+        customer_metadata_properties: dict[str, str] | None,
         customer_metadata_properties_to_remove: list[str],
-        additional_inference_specifications_to_add: Optional[list[Any]],
+        additional_inference_specifications_to_add: list[Any] | None,
     ) -> str:
         model_package_name_mapped = self.model_package_name_mapping.get(
             model_package_arn, model_package_arn
@@ -4587,15 +4587,15 @@ class SageMakerModelBackend(BaseBackend):
 
     def create_model_package(
         self,
-        model_package_name: Optional[str],
-        model_package_group_name: Optional[str],
-        model_package_description: Optional[str],
+        model_package_name: str | None,
+        model_package_group_name: str | None,
+        model_package_description: str | None,
         inference_specification: Any,
         validation_specification: Any,
         source_algorithm_specification: Any,
         certify_for_marketplace: bool,
         tags: Any,
-        model_approval_status: Optional[str],
+        model_approval_status: str | None,
         metadata_properties: Any,
         model_metrics: Any,
         client_token: Any,
@@ -4783,11 +4783,11 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_clusters(
         self,
-        creation_time_after: Optional[datetime],
-        creation_time_before: Optional[datetime],
-        name_contains: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
+        creation_time_after: datetime | None,
+        creation_time_before: datetime | None,
+        name_contains: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
     ) -> list[Cluster]:
         clusters = list(self.clusters.values())
         if name_contains:
@@ -4811,11 +4811,11 @@ class SageMakerModelBackend(BaseBackend):
     def list_cluster_nodes(
         self,
         cluster_name: str,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        instance_group_name_contains: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
+        creation_time_after: str | None,
+        creation_time_before: str | None,
+        instance_group_name_contains: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
     ) -> list[ClusterNode]:
         if cluster_name.startswith(f"arn:{self.partition}:sagemaker:"):
             cluster_name = (cluster_name.split(":")[-1]).split("/")[-1]
@@ -4853,16 +4853,16 @@ class SageMakerModelBackend(BaseBackend):
         self,
         account_id: str,
         job_definition_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
         role_arn: str = "",
-        job_resources: Optional[dict[str, Any]] = None,
-        stopping_condition: Optional[dict[str, Any]] = None,
-        environment: Optional[dict[str, str]] = None,
-        network_config: Optional[dict[str, Any]] = None,
-        model_bias_baseline_config: Optional[dict[str, Any]] = None,
-        model_bias_app_specification: Optional[dict[str, Any]] = None,
-        model_bias_job_input: Optional[dict[str, Any]] = None,
-        model_bias_job_output_config: Optional[dict[str, Any]] = None,
+        job_resources: dict[str, Any] | None = None,
+        stopping_condition: dict[str, Any] | None = None,
+        environment: dict[str, str] | None = None,
+        network_config: dict[str, Any] | None = None,
+        model_bias_baseline_config: dict[str, Any] | None = None,
+        model_bias_app_specification: dict[str, Any] | None = None,
+        model_bias_job_input: dict[str, Any] | None = None,
+        model_bias_job_output_config: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         job_definition = FakeModelBiasJobDefinition(
             account_id=account_id,
@@ -4907,11 +4907,11 @@ class SageMakerModelBackend(BaseBackend):
         output_data_config: dict[str, Any],
         auto_ml_problem_type_config: dict[str, Any],
         role_arn: str,
-        tags: Optional[list[dict[str, str]]],
-        security_config: Optional[dict[str, Any]],
-        auto_ml_job_objective: Optional[dict[str, str]],
-        model_deploy_config: Optional[dict[str, Any]],
-        data_split_config: Optional[dict[str, Any]],
+        tags: list[dict[str, str]] | None,
+        security_config: dict[str, Any] | None,
+        auto_ml_job_objective: dict[str, str] | None,
+        model_deploy_config: dict[str, Any] | None,
+        data_split_config: dict[str, Any] | None,
     ) -> str:
         auto_ml_job = AutoMLJob(
             auto_ml_job_name=auto_ml_job_name,
@@ -4942,14 +4942,14 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_auto_ml_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
-        name_contains: Optional[str],
-        status_equals: Optional[str],
-        sort_order: Optional[str],
-        sort_by: Optional[str],
+        creation_time_after: str | None,
+        creation_time_before: str | None,
+        last_modified_time_after: str | None,
+        last_modified_time_before: str | None,
+        name_contains: str | None,
+        status_equals: str | None,
+        sort_order: str | None,
+        sort_by: str | None,
     ) -> list[AutoMLJob]:
         auto_ml_jobs = list(self.auto_ml_jobs.values())
         if name_contains:
@@ -5007,14 +5007,14 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_endpoints(
         self,
-        sort_by: Optional[str],
-        sort_order: Optional[str],
-        name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        status_equals: Optional[str],
+        sort_by: str | None,
+        sort_order: str | None,
+        name_contains: str | None,
+        creation_time_before: str | None,
+        creation_time_after: str | None,
+        last_modified_time_before: str | None,
+        last_modified_time_after: str | None,
+        status_equals: str | None,
     ) -> list[FakeEndpoint]:
         endpoints = list(self.endpoints.values())
         if name_contains:
@@ -5059,11 +5059,11 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_endpoint_configs(
         self,
-        sort_by: Optional[str],
-        sort_order: Optional[str],
-        name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        sort_by: str | None,
+        sort_order: str | None,
+        name_contains: str | None,
+        creation_time_before: str | None,
+        creation_time_after: str | None,
     ) -> list[FakeEndpointConfig]:
         endpoint_configs = list(self.endpoint_configs.values())
         if name_contains:
@@ -5099,10 +5099,10 @@ class SageMakerModelBackend(BaseBackend):
         role_arn: str,
         output_config: dict[str, Any],
         stopping_condition: dict[str, Any],
-        model_package_version_arn: Optional[str],
-        input_config: Optional[dict[str, Any]],
-        vpc_config: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
+        model_package_version_arn: str | None,
+        input_config: dict[str, Any] | None,
+        vpc_config: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
     ) -> str:
         compilation_job = CompilationJob(
             compilation_job_name=compilation_job_name,
@@ -5130,14 +5130,14 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_compilation_jobs(
         self,
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
-        name_contains: Optional[str],
-        status_equals: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
+        creation_time_after: str | None,
+        creation_time_before: str | None,
+        last_modified_time_after: str | None,
+        last_modified_time_before: str | None,
+        name_contains: str | None,
+        status_equals: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
     ) -> list[CompilationJob]:
         compilation_jobs = list(self.compilation_jobs.values())
         if name_contains:
@@ -5203,13 +5203,13 @@ class SageMakerModelBackend(BaseBackend):
         default_user_settings: dict[str, Any],
         subnet_ids: list[str],
         vpc_id: str,
-        domain_settings: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
-        app_network_access_type: Optional[str],
-        home_efs_file_system_kms_key_id: Optional[str],
-        kms_key_id: Optional[str],
-        app_security_group_management: Optional[str],
-        default_space_settings: Optional[dict[str, Any]],
+        domain_settings: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
+        app_network_access_type: str | None,
+        home_efs_file_system_kms_key_id: str | None,
+        kms_key_id: str | None,
+        app_security_group_management: str | None,
+        default_space_settings: dict[str, Any] | None,
     ) -> dict[str, Any]:
         domain = Domain(
             domain_name=domain_name,
@@ -5240,7 +5240,7 @@ class SageMakerModelBackend(BaseBackend):
         return list(self.domains.values())
 
     def delete_domain(
-        self, domain_id: str, retention_policy: Optional[dict[str, str]]
+        self, domain_id: str, retention_policy: dict[str, str] | None
     ) -> None:
         # 'retention_policy' parameter is not used
         if domain_id not in self.domains:
@@ -5250,14 +5250,14 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_explainability_job_definition(
         self,
         job_definition_name: str,
-        model_explainability_baseline_config: Optional[dict[str, Any]],
+        model_explainability_baseline_config: dict[str, Any] | None,
         model_explainability_app_specification: dict[str, Any],
         model_explainability_job_input: dict[str, Any],
         model_explainability_job_output_config: dict[str, Any],
         job_resources: dict[str, Any],
-        network_config: Optional[dict[str, Any]],
+        network_config: dict[str, Any] | None,
         role_arn: str,
-        stopping_condition: Optional[dict[str, Any]],
+        stopping_condition: dict[str, Any] | None,
         tags: list[dict[str, str]],
     ) -> str:
         model_explainability_job_definition = ModelExplainabilityJobDefinition(
@@ -5291,12 +5291,12 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_explainability_job_definitions(
         self,
-        endpoint_name: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
-        name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        endpoint_name: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
+        name_contains: str | None,
+        creation_time_before: str | None,
+        creation_time_after: str | None,
     ) -> list[ModelExplainabilityJobDefinition]:
         model_explainability_job_definitions = list(
             self.model_explainability_job_definitions.values()
@@ -5353,11 +5353,11 @@ class SageMakerModelBackend(BaseBackend):
         self,
         hyper_parameter_tuning_job_name: str,
         hyper_parameter_tuning_job_config: dict[str, Any],
-        training_job_definition: Optional[dict[str, Any]],
-        training_job_definitions: Optional[list[dict[str, Any]]],
-        warm_start_config: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
-        autotune: Optional[dict[str, Any]],
+        training_job_definition: dict[str, Any] | None,
+        training_job_definitions: list[dict[str, Any]] | None,
+        warm_start_config: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
+        autotune: dict[str, Any] | None,
     ) -> str:
         hyper_parameter_tuning_job = HyperParameterTuningJob(
             hyper_parameter_tuning_job_name=hyper_parameter_tuning_job_name,
@@ -5390,14 +5390,14 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_hyper_parameter_tuning_jobs(
         self,
-        sort_by: Optional[str],
-        sort_order: Optional[str],
-        name_contains: Optional[str],
-        creation_time_after: Optional[str],
-        creation_time_before: Optional[str],
-        last_modified_time_after: Optional[str],
-        last_modified_time_before: Optional[str],
-        status_equals: Optional[str],
+        sort_by: str | None,
+        sort_order: str | None,
+        name_contains: str | None,
+        creation_time_after: str | None,
+        creation_time_before: str | None,
+        last_modified_time_after: str | None,
+        last_modified_time_before: str | None,
+        status_equals: str | None,
     ) -> list[HyperParameterTuningJob]:
         hyper_parameter_tuning_jobs = list(self.hyper_parameter_tuning_jobs.values())
         if name_contains:
@@ -5469,15 +5469,15 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_quality_job_definition(
         self,
         job_definition_name: str,
-        model_quality_baseline_config: Optional[dict[str, Any]],
+        model_quality_baseline_config: dict[str, Any] | None,
         model_quality_app_specification: dict[str, Any],
         model_quality_job_input: dict[str, Any],
         model_quality_job_output_config: dict[str, Any],
         job_resources: dict[str, Any],
-        network_config: Optional[dict[str, Any]],
+        network_config: dict[str, Any] | None,
         role_arn: str,
-        stopping_condition: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]],
+        stopping_condition: dict[str, Any] | None,
+        tags: list[dict[str, str]] | None,
     ) -> str:
         model_quality_job_definition = ModelQualityJobDefinition(
             job_definition_name=job_definition_name,
@@ -5510,12 +5510,12 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_quality_job_definitions(
         self,
-        endpoint_name: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
-        name_contains: Optional[str],
-        creation_time_before: Optional[str],
-        creation_time_after: Optional[str],
+        endpoint_name: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
+        name_contains: str | None,
+        creation_time_before: str | None,
+        creation_time_after: str | None,
     ) -> list[ModelQualityJobDefinition]:
         model_quality_job_definitions = list(
             self.model_quality_job_definitions.values()
@@ -5569,13 +5569,13 @@ class SageMakerModelBackend(BaseBackend):
     def create_model_card(
         self,
         model_card_name: str,
-        security_config: Optional[dict[str, str]],
+        security_config: dict[str, str] | None,
         content: str,
         model_card_status: str,
-        tags: Optional[list[dict[str, str]]],
-        model_card_version: Optional[int] = None,
-        creation_time: Optional[str] = None,
-        last_modified_time: Optional[str] = None,
+        tags: list[dict[str, str]] | None,
+        model_card_version: int | None = None,
+        creation_time: str | None = None,
+        last_modified_time: str | None = None,
     ) -> str:
         if model_card_name in self.model_cards:
             raise ConflictException(f"Modelcard {model_card_name} already exists")
@@ -5633,12 +5633,12 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_cards(
         self,
-        creation_time_after: Optional[datetime],
-        creation_time_before: Optional[datetime],
-        name_contains: Optional[str],
-        model_card_status: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
+        creation_time_after: datetime | None,
+        creation_time_before: datetime | None,
+        name_contains: str | None,
+        model_card_status: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
     ) -> list[FakeModelCard]:
         model_cards = self.model_cards
 
@@ -5655,12 +5655,12 @@ class SageMakerModelBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_card_versions(
         self,
-        creation_time_after: Optional[datetime],
-        creation_time_before: Optional[datetime],
+        creation_time_after: datetime | None,
+        creation_time_before: datetime | None,
         model_card_name: str,
-        model_card_status: Optional[str],
-        sort_by: Optional[str],
-        sort_order: Optional[str],
+        model_card_status: str | None,
+        sort_by: str | None,
+        sort_order: str | None,
     ) -> list[FakeModelCard]:
         if model_card_name not in self.model_cards:
             raise ResourceNotFound(f"Modelcard {model_card_name} does not exist")
@@ -5711,16 +5711,16 @@ class SageMakerModelBackend(BaseBackend):
         self,
         account_id: str,
         job_definition_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
         role_arn: str = "",
-        job_resources: Optional[dict[str, Any]] = None,
-        stopping_condition: Optional[dict[str, Any]] = None,
-        environment: Optional[dict[str, str]] = None,
-        network_config: Optional[dict[str, Any]] = None,
-        data_quality_baseline_config: Optional[dict[str, Any]] = None,
-        data_quality_app_specification: Optional[dict[str, Any]] = None,
-        data_quality_job_input: Optional[dict[str, Any]] = None,
-        data_quality_job_output_config: Optional[dict[str, Any]] = None,
+        job_resources: dict[str, Any] | None = None,
+        stopping_condition: dict[str, Any] | None = None,
+        environment: dict[str, str] | None = None,
+        network_config: dict[str, Any] | None = None,
+        data_quality_baseline_config: dict[str, Any] | None = None,
+        data_quality_app_specification: dict[str, Any] | None = None,
+        data_quality_job_input: dict[str, Any] | None = None,
+        data_quality_job_output_config: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         job_definition = FakeDataQualityJobDefinition(
             account_id=account_id,
@@ -5767,16 +5767,16 @@ class FakeDataQualityJobDefinition(BaseObject):
         account_id: str,
         region_name: str,
         job_definition_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
         role_arn: str = "",
-        job_resources: Optional[dict[str, Any]] = None,
-        stopping_condition: Optional[dict[str, Any]] = None,
-        environment: Optional[dict[str, str]] = None,
-        network_config: Optional[dict[str, Any]] = None,
-        data_quality_baseline_config: Optional[dict[str, Any]] = None,
-        data_quality_app_specification: Optional[dict[str, Any]] = None,
-        data_quality_job_input: Optional[dict[str, Any]] = None,
-        data_quality_job_output_config: Optional[dict[str, Any]] = None,
+        job_resources: dict[str, Any] | None = None,
+        stopping_condition: dict[str, Any] | None = None,
+        environment: dict[str, str] | None = None,
+        network_config: dict[str, Any] | None = None,
+        data_quality_baseline_config: dict[str, Any] | None = None,
+        data_quality_app_specification: dict[str, Any] | None = None,
+        data_quality_job_input: dict[str, Any] | None = None,
+        data_quality_job_output_config: dict[str, Any] | None = None,
     ):
         self.job_definition_name = job_definition_name
         self.arn = FakeDataQualityJobDefinition.arn_formatter(
@@ -5894,15 +5894,15 @@ class FakeTrialComponent(BaseObject):
         account_id: str,
         region_name: str,
         trial_component_name: str,
-        display_name: Optional[str],
-        start_time: Optional[datetime],
-        end_time: Optional[datetime],
-        parameters: Optional[dict[str, dict[str, Union[str, float]]]],
-        input_artifacts: Optional[dict[str, dict[str, str]]],
-        output_artifacts: Optional[dict[str, dict[str, str]]],
-        metadata_properties: Optional[dict[str, str]],
-        status: Optional[dict[str, str]],
-        trial_name: Optional[str],
+        display_name: str | None,
+        start_time: datetime | None,
+        end_time: datetime | None,
+        parameters: dict[str, dict[str, Union[str, float]]] | None,
+        input_artifacts: dict[str, dict[str, str]] | None,
+        output_artifacts: dict[str, dict[str, str]] | None,
+        metadata_properties: dict[str, str] | None,
+        status: dict[str, str] | None,
+        trial_name: str | None,
         tags: list[dict[str, str]],
     ):
         self.trial_component_name = trial_component_name
@@ -5993,16 +5993,16 @@ class FakeModelBiasJobDefinition(BaseObject):
         account_id: str,
         region_name: str,
         job_definition_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
+        tags: list[dict[str, str]] | None = None,
         role_arn: str = "",
-        job_resources: Optional[dict[str, Any]] = None,
-        stopping_condition: Optional[dict[str, Any]] = None,
-        environment: Optional[dict[str, str]] = None,
-        network_config: Optional[dict[str, Any]] = None,
-        model_bias_baseline_config: Optional[dict[str, Any]] = None,
-        model_bias_app_specification: Optional[dict[str, Any]] = None,
-        model_bias_job_input: Optional[dict[str, Any]] = None,
-        model_bias_job_output_config: Optional[dict[str, Any]] = None,
+        job_resources: dict[str, Any] | None = None,
+        stopping_condition: dict[str, Any] | None = None,
+        environment: dict[str, str] | None = None,
+        network_config: dict[str, Any] | None = None,
+        model_bias_baseline_config: dict[str, Any] | None = None,
+        model_bias_app_specification: dict[str, Any] | None = None,
+        model_bias_job_input: dict[str, Any] | None = None,
+        model_bias_job_output_config: dict[str, Any] | None = None,
     ):
         self.job_definition_name = job_definition_name
         self.arn = FakeModelBiasJobDefinition.arn_formatter(

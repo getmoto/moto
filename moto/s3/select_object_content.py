@@ -1,6 +1,6 @@
 import binascii
 import struct
-from typing import Any, Optional
+from typing import Any
 
 
 def parse_query(text_input: str, query: str) -> tuple[list[dict[str, Any]], int]:
@@ -16,7 +16,7 @@ def _create_header(key: bytes, value: bytes) -> bytes:
 
 
 def _create_message(
-    content_type: Optional[bytes], event_type: bytes, payload: bytes
+    content_type: bytes | None, event_type: bytes, payload: bytes
 ) -> bytes:
     headers = _create_header(b":message-type", b"event")
     headers += _create_header(b":event-type", event_type)

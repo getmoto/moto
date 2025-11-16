@@ -4,14 +4,13 @@ import itertools
 import os
 import re
 import unittest
+from collections.abc import Callable
 from contextlib import AbstractContextManager
 from threading import Lock
 from types import FunctionType
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
     TypeVar,
 )
 from unittest.mock import patch
@@ -51,12 +50,12 @@ class MockAWS(AbstractContextManager["MockAWS"]):
     _mocks_active = False
     _mock_init_lock = Lock()
 
-    def __init__(self, config: Optional[DefaultConfig] = None) -> None:
+    def __init__(self, config: DefaultConfig | None = None) -> None:
         self._fake_creds = {
             "AWS_ACCESS_KEY_ID": "FOOBARKEY",
             "AWS_SECRET_ACCESS_KEY": "FOOBARSECRET",
         }
-        self._orig_creds: dict[str, Optional[str]] = {}
+        self._orig_creds: dict[str, str | None] = {}
         self._default_session_mock = patch("boto3.DEFAULT_SESSION", None)
         current_user_config = default_user_config.copy()
         current_user_config.update(config or {})
@@ -318,7 +317,7 @@ def patch_resource(resource: Any) -> None:
         raise Exception(f"Argument {resource} should be of type boto3.resource")
 
 
-def override_responses_real_send(user_mock: Optional[responses.RequestsMock]) -> None:
+def override_responses_real_send(user_mock: responses.RequestsMock | None) -> None:
     """
     Moto creates it's own Responses-object responsible for intercepting AWS requests
     If a custom Responses-object is created by the user, Moto will hijack any of the pass-thru's set
@@ -385,7 +384,7 @@ class ServerModeMockAWS(MockAWS):
         self._client_patcher.start()
         self._resource_patcher.start()
 
-    def _get_region(self, *args: Any, **kwargs: Any) -> Optional[str]:
+    def _get_region(self, *args: Any, **kwargs: Any) -> str | None:
         if "region_name" in kwargs:
             return kwargs["region_name"]
         if type(args) is tuple and len(args) == 2:

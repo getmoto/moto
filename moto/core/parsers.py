@@ -4,7 +4,7 @@ import json
 from collections import OrderedDict
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from botocore import xform_name
 from botocore.utils import parse_timestamp as botocore_parse_timestamp
@@ -278,7 +278,7 @@ class XFormedDict(MutableMapping[str, Any]):
     """
 
     def __init__(
-        self, data: Optional[dict[str, Any]] = None, **kwargs: dict[str, Any]
+        self, data: dict[str, Any] | None = None, **kwargs: dict[str, Any]
     ) -> None:
         self._xform_cache: dict[str, Any] = {}
         self._store: MutableMapping[str, Any] = OrderedDict()

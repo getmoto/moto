@@ -1,6 +1,6 @@
 """EBSBackend class with methods for supported APIs."""
 
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -72,7 +72,7 @@ class EBSBackend(BaseBackend):
         return ec2_backends[self.account_id][self.region_name]
 
     def start_snapshot(
-        self, volume_size: int, tags: Optional[list[dict[str, str]]], description: str
+        self, volume_size: int, tags: list[dict[str, str]] | None, description: str
     ) -> EBSSnapshot:
         """
         The following parameters are not yet implemented: ParentSnapshotId, ClientToken, Encrypted, KmsKeyArn, Timeout
@@ -123,14 +123,14 @@ class EBSBackend(BaseBackend):
 
     def list_changed_blocks(
         self, first_snapshot_id: str, second_snapshot_id: str
-    ) -> tuple[dict[str, tuple[str, Optional[str]]], EBSSnapshot]:
+    ) -> tuple[dict[str, tuple[str, str | None]], EBSSnapshot]:
         """
         The following parameters are not yet implemented: NextToken, MaxResults, StartingBlockIndex
         """
         snapshot1 = self.snapshots[first_snapshot_id]
         snapshot2 = self.snapshots[second_snapshot_id]
         changed_blocks: dict[
-            str, tuple[str, Optional[str]]
+            str, tuple[str, str | None]
         ] = {}  # {idx: (token1, token2), ..}
         for idx in snapshot1.blocks:
             block1 = snapshot1.blocks[idx]

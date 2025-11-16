@@ -7,13 +7,12 @@ import logging
 import os
 import re
 from collections import OrderedDict, defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     ClassVar,
-    Optional,
     TypeVar,
     Union,
     cast,
@@ -233,7 +232,7 @@ class ActionAuthenticatorMixin:
         self._authenticate_and_authorize_action(IAMRequest, resource)
 
     def _authenticate_and_authorize_s3_action(
-        self, bucket_name: Optional[str] = None, key_name: Optional[str] = None
+        self, bucket_name: str | None = None, key_name: str | None = None
     ) -> None:
         arn = f"{bucket_name or '*'}/{key_name}" if key_name else (bucket_name or "*")
         resource = f"arn:{get_partition(self.region)}:s3:::{arn}"  # type: ignore[attr-defined]
@@ -353,7 +352,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         r"AWS.*(?P<access_key>(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9]))[:/]"
     )
 
-    def __init__(self, service_name: Optional[str] = None):
+    def __init__(self, service_name: str | None = None):
         super().__init__()
         self.service_name = service_name
         self.allow_request_decompression = True
@@ -488,7 +487,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self.method = request.method
         self.region = self.get_region_from_url(request, full_url)
         self.partition = get_partition(self.region)
-        self.uri_match: Optional[re.Match[str]] = None
+        self.uri_match: re.Match[str] | None = None
 
         self.headers = request.headers
         if "host" not in self.headers:
@@ -814,7 +813,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         self,
         param_prefix: str,
         skip_result_conversion: bool = False,
-        tracked_prefixes: Optional[set[str]] = None,
+        tracked_prefixes: set[str] | None = None,
     ) -> Any:
         value_dict: Any = {}
         tracked_prefixes = (
