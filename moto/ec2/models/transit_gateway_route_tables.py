@@ -1,6 +1,6 @@
 import itertools
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.utils import utcnow
 from moto.utilities.utils import filter_resources
@@ -32,7 +32,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self,
         backend: Any,
         transit_gateway_id: str,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
         default_association_route_table: bool = False,
         default_propagation_route_table: bool = False,
     ):
@@ -45,7 +45,7 @@ class TransitGatewayRouteTable(TaggedEC2Resource):
         self.default_association_route_table = default_association_route_table
         self.default_propagation_route_table = default_propagation_route_table
         self.state = "available"
-        self.routes: dict[str, dict[str, str | None]] = {}
+        self.routes: dict[str, dict[str, Optional[str]]] = {}
         self.add_tags(tags or {})
         self.route_table_associations: dict[str, RouteTableAssociation] = {}
         self.route_table_propagation: list[RouteTablePropagation] = []
@@ -93,7 +93,7 @@ class TransitGatewayRouteTableBackend:
     def create_transit_gateway_route_table(
         self,
         transit_gateway_id: str,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
         default_association_route_table: bool = False,
         default_propagation_route_table: bool = False,
     ) -> TransitGatewayRouteTable:
@@ -110,7 +110,7 @@ class TransitGatewayRouteTableBackend:
         return transit_gateways_route_table
 
     def get_all_transit_gateway_route_tables(
-        self, transit_gateway_route_table_ids: str | None = None, filters: Any = None
+        self, transit_gateway_route_table_ids: Optional[str] = None, filters: Any = None
     ) -> list[TransitGatewayRouteTable]:
         transit_gateway_route_tables = list(self.transit_gateways_route_tables.values())
 
@@ -147,9 +147,9 @@ class TransitGatewayRouteTableBackend:
         self,
         transit_gateway_route_table_id: str,
         destination_cidr_block: str,
-        transit_gateway_attachment_id: str | None = None,
+        transit_gateway_attachment_id: Optional[str] = None,
         blackhole: bool = False,
-    ) -> dict[str, str | None]:
+    ) -> dict[str, Optional[str]]:
         transit_gateways_route_table = self.transit_gateways_route_tables[
             transit_gateway_route_table_id
         ]
@@ -178,7 +178,7 @@ class TransitGatewayRouteTableBackend:
 
     def delete_transit_gateway_route(
         self, transit_gateway_route_table_id: str, destination_cidr_block: str
-    ) -> dict[str, str | None]:
+    ) -> dict[str, Optional[str]]:
         transit_gateways_route_table = self.transit_gateways_route_tables[
             transit_gateway_route_table_id
         ]
@@ -189,8 +189,8 @@ class TransitGatewayRouteTableBackend:
         self,
         transit_gateway_route_table_id: str,
         filters: Any,
-        max_results: int | None = None,
-    ) -> list[dict[str, str | None]]:
+        max_results: Optional[int] = None,
+    ) -> list[dict[str, Optional[str]]]:
         """
         The following filters are currently supported: type, state, route-search.exact-match
         """

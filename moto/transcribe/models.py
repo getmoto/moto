@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -37,21 +37,21 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         account_id: str,
         region_name: str,
         transcription_job_name: str,
-        language_code: str | None,
-        media_sample_rate_hertz: int | None,
-        media_format: str | None,
+        language_code: Optional[str],
+        media_sample_rate_hertz: Optional[int],
+        media_format: Optional[str],
         media: dict[str, str],
-        output_bucket_name: str | None,
-        output_key: str | None,
-        output_encryption_kms_key_id: str | None,
-        settings: dict[str, Any] | None,
-        model_settings: dict[str, str | None] | None,
-        job_execution_settings: dict[str, Any] | None,
-        content_redaction: dict[str, Any] | None,
-        identify_language: bool | None,
-        identify_multiple_languages: bool | None,
-        language_options: list[str] | None,
-        subtitles: dict[str, Any] | None,
+        output_bucket_name: Optional[str],
+        output_key: Optional[str],
+        output_encryption_kms_key_id: Optional[str],
+        settings: Optional[dict[str, Any]],
+        model_settings: Optional[dict[str, Optional[str]]],
+        job_execution_settings: Optional[dict[str, Any]],
+        content_redaction: Optional[dict[str, Any]],
+        identify_language: Optional[bool],
+        identify_multiple_languages: Optional[bool],
+        language_options: Optional[list[str]],
+        subtitles: Optional[dict[str, Any]],
     ):
         ManagedState.__init__(
             self,
@@ -66,13 +66,13 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         self._region_name = region_name
         self.transcription_job_name = transcription_job_name
         self.language_code = language_code
-        self.language_codes: list[dict[str, Any]] | None = None
+        self.language_codes: Optional[list[dict[str, Any]]] = None
         self.media_sample_rate_hertz = media_sample_rate_hertz
         self.media_format = media_format
         self.media = media
-        self.transcript: dict[str, str] | None = None
-        self.start_time: str | None = None
-        self.completion_time: str | None = None
+        self.transcript: Optional[dict[str, str]] = None
+        self.start_time: Optional[str] = None
+        self.completion_time: Optional[str] = None
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.failure_reason = None
         self.settings = settings or {
@@ -92,7 +92,7 @@ class FakeTranscriptionJob(BaseObject, ManagedState):
         self.identify_language = identify_language
         self.identify_multiple_languages = identify_multiple_languages
         self.language_options = language_options
-        self.identified_language_score: float | None = None
+        self.identified_language_score: Optional[float] = None
         self._output_bucket_name = output_bucket_name
         self.output_key = output_key
         self._output_encryption_kms_key_id = output_encryption_kms_key_id
@@ -255,8 +255,8 @@ class FakeVocabulary(BaseObject, ManagedState):
         region_name: str,
         vocabulary_name: str,
         language_code: str,
-        phrases: list[str] | None,
-        vocabulary_file_uri: str | None,
+        phrases: Optional[list[str]],
+        vocabulary_file_uri: Optional[str],
     ):
         # Configured ManagedState
         super().__init__(
@@ -269,7 +269,7 @@ class FakeVocabulary(BaseObject, ManagedState):
         self.language_code = language_code
         self.phrases = phrases
         self.vocabulary_file_uri = vocabulary_file_uri
-        self.last_modified_time: str | None = None
+        self.last_modified_time: Optional[str] = None
         self.failure_reason = None
         self.download_uri = f"https://s3.{region_name}.amazonaws.com/aws-transcribe-dictionary-model-{region_name}-prod/{account_id}/{vocabulary_name}/{mock_random.uuid4()}/input.txt"
 
@@ -321,12 +321,12 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
         region_name: str,
         medical_transcription_job_name: str,
         language_code: str,
-        media_sample_rate_hertz: int | None,
-        media_format: str | None,
+        media_sample_rate_hertz: Optional[int],
+        media_format: Optional[str],
         media: dict[str, str],
         output_bucket_name: str,
-        output_encryption_kms_key_id: str | None,
-        settings: dict[str, Any] | None,
+        output_encryption_kms_key_id: Optional[str],
+        settings: Optional[dict[str, Any]],
         specialty: str,
         job_type: str,
     ):
@@ -345,9 +345,9 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
         self.media_sample_rate_hertz = media_sample_rate_hertz
         self.media_format = media_format
         self.media = media
-        self.transcript: dict[str, str] | None = None
-        self.start_time: str | None = None
-        self.completion_time: str | None = None
+        self.transcript: Optional[dict[str, str]] = None
+        self.start_time: Optional[str] = None
+        self.completion_time: Optional[str] = None
         self.creation_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.failure_reason = None
         self.settings = settings or {
@@ -452,7 +452,7 @@ class FakeMedicalVocabulary(FakeVocabulary):
         region_name: str,
         vocabulary_name: str,
         language_code: str,
-        vocabulary_file_uri: str | None,
+        vocabulary_file_uri: Optional[str],
     ):
         super().__init__(
             account_id,
@@ -483,21 +483,21 @@ class TranscribeBackend(BaseBackend):
     def start_transcription_job(
         self,
         transcription_job_name: str,
-        language_code: str | None,
-        media_sample_rate_hertz: int | None,
-        media_format: str | None,
+        language_code: Optional[str],
+        media_sample_rate_hertz: Optional[int],
+        media_format: Optional[str],
         media: dict[str, str],
-        output_bucket_name: str | None,
-        output_key: str | None,
-        output_encryption_kms_key_id: str | None,
-        settings: dict[str, Any] | None,
-        model_settings: dict[str, str | None] | None,
-        job_execution_settings: dict[str, Any] | None,
-        content_redaction: dict[str, Any] | None,
-        identify_language: bool | None,
-        identify_multiple_languages: bool | None,
-        language_options: list[str] | None,
-        subtitles: dict[str, Any] | None,
+        output_bucket_name: Optional[str],
+        output_key: Optional[str],
+        output_encryption_kms_key_id: Optional[str],
+        settings: Optional[dict[str, Any]],
+        model_settings: Optional[dict[str, Optional[str]]],
+        job_execution_settings: Optional[dict[str, Any]],
+        content_redaction: Optional[dict[str, Any]],
+        identify_language: Optional[bool],
+        identify_multiple_languages: Optional[bool],
+        language_options: Optional[list[str]],
+        subtitles: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         if transcription_job_name in self.transcriptions:
             raise ConflictException(
@@ -539,12 +539,12 @@ class TranscribeBackend(BaseBackend):
         self,
         medical_transcription_job_name: str,
         language_code: str,
-        media_sample_rate_hertz: int | None,
-        media_format: str | None,
+        media_sample_rate_hertz: Optional[int],
+        media_format: Optional[str],
         media: dict[str, str],
         output_bucket_name: str,
-        output_encryption_kms_key_id: str | None,
-        settings: dict[str, Any] | None,
+        output_encryption_kms_key_id: Optional[str],
+        settings: Optional[dict[str, Any]],
         specialty: str,
         type_: str,
     ) -> dict[str, Any]:
@@ -694,8 +694,8 @@ class TranscribeBackend(BaseBackend):
         self,
         vocabulary_name: str,
         language_code: str,
-        phrases: list[str] | None,
-        vocabulary_file_uri: str | None,
+        phrases: Optional[list[str]],
+        vocabulary_file_uri: Optional[str],
     ) -> dict[str, Any]:
         if (
             phrases is not None
@@ -735,7 +735,7 @@ class TranscribeBackend(BaseBackend):
         self,
         vocabulary_name: str,
         language_code: str,
-        vocabulary_file_uri: str | None,
+        vocabulary_file_uri: Optional[str],
     ) -> dict[str, Any]:
         if vocabulary_name in self.medical_vocabularies:
             raise ConflictException(

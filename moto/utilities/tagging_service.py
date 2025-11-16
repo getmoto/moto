@@ -1,6 +1,7 @@
 """Tag functionality contained in class TaggingService."""
 
 import re
+from typing import Optional
 
 
 class TaggingService:
@@ -12,7 +13,7 @@ class TaggingService:
         self.tag_name = tag_name
         self.key_name = key_name
         self.value_name = value_name
-        self.tags: dict[str, dict[str, str | None]] = {}
+        self.tags: dict[str, dict[str, Optional[str]]] = {}
 
     def get_tag_dict_for_resource(self, arn: str) -> dict[str, str]:
         """Return dict of key/value pairs vs. list of key/values dicts."""
@@ -43,7 +44,7 @@ class TaggingService:
         """Return True if the ARN has any associated tags, False otherwise."""
         return arn in self.tags
 
-    def tag_resource(self, arn: str, tags: list[dict[str, str]] | None) -> None:
+    def tag_resource(self, arn: str, tags: Optional[list[dict[str, str]]]) -> None:
         """Store associated list of dicts with ARN.
 
         Note: the storage is internal to this class instance.
@@ -96,9 +97,9 @@ class TaggingService:
                 results.append(tag[self.key_name])
         return results
 
-    def flatten_tag_list(self, tags: list[dict[str, str]]) -> dict[str, str | None]:
+    def flatten_tag_list(self, tags: list[dict[str, str]]) -> dict[str, Optional[str]]:
         """Return dict of key/value pairs with 'tag_name', 'value_name'."""
-        result: dict[str, str | None] = {}
+        result: dict[str, Optional[str]] = {}
         for tag in tags:
             if self.value_name in tag:
                 result[tag[self.key_name]] = tag[self.value_name]
@@ -172,7 +173,7 @@ class TaggingService:
 
     @staticmethod
     def convert_dict_to_tags_input(
-        tags: dict[str, str] | None,
+        tags: Optional[dict[str, str]],
     ) -> list[dict[str, str]]:
         """Given a dictionary, return generic boto params for tags"""
         if not tags:

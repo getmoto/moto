@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions import InvalidCustomerGatewayIdError
 from ..utils import random_customer_gateway_id
@@ -14,7 +14,7 @@ class CustomerGateway(TaggedEC2Resource):
         ip_address: str,
         bgp_asn: str,
         state: str = "available",
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = gateway_id
@@ -25,7 +25,9 @@ class CustomerGateway(TaggedEC2Resource):
         self.add_tags(tags or {})
         super().__init__()
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         return super().get_filter_value(filter_name, "DescribeCustomerGateways")
 
 
@@ -38,7 +40,7 @@ class CustomerGatewayBackend:
         gateway_type: str,
         ip_address: str,
         bgp_asn: str,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> CustomerGateway:
         customer_gateway_id = random_customer_gateway_id()
         customer_gateway = CustomerGateway(
@@ -48,7 +50,7 @@ class CustomerGatewayBackend:
         return customer_gateway
 
     def describe_customer_gateways(
-        self, filters: Any = None, customer_gateway_ids: list[str] | None = None
+        self, filters: Any = None, customer_gateway_ids: Optional[list[str]] = None
     ) -> list[CustomerGateway]:
         customer_gateways = list(self.customer_gateways.copy().values())
         if customer_gateway_ids:

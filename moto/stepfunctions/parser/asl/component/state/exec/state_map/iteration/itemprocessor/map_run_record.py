@@ -2,7 +2,7 @@ import abc
 import datetime
 import threading
 from collections import OrderedDict
-from typing import Final
+from typing import Final, Optional
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.stepfunctions.parser.api import (
@@ -99,7 +99,7 @@ class MapRunRecord:
     item_counter: Final[ItemCounter]
     start_date: Timestamp
     status: MapRunStatus
-    stop_date: Timestamp | None
+    stop_date: Optional[Timestamp]
     # TODO: add support for failure toleration fields.
     tolerated_failure_count: int
     tolerated_failure_percentage: float
@@ -111,7 +111,7 @@ class MapRunRecord:
         max_concurrency: int,
         tolerated_failure_count: int,
         tolerated_failure_percentage: float,
-        label: str | None,
+        label: Optional[str],
     ):
         self.update_event = threading.Event()
         (
@@ -134,7 +134,7 @@ class MapRunRecord:
 
     @staticmethod
     def _generate_map_run_arns(
-        state_machine_arn: Arn, label: str | None
+        state_machine_arn: Arn, label: Optional[str]
     ) -> tuple[LongArn, LongArn]:
         # Generate a new MapRunArn given the StateMachineArn, such that:
         # inp: arn:aws:states:<region>:111111111111:stateMachine:<ArnPart_0idx>
@@ -181,9 +181,9 @@ class MapRunRecord:
 
     def update(
         self,
-        max_concurrency: int | None,
-        tolerated_failure_count: int | None,
-        tolerated_failure_percentage: float | None,
+        max_concurrency: Optional[int],
+        tolerated_failure_count: Optional[int],
+        tolerated_failure_percentage: Optional[float],
     ) -> None:
         if max_concurrency is not None:
             self.max_concurrency = max_concurrency
@@ -203,7 +203,7 @@ class MapRunRecordPoolManager:
     def add(self, map_run_record: MapRunRecord) -> None:
         self._pool[map_run_record.map_run_arn] = map_run_record
 
-    def get(self, map_run_arn: LongArn) -> MapRunRecord | None:
+    def get(self, map_run_arn: LongArn) -> Optional[MapRunRecord]:
         return self._pool.get(map_run_arn)
 
     def get_all(self) -> list[MapRunRecord]:

@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -19,7 +19,7 @@ class App(BaseModel):
         self.name = name
         self.created = unix_time()
         self.settings = AppSettings()
-        self.event_stream: EventStream | None = None
+        self.event_stream: Optional[EventStream] = None
 
     def get_settings(self) -> "AppSettings":
         return self.settings

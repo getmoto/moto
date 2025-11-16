@@ -296,7 +296,7 @@ class Item(BaseModel):
     def __init__(
         self,
         hash_key: DynamoType,
-        range_key: DynamoType | None,
+        range_key: Optional[DynamoType],
         attrs: dict[str, Any],
     ):
         self.hash_key = hash_key
@@ -348,7 +348,7 @@ class Item(BaseModel):
         return attributes
 
     def describe_attrs(
-        self, attributes: dict[str, Any] | None = None
+        self, attributes: Optional[dict[str, Any]] = None
     ) -> dict[str, dict[str, Any]]:
         if attributes:
             included = {}

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 
 class Policy:
@@ -14,7 +14,7 @@ class AppCookieStickinessPolicy(Policy):
 
 
 class LbCookieStickinessPolicy(Policy):
-    def __init__(self, policy_name: str, cookie_expiration_period: int | None):
+    def __init__(self, policy_name: str, cookie_expiration_period: Optional[int]):
         super().__init__(policy_name, policy_type_name="LbCookieStickinessPolicy")
         self.cookie_expiration_period = cookie_expiration_period
 

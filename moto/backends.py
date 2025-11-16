@@ -1,12 +1,12 @@
 import importlib
 import os
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Union, overload
+from typing import TYPE_CHECKING, Optional, Union, overload
 
 import moto
 
 if TYPE_CHECKING:
-    from typing import Literal
+    from typing_extensions import Literal
 
     from moto.acm.models import AWSCertificateManagerBackend
     from moto.acmpca.models import ACMPCABackend
@@ -190,7 +190,7 @@ def list_of_moto_modules() -> Iterable[str]:
             yield backend
 
 
-def get_service_from_url(url: str) -> str | None:
+def get_service_from_url(url: str) -> Optional[str]:
     from moto.backend_index import backend_url_patterns
 
     for service, pattern in backend_url_patterns:

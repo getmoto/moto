@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 from moto.appmesh.dataclasses.shared import (
     Duration,
@@ -40,8 +40,8 @@ class SDS:
 
 @dataclass
 class Certificate:
-    file: CertificateFileWithPrivateKey | None
-    sds: SDS | None
+    file: Optional[CertificateFileWithPrivateKey]
+    sds: Optional[SDS]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -62,7 +62,7 @@ class ListenerCertificateACM:
 
 @dataclass
 class TLSListenerCertificate(Certificate):
-    acm: ListenerCertificateACM | None
+    acm: Optional[ListenerCertificateACM]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -99,8 +99,8 @@ class ACM:
 
 @dataclass
 class Trust:
-    file: CertificateFile | None
-    sds: SDS | None
+    file: Optional[CertificateFile]
+    sds: Optional[SDS]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -113,7 +113,7 @@ class Trust:
 
 @dataclass
 class BackendTrust(Trust):
-    acm: ACM | None
+    acm: Optional[ACM]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -127,7 +127,7 @@ class BackendTrust(Trust):
 
 @dataclass
 class Validation:
-    subject_alternative_names: SubjectAlternativeNames | None
+    subject_alternative_names: Optional[SubjectAlternativeNames]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -171,9 +171,9 @@ class TLSListenerValidation(Validation):
 
 @dataclass
 class TLSClientPolicy:
-    certificate: Certificate | None
-    enforce: bool | None
-    ports: list[int] | None
+    certificate: Optional[Certificate]
+    enforce: Optional[bool]
+    ports: Optional[list[int]]
     validation: TLSBackendValidation
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -189,7 +189,7 @@ class TLSClientPolicy:
 
 @dataclass
 class ClientPolicy:
-    tls: TLSClientPolicy | None
+    tls: Optional[TLSClientPolicy]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict({"tls": (self.tls or MissingField()).to_dict()})
@@ -197,7 +197,7 @@ class ClientPolicy:
 
 @dataclass
 class BackendDefaults:
-    client_policy: ClientPolicy | None
+    client_policy: Optional[ClientPolicy]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -207,7 +207,7 @@ class BackendDefaults:
 
 @dataclass
 class VirtualService:
-    client_policy: ClientPolicy | None
+    client_policy: Optional[ClientPolicy]
     virtual_service_name: str
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -221,7 +221,7 @@ class VirtualService:
 
 @dataclass
 class Backend:
-    virtual_service: VirtualService | None
+    virtual_service: Optional[VirtualService]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -232,7 +232,7 @@ class Backend:
 @dataclass
 class HTTPConnection:
     max_connections: int
-    max_pending_requests: int | None
+    max_pending_requests: Optional[int]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -261,10 +261,10 @@ class TCPConnection:
 
 @dataclass
 class ConnectionPool:
-    grpc: GRPCOrHTTP2Connection | None
-    http: HTTPConnection | None
-    http2: GRPCOrHTTP2Connection | None
-    tcp: TCPConnection | None
+    grpc: Optional[GRPCOrHTTP2Connection]
+    http: Optional[HTTPConnection]
+    http2: Optional[GRPCOrHTTP2Connection]
+    tcp: Optional[TCPConnection]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -281,8 +281,8 @@ class ConnectionPool:
 class HealthCheck:
     healthy_threshold: int
     interval_millis: int
-    path: str | None
-    port: int | None
+    path: Optional[str]
+    port: Optional[int]
     protocol: str
     timeout_millis: int
     unhealthy_threshold: int
@@ -334,10 +334,10 @@ class TCPTimeout:
 
 @dataclass
 class ProtocolTimeouts:
-    grpc: Timeout | None
-    http: Timeout | None
-    http2: Timeout | None
-    tcp: TCPTimeout | None
+    grpc: Optional[Timeout]
+    http: Optional[Timeout]
+    http2: Optional[Timeout]
+    tcp: Optional[TCPTimeout]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -354,7 +354,7 @@ class ProtocolTimeouts:
 class ListenerTLS:
     certificate: TLSListenerCertificate
     mode: str
-    validation: TLSListenerValidation | None
+    validation: Optional[TLSListenerValidation]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -368,12 +368,12 @@ class ListenerTLS:
 
 @dataclass
 class Listener:
-    connection_pool: ConnectionPool | None
-    health_check: HealthCheck | None
-    outlier_detection: OutlierDetection | None
+    connection_pool: Optional[ConnectionPool]
+    health_check: Optional[HealthCheck]
+    outlier_detection: Optional[OutlierDetection]
     port_mapping: PortMapping
-    timeout: ProtocolTimeouts | None
-    tls: ListenerTLS | None
+    timeout: Optional[ProtocolTimeouts]
+    tls: Optional[ListenerTLS]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -399,8 +399,8 @@ class KeyValue:
 
 @dataclass
 class LoggingFormat:
-    json: list[KeyValue] | None
-    text: str | None
+    json: Optional[list[KeyValue]]
+    text: Optional[str]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -410,7 +410,7 @@ class LoggingFormat:
 
 @dataclass
 class AccessLogFile:
-    format: LoggingFormat | None
+    format: Optional[LoggingFormat]
     path: str
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -421,7 +421,7 @@ class AccessLogFile:
 
 @dataclass
 class AccessLog:
-    file: AccessLogFile | None
+    file: Optional[AccessLogFile]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict({"file": (self.file or MissingField()).to_dict()})
@@ -429,7 +429,7 @@ class AccessLog:
 
 @dataclass
 class Logging:
-    access_log: AccessLog | None
+    access_log: Optional[AccessLog]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict({"accessLog": (self.access_log or MissingField()).to_dict()})
@@ -437,8 +437,8 @@ class Logging:
 
 @dataclass
 class AWSCloudMap:
-    attributes: list[KeyValue] | None
-    ip_preference: str | None
+    attributes: Optional[list[KeyValue]]
+    ip_preference: Optional[str]
     namespace_name: str
     service_name: str
 
@@ -458,8 +458,8 @@ class AWSCloudMap:
 @dataclass
 class DNS:
     hostname: str
-    ip_preference: str | None
-    response_type: str | None
+    ip_preference: Optional[str]
+    response_type: Optional[str]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -473,8 +473,8 @@ class DNS:
 
 @dataclass
 class ServiceDiscovery:
-    aws_cloud_map: AWSCloudMap | None
-    dns: DNS | None
+    aws_cloud_map: Optional[AWSCloudMap]
+    dns: Optional[DNS]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -487,11 +487,11 @@ class ServiceDiscovery:
 
 @dataclass
 class VirtualNodeSpec:
-    backend_defaults: BackendDefaults | None
-    backends: list[Backend] | None
-    listeners: list[Listener] | None
-    logging: Logging | None
-    service_discovery: ServiceDiscovery | None
+    backend_defaults: Optional[BackendDefaults]
+    backends: Optional[list[Backend]]
+    listeners: Optional[list[Listener]]
+    logging: Optional[Logging]
+    service_discovery: Optional[ServiceDiscovery]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(

@@ -6,7 +6,7 @@ import re
 import string
 from collections.abc import Iterable
 from datetime import date, datetime
-from typing import Any, Union
+from typing import Any, Optional, Union
 from urllib import parse
 
 from cryptography import x509
@@ -130,9 +130,9 @@ class VirtualMfaDevice:
         self.base32_string_seed = random_base32_string
         self.qr_code_png = os.urandom(64)  # this would be a generated PNG
 
-        self.enable_date: datetime | None = None
-        self.user_attribute: dict[str, Any] | None = None
-        self.user: User | None = None
+        self.enable_date: Optional[datetime] = None
+        self.user_attribute: Optional[dict[str, Any]] = None
+        self.user: Optional[User] = None
 
 
 class Policy(CloudFormationModel):
@@ -146,13 +146,13 @@ class Policy(CloudFormationModel):
         name: str,
         account_id: str,
         region: str,
-        default_version_id: str | None = None,
-        description: str | None = None,
-        document: str | None = None,
-        path: str | None = None,
-        create_date: datetime | None = None,
-        update_date: datetime | None = None,
-        tags: dict[str, dict[str, str]] | None = None,
+        default_version_id: Optional[str] = None,
+        description: Optional[str] = None,
+        document: Optional[str] = None,
+        path: Optional[str] = None,
+        create_date: Optional[datetime] = None,
+        update_date: Optional[datetime] = None,
+        tags: Optional[dict[str, dict[str, str]]] = None,
     ):
         self.name = name
         self.account_id = account_id
@@ -216,7 +216,7 @@ class SAMLProvider(BaseModel):
         account_id: str,
         region_name: str,
         name: str,
-        saml_metadata_document: str | None = None,
+        saml_metadata_document: Optional[str] = None,
     ):
         self.account_id = account_id
         self.create_date = utcnow()
@@ -333,10 +333,10 @@ class PolicyVersion:
     def __init__(
         self,
         policy_arn: str,
-        document: str | None,
+        document: Optional[str],
         is_default: bool = False,
         version_id: str = "v1",
-        create_date: datetime | None = None,
+        create_date: Optional[datetime] = None,
     ):
         self.policy_arn = policy_arn
         self.document = document or ""
@@ -678,11 +678,11 @@ class Role(CloudFormationModel):
         name: str,
         assume_role_policy_document: str,
         path: str,
-        permissions_boundary: str | None,
+        permissions_boundary: Optional[str],
         description: str,
         tags: list[dict[str, str]],
-        max_session_duration: str | None,
-        linked_service: str | None = None,
+        max_session_duration: Optional[str],
+        linked_service: Optional[str] = None,
     ):
         self.account_id = account_id
         self.partition = partition
@@ -696,10 +696,10 @@ class Role(CloudFormationModel):
         self.tags = tags
         # last_used should be treated as part of the public API
         # https://github.com/getmoto/moto/issues/6859
-        self.last_used: datetime | None = None
+        self.last_used: Optional[datetime] = None
         self.last_used_region = None
         self.description = description
-        self.permissions_boundary_arn: str | None = permissions_boundary
+        self.permissions_boundary_arn: Optional[str] = permissions_boundary
         self.max_session_duration = max_session_duration
         self._linked_service = linked_service
 
@@ -733,7 +733,7 @@ class Role(CloudFormationModel):
         return policy_list
 
     @property
-    def permissions_boundary(self) -> dict[str, str] | None:
+    def permissions_boundary(self) -> Optional[dict[str, str]]:
         if self.permissions_boundary_arn:
             return {
                 "PermissionsBoundaryType": "PermissionsBoundaryPolicy",
@@ -742,7 +742,7 @@ class Role(CloudFormationModel):
         return None
 
     @property
-    def role_last_used(self) -> dict[str, str | datetime | None]:
+    def role_last_used(self) -> dict[str, Optional[str | datetime]]:
         """Returns a dict with the last used information of the role."""
         return {
             "LastUsedDate": self.last_used,
@@ -952,7 +952,7 @@ class InstanceProfile(CloudFormationModel):
         name: str,
         path: str,
         roles: list[Role],
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.id = instance_profile_id
         self.account_id = account_id
@@ -1067,8 +1067,8 @@ class Certificate(BaseModel):
         cert_name: str,
         cert_body: str,
         private_key: str,
-        cert_chain: str | None = None,
-        path: str | None = None,
+        cert_chain: Optional[str] = None,
+        path: Optional[str] = None,
     ):
         self.account_id = account_id
         self.partition = get_partition(region_name)
@@ -1123,7 +1123,7 @@ class AccessKeyLastUsed:
 class AccessKey(CloudFormationModel):
     def __init__(
         self,
-        user_name: str | None,
+        user_name: Optional[str],
         prefix: str,
         account_id: str,
         status: str = "Active",
@@ -1143,8 +1143,8 @@ class AccessKey(CloudFormationModel):
         # The `to_csv` method calls `last_used.strptime`, which currently works on both AccessKeyLastUsed and datetime
         # In the next major release we should communicate that this only accepts AccessKeyLastUsed
         # (And rework to_csv accordingly)
-        self.last_used: AccessKeyLastUsed | None = None
-        self.role_arn: str | None = None
+        self.last_used: Optional[AccessKeyLastUsed] = None
+        self.role_arn: Optional[str] = None
 
     @classmethod
     def has_cfn_attr(cls, attr: str) -> bool:
@@ -1330,7 +1330,7 @@ class Group(BaseModel):
 
 class User(CloudFormationModel):
     def __init__(
-        self, account_id: str, region_name: str, name: str, path: str | None = None
+        self, account_id: str, region_name: str, name: str, path: Optional[str] = None
     ):
         self.account_id = account_id
         self.region_name = region_name
@@ -1343,7 +1343,7 @@ class User(CloudFormationModel):
         self.managed_policies: dict[str, ManagedPolicy] = {}
         self.access_keys: list[AccessKey] = []
         self.ssh_public_keys: list[SshPublicKey] = []
-        self.password: str | None = None
+        self.password: Optional[str] = None
         # last_used should be treated as part of the public API
         # https://github.com/getmoto/moto/issues/5927
         self.password_last_used = None
@@ -1377,7 +1377,7 @@ class User(CloudFormationModel):
         return [group.name for group in groups]
 
     @property
-    def tags(self) -> list[dict[str, str]] | None:
+    def tags(self) -> Optional[list[dict[str, str]]]:
         backend = iam_backends[self.account_id][get_partition(self.region_name)]
         tags = backend.tagger.list_tags_for_resource(self.arn)["Tags"]
         return tags if tags else None
@@ -1433,7 +1433,7 @@ class User(CloudFormationModel):
         self.access_keys.remove(key)
 
     def update_access_key(
-        self, access_key_id: str, status: str | None = None
+        self, access_key_id: str, status: Optional[str] = None
     ) -> AccessKey:
         key = self.get_access_key_by_id(access_key_id)
         if status is not None:
@@ -1885,7 +1885,7 @@ class IAMBackend(BaseBackend):
         self.certificates: dict[str, Certificate] = {}
         self.groups: dict[str, Group] = {}
         self.users: dict[str, User] = {}
-        self.credential_report: bool | None = None
+        self.credential_report: Optional[bool] = None
         self.aws_managed_policies = self._init_aws_policies()
         self.managed_policies = self._init_managed_policies()
         self.account_aliases: list[str] = []
@@ -1895,7 +1895,7 @@ class IAMBackend(BaseBackend):
             ARN_PARTITION_REGEX + r":iam::(aws|[0-9]*):policy/.*$"
         )
         self.virtual_mfa_devices: dict[str, VirtualMfaDevice] = {}
-        self.account_password_policy: AccountPasswordPolicy | None = None
+        self.account_password_policy: Optional[AccountPasswordPolicy] = None
         self.account_summary = AccountSummary(self)
         self.inline_policies: dict[str, InlinePolicy] = {}
         self.access_keys: dict[str, AccessKey] = {}
@@ -2056,41 +2056,41 @@ class IAMBackend(BaseBackend):
     def list_attached_role_policies(
         self,
         role_name: str,
-        marker: str | None = None,
+        marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> tuple[Iterable[ManagedPolicy], str | None]:
+    ) -> tuple[Iterable[ManagedPolicy], Optional[str]]:
         policies = self.get_role(role_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
     def list_attached_group_policies(
         self,
         group_name: str,
-        marker: str | None = None,
+        marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> tuple[Iterable[Any], str | None]:
+    ) -> tuple[Iterable[Any], Optional[str]]:
         policies = self.get_group(group_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
     def list_attached_user_policies(
         self,
         user_name: str,
-        marker: str | None = None,
+        marker: Optional[str] = None,
         max_items: int = 100,
         path_prefix: str = "/",
-    ) -> tuple[Iterable[Any], str | None]:
+    ) -> tuple[Iterable[Any], Optional[str]]:
         policies = self.get_user(user_name).managed_policies.values()
         return self._filter_attached_policies(policies, marker, max_items, path_prefix)
 
     def list_policies(
         self,
-        marker: str | None,
+        marker: Optional[str],
         max_items: int,
         only_attached: bool,
         path_prefix: str,
         scope: str,
-    ) -> tuple[Iterable[ManagedPolicy], str | None]:
+    ) -> tuple[Iterable[ManagedPolicy], Optional[str]]:
         policies = list(self.managed_policies.values())
 
         if only_attached:
@@ -2123,10 +2123,10 @@ class IAMBackend(BaseBackend):
     def _filter_attached_policies(
         self,
         policies: Iterable[Any],
-        marker: str | None,
+        marker: Optional[str],
         max_items: int,
         path_prefix: str,
-    ) -> tuple[Iterable[Any], str | None]:
+    ) -> tuple[Iterable[Any], Optional[str]]:
         if path_prefix:
             policies = [p for p in policies if p.path.startswith(path_prefix)]
 
@@ -2147,11 +2147,11 @@ class IAMBackend(BaseBackend):
         role_name: str,
         assume_role_policy_document: str,
         path: str,
-        permissions_boundary: str | None,
+        permissions_boundary: Optional[str],
         description: str,
         tags: list[dict[str, str]],
-        max_session_duration: str | None,
-        linked_service: str | None = None,
+        max_session_duration: Optional[str],
+        linked_service: Optional[str] = None,
     ) -> Role:
         role_id = random_role_id(self.account_id)
         if permissions_boundary and not self.policy_arn_regex.match(
@@ -2181,7 +2181,7 @@ class IAMBackend(BaseBackend):
         self.roles[role_id] = role
         return role
 
-    def get_role_by_id(self, role_id: str) -> Role | None:
+    def get_role_by_id(self, role_id: str) -> Optional[Role]:
         return self.roles.get(role_id)
 
     def get_role(self, role_name: str) -> Role:
@@ -2302,8 +2302,8 @@ class IAMBackend(BaseBackend):
             raise DuplicateTags()
 
     def list_role_tags(
-        self, role_name: str, marker: str | None, max_items: int = 100
-    ) -> tuple[list[dict[str, str]], str | None]:
+        self, role_name: str, marker: Optional[str], max_items: int = 100
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         role = self.get_role(role_name)
 
         max_items = int(max_items)
@@ -2339,8 +2339,8 @@ class IAMBackend(BaseBackend):
         role.tags = [tag for tag in role.tags if tag["Key"] not in tag_keys]
 
     def list_policy_tags(
-        self, policy_arn: str, marker: str | None, max_items: int = 100
-    ) -> tuple[list[dict[str, str]], str | None]:
+        self, policy_arn: str, marker: Optional[str], max_items: int = 100
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         policy = self.get_policy(policy_arn)
 
         max_items = int(max_items)
@@ -2431,7 +2431,7 @@ class IAMBackend(BaseBackend):
         name: str,
         path: str,
         role_names: list[str],
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> InstanceProfile:
         if self.instance_profiles.get(name):
             raise EntityAlreadyExists(
@@ -2518,8 +2518,8 @@ class IAMBackend(BaseBackend):
         cert_name: str,
         cert_body: str,
         private_key: str,
-        cert_chain: str | None = None,
-        path: str | None = None,
+        cert_chain: Optional[str] = None,
+        path: Optional[str] = None,
     ) -> Certificate:
         certificate_id = random_resource_id()
         cert = Certificate(
@@ -2543,7 +2543,7 @@ class IAMBackend(BaseBackend):
             f"The Server Certificate with name {name} cannot be found."
         )
 
-    def get_certificate_by_arn(self, arn: str) -> Certificate | None:
+    def get_certificate_by_arn(self, arn: str) -> Optional[Certificate]:
         for cert in self.certificates.values():
             if arn == cert.arn:
                 return cert
@@ -2625,7 +2625,7 @@ class IAMBackend(BaseBackend):
             )
 
     def update_group(
-        self, group_name: str, new_group_name: str | None, new_path: str | None
+        self, group_name: str, new_group_name: Optional[str], new_path: Optional[str]
     ) -> None:
         if new_group_name:
             if new_group_name in self.groups:
@@ -2652,7 +2652,7 @@ class IAMBackend(BaseBackend):
         region_name: str,
         user_name: str,
         path: str = "/",
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> User:
         if user_name in self.users:
             raise EntityAlreadyExists(f"User {user_name} already exists")
@@ -2672,9 +2672,9 @@ class IAMBackend(BaseBackend):
 
     def list_users(
         self,
-        path_prefix: str | None,
-        marker: str | None,
-        max_items: int | None,
+        path_prefix: Optional[str],
+        marker: Optional[str],
+        max_items: Optional[int],
     ) -> Iterable[User]:
         try:
             users: Iterable[User] = list(self.users.values())
@@ -2691,8 +2691,8 @@ class IAMBackend(BaseBackend):
     def update_user(
         self,
         user_name: str,
-        new_path: str | None = None,
-        new_user_name: str | None = None,
+        new_path: Optional[str] = None,
+        new_user_name: Optional[str] = None,
     ) -> None:
         try:
             user = self.users[user_name]
@@ -2707,10 +2707,10 @@ class IAMBackend(BaseBackend):
 
     def list_roles(
         self,
-        path_prefix: str | None = None,
-        marker: str | None = None,
-        max_items: int | None = None,
-    ) -> tuple[list[Role], str | None]:
+        path_prefix: Optional[str] = None,
+        marker: Optional[str] = None,
+        max_items: Optional[int] = None,
+    ) -> tuple[list[Role], Optional[str]]:
         path_prefix = path_prefix if path_prefix else "/"
         max_items = int(max_items) if max_items else 100
         start_index = int(marker) if marker else 0
@@ -2879,7 +2879,7 @@ class IAMBackend(BaseBackend):
         return key
 
     def update_access_key(
-        self, user_name: str, access_key_id: str, status: str | None = None
+        self, user_name: str, access_key_id: str, status: Optional[str] = None
     ) -> AccessKey:
         user = self.get_user(user_name)
         return user.update_access_key(access_key_id, status)
@@ -3046,8 +3046,8 @@ class IAMBackend(BaseBackend):
             )
 
     def list_virtual_mfa_devices(
-        self, assignment_status: str, marker: str | None, max_items: int
-    ) -> tuple[list[VirtualMfaDevice], str | None]:
+        self, assignment_status: str, marker: Optional[str], max_items: int
+    ) -> tuple[list[VirtualMfaDevice], Optional[str]]:
         devices = list(self.virtual_mfa_devices.values())
 
         if assignment_status == "Assigned":
@@ -3085,7 +3085,7 @@ class IAMBackend(BaseBackend):
         self.tagger.delete_all_tags_for_resource(user.arn)
         del self.users[user_name]
 
-    def report_generated(self) -> bool | None:
+    def report_generated(self) -> Optional[bool]:
         return self.credential_report
 
     def generate_report(self) -> None:
@@ -3174,7 +3174,7 @@ class IAMBackend(BaseBackend):
                 return saml_provider
         raise NotFoundException(f"SamlProvider {saml_provider_arn} not found")
 
-    def get_user_from_access_key_id(self, access_key_id: str) -> User | None:
+    def get_user_from_access_key_id(self, access_key_id: str) -> Optional[User]:
         for user_name, user in self.users.items():
             access_keys = self.list_access_keys(user_name)
             for access_key in access_keys:
@@ -3227,8 +3227,8 @@ class IAMBackend(BaseBackend):
             open_id_provider.tags.pop(ref_key, None)
 
     def list_open_id_connect_provider_tags(
-        self, arn: str, marker: str | None, max_items: int = 100
-    ) -> tuple[list[dict[str, str]], str | None]:
+        self, arn: str, marker: Optional[str], max_items: int = 100
+    ) -> tuple[list[dict[str, str]], Optional[str]]:
         open_id_provider = self.get_open_id_connect_provider(arn)
 
         max_items = int(max_items)

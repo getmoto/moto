@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from functools import cache, cached_property
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -42,7 +42,7 @@ class BootstrapAction(BaseModel):
         self.script_bootstrap_action = script_bootstrap_action
 
     @property
-    def script_path(self) -> str | None:
+    def script_path(self) -> Optional[str]:
         return self.script_bootstrap_action.get("path")
 
     @property
@@ -55,8 +55,8 @@ class Instance(BaseModel):
         self,
         ec2_instance: EC2Instance,
         instance_group: InstanceGroup,
-        instance_fleet_id: str | None = None,
-        instance_id: str | None = None,
+        instance_fleet_id: Optional[str] = None,
+        instance_id: Optional[str] = None,
     ):
         self.id = instance_id or random_instance_group_id()
         self.ec2_instance = ec2_instance
@@ -130,11 +130,11 @@ class InstanceGroup(CloudFormationModel):
         instance_role: str,
         instance_type: str,
         market: str = "ON_DEMAND",
-        name: str | None = None,
-        instance_group_id: str | None = None,
-        bid_price: str | None = None,
-        ebs_configuration: dict[str, Any] | None = None,
-        auto_scaling_policy: dict[str, Any] | None = None,
+        name: Optional[str] = None,
+        instance_group_id: Optional[str] = None,
+        bid_price: Optional[str] = None,
+        ebs_configuration: Optional[dict[str, Any]] = None,
+        auto_scaling_policy: Optional[dict[str, Any]] = None,
     ) -> None:
         self.id = instance_group_id or random_instance_group_id()
         self.cluster_id = cluster_id
@@ -158,7 +158,7 @@ class InstanceGroup(CloudFormationModel):
         self.creation_date_time: datetime = utcnow()
         self.start_date_time: datetime = utcnow()
         self.ready_date_time: datetime = utcnow()
-        self.end_date_time: datetime | None = None
+        self.end_date_time: Optional[datetime] = None
         self.state: str = "RUNNING"
 
     def set_instance_count(self, instance_count: int) -> None:
@@ -292,7 +292,7 @@ class Step(BaseModel):
         self,
         state: str,
         name: str = "",
-        hadoop_jar_step: dict[str, Any] | None = None,
+        hadoop_jar_step: Optional[dict[str, Any]] = None,
         action_on_failure: str = "TERMINATE_CLUSTER",
     ):
         self.id = random_step_id()
@@ -305,7 +305,7 @@ class Step(BaseModel):
         self.creation_date_time = utcnow()
         self.end_date_time = None
         self.ready_date_time = None
-        self.start_date_time: datetime | None = None
+        self.start_date_time: Optional[datetime] = None
         self.state = state
 
     @property
@@ -377,21 +377,21 @@ class Cluster(CloudFormationModel):
         service_role: str,
         steps: list[dict[str, Any]],
         instance_attrs: dict[str, Any],
-        bootstrap_actions: list[dict[str, Any]] | None = None,
-        configurations: list[dict[str, Any]] | None = None,
-        cluster_id: str | None = None,
+        bootstrap_actions: Optional[list[dict[str, Any]]] = None,
+        configurations: Optional[list[dict[str, Any]]] = None,
+        cluster_id: Optional[str] = None,
         visible_to_all_users: bool = False,
-        release_label: str | None = None,
-        requested_ami_version: str | None = None,
-        running_ami_version: str | None = None,
-        custom_ami_id: str | None = None,
+        release_label: Optional[str] = None,
+        requested_ami_version: Optional[str] = None,
+        running_ami_version: Optional[str] = None,
+        custom_ami_id: Optional[str] = None,
         step_concurrency_level: int = 1,
-        security_configuration: str | None = None,
-        kerberos_attributes: dict[str, str] | None = None,
-        auto_scaling_role: str | None = None,
-        ebs_root_volume_size: int | None = None,
-        ebs_root_volume_iops: int | None = None,
-        ebs_root_volume_throughput: int | None = None,
+        security_configuration: Optional[str] = None,
+        kerberos_attributes: Optional[dict[str, str]] = None,
+        auto_scaling_role: Optional[str] = None,
+        ebs_root_volume_size: Optional[int] = None,
+        ebs_root_volume_iops: Optional[int] = None,
+        ebs_root_volume_throughput: Optional[int] = None,
     ):
         self.id = cluster_id or random_cluster_id()
         emr_backend.clusters[self.id] = self
@@ -418,8 +418,8 @@ class Cluster(CloudFormationModel):
 
         self.instance_group_ids: list[str] = []
         self.ec2_instances: list[Instance] = []
-        self.master_instance_group_id: str | None = None
-        self.core_instance_group_id: str | None = None
+        self.master_instance_group_id: Optional[str] = None
+        self.core_instance_group_id: Optional[str] = None
         if (
             "master_instance_type" in instance_attrs
             and instance_attrs["master_instance_type"]
@@ -490,10 +490,10 @@ class Cluster(CloudFormationModel):
         self.step_concurrency_level = step_concurrency_level
 
         self.creation_datetime = utcnow()
-        self.start_datetime: datetime | None = None
-        self.ready_datetime: datetime | None = None
-        self.end_datetime: datetime | None = None
-        self.state: str | None = None
+        self.start_datetime: Optional[datetime] = None
+        self.ready_datetime: Optional[datetime] = None
+        self.end_datetime: Optional[datetime] = None
+        self.state: Optional[str] = None
 
         self.start_cluster()
         self.run_bootstrap_actions()
@@ -911,10 +911,10 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def describe_job_flows(
         self,
-        job_flow_ids: list[str] | None = None,
-        job_flow_states: list[str] | None = None,
-        created_after: datetime | None = None,
-        created_before: datetime | None = None,
+        job_flow_ids: Optional[list[str]] = None,
+        job_flow_states: Optional[list[str]] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None,
     ) -> list[Cluster]:
         clusters = list(self.clusters.values())
 
@@ -933,7 +933,7 @@ class ElasticMapReduceBackend(BaseBackend):
         # Amazon EMR can return a maximum of 512 job flow descriptions
         return sorted(clusters, key=lambda x: x.id)[:512]
 
-    def describe_step(self, cluster_id: str, step_id: str) -> Step | None:
+    def describe_step(self, cluster_id: str, step_id: str) -> Optional[Step]:
         cluster = self.clusters[cluster_id]
         for step in cluster.steps:
             if step.id == step_id:
@@ -953,8 +953,8 @@ class ElasticMapReduceBackend(BaseBackend):
         ]
 
     def list_bootstrap_actions(
-        self, cluster_id: str, marker: str | None = None
-    ) -> tuple[list[BootstrapAction], str | None]:
+        self, cluster_id: str, marker: Optional[str] = None
+    ) -> tuple[list[BootstrapAction], Optional[str]]:
         max_items = 50
         actions = self.clusters[cluster_id].bootstrap_actions
         start_idx = 0 if marker is None else int(marker)
@@ -967,11 +967,11 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def list_clusters(
         self,
-        cluster_states: list[str] | None = None,
-        created_after: datetime | None = None,
-        created_before: datetime | None = None,
-        marker: str | None = None,
-    ) -> tuple[list[Cluster], str | None]:
+        cluster_states: Optional[list[str]] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None,
+        marker: Optional[str] = None,
+    ) -> tuple[list[Cluster], Optional[str]]:
         max_items = 50
         clusters = list(self.clusters.values())
         if cluster_states:
@@ -990,8 +990,8 @@ class ElasticMapReduceBackend(BaseBackend):
         return clusters[start_idx : start_idx + max_items], marker
 
     def list_instance_groups(
-        self, cluster_id: str, marker: str | None = None
-    ) -> tuple[list[InstanceGroup], str | None]:
+        self, cluster_id: str, marker: Optional[str] = None
+    ) -> tuple[list[InstanceGroup], Optional[str]]:
         max_items = 50
         groups = sorted(self.clusters[cluster_id].instance_groups, key=lambda x: x.id)
         start_idx = 0 if marker is None else int(marker)
@@ -1003,10 +1003,10 @@ class ElasticMapReduceBackend(BaseBackend):
     def list_instances(
         self,
         cluster_id: str,
-        marker: str | None = None,
-        instance_group_id: str | None = None,
-        instance_group_types: list[str] | None = None,
-    ) -> tuple[list[Instance], str | None]:
+        marker: Optional[str] = None,
+        instance_group_id: Optional[str] = None,
+        instance_group_types: Optional[list[str]] = None,
+    ) -> tuple[list[Instance], Optional[str]]:
         max_items = 50
         groups = sorted(self.clusters[cluster_id].ec2_instances, key=lambda x: x.id)
         start_idx = 0 if marker is None else int(marker)
@@ -1024,10 +1024,10 @@ class ElasticMapReduceBackend(BaseBackend):
     def list_steps(
         self,
         cluster_id: str,
-        marker: str | None = None,
-        step_ids: list[str] | None = None,
-        step_states: list[str] | None = None,
-    ) -> tuple[list[Step], str | None]:
+        marker: Optional[str] = None,
+        step_ids: Optional[list[str]] = None,
+        step_states: Optional[list[str]] = None,
+    ) -> tuple[list[Step], Optional[str]]:
         max_items = 50
         steps = sorted(
             self.clusters[cluster_id].steps,
@@ -1127,8 +1127,8 @@ class ElasticMapReduceBackend(BaseBackend):
         return clusters_terminated
 
     def put_auto_scaling_policy(
-        self, instance_group_id: str, auto_scaling_policy: dict[str, Any] | None
-    ) -> InstanceGroup | None:
+        self, instance_group_id: str, auto_scaling_policy: Optional[dict[str, Any]]
+    ) -> Optional[InstanceGroup]:
         instance_groups = self.get_instance_groups(
             instance_group_ids=[instance_group_id]
         )
@@ -1176,7 +1176,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def put_block_public_access_configuration(
         self,
         block_public_security_group_rules: bool,
-        rule_ranges: list[dict[str, int]] | None,
+        rule_ranges: Optional[list[dict[str, int]]],
     ) -> None:
         from moto.sts import sts_backends
 

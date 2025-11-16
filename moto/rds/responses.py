@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.parsers import XFormedDict
 from moto.core.responses import ActionResult, BaseResponse
@@ -798,7 +798,7 @@ class RDSResponse(BaseResponse):
         result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
 
-    def _paginate(self, resources: list[Any]) -> tuple[list[Any], str | None]:
+    def _paginate(self, resources: list[Any]) -> tuple[list[Any], Optional[str]]:
         from moto.rds.exceptions import InvalidParameterValue
 
         marker = self.params.get("Marker")

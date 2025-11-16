@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.state.choice.comparison.comparison_operator_type import (
     ComparisonOperatorType,
@@ -90,7 +90,7 @@ class IsTimestamp(Operator):
         return str(ComparisonOperatorType.IsTimestamp)
 
     @staticmethod
-    def string_to_timestamp(string: str) -> datetime.datetime | None:
+    def string_to_timestamp(string: str) -> Optional[datetime.datetime]:
         try:
             return datetime.datetime.strptime(string, IsTimestamp.TIMESTAMP_FORMAT)
         except Exception:

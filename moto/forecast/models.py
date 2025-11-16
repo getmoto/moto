@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -33,7 +34,7 @@ class DatasetGroup:
         dataset_arns: list[str],
         dataset_group_name: str,
         domain: str,
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.creation_date = iso_8601_datetime_without_milliseconds(datetime.now())
         self.modified_date = self.creation_date

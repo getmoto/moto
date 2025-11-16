@@ -1,9 +1,11 @@
+from typing import Optional
+
 from moto.utilities.tokenizer import GenericTokenizer
 
 
 class ParsedQuery:
     def __init__(self) -> None:
-        self.limit: int | None = None
+        self.limit: Optional[int] = None
         self.fields: list[str] = []
         self.sort: list[tuple[str, str]] = []
 

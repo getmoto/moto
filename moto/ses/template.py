@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.utilities.tokenizer import GenericTokenizer
 
@@ -163,7 +163,7 @@ def get_processor(tokenizer: GenericTokenizer) -> type[BlockProcessor]:
 def parse_template(
     template: str,
     template_data: dict[str, Any],
-    tokenizer: GenericTokenizer | None = None,
+    tokenizer: Optional[GenericTokenizer] = None,
 ) -> str:
     tokenizer = tokenizer or GenericTokenizer(template)
 

@@ -2,7 +2,7 @@
 
 import datetime
 from collections.abc import Iterable
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -25,16 +25,16 @@ class Schedule(BaseModel):
         account_id: str,
         group_name: str,
         name: str,
-        description: str | None,
+        description: Optional[str],
         schedule_expression: str,
-        schedule_expression_timezone: str | None,
+        schedule_expression_timezone: Optional[str],
         flexible_time_window: dict[str, Any],
         target: dict[str, Any],
-        state: str | None,
-        kms_key_arn: str | None,
-        start_date: str | None,
-        end_date: str | None,
-        action_after_completion: str | None,
+        state: Optional[str],
+        kms_key_arn: Optional[str],
+        start_date: Optional[str],
+        end_date: Optional[str],
+        action_after_completion: Optional[str],
     ):
         self.name = name
         self.group_name = group_name
@@ -60,7 +60,7 @@ class Schedule(BaseModel):
             }
         return target
 
-    def _validate_start_date(self, start_date: str | None) -> str | None:
+    def _validate_start_date(self, start_date: Optional[str]) -> Optional[str]:
         # `.count("*")` means a recurrence expression
         # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/scheduler/client/create_schedule.html (StartDate parameter)
         if self.schedule_expression.count("*") and start_date is not None:
@@ -179,7 +179,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         start_date: str,
         state: str,
         target: dict[str, Any],
-        action_after_completion: str | None,
+        action_after_completion: Optional[str],
     ) -> Schedule:
         """
         The ClientToken parameter is not yet implemented
@@ -206,11 +206,11 @@ class EventBridgeSchedulerBackend(BaseBackend):
         group.add_schedule(schedule)
         return schedule
 
-    def get_schedule(self, group_name: str | None, name: str) -> Schedule:
+    def get_schedule(self, group_name: Optional[str], name: str) -> Schedule:
         group = self.get_schedule_group(group_name)
         return group.get_schedule(name)
 
-    def delete_schedule(self, group_name: str | None, name: str) -> None:
+    def delete_schedule(self, group_name: Optional[str], name: str) -> None:
         group = self.get_schedule_group(group_name)
         group.delete_schedule(name)
 
@@ -246,7 +246,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         return schedule
 
     def list_schedules(
-        self, group_names: str | None, state: str | None
+        self, group_names: Optional[str], state: Optional[str]
     ) -> Iterable[Schedule]:
         """
         The following parameters are not yet implemented: MaxResults, NamePrefix, NextToken
@@ -272,7 +272,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         self.tagger.tag_resource(group.arn, tags)
         return group
 
-    def get_schedule_group(self, group_name: str | None) -> ScheduleGroup:
+    def get_schedule_group(self, group_name: Optional[str]) -> ScheduleGroup:
         if (group_name or "default") not in self.schedule_groups:
             raise ScheduleGroupNotFound(group_name or "default")
         return self.schedule_groups[group_name or "default"]
@@ -283,7 +283,7 @@ class EventBridgeSchedulerBackend(BaseBackend):
         """
         return self.schedule_groups.values()
 
-    def delete_schedule_group(self, name: str | None) -> None:
+    def delete_schedule_group(self, name: Optional[str]) -> None:
         self.schedule_groups.pop(name or "default")
 
     def list_tags_for_resource(

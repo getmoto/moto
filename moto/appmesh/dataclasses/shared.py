@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 from uuid import uuid4
 
 from moto.appmesh.utils.common import clean_dict
@@ -36,8 +36,8 @@ class MissingField:
 
 @dataclass
 class Timeout:
-    idle: Duration | None = field(default=None)
-    per_request: Duration | None = field(default=None)
+    idle: Optional[Duration] = field(default=None)
+    per_request: Optional[Duration] = field(default=None)
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(

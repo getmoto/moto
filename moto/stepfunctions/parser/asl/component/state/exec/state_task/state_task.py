@@ -31,8 +31,8 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 
 class StateTask(ExecutionState, abc.ABC):
     resource: Resource
-    parargs: Parargs | None
-    credentials: Credentials | None
+    parargs: Optional[Parargs]
+    credentials: Optional[Credentials]
 
     def __init__(self):
         super().__init__(

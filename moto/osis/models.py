@@ -1,7 +1,7 @@
 """OpenSearchIngestionBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Optional
 
 import yaml
 
@@ -53,15 +53,15 @@ class Pipeline(ManagedState, BaseModel):
         min_units: int,
         max_units: int,
         pipeline_configuration_body: str,
-        log_publishing_options: dict[str, Any] | None,
-        vpc_options: dict[str, Any] | None,
-        buffer_options: dict[str, Any] | None,
-        encryption_at_rest_options: dict[str, Any] | None,
+        log_publishing_options: Optional[dict[str, Any]],
+        vpc_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, Any]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
         ingest_endpoint_urls: list[str],
         serverless: bool,
-        vpc_endpoint_service: str | None,
-        vpc_endpoint: str | None,
-        vpc_id: str | None,
+        vpc_endpoint_service: Optional[str],
+        vpc_endpoint: Optional[str],
+        vpc_id: Optional[str],
         backend: "OpenSearchIngestionBackend",
     ):
         ManagedState.__init__(
@@ -112,7 +112,7 @@ class Pipeline(ManagedState, BaseModel):
     def _get_arn(self, name: str) -> str:
         return f"arn:{get_partition(self.region)}:osis:{self.region}:{self.account_id}:pipeline/{name}"
 
-    def _get_service_vpc_endpoints(self) -> list[dict[str, str]] | None:
+    def _get_service_vpc_endpoints(self) -> Optional[list[dict[str, str]]]:
         # ServiceVpcEndpoint.VpcEndpointId not implemented
         if self.serverless:
             return [{"ServiceName": "OPENSEARCH_SERVERLESS"}]
@@ -182,12 +182,12 @@ class Pipeline(ManagedState, BaseModel):
 
     def update(
         self,
-        min_units: int | None,
-        max_units: int | None,
-        pipeline_configuration_body: str | None,
-        log_publishing_options: dict[str, Any] | None,
-        buffer_options: dict[str, Any] | None,
-        encryption_at_rest_options: dict[str, Any] | None,
+        min_units: Optional[int],
+        max_units: Optional[int],
+        pipeline_configuration_body: Optional[str],
+        log_publishing_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, Any]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
     ) -> None:
         if min_units is not None:
             self.min_units = min_units
@@ -319,7 +319,7 @@ class OpenSearchIngestionBackend(BaseBackend):
 
     def _get_vpc_endpoint(
         self, vpc_id: str, vpc_options: dict[str, Any], service_name: str
-    ) -> str | None:
+    ) -> Optional[str]:
         if vpc_options.get("VpcEndpointManagement", "SERVICE") == "SERVICE":
             service_managed_endpoint = self.ec2_backend.create_vpc_endpoint(
                 vpc_id=vpc_id,
@@ -372,10 +372,10 @@ class OpenSearchIngestionBackend(BaseBackend):
         min_units: int,
         max_units: int,
         pipeline_configuration_body: str,
-        log_publishing_options: dict[str, Any] | None,
-        vpc_options: dict[str, Any] | None,
-        buffer_options: dict[str, bool] | None,
-        encryption_at_rest_options: dict[str, Any] | None,
+        log_publishing_options: Optional[dict[str, Any]],
+        vpc_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, bool]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
         tags: list[dict[str, str]],
     ) -> Pipeline:
         if pipeline_name in self.pipelines:
@@ -471,12 +471,12 @@ class OpenSearchIngestionBackend(BaseBackend):
     def update_pipeline(
         self,
         pipeline_name: str,
-        min_units: int | None,
-        max_units: int | None,
-        pipeline_configuration_body: str | None,
-        log_publishing_options: dict[str, Any] | None,
-        buffer_options: dict[str, Any] | None,
-        encryption_at_rest_options: dict[str, Any] | None,
+        min_units: Optional[int],
+        max_units: Optional[int],
+        pipeline_configuration_body: Optional[str],
+        log_publishing_options: Optional[dict[str, Any]],
+        buffer_options: Optional[dict[str, Any]],
+        encryption_at_rest_options: Optional[dict[str, Any]],
     ) -> Pipeline:
         if pipeline_name not in self.pipelines:
             raise PipelineNotFoundException(pipeline_name)

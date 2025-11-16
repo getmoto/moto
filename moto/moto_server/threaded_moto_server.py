@@ -1,4 +1,5 @@
 from threading import Event, Thread
+from typing import Optional
 
 from werkzeug.serving import BaseWSGIServer, make_server
 
@@ -11,9 +12,9 @@ class ThreadedMotoServer:
     ):
         self._port = port
 
-        self._thread: Thread | None = None
+        self._thread: Optional[Thread] = None
         self._ip_address = ip_address
-        self._server: BaseWSGIServer | None = None
+        self._server: Optional[BaseWSGIServer] = None
         self._server_ready_event = Event()
         self._verbose = verbose
 

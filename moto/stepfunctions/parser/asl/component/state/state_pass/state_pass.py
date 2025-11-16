@@ -1,3 +1,5 @@
+from typing import Optional
+
 from moto.stepfunctions.parser.api import (
     HistoryEventType,
 )
@@ -19,17 +21,17 @@ class StatePass(CommonStateField):
         # Result (Optional)
         # Refers to the output of a virtual state_task that is passed on to the next state. If you include the ResultPath
         # field in your state machine definition, Result is placed as specified by ResultPath and passed on to the
-        self.result: Result | None = None
+        self.result: Optional[Result] = None
 
         # ResultPath (Optional)
         # Specifies where to place the output (relative to the input) of the virtual state_task specified in Result. The input
         # is further filtered as specified by the OutputPath field (if present) before being used as the state's output.
-        self.result_path: ResultPath | None = None
+        self.result_path: Optional[ResultPath] = None
 
         # Parameters (Optional)
         # Creates a collection of key-value pairs that will be passed as input. You can specify Parameters as a static
         # value or select from the input using a path.
-        self.parameters: Parameters | None = None
+        self.parameters: Optional[Parameters] = None
 
     def from_state_props(self, state_props: StateProps) -> None:
         super().from_state_props(state_props)

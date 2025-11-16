@@ -1,5 +1,5 @@
 import datetime
-from typing import Any
+from typing import Any, Optional
 from xml.etree import ElementTree as ET
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -22,7 +22,7 @@ class Lexicon(BaseModel):
 
         self.update()
 
-    def update(self, content: str | None = None) -> None:
+    def update(self, content: Optional[str] = None) -> None:
         if content is not None:
             self.content = content
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import json
 import threading
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
 from moto.stepfunctions.parser.asl.component.common.flow.start_at import StartAt
@@ -38,16 +38,16 @@ class InlineIterationComponentEvalInput:
     state_name: Final[str]
     max_concurrency: Final[int]
     input_items: Final[list[json]]
-    parameters: Final[Parameters | None]
-    item_selector: Final[ItemSelector | None]
+    parameters: Final[Optional[Parameters]]
+    item_selector: Final[Optional[ItemSelector]]
 
     def __init__(
         self,
         state_name: str,
         max_concurrency: int,
         input_items: list[json],
-        parameters: Parameters | None,
-        item_selector: ItemSelector | None,
+        parameters: Optional[Parameters],
+        item_selector: Optional[ItemSelector],
     ):
         self.state_name = state_name
         self.max_concurrency = max_concurrency
@@ -65,7 +65,7 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
         start_at: StartAt,
         states: States,
         processor_config: ProcessorConfig,
-        comment: Comment | None,
+        comment: Optional[Comment],
     ):
         super().__init__(
             query_language=query_language,
@@ -116,7 +116,7 @@ class InlineIterationComponent(IterationComponent, abc.ABC):
 
         job_pool.await_jobs()
 
-        worker_exception: Exception | None = job_pool.get_worker_exception()
+        worker_exception: Optional[Exception] = job_pool.get_worker_exception()
         if worker_exception is not None:
             raise worker_exception
 

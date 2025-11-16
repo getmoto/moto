@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from moto.appmesh.dataclasses.shared import Metadata, Status
 from moto.appmesh.dataclasses.virtual_node import VirtualNode
@@ -8,8 +8,8 @@ from moto.appmesh.dataclasses.virtual_router import VirtualRouter
 
 @dataclass
 class MeshSpec:
-    egress_filter: dict[Literal["type"], str | None]
-    service_discovery: dict[Literal["ip_preference"], str | None]
+    egress_filter: dict[Literal["type"], Optional[str]]
+    service_discovery: dict[Literal["ip_preference"], Optional[str]]
 
 
 @dataclass

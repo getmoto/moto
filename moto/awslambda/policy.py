@@ -1,8 +1,9 @@
 import json
-from collections.abc import Callable
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
+    Optional,
     TypeVar,
     Union,
 )
@@ -44,7 +45,9 @@ class Policy:
         }
 
     # adds the raw JSON statement to the policy
-    def add_statement(self, raw: str, qualifier: str | None = None) -> tuple[Any, str]:
+    def add_statement(
+        self, raw: str, qualifier: Optional[str] = None
+    ) -> tuple[Any, str]:
         policy = json.loads(raw, object_hook=self.decode_policy)
         if len(policy.revision) > 0 and self.revision != policy.revision:
             raise PreconditionFailedException(

@@ -5,7 +5,7 @@ import logging
 import re
 import sys
 from collections.abc import Iterator
-from typing import Any, Union
+from typing import Any, Optional, Union
 from urllib.parse import urlparse
 
 from requests.structures import CaseInsensitiveDict
@@ -48,7 +48,7 @@ STORAGE_CLASS = [
 LOGGING_SERVICE_PRINCIPAL = "logging.s3.amazonaws.com"
 
 
-def bucket_name_from_url(url: str) -> str | None:  # type: ignore
+def bucket_name_from_url(url: str) -> Optional[str]:  # type: ignore
     if S3_IGNORE_SUBDOMAIN_BUCKETNAME:
         return None
     domain = urlparse(url).netloc

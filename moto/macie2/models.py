@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -60,9 +60,9 @@ class MacieBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.invitations: dict[str, Invitation] = {}
         self.members: dict[str, Member] = {}
-        self.administrator_account: Member | None = None
-        self.organization_admin_account_id: str | None = None
-        self.macie_session: dict[str, Any] | None = {
+        self.administrator_account: Optional[Member] = None
+        self.organization_admin_account_id: Optional[str] = None
+        self.macie_session: Optional[dict[str, Any]] = {
             "createdAt": datetime.utcnow(),
             "findingPublishingFrequency": "FIFTEEN_MINUTES",
             "serviceRole": f"arn:aws:iam::{account_id}:role/aws-service-role/macie.amazonaws.com/AWSServiceRoleForAmazonMacie",
@@ -117,7 +117,7 @@ class MacieBackend(BaseBackend):
     def list_members(self) -> list[Member]:
         return list(self.members.values())
 
-    def get_administrator_account(self) -> Member | None:
+    def get_administrator_account(self) -> Optional[Member]:
         return self.administrator_account
 
     def delete_member(self, member_account_id: str) -> None:

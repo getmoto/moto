@@ -21,9 +21,9 @@ class FakeShadow(BaseModel):
 
     def __init__(
         self,
-        desired: str | None,
-        reported: str | None,
-        requested_payload: dict[str, Any] | None,
+        desired: Optional[str],
+        reported: Optional[str],
+        requested_payload: Optional[dict[str, Any]],
         version: int,
         deleted: bool = False,
     ):
@@ -43,7 +43,7 @@ class FakeShadow(BaseModel):
 
     @classmethod
     def create_from_previous_version(  # type: ignore[misc]
-        cls, previous_shadow: Optional["FakeShadow"], payload: dict[str, Any] | None
+        cls, previous_shadow: Optional["FakeShadow"], payload: Optional[dict[str, Any]]
     ) -> "FakeShadow":
         """
         set None to payload when you want to delete shadow
@@ -199,7 +199,7 @@ class IoTDataPlaneBackend(BaseBackend):
         return iot_backends[self.account_id][self.region_name]
 
     def update_thing_shadow(
-        self, thing_name: str, payload: str, shadow_name: str | None
+        self, thing_name: str, payload: str, shadow_name: Optional[str]
     ) -> FakeShadow:
         """
         spec of payload:
@@ -230,7 +230,9 @@ class IoTDataPlaneBackend(BaseBackend):
         thing.thing_shadows[shadow_name] = new_shadow
         return new_shadow
 
-    def get_thing_shadow(self, thing_name: str, shadow_name: str | None) -> FakeShadow:
+    def get_thing_shadow(
+        self, thing_name: str, shadow_name: Optional[str]
+    ) -> FakeShadow:
         thing = self.iot_backend.describe_thing(thing_name)
         thing_shadow = thing.thing_shadows.get(shadow_name)
 
@@ -239,7 +241,7 @@ class IoTDataPlaneBackend(BaseBackend):
         return thing_shadow
 
     def delete_thing_shadow(
-        self, thing_name: str, shadow_name: str | None
+        self, thing_name: str, shadow_name: Optional[str]
     ) -> FakeShadow:
         thing = self.iot_backend.describe_thing(thing_name)
         thing_shadow = thing.thing_shadows.get(shadow_name)

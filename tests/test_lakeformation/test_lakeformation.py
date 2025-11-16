@@ -1,5 +1,7 @@
 """Unit tests for lakeformation-supported APIs."""
 
+from typing import Optional
+
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -296,7 +298,7 @@ def catalog_response(principal: str) -> dict:
 
 
 def data_location_response(
-    principal: str, resource_arn: str, catalog_id: str | None = None
+    principal: str, resource_arn: str, catalog_id: Optional[str] = None
 ) -> dict:
     response = {
         "Principal": {"DataLakePrincipalIdentifier": principal},

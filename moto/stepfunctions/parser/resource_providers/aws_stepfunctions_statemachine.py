@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 import localstack.services.cloudformation.provider_utils as util
 from localstack.services.cloudformation.resource_provider import (
@@ -18,55 +18,55 @@ from localstack.utils.strings import to_str
 
 
 class StepFunctionsStateMachineProperties(TypedDict):
-    RoleArn: str | None
-    Arn: str | None
-    Definition: dict | None
-    DefinitionS3Location: S3Location | None
-    DefinitionString: str | None
-    DefinitionSubstitutions: dict | None
-    LoggingConfiguration: LoggingConfiguration | None
-    Name: str | None
-    StateMachineName: str | None
-    StateMachineRevisionId: str | None
-    StateMachineType: str | None
-    Tags: list[TagsEntry] | None
-    TracingConfiguration: TracingConfiguration | None
-    EncryptionConfiguration: EncryptionConfiguration | None
+    RoleArn: Optional[str]
+    Arn: Optional[str]
+    Definition: Optional[dict]
+    DefinitionS3Location: Optional[S3Location]
+    DefinitionString: Optional[str]
+    DefinitionSubstitutions: Optional[dict]
+    LoggingConfiguration: Optional[LoggingConfiguration]
+    Name: Optional[str]
+    StateMachineName: Optional[str]
+    StateMachineRevisionId: Optional[str]
+    StateMachineType: Optional[str]
+    Tags: Optional[list[TagsEntry]]
+    TracingConfiguration: Optional[TracingConfiguration]
+    EncryptionConfiguration: Optional[EncryptionConfiguration]
 
 
 class CloudWatchLogsLogGroup(TypedDict):
-    LogGroupArn: str | None
+    LogGroupArn: Optional[str]
 
 
 class LogDestination(TypedDict):
-    CloudWatchLogsLogGroup: CloudWatchLogsLogGroup | None
+    CloudWatchLogsLogGroup: Optional[CloudWatchLogsLogGroup]
 
 
 class LoggingConfiguration(TypedDict):
-    Destinations: list[LogDestination] | None
-    IncludeExecutionData: bool | None
-    Level: str | None
+    Destinations: Optional[list[LogDestination]]
+    IncludeExecutionData: Optional[bool]
+    Level: Optional[str]
 
 
 class TracingConfiguration(TypedDict):
-    Enabled: bool | None
+    Enabled: Optional[bool]
 
 
 class EncryptionConfiguration(TypedDict):
-    Type: str | None
-    KmsKeyID: str | None
-    KmsDataKeyReusePeriodSeconds: int | None
+    Type: Optional[str]
+    KmsKeyID: Optional[str]
+    KmsDataKeyReusePeriodSeconds: Optional[int]
 
 
 class S3Location(TypedDict):
-    Bucket: str | None
-    Key: str | None
-    Version: str | None
+    Bucket: Optional[str]
+    Key: Optional[str]
+    Version: Optional[str]
 
 
 class TagsEntry(TypedDict):
-    Key: str | None
-    Value: str | None
+    Key: Optional[str]
+    Value: Optional[str]
 
 
 REPEATED_INVOCATION = "repeated_invocation"

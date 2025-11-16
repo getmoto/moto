@@ -1,7 +1,7 @@
 """TimestreamInfluxDBBackend class with methods for supported APIs."""
 
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -74,8 +74,8 @@ class ParameterGroup(BaseModel):
     def __init__(
         self,
         name: str,
-        description: str | None = None,
-        parameters: dict[str, Any] | None = None,
+        description: Optional[str] = None,
+        parameters: Optional[dict[str, Any]] = None,
         region_name: str = "",
         account_id: str = "",
     ):
@@ -108,21 +108,21 @@ class Cluster(BaseModel):
         self,
         name: str,
         password: str,
-        username: str | None = None,
-        organization: str | None = None,
-        bucket: str | None = None,
-        port: int | None = None,
-        db_parameter_group_identifier: str | None = None,
-        db_instance_type: str | None = None,
-        db_storage_type: str | None = None,
-        allocated_storage: int | None = None,
-        network_type: str | None = None,
-        publicly_accessible: bool | None = None,
-        vpc_subnet_ids: list[str] | None = None,
-        vpc_security_group_ids: list[str] | None = None,
-        deployment_type: str | None = None,
-        failover_mode: str | None = None,
-        log_delivery_configuration: dict[str, Any] | None = None,
+        username: Optional[str] = None,
+        organization: Optional[str] = None,
+        bucket: Optional[str] = None,
+        port: Optional[int] = None,
+        db_parameter_group_identifier: Optional[str] = None,
+        db_instance_type: Optional[str] = None,
+        db_storage_type: Optional[str] = None,
+        allocated_storage: Optional[int] = None,
+        network_type: Optional[str] = None,
+        publicly_accessible: Optional[bool] = None,
+        vpc_subnet_ids: Optional[list[str]] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
+        deployment_type: Optional[str] = None,
+        failover_mode: Optional[str] = None,
+        log_delivery_configuration: Optional[dict[str, Any]] = None,
         region_name: str = "",
         account_id: str = "",
         endpoint_id: str = "",
@@ -199,7 +199,7 @@ class DBInstance(BaseModel):
     def __init__(
         self,
         name: str,
-        username: str | None,
+        username: Optional[str],
         password: str,
         organization: str,
         bucket: str,
@@ -209,10 +209,10 @@ class DBInstance(BaseModel):
         publiclyAccessible: bool,
         dbStorageType: str,
         allocatedStorage: int,
-        dbParameterGroupIdentifier: str | None,
+        dbParameterGroupIdentifier: Optional[str],
         deploymentType: str,
-        logDeliveryConfiguration: dict[str, Any] | None,
-        tags: dict[str, Any] | None,
+        logDeliveryConfiguration: Optional[dict[str, Any]],
+        tags: Optional[dict[str, Any]],
         port: int,
         networkType: str,
         region_name: str,
@@ -292,7 +292,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
     def create_db_instance(
         self,
         name: str,
-        username: str | None,  # required if using InfluxDB UI though
+        username: Optional[str],  # required if using InfluxDB UI though
         password: str,
         organization: str,
         bucket: str,
@@ -304,8 +304,8 @@ class TimestreamInfluxDBBackend(BaseBackend):
         allocated_storage: int,
         db_parameter_group_identifier: str,
         deployment_type: str,
-        log_delivery_configuration: dict[str, Any] | None,
-        tags: dict[str, str] | None,
+        log_delivery_configuration: Optional[dict[str, Any]],
+        tags: Optional[dict[str, str]],
         port: int,
         network_type: str,
     ) -> DBInstance:
@@ -416,9 +416,9 @@ class TimestreamInfluxDBBackend(BaseBackend):
     def create_db_parameter_group(
         self,
         name: str,
-        description: str | None = None,
-        parameters: dict[str, Any] | None = None,
-        tags: dict[str, str] | None = None,
+        description: Optional[str] = None,
+        parameters: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> ParameterGroup:
         validate_name(name)
 
@@ -486,22 +486,22 @@ class TimestreamInfluxDBBackend(BaseBackend):
         self,
         name: str,
         password: str,
-        username: str | None = None,
-        organization: str | None = None,
-        bucket: str | None = None,
-        port: int | None = None,
-        db_parameter_group_identifier: str | None = None,
-        db_instance_type: str | None = None,
-        db_storage_type: str | None = None,
-        allocated_storage: int | None = None,
-        network_type: str | None = None,
-        publicly_accessible: bool | None = None,
-        vpc_subnet_ids: list[str] | None = None,
-        vpc_security_group_ids: list[str] | None = None,
-        deployment_type: str | None = None,
-        failover_mode: str | None = None,
-        log_delivery_configuration: dict[str, Any] | None = None,
-        tags: dict[str, str] | None = None,
+        username: Optional[str] = None,
+        organization: Optional[str] = None,
+        bucket: Optional[str] = None,
+        port: Optional[int] = None,
+        db_parameter_group_identifier: Optional[str] = None,
+        db_instance_type: Optional[str] = None,
+        db_storage_type: Optional[str] = None,
+        allocated_storage: Optional[int] = None,
+        network_type: Optional[str] = None,
+        publicly_accessible: Optional[bool] = None,
+        vpc_subnet_ids: Optional[list[str]] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
+        deployment_type: Optional[str] = None,
+        failover_mode: Optional[str] = None,
+        log_delivery_configuration: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> tuple[str, str]:
         validate_name(name)
 

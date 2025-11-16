@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -108,21 +108,21 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         self,
         replication_instance_identifier: str,
         replication_instance_class: str,
-        allocated_storage: int | None = None,
-        vpc_security_group_ids: list[str] | None = None,
-        availability_zone: str | None = None,
-        replication_subnet_group_identifier: str | None = None,
-        preferred_maintenance_window: str | None = None,
-        multi_az: bool | None = False,
-        engine_version: str | None = None,
-        auto_minor_version_upgrade: bool | None = True,
-        tags: list[dict[str, str]] | None = None,
-        kms_key_id: str | None = None,
-        publicly_accessible: bool | None = True,
-        dns_name_servers: str | None = None,
-        resource_identifier: str | None = None,
-        network_type: str | None = None,
-        kerberos_authentication_settings: dict[str, str] | None = None,
+        allocated_storage: Optional[int] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
+        availability_zone: Optional[str] = None,
+        replication_subnet_group_identifier: Optional[str] = None,
+        preferred_maintenance_window: Optional[str] = None,
+        multi_az: Optional[bool] = False,
+        engine_version: Optional[str] = None,
+        auto_minor_version_upgrade: Optional[bool] = True,
+        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        publicly_accessible: Optional[bool] = True,
+        dns_name_servers: Optional[str] = None,
+        resource_identifier: Optional[str] = None,
+        network_type: Optional[str] = None,
+        kerberos_authentication_settings: Optional[dict[str, str]] = None,
     ) -> "FakeReplicationInstance":
         replication_instance = FakeReplicationInstance(
             replication_instance_identifier=replication_instance_identifier,
@@ -159,9 +159,9 @@ class DatabaseMigrationServiceBackend(BaseBackend):
 
     def describe_replication_instances(
         self,
-        filters: list[dict[str, Any]] | None = None,
-        max_records: int | None = None,
-        marker: str | None = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+        max_records: Optional[int] = None,
+        marker: Optional[str] = None,
     ) -> list["FakeReplicationInstance"]:
         """Get information about replication instances with optional filtering"""
         ### TODO: Implement pagination
@@ -224,31 +224,31 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         database_name: str,
         extra_connection_attributes: str,
         kms_key_id: str,
-        tags: list[dict[str, str]] | None,
+        tags: Optional[list[dict[str, str]]],
         certificate_arn: str,
         ssl_mode: str,
         service_access_role_arn: str,
         external_table_definition: str,
-        dynamo_db_settings: dict[str, Any] | None,
-        s3_settings: dict[str, Any] | None,
-        dms_transfer_settings: dict[str, Any] | None,
-        mongo_db_settings: dict[str, Any] | None,
-        kinesis_settings: dict[str, Any] | None,
-        kafka_settings: dict[str, Any] | None,
-        elasticsearch_settings: dict[str, Any] | None,
-        neptune_settings: dict[str, Any] | None,
-        redshift_settings: dict[str, Any] | None,
-        postgre_sql_settings: dict[str, Any] | None,
-        my_sql_settings: dict[str, Any] | None,
-        oracle_settings: dict[str, Any] | None,
-        sybase_settings: dict[str, Any] | None,
-        microsoft_sql_server_settings: dict[str, Any] | None,
-        ibm_db2_settings: dict[str, Any] | None,
-        resource_identifier: str | None,
-        doc_db_settings: dict[str, Any] | None,
-        redis_settings: dict[str, Any] | None,
-        gcp_my_sql_settings: dict[str, Any] | None,
-        timestream_settings: dict[str, Any] | None,
+        dynamo_db_settings: Optional[dict[str, Any]],
+        s3_settings: Optional[dict[str, Any]],
+        dms_transfer_settings: Optional[dict[str, Any]],
+        mongo_db_settings: Optional[dict[str, Any]],
+        kinesis_settings: Optional[dict[str, Any]],
+        kafka_settings: Optional[dict[str, Any]],
+        elasticsearch_settings: Optional[dict[str, Any]],
+        neptune_settings: Optional[dict[str, Any]],
+        redshift_settings: Optional[dict[str, Any]],
+        postgre_sql_settings: Optional[dict[str, Any]],
+        my_sql_settings: Optional[dict[str, Any]],
+        oracle_settings: Optional[dict[str, Any]],
+        sybase_settings: Optional[dict[str, Any]],
+        microsoft_sql_server_settings: Optional[dict[str, Any]],
+        ibm_db2_settings: Optional[dict[str, Any]],
+        resource_identifier: Optional[str],
+        doc_db_settings: Optional[dict[str, Any]],
+        redis_settings: Optional[dict[str, Any]],
+        gcp_my_sql_settings: Optional[dict[str, Any]],
+        timestream_settings: Optional[dict[str, Any]],
     ) -> "Endpoint":
         if endpoint_type not in ["source", "target"]:
             raise ValidationError("Invalid endpoint type")
@@ -305,8 +305,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
     def describe_endpoints(
         self,
         filters: list[dict[str, Any]],
-        max_records: int | None,
-        marker: str | None,
+        max_records: Optional[int],
+        marker: Optional[str],
     ) -> list["Endpoint"]:
         endpoints = list(self.endpoints.values())
         filter_map = {
@@ -360,7 +360,7 @@ class DatabaseMigrationServiceBackend(BaseBackend):
         replication_subnet_group_identifier: str,
         replication_subnet_group_description: str,
         subnet_ids: list[str],
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> "FakeReplicationSubnetGroup":
         replication_subnet_group = FakeReplicationSubnetGroup(
             replication_subnet_group_identifier=replication_subnet_group_identifier,
@@ -384,8 +384,8 @@ class DatabaseMigrationServiceBackend(BaseBackend):
     def describe_replication_subnet_groups(
         self,
         filters: list[dict[str, Any]],
-        max_records: int | None,
-        marker: str | None,
+        max_records: Optional[int],
+        marker: Optional[str],
     ) -> list["FakeReplicationSubnetGroup"]:
         subnet_groups = list(self.replication_subnet_groups.values())
         filter_map = {
@@ -435,31 +435,31 @@ class Endpoint(BaseModel):
         extra_connection_attributes: str,
         status: str,
         kms_key_id: str,
-        certificate_arn: str | None,
-        ssl_mode: str | None,
-        service_access_role_arn: str | None,
-        external_table_definition: str | None,
-        external_id: str | None,
-        dynamo_db_settings: dict[str, Any] | None,
-        s3_settings: dict[str, Any] | None,
-        dms_transfer_settings: dict[str, Any] | None,
-        mongo_db_settings: dict[str, Any] | None,
-        kinesis_settings: dict[str, Any] | None,
-        kafka_settings: dict[str, Any] | None,
-        elasticsearch_settings: dict[str, Any] | None,
-        neptune_settings: dict[str, Any] | None,
-        redshift_settings: dict[str, Any] | None,
-        postgre_sql_settings: dict[str, Any] | None,
-        my_sql_settings: dict[str, Any] | None,
-        oracle_settings: dict[str, Any] | None,
-        sybase_settings: dict[str, Any] | None,
-        microsoft_sql_server_settings: dict[str, Any] | None,
-        ibm_db2_settings: dict[str, Any] | None,
-        resource_identifier: str | None,
-        doc_db_settings: dict[str, Any] | None,
-        redis_settings: dict[str, Any] | None,
-        gcp_my_sql_settings: dict[str, Any] | None,
-        timestream_settings: dict[str, Any] | None,
+        certificate_arn: Optional[str],
+        ssl_mode: Optional[str],
+        service_access_role_arn: Optional[str],
+        external_table_definition: Optional[str],
+        external_id: Optional[str],
+        dynamo_db_settings: Optional[dict[str, Any]],
+        s3_settings: Optional[dict[str, Any]],
+        dms_transfer_settings: Optional[dict[str, Any]],
+        mongo_db_settings: Optional[dict[str, Any]],
+        kinesis_settings: Optional[dict[str, Any]],
+        kafka_settings: Optional[dict[str, Any]],
+        elasticsearch_settings: Optional[dict[str, Any]],
+        neptune_settings: Optional[dict[str, Any]],
+        redshift_settings: Optional[dict[str, Any]],
+        postgre_sql_settings: Optional[dict[str, Any]],
+        my_sql_settings: Optional[dict[str, Any]],
+        oracle_settings: Optional[dict[str, Any]],
+        sybase_settings: Optional[dict[str, Any]],
+        microsoft_sql_server_settings: Optional[dict[str, Any]],
+        ibm_db2_settings: Optional[dict[str, Any]],
+        resource_identifier: Optional[str],
+        doc_db_settings: Optional[dict[str, Any]],
+        redis_settings: Optional[dict[str, Any]],
+        gcp_my_sql_settings: Optional[dict[str, Any]],
+        timestream_settings: Optional[dict[str, Any]],
         account_id: str,
         region_name: str,
     ):
@@ -578,8 +578,8 @@ class FakeReplicationTask(BaseModel):
         self.status = "creating"
 
         self.creation_date = utcnow()
-        self.start_date: datetime | None = None
-        self.stop_date: datetime | None = None
+        self.start_date: Optional[datetime] = None
+        self.stop_date: Optional[datetime] = None
 
     def to_dict(self) -> dict[str, Any]:
         start_date = self.start_date.isoformat() if self.start_date else None
@@ -646,21 +646,21 @@ class FakeReplicationInstance(BaseModel):
         replication_instance_class: str,
         account_id: str,
         region_name: str,
-        allocated_storage: int | None = None,
-        vpc_security_group_ids: list[str] | None = None,
-        availability_zone: str | None = None,
-        replication_subnet_group_identifier: str | None = None,
-        preferred_maintenance_window: str | None = None,
-        multi_az: bool | None = False,
-        engine_version: str | None = None,
-        auto_minor_version_upgrade: bool | None = True,
-        tags: list[dict[str, str]] | None = None,
-        kms_key_id: str | None = None,
-        publicly_accessible: bool | None = True,
-        dns_name_servers: str | None = None,
-        resource_identifier: str | None = None,
-        network_type: str | None = None,
-        kerberos_authentication_settings: dict[str, str] | None = None,
+        allocated_storage: Optional[int] = None,
+        vpc_security_group_ids: Optional[list[str]] = None,
+        availability_zone: Optional[str] = None,
+        replication_subnet_group_identifier: Optional[str] = None,
+        preferred_maintenance_window: Optional[str] = None,
+        multi_az: Optional[bool] = False,
+        engine_version: Optional[str] = None,
+        auto_minor_version_upgrade: Optional[bool] = True,
+        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        publicly_accessible: Optional[bool] = True,
+        dns_name_servers: Optional[str] = None,
+        resource_identifier: Optional[str] = None,
+        network_type: Optional[str] = None,
+        kerberos_authentication_settings: Optional[dict[str, str]] = None,
     ):
         self.id = replication_instance_identifier
         self.replication_instance_class = replication_instance_class
@@ -771,8 +771,8 @@ class FakeReplicationSubnetGroup(BaseModel):
         self,
         replication_subnet_group_identifier: str,
         replication_subnet_group_description: str,
-        subnetIds: list[str] | None = None,
-        tags: list[dict[str, str]] | None = None,
+        subnetIds: Optional[list[str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.replication_subnet_group_identifier = replication_subnet_group_identifier
         self.description = replication_subnet_group_description

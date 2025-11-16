@@ -1,5 +1,5 @@
 import copy
-from typing import Final
+from typing import Final, Optional
 
 from jsonpath_ng import parse
 
@@ -10,9 +10,9 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 class ResultPath(EvalComponent):
     DEFAULT_PATH: Final[str] = "$"
 
-    result_path_src: Final[str | None]
+    result_path_src: Final[Optional[str]]
 
-    def __init__(self, result_path_src: str | None):
+    def __init__(self, result_path_src: Optional[str]):
         self.result_path_src = result_path_src
 
     def _eval_body(self, env: Environment) -> None:

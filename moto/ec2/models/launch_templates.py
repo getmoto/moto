@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -106,7 +106,9 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
     def physical_resource_id(self) -> str:
         return self.id
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name == "launch-template-name":
             return self.name
         else:
@@ -229,8 +231,8 @@ class LaunchTemplateBackend:
     def modify_launch_template(
         self,
         default_version: str,
-        template_name: str | None = None,
-        template_id: str | None = None,
+        template_name: Optional[str] = None,
+        template_id: Optional[str] = None,
     ) -> LaunchTemplate:
         if template_name:
             template_id = self.launch_template_name_to_ids.get(template_name)
@@ -250,7 +252,7 @@ class LaunchTemplateBackend:
             raise InvalidLaunchTemplateNameNotFoundWithNameError(name)
         return self.get_launch_template(self.launch_template_name_to_ids[name])
 
-    def delete_launch_template(self, name: str, tid: str | None) -> LaunchTemplate:
+    def delete_launch_template(self, name: str, tid: Optional[str]) -> LaunchTemplate:
         if name:
             tid = self.launch_template_name_to_ids.get(name)
         if tid is None:
@@ -263,8 +265,8 @@ class LaunchTemplateBackend:
 
     def describe_launch_templates(
         self,
-        template_names: list[str] | None = None,
-        template_ids: list[str] | None = None,
+        template_names: Optional[list[str]] = None,
+        template_ids: Optional[list[str]] = None,
         filters: Any = None,
     ) -> list[LaunchTemplate]:
         if template_names and not template_ids:

@@ -44,7 +44,7 @@ class SWFBackend(BaseBackend):
                 wfe._process_timeouts()
 
     def list_domains(
-        self, status: str, reverse_order: bool | None = None
+        self, status: str, reverse_order: Optional[bool] = None
     ) -> list[Domain]:
         domains = [domain for domain in self.domains if domain.status == status]
         domains = sorted(domains, key=lambda domain: domain.name)
@@ -108,7 +108,7 @@ class SWFBackend(BaseBackend):
         self,
         name: str,
         workflow_execution_retention_period_in_days: int,
-        description: str | None = None,
+        description: Optional[str] = None,
     ) -> None:
         if self._get_domain(name, ignore_empty=True):
             raise SWFDomainAlreadyExistsFault(name)
@@ -133,7 +133,7 @@ class SWFBackend(BaseBackend):
             raise SWFDomainAlreadyExistsFault(name)
         domain.status = "REGISTERED"
 
-    def describe_domain(self, name: str) -> Domain | None:
+    def describe_domain(self, name: str) -> Optional[Domain]:
         return self._get_domain(name)
 
     def list_types(
@@ -141,7 +141,7 @@ class SWFBackend(BaseBackend):
         kind: str,
         domain_name: str,
         status: str,
-        reverse_order: bool | None = None,
+        reverse_order: Optional[bool] = None,
     ) -> list[GenericType]:
         domain = self._get_domain(domain_name)
         _types: list[GenericType] = domain.find_types(kind, status)
@@ -191,8 +191,8 @@ class SWFBackend(BaseBackend):
         workflow_id: str,
         workflow_name: str,
         workflow_version: str,
-        tag_list: dict[str, str] | None = None,
-        workflow_input: str | None = None,
+        tag_list: Optional[dict[str, str]] = None,
+        workflow_input: Optional[str] = None,
         **kwargs: Any,
     ) -> WorkflowExecution:
         domain = self._get_domain(domain_name)
@@ -216,15 +216,15 @@ class SWFBackend(BaseBackend):
 
     def describe_workflow_execution(
         self, domain_name: str, run_id: str, workflow_id: str
-    ) -> WorkflowExecution | None:
+    ) -> Optional[WorkflowExecution]:
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
         return domain.get_workflow_execution(workflow_id, run_id=run_id)
 
     def poll_for_decision_task(
-        self, domain_name: str, task_list: list[str], identity: str | None = None
-    ) -> DecisionTask | None:
+        self, domain_name: str, task_list: list[str], identity: Optional[str] = None
+    ) -> Optional[DecisionTask]:
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -291,8 +291,8 @@ class SWFBackend(BaseBackend):
     def respond_decision_task_completed(
         self,
         task_token: str,
-        decisions: list[dict[str, Any]] | None = None,
-        execution_context: str | None = None,
+        decisions: Optional[list[dict[str, Any]]] = None,
+        execution_context: Optional[str] = None,
     ) -> None:
         # process timeouts on all objects
         self._process_timeouts()
@@ -345,8 +345,8 @@ class SWFBackend(BaseBackend):
             )
 
     def poll_for_activity_task(
-        self, domain_name: str, task_list: list[str], identity: str | None = None
-    ) -> ActivityTask | None:
+        self, domain_name: str, task_list: list[str], identity: Optional[str] = None
+    ) -> Optional[ActivityTask]:
         # process timeouts on all objects
         self._process_timeouts()
         domain = self._get_domain(domain_name)
@@ -439,7 +439,7 @@ class SWFBackend(BaseBackend):
         wfe.complete_activity_task(activity_task.task_token, result=result)
 
     def respond_activity_task_failed(
-        self, task_token: str, reason: str | None = None, details: Any = None
+        self, task_token: str, reason: Optional[str] = None, details: Any = None
     ) -> None:
         # process timeouts on all objects
         self._process_timeouts()
@@ -453,8 +453,8 @@ class SWFBackend(BaseBackend):
         workflow_id: str,
         child_policy: Any = None,
         details: Any = None,
-        reason: str | None = None,
-        run_id: str | None = None,
+        reason: Optional[str] = None,
+        run_id: Optional[str] = None,
     ) -> None:
         # process timeouts on all objects
         self._process_timeouts()
@@ -480,7 +480,7 @@ class SWFBackend(BaseBackend):
         signal_name: str,
         workflow_id: str,
         workflow_input: Any = None,
-        run_id: str | None = None,
+        run_id: Optional[str] = None,
     ) -> None:
         # process timeouts on all objects
         self._process_timeouts()

@@ -2,7 +2,7 @@ import argparse
 import os
 import signal
 import sys
-from typing import Any
+from typing import Any, Optional
 
 from werkzeug.serving import run_simple
 
@@ -20,7 +20,7 @@ def signal_handler(signum: Any, frame: Any) -> None:
     sys.exit(0)
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(argv: Optional[list[str]] = None) -> None:
     argv = argv or sys.argv[1:]
     parser = argparse.ArgumentParser()
 

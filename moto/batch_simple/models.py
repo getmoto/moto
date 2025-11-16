@@ -1,7 +1,7 @@
 import datetime
 from os import getenv
 from time import sleep
-from typing import Any
+from typing import Any, Optional
 
 from moto.batch.exceptions import ClientException
 from moto.batch.models import BatchBackend, Job, batch_backends
@@ -53,11 +53,11 @@ class BatchSimpleBackend(BatchBackend):
         job_def_id: str,
         job_queue: str,
         array_properties: dict[str, Any],
-        depends_on: list[dict[str, str]] | None = None,
-        container_overrides: dict[str, Any] | None = None,
-        timeout: dict[str, int] | None = None,
-        parameters: dict[str, str] | None = None,
-        tags: dict[str, str] | None = None,
+        depends_on: Optional[list[dict[str, str]]] = None,
+        container_overrides: Optional[dict[str, Any]] = None,
+        timeout: Optional[dict[str, int]] = None,
+        parameters: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> tuple[str, str, str]:
         # Look for job definition
         job_def = self.get_job_definition(job_def_id)

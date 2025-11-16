@@ -1,6 +1,6 @@
 import datetime
 from collections import defaultdict
-from typing import Any
+from typing import Any, Optional
 
 from moto.ec2.models.spot_requests import SpotFleetLaunchSpec, SpotInstanceRequest
 
@@ -294,7 +294,7 @@ class FleetsBackend:
         self.fleets[fleet_id] = fleet
         return fleet
 
-    def get_fleet(self, fleet_id: str) -> Fleet | None:
+    def get_fleet(self, fleet_id: str) -> Optional[Fleet]:
         return self.fleets.get(fleet_id)
 
     def describe_fleet_instances(self, fleet_id: str) -> list[Any]:
@@ -303,7 +303,7 @@ class FleetsBackend:
             return []
         return fleet.spot_requests + fleet.on_demand_instances
 
-    def describe_fleets(self, fleet_ids: list[str] | None) -> list[Fleet]:
+    def describe_fleets(self, fleet_ids: Optional[list[str]]) -> list[Fleet]:
         fleets = list(self.fleets.values())
 
         if fleet_ids:

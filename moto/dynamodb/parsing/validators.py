@@ -3,9 +3,8 @@ See docstring class Validator below for more details on validation
 """
 
 from abc import abstractmethod
-from collections.abc import Callable
 from copy import deepcopy
-from typing import Any, Union
+from typing import Any, Callable, Union
 
 from moto.dynamodb.exceptions import (
     AttributeDoesNotExist,

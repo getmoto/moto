@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 from moto.dynamodb.limits import HASH_KEY_MAX_LENGTH, RANGE_KEY_MAX_LENGTH
@@ -207,7 +207,9 @@ class IncorrectDataType(MockValidationException):
 class ConditionalCheckFailed(DynamodbException):
     error_type = ERROR_TYPE_PREFIX + "ConditionalCheckFailedException"
 
-    def __init__(self, msg: str | None = None, item: dict[str, Any] | None = None):
+    def __init__(
+        self, msg: Optional[str] = None, item: Optional[dict[str, Any]] = None
+    ):
         _msg = msg or "The conditional request failed"
         super().__init__(ConditionalCheckFailed.error_type, _msg)
         if item:
@@ -295,7 +297,9 @@ class UpdateHashRangeKeyException(MockValidationException):
 class InvalidAttributeTypeError(MockValidationException):
     msg = "One or more parameter values were invalid: Type mismatch for key {} expected: {} actual: {}"
 
-    def __init__(self, name: str | None, expected_type: str | None, actual_type: str):
+    def __init__(
+        self, name: Optional[str], expected_type: Optional[str], actual_type: str
+    ):
         super().__init__(self.msg.format(name, expected_type, actual_type))
 
 
@@ -321,7 +325,7 @@ class TooManyClauses(InvalidUpdateExpression):
 
 
 class ResourceNotFoundException(JsonRESTError):
-    def __init__(self, msg: str | None = None, table_name: str | None = None):
+    def __init__(self, msg: Optional[str] = None, table_name: Optional[str] = None):
         err = ERROR_TYPE_PREFIX + "ResourceNotFoundException"
         default_msg = "Requested resource not found"
         if table_name is not None:
@@ -362,7 +366,7 @@ class TableAlreadyExistsException(JsonRESTError):
 
 
 class ResourceInUseException(JsonRESTError):
-    def __init__(self, msg: str | None = None) -> None:
+    def __init__(self, msg: Optional[str] = None) -> None:
         er = ERROR_TYPE_PREFIX + "ResourceInUseException"
         super().__init__(er, msg or "Resource in use")
 

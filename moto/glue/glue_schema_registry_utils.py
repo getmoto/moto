@@ -1,7 +1,7 @@
 import json
 import re
 from re import Pattern
-from typing import Any
+from typing import Any, Optional
 
 from .exceptions import (
     DisabledCompatibilityVersioningException,
@@ -181,8 +181,8 @@ def validate_registry_id(
 def validate_registry_params(
     registries: Any,
     registry_name: str,
-    description: str | None = None,
-    tags: dict[str, str] | None = None,
+    description: Optional[str] = None,
+    tags: Optional[dict[str, str]] = None,
 ) -> None:
     validate_registry_name_pattern_and_length(registry_name)
 
@@ -205,7 +205,7 @@ def validate_registry_params(
 
 def validate_schema_id(
     schema_id: dict[str, str], registries: dict[str, Any]
-) -> tuple[str, str, str | None]:
+) -> tuple[str, str, Optional[str]]:
     schema_arn = schema_id.get(SCHEMA_ARN)
     registry_name = schema_id.get(REGISTRY_NAME)
     schema_name = schema_id.get(SCHEMA_NAME)
@@ -239,8 +239,8 @@ def validate_schema_params(
     compatibility: str,
     schema_definition: str,
     num_schemas: int,
-    description: str | None = None,
-    tags: dict[str, str] | None = None,
+    description: Optional[str] = None,
+    tags: Optional[dict[str, str]] = None,
 ) -> None:
     validate_schema_name_pattern_and_length(schema_name)
 
@@ -281,7 +281,7 @@ def validate_schema_params(
 def validate_register_schema_version_params(
     registry_name: str,
     schema_name: str,
-    schema_arn: str | None,
+    schema_arn: Optional[str],
     num_schema_versions: int,
     schema_definition: str,
     compatibility: str,
@@ -300,16 +300,16 @@ def validate_register_schema_version_params(
 
 def validate_schema_version_params(  # type: ignore[return]
     registries: dict[str, Any],
-    schema_id: dict[str, Any] | None,
-    schema_version_id: str | None,
-    schema_version_number: dict[str, Any] | None,
+    schema_id: Optional[dict[str, Any]],
+    schema_version_id: Optional[str],
+    schema_version_number: Optional[dict[str, Any]],
 ) -> tuple[
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-    str | None,
-    str | None,
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Optional[str],
+    Optional[str],
 ]:
     if not schema_version_id and not schema_id and not schema_version_number:
         raise InvalidSchemaIdNotProvidedException()
@@ -388,7 +388,7 @@ def validate_number_of_schema_version_metadata_allowed(
 
 def get_schema_version_if_definition_exists(
     schema_versions: Any, data_format: str, schema_definition: str
-) -> dict[str, Any] | None:
+) -> Optional[dict[str, Any]]:
     if data_format in ["AVRO", "JSON"]:
         for schema_version in schema_versions:
             if json.loads(schema_definition) == json.loads(
@@ -404,7 +404,7 @@ def get_schema_version_if_definition_exists(
 
 def get_put_schema_version_metadata_response(
     schema_id: dict[str, Any],
-    schema_version_number: dict[str, str] | None,
+    schema_version_number: Optional[dict[str, str]],
     schema_version_id: str,
     metadata_key_value: dict[str, str],
 ) -> dict[str, Any]:

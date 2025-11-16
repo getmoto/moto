@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Generic
+from typing import Any, Generic, Optional
 
 from .base_backend import SERVICE_BACKEND, BackendDict, InstanceTrackerMeta
 
@@ -105,14 +105,14 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
         self,
         account_id: str,
         partition: str,
-        resource_ids: list[str] | None,
-        resource_name: str | None,
+        resource_ids: Optional[list[str]],
+        resource_name: Optional[str],
         limit: int,
-        next_token: str | None,
-        backend_region: str | None = None,
-        resource_region: str | None = None,
-        aggregator: dict[str, Any] | None = None,
-    ) -> tuple[list[dict[str, Any]], str | None]:
+        next_token: Optional[str],
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+        aggregator: Optional[dict[str, Any]] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         """For AWS Config. This will list all of the resources of the given type and optional resource name and region.
 
         This supports both aggregated and non-aggregated listing. The following notes the difference:
@@ -167,10 +167,10 @@ class ConfigQueryModel(Generic[SERVICE_BACKEND]):
         account_id: str,
         partition: str,
         resource_id: str,
-        resource_name: str | None = None,
-        backend_region: str | None = None,
-        resource_region: str | None = None,
-    ) -> dict[str, Any] | None:
+        resource_name: Optional[str] = None,
+        backend_region: Optional[str] = None,
+        resource_region: Optional[str] = None,
+    ) -> Optional[dict[str, Any]]:
         """For AWS Config. This will query the backend for the specific resource type configuration.
 
         This supports both aggregated, and non-aggregated fetching -- for batched fetching -- the Config batching requests

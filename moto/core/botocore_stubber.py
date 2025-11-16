@@ -1,6 +1,6 @@
 import re
 from io import BytesIO
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from botocore.awsrequest import AWSResponse
 
@@ -31,7 +31,7 @@ class BotocoreStubber:
 
     def __call__(
         self, event_name: str, request: Any, **kwargs: Any
-    ) -> AWSResponse | None:
+    ) -> Optional[AWSResponse]:
         if not self.enabled:
             return None
 
@@ -42,7 +42,7 @@ class BotocoreStubber:
         else:
             return response
 
-    def process_request(self, request: Any) -> TYPE_RESPONSE | None:
+    def process_request(self, request: Any) -> Optional[TYPE_RESPONSE]:
         # Handle non-standard AWS endpoint hostnames from ISO regions or custom
         # S3 endpoints.
         parsed_url, _ = get_equivalent_url_in_aws_domain(request.url)

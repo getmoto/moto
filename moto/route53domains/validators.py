@@ -2,7 +2,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -644,8 +644,8 @@ class Route53DomainsOperation(BaseModel):
         type_: str,
         submitted_date: datetime,
         last_updated_date: datetime,
-        message: str | None = None,
-        status_flag: str | None = None,
+        message: Optional[str] = None,
+        status_flag: Optional[str] = None,
     ):
         self.id = id_
         self.domain_name = domain_name
@@ -662,8 +662,8 @@ class Route53DomainsOperation(BaseModel):
         domain_name: str,
         status: str,
         type_: str,
-        message: str | None = None,
-        status_flag: str | None = None,
+        message: Optional[str] = None,
+        status_flag: Optional[str] = None,
     ):
         id_ = str(mock_random.uuid4())
         submitted_date = datetime.now(timezone.utc)
@@ -700,20 +700,20 @@ class Route53DomainsOperation(BaseModel):
 class Route53DomainsContactDetail(BaseModel):
     def __init__(
         self,
-        address_line_1: str | None = None,
-        address_line_2: str | None = None,
-        city: str | None = None,
-        contact_type: str | None = None,
-        country_code: str | None = None,
-        email: str | None = None,
-        extra_params: list[dict[str, Any]] | None = None,
-        fax: str | None = None,
-        first_name: str | None = None,
-        last_name: str | None = None,
-        organization_name: str | None = None,
-        phone_number: str | None = None,
-        state: str | None = None,
-        zip_code: str | None = None,
+        address_line_1: Optional[str] = None,
+        address_line_2: Optional[str] = None,
+        city: Optional[str] = None,
+        contact_type: Optional[str] = None,
+        country_code: Optional[str] = None,
+        email: Optional[str] = None,
+        extra_params: Optional[list[dict[str, Any]]] = None,
+        fax: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        organization_name: Optional[str] = None,
+        phone_number: Optional[str] = None,
+        state: Optional[str] = None,
+        zip_code: Optional[str] = None,
     ):
         super().__init__()
         self.address_line_1 = address_line_1
@@ -734,20 +734,20 @@ class Route53DomainsContactDetail(BaseModel):
     @classmethod
     def validate(  # type: ignore[misc, no-untyped-def]
         cls,
-        address_line_1: str | None = None,
-        address_line_2: str | None = None,
-        city: str | None = None,
-        contact_type: str | None = None,
-        country_code: str | None = None,
-        email: str | None = None,
-        extra_params: list[dict[str, Any]] | None = None,
-        fax: str | None = None,
-        first_name: str | None = None,
-        last_name: str | None = None,
-        organization_name: str | None = None,
-        phone_number: str | None = None,
-        state: str | None = None,
-        zip_code: str | None = None,
+        address_line_1: Optional[str] = None,
+        address_line_2: Optional[str] = None,
+        city: Optional[str] = None,
+        contact_type: Optional[str] = None,
+        country_code: Optional[str] = None,
+        email: Optional[str] = None,
+        extra_params: Optional[list[dict[str, Any]]] = None,
+        fax: Optional[str] = None,
+        first_name: Optional[str] = None,
+        last_name: Optional[str] = None,
+        organization_name: Optional[str] = None,
+        phone_number: Optional[str] = None,
+        state: Optional[str] = None,
+        zip_code: Optional[str] = None,
     ):
         input_errors: list[str] = []
 
@@ -831,7 +831,7 @@ class Route53DomainsContactDetail(BaseModel):
 
     @staticmethod
     def __validate_str_len(
-        value: str | None, field_name: str, max_len: int, input_errors: list[str]
+        value: Optional[str], field_name: str, max_len: int, input_errors: list[str]
     ) -> None:
         if value and len(value) > max_len:
             input_errors.append(f"Length of {field_name} is more than {max_len}")
@@ -863,7 +863,7 @@ class NameServer:
         self.glue_ips = glue_ips
 
     @classmethod
-    def validate(cls, name: str, glue_ips: list[str] | None = None):  # type: ignore[misc,no-untyped-def]
+    def validate(cls, name: str, glue_ips: Optional[list[str]] = None):  # type: ignore[misc,no-untyped-def]
         glue_ips = glue_ips or []
         input_errors: list[str] = []
 
@@ -961,21 +961,21 @@ class Route53Domain(BaseModel):
         admin_contact: Route53DomainsContactDetail,
         registrant_contact: Route53DomainsContactDetail,
         tech_contact: Route53DomainsContactDetail,
-        nameservers: list[dict[str, Any]] | None = None,
+        nameservers: Optional[list[dict[str, Any]]] = None,
         auto_renew: bool = True,
         admin_privacy: bool = True,
         registrant_privacy: bool = True,
         tech_privacy: bool = True,
-        registrar_name: str | None = None,
-        whois_server: str | None = None,
-        registrar_url: str | None = None,
-        abuse_contact_email: str | None = None,
-        abuse_contact_phone: str | None = None,
-        registry_domain_id: str | None = None,
-        expiration_date: datetime | None = None,
-        reseller: str | None = None,
-        dns_sec_keys: list[dict[str, Any]] | None = None,
-        extra_params: list[dict[str, Any]] | None = None,
+        registrar_name: Optional[str] = None,
+        whois_server: Optional[str] = None,
+        registrar_url: Optional[str] = None,
+        abuse_contact_email: Optional[str] = None,
+        abuse_contact_phone: Optional[str] = None,
+        registry_domain_id: Optional[str] = None,
+        expiration_date: Optional[datetime] = None,
+        reseller: Optional[str] = None,
+        dns_sec_keys: Optional[list[dict[str, Any]]] = None,
+        extra_params: Optional[list[dict[str, Any]]] = None,
     ):
         input_errors: list[str] = []
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from moto.stepfunctions.parser.api import Arn, InspectionData, StateMachineType
 from moto.stepfunctions.parser.asl.eval.environment import Environment
 from moto.stepfunctions.parser.asl.eval.evaluation_details import AWSExecutionDetails
@@ -30,7 +32,7 @@ class TestStateEnvironment(Environment):
         context: ContextObjectData,
         event_history_context: EventHistoryContext,
         activity_store: dict[Arn, Activity],
-        cloud_watch_logging_session: CloudWatchLoggingSession | None = None,
+        cloud_watch_logging_session: Optional[CloudWatchLoggingSession] = None,
     ):
         super().__init__(
             aws_execution_details=aws_execution_details,
@@ -45,7 +47,7 @@ class TestStateEnvironment(Environment):
     def as_frame_of(
         cls,
         env: TestStateEnvironment,
-        event_history_frame_cache: EventHistoryContext | None = None,
+        event_history_frame_cache: Optional[EventHistoryContext] = None,
     ) -> Environment:
         frame = super().as_frame_of(
             env=env, event_history_frame_cache=event_history_frame_cache
@@ -57,7 +59,7 @@ class TestStateEnvironment(Environment):
         cls,
         env: TestStateEnvironment,
         variable_store: VariableStore,
-        event_history_frame_cache: EventHistoryContext | None = None,
+        event_history_frame_cache: Optional[EventHistoryContext] = None,
     ) -> Environment:
         frame = super().as_inner_frame_of(
             env=env,

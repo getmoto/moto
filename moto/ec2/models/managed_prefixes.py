@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.utilities.utils import filter_resources, get_partition
 
@@ -11,12 +11,12 @@ class ManagedPrefixList(TaggedEC2Resource):
         self,
         backend: Any,
         region: str,
-        address_family: str | None = None,
-        entry: list[dict[str, str]] | None = None,
-        max_entries: str | None = None,
-        prefix_list_name: str | None = None,
-        tags: dict[str, str] | None = None,
-        owner_id: str | None = None,
+        address_family: Optional[str] = None,
+        entry: Optional[list[dict[str, str]]] = None,
+        max_entries: Optional[str] = None,
+        prefix_list_name: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        owner_id: Optional[str] = None,
     ):
         self.ec2_backend = backend
         self.address_family = address_family
@@ -26,7 +26,7 @@ class ManagedPrefixList(TaggedEC2Resource):
         self.state = "create-complete"
         self.state_message = None
         self.add_tags(tags or {})
-        self.version: int | None = 1
+        self.version: Optional[int] = 1
         self.entries = {self.version: entry} if entry else {}
         self.resource_owner_id = owner_id if owner_id else None
         self.prefix_list_arn = self.arn(region, self.owner_id)
@@ -53,12 +53,12 @@ class ManagedPrefixListBackend:
 
     def create_managed_prefix_list(
         self,
-        address_family: str | None = None,
-        entry: list[dict[str, str]] | None = None,
-        max_entries: str | None = None,
-        prefix_list_name: str | None = None,
-        tags: dict[str, str] | None = None,
-        owner_id: str | None = None,
+        address_family: Optional[str] = None,
+        entry: Optional[list[dict[str, str]]] = None,
+        max_entries: Optional[str] = None,
+        prefix_list_name: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        owner_id: Optional[str] = None,
     ) -> ManagedPrefixList:
         managed_prefix_list = ManagedPrefixList(
             self,
@@ -74,7 +74,7 @@ class ManagedPrefixListBackend:
         return managed_prefix_list
 
     def describe_managed_prefix_lists(
-        self, prefix_list_ids: list[str] | None = None, filters: Any = None
+        self, prefix_list_ids: Optional[list[str]] = None, filters: Any = None
     ) -> list[ManagedPrefixList]:
         managed_prefix_lists = list(self.managed_prefix_lists.values())
         attr_pairs = (
@@ -105,7 +105,7 @@ class ManagedPrefixListBackend:
 
     def get_managed_prefix_list_entries(
         self, prefix_list_id: str
-    ) -> ManagedPrefixList | None:
+    ) -> Optional[ManagedPrefixList]:
         return self.managed_prefix_lists.get(prefix_list_id)
 
     def delete_managed_prefix_list(self, prefix_list_id: str) -> ManagedPrefixList:
@@ -119,9 +119,9 @@ class ManagedPrefixListBackend:
         self,
         add_entry: list[dict[str, str]],
         remove_entry: list[dict[str, str]],
-        prefix_list_id: str | None = None,
-        current_version: str | None = None,
-        prefix_list_name: str | None = None,
+        prefix_list_id: Optional[str] = None,
+        current_version: Optional[str] = None,
+        prefix_list_name: Optional[str] = None,
     ) -> ManagedPrefixList:
         managed_pl: ManagedPrefixList = self.managed_prefix_lists.get(prefix_list_id)  # type: ignore
         managed_pl.prefix_list_name = prefix_list_name

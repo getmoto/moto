@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow
@@ -98,13 +98,13 @@ class Cluster:
         account_id: str,
         region_name: str,
         aws_partition: str,
-        version: str | None = None,
-        kubernetes_network_config: dict[str, str] | None = None,
-        logging: dict[str, Any] | None = None,
-        client_request_token: str | None = None,
-        tags: dict[str, str] | None = None,
-        encryption_config: list[dict[str, Any]] | None = None,
-        remote_network_config: dict[str, list[dict[str, list[str]]]] | None = None,
+        version: Optional[str] = None,
+        kubernetes_network_config: Optional[dict[str, str]] = None,
+        logging: Optional[dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        encryption_config: Optional[list[dict[str, Any]]] = None,
+        remote_network_config: Optional[dict[str, list[dict[str, list[str]]]]] = None,
     ):
         if encryption_config is None:
             encryption_config = []
@@ -159,9 +159,9 @@ class FargateProfile:
         account_id: str,
         region_name: str,
         aws_partition: str,
-        client_request_token: str | None = None,
-        subnets: list[str] | None = None,
-        tags: dict[str, str] | None = None,
+        client_request_token: Optional[str] = None,
+        subnets: Optional[list[str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         if subnets is None:
             subnets = []
@@ -199,19 +199,19 @@ class Nodegroup:
         account_id: str,
         region_name: str,
         aws_partition: str,
-        scaling_config: dict[str, int] | None = None,
-        disk_size: int | None = None,
-        instance_types: list[str] | None = None,
-        ami_type: str | None = None,
-        remote_access: dict[str, Any] | None = None,
-        labels: dict[str, str] | None = None,
-        taints: list[dict[str, str]] | None = None,
-        tags: dict[str, str] | None = None,
-        client_request_token: str | None = None,
-        launch_template: dict[str, str] | None = None,
-        capacity_type: str | None = None,
-        version: str | None = None,
-        release_version: str | None = None,
+        scaling_config: Optional[dict[str, int]] = None,
+        disk_size: Optional[int] = None,
+        instance_types: Optional[list[str]] = None,
+        ami_type: Optional[str] = None,
+        remote_access: Optional[dict[str, Any]] = None,
+        labels: Optional[dict[str, str]] = None,
+        taints: Optional[list[dict[str, str]]] = None,
+        tags: Optional[dict[str, str]] = None,
+        client_request_token: Optional[str] = None,
+        launch_template: Optional[dict[str, str]] = None,
+        capacity_type: Optional[str] = None,
+        version: Optional[str] = None,
+        release_version: Optional[str] = None,
     ):
         if tags is None:
             tags = {}
@@ -291,13 +291,13 @@ class EKSBackend(BaseBackend):
         name: str,
         role_arn: str,
         resources_vpc_config: dict[str, Any],
-        version: str | None = None,
-        kubernetes_network_config: dict[str, str] | None = None,
-        logging: dict[str, Any] | None = None,
-        client_request_token: str | None = None,
-        tags: dict[str, str] | None = None,
-        encryption_config: list[dict[str, Any]] | None = None,
-        remote_network_config: dict[str, list[dict[str, list[str]]]] | None = None,
+        version: Optional[str] = None,
+        kubernetes_network_config: Optional[dict[str, str]] = None,
+        logging: Optional[dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        encryption_config: Optional[list[dict[str, Any]]] = None,
+        remote_network_config: Optional[dict[str, list[dict[str, list[str]]]]] = None,
     ) -> Cluster:
         if name in self.clusters:
             # Cluster exists.
@@ -334,9 +334,9 @@ class EKSBackend(BaseBackend):
         cluster_name: str,
         selectors: list[dict[str, Any]],
         pod_execution_role_arn: str,
-        subnets: list[str] | None = None,
-        client_request_token: str | None = None,
-        tags: dict[str, str] | None = None,
+        subnets: Optional[list[str]] = None,
+        client_request_token: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> FargateProfile:
         try:
             # Cluster exists.
@@ -388,19 +388,19 @@ class EKSBackend(BaseBackend):
         node_role: str,
         nodegroup_name: str,
         subnets: list[str],
-        scaling_config: dict[str, int] | None = None,
-        disk_size: int | None = None,
-        instance_types: list[str] | None = None,
-        ami_type: str | None = None,
-        remote_access: dict[str, Any] | None = None,
-        labels: dict[str, str] | None = None,
-        taints: list[dict[str, str]] | None = None,
-        tags: dict[str, str] | None = None,
-        client_request_token: str | None = None,
-        launch_template: dict[str, str] | None = None,
-        capacity_type: str | None = None,
-        version: str | None = None,
-        release_version: str | None = None,
+        scaling_config: Optional[dict[str, int]] = None,
+        disk_size: Optional[int] = None,
+        instance_types: Optional[list[str]] = None,
+        ami_type: Optional[str] = None,
+        remote_access: Optional[dict[str, Any]] = None,
+        labels: Optional[dict[str, str]] = None,
+        taints: Optional[list[dict[str, str]]] = None,
+        tags: Optional[dict[str, str]] = None,
+        client_request_token: Optional[str] = None,
+        launch_template: Optional[dict[str, str]] = None,
+        capacity_type: Optional[str] = None,
+        version: Optional[str] = None,
+        release_version: Optional[str] = None,
     ) -> Nodegroup:
         try:
             # Cluster exists.
@@ -680,21 +680,21 @@ class EKSBackend(BaseBackend):
         return cluster.tags
 
     def list_clusters(
-        self, max_results: int, next_token: str | None
-    ) -> tuple[list[Cluster], Cluster | None]:
+        self, max_results: int, next_token: Optional[str]
+    ) -> tuple[list[Cluster], Optional[Cluster]]:
         return paginated_list(list(self.clusters.keys()), max_results, next_token)
 
     def list_fargate_profiles(
-        self, cluster_name: str, max_results: int, next_token: str | None
-    ) -> tuple[list[FargateProfile], FargateProfile | None]:
+        self, cluster_name: str, max_results: int, next_token: Optional[str]
+    ) -> tuple[list[FargateProfile], Optional[FargateProfile]]:
         cluster = self.clusters[cluster_name]
         return paginated_list(
             list(cluster.fargate_profiles.keys()), max_results, next_token
         )
 
     def list_nodegroups(
-        self, cluster_name: str, max_results: int, next_token: str | None
-    ) -> tuple[list[Nodegroup], Nodegroup | None]:
+        self, cluster_name: str, max_results: int, next_token: Optional[str]
+    ) -> tuple[list[Nodegroup], Optional[Nodegroup]]:
         cluster = self.clusters[cluster_name]
         return paginated_list(list(cluster.nodegroups.keys()), max_results, next_token)
 
@@ -702,10 +702,10 @@ class EKSBackend(BaseBackend):
         self,
         name: str,
         resources_vpc_config: dict[str, Any],
-        logging: dict[str, Any] | None = None,
-        client_request_token: str | None = None,
-        kubernetes_network_config: dict[str, str] | None = None,
-        remote_network_config: dict[str, list[dict[str, list[str]]]] | None = None,
+        logging: Optional[dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        kubernetes_network_config: Optional[dict[str, str]] = None,
+        remote_network_config: Optional[dict[str, list[dict[str, list[str]]]]] = None,
     ) -> Cluster:
         cluster = self.clusters.get(name)
         if cluster:
@@ -732,8 +732,8 @@ class EKSBackend(BaseBackend):
 
 
 def paginated_list(
-    full_list: list[Any], max_results: int, next_token: str | None
-) -> tuple[list[Any], Any | None]:
+    full_list: list[Any], max_results: int, next_token: Optional[str]
+) -> tuple[list[Any], Optional[Any]]:
     """
     Returns a tuple containing a slice of the full list
     starting at next_token and ending with at most the
@@ -764,7 +764,7 @@ def validate_safe_to_delete(cluster: Cluster) -> None:
 
 
 def validate_launch_template_combination(
-    disk_size: int | None, remote_access: dict[str, Any] | None
+    disk_size: Optional[int], remote_access: Optional[dict[str, Any]]
 ) -> None:
     if not (disk_size or remote_access):
         return

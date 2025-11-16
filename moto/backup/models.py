@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -27,7 +27,7 @@ class Plan(BaseModel):
         self.backup_plan = backup_plan
         adv_settings = backup_plan.get("AdvancedBackupSettings")
         self.advanced_backup_settings = adv_settings or []
-        self.deletion_date: float | None = None
+        self.deletion_date: Optional[float] = None
         # Deletion Date is updated when the backup_plan is deleted
         self.last_execution_date = None  # start_restore_job not yet supported
         rules = backup_plan["Rules"]
@@ -153,7 +153,7 @@ class BackupBackend(BaseBackend):
         self.plans[plan.backup_plan_id] = plan
         return plan
 
-    def get_backup_plan(self, backup_plan_id: str, version_id: Any | None) -> Plan:
+    def get_backup_plan(self, backup_plan_id: str, version_id: Optional[Any]) -> Plan:
         msg = "Failed reading Backup plan with provided version"
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(msg=msg)

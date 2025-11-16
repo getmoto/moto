@@ -1,6 +1,6 @@
 """NetworkFirewallBackend class with methods for supported APIs."""
 
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -126,7 +126,7 @@ class NetworkFirewallBackend(BaseBackend):
         return firewall
 
     def _get_firewall(
-        self, firewall_arn: str | None, firewall_name: str | None
+        self, firewall_arn: Optional[str], firewall_name: Optional[str]
     ) -> NetworkFirewallModel:
         if firewall_arn:
             if firewall_arn in self.firewalls:

@@ -2,7 +2,7 @@ import json
 import math
 from collections.abc import Iterable
 from datetime import datetime, timedelta
-from typing import Any, SupportsFloat
+from typing import Any, Optional, SupportsFloat
 
 from moto.core.base_backend import BaseBackend
 from moto.core.common_models import BackendDict, BaseModel, CloudWatchMetricProvider
@@ -29,7 +29,7 @@ _EMPTY_LIST: Any = ()
 
 
 class Dimension:
-    def __init__(self, name: str | None, value: str | None):
+    def __init__(self, name: Optional[str], value: Optional[str]):
         self.name = name
         self.value = value
 
@@ -66,8 +66,8 @@ class MetricDataQuery:
         label: str,
         period: str,
         return_data: str,
-        expression: str | None = None,
-        metric_stat: MetricStat | None = None,
+        expression: Optional[str] = None,
+        metric_stat: Optional[MetricStat] = None,
     ):
         self.id = query_id
         self.label = label
@@ -118,25 +118,25 @@ class Alarm(BaseModel):
         name: str,
         namespace: str,
         metric_name: str,
-        metric_data_queries: list[MetricDataQuery] | None,
+        metric_data_queries: Optional[list[MetricDataQuery]],
         comparison_operator: str,
         evaluation_periods: int,
-        datapoints_to_alarm: int | None,
+        datapoints_to_alarm: Optional[int],
         period: int,
         threshold: float,
         statistic: str,
-        extended_statistic: str | None,
+        extended_statistic: Optional[str],
         description: str,
         dimensions: list[dict[str, str]],
         alarm_actions: list[str],
-        ok_actions: list[str] | None,
-        insufficient_data_actions: list[str] | None,
-        unit: str | None,
+        ok_actions: Optional[list[str]],
+        insufficient_data_actions: Optional[list[str]],
+        unit: Optional[str],
         actions_enabled: bool,
-        treat_missing_data: str | None,
-        evaluate_low_sample_count_percentile: str | None,
-        threshold_metric_id: str | None,
-        rule: str | None,
+        treat_missing_data: Optional[str],
+        evaluate_low_sample_count_percentile: Optional[str],
+        threshold_metric_id: Optional[str],
+        rule: Optional[str],
     ):
         self.region_name = region_name
         self.name = name
@@ -218,7 +218,7 @@ class MetricDatumBase(BaseModel):
         namespace: str,
         name: str,
         dimensions: list[dict[str, str]],
-        timestamp: datetime | None,
+        timestamp: Optional[datetime],
         unit: Any = None,
     ):
         self.namespace = namespace
@@ -231,10 +231,10 @@ class MetricDatumBase(BaseModel):
 
     def filter(
         self,
-        namespace: str | None,
-        name: str | None,
+        namespace: Optional[str],
+        name: Optional[str],
         dimensions: list[dict[str, str]],
-        already_present_metrics: list["MetricDatumBase"] | None = None,
+        already_present_metrics: Optional[list["MetricDatumBase"]] = None,
     ) -> bool:
         if namespace and namespace != self.namespace:
             return False
@@ -271,7 +271,7 @@ class MetricDatum(MetricDatumBase):
         name: str,
         value: float,
         dimensions: list[dict[str, str]],
-        timestamp: datetime | None,
+        timestamp: Optional[datetime],
         unit: Any = None,
     ):
         super().__init__(namespace, name, dimensions, timestamp, unit)
@@ -292,7 +292,7 @@ class MetricAggregatedDatum(MetricDatumBase):
         sample_count: float,
         sum_stat: float,
         dimensions: list[dict[str, str]],
-        timestamp: datetime | None,
+        timestamp: Optional[datetime],
         unit: Any = None,
     ):
         super().__init__(namespace, name, dimensions, timestamp, unit)
@@ -326,13 +326,13 @@ class Statistics:
     Helper class to calculate statics for a list of metrics (MetricDatum, or MetricAggregatedDatum)
     """
 
-    def __init__(self, stats: list[str], dt: datetime, unit: str | None = None):
+    def __init__(self, stats: list[str], dt: datetime, unit: Optional[str] = None):
         self.timestamp: datetime = dt or utcnow()
         self.metric_data: list[MetricDatumBase] = []
         self.stats = stats
         self.unit = unit
 
-    def get_statistics_for_type(self, stat: str) -> SupportsFloat | None:
+    def get_statistics_for_type(self, stat: str) -> Optional[SupportsFloat]:
         """Calculates the statistic for the metric_data provided
 
         :param stat: the statistic that should be returned, case-sensitive (Sum, Average, Minium, Maximum, SampleCount)
@@ -367,21 +367,21 @@ class Statistics:
         ]
 
     @property
-    def sample_count(self) -> SupportsFloat | None:
+    def sample_count(self) -> Optional[SupportsFloat]:
         if "SampleCount" not in self.stats:
             return None
 
         return self.calc_sample_count()
 
     @property
-    def sum(self) -> SupportsFloat | None:
+    def sum(self) -> Optional[SupportsFloat]:
         if "Sum" not in self.stats:
             return None
 
         return self.calc_sum()
 
     @property
-    def minimum(self) -> SupportsFloat | None:
+    def minimum(self) -> Optional[SupportsFloat]:
         if "Minimum" not in self.stats:
             return None
         if not self.metric_single_values_list and not self.metric_aggregated_list:
@@ -393,7 +393,7 @@ class Statistics:
         return min(metrics)
 
     @property
-    def maximum(self) -> SupportsFloat | None:
+    def maximum(self) -> Optional[SupportsFloat]:
         if "Maximum" not in self.stats:
             return None
 
@@ -406,7 +406,7 @@ class Statistics:
         return max(metrics)
 
     @property
-    def average(self) -> SupportsFloat | None:
+    def average(self) -> Optional[SupportsFloat]:
         if "Average" not in self.stats:
             return None
 
@@ -436,8 +436,8 @@ class InsightRule(BaseModel):
         definition: str,
         name: str,
         state: str,
-        schema: str | None,
-        managed_rule: bool | None,
+        schema: Optional[str],
+        managed_rule: Optional[bool],
     ):
         self.definition = definition
         self.name = name
@@ -484,18 +484,18 @@ class CloudWatchBackend(BaseBackend):
         description: str,
         dimensions: list[dict[str, str]],
         alarm_actions: list[str],
-        metric_data_queries: list[MetricDataQuery] | None = None,
-        datapoints_to_alarm: int | None = None,
-        extended_statistic: str | None = None,
-        ok_actions: list[str] | None = None,
-        insufficient_data_actions: list[str] | None = None,
-        unit: str | None = None,
+        metric_data_queries: Optional[list[MetricDataQuery]] = None,
+        datapoints_to_alarm: Optional[int] = None,
+        extended_statistic: Optional[str] = None,
+        ok_actions: Optional[list[str]] = None,
+        insufficient_data_actions: Optional[list[str]] = None,
+        unit: Optional[str] = None,
         actions_enabled: bool = True,
-        treat_missing_data: str | None = None,
-        evaluate_low_sample_count_percentile: str | None = None,
-        threshold_metric_id: str | None = None,
-        rule: str | None = None,
-        tags: list[dict[str, str]] | None = None,
+        treat_missing_data: Optional[str] = None,
+        evaluate_low_sample_count_percentile: Optional[str] = None,
+        threshold_metric_id: Optional[str] = None,
+        rule: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> Alarm:
         if extended_statistic and not extended_statistic.startswith("p"):
             raise InvalidParameterValue(
@@ -814,7 +814,7 @@ class CloudWatchBackend(BaseBackend):
         period: int,
         stats: list[str],
         dimensions: list[dict[str, str]],
-        unit: str | None = None,
+        unit: Optional[str] = None,
     ) -> list[Statistics]:
         start_time = start_time.replace(microsecond=0)
         end_time = end_time.replace(microsecond=0)
@@ -878,7 +878,7 @@ class CloudWatchBackend(BaseBackend):
             if key.startswith(prefix):
                 yield value
 
-    def delete_dashboards(self, dashboards: list[str]) -> str | None:
+    def delete_dashboards(self, dashboards: list[str]) -> Optional[str]:
         to_delete = set(dashboards)
         all_dashboards = set(self.dashboards.keys())
 
@@ -893,7 +893,7 @@ class CloudWatchBackend(BaseBackend):
 
         return None
 
-    def get_dashboard(self, dashboard: str) -> Dashboard | None:
+    def get_dashboard(self, dashboard: str) -> Optional[Dashboard]:
         return self.dashboards.get(dashboard)
 
     def set_alarm_state(
@@ -919,11 +919,11 @@ class CloudWatchBackend(BaseBackend):
 
     def list_metrics(
         self,
-        next_token: str | None,
+        next_token: Optional[str],
         namespace: str,
         metric_name: str,
         dimensions: list[dict[str, str]],
-    ) -> tuple[str | None, list[MetricDatumBase]]:
+    ) -> tuple[Optional[str], list[MetricDatumBase]]:
         if next_token:
             if next_token not in self.paged_metric_data:
                 raise InvalidParameterValue("Request parameter NextToken is invalid")
@@ -970,7 +970,7 @@ class CloudWatchBackend(BaseBackend):
 
     def _get_paginated(
         self, metrics: list[MetricDatumBase]
-    ) -> tuple[str | None, list[MetricDatumBase]]:
+    ) -> tuple[Optional[str], list[MetricDatumBase]]:
         if len(metrics) > 500:
             next_token = str(mock_random.uuid4())
             self.paged_metric_data[next_token] = metrics[500:]
@@ -1031,7 +1031,7 @@ class CloudWatchBackend(BaseBackend):
         name: str,
         state: str,
         definition: str,
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> InsightRule:
         rule = InsightRule(
             account_id=self.account_id,
@@ -1051,8 +1051,8 @@ class CloudWatchBackend(BaseBackend):
 
     def describe_insight_rules(
         self,
-        next_token: str | None = "",
-        max_results: int | None = 500,
+        next_token: Optional[str] = "",
+        max_results: Optional[int] = 500,
     ) -> list[InsightRule]:
         rules = list(self.insight_rules.values())
 

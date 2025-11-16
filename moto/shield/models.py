@@ -4,7 +4,7 @@ import random
 import string
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -188,7 +188,7 @@ class ShieldBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.protections: dict[str, Protection] = {}
-        self.subscription: Subscription | None = None
+        self.subscription: Optional[Subscription] = None
         self.tagger = TaggingService()
 
     def validate_resource_arn(self, resource_arn: str) -> None:

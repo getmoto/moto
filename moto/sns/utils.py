@@ -1,7 +1,7 @@
 import json
 import re
-from collections.abc import Callable, Iterable
-from typing import Any, Union
+from collections.abc import Iterable
+from typing import Any, Callable, Optional, Union
 
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
@@ -26,7 +26,9 @@ class FilterPolicyMatcher:
     class CheckException(Exception):
         pass
 
-    def __init__(self, filter_policy: dict[str, Any], filter_policy_scope: str | None):
+    def __init__(
+        self, filter_policy: dict[str, Any], filter_policy_scope: Optional[str]
+    ):
         self.filter_policy = filter_policy
         self.filter_policy_scope = (
             filter_policy_scope
@@ -39,7 +41,9 @@ class FilterPolicyMatcher:
                 f"Unsupported filter_policy_scope: {filter_policy_scope}"
             )
 
-    def matches(self, message_attributes: dict[str, Any] | None, message: str) -> bool:
+    def matches(
+        self, message_attributes: Optional[dict[str, Any]], message: str
+    ) -> bool:
         if not self.filter_policy:
             return True
 

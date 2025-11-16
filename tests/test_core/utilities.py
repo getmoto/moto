@@ -1,5 +1,6 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Event, Thread
+from typing import Optional
 
 
 class SimpleServer:
@@ -7,9 +8,9 @@ class SimpleServer:
         self._port = 0
         self._handler = handler
 
-        self._thread: Thread | None = None
+        self._thread: Optional[Thread] = None
         self._ip_address = "0.0.0.0"
-        self._server: HTTPServer | None = None
+        self._server: Optional[HTTPServer] = None
         self._server_ready_event = Event()
 
     def _server_entry(self) -> None:

@@ -1,7 +1,7 @@
 import abc
 from collections import OrderedDict
 from threading import Event, Lock
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import ActivityDoesNotExist, Arn
 from moto.stepfunctions.parser.backend.activity import Activity, ActivityTask
@@ -26,10 +26,12 @@ class CallbackOutcomeSuccess(CallbackOutcome):
 
 
 class CallbackOutcomeFailure(CallbackOutcome):
-    error: Final[str | None]
-    cause: Final[str | None]
+    error: Final[Optional[str]]
+    cause: Final[Optional[str]]
 
-    def __init__(self, callback_id: CallbackId, error: str | None, cause: str | None):
+    def __init__(
+        self, callback_id: CallbackId, error: Optional[str], cause: Optional[str]
+    ):
         super().__init__(callback_id=callback_id)
         self.error = error
         self.cause = cause
@@ -85,20 +87,20 @@ class HeartbeatTimedOut(CallbackConsumerError):
 
 
 class ActivityTaskStartOutcome:
-    worker_name: str | None
+    worker_name: Optional[str]
 
-    def __init__(self, worker_name: str | None = None):
+    def __init__(self, worker_name: Optional[str] = None):
         self.worker_name = worker_name
 
 
 class ActivityTaskStartEndpoint:
     _next_activity_task_start_event: Final[Event]
-    _outcome: ActivityTaskStartOutcome | None
+    _outcome: Optional[ActivityTaskStartOutcome]
 
     def __init__(self):
         self._next_activity_task_start_event = Event()
 
-    def wait(self, timeout_seconds: float) -> ActivityTaskStartOutcome | None:
+    def wait(self, timeout_seconds: float) -> Optional[ActivityTaskStartOutcome]:
         self._next_activity_task_start_event.wait(timeout=timeout_seconds)
         return self._outcome
 
@@ -110,9 +112,9 @@ class ActivityTaskStartEndpoint:
 class CallbackEndpoint:
     callback_id: Final[CallbackId]
     _notify_event: Final[Event]
-    _outcome: CallbackOutcome | None
-    consumer_error: CallbackConsumerError | None
-    _heartbeat_endpoint: HeartbeatEndpoint | None
+    _outcome: Optional[CallbackOutcome]
+    consumer_error: Optional[CallbackConsumerError]
+    _heartbeat_endpoint: Optional[HeartbeatEndpoint]
 
     def __init__(self, callback_id: CallbackId):
         self.callback_id = callback_id
@@ -146,11 +148,11 @@ class CallbackEndpoint:
         self._heartbeat_endpoint.notify()
         return True
 
-    def wait(self, timeout: float | None = None) -> CallbackOutcome | None:
+    def wait(self, timeout: Optional[float] = None) -> Optional[CallbackOutcome]:
         self._notify_event.wait(timeout=timeout)
         return self._outcome
 
-    def get_outcome(self) -> CallbackOutcome | None:
+    def get_outcome(self) -> Optional[CallbackOutcome]:
         return self._outcome
 
     def report(self, consumer_error: CallbackConsumerError) -> None:
@@ -172,7 +174,7 @@ class ActivityCallbackEndpoint(CallbackEndpoint):
     def get_activity_task_start_endpoint(self) -> ActivityTaskStartEndpoint:
         return self._activity_task_start_endpoint
 
-    def notify_activity_task_start(self, worker_name: str | None) -> None:
+    def notify_activity_task_start(self, worker_name: Optional[str]) -> None:
         self._activity_task_start_endpoint.notify(
             ActivityTaskStartOutcome(worker_name=worker_name)
         )
@@ -200,7 +202,7 @@ class CallbackPoolManager:
         self._activity_store = activity_store
         self._pool = OrderedDict()
 
-    def get(self, callback_id: CallbackId) -> CallbackEndpoint | None:
+    def get(self, callback_id: CallbackId) -> Optional[CallbackEndpoint]:
         return self._pool.get(callback_id)
 
     def add(self, callback_id: CallbackId) -> CallbackEndpoint:
@@ -216,7 +218,7 @@ class CallbackPoolManager:
         if callback_id in self._pool:
             raise ValueError("Duplicate callback token id value.")
 
-        maybe_activity: Activity | None = self._activity_store.get(activity_arn)
+        maybe_activity: Optional[Activity] = self._activity_store.get(activity_arn)
         if maybe_activity is None:
             raise ActivityDoesNotExist()
 
@@ -238,7 +240,9 @@ class CallbackPoolManager:
         if callback_endpoint is None:
             return False
 
-        consumer_error: CallbackConsumerError | None = callback_endpoint.consumer_error
+        consumer_error: Optional[CallbackConsumerError] = (
+            callback_endpoint.consumer_error
+        )
         if consumer_error is not None:
             raise CallbackNotifyConsumerError(callback_consumer_error=consumer_error)
 
@@ -250,7 +254,9 @@ class CallbackPoolManager:
         if callback_endpoint is None:
             return False
 
-        consumer_error: CallbackConsumerError | None = callback_endpoint.consumer_error
+        consumer_error: Optional[CallbackConsumerError] = (
+            callback_endpoint.consumer_error
+        )
         if consumer_error is not None:
             raise CallbackNotifyConsumerError(callback_consumer_error=consumer_error)
 

@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.bedrock.exceptions import (
     ResourceInUseException,
@@ -29,13 +29,13 @@ class ModelCustomizationJob(BaseModel):
         hyper_parameters: dict[str, str],
         region_name: str,
         account_id: str,
-        client_request_token: str | None,
-        customization_type: str | None,
-        custom_model_kms_key_id: str | None,
-        job_tags: list[dict[str, str]] | None,
-        custom_model_tags: list[dict[str, str]] | None,
-        validation_data_config: dict[str, Any] | None,
-        vpc_config: dict[str, Any] | None,
+        client_request_token: Optional[str],
+        customization_type: Optional[str],
+        custom_model_kms_key_id: Optional[str],
+        job_tags: Optional[list[dict[str, str]]],
+        custom_model_tags: Optional[list[dict[str, str]]],
+        validation_data_config: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
     ):
         self.job_name = job_name
         self.custom_model_name = custom_model_name
@@ -135,10 +135,10 @@ class CustomModel(BaseModel):
         base_model_name: str,
         region_name: str,
         account_id: str,
-        customization_type: str | None,
-        model_kms_key_arn: str | None,
-        validation_data_config: dict[str, Any] | None,
-        validation_metrics: list[dict[str, float]] | None,
+        customization_type: Optional[str],
+        model_kms_key_arn: Optional[str],
+        validation_data_config: Optional[dict[str, Any]],
+        validation_metrics: Optional[list[dict[str, float]]],
     ):
         self.model_name = model_name
         self.job_name = job_name
@@ -205,9 +205,9 @@ class BedrockBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.model_customization_jobs: dict[str, ModelCustomizationJob] = {}
         self.custom_models: dict[str, CustomModel] = {}
-        self.model_invocation_logging_configuration: (
-            model_invocation_logging_configuration | None
-        ) = None
+        self.model_invocation_logging_configuration: Optional[
+            model_invocation_logging_configuration
+        ] = None
         self.tagger = TaggingService()
 
     def _list_arns(self) -> list[str]:
@@ -224,13 +224,13 @@ class BedrockBackend(BaseBackend):
         training_data_config: dict[str, Any],
         output_data_config: dict[str, str],
         hyper_parameters: dict[str, str],
-        client_request_token: str | None,
-        customization_type: str | None,
-        custom_model_kms_key_id: str | None,
-        job_tags: list[dict[str, str]] | None,
-        custom_model_tags: list[dict[str, str]] | None,
-        validation_data_config: dict[str, Any] | None,
-        vpc_config: dict[str, Any] | None,
+        client_request_token: Optional[str],
+        customization_type: Optional[str],
+        custom_model_kms_key_id: Optional[str],
+        job_tags: Optional[list[dict[str, str]]],
+        custom_model_tags: Optional[list[dict[str, str]]],
+        validation_data_config: Optional[dict[str, Any]],
+        vpc_config: Optional[dict[str, Any]],
     ) -> str:
         if job_name in self.model_customization_jobs.keys():
             raise ResourceInUseException(
@@ -304,12 +304,12 @@ class BedrockBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_model_customization_jobs(
         self,
-        creation_time_after: datetime | None,
-        creation_time_before: datetime | None,
-        status_equals: str | None,
-        name_contains: str | None,
-        sort_by: str | None,
-        sort_order: str | None,
+        creation_time_after: Optional[datetime],
+        creation_time_before: Optional[datetime],
+        status_equals: Optional[str],
+        name_contains: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
     ) -> list[ModelCustomizationJob]:
         customization_jobs_fetched = list(self.model_customization_jobs.values())
 
@@ -363,7 +363,7 @@ class BedrockBackend(BaseBackend):
 
         return customization_jobs_fetched
 
-    def get_model_invocation_logging_configuration(self) -> dict[str, Any] | None:
+    def get_model_invocation_logging_configuration(self) -> Optional[dict[str, Any]]:
         if self.model_invocation_logging_configuration:
             return self.model_invocation_logging_configuration.logging_config
         else:
@@ -403,13 +403,13 @@ class BedrockBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_custom_models(
         self,
-        creation_time_before: datetime | None,
-        creation_time_after: datetime | None,
-        name_contains: str | None,
-        base_model_arn_equals: str | None,
-        foundation_model_arn_equals: str | None,
-        sort_by: str | None,
-        sort_order: str | None,
+        creation_time_before: Optional[datetime],
+        creation_time_after: Optional[datetime],
+        name_contains: Optional[str],
+        base_model_arn_equals: Optional[str],
+        foundation_model_arn_equals: Optional[str],
+        sort_by: Optional[str],
+        sort_order: Optional[str],
     ) -> list[CustomModel]:
         """
         The foundation_model_arn_equals-argument is not yet supported

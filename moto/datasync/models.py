@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -41,7 +41,7 @@ class Task(BaseModel):
         self.metadata = metadata
         # For simplicity Tasks are either available or running
         self.status = "AVAILABLE"
-        self.current_task_execution_arn: str | None = None
+        self.current_task_execution_arn: Optional[str] = None
         # Generate ARN
         self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:task/task-{str(arn_counter).zfill(17)}"
 

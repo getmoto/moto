@@ -4,7 +4,7 @@ import abc
 import datetime
 import json
 from collections import OrderedDict
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -37,15 +37,15 @@ from moto.stepfunctions.parser.utils import long_uid
 class StateMachineInstance:
     name: Name
     arn: Arn
-    revision_id: RevisionId | None
+    revision_id: Optional[RevisionId]
     definition: Definition
     role_arn: Arn
     create_date: datetime.datetime
     sm_type: StateMachineType
     logging_config: LoggingConfiguration
-    cloud_watch_logging_configuration: CloudWatchLoggingConfiguration | None
-    tags: TagList | None
-    tracing_config: TracingConfiguration | None
+    cloud_watch_logging_configuration: Optional[CloudWatchLoggingConfiguration]
+    tags: Optional[TagList]
+    tracing_config: Optional[TracingConfiguration]
 
     def __init__(
         self,
@@ -54,11 +54,13 @@ class StateMachineInstance:
         definition: Definition,
         role_arn: Arn,
         logging_config: LoggingConfiguration,
-        cloud_watch_logging_configuration: CloudWatchLoggingConfiguration | None = None,
-        create_date: datetime.datetime | None = None,
-        sm_type: StateMachineType | None = None,
-        tags: TagList | None = None,
-        tracing_config: TracingConfiguration | None = None,
+        cloud_watch_logging_configuration: Optional[
+            CloudWatchLoggingConfiguration
+        ] = None,
+        create_date: Optional[datetime.datetime] = None,
+        sm_type: Optional[StateMachineType] = None,
+        tags: Optional[TagList] = None,
+        tracing_config: Optional[TracingConfiguration] = None,
     ):
         self.name = name
         self.arn = arn
@@ -108,7 +110,7 @@ class TestStateMachine(StateMachineInstance):
         arn: Arn,
         definition: Definition,
         role_arn: Arn,
-        create_date: datetime.datetime | None = None,
+        create_date: Optional[datetime.datetime] = None,
     ):
         super().__init__(
             name,
@@ -127,7 +129,7 @@ class TestStateMachine(StateMachineInstance):
 
 
 class TagManager:
-    _tags: Final[dict[str, str | None]]
+    _tags: Final[dict[str, Optional[str]]]
 
     def __init__(self):
         self._tags = OrderedDict()
@@ -175,11 +177,11 @@ class StateMachineRevision(StateMachineInstance):
         definition: Definition,
         role_arn: Arn,
         logging_config: LoggingConfiguration,
-        cloud_watch_logging_configuration: CloudWatchLoggingConfiguration | None,
-        create_date: datetime.datetime | None = None,
-        sm_type: StateMachineType | None = None,
-        tags: TagList | None = None,
-        tracing_config: TracingConfiguration | None = None,
+        cloud_watch_logging_configuration: Optional[CloudWatchLoggingConfiguration],
+        create_date: Optional[datetime.datetime] = None,
+        sm_type: Optional[StateMachineType] = None,
+        tags: Optional[TagList] = None,
+        tracing_config: Optional[TracingConfiguration] = None,
     ):
         super().__init__(
             name,
@@ -202,10 +204,10 @@ class StateMachineRevision(StateMachineInstance):
 
     def create_revision(
         self,
-        definition: str | None,
-        role_arn: Arn | None,
-        logging_configuration: LoggingConfiguration | None,
-    ) -> RevisionId | None:
+        definition: Optional[str],
+        role_arn: Optional[Arn],
+        logging_configuration: Optional[LoggingConfiguration],
+    ) -> Optional[RevisionId]:
         update_definition = definition and json.loads(definition) != json.loads(
             self.definition
         )
@@ -233,7 +235,9 @@ class StateMachineRevision(StateMachineInstance):
 
         return self.revision_id
 
-    def create_version(self, description: str | None) -> StateMachineVersion | None:
+    def create_version(
+        self, description: Optional[str]
+    ) -> Optional[StateMachineVersion]:
         if self.revision_id not in self.versions:
             self._version_number += 1
             version = StateMachineVersion(
@@ -264,13 +268,13 @@ class StateMachineRevision(StateMachineInstance):
 class StateMachineVersion(StateMachineInstance):
     source_arn: Arn
     version: int
-    description: str | None
+    description: Optional[str]
 
     def __init__(
         self,
         state_machine_revision: StateMachineRevision,
         version: int,
-        description: str | None,
+        description: Optional[str],
     ):
         version_arn = f"{state_machine_revision.arn}:{version}"
         super().__init__(

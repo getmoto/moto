@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from typing import Any, Final
+from typing import Any, Callable, Final, Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -75,7 +74,7 @@ _API_ACTION_HANDLER_TYPE = Callable[
 # The type of (sync)handler builder function for StateTaskServiceGlue objects.
 _API_ACTION_HANDLER_BUILDER_TYPE = Callable[
     [Environment, ResourceRuntimePart, dict, StateCredentials],
-    Callable[[], Any | None],
+    Callable[[], Optional[Any]],
 ]
 
 
@@ -83,7 +82,7 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> set[str] | None:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _get_api_action_handler(self) -> _API_ACTION_HANDLER_TYPE:
@@ -179,7 +178,7 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
         state_credentials: StateCredentials,
-    ) -> Callable[[], Any | None]:
+    ) -> Callable[[], Optional[Any]]:
         # Poll the job run state from glue, using GetJobRun until the job has terminated. Hence, append the output
         # of GetJobRun to the state.
 
@@ -194,7 +193,7 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
             state_credentials=state_credentials,
         )
 
-        def _sync_resolver() -> Any | None:
+        def _sync_resolver() -> Optional[Any]:
             # Sample GetJobRun until completion.
             get_job_run_response: dict = glue_client.get_job_run(
                 JobName=job_name, RunId=job_run_id
@@ -244,7 +243,7 @@ class StateTaskServiceGlue(StateTaskServiceCallback):
         resource_runtime_part: ResourceRuntimePart,
         normalised_parameters: dict,
         state_credentials: StateCredentials,
-    ) -> Callable[[], Any | None]:
+    ) -> Callable[[], Optional[Any]]:
         sync_resolver_builder = self._get_api_action_sync_builder_handler()
         sync_resolver = sync_resolver_builder(
             env, resource_runtime_part, normalised_parameters, state_credentials

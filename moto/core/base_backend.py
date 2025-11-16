@@ -1,12 +1,14 @@
 import re
 import string
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from functools import lru_cache
 from threading import RLock
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     ClassVar,
+    Optional,
     TypeVar,
 )
 from uuid import uuid4
@@ -144,7 +146,7 @@ class BaseBackend:
         private_dns_names: bool = True,
         special_service_name: str = "",
         policy_supported: bool = True,
-        base_endpoint_dns_names: list[str] | None = None,
+        base_endpoint_dns_names: Optional[list[str]] = None,
     ) -> list[dict[str, Any]]:
         """List of dicts representing default VPC endpoints for this service."""
         if special_service_name:
@@ -202,7 +204,7 @@ class AccountSpecificBackend(dict[str, SERVICE_BACKEND]):
         account_id: str,
         backend: type,
         use_boto3_regions: bool,
-        additional_regions: list[str] | None,
+        additional_regions: Optional[list[str]],
     ):
         self._id = str(uuid4())
         self.service_name = service_name
@@ -327,7 +329,7 @@ class BackendDict(dict[str, AccountSpecificBackend[SERVICE_BACKEND]]):
         backend: type[SERVICE_BACKEND],
         service_name: str,
         use_boto3_regions: bool = True,
-        additional_regions: list[str] | None = None,
+        additional_regions: Optional[list[str]] = None,
     ):
         self.backend = backend
         self.service_name = service_name

@@ -1,6 +1,6 @@
 import json
 from json import JSONDecodeError
-from typing import IO, Any, Final, Union
+from typing import IO, Any, Final, Optional, Union
 
 from moto.stepfunctions.parser.api import InvocationResponse
 from moto.stepfunctions.parser.asl.component.state.exec.state_task.credentials import (
@@ -17,10 +17,10 @@ from moto.utilities.collections import select_from_typed_dict
 
 
 class LambdaFunctionErrorException(Exception):
-    function_error: Final[str | None]
+    function_error: Final[Optional[str]]
     payload: Final[str]
 
-    def __init__(self, function_error: str | None, payload: str):
+    def __init__(self, function_error: Optional[str], payload: str):
         self.function_error = function_error
         self.payload = payload
 
@@ -77,7 +77,7 @@ def exec_lambda_function(
 
     invocation_resp = lambda_client.invoke(**parameters)
 
-    func_error: str | None = invocation_resp.get("FunctionError")
+    func_error: Optional[str] = invocation_resp.get("FunctionError")
     payload_json = json.load(invocation_resp["Payload"])
     if func_error:
         payload_str = json.dumps(payload_json, separators=(",", ":"))
@@ -98,7 +98,7 @@ def execute_lambda_function_integration(
             parameters=parameters, region=region, state_credentials=state_credentials
         )
 
-    function_error: str | None = invocation_response.get("FunctionError")
+    function_error: Optional[str] = invocation_response.get("FunctionError")
     if function_error:
         payload_json = invocation_response["Payload"]
         payload_str = json.dumps(payload_json, separators=(",", ":"))
@@ -110,7 +110,7 @@ def execute_lambda_function_integration(
     env.stack.append(response)
 
 
-def to_payload_type(payload: Any) -> bytes | None:
+def to_payload_type(payload: Any) -> Optional[bytes]:
     if isinstance(payload, bytes):
         return payload
 

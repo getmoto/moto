@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 
@@ -10,7 +10,7 @@ from .core import TaggedEC2Resource
 class VPCGatewayAttachment(CloudFormationModel):
     # Represents both VPNGatewayAttachment and VPCGatewayAttachment
     def __init__(
-        self, vpc_id: str, gateway_id: str | None = None, state: str | None = None
+        self, vpc_id: str, gateway_id: Optional[str] = None, state: Optional[str] = None
     ):
         self.vpc_id = vpc_id
         self.gateway_id = gateway_id
@@ -62,9 +62,9 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
         ec2_backend: Any,
         gateway_id: str,
         gateway_type: str,
-        amazon_side_asn: str | None,
-        availability_zone: str | None,
-        tags: dict[str, str] | None = None,
+        amazon_side_asn: Optional[str],
+        availability_zone: Optional[str],
+        tags: Optional[dict[str, str]] = None,
         state: str = "available",
     ):
         self.ec2_backend = ec2_backend
@@ -108,7 +108,9 @@ class VpnGateway(CloudFormationModel, TaggedEC2Resource):
     def physical_resource_id(self) -> str:
         return self.id
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         if filter_name == "attachment.vpc-id":
             return self.attachments.keys()
         elif filter_name == "attachment.state":
@@ -127,9 +129,9 @@ class VpnGatewayBackend:
     def create_vpn_gateway(
         self,
         gateway_type: str = "ipsec.1",
-        amazon_side_asn: str | None = None,
-        availability_zone: str | None = None,
-        tags: dict[str, str] | None = None,
+        amazon_side_asn: Optional[str] = None,
+        availability_zone: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> VpnGateway:
         vpn_gateway_id = random_vpn_gateway_id()
         vpn_gateway = VpnGateway(
@@ -139,7 +141,7 @@ class VpnGatewayBackend:
         return vpn_gateway
 
     def describe_vpn_gateways(
-        self, filters: Any = None, vpn_gw_ids: list[str] | None = None
+        self, filters: Any = None, vpn_gw_ids: Optional[list[str]] = None
     ) -> list[VpnGateway]:
         vpn_gateways = list(self.vpn_gateways.values() or [])
         if vpn_gw_ids:

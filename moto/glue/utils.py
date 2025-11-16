@@ -4,7 +4,7 @@ import re
 from datetime import date, datetime
 from enum import Enum
 from itertools import repeat
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from pyparsing import (
     CaselessKeyword,
@@ -65,8 +65,8 @@ class Condition:
         # if there's a job name present, the API creates a job trigger, even if crawler trigger args are provided
         self.job_name = inputs.get("JobName")
         self.crawler_name = inputs.get("CrawlerName")
-        self.state: ConditionState | None = None
-        self.crawl_state: CrawlState | None = None
+        self.state: Optional[ConditionState] = None
+        self.crawl_state: Optional[CrawlState] = None
         if self.job_name:
             self.crawler_name = None
             if inputs.get("State"):
@@ -526,7 +526,7 @@ class _PartitionFilterExpressionCache:
 
         self._cache: dict[str, _Expr] = {}
 
-    def get(self, expression: str | None) -> _Expr | None:
+    def get(self, expression: Optional[str]) -> Optional[_Expr]:
         if expression is None:
             return None
 
@@ -548,7 +548,7 @@ _PARTITION_FILTER_EXPRESSION_CACHE = _PartitionFilterExpressionCache()
 
 
 class PartitionFilter:
-    def __init__(self, expression: str | None, fake_table: Any):
+    def __init__(self, expression: Optional[str], fake_table: Any):
         self.expression = expression
         self.fake_table = fake_table
 

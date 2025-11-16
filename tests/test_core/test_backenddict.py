@@ -1,7 +1,7 @@
 import random
 import time
 from threading import Thread
-from typing import Any
+from typing import Any, Optional
 
 import pytest
 
@@ -143,7 +143,7 @@ def _create_asb(
     account_id: str,
     backend: Any = None,
     use_boto3_regions: bool = False,
-    regions: list[str] | None = None,
+    regions: Optional[list[str]] = None,
 ) -> Any:
     return AccountSpecificBackend(
         service_name="ec2",

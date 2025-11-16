@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -8,7 +8,7 @@ class LogsClientError(JsonRESTError):
 
 
 class ResourceNotFoundException(LogsClientError):
-    def __init__(self, msg: str | None = None):
+    def __init__(self, msg: Optional[str] = None):
         self.code = 400
         super().__init__(
             "ResourceNotFoundException",
@@ -19,9 +19,9 @@ class ResourceNotFoundException(LogsClientError):
 class InvalidParameterException(LogsClientError):
     def __init__(
         self,
-        msg: str | None = None,
-        constraint: str | None = None,
-        parameter: str | None = None,
+        msg: Optional[str] = None,
+        constraint: Optional[str] = None,
+        parameter: Optional[str] = None,
         value: Any = None,
     ):
         self.code = 400

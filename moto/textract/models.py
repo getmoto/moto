@@ -1,7 +1,7 @@
 import json
 import time
 from collections import defaultdict
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -21,7 +21,7 @@ class TextractJobStatus:
 
 class TextractJob(BaseModel):
     def __init__(
-        self, job: dict[str, Any], notification_channel: dict[str, str] | None = None
+        self, job: dict[str, Any], notification_channel: Optional[dict[str, str]] = None
     ):
         self.job = job
         self.notification_channel = notification_channel
@@ -99,7 +99,7 @@ class TextractBackend(BaseBackend):
     def start_document_text_detection(
         self,
         document_location: dict[str, Any],
-        notification_channel: dict[str, str] | None = None,
+        notification_channel: Optional[dict[str, str]] = None,
     ) -> str:
         """
         The following parameters have not yet been implemented: ClientRequestToken, JobTag, OutputConfig, KmsKeyID
@@ -146,7 +146,7 @@ class TextractBackend(BaseBackend):
         return job_id
 
     def get_document_analysis(
-        self, job_id: str, max_results: int | None, next_token: str | None = None
+        self, job_id: str, max_results: Optional[int], next_token: Optional[str] = None
     ) -> TextractJob:
         job = self.async_document_analysis_jobs.get(job_id)
         if not job:

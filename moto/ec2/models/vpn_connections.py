@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions import (
     InvalidParameterValue,
@@ -16,9 +16,9 @@ class VPNConnection(TaggedEC2Resource):
         vpn_connection_id: str,
         vpn_conn_type: str,
         customer_gateway_id: str,
-        vpn_gateway_id: str | None = None,
-        transit_gateway_id: str | None = None,
-        tags: dict[str, str] | None = None,
+        vpn_gateway_id: Optional[str] = None,
+        transit_gateway_id: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = vpn_connection_id
@@ -33,7 +33,9 @@ class VPNConnection(TaggedEC2Resource):
         self.static_routes = None
         self.add_tags(tags or {})
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         return super().get_filter_value(filter_name, "DescribeVpnConnections")
 
 
@@ -45,9 +47,9 @@ class VPNConnectionBackend:
         self,
         vpn_conn_type: str,
         customer_gateway_id: str,
-        vpn_gateway_id: str | None = None,
-        transit_gateway_id: str | None = None,
-        tags: dict[str, str] | None = None,
+        vpn_gateway_id: Optional[str] = None,
+        transit_gateway_id: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> VPNConnection:
         if vpn_gateway_id and transit_gateway_id:
             # From the docs (parentheses mine):
@@ -81,7 +83,7 @@ class VPNConnectionBackend:
         return self.vpn_connections[vpn_connection_id]
 
     def describe_vpn_connections(
-        self, vpn_connection_ids: list[str] | None = None, filters: Any = None
+        self, vpn_connection_ids: Optional[list[str]] = None, filters: Any = None
     ) -> list[VPNConnection]:
         vpn_connections = list(self.vpn_connections.values())
 

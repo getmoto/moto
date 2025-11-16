@@ -1,6 +1,6 @@
 import datetime
 from collections import deque
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import (
     ActivityListItem,
@@ -26,7 +26,7 @@ class Activity:
     creation_date: Final[Timestamp]
     _tasks: Final[deque[ActivityTask]]
 
-    def __init__(self, arn: Arn, name: Name, creation_date: Timestamp | None = None):
+    def __init__(self, arn: Arn, name: Name, creation_date: Optional[Timestamp] = None):
         self.arn = arn
         self.name = name
         self.creation_date = creation_date or datetime.datetime.now(
@@ -37,7 +37,7 @@ class Activity:
     def add_task(self, task: ActivityTask):
         self._tasks.append(task)
 
-    def get_task(self) -> ActivityTask | None:
+    def get_task(self) -> Optional[ActivityTask]:
         return self._tasks.popleft()
 
     def to_describe_activity_output(self) -> DescribeActivityOutput:

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
@@ -13,7 +13,7 @@ class NatGateway(CloudFormationModel, TaggedEC2Resource):
         backend: Any,
         subnet_id: str,
         allocation_id: str,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
         connectivity_type: str = "public",
     ):
         # public properties
@@ -81,7 +81,7 @@ class NatGatewayBackend:
         self.nat_gateways: dict[str, NatGateway] = {}
 
     def describe_nat_gateways(
-        self, filters: Any, nat_gateway_ids: list[str] | None
+        self, filters: Any, nat_gateway_ids: Optional[list[str]]
     ) -> list[NatGateway]:
         nat_gateways = list(self.nat_gateways.values())
 
@@ -120,7 +120,7 @@ class NatGatewayBackend:
         self,
         subnet_id: str,
         allocation_id: str,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
         connectivity_type: str = "public",
     ) -> NatGateway:
         nat_gateway = NatGateway(

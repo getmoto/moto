@@ -1,5 +1,5 @@
 import re
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 
 class _docker_config(TypedDict, total=False):
@@ -15,7 +15,7 @@ class _core_config(TypedDict, total=False):
     mock_credentials: bool
     passthrough: _passthrough_config
     reset_boto3_session: bool
-    service_whitelist: list[str] | None
+    service_whitelist: Optional[list[str]]
 
 
 class _iam_config(TypedDict, total=False):

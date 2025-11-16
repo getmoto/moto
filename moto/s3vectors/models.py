@@ -1,5 +1,7 @@
 """S3VectorsBackend class with methods for supported APIs."""
 
+from typing import Optional
+
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.utilities.utils import PARTITION_NAMES
@@ -49,8 +51,8 @@ class S3VectorsBackend(BaseBackend):
 
     def get_vector_bucket(
         self,
-        vector_bucket_name: str | None = None,
-        vector_bucket_arn: str | None = None,
+        vector_bucket_name: Optional[str] = None,
+        vector_bucket_arn: Optional[str] = None,
     ) -> VectorBucket:
         if vector_bucket_name:
             for vector_bucket in self.vector_buckets.values():
@@ -68,7 +70,7 @@ class S3VectorsBackend(BaseBackend):
             except VectorBucketNotFound:
                 pass
 
-    def list_vector_buckets(self, prefix: str | None) -> list[VectorBucket]:
+    def list_vector_buckets(self, prefix: Optional[str]) -> list[VectorBucket]:
         return [
             bucket
             for bucket in self.vector_buckets.values()

@@ -1,7 +1,7 @@
 import abc
 import logging
 import threading
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import Timestamp
 from moto.stepfunctions.parser.asl.component.program.program import Program
@@ -18,7 +18,7 @@ class BranchWorker:
 
     _branch_worker_comm: Final[BranchWorkerComm]
     _program: Final[Program]
-    _worker_thread: threading.Thread | None
+    _worker_thread: Optional[threading.Thread]
     env: Final[Environment]
 
     def __init__(
@@ -49,7 +49,9 @@ class BranchWorker:
         TMP_THREADS.append(self._worker_thread)
         self._worker_thread.start()
 
-    def stop(self, stop_date: Timestamp, cause: str | None, error: str | None) -> None:
+    def stop(
+        self, stop_date: Timestamp, cause: Optional[str], error: Optional[str]
+    ) -> None:
         env = self.env
         if env:
             try:

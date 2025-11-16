@@ -1,4 +1,4 @@
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskFailedEventDetails
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
@@ -21,9 +21,9 @@ from moto.stepfunctions.parser.asl.utils.json_path import NoSuchJsonPathError
 
 
 class OutputPath(EvalComponent):
-    string_sampler: Final[StringSampler | None]
+    string_sampler: Final[Optional[StringSampler]]
 
-    def __init__(self, string_sampler: StringSampler | None):
+    def __init__(self, string_sampler: Optional[StringSampler]):
         self.string_sampler = string_sampler
 
     def _eval_body(self, env: Environment) -> None:

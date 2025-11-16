@@ -3,7 +3,7 @@ import itertools
 import json
 from collections import defaultdict
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import aws_api_matches
@@ -41,13 +41,13 @@ class SecurityGroupRule(TaggedEC2Resource):
         ec2_backend: Any,
         ip_protocol: str,
         group_id: str,
-        from_port: str | None,
-        to_port: str | None,
-        ip_range: dict[str, str] | None,
-        source_group: dict[str, str] | None = None,
-        prefix_list_id: dict[str, str] | None = None,
+        from_port: Optional[str],
+        to_port: Optional[str],
+        ip_range: Optional[dict[str, str]],
+        source_group: Optional[dict[str, str]] = None,
+        prefix_list_id: Optional[dict[str, str]] = None,
         is_egress: bool = True,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_security_group_rule_id()
@@ -92,19 +92,19 @@ class SecurityGroupRule(TaggedEC2Resource):
         }
 
     @property
-    def description(self) -> str | None:
+    def description(self) -> Optional[str]:
         return self.ip_range.get("Description")
 
     @property
-    def cidr_ipv4(self) -> str | None:
+    def cidr_ipv4(self) -> Optional[str]:
         return self.ip_range.get("CidrIp", None)
 
     @property
-    def cidr_ipv6(self) -> str | None:
+    def cidr_ipv6(self) -> Optional[str]:
         return self.ip_range.get("CidrIpv6", None)
 
     @property
-    def referenced_group_info(self) -> dict[str, str] | None:
+    def referenced_group_info(self) -> Optional[dict[str, str]]:
         return self.source_group if self.source_group else None
 
     @property
@@ -174,9 +174,9 @@ class SecurityGroupRule(TaggedEC2Resource):
 class GroupedSecurityRuleView:
     def __init__(
         self,
-        from_port: int | None,
-        to_port: int | None,
-        ip_protocol: str | None,
+        from_port: Optional[int],
+        to_port: Optional[int],
+        ip_protocol: Optional[str],
     ):
         self.from_port = from_port
         self.to_port = to_port
@@ -205,9 +205,9 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         group_id: str,
         name: str,
         description: str,
-        vpc_id: str | None = None,
-        tags: dict[str, str] | None = None,
-        is_default: bool | None = None,
+        vpc_id: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        is_default: Optional[bool] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = group_id
@@ -217,7 +217,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
         self.description = description
         self.ingress_rules: list[SecurityGroupRule] = []
         self.egress_rules: list[SecurityGroupRule] = []
-        self.vpc_id: str | None = vpc_id
+        self.vpc_id: Optional[str] = vpc_id
         self.owner_id = ec2_backend.account_id
         self.add_tags(tags or {})
         self.is_default = is_default or False
@@ -556,7 +556,7 @@ class SecurityGroup(TaggedEC2Resource, CloudFormationModel):
             return self.id
         raise UnformattedGetAttTemplateException()
 
-    def get_rule(self, rule_id: str) -> SecurityGroupRule | None:
+    def get_rule(self, rule_id: str) -> Optional[SecurityGroupRule]:
         """Retrieve a security group rule by its ID."""
         for rule in list(itertools.chain(self.egress_rules, self.ingress_rules)):
             if rule.id == rule_id:
@@ -630,10 +630,10 @@ class SecurityGroupBackend:
         self,
         name: str,
         description: str,
-        vpc_id: str | None = None,
-        tags: dict[str, str] | None = None,
+        vpc_id: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
         force: bool = False,
-        is_default: bool | None = None,
+        is_default: Optional[bool] = None,
     ) -> SecurityGroup:
         vpc_id = vpc_id or self.default_vpc.id  # type: ignore[attr-defined]
         if not description:
@@ -659,8 +659,8 @@ class SecurityGroupBackend:
 
     def describe_security_groups(
         self,
-        group_ids: list[str] | None = None,
-        groupnames: list[str] | None = None,
+        group_ids: Optional[list[str]] = None,
+        groupnames: Optional[list[str]] = None,
         filters: Any = None,
     ) -> list[SecurityGroup]:
         all_groups = self.groups.copy()
@@ -717,12 +717,12 @@ class SecurityGroupBackend:
             rules = [rule for rule in rules if rule.matches_filters(filters)]
         return rules
 
-    def _delete_security_group(self, vpc_id: str | None, group_id: str) -> None:
+    def _delete_security_group(self, vpc_id: Optional[str], group_id: str) -> None:
         vpc_id = vpc_id or self.default_vpc.id  # type: ignore[attr-defined]
         self.groups[vpc_id].pop(group_id)
 
     def delete_security_group(
-        self, name: str | None = None, group_id: str | None = None
+        self, name: Optional[str] = None, group_id: Optional[str] = None
     ) -> None:
         if group_id:
             # loop over all the SGs, find the right one
@@ -738,7 +738,7 @@ class SecurityGroupBackend:
                 return self._delete_security_group(None, group.id)
             raise InvalidSecurityGroupNotFoundError(name)
 
-    def get_security_group_from_id(self, group_id: str) -> SecurityGroup | None:
+    def get_security_group_from_id(self, group_id: str) -> Optional[SecurityGroup]:
         # 2 levels of chaining necessary since it's a complex structure
         all_groups = itertools.chain.from_iterable(
             [x.copy().values() for x in self.groups.copy().values()]
@@ -749,8 +749,8 @@ class SecurityGroupBackend:
         return None
 
     def get_security_group_from_name(
-        self, name: str, vpc_id: str | None = None
-    ) -> SecurityGroup | None:
+        self, name: str, vpc_id: Optional[str] = None
+    ) -> Optional[SecurityGroup]:
         if vpc_id:
             for group in self.groups[vpc_id].values():
                 if group.name == name:
@@ -763,8 +763,8 @@ class SecurityGroupBackend:
         return None
 
     def get_security_group_by_name_or_id(
-        self, group_name_or_id: str, vpc_id: str | None = None
-    ) -> SecurityGroup | None:
+        self, group_name_or_id: str, vpc_id: Optional[str] = None
+    ) -> Optional[SecurityGroup]:
         # try searching by id, fallbacks to name search
         group = self.get_security_group_from_id(group_name_or_id)
         if group is None:
@@ -772,8 +772,8 @@ class SecurityGroupBackend:
         return group
 
     def get_default_security_group(
-        self, vpc_id: str | None = None
-    ) -> SecurityGroup | None:
+        self, vpc_id: Optional[str] = None
+    ) -> Optional[SecurityGroup]:
         for group in self.groups[vpc_id or self.default_vpc.id].values():  # type: ignore[attr-defined]
             if group.is_default:
                 return group
@@ -789,7 +789,7 @@ class SecurityGroupBackend:
         source_groups: list[dict[str, Any]],
         prefix_list_ids: list[dict[str, str]],
         is_egress: bool = False,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> Iterator[SecurityGroupRule]:
         for ip_range in ip_ranges:
             yield SecurityGroupRule(
@@ -903,11 +903,11 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: list[Any],
-        sgrule_tags: dict[str, str] | None = None,
-        source_groups: list[dict[str, str]] | None = None,
-        prefix_list_ids: list[dict[str, str]] | None = None,
-        security_rule_ids: list[str] | None = None,
-        vpc_id: str | None = None,
+        sgrule_tags: Optional[dict[str, str]] = None,
+        source_groups: Optional[list[dict[str, str]]] = None,
+        prefix_list_ids: Optional[list[dict[str, str]]] = None,
+        security_rule_ids: Optional[list[str]] = None,
+        vpc_id: Optional[str] = None,
     ) -> tuple[list[SecurityGroupRule], SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if group is None:
@@ -966,10 +966,10 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: list[Any],
-        source_groups: list[dict[str, Any]] | None = None,
-        prefix_list_ids: list[dict[str, str]] | None = None,
-        security_rule_ids: list[str] | None = None,
-        vpc_id: str | None = None,
+        source_groups: Optional[list[dict[str, Any]]] = None,
+        prefix_list_ids: Optional[list[dict[str, str]]] = None,
+        security_rule_ids: Optional[list[str]] = None,
+        vpc_id: Optional[str] = None,
     ) -> None:
         group: SecurityGroup = self.get_security_group_by_name_or_id(
             group_name_or_id, vpc_id
@@ -1023,11 +1023,11 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: list[Any],
-        sgrule_tags: dict[str, str] | None = None,
-        source_groups: list[dict[str, Any]] | None = None,
-        prefix_list_ids: list[dict[str, str]] | None = None,
-        security_rule_ids: list[str] | None = None,
-        vpc_id: str | None = None,
+        sgrule_tags: Optional[dict[str, str]] = None,
+        source_groups: Optional[list[dict[str, Any]]] = None,
+        prefix_list_ids: Optional[list[dict[str, str]]] = None,
+        security_rule_ids: Optional[list[str]] = None,
+        vpc_id: Optional[str] = None,
     ) -> tuple[list[SecurityGroupRule], SecurityGroup]:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if group is None:
@@ -1089,10 +1089,10 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: list[Any],
-        source_groups: list[dict[str, Any]] | None = None,
-        prefix_list_ids: list[dict[str, str]] | None = None,
-        security_rule_ids: list[str] | None = None,
-        vpc_id: str | None = None,
+        source_groups: Optional[list[dict[str, Any]]] = None,
+        prefix_list_ids: Optional[list[dict[str, str]]] = None,
+        security_rule_ids: Optional[list[str]] = None,
+        vpc_id: Optional[str] = None,
     ) -> None:
         group: SecurityGroup = self.get_security_group_by_name_or_id(
             group_name_or_id, vpc_id
@@ -1160,10 +1160,10 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: list[str],
-        source_groups: list[dict[str, Any]] | None = None,
-        prefix_list_ids: list[dict[str, str]] | None = None,
-        security_rule_ids: list[str] | None = None,
-        vpc_id: str | None = None,
+        source_groups: Optional[list[dict[str, Any]]] = None,
+        prefix_list_ids: Optional[list[dict[str, str]]] = None,
+        security_rule_ids: Optional[list[str]] = None,
+        vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if group is None:
@@ -1215,10 +1215,10 @@ class SecurityGroupBackend:
         from_port: str,
         to_port: str,
         ip_ranges: list[str],
-        source_groups: list[dict[str, Any]] | None = None,
-        prefix_list_ids: list[dict[str, str]] | None = None,
-        security_rule_ids: list[str] | None = None,
-        vpc_id: str | None = None,
+        source_groups: Optional[list[dict[str, Any]]] = None,
+        prefix_list_ids: Optional[list[dict[str, str]]] = None,
+        security_rule_ids: Optional[list[str]] = None,
+        vpc_id: Optional[str] = None,
     ) -> SecurityGroup:
         group = self.get_security_group_by_name_or_id(group_name_or_id, vpc_id)
         if group is None:
@@ -1287,7 +1287,7 @@ class SecurityGroupBackend:
                 rule.source_group["Description"] = description
 
     def _add_source_group(
-        self, source_groups: list[dict[str, Any]] | None, vpc_id: str | None
+        self, source_groups: Optional[list[dict[str, Any]]], vpc_id: Optional[str]
     ) -> list[dict[str, Any]]:
         _source_groups = []
         for item in source_groups or []:
@@ -1317,7 +1317,7 @@ class SecurityGroupBackend:
         group: SecurityGroup,
         current_rule_nb: int,
         ip_ranges: list[str],
-        source_groups: list[dict[str, str]] | None = None,
+        source_groups: Optional[list[dict[str, str]]] = None,
         egress: bool = False,
     ) -> None:
         max_nb_rules = 60 if group.vpc_id else 100

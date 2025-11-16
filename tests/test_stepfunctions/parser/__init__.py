@@ -1,8 +1,7 @@
 import json
-from collections.abc import Callable
 from functools import wraps
 from time import sleep
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Callable, TypeVar
 from uuid import uuid4
 
 import boto3

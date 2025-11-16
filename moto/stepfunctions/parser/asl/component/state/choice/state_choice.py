@@ -1,3 +1,5 @@
+from typing import Optional
+
 from moto.stepfunctions.parser.api import HistoryEventType
 from moto.stepfunctions.parser.asl.component.common.flow.end import End
 from moto.stepfunctions.parser.asl.component.common.flow.next import Next
@@ -14,7 +16,7 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 class StateChoice(CommonStateField):
     choices_decl: ChoicesDecl
-    default_state: DefaultDecl | None
+    default_state: Optional[DefaultDecl]
 
     def __init__(self):
         super().__init__(

@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 from moto.appmesh.dataclasses.shared import (
     Duration,
@@ -15,7 +15,7 @@ from moto.appmesh.utils.common import clean_dict
 class RouteActionWeightedTarget:
     virtual_node: str
     weight: int
-    port: int | None = field(default=None)
+    port: Optional[int] = field(default=None)
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -42,11 +42,11 @@ class Range:
 
 @dataclass
 class Match:
-    exact: str | None
-    prefix: str | None
-    range: Range | None
-    regex: str | None
-    suffix: str | None
+    exact: Optional[str]
+    prefix: Optional[str]
+    range: Optional[Range]
+    regex: Optional[str]
+    suffix: Optional[str]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -62,8 +62,8 @@ class Match:
 
 @dataclass
 class GrpcMetadatum:
-    invert: bool | None
-    match: Match | None
+    invert: Optional[bool]
+    match: Optional[Match]
     name: str
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -96,7 +96,7 @@ class QueryParameterMatch:
 @dataclass
 class RouteMatchQueryParameter:
     name: str
-    match: QueryParameterMatch | None = field(default=None)
+    match: Optional[QueryParameterMatch] = field(default=None)
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -106,13 +106,13 @@ class RouteMatchQueryParameter:
 
 @dataclass
 class HttpRouteMatch:
-    headers: list[HttpRouteMatchHeader] | None = field(default=None)
-    method: str | None = field(default=None)
-    path: RouteMatchPath | None = field(default=None)
-    port: int | None = field(default=None)
-    prefix: str | None = field(default=None)
-    query_parameters: list[RouteMatchQueryParameter] | None = field(default=None)
-    scheme: str | None = field(default=None)
+    headers: Optional[list[HttpRouteMatchHeader]] = field(default=None)
+    method: Optional[str] = field(default=None)
+    path: Optional[RouteMatchPath] = field(default=None)
+    port: Optional[int] = field(default=None)
+    prefix: Optional[str] = field(default=None)
+    query_parameters: Optional[list[RouteMatchQueryParameter]] = field(default=None)
+    scheme: Optional[str] = field(default=None)
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -133,9 +133,9 @@ class HttpRouteMatch:
 @dataclass
 class HttpRouteRetryPolicy:
     max_retries: int
-    http_retry_events: list[str] | None
+    http_retry_events: Optional[list[str]]
     per_retry_timeout: Duration
-    tcp_retry_events: list[str] | None
+    tcp_retry_events: Optional[list[str]]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -150,10 +150,10 @@ class HttpRouteRetryPolicy:
 
 @dataclass
 class GrpcRouteMatch:
-    metadata: list[GrpcMetadatum] | None
-    method_name: str | None
-    port: int | None
-    service_name: str | None
+    metadata: Optional[list[GrpcMetadatum]]
+    method_name: Optional[str]
+    port: Optional[int]
+    service_name: Optional[str]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -170,9 +170,9 @@ class GrpcRouteMatch:
 class GrcpRouteRetryPolicy:
     max_retries: int
     per_retry_timeout: Duration
-    grpc_retry_events: list[str] | None
-    http_retry_events: list[str] | None
-    tcp_retry_events: list[str] | None
+    grpc_retry_events: Optional[list[str]]
+    http_retry_events: Optional[list[str]]
+    tcp_retry_events: Optional[list[str]]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -190,8 +190,8 @@ class GrcpRouteRetryPolicy:
 class GrpcRoute:
     action: RouteAction
     match: GrpcRouteMatch
-    retry_policy: GrcpRouteRetryPolicy | None
-    timeout: Timeout | None
+    retry_policy: Optional[GrcpRouteRetryPolicy]
+    timeout: Optional[Timeout]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -208,8 +208,8 @@ class GrpcRoute:
 class HttpRoute:
     action: RouteAction
     match: HttpRouteMatch
-    retry_policy: HttpRouteRetryPolicy | None = field(default=None)
-    timeout: Timeout | None = field(default=None)
+    retry_policy: Optional[HttpRouteRetryPolicy] = field(default=None)
+    timeout: Optional[Timeout] = field(default=None)
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -231,8 +231,8 @@ class TCPRouteMatch:
 @dataclass
 class TCPRoute:
     action: RouteAction
-    match: TCPRouteMatch | None
-    timeout: Timeout | None
+    match: Optional[TCPRouteMatch]
+    timeout: Optional[Timeout]
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         return clean_dict(
@@ -246,11 +246,11 @@ class TCPRoute:
 
 @dataclass
 class RouteSpec:
-    priority: int | None
-    grpc_route: GrpcRoute | None = field(default=None)
-    http_route: HttpRoute | None = field(default=None)
-    http2_route: HttpRoute | None = field(default=None)
-    tcp_route: TCPRoute | None = field(default=None)
+    priority: Optional[int]
+    grpc_route: Optional[GrpcRoute] = field(default=None)
+    http_route: Optional[HttpRoute] = field(default=None)
+    http2_route: Optional[HttpRoute] = field(default=None)
+    tcp_route: Optional[TCPRoute] = field(default=None)
 
     def to_dict(self) -> dict[str, Any]:  # type: ignore[misc]
         spec = {

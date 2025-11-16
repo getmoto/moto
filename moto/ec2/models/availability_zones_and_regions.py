@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from boto3 import Session
 
@@ -25,7 +25,7 @@ class Zone:
         self.zone_id = zone_id
         self.zone_type = zone_type
         self.state = "available"
-        self.messages: list[dict[str, str | None]] = []
+        self.messages: list[dict[str, Optional[str]]] = []
 
 
 class RegionsAndZonesBackend:
@@ -202,7 +202,9 @@ class RegionsAndZonesBackend:
                 Zone(region_name=name, name=f"{name}c", zone_id=f"{shorthand}-az3"),
             ]
 
-    def describe_regions(self, region_names: list[str] | None = None) -> list[Region]:
+    def describe_regions(
+        self, region_names: Optional[list[str]] = None
+    ) -> list[Region]:
         if not region_names:
             return self.regions
         ret = []
@@ -214,9 +216,9 @@ class RegionsAndZonesBackend:
 
     def describe_availability_zones(
         self,
-        filters: list[dict[str, Any]] | None = None,
-        zone_names: list[str] | None = None,
-        zone_ids: list[str] | None = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+        zone_names: Optional[list[str]] = None,
+        zone_ids: Optional[list[str]] = None,
     ) -> list[Zone]:
         """
         The following parameters are supported: ZoneIds, ZoneNames, Filters
@@ -238,7 +240,7 @@ class RegionsAndZonesBackend:
         result = [r for r in result if not zone_names or r.name in zone_names]
         return result
 
-    def get_zone_by_name(self, name: str) -> Zone | None:
+    def get_zone_by_name(self, name: str) -> Optional[Zone]:
         for zone in self.describe_availability_zones():
             if zone.name == name:
                 return zone

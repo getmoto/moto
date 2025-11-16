@@ -1,7 +1,7 @@
 import re
 from collections.abc import Iterable, Iterator
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -65,7 +65,7 @@ class StatementResult(Iterable[tuple[str, Any]]):
         column_metadata: list[dict[str, Any]],
         records: list[list[dict[str, Any]]],
         total_number_rows: int,
-        next_token: str | None = None,
+        next_token: Optional[str] = None,
     ):
         self.column_metadata = column_metadata
         self.records = records
@@ -82,7 +82,7 @@ class StatementResult(Iterable[tuple[str, Any]]):
 class ColumnMetadata(Iterable[tuple[str, Any]]):
     def __init__(
         self,
-        column_default: str | None,
+        column_default: Optional[str],
         is_case_sensitive: bool,
         is_signed: bool,
         name: str,

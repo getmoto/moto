@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.route53 import route53_backends
@@ -154,8 +154,8 @@ class Route53DomainsBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_domains(
         self,
-        filter_conditions: list[dict[str, Any]] | None = None,
-        sort_condition: dict[str, Any] | None = None,
+        filter_conditions: Optional[list[dict[str, Any]]] = None,
+        sort_condition: Optional[dict[str, Any]] = None,
     ) -> list[Route53Domain]:
         try:
             filters: list[DomainsFilter] = (
@@ -163,7 +163,7 @@ class Route53DomainsBackend(BaseBackend):
                 if filter_conditions
                 else []
             )
-            sort: DomainsSortCondition | None = (
+            sort: Optional[DomainsSortCondition] = (
                 DomainsSortCondition.validate_dict(sort_condition)
                 if sort_condition
                 else None
@@ -200,11 +200,11 @@ class Route53DomainsBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_operations(
         self,
-        submitted_since_timestamp: int | None = None,
-        statuses: list[str] | None = None,
-        types: list[str] | None = None,
-        sort_by: str | None = None,
-        sort_order: str | None = None,
+        submitted_since_timestamp: Optional[int] = None,
+        statuses: Optional[list[str]] = None,
+        types: Optional[list[str]] = None,
+        sort_by: Optional[str] = None,
+        sort_order: Optional[str] = None,
     ) -> list[Route53DomainsOperation]:
         input_errors: list[str] = []
         statuses = statuses or []

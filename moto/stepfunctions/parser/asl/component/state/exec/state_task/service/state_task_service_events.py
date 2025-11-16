@@ -1,5 +1,5 @@
 import json
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, TaskFailedEventDetails
 from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name import (
@@ -37,9 +37,9 @@ _SUPPORTED_API_PARAM_BINDINGS: Final[dict[str, set[str]]] = {"putevents": {"Entr
 
 
 class SfnFailedEntryCountException(RuntimeError):
-    cause: Final[dict | None]
+    cause: Final[Optional[dict]]
 
-    def __init__(self, cause: dict | None):
+    def __init__(self, cause: Optional[dict]):
         super().__init__(json.dumps(cause))
         self.cause = cause
 
@@ -48,7 +48,7 @@ class StateTaskServiceEvents(StateTaskServiceCallback):
     def __init__(self):
         super().__init__(supported_integration_patterns=_SUPPORTED_INTEGRATION_PATTERNS)
 
-    def _get_supported_parameters(self) -> set[str] | None:
+    def _get_supported_parameters(self) -> Optional[set[str]]:
         return _SUPPORTED_API_PARAM_BINDINGS.get(self.resource.api_action.lower())
 
     def _from_error(self, env: Environment, ex: Exception) -> FailureEvent:

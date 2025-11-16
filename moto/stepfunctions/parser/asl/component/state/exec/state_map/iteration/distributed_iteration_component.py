@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.api import (
     HistoryEventType,
@@ -50,8 +50,8 @@ from moto.stepfunctions.parser.asl.eval.event.event_manager import (
 
 
 class DistributedIterationComponentEvalInput(InlineIterationComponentEvalInput):
-    item_reader: Final[ItemReader | None]
-    label: Final[str | None]
+    item_reader: Final[Optional[ItemReader]]
+    label: Final[Optional[str]]
     map_run_record: Final[MapRunRecord]
 
     def __init__(
@@ -59,12 +59,12 @@ class DistributedIterationComponentEvalInput(InlineIterationComponentEvalInput):
         state_name: str,
         max_concurrency: int,
         input_items: list[json],
-        parameters: Parameters | None,
-        item_selector: ItemSelector | None,
-        item_reader: ItemReader | None,
+        parameters: Optional[Parameters],
+        item_selector: Optional[ItemSelector],
+        item_reader: Optional[ItemReader],
         tolerated_failure_count: int,
         tolerated_failure_percentage: float,
-        label: str | None,
+        label: Optional[str],
         map_run_record: MapRunRecord,
     ):
         super().__init__(
@@ -118,7 +118,7 @@ class DistributedIterationComponent(InlineIterationComponent, abc.ABC):
 
         job_pool.await_jobs()
 
-        worker_exception: Exception | None = job_pool.get_worker_exception()
+        worker_exception: Optional[Exception] = job_pool.get_worker_exception()
         if worker_exception is not None:
             raise worker_exception
 

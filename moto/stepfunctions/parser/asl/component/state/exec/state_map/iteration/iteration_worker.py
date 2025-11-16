@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType, MapIterationEventDetails
 from moto.stepfunctions.parser.asl.component.common.error_name.custom_error_name import (
@@ -176,7 +176,7 @@ class IterationWorker(abc.ABC):
         finally:
             job.job_output = job_output
 
-    def _eval_pool(self, job: Job | None, worker_frame: Environment) -> None:
+    def _eval_pool(self, job: Optional[Job], worker_frame: Environment) -> None:
         # Note: the frame has to be closed before the job, to ensure the owner environment is correctly updated
         #  before the evaluation continues; map states await for job termination not workers termination.
         if job is None:

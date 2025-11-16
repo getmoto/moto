@@ -4,7 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable
 from threading import Lock
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -17,7 +17,7 @@ class FakeItem(BaseModel):
         self.attributes: list[dict[str, Any]] = []
         self.lock = Lock()
 
-    def get_attributes(self, names: list[str] | None) -> list[dict[str, Any]]:
+    def get_attributes(self, names: Optional[list[str]]) -> list[dict[str, Any]]:
         if not names:
             return self.attributes
         return [attr for attr in self.attributes if attr["Name"] in names]

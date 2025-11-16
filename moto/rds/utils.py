@@ -6,7 +6,7 @@ import re
 from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 from botocore.utils import merge_dicts
 
@@ -95,7 +95,7 @@ def get_object_value(obj: Any, attr: str) -> Any:
 
 
 def merge_filters(
-    filters_to_update: dict[str, Any] | None, filters_to_merge: dict[str, Any]
+    filters_to_update: Optional[dict[str, Any]], filters_to_merge: dict[str, Any]
 ) -> dict[str, Any]:
     """Given two groups of filters, merge the second into the first.
 
@@ -262,7 +262,7 @@ def get_overlap_between_two_date_ranges(
 
 def valid_preferred_maintenance_window(
     maintenance_window: Any, backup_window: Any
-) -> str | None:
+) -> Optional[str]:
     """Determines validity of preferred_maintenance_window
 
     :param maintenance_windown:

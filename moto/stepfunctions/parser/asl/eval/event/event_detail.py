@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 from moto.stepfunctions.parser.api import (
     ActivityFailedEventDetails,
@@ -37,40 +37,42 @@ from moto.stepfunctions.parser.api import (
 
 
 class EventDetails(TypedDict):
-    activityFailedEventDetails: ActivityFailedEventDetails | None
-    activityScheduleFailedEventDetails: ActivityScheduleFailedEventDetails | None
-    activityScheduledEventDetails: ActivityScheduledEventDetails | None
-    activityStartedEventDetails: ActivityStartedEventDetails | None
-    activitySucceededEventDetails: ActivitySucceededEventDetails | None
-    activityTimedOutEventDetails: ActivityTimedOutEventDetails | None
-    taskFailedEventDetails: TaskFailedEventDetails | None
-    taskScheduledEventDetails: TaskScheduledEventDetails | None
-    taskStartFailedEventDetails: TaskStartFailedEventDetails | None
-    taskStartedEventDetails: TaskStartedEventDetails | None
-    taskSubmitFailedEventDetails: TaskSubmitFailedEventDetails | None
-    taskSubmittedEventDetails: TaskSubmittedEventDetails | None
-    taskSucceededEventDetails: TaskSucceededEventDetails | None
-    taskTimedOutEventDetails: TaskTimedOutEventDetails | None
-    evaluationFailedEventDetails: EvaluationFailedEventDetails | None
-    executionFailedEventDetails: ExecutionFailedEventDetails | None
-    executionStartedEventDetails: ExecutionStartedEventDetails | None
-    executionSucceededEventDetails: ExecutionSucceededEventDetails | None
-    executionAbortedEventDetails: ExecutionAbortedEventDetails | None
-    executionTimedOutEventDetails: ExecutionTimedOutEventDetails | None
-    mapStateStartedEventDetails: MapStateStartedEventDetails | None
-    mapIterationStartedEventDetails: MapIterationEventDetails | None
-    mapIterationSucceededEventDetails: MapIterationEventDetails | None
-    mapIterationFailedEventDetails: MapIterationEventDetails | None
-    mapIterationAbortedEventDetails: MapIterationEventDetails | None
-    lambdaFunctionFailedEventDetails: LambdaFunctionFailedEventDetails | None
-    lambdaFunctionScheduleFailedEventDetails: (
-        LambdaFunctionScheduleFailedEventDetails | None
-    )
-    lambdaFunctionScheduledEventDetails: LambdaFunctionScheduledEventDetails | None
-    lambdaFunctionStartFailedEventDetails: LambdaFunctionStartFailedEventDetails | None
-    lambdaFunctionSucceededEventDetails: LambdaFunctionSucceededEventDetails | None
-    lambdaFunctionTimedOutEventDetails: LambdaFunctionTimedOutEventDetails | None
-    stateEnteredEventDetails: StateEnteredEventDetails | None
-    stateExitedEventDetails: StateExitedEventDetails | None
-    mapRunStartedEventDetails: MapRunStartedEventDetails | None
-    mapRunFailedEventDetails: MapRunFailedEventDetails | None
+    activityFailedEventDetails: Optional[ActivityFailedEventDetails]
+    activityScheduleFailedEventDetails: Optional[ActivityScheduleFailedEventDetails]
+    activityScheduledEventDetails: Optional[ActivityScheduledEventDetails]
+    activityStartedEventDetails: Optional[ActivityStartedEventDetails]
+    activitySucceededEventDetails: Optional[ActivitySucceededEventDetails]
+    activityTimedOutEventDetails: Optional[ActivityTimedOutEventDetails]
+    taskFailedEventDetails: Optional[TaskFailedEventDetails]
+    taskScheduledEventDetails: Optional[TaskScheduledEventDetails]
+    taskStartFailedEventDetails: Optional[TaskStartFailedEventDetails]
+    taskStartedEventDetails: Optional[TaskStartedEventDetails]
+    taskSubmitFailedEventDetails: Optional[TaskSubmitFailedEventDetails]
+    taskSubmittedEventDetails: Optional[TaskSubmittedEventDetails]
+    taskSucceededEventDetails: Optional[TaskSucceededEventDetails]
+    taskTimedOutEventDetails: Optional[TaskTimedOutEventDetails]
+    evaluationFailedEventDetails: Optional[EvaluationFailedEventDetails]
+    executionFailedEventDetails: Optional[ExecutionFailedEventDetails]
+    executionStartedEventDetails: Optional[ExecutionStartedEventDetails]
+    executionSucceededEventDetails: Optional[ExecutionSucceededEventDetails]
+    executionAbortedEventDetails: Optional[ExecutionAbortedEventDetails]
+    executionTimedOutEventDetails: Optional[ExecutionTimedOutEventDetails]
+    mapStateStartedEventDetails: Optional[MapStateStartedEventDetails]
+    mapIterationStartedEventDetails: Optional[MapIterationEventDetails]
+    mapIterationSucceededEventDetails: Optional[MapIterationEventDetails]
+    mapIterationFailedEventDetails: Optional[MapIterationEventDetails]
+    mapIterationAbortedEventDetails: Optional[MapIterationEventDetails]
+    lambdaFunctionFailedEventDetails: Optional[LambdaFunctionFailedEventDetails]
+    lambdaFunctionScheduleFailedEventDetails: Optional[
+        LambdaFunctionScheduleFailedEventDetails
+    ]
+    lambdaFunctionScheduledEventDetails: Optional[LambdaFunctionScheduledEventDetails]
+    lambdaFunctionStartFailedEventDetails: Optional[
+        LambdaFunctionStartFailedEventDetails
+    ]
+    lambdaFunctionSucceededEventDetails: Optional[LambdaFunctionSucceededEventDetails]
+    lambdaFunctionTimedOutEventDetails: Optional[LambdaFunctionTimedOutEventDetails]
+    stateEnteredEventDetails: Optional[StateEnteredEventDetails]
+    stateExitedEventDetails: Optional[StateExitedEventDetails]
+    mapRunStartedEventDetails: Optional[MapRunStartedEventDetails]
+    mapRunFailedEventDetails: Optional[MapRunFailedEventDetails]

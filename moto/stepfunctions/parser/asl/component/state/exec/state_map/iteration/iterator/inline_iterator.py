@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Optional
 
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.inline_iteration_component import (
     InlineIterationComponent,
@@ -25,7 +26,7 @@ class InlineIteratorEvalInput(InlineIterationComponentEvalInput):
 
 
 class InlineIterator(InlineIterationComponent):
-    _eval_input: InlineIteratorEvalInput | None
+    _eval_input: Optional[InlineIteratorEvalInput]
 
     def _create_worker(
         self, env: Environment, eval_input: InlineIteratorEvalInput, job_pool: JobPool

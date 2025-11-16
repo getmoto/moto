@@ -1,6 +1,6 @@
 import string
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -38,7 +38,7 @@ class Namespace(BaseModel):
         description: str,
         dns_properties: dict[str, Any],
         http_properties: dict[str, Any],
-        vpc: str | None = None,
+        vpc: Optional[str] = None,
     ):
         self.id = f"ns-{random_id(20)}"
         self.arn = f"arn:{get_partition(region)}:servicediscovery:{region}:{account_id}:namespace/{self.id}"
@@ -89,7 +89,7 @@ class Service(BaseModel):
         self.namespace_id = namespace_id
         self.description = description
         self.creator_request_id = creator_request_id
-        self.dns_config: dict[str, Any] | None = dns_config
+        self.dns_config: Optional[dict[str, Any]] = dns_config
         self.health_check_config = health_check_config
         self.health_check_custom_config = health_check_custom_config
         self.service_type = service_type
@@ -133,8 +133,8 @@ class ServiceInstance(BaseModel):
         self,
         service_id: str,
         instance_id: str,
-        creator_request_id: str | None = None,
-        attributes: dict[str, str] | None = None,
+        creator_request_id: Optional[str] = None,
+        attributes: Optional[dict[str, str]] = None,
     ):
         self.service_id = service_id
         self.instance_id = instance_id
@@ -400,7 +400,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         self,
         _id: str,
         namespace_dict: dict[str, Any],
-        updater_request_id: str | None = None,
+        updater_request_id: Optional[str] = None,
     ) -> str:
         if "Description" not in namespace_dict:
             raise InvalidInput("Description is required")
@@ -499,7 +499,7 @@ class ServiceDiscoveryBackend(BaseBackend):
     def get_instances_health_status(
         self,
         service_id: str,
-        instances: list[str] | None = None,
+        instances: Optional[list[str]] = None,
     ) -> list[tuple[str, str]]:
         service = self.get_service(service_id)
         status = []
@@ -527,9 +527,9 @@ class ServiceDiscoveryBackend(BaseBackend):
     def _filter_instances(
         self,
         instances: list[ServiceInstance],
-        query_parameters: dict[str, str] | None = None,
-        optional_parameters: dict[str, str] | None = None,
-        health_status: str | None = None,
+        query_parameters: Optional[dict[str, str]] = None,
+        optional_parameters: Optional[dict[str, str]] = None,
+        health_status: Optional[str] = None,
     ) -> list[ServiceInstance]:
         if query_parameters is None:
             query_parameters = {}
@@ -584,9 +584,9 @@ class ServiceDiscoveryBackend(BaseBackend):
         self,
         namespace_name: str,
         service_name: str,
-        query_parameters: dict[str, str] | None = None,
-        optional_parameters: dict[str, str] | None = None,
-        health_status: str | None = None,
+        query_parameters: Optional[dict[str, str]] = None,
+        optional_parameters: Optional[dict[str, str]] = None,
+        health_status: Optional[str] = None,
     ) -> tuple[list[ServiceInstance], dict[str, int]]:
         if query_parameters is None:
             query_parameters = {}
@@ -632,9 +632,9 @@ class ServiceDiscoveryBackend(BaseBackend):
     def paginate(
         self,
         items: list[Any],
-        max_results: int | None = None,
-        next_token: str | None = None,
-    ) -> tuple[list[Any], str | None]:
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[Any], Optional[str]]:
         """
         Paginates a list of items. If called without optional parameters, the entire list is returned as-is.
         """

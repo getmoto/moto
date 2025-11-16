@@ -1,7 +1,7 @@
 """CostExplorerBackend class with methods for supported APIs."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -30,7 +30,7 @@ class CostCategoryDefinition(BaseModel):
         account_id: str,
         region_name: str,
         name: str,
-        effective_start: str | None,
+        effective_start: Optional[str],
         rule_version: str,
         rules: list[dict[str, Any]],
         default_value: str,
@@ -47,7 +47,7 @@ class CostCategoryDefinition(BaseModel):
     def update(
         self,
         rule_version: str,
-        effective_start: str | None,
+        effective_start: Optional[str],
         rules: list[dict[str, Any]],
         default_value: str,
         split_charge_rules: list[dict[str, Any]],
@@ -83,7 +83,7 @@ class CostExplorerBackend(BaseBackend):
     def create_cost_category_definition(
         self,
         name: str,
-        effective_start: str | None,
+        effective_start: Optional[str],
         rule_version: str,
         rules: list[dict[str, Any]],
         default_value: str,
@@ -130,7 +130,7 @@ class CostExplorerBackend(BaseBackend):
     def update_cost_category_definition(
         self,
         cost_category_arn: str,
-        effective_start: str | None,
+        effective_start: Optional[str],
         rule_version: str,
         rules: list[dict[str, Any]],
         default_value: str,

@@ -1,4 +1,5 @@
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
+from typing import Callable
 from unittest import SkipTest
 
 import boto3

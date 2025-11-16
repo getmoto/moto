@@ -1,6 +1,6 @@
 """SESV2Backend class with methods for supported APIs."""
 
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
@@ -114,9 +114,9 @@ class SESV2Backend(BaseBackend):
     def create_email_identity(
         self,
         email_identity: str,
-        tags: dict[str, str] | None,
-        dkim_signing_attributes: object | None,
-        configuration_set_name: str | None,
+        tags: Optional[dict[str, str]],
+        dkim_signing_attributes: Optional[object],
+        configuration_set_name: Optional[str],
     ) -> EmailIdentity:
         return self.core_backend.create_email_identity_v2(
             email_identity, tags, dkim_signing_attributes, configuration_set_name

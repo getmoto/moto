@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import copy
 import logging
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 from botocore.model import ListShape, Shape, StringShape, StructureShape
 from botocore.response import StreamingBody
@@ -135,7 +135,7 @@ class StateTaskService(StateTask, abc.ABC):
         parameters_bind_keys: list[str] = list(parameters.keys())
         for parameter_key in parameters_bind_keys:
             norm_parameter_key = camel_to_snake_case(parameter_key)
-            norm_member_bind: tuple[str, StructureShape | None] | None = (
+            norm_member_bind: Optional[tuple[str, Optional[StructureShape]]] = (
                 norm_member_binds.get(norm_parameter_key)
             )
             if norm_member_bind is not None:
@@ -197,27 +197,29 @@ class StateTaskService(StateTask, abc.ABC):
 
                 response[norm_response_key] = response_value
 
-    def _get_boto_service_name(self, boto_service_name: str | None = None) -> str:
+    def _get_boto_service_name(self, boto_service_name: Optional[str] = None) -> str:
         api_name = boto_service_name or self.resource.api_name
         return self._SERVICE_NAME_SFN_TO_BOTO_OVERRIDES.get(api_name, api_name)
 
-    def _get_boto_service_action(self, service_action_name: str | None = None) -> str:
+    def _get_boto_service_action(
+        self, service_action_name: Optional[str] = None
+    ) -> str:
         api_action = service_action_name or self.resource.api_action
         return camel_to_snake_case(api_action)
 
     def _normalise_parameters(
         self,
         parameters: dict,
-        boto_service_name: str | None = None,
-        service_action_name: str | None = None,
+        boto_service_name: Optional[str] = None,
+        service_action_name: Optional[str] = None,
     ) -> None:
         pass
 
     def _normalise_response(
         self,
         response: Any,
-        boto_service_name: str | None = None,
-        service_action_name: str | None = None,
+        boto_service_name: Optional[str] = None,
+        service_action_name: Optional[str] = None,
     ) -> None:
         pass
 

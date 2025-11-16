@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TypedDict
+from typing import Optional, TypedDict
 
 import localstack.services.cloudformation.provider_utils as util
 from localstack.services.cloudformation.resource_provider import (
@@ -14,14 +14,14 @@ from localstack.services.cloudformation.resource_provider import (
 
 
 class StepFunctionsActivityProperties(TypedDict):
-    Name: str | None
-    Arn: str | None
-    Tags: list[TagsEntry] | None
+    Name: Optional[str]
+    Arn: Optional[str]
+    Tags: Optional[list[TagsEntry]]
 
 
 class TagsEntry(TypedDict):
-    Key: str | None
-    Value: str | None
+    Key: Optional[str]
+    Value: Optional[str]
 
 
 REPEATED_INVOCATION = "repeated_invocation"

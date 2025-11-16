@@ -5,7 +5,7 @@ import string
 import struct
 from copy import deepcopy
 from threading import Condition
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 from urllib.parse import ParseResult
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -74,20 +74,20 @@ class Message(BaseModel):
         self,
         message_id: str,
         body: str,
-        system_attributes: dict[str, Any] | None = None,
+        system_attributes: Optional[dict[str, Any]] = None,
     ):
         self.id = message_id
         self.body = body
         self.message_attributes: dict[str, Any] = {}
-        self.receipt_handle: str | None = None
+        self.receipt_handle: Optional[str] = None
         self._old_receipt_handles: list[str] = []
         self.sender_id = DEFAULT_SENDER_ID
         self.sent_timestamp = None
-        self.approximate_first_receive_timestamp: int | None = None
+        self.approximate_first_receive_timestamp: Optional[int] = None
         self.approximate_receive_count = 0
-        self.deduplication_id: str | None = None
-        self.group_id: str | None = None
-        self.sequence_number: str | None = None
+        self.deduplication_id: Optional[str] = None
+        self.group_id: Optional[str] = None
+        self.sequence_number: Optional[str] = None
         self.visible_at = 0.0
         self.delayed_until = 0.0
         self.system_attributes = system_attributes or {}
@@ -143,12 +143,12 @@ class Message(BaseModel):
             return value.encode("utf-8")
         return value
 
-    def mark_sent(self, delay_seconds: int | None = None) -> None:
+    def mark_sent(self, delay_seconds: Optional[int] = None) -> None:
         self.sent_timestamp = int(unix_time_millis())  # type: ignore
         if delay_seconds:
             self.delay(delay_seconds=delay_seconds)
 
-    def mark_received(self, visibility_timeout: int | None = None) -> None:
+    def mark_received(self, visibility_timeout: Optional[int] = None) -> None:
         """
         When a message is received we will set the first receive timestamp,
         tap the ``approximate_receive_count`` and the ``visible_at`` time.
@@ -195,7 +195,7 @@ class Message(BaseModel):
         return False
 
     @property
-    def all_receipt_handles(self) -> list[str | None]:
+    def all_receipt_handles(self) -> list[Optional[str]]:
         return [self.receipt_handle] + self._old_receipt_handles  # type: ignore
 
     def had_receipt_handle(self, receipt_handle: str) -> bool:
@@ -256,7 +256,7 @@ class Queue(CloudFormationModel):
         now = unix_time()
         self.created_timestamp = now
         self.queue_arn = f"arn:{get_partition(region)}:sqs:{region}:{account_id}:{name}"
-        self.dead_letter_queue: Queue | None = None
+        self.dead_letter_queue: Optional[Queue] = None
         self.fifo_queue = False
 
         self.lambda_event_source_mappings: dict[str, EventSourceMapping] = {}
@@ -320,7 +320,7 @@ class Queue(CloudFormationModel):
         }
 
     def _set_attributes(
-        self, attributes: dict[str, Any], now: float | None = None
+        self, attributes: dict[str, Any], now: Optional[float] = None
     ) -> None:
         if not now:
             now = unix_time()
@@ -675,7 +675,7 @@ class SQSBackend(BaseBackend):
         self.queues: dict[str, Queue] = {}
 
     def create_queue(
-        self, name: str, tags: dict[str, str] | None = None, **kwargs: Any
+        self, name: str, tags: Optional[dict[str, str]] = None, **kwargs: Any
     ) -> Queue:
         queue = self.queues.get(name)
         if queue:
@@ -779,8 +779,8 @@ class SQSBackend(BaseBackend):
         queue: Queue,
         message_body: str,
         delay_seconds: int,
-        deduplication_id: str | None = None,
-        group_id: str | None = None,
+        deduplication_id: Optional[str] = None,
+        group_id: Optional[str] = None,
         validate_group_id: bool = True,
     ) -> None:
         if queue.fifo_queue:
@@ -821,11 +821,11 @@ class SQSBackend(BaseBackend):
         self,
         queue_name: str,
         message_body: str,
-        message_attributes: dict[str, Any] | None = None,
-        delay_seconds: int | None = None,
-        deduplication_id: str | None = None,
-        group_id: str | None = None,
-        system_attributes: dict[str, Any] | None = None,
+        message_attributes: Optional[dict[str, Any]] = None,
+        delay_seconds: Optional[int] = None,
+        deduplication_id: Optional[str] = None,
+        group_id: Optional[str] = None,
+        system_attributes: Optional[dict[str, Any]] = None,
         validate_group_id: bool = True,
     ) -> Message:
         queue = self.get_queue(queue_name)
@@ -937,7 +937,7 @@ class SQSBackend(BaseBackend):
 
         return messages, failedInvalidDelay
 
-    def _get_first_duplicate_id(self, ids: list[str]) -> str | None:
+    def _get_first_duplicate_id(self, ids: list[str]) -> Optional[str]:
         unique_ids = set()
         for _id in ids:
             if _id in unique_ids:
@@ -951,7 +951,7 @@ class SQSBackend(BaseBackend):
         count: int,
         wait_seconds_timeout: int,
         visibility_timeout: int,
-        message_attribute_names: list[str] | None = None,
+        message_attribute_names: Optional[list[str]] = None,
     ) -> list[Message]:
         # Attempt to retrieve visible messages from a queue.
 

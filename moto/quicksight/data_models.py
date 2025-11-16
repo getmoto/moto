@@ -1,5 +1,5 @@
 import datetime
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random as random
@@ -190,7 +190,9 @@ class QuicksightDashboard(BaseModel):
 
 
 class QuicksightAccountSettings(BaseModel):
-    def __init__(self, account_id: str, account_name: str | None = "default") -> None:
+    def __init__(
+        self, account_id: str, account_name: Optional[str] = "default"
+    ) -> None:
         self.account_name = account_name
         self.account_id = account_id
         self.default_namespace = "default"
@@ -207,13 +209,13 @@ class QuickSightDataSource(BaseModel):
         region: str,
         data_source_id: str,
         name: str,
-        data_source_parameters: dict[str, dict[str, Any]] | None = None,
-        alternate_data_source_parameters: list[dict[str, Any]] | None = None,
-        ssl_properties: dict[str, Any] | None = None,
-        status: str | None = None,
-        tags: list[dict[str, str]] | None = None,
-        data_source_type: str | None = None,
-        vpc_connection_properties: dict[str, Any] | None = None,
+        data_source_parameters: Optional[dict[str, dict[str, Any]]] = None,
+        alternate_data_source_parameters: Optional[list[dict[str, Any]]] = None,
+        ssl_properties: Optional[dict[str, Any]] = None,
+        status: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        data_source_type: Optional[str] = None,
+        vpc_connection_properties: Optional[dict[str, Any]] = None,
     ) -> None:
         self.account_id = account_id
         self.region = region

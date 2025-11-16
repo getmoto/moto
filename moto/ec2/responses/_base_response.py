@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.responses import BaseResponse
 from moto.core.serialize import return_if_not_empty
@@ -35,7 +35,7 @@ class EC2BaseResponse(BaseResponse):
             )
 
     def _parse_tag_specification(
-        self, expected_type: str | None = None
+        self, expected_type: Optional[str] = None
     ) -> dict[str, dict[str, str]]:
         # [{"ResourceType": _type, "Tag": [{"Key": k, "Value": v}, ..]}]
         tag_spec_set = self._get_multi_param(

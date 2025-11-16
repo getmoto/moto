@@ -218,16 +218,16 @@ class Parameter(CloudFormationModel):
         name: str,
         value: str,
         parameter_type: str,
-        description: str | None,
-        allowed_pattern: str | None,
-        keyid: str | None,
+        description: Optional[str],
+        allowed_pattern: Optional[str],
+        keyid: Optional[str],
         last_modified_date: float,
         version: int,
         data_type: str,
-        labels: list[str] | None = None,
-        source_result: str | None = None,
-        tier: str | None = None,
-        policies: str | None = None,
+        labels: Optional[list[str]] = None,
+        source_result: Optional[str] = None,
+        tier: Optional[str] = None,
+        policies: Optional[str] = None,
     ):
         self.account_id = account_id
         self.name = name
@@ -254,7 +254,7 @@ class Parameter(CloudFormationModel):
     def encrypt(self, value: str) -> str:
         return f"kms:{self.keyid}:" + value
 
-    def decrypt(self, value: str) -> str | None:
+    def decrypt(self, value: str) -> Optional[str]:
         if self.parameter_type != "SecureString":
             return value
 
@@ -264,7 +264,7 @@ class Parameter(CloudFormationModel):
         return None
 
     def response_object(
-        self, decrypt: bool = False, region: str | None = None
+        self, decrypt: bool = False, region: Optional[str] = None
     ) -> dict[str, Any]:
         r: dict[str, Any] = {
             "Name": self.name,
@@ -391,7 +391,7 @@ MAX_TIMEOUT_SECONDS = 3600
 
 def generate_ssm_doc_param_list(
     parameters: dict[str, Any],
-) -> list[dict[str, Any]] | None:
+) -> Optional[list[dict[str, Any]]]:
     if not parameters:
         return None
     param_list = []
@@ -469,12 +469,12 @@ class Documents(BaseModel):
 
     def find(
         self,
-        document_version: str | None = None,
-        version_name: str | None = None,
+        document_version: Optional[str] = None,
+        version_name: Optional[str] = None,
         strict: bool = True,
     ) -> "Document":
         if document_version == "$LATEST":
-            ssm_document: Document | None = self.get_latest_version()
+            ssm_document: Optional[Document] = self.get_latest_version()
         elif version_name and document_version:
             ssm_document = self.find_by_version_and_version_name(
                 document_version, version_name
@@ -492,7 +492,7 @@ class Documents(BaseModel):
         return ssm_document  # type: ignore
 
     def exists(
-        self, document_version: str | None = None, version_name: str | None = None
+        self, document_version: Optional[str] = None, version_name: Optional[str] = None
     ) -> bool:
         return self.find(document_version, version_name, strict=False) is not None
 
@@ -520,9 +520,9 @@ class Documents(BaseModel):
 
     def describe(
         self,
-        document_version: str | None = None,
-        version_name: str | None = None,
-        tags: list[dict[str, str]] | None = None,
+        document_version: Optional[str] = None,
+        version_name: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> dict[str, Any]:
         document = self.find(document_version, version_name)
         base: dict[str, Any] = {
@@ -663,7 +663,9 @@ class Document(BaseModel):
     def hash(self) -> str:
         return hashlib.sha256(self.content.encode("utf-8")).hexdigest()
 
-    def list_describe(self, tags: list[dict[str, str]] | None = None) -> dict[str, Any]:
+    def list_describe(
+        self, tags: Optional[list[dict[str, str]]] = None
+    ) -> dict[str, Any]:
         base: dict[str, Any] = {
             "Name": self.name,
             "Owner": self.owner,
@@ -691,18 +693,18 @@ class Command(BaseModel):
         self,
         account_id: str,
         comment: str = "",
-        document_name: str | None = "",
-        timeout_seconds: int | None = MAX_TIMEOUT_SECONDS,
-        instance_ids: list[str] | None = None,
+        document_name: Optional[str] = "",
+        timeout_seconds: Optional[int] = MAX_TIMEOUT_SECONDS,
+        instance_ids: Optional[list[str]] = None,
         max_concurrency: str = "",
         max_errors: str = "",
-        notification_config: dict[str, Any] | None = None,
+        notification_config: Optional[dict[str, Any]] = None,
         output_s3_bucket_name: str = "",
         output_s3_key_prefix: str = "",
         output_s3_region: str = "",
-        parameters: dict[str, list[str]] | None = None,
+        parameters: Optional[dict[str, list[str]]] = None,
         service_role_arn: str = "",
-        targets: list[dict[str, Any]] | None = None,
+        targets: Optional[list[dict[str, Any]]] = None,
         backend_region: str = "us-east-1",
     ):
         if instance_ids is None:
@@ -827,7 +829,7 @@ class Command(BaseModel):
         }
 
     def get_invocation(
-        self, instance_id: str, plugin_name: str | None
+        self, instance_id: str, plugin_name: Optional[str]
     ) -> dict[str, Any]:
         invocation = next(
             (
@@ -862,7 +864,7 @@ def _validate_document_format(document_format: str) -> None:
 def _validate_document_info(
     content: str,
     name: str,
-    document_type: str | None,
+    document_type: Optional[str],
     document_format: str,
     strict: bool = True,
 ) -> None:
@@ -974,9 +976,9 @@ class FakeMaintenanceWindowTarget:
         window_id: str,
         resource_type: str,
         targets: list[dict[str, Any]],
-        owner_information: str | None,
-        name: str | None,
-        description: str | None,
+        owner_information: Optional[str],
+        name: Optional[str],
+        description: Optional[str],
     ):
         self.window_id = window_id
         self.window_target_id = self.generate_id()
@@ -1006,20 +1008,20 @@ class FakeMaintenanceWindowTask:
     def __init__(
         self,
         window_id: str,
-        targets: list[dict[str, Any]] | None,
+        targets: Optional[list[dict[str, Any]]],
         task_arn: str,
-        service_role_arn: str | None,
+        service_role_arn: Optional[str],
         task_type: str,
-        task_parameters: dict[str, Any] | None,
-        task_invocation_parameters: dict[str, Any] | None,
-        priority: int | None,
-        max_concurrency: str | None,
-        max_errors: str | None,
-        logging_info: dict[str, Any] | None,
-        name: str | None,
-        description: str | None,
-        cutoff_behavior: str | None,
-        alarm_configurations: dict[str, Any] | None,
+        task_parameters: Optional[dict[str, Any]],
+        task_invocation_parameters: Optional[dict[str, Any]],
+        priority: Optional[int],
+        max_concurrency: Optional[str],
+        max_errors: Optional[str],
+        logging_info: Optional[dict[str, Any]],
+        name: Optional[str],
+        description: Optional[str],
+        cutoff_behavior: Optional[str],
+        alarm_configurations: Optional[dict[str, Any]],
     ):
         self.window_task_id = FakeMaintenanceWindowTask.generate_id()
         self.window_id = window_id
@@ -1062,7 +1064,7 @@ class FakeMaintenanceWindowTask:
 
 
 def _maintenance_window_target_filter_match(
-    filters: list[dict[str, Any]] | None, target: FakeMaintenanceWindowTarget
+    filters: Optional[list[dict[str, Any]]], target: FakeMaintenanceWindowTarget
 ) -> bool:
     if not filters and target:
         return True
@@ -1070,7 +1072,7 @@ def _maintenance_window_target_filter_match(
 
 
 def _maintenance_window_task_filter_match(
-    filters: list[dict[str, Any]] | None, task: FakeMaintenanceWindowTask
+    filters: Optional[list[dict[str, Any]]], task: FakeMaintenanceWindowTask
 ) -> bool:
     if not filters and task:
         return True
@@ -1129,15 +1131,15 @@ class FakePatchBaseline:
         self,
         name: str,
         operating_system: str,
-        global_filters: dict[str, Any] | None,
-        approval_rules: dict[str, Any] | None,
-        approved_patches: list[str] | None,
-        approved_patches_compliance_level: str | None,
-        approved_patches_enable_non_security: bool | None,
-        rejected_patches: list[str] | None,
-        rejected_patches_action: str | None,
-        description: str | None,
-        sources: list[dict[str, Any]] | None,
+        global_filters: Optional[dict[str, Any]],
+        approval_rules: Optional[dict[str, Any]],
+        approved_patches: Optional[list[str]],
+        approved_patches_compliance_level: Optional[str],
+        approved_patches_enable_non_security: Optional[bool],
+        rejected_patches: Optional[list[str]],
+        rejected_patches_action: Optional[str],
+        description: Optional[str],
+        sources: Optional[list[dict[str, Any]]],
     ):
         self.id = FakePatchBaseline.generate_id()
         self.operating_system = operating_system
@@ -1570,7 +1572,7 @@ class SimpleSystemManagerBackend(BaseBackend):
             account_ids_to_add, account_ids_to_remove, shared_document_version
         )
 
-    def delete_parameter(self, name: str) -> Parameter | None:
+    def delete_parameter(self, name: str) -> Optional[Parameter]:
         normalized_parameter_name = self._parameters.normalize_name(name)
         self._resource_tags.get("Parameter", {}).pop(normalized_parameter_name, None)  # type: ignore
         return self._parameters.pop(normalized_parameter_name, None)  # type: ignore
@@ -1631,7 +1633,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return result
 
     def _validate_parameter_filters(
-        self, parameter_filters: list[dict[str, Any]] | None, by_path: bool
+        self, parameter_filters: Optional[list[dict[str, Any]]], by_path: bool
     ) -> None:
         for index, filter_obj in enumerate(parameter_filters or []):
             key = filter_obj["Key"]
@@ -1817,10 +1819,10 @@ class SimpleSystemManagerBackend(BaseBackend):
         self,
         path: str,
         recursive: bool,
-        filters: list[dict[str, Any]] | None = None,
-        next_token: str | None = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+        next_token: Optional[str] = None,
         max_results: int = 10,
-    ) -> tuple[list[Parameter], str | None]:
+    ) -> tuple[list[Parameter], Optional[str]]:
         """Implement the get-parameters-by-path-API in the backend."""
         if max_results > PARAMETER_BY_PATH_MAX_RESULTS:
             raise ValidationException(
@@ -1847,8 +1849,8 @@ class SimpleSystemManagerBackend(BaseBackend):
         self,
         values_list: list[Parameter],
         max_results: int,
-        token: str | None = None,
-    ) -> tuple[list[Parameter], str | None]:
+        token: Optional[str] = None,
+    ) -> tuple[list[Parameter], Optional[str]]:
         next_token = int(token or "0")
         max_results = int(max_results)
         values = values_list[next_token : next_token + max_results]
@@ -1858,8 +1860,8 @@ class SimpleSystemManagerBackend(BaseBackend):
         )
 
     def get_parameter_history(
-        self, name: str, next_token: str | None, max_results: int = 50
-    ) -> tuple[list[Parameter] | None, str | None]:
+        self, name: str, next_token: Optional[str], max_results: int = 50
+    ) -> tuple[Optional[list[Parameter]], Optional[str]]:
         if max_results > PARAMETER_HISTORY_MAX_RESULTS:
             raise ValidationException(
                 "1 validation error detected: "
@@ -1874,8 +1876,8 @@ class SimpleSystemManagerBackend(BaseBackend):
         return None, None
 
     def _get_history_nexttoken(
-        self, history: list[Parameter], token: str | None, max_results: int
-    ) -> tuple[list[Parameter], str | None]:
+        self, history: list[Parameter], token: Optional[str], max_results: int
+    ) -> tuple[list[Parameter], Optional[str]]:
         next_token = int(token or "0")
         max_results = int(max_results)
         history_to_return = history[next_token : next_token + max_results]
@@ -1888,7 +1890,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return history_to_return, None
 
     def _match_filters(
-        self, parameter: Parameter, filters: list[dict[str, Any]] | None = None
+        self, parameter: Parameter, filters: Optional[list[dict[str, Any]]] = None
     ) -> bool:
         """Return True if the given parameter matches all the filters"""
         parameter_tags = self.list_tags_for_resource("Parameter", parameter.name)
@@ -1970,7 +1972,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         # True if no false match (or no filters at all)
         return True
 
-    def get_parameter(self, name: str) -> Parameter | None:
+    def get_parameter(self, name: str) -> Optional[Parameter]:
         if name.startswith(self.ssm_prefix):
             name = name.replace(self.ssm_prefix, "")
 
@@ -2089,8 +2091,8 @@ class SimpleSystemManagerBackend(BaseBackend):
         overwrite: bool,
         tags: list[dict[str, str]],
         data_type: str,
-        tier: str | None,
-        policies: str | None,
+        tier: Optional[str],
+        policies: Optional[str],
     ) -> Parameter:
         if not value:
             raise ValidationException(
@@ -2258,12 +2260,12 @@ class SimpleSystemManagerBackend(BaseBackend):
     def send_command(
         self,
         comment: str,
-        document_name: str | None,
+        document_name: Optional[str],
         timeout_seconds: int,
         instance_ids: list[str],
         max_concurrency: str,
         max_errors: str,
-        notification_config: dict[str, Any] | None,
+        notification_config: Optional[dict[str, Any]],
         output_s3_bucket_name: str,
         output_s3_key_prefix: str,
         output_s3_region: str,
@@ -2293,7 +2295,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return command
 
     def list_commands(
-        self, command_id: str | None, instance_id: str | None
+        self, command_id: Optional[str], instance_id: Optional[str]
     ) -> list[Command]:
         """
         Pagination and the Filters-parameter is not yet implemented
@@ -2322,7 +2324,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         ]
 
     def get_command_invocation(
-        self, command_id: str, instance_id: str, plugin_name: str | None
+        self, command_id: str, instance_id: str, plugin_name: Optional[str]
     ) -> dict[str, Any]:
         command = self.get_command_by_id(command_id)
         return command.get_invocation(instance_id, plugin_name)
@@ -2338,7 +2340,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         schedule_offset: int,
         start_date: str,
         end_date: str,
-        tags: list[dict[str, str]] | None,
+        tags: Optional[list[dict[str, str]]],
     ) -> str:
         """
         Creates a maintenance window. No error handling or input validation has been implemented yet.
@@ -2371,7 +2373,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return self.windows[window_id]
 
     def describe_maintenance_windows(
-        self, filters: list[dict[str, Any]] | None
+        self, filters: Optional[list[dict[str, Any]]]
     ) -> list[FakeMaintenanceWindow]:
         """
         Returns all windows. No pagination has been implemented yet. Only filtering for Name is supported.
@@ -2397,16 +2399,16 @@ class SimpleSystemManagerBackend(BaseBackend):
         self,
         name: str,
         operating_system: str,
-        global_filters: dict[str, Any] | None,
-        approval_rules: dict[str, Any] | None,
-        approved_patches: list[str] | None,
-        approved_patches_compliance_level: str | None,
-        approved_patches_enable_non_security: bool | None,
-        rejected_patches: list[str] | None,
-        rejected_patches_action: str | None,
-        description: str | None,
-        sources: list[dict[str, Any]] | None,
-        tags: list[dict[str, str]] | None,
+        global_filters: Optional[dict[str, Any]],
+        approval_rules: Optional[dict[str, Any]],
+        approved_patches: Optional[list[str]],
+        approved_patches_compliance_level: Optional[str],
+        approved_patches_enable_non_security: Optional[bool],
+        rejected_patches: Optional[list[str]],
+        rejected_patches_action: Optional[str],
+        description: Optional[str],
+        sources: Optional[list[dict[str, Any]]],
+        tags: Optional[list[dict[str, str]]],
     ) -> str:
         """
         Registers a patch baseline. No error handling or input validation has been implemented yet.
@@ -2433,7 +2435,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         return baseline.id
 
     def describe_patch_baselines(
-        self, filters: list[dict[str, Any]] | None
+        self, filters: Optional[list[dict[str, Any]]]
     ) -> list[FakePatchBaseline]:
         """
         Returns all baselines. No pagination has been implemented yet.
@@ -2460,9 +2462,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         window_id: str,
         resource_type: str,
         targets: list[dict[str, Any]],
-        owner_information: str | None,
-        name: str | None,
-        description: str | None,
+        owner_information: Optional[str],
+        name: Optional[str],
+        description: Optional[str],
     ) -> str:
         """
         Registers a target with a maintenance window. No error handling has been implemented yet.
@@ -2490,7 +2492,7 @@ class SimpleSystemManagerBackend(BaseBackend):
         del window.targets[window_target_id]
 
     def describe_maintenance_window_targets(
-        self, window_id: str, filters: list[dict[str, Any]] | None
+        self, window_id: str, filters: Optional[list[dict[str, Any]]]
     ) -> list[FakeMaintenanceWindowTarget]:
         """
         Describes all targets for a maintenance window. No error handling has been implemented yet.
@@ -2506,20 +2508,20 @@ class SimpleSystemManagerBackend(BaseBackend):
     def register_task_with_maintenance_window(
         self,
         window_id: str,
-        targets: list[dict[str, Any]] | None,
+        targets: Optional[list[dict[str, Any]]],
         task_arn: str,
-        service_role_arn: str | None,
+        service_role_arn: Optional[str],
         task_type: str,
-        task_parameters: dict[str, Any] | None,
-        task_invocation_parameters: dict[str, Any] | None,
-        priority: int | None,
-        max_concurrency: str | None,
-        max_errors: str | None,
-        logging_info: dict[str, Any] | None,
-        name: str | None,
-        description: str | None,
-        cutoff_behavior: str | None,
-        alarm_configurations: dict[str, Any] | None,
+        task_parameters: Optional[dict[str, Any]],
+        task_invocation_parameters: Optional[dict[str, Any]],
+        priority: Optional[int],
+        max_concurrency: Optional[str],
+        max_errors: Optional[str],
+        logging_info: Optional[dict[str, Any]],
+        name: Optional[str],
+        description: Optional[str],
+        cutoff_behavior: Optional[str],
+        alarm_configurations: Optional[dict[str, Any]],
     ) -> str:
         window = self.get_maintenance_window(window_id)
         task = FakeMaintenanceWindowTask(

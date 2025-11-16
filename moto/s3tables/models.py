@@ -3,7 +3,7 @@
 import datetime
 import re
 from hashlib import md5
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -102,12 +102,12 @@ class Table:
         self.version_token = self._generate_version_token()
         self.creation_date = datetime.datetime.now(tz=datetime.timezone.utc)
         self.last_modified = self.creation_date
-        self.modified_by: str | None = None
+        self.modified_by: Optional[str] = None
         self.namespace = namespace
         self.table_bucket_arn = table_bucket_arn
         self.region_name = table_bucket_arn.split(":")[3]
         self.managed_by_service = managed_by_service
-        self.metadata_location: str | None = None
+        self.metadata_location: Optional[str] = None
         self._bucket = self._create_underlying_bucket()
         self.warehouse_location: str = f"s3://{self._bucket.name}"
 
@@ -194,7 +194,7 @@ class S3TablesBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_table_buckets(
         self,
-        prefix: str | None = None,
+        prefix: Optional[str] = None,
     ) -> list[FakeTableBucket]:
         all_buckets = [
             bucket
@@ -238,7 +238,7 @@ class S3TablesBackend(BaseBackend):
     def list_namespaces(
         self,
         table_bucket_arn: str,
-        prefix: str | None = None,
+        prefix: Optional[str] = None,
     ) -> list[Namespace]:
         bucket = self.get_table_bucket(table_bucket_arn)
 
@@ -311,8 +311,8 @@ class S3TablesBackend(BaseBackend):
     def list_tables(
         self,
         table_bucket_arn: str,
-        namespace: str | None = None,
-        prefix: str | None = None,
+        namespace: Optional[str] = None,
+        prefix: Optional[str] = None,
     ) -> list[Table]:
         bucket = self.table_buckets.get(table_bucket_arn)
         if not bucket or (namespace and namespace not in bucket.namespaces):
@@ -341,7 +341,7 @@ class S3TablesBackend(BaseBackend):
         table_bucket_arn: str,
         namespace: str,
         name: str,
-        version_token: str | None = None,
+        version_token: Optional[str] = None,
     ) -> None:
         bucket = self.table_buckets.get(table_bucket_arn)
         if (
@@ -387,9 +387,9 @@ class S3TablesBackend(BaseBackend):
         table_bucket_arn: str,
         namespace: str,
         name: str,
-        new_namespace_name: str | None = None,
-        new_name: str | None = None,
-        version_token: str | None = None,
+        new_namespace_name: Optional[str] = None,
+        new_name: Optional[str] = None,
+        version_token: Optional[str] = None,
     ) -> None:
         if not new_namespace_name and not new_name:
             raise NothingToRename()

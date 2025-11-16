@@ -1,5 +1,5 @@
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, Optional
 
 from moto.acm.models import AWSCertificateManagerBackend, acm_backends
 from moto.appsync.models import AppSyncBackend, appsync_backends
@@ -195,21 +195,21 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return dynamodb_backends[self.account_id][self.region_name]
 
     @property
-    def workspaces_backend(self) -> WorkSpacesBackend | None:
+    def workspaces_backend(self) -> Optional[WorkSpacesBackend]:
         # Workspaces service has limited region availability
         if self.region_name in workspaces_backends[self.account_id].regions:
             return workspaces_backends[self.account_id][self.region_name]
         return None
 
     @property
-    def workspacesweb_backends(self) -> WorkSpacesWebBackend | None:
+    def workspacesweb_backends(self) -> Optional[WorkSpacesWebBackend]:
         # Workspaces service has limited region availability
         if self.region_name in workspaces_backends[self.account_id].regions:
             return workspacesweb_backends[self.account_id][self.region_name]
         return None
 
     @property
-    def comprehend_backend(self) -> ComprehendBackend | None:
+    def comprehend_backend(self) -> Optional[ComprehendBackend]:
         # aws Comprehend has limited region availability
         if self.region_name in comprehend_backends[self.account_id].regions:
             return comprehend_backends[self.account_id][self.region_name]
@@ -224,13 +224,13 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return sagemaker_backends[self.account_id][self.region_name]
 
     @property
-    def lexv2_backend(self) -> LexModelsV2Backend | None:
+    def lexv2_backend(self) -> Optional[LexModelsV2Backend]:
         if self.region_name in lexv2models_backends[self.account_id].regions:
             return lexv2models_backends[self.account_id][self.region_name]
         return None
 
     @property
-    def clouddirectory_backend(self) -> CloudDirectoryBackend | None:
+    def clouddirectory_backend(self) -> Optional[CloudDirectoryBackend]:
         if self.region_name in clouddirectory_backends[self.account_id].regions:
             return clouddirectory_backends[self.account_id][self.region_name]
         return None
@@ -244,14 +244,14 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return cloudwatch_backends[self.account_id][self.region_name]
 
     @property
-    def connectcampaigns_backend(self) -> ConnectCampaignServiceBackend | None:
+    def connectcampaigns_backend(self) -> Optional[ConnectCampaignServiceBackend]:
         # Connect Campaigns service has limited region availability
         if self.region_name in connectcampaigns_backends[self.account_id].regions:
             return connectcampaigns_backends[self.account_id][self.region_name]
         return None
 
     @property
-    def quicksight_backend(self) -> QuickSightBackend | None:
+    def quicksight_backend(self) -> Optional[QuickSightBackend]:
         if self.region_name in quicksight_backends[self.account_id].regions:
             return quicksight_backends[self.account_id][self.region_name]
         return None
@@ -266,8 +266,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     def _get_resources_generator(
         self,
-        tag_filters: list[dict[str, Any]] | None = None,
-        resource_type_filters: list[str] | None = None,
+        tag_filters: Optional[list[dict[str, Any]]] = None,
+        resource_type_filters: Optional[list[str]] = None,
     ) -> Iterator[dict[str, Any]]:
         # Look at
         # https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
@@ -1351,12 +1351,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
     def get_resources(
         self,
-        pagination_token: str | None = None,
+        pagination_token: Optional[str] = None,
         resources_per_page: int = 50,
         tags_per_page: int = 100,
-        tag_filters: list[dict[str, Any]] | None = None,
-        resource_type_filters: list[str] | None = None,
-    ) -> tuple[str | None, list[dict[str, Any]]]:
+        tag_filters: Optional[list[dict[str, Any]]] = None,
+        resource_type_filters: Optional[list[str]] = None,
+    ) -> tuple[Optional[str], list[dict[str, Any]]]:
         # Simple range checking
         if 100 >= tags_per_page >= 500:
             raise RESTError(
@@ -1420,8 +1420,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return new_token, result
 
     def get_tag_keys(
-        self, pagination_token: str | None = None
-    ) -> tuple[str | None, list[str]]:
+        self, pagination_token: Optional[str] = None
+    ) -> tuple[Optional[str], list[str]]:
         if pagination_token:
             if pagination_token not in self._pages:
                 raise RESTError(
@@ -1467,8 +1467,8 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         return new_token, result
 
     def get_tag_values(
-        self, pagination_token: str | None, key: str
-    ) -> tuple[str | None, list[str]]:
+        self, pagination_token: Optional[str], key: str
+    ) -> tuple[Optional[str], list[str]]:
         if pagination_token:
             if pagination_token not in self._pages:
                 raise RESTError(

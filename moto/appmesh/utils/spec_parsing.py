@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.appmesh.dataclasses.route import (
     GrcpRouteRetryPolicy,
@@ -160,7 +160,7 @@ def get_http_match_from_route(route: Any) -> HttpRouteMatch:  # type: ignore[mis
     )
 
 
-def get_http_retry_policy_from_route(route: Any) -> HttpRouteRetryPolicy | None:  # type: ignore[misc]
+def get_http_retry_policy_from_route(route: Any) -> Optional[HttpRouteRetryPolicy]:  # type: ignore[misc]
     _retry_policy = route.get("retryPolicy")
     retry_policy = None
     if _retry_policy is not None:
@@ -177,7 +177,7 @@ def get_http_retry_policy_from_route(route: Any) -> HttpRouteRetryPolicy | None:
     return retry_policy
 
 
-def get_timeout_from_route(route: Any) -> Timeout | None:  # type: ignore[misc]
+def get_timeout_from_route(route: Any) -> Optional[Timeout]:  # type: ignore[misc]
     _timeout = route.get("timeout") or {}
     idle, per_request = None, None
     _idle = _timeout.get("idle")

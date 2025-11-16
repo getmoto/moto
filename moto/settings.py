@@ -2,6 +2,7 @@ import json
 import os
 import pathlib
 from functools import lru_cache
+from typing import Optional
 
 from moto.core.config import default_user_config
 
@@ -127,11 +128,11 @@ def moto_lambda_image() -> str:
     return os.environ.get("MOTO_DOCKER_LAMBDA_IMAGE", "mlupin/docker-lambda")
 
 
-def moto_network_name() -> str | None:
+def moto_network_name() -> Optional[str]:
     return os.environ.get("MOTO_DOCKER_NETWORK_NAME")
 
 
-def moto_network_mode() -> str | None:
+def moto_network_mode() -> Optional[str]:
     return os.environ.get("MOTO_DOCKER_NETWORK_MODE")
 
 
@@ -179,11 +180,11 @@ def get_docker_host() -> str:
         return "http://host.docker.internal"
 
 
-def get_cognito_idp_user_pool_id_strategy() -> str | None:
+def get_cognito_idp_user_pool_id_strategy() -> Optional[str]:
     return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_ID_STRATEGY")
 
 
-def get_cognito_idp_user_pool_client_id_strategy() -> str | None:
+def get_cognito_idp_user_pool_client_id_strategy() -> Optional[str]:
     return os.environ.get("MOTO_COGNITO_IDP_USER_POOL_CLIENT_ID_STRATEGY")
 
 

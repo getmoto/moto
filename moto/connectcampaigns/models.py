@@ -1,7 +1,7 @@
 """ConnectCampaignServiceBackend class with methods for supported APIs."""
 
 import uuid
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import unquote
 
 from moto.core import DEFAULT_ACCOUNT_ID
@@ -31,7 +31,7 @@ class ConnectCampaign(BaseModel):
         dialer_config: dict[str, Any],
         outbound_call_config: dict[str, Any],
         region: str,
-        tags: dict[str, str] | None = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> None:
         self.id = str(uuid.uuid4())
         self.name = name
@@ -86,7 +86,7 @@ class ConnectInstanceOnboardingJobStatus(BaseModel):
         self,
         connect_instance_id: str,
         status: str = "SUCCEEDED",
-        failure_code: str | None = None,
+        failure_code: Optional[str] = None,
     ) -> None:
         self.connect_instance_id = connect_instance_id
         self.status = status
@@ -115,7 +115,7 @@ class ConnectCampaignServiceBackend(BaseBackend):
         connect_instance_id: str,
         dialer_config: dict[str, Any],
         outbound_call_config: dict[str, Any],
-        tags: dict[str, str] | None,
+        tags: Optional[dict[str, str]],
     ) -> tuple[str, str, dict[str, str]]:
         campaign = ConnectCampaign(
             name=name,
@@ -230,9 +230,9 @@ class ConnectCampaignServiceBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_campaigns(
         self,
-        filters: dict[str, dict[str, str]] | None,
-        max_results: int | None,
-        next_token: str | None,
+        filters: Optional[dict[str, dict[str, str]]],
+        max_results: Optional[int],
+        next_token: Optional[str],
     ) -> list[dict[str, str]]:
         filtered_campaigns = list(self.campaigns.values())
 

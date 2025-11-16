@@ -3,7 +3,7 @@ import string
 import time
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Union
+from typing import Any, Optional, Union
 from urllib.parse import urlparse
 
 import requests
@@ -132,10 +132,10 @@ class IntegrationResponse(BaseModel):
     def __init__(
         self,
         status_code: Union[str, int],
-        selection_pattern: str | None = None,
-        response_templates: dict[str, Any] | None = None,
-        response_parameters: dict[str, str] | None = None,
-        content_handling: Any | None = None,
+        selection_pattern: Optional[str] = None,
+        response_templates: Optional[dict[str, Any]] = None,
+        response_parameters: Optional[dict[str, str]] = None,
+        content_handling: Optional[Any] = None,
     ):
         if response_templates is None:
             # response_templates = {"application/json": None}  # Note: removed for compatibility with TF
@@ -170,16 +170,16 @@ class Integration(BaseModel):
         integration_type: str,
         uri: str,
         http_method: str,
-        request_templates: dict[str, Any] | None = None,
-        passthrough_behavior: str | None = "WHEN_NO_MATCH",
-        cache_key_parameters: list[str] | None = None,
-        tls_config: dict[str, Any] | None = None,
-        cache_namespace: str | None = None,
-        timeout_in_millis: str | None = None,
-        request_parameters: dict[str, Any] | None = None,
-        content_handling: str | None = None,
-        credentials: str | None = None,
-        connection_type: str | None = None,
+        request_templates: Optional[dict[str, Any]] = None,
+        passthrough_behavior: Optional[str] = "WHEN_NO_MATCH",
+        cache_key_parameters: Optional[list[str]] = None,
+        tls_config: Optional[dict[str, Any]] = None,
+        cache_namespace: Optional[str] = None,
+        timeout_in_millis: Optional[str] = None,
+        request_parameters: Optional[dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
+        credentials: Optional[str] = None,
+        connection_type: Optional[str] = None,
     ):
         self.integration_type = integration_type
         self.uri = uri
@@ -194,10 +194,10 @@ class Integration(BaseModel):
         self.content_handling = content_handling
         self.credentials = credentials
         self.connection_type = connection_type
-        self.integration_responses: dict[str, IntegrationResponse] | None = None
+        self.integration_responses: Optional[dict[str, IntegrationResponse]] = None
 
     def to_json(self) -> dict[str, Any]:
-        int_responses: dict[str, Any] | None = None
+        int_responses: Optional[dict[str, Any]] = None
         if self.integration_responses is not None:
             int_responses = {
                 k: v.to_json() for k, v in self.integration_responses.items()
@@ -269,7 +269,9 @@ class MethodResponse(BaseModel):
 
 
 class Method(CloudFormationModel):
-    def __init__(self, method_type: str, authorization_type: str | None, **kwargs: Any):
+    def __init__(
+        self, method_type: str, authorization_type: Optional[str], **kwargs: Any
+    ):
         self.http_method = method_type
         self.authorization_type = authorization_type
         self.authorizer_id = kwargs.get("authorizer_id")
@@ -277,7 +279,7 @@ class Method(CloudFormationModel):
         self.api_key_required = kwargs.get("api_key_required") or False
         self.request_parameters = kwargs.get("request_parameters")
         self.request_models = kwargs.get("request_models")
-        self.method_integration: Integration | None = None
+        self.method_integration: Optional[Integration] = None
         self.operation_name = kwargs.get("operation_name")
         self.request_validator_id = kwargs.get("request_validator_id")
         self.method_responses: dict[str, MethodResponse] = {}
@@ -357,10 +359,10 @@ class Method(CloudFormationModel):
         self.method_responses[response_code] = method_response
         return method_response
 
-    def get_response(self, response_code: str) -> MethodResponse | None:
+    def get_response(self, response_code: str) -> Optional[MethodResponse]:
         return self.method_responses.get(response_code)
 
-    def delete_response(self, response_code: str) -> MethodResponse | None:
+    def delete_response(self, response_code: str) -> Optional[MethodResponse]:
         return self.method_responses.pop(response_code, None)
 
 
@@ -372,7 +374,7 @@ class Resource(CloudFormationModel):
         region_name: str,
         api_id: str,
         path_part: str,
-        parent_id: str | None,
+        parent_id: Optional[str],
     ):
         self.id = resource_id
         self.account_id = account_id
@@ -474,12 +476,12 @@ class Resource(CloudFormationModel):
     def add_method(
         self,
         method_type: str,
-        authorization_type: str | None,
-        api_key_required: bool | None,
+        authorization_type: Optional[str],
+        api_key_required: Optional[bool],
         request_parameters: Any = None,
         request_models: Any = None,
-        operation_name: str | None = None,
-        authorizer_id: str | None = None,
+        operation_name: Optional[str] = None,
+        authorizer_id: Optional[str] = None,
         authorization_scopes: Any = None,
         request_validator_id: Any = None,
     ) -> Method:
@@ -513,16 +515,16 @@ class Resource(CloudFormationModel):
         method_type: str,
         integration_type: str,
         uri: str,
-        request_templates: dict[str, Any] | None = None,
-        passthrough_behavior: str | None = None,
-        integration_method: str | None = None,
-        tls_config: dict[str, Any] | None = None,
-        cache_namespace: str | None = None,
-        timeout_in_millis: str | None = None,
-        request_parameters: dict[str, Any] | None = None,
-        content_handling: str | None = None,
-        credentials: str | None = None,
-        connection_type: str | None = None,
+        request_templates: Optional[dict[str, Any]] = None,
+        passthrough_behavior: Optional[str] = None,
+        integration_method: Optional[str] = None,
+        tls_config: Optional[dict[str, Any]] = None,
+        cache_namespace: Optional[str] = None,
+        timeout_in_millis: Optional[str] = None,
+        request_parameters: Optional[dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
+        credentials: Optional[str] = None,
+        connection_type: Optional[str] = None,
     ) -> Integration:
         integration_method = integration_method or method_type
         integration = Integration(
@@ -542,7 +544,7 @@ class Resource(CloudFormationModel):
         self.resource_methods[method_type].method_integration = integration
         return integration
 
-    def get_integration(self, method_type: str) -> Integration | None:
+    def get_integration(self, method_type: str) -> Optional[Integration]:
         method = self.resource_methods.get(method_type)
         return method.method_integration if method else None
 
@@ -555,9 +557,9 @@ class Resource(CloudFormationModel):
 class Authorizer(BaseModel):
     def __init__(
         self,
-        authorizer_id: str | None,
-        name: str | None,
-        authorizer_type: str | None,
+        authorizer_id: Optional[str],
+        name: Optional[str],
+        authorizer_type: Optional[str],
         **kwargs: Any,
     ):
         self.id = authorizer_id
@@ -625,14 +627,14 @@ class Authorizer(BaseModel):
 class Stage(BaseModel):
     def __init__(
         self,
-        name: str | None = None,
-        deployment_id: str | None = None,
-        variables: dict[str, Any] | None = None,
+        name: Optional[str] = None,
+        deployment_id: Optional[str] = None,
+        variables: Optional[dict[str, Any]] = None,
         description: str = "",
-        cacheClusterEnabled: bool | None = False,
-        cacheClusterSize: str | None = None,
-        tags: dict[str, str] | None = None,
-        tracing_enabled: bool | None = None,
+        cacheClusterEnabled: Optional[bool] = False,
+        cacheClusterSize: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        tracing_enabled: Optional[bool] = None,
     ):
         self.name = name
         self.deployment_id = deployment_id
@@ -646,8 +648,8 @@ class Stage(BaseModel):
         )
         self.tags = tags
         self.tracing_enabled = tracing_enabled
-        self.access_log_settings: dict[str, Any] | None = None
-        self.web_acl_arn: str | None = None
+        self.access_log_settings: Optional[dict[str, Any]] = None
+        self.web_acl_arn: Optional[str] = None
 
     def to_json(self) -> dict[str, Any]:
         dct: dict[str, Any] = {
@@ -739,7 +741,7 @@ class Stage(BaseModel):
             "requireAuthorizationForCacheControl": True,
         }
 
-    def _method_settings_translations(self, key: str) -> str | None:
+    def _method_settings_translations(self, key: str) -> Optional[str]:
         mappings = {
             "metrics/enabled": "metricsEnabled",
             "logging/loglevel": "loggingLevel",
@@ -800,14 +802,14 @@ class ApiKey(BaseModel):
     def __init__(
         self,
         api_key_id: str,
-        name: str | None = None,
-        description: str | None = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
         enabled: bool = False,
         generateDistinctId: bool = False,
-        value: str | None = None,
-        stageKeys: Any | None = None,
-        tags: list[dict[str, str]] | None = None,
-        customerId: str | None = None,
+        value: Optional[str] = None,
+        stageKeys: Optional[Any] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        customerId: Optional[str] = None,
     ):
         self.id = api_key_id
         self.value = value or "".join(
@@ -858,13 +860,13 @@ class UsagePlan(BaseModel):
     def __init__(
         self,
         usage_plan_id: str,
-        name: str | None = None,
-        description: str | None = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
         apiStages: Any = None,
-        throttle: dict[str, Any] | None = None,
-        quota: dict[str, Any] | None = None,
-        productCode: str | None = None,
-        tags: list[dict[str, str]] | None = None,
+        throttle: Optional[dict[str, Any]] = None,
+        quota: Optional[dict[str, Any]] = None,
+        productCode: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.id = usage_plan_id
         self.name = name
@@ -949,7 +951,7 @@ class RequestValidator(BaseModel):
         self,
         _id: str,
         name: str,
-        validateRequestBody: bool | None,
+        validateRequestBody: Optional[bool],
         validateRequestParameters: Any,
     ):
         self.id = _id
@@ -979,7 +981,7 @@ class RequestValidator(BaseModel):
 
 
 class UsagePlanKey(BaseModel):
-    def __init__(self, plan_id: str, plan_type: str, name: str | None, value: str):
+    def __init__(self, plan_id: str, plan_type: str, name: Optional[str], value: str):
         self.id = plan_id
         self.name = name
         self.type = plan_type
@@ -1174,7 +1176,7 @@ class RestAPI(CloudFormationModel):
             name=name, description=desc, endpoint_configuration=config
         )
 
-    def add_child(self, path: str, parent_id: str | None = None) -> Resource:
+    def add_child(self, path: str, parent_id: Optional[str] = None) -> Resource:
         child_id = ApigwResourceIdentifier(
             self.account_id, self.region_name, parent_id or "", path
         ).generate()
@@ -1253,13 +1255,13 @@ class RestAPI(CloudFormationModel):
         authorizer_id: str,
         name: str,
         authorizer_type: str,
-        provider_arns: list[str] | None,
-        auth_type: str | None,
-        authorizer_uri: str | None,
-        authorizer_credentials: str | None,
-        identity_source: str | None,
-        identiy_validation_expression: str | None,
-        authorizer_result_ttl: int | None,
+        provider_arns: Optional[list[str]],
+        auth_type: Optional[str],
+        authorizer_uri: Optional[str],
+        authorizer_credentials: Optional[str],
+        identity_source: Optional[str],
+        identiy_validation_expression: Optional[str],
+        authorizer_result_ttl: Optional[int],
     ) -> Authorizer:
         authorizer = Authorizer(
             authorizer_id=authorizer_id,
@@ -1282,10 +1284,10 @@ class RestAPI(CloudFormationModel):
         deployment_id: str,
         variables: Any,
         description: str,
-        cacheClusterEnabled: bool | None,
-        cacheClusterSize: str | None,
-        tags: dict[str, str] | None,
-        tracing_enabled: bool | None,
+        cacheClusterEnabled: Optional[bool],
+        cacheClusterSize: Optional[str],
+        tags: Optional[dict[str, str]],
+        tracing_enabled: Optional[bool],
     ) -> Stage:
         if name in self.stages:
             raise ConflictException("Stage already exists")
@@ -1350,7 +1352,7 @@ class RestAPI(CloudFormationModel):
     def create_request_validator(
         self,
         name: str,
-        validateRequestBody: bool | None,
+        validateRequestBody: Optional[bool],
         validateRequestParameters: Any,
     ) -> RequestValidator:
         validator_id = ApigwRequestValidatorIdentifier(
@@ -1558,12 +1560,12 @@ class GatewayResponse(BaseModel):
 
 class Account(BaseModel):
     def __init__(self) -> None:
-        self.cloudwatch_role_arn: str | None = None
+        self.cloudwatch_role_arn: Optional[str] = None
         self.throttle_settings: dict[str, Any] = {
             "burstLimit": 5000,
             "rateLimit": 10000.0,
         }
-        self.features: list[str] | None = None
+        self.features: Optional[list[str]] = None
         self.api_key_version: str = "1"
 
     def apply_patch_operations(
@@ -1647,12 +1649,12 @@ class APIGatewayBackend(BaseBackend):
         self,
         name: str,
         description: str,
-        api_key_source: str | None = None,
-        endpoint_configuration: str | None = None,
-        tags: list[dict[str, str]] | None = None,
-        policy: str | None = None,
-        minimum_compression_size: int | None = None,
-        disable_execute_api_endpoint: bool | None = None,
+        api_key_source: Optional[str] = None,
+        endpoint_configuration: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        policy: Optional[str] = None,
+        minimum_compression_size: Optional[int] = None,
+        disable_execute_api_endpoint: Optional[bool] = None,
     ) -> RestAPI:
         api_id = ApigwRestApiIdentifier(
             self.account_id, self.region_name, name
@@ -1862,14 +1864,14 @@ class APIGatewayBackend(BaseBackend):
         function_id: str,
         resource_id: str,
         method_type: str,
-        authorization_type: str | None,
-        api_key_required: bool | None = None,
-        request_parameters: dict[str, Any] | None = None,
-        request_models: dict[str, Any] | None = None,
-        operation_name: str | None = None,
-        authorizer_id: str | None = None,
-        authorization_scopes: str | None = None,
-        request_validator_id: str | None = None,
+        authorization_type: Optional[str],
+        api_key_required: Optional[bool] = None,
+        request_parameters: Optional[dict[str, Any]] = None,
+        request_models: Optional[dict[str, Any]] = None,
+        operation_name: Optional[str] = None,
+        authorizer_id: Optional[str] = None,
+        authorization_scopes: Optional[str] = None,
+        request_validator_id: Optional[str] = None,
     ) -> Method:
         resource = self.get_resource(function_id, resource_id)
         method = resource.add_method(
@@ -1949,12 +1951,12 @@ class APIGatewayBackend(BaseBackend):
         function_id: str,
         stage_name: str,
         deploymentId: str,
-        variables: Any | None = None,
+        variables: Optional[Any] = None,
         description: str = "",
-        cacheClusterEnabled: bool | None = None,
-        cacheClusterSize: str | None = None,
-        tags: dict[str, str] | None = None,
-        tracing_enabled: bool | None = None,
+        cacheClusterEnabled: Optional[bool] = None,
+        cacheClusterSize: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        tracing_enabled: Optional[bool] = None,
     ) -> Stage:
         if variables is None:
             variables = {}
@@ -1987,7 +1989,7 @@ class APIGatewayBackend(BaseBackend):
 
     def get_method_response(
         self, function_id: str, resource_id: str, method_type: str, response_code: str
-    ) -> MethodResponse | None:
+    ) -> Optional[MethodResponse]:
         method = self.get_method(function_id, resource_id, method_type)
         return method.get_response(response_code)
 
@@ -2007,7 +2009,7 @@ class APIGatewayBackend(BaseBackend):
 
     def delete_method_response(
         self, function_id: str, resource_id: str, method_type: str, response_code: str
-    ) -> MethodResponse | None:
+    ) -> Optional[MethodResponse]:
         method = self.get_method(function_id, resource_id, method_type)
         return method.delete_response(response_code)
 
@@ -2019,15 +2021,15 @@ class APIGatewayBackend(BaseBackend):
         integration_type: str,
         uri: str,
         integration_method: str,
-        credentials: str | None = None,
-        request_templates: dict[str, Any] | None = None,
-        passthrough_behavior: str | None = None,
-        tls_config: dict[str, Any] | None = None,
-        cache_namespace: str | None = None,
-        timeout_in_millis: str | None = None,
-        request_parameters: dict[str, Any] | None = None,
-        content_handling: str | None = None,
-        connection_type: str | None = None,
+        credentials: Optional[str] = None,
+        request_templates: Optional[dict[str, Any]] = None,
+        passthrough_behavior: Optional[str] = None,
+        tls_config: Optional[dict[str, Any]] = None,
+        cache_namespace: Optional[str] = None,
+        timeout_in_millis: Optional[str] = None,
+        request_parameters: Optional[dict[str, Any]] = None,
+        content_handling: Optional[str] = None,
+        connection_type: Optional[str] = None,
     ) -> Integration:
         resource = self.get_resource(function_id, resource_id)
         if credentials and not re.match(
@@ -2183,7 +2185,7 @@ class APIGatewayBackend(BaseBackend):
         self.keys[key.id] = key
         return key
 
-    def get_api_keys(self, name: str | None = None) -> list[ApiKey]:
+    def get_api_keys(self, name: Optional[str] = None) -> list[ApiKey]:
         return [
             key
             for key in self.keys.values()
@@ -2214,7 +2216,7 @@ class APIGatewayBackend(BaseBackend):
         self.usage_plans[plan.id] = plan
         return plan
 
-    def get_usage_plans(self, api_key_id: str | None = None) -> list[UsagePlan]:
+    def get_usage_plans(self, api_key_id: Optional[str] = None) -> list[UsagePlan]:
         plans = list(self.usage_plans.values())
         if api_key_id is not None:
             plans = [
@@ -2267,7 +2269,7 @@ class APIGatewayBackend(BaseBackend):
         return usage_plan_key
 
     def get_usage_plan_keys(
-        self, usage_plan_id: str, name: str | None = None
+        self, usage_plan_id: str, name: Optional[str] = None
     ) -> list[UsagePlanKey]:
         if usage_plan_id not in self.usage_plan_keys:
             return []
@@ -2400,7 +2402,7 @@ class APIGatewayBackend(BaseBackend):
         return restApi.get_request_validators()
 
     def create_request_validator(
-        self, restapi_id: str, name: str, body: bool | None, params: Any
+        self, restapi_id: str, name: str, body: Optional[bool], params: Any
     ) -> RequestValidator:
         restApi = self.get_rest_api(restapi_id)
         return restApi.create_request_validator(

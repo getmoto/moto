@@ -1,6 +1,6 @@
 import datetime
 import re
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import ExecutionFailedEventDetails, HistoryEventType
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
@@ -47,7 +47,7 @@ class Timestamp(WaitFunction):
         return re.match(TIMESTAMP_PATTERN, timestamp) is not None
 
     @staticmethod
-    def _from_timestamp_string(timestamp: str) -> datetime.datetime | None:
+    def _from_timestamp_string(timestamp: str) -> Optional[datetime.datetime]:
         if not Timestamp._is_valid_timestamp_pattern(timestamp):
             return None
         try:

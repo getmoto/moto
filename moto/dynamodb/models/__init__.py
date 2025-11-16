@@ -76,16 +76,16 @@ class DynamoDBBackend(BaseBackend):
         self,
         name: str,
         schema: list[dict[str, str]],
-        throughput: dict[str, int] | None,
+        throughput: Optional[dict[str, int]],
         attr: list[dict[str, str]],
-        global_indexes: list[dict[str, Any]] | None,
-        indexes: list[dict[str, Any]] | None,
-        streams: dict[str, Any] | None,
+        global_indexes: Optional[list[dict[str, Any]]],
+        indexes: Optional[list[dict[str, Any]]],
+        streams: Optional[dict[str, Any]],
         billing_mode: str,
-        sse_specification: dict[str, Any] | None,
+        sse_specification: Optional[dict[str, Any]],
         tags: list[dict[str, str]],
-        deletion_protection_enabled: bool | None,
-        warm_throughput: dict[str, Any] | None,
+        deletion_protection_enabled: Optional[bool],
+        warm_throughput: Optional[dict[str, Any]],
     ) -> Table:
         if name in self.tables:
             raise ResourceInUseException(f"Table already exists: {name}")
@@ -143,7 +143,7 @@ class DynamoDBBackend(BaseBackend):
 
     def list_tables(
         self, limit: int, exclusive_start_table_name: str
-    ) -> tuple[list[str], str | None]:
+    ) -> tuple[list[str], Optional[str]]:
         all_tables: list[str] = list(self.tables.keys())
 
         if exclusive_start_table_name:
@@ -181,8 +181,8 @@ class DynamoDBBackend(BaseBackend):
         throughput: dict[str, Any],
         billing_mode: str,
         stream_spec: dict[str, Any],
-        deletion_protection_enabled: bool | None,
-        warm_throughput: dict[str, Any] | None,
+        deletion_protection_enabled: Optional[bool],
+        warm_throughput: Optional[dict[str, Any]],
     ) -> Table:
         table = self.get_table(name)
         if attr_definitions:
@@ -258,12 +258,12 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         item_attrs: dict[str, Any],
-        expected: dict[str, Any] | None = None,
-        condition_expression: str | None = None,
-        expression_attribute_names: dict[str, Any] | None = None,
-        expression_attribute_values: dict[str, Any] | None = None,
+        expected: Optional[dict[str, Any]] = None,
+        condition_expression: Optional[str] = None,
+        expression_attribute_names: Optional[dict[str, Any]] = None,
+        expression_attribute_values: Optional[dict[str, Any]] = None,
         overwrite: bool = False,
-        return_values_on_condition_check_failure: str | None = None,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
         table = self.get_table(table_name)
         return table.put_item(
@@ -278,7 +278,7 @@ class DynamoDBBackend(BaseBackend):
 
     def get_table_keys_name(
         self, table_name: str, keys: dict[str, Any]
-    ) -> tuple[str | None, str | None]:
+    ) -> tuple[Optional[str], Optional[str]]:
         """
         Given a set of keys, extracts the key and range key
         """
@@ -301,7 +301,7 @@ class DynamoDBBackend(BaseBackend):
 
     def get_keys_value(
         self, table: Table, keys: dict[str, Any]
-    ) -> tuple[DynamoType, DynamoType | None]:
+    ) -> tuple[DynamoType, Optional[DynamoType]]:
         if table.hash_key_attr not in keys or (
             table.has_range_key and table.range_key_attr not in keys
         ):
@@ -314,7 +314,7 @@ class DynamoDBBackend(BaseBackend):
         return hash_key, range_key
 
     def get_schema(
-        self, table_name: str, index_name: str | None
+        self, table_name: str, index_name: Optional[str]
     ) -> list[dict[str, Any]]:
         table = self.get_table(table_name)
         if index_name:
@@ -346,8 +346,8 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         keys: dict[str, Any],
-        projection_expressions: list[list[str]] | None = None,
-    ) -> Item | None:
+        projection_expressions: Optional[list[list[str]]] = None,
+    ) -> Optional[Item]:
         table = self.get_table(table_name)
         hash_key, range_key = self.get_keys_value(table, keys)
         return table.get_item(hash_key, range_key, projection_expressions)
@@ -356,19 +356,19 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         hash_key_dict: dict[str, Any],
-        range_comparison: str | None,
+        range_comparison: Optional[str],
         range_value_dicts: list[dict[str, Any]],
         limit: int,
         exclusive_start_key: dict[str, Any],
         scan_index_forward: bool,
-        projection_expressions: list[list[str]] | None,
-        index_name: str | None = None,
+        projection_expressions: Optional[list[list[str]]],
+        index_name: Optional[str] = None,
         consistent_read: bool = False,
-        expr_names: dict[str, str] | None = None,
-        expr_values: dict[str, dict[str, str]] | None = None,
-        filter_expression: str | None = None,
+        expr_names: Optional[dict[str, str]] = None,
+        expr_values: Optional[dict[str, dict[str, str]]] = None,
+        filter_expression: Optional[str] = None,
         **filter_kwargs: Any,
-    ) -> tuple[list[Item], int, dict[str, Any] | None]:
+    ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
         table = self.get_table(table_name)
 
         hash_key = DynamoType(hash_key_dict)
@@ -398,14 +398,14 @@ class DynamoDBBackend(BaseBackend):
         filters: dict[str, Any],
         limit: int,
         exclusive_start_key: dict[str, Any],
-        filter_expression: str | None,
+        filter_expression: Optional[str],
         expr_names: dict[str, Any],
         expr_values: dict[str, Any],
         index_name: str,
         consistent_read: bool,
-        projection_expression: list[list[str]] | None,
+        projection_expression: Optional[list[list[str]]],
         segments: Union[tuple[None, None], tuple[int, int]],
-    ) -> tuple[list[Item], int, dict[str, Any] | None]:
+    ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
         table = self.get_table(table_name)
 
         scan_filters: dict[str, Any] = {}
@@ -435,10 +435,10 @@ class DynamoDBBackend(BaseBackend):
         update_expression: str,
         expression_attribute_names: dict[str, Any],
         expression_attribute_values: dict[str, Any],
-        attribute_updates: dict[str, Any] | None = None,
-        expected: dict[str, Any] | None = None,
-        condition_expression: str | None = None,
-        return_values_on_condition_check_failure: str | None = None,
+        attribute_updates: Optional[dict[str, Any]] = None,
+        expected: Optional[dict[str, Any]] = None,
+        condition_expression: Optional[str] = None,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
         table = self.get_table(table_name)
 
@@ -542,11 +542,11 @@ class DynamoDBBackend(BaseBackend):
         self,
         table_name: str,
         key: dict[str, Any],
-        expression_attribute_names: dict[str, Any] | None = None,
-        expression_attribute_values: dict[str, Any] | None = None,
-        condition_expression: str | None = None,
-        return_values_on_condition_check_failure: str | None = None,
-    ) -> Item | None:
+        expression_attribute_names: Optional[dict[str, Any]] = None,
+        expression_attribute_values: Optional[dict[str, Any]] = None,
+        condition_expression: Optional[str] = None,
+        return_values_on_condition_check_failure: Optional[str] = None,
+    ) -> Optional[Item]:
         table = self.get_table(table_name)
 
         hash_value, range_value = self.get_keys_value(table, key)
@@ -619,7 +619,7 @@ class DynamoDBBackend(BaseBackend):
             Union[tuple[str, str, dict[str, Any]], tuple[None, None, None]]
         ] = []  # [(Code, Message, Item), ..]
         for item in transact_items:
-            original_item: dict[str, Any] | None = None
+            original_item: Optional[dict[str, Any]] = None
             # Check transact writes are not performing multiple operations on the same item
             if len(list(item.keys())) > 1:
                 raise TransactWriteSingleOpException
@@ -949,13 +949,13 @@ class DynamoDBBackend(BaseBackend):
     def import_table(
         self,
         s3_source: dict[str, str],
-        input_format: str | None,
-        compression_type: str | None,
+        input_format: Optional[str],
+        compression_type: Optional[str],
         table_name: str,
         billing_mode: str,
-        throughput: dict[str, int] | None,
+        throughput: Optional[dict[str, int]],
         key_schema: list[dict[str, str]],
-        global_indexes: list[dict[str, Any]] | None,
+        global_indexes: Optional[list[dict[str, Any]]],
         attrs: list[dict[str, str]],
     ) -> TableImport:
         """
@@ -1031,7 +1031,7 @@ class DynamoDBBackend(BaseBackend):
         return exports
 
     def put_resource_policy(
-        self, resource_arn: str, policy_doc: str, expected_revision_id: str | None
+        self, resource_arn: str, policy_doc: str, expected_revision_id: Optional[str]
     ) -> ResourcePolicy:
         table_name = resource_arn.split("/")[-1]
         if table_name not in self.tables:
@@ -1068,7 +1068,7 @@ class DynamoDBBackend(BaseBackend):
         return self.resource_policies[resource_arn]
 
     def delete_resource_policy(
-        self, resource_arn: str, expected_revision_id: str | None
+        self, resource_arn: str, expected_revision_id: Optional[str]
     ) -> None:
         table_name = resource_arn.split("/")[-1]
         if table_name not in self.tables or not (

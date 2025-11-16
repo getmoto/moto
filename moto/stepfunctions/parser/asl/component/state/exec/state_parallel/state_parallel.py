@@ -1,4 +1,5 @@
 import copy
+from typing import Optional
 
 from moto.stepfunctions.parser.api import HistoryEventType
 from moto.stepfunctions.parser.asl.component.common.catch.catch_outcome import (
@@ -28,7 +29,7 @@ class StateParallel(ExecutionState):
     # machine object must have fields named States and StartAt, whose meanings are exactly
     # like those in the top level of a state machine.
     branches: BranchesDecl
-    parargs: Parargs | None
+    parargs: Optional[Parargs]
 
     def __init__(self):
         super().__init__(

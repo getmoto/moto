@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from moto.appmesh.dataclasses.route import Route
 from moto.appmesh.dataclasses.shared import Metadata, Status
@@ -7,8 +7,8 @@ from moto.appmesh.dataclasses.shared import Metadata, Status
 
 @dataclass
 class PortMapping:
-    port: int | None
-    protocol: str | None
+    port: Optional[int]
+    protocol: Optional[str]
 
 
 @dataclass

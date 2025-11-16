@@ -6,7 +6,7 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from datetime import timedelta
 from functools import lru_cache
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import cryptography
 import requests
@@ -88,7 +88,7 @@ class Topic(CloudFormationModel):
         self.subscriptions_confimed = 0
         self.subscriptions_deleted = 0
         self.sent_notifications: list[
-            tuple[str, str, str | None, dict[str, Any] | None, str | None]
+            tuple[str, str, Optional[str], Optional[dict[str, Any]], Optional[str]]
         ] = []
 
         self._policy_json = self._create_default_topic_policy(
@@ -101,11 +101,11 @@ class Topic(CloudFormationModel):
     def publish(
         self,
         message: str,
-        subject: str | None = None,
-        message_attributes: dict[str, Any] | None = None,
-        group_id: str | None = None,
-        deduplication_id: str | None = None,
-        message_structure: str | None = None,
+        subject: Optional[str] = None,
+        message_attributes: Optional[dict[str, Any]] = None,
+        group_id: Optional[str] = None,
+        deduplication_id: Optional[str] = None,
+        message_structure: Optional[str] = None,
     ) -> str:
         message_id = str(mock_random.uuid4())
         subscriptions, _ = self.sns_backend.list_subscriptions_by_topic(
@@ -234,7 +234,7 @@ class Subscription(BaseModel):
         self.arn = make_arn_for_subscription(self.topic.arn)
         self.attributes: dict[str, Any] = {}
         self._filter_policy = None  # filter policy as a dict, not json.
-        self._filter_policy_matcher: FilterPolicyMatcher | None = None
+        self._filter_policy_matcher: Optional[FilterPolicyMatcher] = None
         self.confirmed = False
 
     @property
@@ -245,11 +245,11 @@ class Subscription(BaseModel):
         self,
         message: str,
         message_id: str,
-        subject: str | None = None,
-        message_attributes: dict[str, Any] | None = None,
-        group_id: str | None = None,
-        deduplication_id: str | None = None,
-        message_structure: str | None = None,
+        subject: Optional[str] = None,
+        message_attributes: Optional[dict[str, Any]] = None,
+        group_id: Optional[str] = None,
+        deduplication_id: Optional[str] = None,
+        message_structure: Optional[str] = None,
     ) -> None:
         if self._filter_policy_matcher is not None:
             if not self._filter_policy_matcher.matches(message_attributes, message):
@@ -338,8 +338,8 @@ class Subscription(BaseModel):
         self,
         message: str,
         message_id: str,
-        subject: str | None,
-        message_attributes: dict[str, Any] | None = None,
+        subject: Optional[str],
+        message_attributes: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         key = self.private_key()
         cert_subject = [NameAttribute(NameOID.COMMON_NAME, "sns.amazonaws.com")]
@@ -550,8 +550,8 @@ class SNSBackend(BaseBackend):
     def create_topic(
         self,
         name: str,
-        attributes: dict[str, str] | None = None,
-        tags: dict[str, str] | None = None,
+        attributes: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
     ) -> Topic:
         if attributes is None:
             attributes = {}
@@ -583,8 +583,8 @@ class SNSBackend(BaseBackend):
             return candidate_topic
 
     def _get_values_nexttoken(
-        self, values_map: dict[str, Any], next_token: str | None = None
-    ) -> tuple[list[Any], int | None]:
+        self, values_map: dict[str, Any], next_token: Optional[str] = None
+    ) -> tuple[list[Any], Optional[int]]:
         i_next_token = int(next_token or "0")
         values = list(values_map.values())[
             i_next_token : i_next_token + DEFAULT_PAGE_SIZE
@@ -599,8 +599,8 @@ class SNSBackend(BaseBackend):
         return [sub for sub in self.subscriptions.values() if sub.topic == topic]
 
     def list_topics(
-        self, next_token: str | None = None
-    ) -> tuple[list[Topic], int | None]:
+        self, next_token: Optional[str] = None
+    ) -> tuple[list[Topic], Optional[int]]:
         return self._get_values_nexttoken(self.topics, next_token)
 
     def delete_topic_subscriptions(self, topic: Topic) -> None:
@@ -696,7 +696,7 @@ class SNSBackend(BaseBackend):
 
     def _find_subscription(
         self, topic_arn: str, endpoint: str, protocol: str
-    ) -> Subscription | None:
+    ) -> Optional[Subscription]:
         for subscription in self.subscriptions.values():
             if (
                 subscription.topic.arn == topic_arn
@@ -710,13 +710,13 @@ class SNSBackend(BaseBackend):
         self.subscriptions.pop(subscription_arn, None)
 
     def list_subscriptions(
-        self, next_token: str | None = None
-    ) -> tuple[list[Subscription], int | None]:
+        self, next_token: Optional[str] = None
+    ) -> tuple[list[Subscription], Optional[int]]:
         return self._get_values_nexttoken(self.subscriptions, next_token)
 
     def list_subscriptions_by_topic(
-        self, topic_arn: str, next_token: str | None = None
-    ) -> tuple[list[Subscription], int | None]:
+        self, topic_arn: str, next_token: Optional[str] = None
+    ) -> tuple[list[Subscription], Optional[int]]:
         topic = self.get_topic(topic_arn)
         filtered = OrderedDict(
             [(sub.arn, sub) for sub in self._get_topic_subscriptions(topic)]
@@ -726,13 +726,13 @@ class SNSBackend(BaseBackend):
     def publish(
         self,
         message: str,
-        arn: str | None,
-        phone_number: str | None = None,
-        subject: str | None = None,
-        message_attributes: dict[str, Any] | None = None,
-        group_id: str | None = None,
-        deduplication_id: str | None = None,
-        message_structure: str | None = None,
+        arn: Optional[str],
+        phone_number: Optional[str] = None,
+        subject: Optional[str] = None,
+        message_attributes: Optional[dict[str, Any]] = None,
+        group_id: Optional[str] = None,
+        deduplication_id: Optional[str] = None,
+        message_structure: Optional[str] = None,
     ) -> str:
         if subject is not None and len(subject) > 100:
             # Note that the AWS docs around length are wrong: https://github.com/getmoto/moto/issues/1503
@@ -935,7 +935,7 @@ class SNSBackend(BaseBackend):
 
         subscription.attributes[name] = value
 
-    def _validate_filter_policy(self, value: Any, scope: str | None) -> None:
+    def _validate_filter_policy(self, value: Any, scope: Optional[str]) -> None:
         combinations = 1
 
         def aggregate_rules(
@@ -1253,8 +1253,8 @@ class SNSBackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_config_service_resources(  # type: ignore[misc]
         self,
-        resource_ids: list[str] | None = None,
-        resource_name: str | None = None,
+        resource_ids: Optional[list[str]] = None,
+        resource_name: Optional[str] = None,
     ) -> list[dict[str, Any]]:
         """List SNS topics for AWS Config."""
         topics = list(self.topics.values())
@@ -1278,7 +1278,7 @@ class SNSBackend(BaseBackend):
 
         return config_resources
 
-    def get_config_resource(self, resource_id: str) -> dict[str, Any] | None:
+    def get_config_resource(self, resource_id: str) -> Optional[dict[str, Any]]:
         """Get a specific SNS topic configuration for AWS Config."""
         if resource_id not in self.topics:
             return None

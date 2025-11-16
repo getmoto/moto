@@ -1,7 +1,7 @@
 import datetime
 import re
 from base64 import b64decode
-from typing import Any
+from typing import Any, Optional
 
 import xmltodict
 
@@ -18,7 +18,7 @@ from moto.utilities.utils import ARN_PARTITION_REGEX, PARTITION_NAMES, get_parti
 
 
 class Token(BaseModel):
-    def __init__(self, duration: int, name: str | None = None):
+    def __init__(self, duration: int, name: Optional[str] = None):
         now = utcnow()
         self.expiration = now + datetime.timedelta(seconds=duration)
         self.name = name
@@ -74,7 +74,7 @@ class STSBackend(BaseBackend):
     def get_session_token(self, duration: int) -> Token:
         return Token(duration=duration)
 
-    def get_federation_token(self, name: str | None, duration: int) -> Token:
+    def get_federation_token(self, name: Optional[str], duration: int) -> Token:
         return Token(duration=duration, name=name)
 
     def assume_role(
@@ -107,7 +107,7 @@ class STSBackend(BaseBackend):
 
     def get_assumed_role_from_access_key(
         self, access_key_id: str
-    ) -> AssumedRole | None:
+    ) -> Optional[AssumedRole]:
         for assumed_role in self.assumed_roles:
             if assumed_role.access_key_id == access_key_id:
                 return assumed_role

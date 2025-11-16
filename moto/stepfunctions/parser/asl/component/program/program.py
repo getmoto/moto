@@ -1,6 +1,6 @@
 import logging
 import threading
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.api import (
     ExecutionAbortedEventDetails,
@@ -49,18 +49,18 @@ class Program(EvalComponent):
     query_language: Final[QueryLanguage]
     start_at: Final[StartAt]
     states: Final[States]
-    timeout_seconds: Final[TimeoutSeconds | None]
-    comment: Final[Comment | None]
-    version: Final[Version | None]
+    timeout_seconds: Final[Optional[TimeoutSeconds]]
+    comment: Final[Optional[Comment]]
+    version: Final[Optional[Version]]
 
     def __init__(
         self,
         query_language: QueryLanguage,
         start_at: StartAt,
         states: States,
-        timeout_seconds: TimeoutSeconds | None,
-        comment: Comment | None = None,
-        version: Version | None = None,
+        timeout_seconds: Optional[TimeoutSeconds],
+        comment: Optional[Comment] = None,
+        version: Optional[Version] = None,
     ):
         self.query_language = query_language
         self.start_at = start_at
@@ -70,7 +70,7 @@ class Program(EvalComponent):
         self.version = version
 
     def _get_state(self, state_name: str) -> CommonStateField:
-        state: CommonStateField | None = self.states.states.get(state_name, None)
+        state: Optional[CommonStateField] = self.states.states.get(state_name, None)
         if state is None:
             raise ValueError(f"No such state {state}.")
         return state

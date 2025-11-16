@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from typing import Any
+from typing import Any, Callable
 
 # TODO add tests for all of these
 COMPARISON_FUNCS = {

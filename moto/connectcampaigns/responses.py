@@ -1,6 +1,7 @@
 """Handles incoming connectcampaigns requests, invokes methods, returns responses."""
 
 import json
+from typing import Optional
 
 from moto.core.responses import BaseResponse
 
@@ -138,7 +139,7 @@ class ConnectCampaignServiceResponse(BaseResponse):
         next_token = self._get_param("nextToken")
         filters = self._get_param("filters", {})
 
-        campaigns_result: tuple[list[dict[str, str]], str | None] = (
+        campaigns_result: tuple[list[dict[str, str]], Optional[str]] = (
             self.connectcampaigns_backend.list_campaigns(
                 filters=filters,
                 max_results=max_results,

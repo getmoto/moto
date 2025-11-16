@@ -1,7 +1,7 @@
 import types
 from http.client import responses as http_responses
 from io import BytesIO
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 import responses
@@ -124,7 +124,7 @@ def not_implemented_callback(request: Any) -> TYPE_RESPONSE:
 # This method should be used for Responses 0.12.1 < .. < 0.17.0
 def _find_first_match(
     self: Any, request: Any
-) -> tuple[responses.BaseResponse | None, list[str]]:
+) -> tuple[Optional[responses.BaseResponse], list[str]]:
     matches = []
     match_failed_reasons = []
     all_possibles = self._matches + responses._default_mock._matches  # type: ignore[attr-defined]

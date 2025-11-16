@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core import DEFAULT_ACCOUNT_ID
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -98,11 +98,11 @@ class MotoAPIBackend(BaseBackend):
 
     def set_rds_data_result(
         self,
-        records: list[list[dict[str, Any]]] | None,
-        column_metadata: list[dict[str, Any]] | None,
-        nr_of_records_updated: int | None,
-        generated_fields: list[dict[str, Any]] | None,
-        formatted_records: str | None,
+        records: Optional[list[list[dict[str, Any]]]],
+        column_metadata: Optional[list[dict[str, Any]]],
+        nr_of_records_updated: Optional[int],
+        generated_fields: Optional[list[dict[str, Any]]],
+        formatted_records: Optional[str],
         account_id: str,
         region: str,
     ) -> None:
@@ -132,7 +132,7 @@ class MotoAPIBackend(BaseBackend):
 
     def set_inspector2_findings_result(
         self,
-        results: list[list[dict[str, Any]]] | None,
+        results: Optional[list[list[dict[str, Any]]]],
         account_id: str,
         region: str,
     ) -> None:
@@ -143,7 +143,7 @@ class MotoAPIBackend(BaseBackend):
 
     def set_timestream_result(
         self,
-        query: str | None,
+        query: Optional[str],
         query_results: list[dict[str, Any]],
         account_id: str,
         region: str,

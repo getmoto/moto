@@ -1,3 +1,5 @@
+from typing import Optional
+
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import iso_8601_datetime_with_milliseconds
@@ -59,7 +61,7 @@ class CodeCommitBackend(BaseBackend):
 
         return repository.repository_metadata
 
-    def delete_repository(self, repository_name: str) -> str | None:
+    def delete_repository(self, repository_name: str) -> Optional[str]:
         repository = self.repositories.get(repository_name)
 
         if repository:

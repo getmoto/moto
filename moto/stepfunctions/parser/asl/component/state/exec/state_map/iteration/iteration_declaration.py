@@ -1,4 +1,4 @@
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
 from moto.stepfunctions.parser.asl.component.common.flow.start_at import StartAt
@@ -11,7 +11,7 @@ from moto.stepfunctions.parser.asl.component.state.exec.state_map.iteration.item
 
 
 class IterationDecl(Component):
-    comment: Final[Comment | None]
+    comment: Final[Optional[Comment]]
     query_language: Final[QueryLanguage]
     start_at: Final[StartAt]
     states: Final[States]
@@ -19,7 +19,7 @@ class IterationDecl(Component):
 
     def __init__(
         self,
-        comment: Comment | None,
+        comment: Optional[Comment],
         query_language: QueryLanguage,
         start_at: StartAt,
         states: States,

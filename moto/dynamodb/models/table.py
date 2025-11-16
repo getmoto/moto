@@ -1,7 +1,7 @@
 import copy
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.utils import unix_time, unix_time_millis, utcnow
@@ -99,8 +99,8 @@ class GlobalSecondaryIndex(SecondaryIndex):
         projection: dict[str, Any],
         table_key_attrs: list[str],
         status: str = "ACTIVE",
-        throughput: dict[str, Any] | None = None,
-        warm_throughput: dict[str, Any] | None = None,
+        throughput: Optional[dict[str, Any]] = None,
+        warm_throughput: Optional[dict[str, Any]] = None,
     ):
         super().__init__(index_name, schema, projection, table_key_attrs)
         self.status = status
@@ -159,8 +159,8 @@ class StreamRecord(BaseModel):
         table: "Table",
         stream_type: str,
         event_name: str,
-        old: Item | None,
-        new: Item | None,
+        old: Optional[Item],
+        new: Optional[Item],
         seq: int,
     ):
         old_a = old.to_json()["Attributes"] if old is not None else {}
@@ -217,7 +217,7 @@ class StreamShard(BaseModel):
             },
         }
 
-    def add(self, old: Item | None, new: Item | None) -> None:
+    def add(self, old: Optional[Item], new: Optional[Item]) -> None:
         t = self.table.stream_specification["StreamViewType"]  # type: ignore
         if old is None:
             event_name = "INSERT"
@@ -255,24 +255,24 @@ class Table(CloudFormationModel):
         region: str,
         schema: list[dict[str, Any]],
         attr: list[dict[str, str]],
-        throughput: dict[str, int] | None = None,
-        billing_mode: str | None = None,
-        indexes: list[dict[str, Any]] | None = None,
-        global_indexes: list[dict[str, Any]] | None = None,
-        streams: dict[str, Any] | None = None,
-        sse_specification: dict[str, Any] | None = None,
-        tags: list[dict[str, str]] | None = None,
-        deletion_protection_enabled: bool | None = False,
-        warm_throughput: dict[str, Any] | None = None,
+        throughput: Optional[dict[str, int]] = None,
+        billing_mode: Optional[str] = None,
+        indexes: Optional[list[dict[str, Any]]] = None,
+        global_indexes: Optional[list[dict[str, Any]]] = None,
+        streams: Optional[dict[str, Any]] = None,
+        sse_specification: Optional[dict[str, Any]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        deletion_protection_enabled: Optional[bool] = False,
+        warm_throughput: Optional[dict[str, Any]] = None,
     ):
         self.name = table_name
         self.account_id = account_id
         self.region_name = region
         self.attr = attr
         self.schema = schema
-        self.range_key_attr: str | None = None
+        self.range_key_attr: Optional[str] = None
         self.hash_key_attr: str = ""
-        self.range_key_type: str | None = None
+        self.range_key_type: Optional[str] = None
         self.hash_key_type: str = ""
         for elem in schema:
             attr_type = [
@@ -323,9 +323,9 @@ class Table(CloudFormationModel):
             "TimeToLiveStatus": "DISABLED"  # One of 'ENABLING'|'DISABLING'|'ENABLED'|'DISABLED',
             # 'AttributeName': 'string'  # Can contain this
         }
-        self.stream_specification: dict[str, Any] | None = {"StreamEnabled": False}
-        self.latest_stream_label: str | None = None
-        self.stream_shard: StreamShard | None = None
+        self.stream_specification: Optional[dict[str, Any]] = {"StreamEnabled": False}
+        self.latest_stream_label: Optional[str] = None
+        self.stream_shard: Optional[StreamShard] = None
         self.set_stream_specification(streams)
         self.lambda_event_source_mappings: dict[str, Any] = {}
         self.continuous_backups: dict[str, Any] = {
@@ -456,7 +456,7 @@ class Table(CloudFormationModel):
     def _generate_arn(self, name: str) -> str:
         return f"arn:{get_partition(self.region_name)}:dynamodb:{self.region_name}:{self.account_id}:table/{name}"
 
-    def set_stream_specification(self, streams: dict[str, Any] | None) -> None:
+    def set_stream_specification(self, streams: Optional[dict[str, Any]]) -> None:
         self.stream_specification = streams
         if (
             self.stream_specification
@@ -541,7 +541,7 @@ class Table(CloudFormationModel):
                     raise RangeKeyTooLong
 
     def _validate_item_types(
-        self, item_attrs: dict[str, Any], attr: str | None = None
+        self, item_attrs: dict[str, Any], attr: Optional[str] = None
     ) -> None:
         for key, value in item_attrs.items():
             if isinstance(value, dict):
@@ -563,12 +563,12 @@ class Table(CloudFormationModel):
     def put_item(
         self,
         item_attrs: dict[str, Any],
-        expected: dict[str, Any] | None = None,
-        condition_expression: str | None = None,
-        expression_attribute_names: dict[str, str] | None = None,
-        expression_attribute_values: dict[str, Any] | None = None,
+        expected: Optional[dict[str, Any]] = None,
+        condition_expression: Optional[str] = None,
+        expression_attribute_names: Optional[dict[str, str]] = None,
+        expression_attribute_values: Optional[dict[str, Any]] = None,
         overwrite: bool = False,
-        return_values_on_condition_check_failure: str | None = None,
+        return_values_on_condition_check_failure: Optional[str] = None,
     ) -> Item:
         if self.hash_key_attr not in item_attrs.keys():
             raise MockValidationException(
@@ -654,9 +654,9 @@ class Table(CloudFormationModel):
     def get_item(
         self,
         hash_key: DynamoType,
-        range_key: DynamoType | None = None,
-        projection_expression: list[list[str]] | None = None,
-    ) -> Item | None:
+        range_key: Optional[DynamoType] = None,
+        projection_expression: Optional[list[list[str]]] = None,
+    ) -> Optional[Item]:
         if self.has_range_key and not range_key:
             raise MockValidationException(
                 "Table has a range key, but no range key was passed into get_item"
@@ -677,8 +677,8 @@ class Table(CloudFormationModel):
             return None
 
     def delete_item(
-        self, hash_key: DynamoType, range_key: DynamoType | None
-    ) -> Item | None:
+        self, hash_key: DynamoType, range_key: Optional[DynamoType]
+    ) -> Optional[Item]:
         try:
             if range_key:
                 item = self.items[hash_key].pop(range_key)
@@ -695,17 +695,17 @@ class Table(CloudFormationModel):
     def query(
         self,
         hash_key: DynamoType,
-        range_comparison: str | None,
+        range_comparison: Optional[str],
         range_objs: list[DynamoType],
         limit: int,
         exclusive_start_key: dict[str, Any],
         scan_index_forward: bool,
-        projection_expressions: list[list[str]] | None,
-        index_name: str | None = None,
+        projection_expressions: Optional[list[list[str]]],
+        index_name: Optional[str] = None,
         consistent_read: bool = False,
         filter_expression: Any = None,
         **filter_kwargs: Any,
-    ) -> tuple[list[Item], int, dict[str, Any] | None]:
+    ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
         # FIND POSSIBLE RESULTS
         if index_name:
             all_indexes = self.all_indexes()
@@ -917,11 +917,11 @@ class Table(CloudFormationModel):
         limit: int,
         exclusive_start_key: dict[str, Any],
         filter_expression: Any = None,
-        index_name: str | None = None,
+        index_name: Optional[str] = None,
         consistent_read: bool = False,
-        projection_expression: list[list[str]] | None = None,
+        projection_expression: Optional[list[list[str]]] = None,
         segments: Union[tuple[None, None], tuple[int, int]] = (None, None),
-    ) -> tuple[list[Item], int, dict[str, Any] | None]:
+    ) -> tuple[list[Item], int, Optional[dict[str, Any]]]:
         results: list[Item] = []
         result_size = 0
         scanned_count = 0
@@ -1038,7 +1038,7 @@ class Table(CloudFormationModel):
         item: Item,
         dct: dict[str, Any],
         hash_key_attrs: list[str],
-        range_key_attrs: list[str | None],
+        range_key_attrs: list[Optional[str]],
         scan_index_forward: bool,
     ) -> bool:
         """
@@ -1069,7 +1069,7 @@ class Table(CloudFormationModel):
     def sorted_items(
         self,
         hash_key_attrs: list[str],
-        range_key_attrs: list[str | None],
+        range_key_attrs: list[Optional[str]],
         items: list[Item],
     ) -> list[Item]:
         attrs_to_sort_by = self._generate_attr_to_sort_by(
@@ -1081,7 +1081,7 @@ class Table(CloudFormationModel):
         return items
 
     def _generate_attr_to_sort_by(
-        self, hash_key_attrs: list[str], range_key_attrs: list[str | None]
+        self, hash_key_attrs: list[str], range_key_attrs: list[Optional[str]]
     ) -> list[str]:
         gsi_hash_key = hash_key_attrs[0] if len(hash_key_attrs) == 2 else None
         table_hash_key = str(
@@ -1103,7 +1103,7 @@ class Table(CloudFormationModel):
         ]
 
     def _get_last_evaluated_key(
-        self, last_result: Item, index_name: str | None
+        self, last_result: Item, index_name: Optional[str]
     ) -> dict[str, Any]:
         last_evaluated_key = {self.hash_key_attr: last_result.hash_key}
         if self.range_key_attr is not None and last_result.range_key is not None:
@@ -1128,8 +1128,8 @@ class Backup:
         region_name: str,
         name: str,
         table: Table,
-        status: str | None = None,
-        type_: str | None = None,
+        status: Optional[str] = None,
+        type_: Optional[str] = None,
     ):
         self.region_name = region_name
         self.account_id = account_id

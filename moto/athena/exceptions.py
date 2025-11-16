@@ -1,4 +1,5 @@
 import json
+from typing import Optional
 
 from moto.core.exceptions import JsonRESTError
 
@@ -28,6 +29,6 @@ class InvalidArgumentException(JsonRESTError):
 
 
 class QueryStillRunning(JsonRESTError):
-    def __init__(self, current_status: str | None):
+    def __init__(self, current_status: Optional[str]):
         msg = f"Query has not yet finished. Current state: {current_status}"
         super().__init__("InvalidRequestException", msg)

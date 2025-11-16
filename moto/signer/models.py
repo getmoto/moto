@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -14,7 +14,7 @@ class SigningProfile(BaseModel):
         name: str,
         platform_id: str,
         signing_material: dict[str, str],
-        signature_validity_period: dict[str, Any] | None,
+        signature_validity_period: Optional[dict[str, Any]],
     ):
         self.name = name
         self.platform_id = platform_id
@@ -175,7 +175,7 @@ class SignerBackend(BaseBackend):
     def put_signing_profile(
         self,
         profile_name: str,
-        signature_validity_period: dict[str, Any] | None,
+        signature_validity_period: Optional[dict[str, Any]],
         platform_id: str,
         signing_material: dict[str, str],
         tags: dict[str, str],

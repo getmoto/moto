@@ -263,7 +263,7 @@ class CognitoIdpUserPoolAttribute(BaseModel):
         default_constraints: Any,
         show_empty_constraints: bool = False,
     ) -> None:
-        def numeric_limit(num: str | None, constraint_type: str) -> int | None:
+        def numeric_limit(num: Optional[str], constraint_type: str) -> Optional[int]:
             if not num:
                 return  # type: ignore[return-value]
             parsed = None
@@ -277,7 +277,7 @@ class CognitoIdpUserPoolAttribute(BaseModel):
                 )
             return parsed
 
-        self.string_constraints: dict[str, Any] | None = (
+        self.string_constraints: Optional[dict[str, Any]] = (
             {} if show_empty_constraints else None
         )
         self.number_constraints = None
@@ -405,8 +405,8 @@ class CognitoIdpUserPool(BaseModel):
         self.last_modified_date = utcnow()
 
         self.mfa_config = extended_config.get("MfaConfiguration") or "OFF"
-        self.sms_mfa_config: dict[str, Any] | None = None
-        self.token_mfa_config: dict[str, bool] | None = None
+        self.sms_mfa_config: Optional[dict[str, Any]] = None
+        self.token_mfa_config: Optional[dict[str, bool]] = None
 
         self.schema_attributes = {}
         for schema in self.extended_config.pop("Schema", {}):
@@ -433,7 +433,7 @@ class CognitoIdpUserPool(BaseModel):
         self.groups: dict[str, CognitoIdpGroup] = OrderedDict()
         self.users: dict[str, CognitoIdpUser] = OrderedDict()
         self.resource_servers: dict[str, CognitoResourceServer] = OrderedDict()
-        self.refresh_tokens: dict[str, tuple[str, str, str] | None] = {}
+        self.refresh_tokens: dict[str, Optional[tuple[str, str, str]]] = {}
         self.access_tokens: dict[str, tuple[str, str]] = {}
         self.id_tokens: dict[str, tuple[str, str]] = {}
 
@@ -524,7 +524,7 @@ class CognitoIdpUserPool(BaseModel):
         username: str,
         token_use: str,
         expires_in: int = 60 * 60,
-        extra_data: dict[str, Any] | None = None,
+        extra_data: Optional[dict[str, Any]] = None,
     ) -> tuple[str, int]:
         now = int(time.time())
         payload = {
@@ -674,7 +674,7 @@ class CognitoIdpUserPoolDomain(BaseModel):
         self,
         user_pool_id: str,
         domain: str,
-        custom_domain_config: dict[str, Any] | None = None,
+        custom_domain_config: Optional[dict[str, Any]] = None,
     ):
         self.user_pool_id = user_pool_id
         self.domain = domain
@@ -712,7 +712,7 @@ class CognitoIdpUserPoolClient(BaseModel):
         self,
         user_pool_id: str,
         generate_secret: bool,
-        extended_config: dict[str, Any] | None,
+        extended_config: Optional[dict[str, Any]],
     ):
         self.user_pool_id = user_pool_id
         self.id = generate_id(
@@ -754,7 +754,7 @@ class CognitoIdpUserPoolClient(BaseModel):
 
 
 class CognitoIdpIdentityProvider(BaseModel):
-    def __init__(self, name: str, extended_config: dict[str, Any] | None):
+    def __init__(self, name: str, extended_config: Optional[dict[str, Any]]):
         self.name = name
         self.extended_config = extended_config or {}
         self.creation_date = utcnow()
@@ -802,9 +802,9 @@ class CognitoIdpGroup(BaseModel):
 
     def update(
         self,
-        description: str | None,
-        role_arn: str | None,
-        precedence: int | None,
+        description: Optional[str],
+        role_arn: Optional[str],
+        precedence: Optional[int],
     ) -> None:
         if description is not None:
             self.description = description
@@ -830,8 +830,8 @@ class CognitoIdpUser(BaseModel):
     def __init__(
         self,
         user_pool_id: str,
-        username: str | None,
-        password: str | None,
+        username: Optional[str],
+        password: Optional[str],
         status: str,
         attributes: list[dict[str, str]],
     ):
@@ -850,8 +850,8 @@ class CognitoIdpUser(BaseModel):
         self.sms_mfa_enabled = False
         self.software_token_mfa_enabled = False
         self.token_verified = False
-        self.confirmation_code: str | None = None
-        self.preferred_mfa_setting: str | None = None
+        self.confirmation_code: Optional[str] = None
+        self.preferred_mfa_setting: Optional[str] = None
 
         # Groups this user is a member of.
         # Note that these links are bidirectional.
@@ -873,7 +873,7 @@ class CognitoIdpUser(BaseModel):
         self,
         extended: bool = False,
         attributes_key: str = "Attributes",
-        attributes_to_get: list[str] | None = None,
+        attributes_to_get: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         user_mfa_setting_list = []
         if self.software_token_mfa_enabled:
@@ -1038,7 +1038,7 @@ class CognitoIdpBackend(BaseBackend):
         self,
         user_pool_id: str,
         domain: str,
-        custom_domain_config: dict[str, str] | None = None,
+        custom_domain_config: Optional[dict[str, str]] = None,
     ) -> CognitoIdpUserPoolDomain:
         self.describe_user_pool(user_pool_id)
 
@@ -1048,7 +1048,9 @@ class CognitoIdpBackend(BaseBackend):
         self.user_pool_domains[domain] = user_pool_domain
         return user_pool_domain
 
-    def describe_user_pool_domain(self, domain: str) -> CognitoIdpUserPoolDomain | None:
+    def describe_user_pool_domain(
+        self, domain: str
+    ) -> Optional[CognitoIdpUserPoolDomain]:
         if domain not in self.user_pool_domains:
             return None
 
@@ -1747,7 +1749,7 @@ class CognitoIdpBackend(BaseBackend):
 
     def forgot_password(
         self, client_id: str, username: str
-    ) -> tuple[str | None, dict[str, Any]]:
+    ) -> tuple[Optional[str], dict[str, Any]]:
         """
         The ForgotPassword operation is partially broken in AWS. If the input is 100% correct it works fine.
 
@@ -1765,7 +1767,7 @@ class CognitoIdpBackend(BaseBackend):
         else:
             raise ResourceNotFoundError("Username/client id combination not found.")
 
-        confirmation_code: str | None = None
+        confirmation_code: Optional[str] = None
         if user:
             # An unfortunate bit of magic - confirmation_code is opt-in, as it's returned
             # via a "x-moto-forgot-password-confirmation-code" http header, which is not the AWS way (should be SES, SNS, Cognito built-in email)
@@ -1782,7 +1784,7 @@ class CognitoIdpBackend(BaseBackend):
         return confirmation_code, {"CodeDeliveryDetails": code_delivery_details}
 
     def _get_code_delivery_details(
-        self, recovery_settings: Any, user: CognitoIdpUser | None, username: str
+        self, recovery_settings: Any, user: Optional[CognitoIdpUser], username: str
     ) -> dict[str, str]:
         selected_recovery = min(
             recovery_settings["RecoveryMechanisms"],
@@ -2021,7 +2023,7 @@ class CognitoIdpBackend(BaseBackend):
             auth_flow=auth_flow, valid_flows=user_auth_flows
         )
 
-        user_pool: CognitoIdpUserPool | None = None
+        user_pool: Optional[CognitoIdpUserPool] = None
         client: CognitoIdpUserPoolClient = None  # type: ignore[assignment]
         for p in self.user_pools.values():
             if client_id in p.clients:
@@ -2334,10 +2336,12 @@ class CognitoIdpBackend(BaseBackend):
 
         raise NotAuthorizedError(access_token)
 
-    def _find_attr(self, name: str, attrs: list[dict[str, str]]) -> str | None:
+    def _find_attr(self, name: str, attrs: list[dict[str, str]]) -> Optional[str]:
         return next((a["Value"] for a in attrs if a["Name"] == name), None)
 
-    def _verify_email_is_not_used(self, user_pool_id: str, email: str | None) -> None:
+    def _verify_email_is_not_used(
+        self, user_pool_id: str, email: Optional[str]
+    ) -> None:
         if not email:
             # We're not updating emails
             return

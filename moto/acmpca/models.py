@@ -3,7 +3,7 @@
 import base64
 import contextlib
 import datetime
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -34,7 +34,7 @@ class CertificateAuthority(BaseModel):
         certificate_authority_configuration: dict[str, Any],
         certificate_authority_type: str,
         revocation_configuration: dict[str, Any],
-        security_standard: str | None,
+        security_standard: Optional[str],
     ):
         self.id = mock_random.uuid4()
         self.arn = f"arn:{get_partition(region)}:acm-pca:{region}:{account_id}:certificate-authority/{self.id}"
@@ -47,11 +47,11 @@ class CertificateAuthority(BaseModel):
         }
         self.set_revocation_configuration(revocation_configuration)
         self.created_at = unix_time()
-        self.updated_at: float | None = None
+        self.updated_at: Optional[float] = None
         self.status = "PENDING_CERTIFICATE"
         self.usage_mode = "SHORT_LIVED_CERTIFICATE"
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
-        self.policy: str | None = None
+        self.policy: Optional[str] = None
 
         self.password = str(mock_random.uuid4()).encode("utf-8")
 
@@ -63,7 +63,7 @@ class CertificateAuthority(BaseModel):
         )
 
         self.certificate_bytes: bytes = b""
-        self.certificate_chain: bytes | None = None
+        self.certificate_chain: Optional[bytes] = None
         self.issued_certificates: dict[str, bytes] = {}
         self.issued_certificates_certificate_chains: dict[str, bytes] = {}
 
@@ -101,7 +101,7 @@ class CertificateAuthority(BaseModel):
         return cast(rsa.RSAPrivateKey, private_key)
 
     @property
-    def certificate(self) -> x509.Certificate | None:
+    def certificate(self) -> Optional[x509.Certificate]:
         if self.certificate_bytes:
             return x509.load_pem_x509_certificate(self.certificate_bytes)
         return None
@@ -151,7 +151,7 @@ class CertificateAuthority(BaseModel):
         )
         return csr.public_bytes(serialization.Encoding.PEM)
 
-    def issue_certificate(self, csr_bytes: bytes, template_arn: str | None) -> str:
+    def issue_certificate(self, csr_bytes: bytes, template_arn: Optional[str]) -> str:
         csr = x509.load_pem_x509_csr(base64.b64decode(csr_bytes))
         extensions = self._x509_extensions(csr, template_arn)
         new_cert = self.generate_cert(
@@ -175,7 +175,7 @@ class CertificateAuthority(BaseModel):
         return cert_arn
 
     def _x509_extensions(
-        self, csr: x509.CertificateSigningRequest, template_arn: str | None
+        self, csr: x509.CertificateSigningRequest, template_arn: Optional[str]
     ) -> list[tuple[x509.ExtensionType, bool]]:
         """
         Uses a PCA certificate template ARN to return a list of X.509 extensions.
@@ -281,7 +281,7 @@ class CertificateAuthority(BaseModel):
         return certificate, certificate_chain
 
     def set_revocation_configuration(
-        self, revocation_configuration: dict[str, Any] | None
+        self, revocation_configuration: Optional[dict[str, Any]]
     ) -> None:
         if revocation_configuration is not None:
             self.revocation_configuration = revocation_configuration
@@ -298,7 +298,7 @@ class CertificateAuthority(BaseModel):
                         raise InvalidS3ObjectAclInCrlConfiguration(acl)
 
     @property
-    def not_valid_after(self) -> float | None:
+    def not_valid_after(self) -> Optional[float]:
         if self.certificate is None:
             return None
         try:
@@ -307,7 +307,7 @@ class CertificateAuthority(BaseModel):
             return unix_time(self.certificate.not_valid_after)
 
     @property
-    def not_valid_before(self) -> float | None:
+    def not_valid_before(self) -> Optional[float]:
         if self.certificate is None:
             return None
         try:
@@ -316,7 +316,7 @@ class CertificateAuthority(BaseModel):
             return unix_time(self.certificate.not_valid_before)
 
     def import_certificate_authority_certificate(
-        self, certificate: bytes, certificate_chain: bytes | None
+        self, certificate: bytes, certificate_chain: Optional[bytes]
     ) -> None:
         try:
             x509.load_pem_x509_certificate(certificate)
@@ -374,7 +374,7 @@ class ACMPCABackend(BaseBackend):
         certificate_authority_configuration: dict[str, Any],
         revocation_configuration: dict[str, Any],
         certificate_authority_type: str,
-        security_standard: str | None,
+        security_standard: Optional[str],
         tags: list[dict[str, str]],
     ) -> str:
         """
@@ -402,7 +402,7 @@ class ACMPCABackend(BaseBackend):
 
     def get_certificate_authority_certificate(
         self, certificate_authority_arn: str
-    ) -> tuple[bytes, bytes | None]:
+    ) -> tuple[bytes, Optional[bytes]]:
         ca = self.describe_certificate_authority(certificate_authority_arn)
         if ca.status != "ACTIVE":
             raise InvalidStateException(certificate_authority_arn)
@@ -437,7 +437,7 @@ class ACMPCABackend(BaseBackend):
         ca.status = "DELETED"
 
     def issue_certificate(
-        self, certificate_authority_arn: str, csr: bytes, template_arn: str | None
+        self, certificate_authority_arn: str, csr: bytes, template_arn: Optional[str]
     ) -> str:
         """
         The following parameters are not yet implemented: ApiPassthrough, SigningAlgorithm, Validity, ValidityNotBefore, IdempotencyToken
@@ -461,7 +461,7 @@ class ACMPCABackend(BaseBackend):
         self,
         certificate_authority_arn: str,
         certificate: bytes,
-        certificate_chain: bytes | None,
+        certificate_chain: Optional[bytes],
     ) -> None:
         ca = self.describe_certificate_authority(certificate_authority_arn)
         ca.import_certificate_authority_certificate(certificate, certificate_chain)
@@ -514,7 +514,7 @@ class ACMPCABackend(BaseBackend):
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_certificate_authorities(
         self,
-        resource_owner: str | None = None,
+        resource_owner: Optional[str] = None,
     ) -> list[CertificateAuthority]:
         """
         Lists the private certificate authorities that you created by using the CreateCertificateAuthority action.

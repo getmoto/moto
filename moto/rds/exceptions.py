@@ -1,3 +1,5 @@
+from typing import Optional
+
 from moto.core.exceptions import ServiceException
 
 
@@ -176,7 +178,7 @@ class InvalidDBClusterStateFault(RDSClientError):
 
 
 class DBClusterNotFoundError(RDSClientError):
-    def __init__(self, cluster_identifier: str, message: str | None = None):
+    def __init__(self, cluster_identifier: str, message: Optional[str] = None):
         if message is None:
             message = f"DBCluster {cluster_identifier} not found."
         super().__init__("DBClusterNotFoundFault", message)

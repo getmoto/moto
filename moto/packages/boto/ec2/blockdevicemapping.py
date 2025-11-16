@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 
 class BlockDeviceType:
@@ -30,18 +30,18 @@ class BlockDeviceType:
 
     def __init__(
         self,
-        connection: str | None = None,
-        ephemeral_name: str | None = None,
+        connection: Optional[str] = None,
+        ephemeral_name: Optional[str] = None,
         no_device: Union[bool, str] = False,
-        volume_id: str | None = None,
-        snapshot_id: str | None = None,
-        status: str | None = None,
-        attach_time: str | None = None,
+        volume_id: Optional[str] = None,
+        snapshot_id: Optional[str] = None,
+        status: Optional[str] = None,
+        attach_time: Optional[str] = None,
         delete_on_termination: bool = False,
-        size: int | None = None,
-        volume_type: str | None = None,
-        iops: str | None = None,
-        encrypted: str | None = None,
+        size: Optional[int] = None,
+        volume_type: Optional[str] = None,
+        iops: Optional[str] = None,
+        encrypted: Optional[str] = None,
     ):
         self.connection = connection
         self.ephemeral_name = ephemeral_name

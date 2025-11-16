@@ -1,12 +1,12 @@
-from typing import Any
+from typing import Any, Optional
 
 
 class BadSegmentException(Exception):
     def __init__(
         self,
-        seg_id: str | None = None,
-        code: str | None = None,
-        message: str | None = None,
+        seg_id: Optional[str] = None,
+        code: Optional[str] = None,
+        message: Optional[str] = None,
     ):
         self.id = seg_id
         self.code = code

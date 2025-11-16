@@ -2,7 +2,7 @@ import copy
 import random
 import string
 from re import compile as re_compile
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -41,9 +41,9 @@ class User(BaseModel):
         access_string: str,
         engine: str,
         no_password_required: bool,
-        passwords: list[str] | None = None,
-        authentication_type: str | None = None,
-        tags: list[dict[str, str]] | None = None,
+        passwords: Optional[list[str]] = None,
+        authentication_type: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.id = user_id
         self.name = user_name
@@ -77,36 +77,36 @@ class CacheCluster(BaseModel):
         region_name: str,
         cache_cluster_id: str,
         cache_node_type: str,
-        replication_group_id: str | None,
-        az_mode: str | None,
-        preferred_availability_zone: str | None,
-        num_cache_nodes: int | None,
-        engine: str | None,
-        engine_version: str | None,
-        cache_parameter_group_name: str | None,
-        cache_subnet_group_name: str | None,
-        transit_encryption_enabled: bool | None,
-        network_type: str | None,
-        ip_discovery: str | None,
-        snapshot_name: str | None,
-        preferred_maintenance_window: str | None,
-        port: int | None,
-        notification_topic_arn: str | None,
-        auto_minor_version_upgrade: bool | None,
-        snapshot_retention_limit: int | None,
-        snapshot_window: str | None,
-        auth_token: str | None,
-        outpost_mode: str | None,
-        preferred_outpost_arn: str | None,
-        preferred_availability_zones: list[str] | None,
-        cache_security_group_names: list[str] | None,
-        security_group_ids: list[str] | None,
-        tags: list[dict[str, str]] | None,
-        snapshot_arns: list[str] | None,
-        preferred_outpost_arns: list[str] | None,
+        replication_group_id: Optional[str],
+        az_mode: Optional[str],
+        preferred_availability_zone: Optional[str],
+        num_cache_nodes: Optional[int],
+        engine: Optional[str],
+        engine_version: Optional[str],
+        cache_parameter_group_name: Optional[str],
+        cache_subnet_group_name: Optional[str],
+        transit_encryption_enabled: Optional[bool],
+        network_type: Optional[str],
+        ip_discovery: Optional[str],
+        snapshot_name: Optional[str],
+        preferred_maintenance_window: Optional[str],
+        port: Optional[int],
+        notification_topic_arn: Optional[str],
+        auto_minor_version_upgrade: Optional[bool],
+        snapshot_retention_limit: Optional[int],
+        snapshot_window: Optional[str],
+        auth_token: Optional[str],
+        outpost_mode: Optional[str],
+        preferred_outpost_arn: Optional[str],
+        preferred_availability_zones: Optional[list[str]],
+        cache_security_group_names: Optional[list[str]],
+        security_group_ids: Optional[list[str]],
+        tags: Optional[list[dict[str, str]]],
+        snapshot_arns: Optional[list[str]],
+        preferred_outpost_arns: Optional[list[str]],
         log_delivery_configurations: list[dict[str, Any]],
-        cache_node_ids_to_remove: list[str] | None,
-        cache_node_ids_to_reboot: list[str] | None,
+        cache_node_ids_to_remove: Optional[list[str]],
+        cache_node_ids_to_reboot: Optional[list[str]],
     ):
         self.cache_cluster_id = cache_cluster_id
         self.az_mode = az_mode
@@ -164,7 +164,7 @@ class CacheSubnetGroup(BaseModel):
         cache_subnet_group_name: str,
         cache_subnet_group_description: str,
         subnet_ids: list[str],
-        tags: list[dict[str, str]] | None,
+        tags: Optional[list[dict[str, str]]],
     ):
         self.cache_subnet_group_name = cache_subnet_group_name
         self.cache_subnet_group_description = cache_subnet_group_description
@@ -235,44 +235,44 @@ class ReplicationGroup(BaseModel):
         account_id: str,
         region_name: str,
         replication_group_id: str,
-        preferred_cache_cluster_azs: list[str] | None,
-        num_cache_clusters: int | None,
-        num_node_groups: int | None,
-        replicas_per_node_group: int | None,
+        preferred_cache_cluster_azs: Optional[list[str]],
+        num_cache_clusters: Optional[int],
+        num_node_groups: Optional[int],
+        replicas_per_node_group: Optional[int],
         node_group_configuration: list[dict[str, Any]],
-        preferred_maintenance_window: str | None,
+        preferred_maintenance_window: Optional[str],
         replication_group_description: str,
-        primary_cluster_id: str | None,
+        primary_cluster_id: Optional[str],
         automatic_failover_enabled: bool,
-        global_replication_group_id: str | None,
-        multi_az_enabled: bool | None,
-        port: int | None,
+        global_replication_group_id: Optional[str],
+        multi_az_enabled: Optional[bool],
+        port: Optional[int],
         snapshot_retention_limit: int,
-        snapshot_window: str | None,
-        cluster_mode: str | None,
-        cache_node_type: str | None,
-        auth_token: str | None,
-        transit_encryption_enabled: bool | None,
-        at_rest_encryption_enabled: bool | None,
-        kms_key_id: str | None,
+        snapshot_window: Optional[str],
+        cluster_mode: Optional[str],
+        cache_node_type: Optional[str],
+        auth_token: Optional[str],
+        transit_encryption_enabled: Optional[bool],
+        at_rest_encryption_enabled: Optional[bool],
+        kms_key_id: Optional[str],
         user_group_ids: list[str],
         log_delivery_configurations: list[dict[str, Any]],
-        data_tiering_enabled: bool | None,
-        auto_minor_version_upgrade: bool | None,
-        engine: str | None,
-        network_type: str | None,
-        ip_discovery: str | None,
-        transit_encryption_mode: str | None,
-        cache_security_group_names: list[str] | None,
-        cache_subnet_group_name: str | None,
-        security_group_ids: list[str] | None,
-        tags: list[dict[str, str]] | None,
-        notification_topic_arn: str | None,
-        serverless_cache_snapshot_name: str | None,
-        cache_parameter_group_name: str | None,
-        engine_version: str | None,
-        snapshot_arns: list[str] | None,
-        snapshot_name: str | None,
+        data_tiering_enabled: Optional[bool],
+        auto_minor_version_upgrade: Optional[bool],
+        engine: Optional[str],
+        network_type: Optional[str],
+        ip_discovery: Optional[str],
+        transit_encryption_mode: Optional[str],
+        cache_security_group_names: Optional[list[str]],
+        cache_subnet_group_name: Optional[str],
+        security_group_ids: Optional[list[str]],
+        tags: Optional[list[dict[str, str]]],
+        notification_topic_arn: Optional[str],
+        serverless_cache_snapshot_name: Optional[str],
+        cache_parameter_group_name: Optional[str],
+        engine_version: Optional[str],
+        snapshot_arns: Optional[list[str]],
+        snapshot_name: Optional[str],
     ):
         tags = tags or []
         self.cluster_mode = cluster_mode or "disabled"
@@ -587,32 +587,32 @@ class Snapshot(BaseModel):
         self,
         account_id: str,
         region_name: str,
-        automatic_failover: bool | None,
-        auto_minor_version_upgrade: bool | None,
-        cache_cluster_create_time: str | None,
-        cache_cluster_id: str | None,
-        cache_node_type: str | None,
-        cache_parameter_group_name: str | None,
-        cache_subnet_group_name: str | None,
-        engine: str | None,
-        engine_version: str | None,
-        kms_key_id: str | None,
-        num_cache_nodes: int | None,
-        num_node_groups: int | None,
-        port: int | None,
-        preferred_availability_zone: str | None,
-        preferred_maintenance_window: str | None,
-        preferred_outpost_arn: str | None,
-        replication_group_description: str | None,
-        replication_group_id: str | None,
-        snapshot_name: str | None,
-        snapshot_retention_limit: int | None,
-        snapshot_source: str | None,
-        snapshot_status: str | None,
-        snapshot_window: str | None,
-        topic_arn: str | None,
-        tags: list[dict[str, str]] | None,
-        vpc_id: str | None = None,
+        automatic_failover: Optional[bool],
+        auto_minor_version_upgrade: Optional[bool],
+        cache_cluster_create_time: Optional[str],
+        cache_cluster_id: Optional[str],
+        cache_node_type: Optional[str],
+        cache_parameter_group_name: Optional[str],
+        cache_subnet_group_name: Optional[str],
+        engine: Optional[str],
+        engine_version: Optional[str],
+        kms_key_id: Optional[str],
+        num_cache_nodes: Optional[int],
+        num_node_groups: Optional[int],
+        port: Optional[int],
+        preferred_availability_zone: Optional[str],
+        preferred_maintenance_window: Optional[str],
+        preferred_outpost_arn: Optional[str],
+        replication_group_description: Optional[str],
+        replication_group_id: Optional[str],
+        snapshot_name: Optional[str],
+        snapshot_retention_limit: Optional[int],
+        snapshot_source: Optional[str],
+        snapshot_status: Optional[str],
+        snapshot_window: Optional[str],
+        topic_arn: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+        vpc_id: Optional[str] = None,
     ):
         self.arn = f"arn:{get_partition(region_name)}:elasticache:{region_name}:{account_id}:snapshot:{snapshot_name}"
         self.automatic_failover = automatic_failover
@@ -670,8 +670,8 @@ class ElastiCacheBackend(BaseBackend):
 
     def _get_snapshots_by_param(
         self,
-        ref_id: str | None = None,
-        source: str | None = None,
+        ref_id: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> list[Snapshot]:
         source_map = {
             "system": "automated",
@@ -693,7 +693,7 @@ class ElastiCacheBackend(BaseBackend):
 
         return snapshots
 
-    def _get_vpc_id_from_cluster(self, cache_cluster_id: str) -> str | None:
+    def _get_vpc_id_from_cluster(self, cache_cluster_id: str) -> Optional[str]:
         if cache_cluster_id and cache_cluster_id in self.cache_clusters:
             cache_cluster = self.cache_clusters[cache_cluster_id]
             subnet_group_name = cache_cluster.cache_subnet_group_name
@@ -710,7 +710,7 @@ class ElastiCacheBackend(BaseBackend):
         access_string: str,
         no_password_required: bool,
         authentication_type: str,  # contain it to the str in the enums TODO
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> User:
         if user_id in self.users:
             raise UserAlreadyExists
@@ -765,7 +765,7 @@ class ElastiCacheBackend(BaseBackend):
             return user
         raise UserNotFound(user_id)
 
-    def describe_users(self, user_id: str | None) -> list[User]:
+    def describe_users(self, user_id: Optional[str]) -> list[User]:
         """
         Only the `user_id` parameter is currently supported.
         Pagination is not yet implemented.
@@ -867,9 +867,9 @@ class ElastiCacheBackend(BaseBackend):
     @paginate(PAGINATION_MODEL)
     def describe_cache_clusters(
         self,
-        cache_cluster_id: str | None = None,
-        max_records: int | None = None,
-        marker: str | None = None,
+        cache_cluster_id: Optional[str] = None,
+        max_records: Optional[int] = None,
+        marker: Optional[str] = None,
     ) -> list[CacheCluster]:
         if cache_cluster_id:
             if cache_cluster_id in self.cache_clusters:
@@ -892,7 +892,7 @@ class ElastiCacheBackend(BaseBackend):
         cache_subnet_group_name: str,
         cache_subnet_group_description: str,
         subnet_ids: list[str],
-        tags: list[dict[str, str]] | None,
+        tags: Optional[list[dict[str, str]]],
     ) -> CacheSubnetGroup:
         if cache_subnet_group_name in self.cache_subnet_groups:
             raise CacheSubnetGroupAlreadyExists(cache_subnet_group_name)
@@ -915,7 +915,7 @@ class ElastiCacheBackend(BaseBackend):
     @paginate(PAGINATION_MODEL)
     def describe_cache_subnet_groups(
         self,
-        cache_subnet_group_name: str | None = None,
+        cache_subnet_group_name: Optional[str] = None,
     ) -> list[CacheSubnetGroup]:
         if cache_subnet_group_name:
             if cache_subnet_group_name in self.cache_subnet_groups:
@@ -1036,7 +1036,7 @@ class ElastiCacheBackend(BaseBackend):
     @paginate(PAGINATION_MODEL)
     def describe_replication_groups(
         self,
-        replication_group_id: str | None = None,
+        replication_group_id: Optional[str] = None,
     ) -> list[ReplicationGroup]:
         if replication_group_id:
             if replication_group_id in self.replication_groups:
@@ -1047,7 +1047,7 @@ class ElastiCacheBackend(BaseBackend):
         return list(self.replication_groups.values())
 
     def delete_replication_group(
-        self, replication_group_id: str, retain_primary_cluster: bool | None
+        self, replication_group_id: str, retain_primary_cluster: Optional[bool]
     ) -> ReplicationGroup:
         if replication_group_id not in self.replication_groups:
             raise ReplicationGroupNotFound(replication_group_id)
@@ -1065,10 +1065,10 @@ class ElastiCacheBackend(BaseBackend):
     def create_snapshot(
         self,
         snapshot_name: str,
-        replication_group_id: str | None,
-        cache_cluster_id: str | None,
-        kms_key_id: str | None,
-        tags: list[dict[str, str]] | None,
+        replication_group_id: Optional[str],
+        cache_cluster_id: Optional[str],
+        kms_key_id: Optional[str],
+        tags: Optional[list[dict[str, str]]],
     ) -> Snapshot:
         resource = None
         num_node_groups = None
@@ -1146,13 +1146,13 @@ class ElastiCacheBackend(BaseBackend):
 
     def describe_snapshots(
         self,
-        replication_group_id: str | None = None,
-        cache_cluster_id: str | None = None,
-        snapshot_name: str | None = None,
-        snapshot_source: str | None = None,
-        marker: str | None = None,
-        max_records: int | None = None,
-        show_node_group_config: bool | None = None,
+        replication_group_id: Optional[str] = None,
+        cache_cluster_id: Optional[str] = None,
+        snapshot_name: Optional[str] = None,
+        snapshot_source: Optional[str] = None,
+        marker: Optional[str] = None,
+        max_records: Optional[int] = None,
+        show_node_group_config: Optional[bool] = None,
     ) -> list[Snapshot]:
         if snapshot_name:
             try:

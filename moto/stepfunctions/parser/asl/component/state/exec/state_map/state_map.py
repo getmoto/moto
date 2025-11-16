@@ -1,4 +1,5 @@
 import copy
+from typing import Optional
 
 from moto.stepfunctions.parser.api import (
     EvaluationFailedEventDetails,
@@ -104,21 +105,21 @@ from moto.stepfunctions.parser.asl.eval.event.event_detail import EventDetails
 
 
 class StateMap(ExecutionState):
-    items: Items | None
-    items_path: ItemsPath | None
+    items: Optional[Items]
+    items_path: Optional[ItemsPath]
     iteration_component: IterationComponent
-    item_reader: ItemReader | None
-    item_selector: ItemSelector | None
-    parameters: Parameters | None
+    item_reader: Optional[ItemReader]
+    item_selector: Optional[ItemSelector]
+    parameters: Optional[Parameters]
     max_concurrency_decl: MaxConcurrencyDecl
     tolerated_failure_count_decl: ToleratedFailureCountDecl
     tolerated_failure_percentage_decl: ToleratedFailurePercentage
-    result_path: ResultPath | None
+    result_path: Optional[ResultPath]
     result_selector: ResultSelector
-    retry: RetryDecl | None
-    catch: CatchDecl | None
-    label: Label | None
-    result_writer: ResultWriter | None
+    retry: Optional[RetryDecl]
+    catch: Optional[CatchDecl]
+    label: Optional[Label]
+    result_writer: Optional[ResultWriter]
 
     def __init__(self):
         super().__init__(

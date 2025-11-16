@@ -3,7 +3,7 @@ import re
 from collections import OrderedDict
 from collections.abc import Iterable
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -367,11 +367,11 @@ class FakeGroupVersion(BaseModel):
         account_id: str,
         region_name: str,
         group_id: str,
-        core_definition_version_arn: str | None,
-        device_definition_version_arn: str | None,
-        function_definition_version_arn: str | None,
-        resource_definition_version_arn: str | None,
-        subscription_definition_version_arn: str | None,
+        core_definition_version_arn: Optional[str],
+        device_definition_version_arn: Optional[str],
+        function_definition_version_arn: Optional[str],
+        resource_definition_version_arn: Optional[str],
+        subscription_definition_version_arn: Optional[str],
     ):
         self.region_name = region_name
         self.group_id = group_id
@@ -1079,7 +1079,7 @@ class GreengrassBackend(BaseBackend):
     def list_groups(self) -> list[FakeGroup]:
         return list(self.groups.values())
 
-    def get_group(self, group_id: str) -> FakeGroup | None:
+    def get_group(self, group_id: str) -> Optional[FakeGroup]:
         if group_id not in self.groups:
             raise IdNotFoundException("That Group Definition does not exist.")
         return self.groups.get(group_id)
@@ -1103,11 +1103,11 @@ class GreengrassBackend(BaseBackend):
     def create_group_version(
         self,
         group_id: str,
-        core_definition_version_arn: str | None,
-        device_definition_version_arn: str | None,
-        function_definition_version_arn: str | None,
-        resource_definition_version_arn: str | None,
-        subscription_definition_version_arn: str | None,
+        core_definition_version_arn: Optional[str],
+        device_definition_version_arn: Optional[str],
+        function_definition_version_arn: Optional[str],
+        resource_definition_version_arn: Optional[str],
+        subscription_definition_version_arn: Optional[str],
     ) -> FakeGroupVersion:
         if group_id not in self.groups:
             raise IdNotFoundException("That group does not exist.")
@@ -1139,14 +1139,14 @@ class GreengrassBackend(BaseBackend):
 
     def _validate_group_version_definitions(
         self,
-        core_definition_version_arn: str | None = None,
-        device_definition_version_arn: str | None = None,
-        function_definition_version_arn: str | None = None,
-        resource_definition_version_arn: str | None = None,
-        subscription_definition_version_arn: str | None = None,
+        core_definition_version_arn: Optional[str] = None,
+        device_definition_version_arn: Optional[str] = None,
+        function_definition_version_arn: Optional[str] = None,
+        resource_definition_version_arn: Optional[str] = None,
+        subscription_definition_version_arn: Optional[str] = None,
     ) -> None:
         def _is_valid_def_ver_arn(
-            definition_version_arn: str | None, kind: str = "cores"
+            definition_version_arn: Optional[str], kind: str = "cores"
         ) -> bool:
             if definition_version_arn is None:
                 return True
@@ -1239,7 +1239,7 @@ class GreengrassBackend(BaseBackend):
         group_id: str,
         group_version_id: str,
         deployment_type: str,
-        deployment_id: str | None = None,
+        deployment_id: Optional[str] = None,
     ) -> FakeDeployment:
         deployment_types = (
             "NewDeployment",

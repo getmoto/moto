@@ -1,7 +1,7 @@
 import datetime
 import json
 import time
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -81,15 +81,15 @@ class FakeSecret(BaseModel):
         secret_id: str,
         secret_version: dict[str, Any],
         version_id: str,
-        secret_string: str | None = None,
-        secret_binary: str | None = None,
-        description: str | None = None,
-        tags: list[dict[str, str]] | None = None,
-        kms_key_id: str | None = None,
-        version_stages: list[str] | None = None,
-        last_changed_date: int | None = None,
-        created_date: int | None = None,
-        replica_regions: list[dict[str, str]] | None = None,
+        secret_string: Optional[str] = None,
+        secret_binary: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        version_stages: Optional[list[str]] = None,
+        last_changed_date: Optional[int] = None,
+        created_date: Optional[int] = None,
+        replica_regions: Optional[list[dict[str, str]]] = None,
         force_overwrite: bool = False,
     ):
         self.secret_id = secret_id
@@ -112,10 +112,10 @@ class FakeSecret(BaseModel):
         self.rotation_enabled = False
         self.rotation_lambda_arn = ""
         self.auto_rotate_after_days = 0
-        self.deleted_date: float | None = None
-        self.policy: str | None = None
-        self.next_rotation_date: int | None = None
-        self.last_rotation_date: int | None = None
+        self.deleted_date: Optional[float] = None
+        self.policy: Optional[str] = None
+        self.next_rotation_date: Optional[int] = None
+        self.last_rotation_date: Optional[int] = None
 
         self.versions: dict[str, dict[str, Any]] = {}
         if secret_string or secret_binary:
@@ -129,7 +129,7 @@ class FakeSecret(BaseModel):
         )
 
     @property
-    def owning_service(self) -> str | None:
+    def owning_service(self) -> Optional[str]:
         for tag in self.tags or []:
             if tag["Key"] == "aws:secretsmanager:owningService":
                 return tag["Value"]
@@ -163,10 +163,10 @@ class FakeSecret(BaseModel):
 
     def update(
         self,
-        description: str | None = None,
-        tags: list[dict[str, str]] | None = None,
-        kms_key_id: str | None = None,
-        last_changed_date: int | None = None,
+        description: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        last_changed_date: Optional[int] = None,
     ) -> None:
         self.description = description
         self.tags = tags or None
@@ -176,7 +176,7 @@ class FakeSecret(BaseModel):
         if kms_key_id is not None:
             self.kms_key_id = kms_key_id
 
-    def set_default_version_id(self, version_id: str | None) -> None:
+    def set_default_version_id(self, version_id: Optional[str]) -> None:
         self.default_version_id = version_id
 
     def reset_default_version(
@@ -217,7 +217,7 @@ class FakeSecret(BaseModel):
     def to_short_dict(
         self,
         include_version_stages: bool = False,
-        version_id: str | None = None,
+        version_id: Optional[str] = None,
         include_version_id: bool = True,
     ) -> str:
         if not version_id:
@@ -291,8 +291,8 @@ class ReplicaSecret:
         self,
         source: FakeSecret,
         region: str,
-        status: str | None = None,
-        message: str | None = None,
+        status: Optional[str] = None,
+        message: Optional[str] = None,
     ):
         self.source = source
         self.arn = source.arn.replace(source.region, region)
@@ -317,7 +317,7 @@ class ReplicaSecret:
         return dct
 
     @property
-    def default_version_id(self) -> str | None:
+    def default_version_id(self) -> Optional[str]:
         return self.source.default_version_id
 
     @property
@@ -333,15 +333,15 @@ class ReplicaSecret:
         return self.source.secret_id
 
     @property
-    def description(self) -> str | None:
+    def description(self) -> Optional[str]:
         return self.source.description
 
     @property
-    def tags(self) -> list[dict[str, str]] | None:
+    def tags(self) -> Optional[list[dict[str, str]]]:
         return self.source.tags
 
     @property
-    def owning_service(self) -> str | None:
+    def owning_service(self) -> Optional[str]:
         return self.source.owning_service
 
 
@@ -367,14 +367,14 @@ class SecretsStore(dict[str, Union[FakeSecret, ReplicaSecret]]):
         name = get_secret_name_from_partial_arn(key)
         return dict.__contains__(self, name)  # type: ignore
 
-    def get(self, key: str) -> Union[FakeSecret, ReplicaSecret] | None:  # type: ignore
+    def get(self, key: str) -> Optional[Union[FakeSecret, ReplicaSecret]]:  # type: ignore
         for secret in dict.values(self):
             if secret.arn == key or secret.name == key:
                 return secret
         name = get_secret_name_from_partial_arn(key)
         return super().get(name)
 
-    def pop(self, key: str) -> Union[FakeSecret, ReplicaSecret] | None:  # type: ignore
+    def pop(self, key: str) -> Optional[Union[FakeSecret, ReplicaSecret]]:  # type: ignore
         for secret in dict.values(self):
             if secret.arn == key or secret.name == key:
                 key = secret.name
@@ -402,7 +402,7 @@ class SecretsManagerBackend(BaseBackend):
             msg = "ClientRequestToken must be 32-64 characters long."
             raise InvalidParameterException(msg)
 
-    def _from_client_request_token(self, client_request_token: str | None) -> str:
+    def _from_client_request_token(self, client_request_token: Optional[str]) -> str:
         if client_request_token:
             self._client_request_token_validator(client_request_token)
             return client_request_token
@@ -498,11 +498,11 @@ class SecretsManagerBackend(BaseBackend):
 
     def batch_get_secret_value(
         self,
-        secret_id_list: list[str] | None = None,
-        filters: list[dict[str, Any]] | None = None,
-        max_results: int | None = None,
-        next_token: str | None = None,
-    ) -> tuple[list[dict[str, Any]], list[Any], str | None]:
+        secret_id_list: Optional[list[str]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[dict[str, Any]], list[Any], Optional[str]]:
         secret_list = []
         errors: list[Any] = []
         if secret_id_list and filters:
@@ -546,11 +546,11 @@ class SecretsManagerBackend(BaseBackend):
     def update_secret(
         self,
         secret_id: str,
-        secret_string: str | None = None,
-        secret_binary: str | None = None,
-        client_request_token: str | None = None,
-        kms_key_id: str | None = None,
-        description: str | None = None,
+        secret_string: Optional[str] = None,
+        secret_binary: Optional[str] = None,
+        client_request_token: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> str:
         # error if secret does not exist
         if secret_id not in self.secrets:
@@ -587,12 +587,12 @@ class SecretsManagerBackend(BaseBackend):
     def create_secret(
         self,
         name: str,
-        secret_string: str | None,
-        secret_binary: str | None,
-        description: str | None,
-        tags: list[dict[str, str]] | None,
-        kms_key_id: str | None,
-        client_request_token: str | None,
+        secret_string: Optional[str],
+        secret_binary: Optional[str],
+        description: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+        kms_key_id: Optional[str],
+        client_request_token: Optional[str],
         replica_regions: list[dict[str, str]],
         force_overwrite: bool,
     ) -> str:
@@ -619,10 +619,10 @@ class SecretsManagerBackend(BaseBackend):
     def _check_with_existing_secrets_and_versions(
         self,
         secret_name: str,
-        client_request_token: str | None,
-        secret_string: str | None,
-        secret_binary: str | None,
-    ) -> str | None:
+        client_request_token: Optional[str],
+        secret_string: Optional[str],
+        secret_binary: Optional[str],
+    ) -> Optional[str]:
         """
         Check if a secret with the given name and version ID already exists.
         If they do and the original operation is intending to modify it, that will be flagged.
@@ -666,14 +666,14 @@ class SecretsManagerBackend(BaseBackend):
     def _add_secret(
         self,
         secret_id: str,
-        secret_string: str | None = None,
-        secret_binary: str | None = None,
-        description: str | None = None,
-        tags: list[dict[str, str]] | None = None,
-        kms_key_id: str | None = None,
-        version_id: str | None = None,
-        version_stages: list[str] | None = None,
-        replica_regions: list[dict[str, str]] | None = None,
+        secret_string: Optional[str] = None,
+        secret_binary: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        version_id: Optional[str] = None,
+        version_stages: Optional[list[str]] = None,
+        replica_regions: Optional[list[dict[str, str]]] = None,
         force_overwrite: bool = False,
     ) -> tuple[FakeSecret, bool]:
         if version_stages is None:
@@ -733,13 +733,13 @@ class SecretsManagerBackend(BaseBackend):
         self,
         service_name: str,
         secret_id: str,
-        secret_string: str | None = None,
-        secret_binary: str | None = None,
-        description: str | None = None,
-        tags: list[dict[str, str]] | None = None,
-        kms_key_id: str | None = None,
-        version_id: str | None = None,
-        replica_regions: list[dict[str, str]] | None = None,
+        secret_string: Optional[str] = None,
+        secret_binary: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        kms_key_id: Optional[str] = None,
+        version_id: Optional[str] = None,
+        replica_regions: Optional[list[dict[str, str]]] = None,
         force_overwrite: bool = False,
     ) -> FakeSecret:
         """Create an AWS managed secret for the specified service name."""
@@ -812,9 +812,9 @@ class SecretsManagerBackend(BaseBackend):
     def rotate_secret(
         self,
         secret_id: str,
-        client_request_token: str | None = None,
-        rotation_lambda_arn: str | None = None,
-        rotation_rules: dict[str, Any] | None = None,
+        client_request_token: Optional[str] = None,
+        rotation_lambda_arn: Optional[str] = None,
+        rotation_rules: Optional[dict[str, Any]] = None,
         rotate_immediately: bool = True,
     ) -> str:
         rotation_days = "AutomaticallyAfterDays"
@@ -1018,9 +1018,9 @@ class SecretsManagerBackend(BaseBackend):
         self,
         filters: list[dict[str, Any]],
         max_results: int = MAX_RESULTS_DEFAULT,
-        next_token: str | None = None,
+        next_token: Optional[str] = None,
         include_planned_deletion: bool = False,
-    ) -> tuple[list[dict[str, Any]], str | None]:
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         secret_list: list[dict[str, Any]] = []
         for secret in self.secrets.values():
             if hasattr(secret, "deleted_date"):
@@ -1036,7 +1036,7 @@ class SecretsManagerBackend(BaseBackend):
     def delete_secret(
         self,
         secret_id: str,
-        recovery_window_in_days: int | None,
+        recovery_window_in_days: Optional[int],
         force_delete_without_recovery: bool,
     ) -> tuple[str, str, float]:
         if recovery_window_in_days is not None and (
@@ -1267,9 +1267,9 @@ class SecretsManagerBackend(BaseBackend):
     def _get_secret_values_page_and_next_token(
         self,
         secret_list: list[dict[str, Any]],
-        max_results: int | None,
-        next_token: str | None,
-    ) -> tuple[list[dict[str, Any]], str | None]:
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
         starting_point = int(next_token or 0)
         ending_point = starting_point + int(max_results or MAX_RESULTS_DEFAULT)
         secret_page = secret_list[starting_point:ending_point]

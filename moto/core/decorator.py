@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from typing import TYPE_CHECKING, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, overload
 
 from moto import settings
 from moto.core.config import DefaultConfig
@@ -18,12 +17,14 @@ def mock_aws(func: "Callable[P, T]") -> "Callable[P, T]": ...
 
 
 @overload
-def mock_aws(func: None = None, config: DefaultConfig | None = None) -> "MockAWS": ...
+def mock_aws(
+    func: None = None, config: Optional[DefaultConfig] = None
+) -> "MockAWS": ...
 
 
 def mock_aws(
-    func: "Callable[P, T] | None" = None,
-    config: DefaultConfig | None = None,
+    func: "Optional[Callable[P, T]]" = None,
+    config: Optional[DefaultConfig] = None,
 ) -> Union["MockAWS", "Callable[P, T]"]:
     clss = (
         ServerModeMockAWS

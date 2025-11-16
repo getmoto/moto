@@ -1,7 +1,6 @@
 """PrometheusServiceBackend class with methods for supported APIs."""
 
-from collections.abc import Callable
-from typing import Any
+from typing import Any, Callable, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -64,7 +63,7 @@ class Workspace(BaseModel):
         self.created_at = unix_time()
         self.tag_fn = tag_fn
         self.rule_group_namespaces: dict[str, RuleGroupNamespace] = {}
-        self.logging_config: dict[str, Any] | None = None
+        self.logging_config: Optional[dict[str, Any]] = None
 
     def to_dict(self) -> dict[str, Any]:
         return {

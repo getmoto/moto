@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Optional
 
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
@@ -58,7 +59,7 @@ class ElasticTranscoderResponse(BaseResponse):
             json.dumps({"Pipelines": self.elastictranscoder_backend.list_pipelines()}),
         )
 
-    def validate_pipeline_id(self, pipeline_id: str) -> TYPE_RESPONSE | None:
+    def validate_pipeline_id(self, pipeline_id: str) -> Optional[TYPE_RESPONSE]:
         r = "^\\d{13}-\\w{6}$"
         if not re.match(r, pipeline_id):
             msg = f"1 validation error detected: Value '{pipeline_id}' at 'id' failed to satisfy constraint: Member must satisfy regular expression pattern: {r}"

@@ -1,4 +1,4 @@
-from typing import Final
+from typing import Final, Optional
 
 from moto.stepfunctions.parser.asl.component.common.assign.assign_decl import AssignDecl
 from moto.stepfunctions.parser.asl.component.common.comment import Comment
@@ -12,19 +12,19 @@ from moto.stepfunctions.parser.asl.eval.environment import Environment
 
 
 class ChoiceRule(EvalComponent):
-    comparison: Final[Comparison | None]
-    next_stmt: Final[Next | None]
-    comment: Final[Comment | None]
-    assign: Final[AssignDecl | None]
-    output: Final[Output | None]
+    comparison: Final[Optional[Comparison]]
+    next_stmt: Final[Optional[Next]]
+    comment: Final[Optional[Comment]]
+    assign: Final[Optional[AssignDecl]]
+    output: Final[Optional[Output]]
 
     def __init__(
         self,
-        comparison: Comparison | None,
-        next_stmt: Next | None,
-        comment: Comment | None,
-        assign: AssignDecl | None,
-        output: Output | None,
+        comparison: Optional[Comparison],
+        next_stmt: Optional[Next],
+        comment: Optional[Comment],
+        assign: Optional[AssignDecl],
+        output: Optional[Output],
     ):
         self.comparison = comparison
         self.next_stmt = next_stmt

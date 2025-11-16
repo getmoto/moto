@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from typing import Optional
 
 from moto.stepfunctions.parser.api import (
     Arn,
@@ -36,8 +37,8 @@ LOG = logging.getLogger(__name__)
 
 
 class TestStateExecution(Execution):
-    exec_worker: TestStateExecutionWorker | None
-    next_state: str | None
+    exec_worker: Optional[TestStateExecutionWorker]
+    next_state: Optional[str]
 
     class TestCaseExecutionWorkerCommunication(BaseExecutionWorkerCommunication):
         _execution: TestStateExecution
@@ -65,7 +66,7 @@ class TestStateExecution(Execution):
         state_machine: StateMachineInstance,
         start_date: Timestamp,
         activity_store: dict[Arn, Activity],
-        input_data: dict | None = None,
+        input_data: Optional[dict] = None,
     ):
         super().__init__(
             name=name,

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import itertools
-import math
 from collections import OrderedDict
 from datetime import datetime
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -37,7 +36,7 @@ DEFAULT_COOLDOWN = 300
 ASG_NAME_TAG = "aws:autoscaling:groupName"
 
 
-def make_int(value: Union[None, str, int]) -> int | None:
+def make_int(value: Union[None, str, int]) -> Optional[int]:
     return int(value) if value is not None else value
 
 
@@ -47,9 +46,9 @@ class Activity:
         description: str,
         cause: str,
         auto_scaling_group: FakeAutoScalingGroup,
-        activity_id: str | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        activity_id: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
         status_code: str = "InProgress",
     ):
         self.activity_id = activity_id or str(random.uuid4())
@@ -82,7 +81,7 @@ class TerminateInstanceActivity(Activity):
 
 
 class EnterStandbyActivity(Activity):
-    def __init__(self, instance: Instance, original_capacity: int | None = None):
+    def __init__(self, instance: Instance, original_capacity: Optional[int] = None):
         auto_scaling_group = instance.autoscaling_group  # type: ignore[attr-defined]
         desired_capacity = auto_scaling_group.desired_capacity
         should_decrement = desired_capacity < original_capacity
@@ -98,7 +97,7 @@ class EnterStandbyActivity(Activity):
 
 
 class ExitStandbyActivity(Activity):
-    def __init__(self, instance: Instance, original_capacity: int | None = None):
+    def __init__(self, instance: Instance, original_capacity: Optional[int] = None):
         auto_scaling_group = instance.autoscaling_group  # type: ignore[attr-defined]
         desired_capacity = auto_scaling_group.desired_capacity
         description = f"Moving EC2 instance out of StandBy: {instance.id}"
@@ -125,8 +124,8 @@ class InstanceState:
         instance: Instance,
         lifecycle_state: str = "InService",
         health_status: str = "Healthy",
-        protected_from_scale_in: bool | None = False,
-        autoscaling_group: FakeAutoScalingGroup | None = None,
+        protected_from_scale_in: Optional[bool] = False,
+        autoscaling_group: Optional[FakeAutoScalingGroup] = None,
     ):
         self.instance = instance
         self.lifecycle_state = lifecycle_state
@@ -141,7 +140,7 @@ class InstanceState:
         self.instance_type = self.instance.instance_type
 
     @property
-    def launch_template(self) -> dict[str, Any] | None:
+    def launch_template(self) -> Optional[dict[str, Any]]:
         if (
             self.auto_scaling_group is not None
             and self.auto_scaling_group.ec2_launch_template is None
@@ -155,7 +154,7 @@ class InstanceState:
         return lt
 
     @property
-    def launch_configuration_name(self) -> str | None:
+    def launch_configuration_name(self) -> Optional[str]:
         return (
             self.auto_scaling_group.launch_configuration_name
             if self.auto_scaling_group is not None
@@ -168,9 +167,9 @@ class LifecycleHook(BaseModel):
         self,
         name: str,
         as_name: str,
-        transition: str | None,
-        timeout: int | None,
-        result: str | None,
+        transition: Optional[str],
+        timeout: Optional[int],
+        result: Optional[str],
     ):
         self.name = name
         self.auto_scaling_group_name = as_name
@@ -184,7 +183,7 @@ class LifecycleHook(BaseModel):
 
 
 class TargetTrackingConfiguration:
-    def __init__(self, data: dict[str, Any] | None) -> None:
+    def __init__(self, data: Optional[dict[str, Any]]) -> None:
         data = data or {}
         customized_metric_spec = data.get("CustomizedMetricSpecification", {})
         if customized_metric_spec:
@@ -205,8 +204,8 @@ class FakeScalingPolicy(BaseModel):
         adjustment_type: str,
         as_name: str,
         min_adjustment_magnitude: str,
-        scaling_adjustment: int | None,
-        cooldown: int | None,
+        scaling_adjustment: Optional[int],
+        cooldown: Optional[int],
         target_tracking_config: dict[str, Any],
         step_adjustments: str,
         estimated_instance_warmup: str,
@@ -224,7 +223,7 @@ class FakeScalingPolicy(BaseModel):
         self.cooldown = None
         if self.policy_type == "SimpleScaling":
             self.cooldown = cooldown if cooldown is not None else DEFAULT_COOLDOWN
-        self.target_tracking_configuration: TargetTrackingConfiguration | None = None
+        self.target_tracking_configuration: Optional[TargetTrackingConfiguration] = None
         if self.policy_type == "TargetTrackingScaling":
             self.target_tracking_configuration = TargetTrackingConfiguration(
                 target_tracking_config
@@ -260,23 +259,23 @@ class FakeLaunchConfiguration(CloudFormationModel):
         self,
         name: str,
         image_id: str,
-        key_name: str | None,
+        key_name: Optional[str],
         ramdisk_id: str,
         kernel_id: str,
         security_groups: list[str],
         user_data: str,
         instance_type: str,
         instance_monitoring: bool,
-        instance_profile_name: str | None,
-        spot_price: str | None,
+        instance_profile_name: Optional[str],
+        spot_price: Optional[str],
         ebs_optimized: bool,
         associate_public_ip_address: bool,
         block_device_mapping_dict: list[dict[str, Any]],
         account_id: str,
         region_name: str,
-        metadata_options: str | None,
-        classic_link_vpc_id: str | None,
-        classic_link_vpc_security_groups: str | None,
+        metadata_options: Optional[str],
+        classic_link_vpc_id: Optional[str],
+        classic_link_vpc_security_groups: Optional[str],
     ):
         self.name = name
         self.image_id = image_id
@@ -455,14 +454,14 @@ class FakeScheduledAction(CloudFormationModel):
     def __init__(
         self,
         autos_caling_group_name: str,
-        desired_capacity: int | None,
-        max_size: int | None,
-        min_size: int | None,
+        desired_capacity: Optional[int],
+        max_size: Optional[int],
+        min_size: Optional[int],
         scheduled_action_name: str,
-        start_time: str | None,
-        end_time: str | None,
-        recurrence: str | None,
-        time_zone: str | None,
+        start_time: Optional[str],
+        end_time: Optional[str],
+        recurrence: Optional[str],
+        time_zone: Optional[str],
     ):
         self.auto_scaling_group_name = autos_caling_group_name
         self.desired_capacity = desired_capacity
@@ -521,8 +520,8 @@ class FailedScheduledUpdateGroupActionRequest:
         self,
         *,
         scheduled_action_name: str,
-        error_code: str | None = None,
-        error_message: str | None = None,
+        error_code: Optional[str] = None,
+        error_message: Optional[str] = None,
     ) -> None:
         self.scheduled_action_name = scheduled_action_name
         self.error_code = error_code
@@ -532,10 +531,10 @@ class FailedScheduledUpdateGroupActionRequest:
 class FakeWarmPool(CloudFormationModel):
     def __init__(
         self,
-        max_group_prepared_capacity: int | None,
-        min_size: int | None,
-        pool_state: str | None,
-        instance_reuse_policy: dict[str, bool] | None,
+        max_group_prepared_capacity: Optional[int],
+        min_size: Optional[int],
+        pool_state: Optional[str],
+        instance_reuse_policy: Optional[dict[str, bool]],
     ):
         self.max_group_prepared_capacity = max_group_prepared_capacity
         self.min_size = min_size or 0
@@ -548,23 +547,23 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self,
         name: str,
         availability_zones: list[str],
-        desired_capacity: int | None,
-        max_size: int | None,
-        min_size: int | None,
+        desired_capacity: Optional[int],
+        max_size: Optional[int],
+        min_size: Optional[int],
         launch_config_name: str,
         launch_template: dict[str, Any],
-        vpc_zone_identifier: str | None,
-        default_cooldown: int | None,
-        health_check_period: int | None,
-        health_check_type: str | None,
+        vpc_zone_identifier: Optional[str],
+        default_cooldown: Optional[int],
+        health_check_period: Optional[int],
+        health_check_type: Optional[str],
         load_balancers: list[str],
         target_group_arns: list[str],
-        placement_group: str | None,
+        placement_group: Optional[str],
         termination_policies: list[str],
         autoscaling_backend: AutoScalingBackend,
         ec2_backend: EC2Backend,
         tags: list[dict[str, str]],
-        mixed_instances_policy: dict[str, Any] | None,
+        mixed_instances_policy: Optional[dict[str, Any]],
         capacity_rebalance: bool,
         new_instances_protected_from_scale_in: bool = False,
     ):
@@ -577,14 +576,14 @@ class FakeAutoScalingGroup(CloudFormationModel):
         partition = get_partition(self.region)
         self.service_linked_role_arn = f"arn:{partition}:iam::{self.account_id}:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
 
-        self.vpc_zone_identifier: str | None = None
+        self.vpc_zone_identifier: Optional[str] = None
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier)
 
         self.max_size = max_size
         self.min_size = min_size
 
         self.mixed_instances_policy = mixed_instances_policy
-        self.ec2_launch_template: LaunchTemplate | None = None
+        self.ec2_launch_template: Optional[LaunchTemplate] = None
         # Will be None if self.launch_template is used instead
         self.launch_config: FakeLaunchConfiguration = None  # type: ignore[assignment]
 
@@ -612,11 +611,11 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self.set_desired_capacity(desired_capacity)
 
         self.metrics: list[str] = []
-        self.warm_pool: FakeWarmPool | None = None
+        self.warm_pool: Optional[FakeWarmPool] = None
         self.created_time = datetime.now().isoformat()
 
     @property
-    def launch_template(self) -> dict[str, Any] | None:
+    def launch_template(self) -> Optional[dict[str, Any]]:
         if self.ec2_launch_template is None:
             return None
         lt = {
@@ -666,7 +665,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
     def _set_azs_and_vpcs(
         self,
         availability_zones: list[str],
-        vpc_zone_identifier: str | None,
+        vpc_zone_identifier: Optional[str],
         update: bool = False,
     ) -> None:
         # for updates, if only AZs are provided, they must not clash with
@@ -703,7 +702,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         self,
         launch_config_name: str,
         launch_template: dict[str, Any],
-        mixed_instances_policy: dict[str, Any] | None,
+        mixed_instances_policy: Optional[dict[str, Any]],
     ) -> None:
         if launch_config_name:
             self.launch_config = self.autoscaling_backend.launch_configurations[
@@ -897,21 +896,21 @@ class FakeAutoScalingGroup(CloudFormationModel):
         return self.instance_states
 
     @property
-    def warm_pool_configuration(self) -> FakeWarmPool | None:
+    def warm_pool_configuration(self) -> Optional[FakeWarmPool]:
         return self.warm_pool
 
     def update(
         self,
         availability_zones: list[str],
-        desired_capacity: int | None,
-        max_size: int | None,
-        min_size: int | None,
+        desired_capacity: Optional[int],
+        max_size: Optional[int],
+        min_size: Optional[int],
         launch_config_name: str,
         launch_template: dict[str, Any],
         vpc_zone_identifier: str,
         health_check_period: int,
         health_check_type: str,
-        new_instances_protected_from_scale_in: bool | None = None,
+        new_instances_protected_from_scale_in: Optional[bool] = None,
     ) -> None:
         self._set_azs_and_vpcs(availability_zones, vpc_zone_identifier, update=True)
 
@@ -942,7 +941,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         if desired_capacity is not None:
             self.set_desired_capacity(desired_capacity)
 
-    def set_desired_capacity(self, new_capacity: int | None) -> None:
+    def set_desired_capacity(self, new_capacity: Optional[int]) -> None:
         if new_capacity is None:
             self.desired_capacity = self.min_size
         else:
@@ -955,24 +954,18 @@ class FakeAutoScalingGroup(CloudFormationModel):
         )
 
         if is_mixed_instances:
-            # These calculations assume a strategy of "prioritized"
             overrides = self.mixed_instances_policy["LaunchTemplate"]["Overrides"]
             distribution = self.mixed_instances_policy.get("InstancesDistribution", {})
 
             total_desired_capacity = self.desired_capacity
             on_demand_base = int(distribution.get("OnDemandBaseCapacity", 0))
-            percent_above_base = int(
-                distribution.get("OnDemandPercentageAboveBaseCapacity", 100)
-            )
+            percent_above_base = int(distribution.get("OnDemandPercentageAboveBaseCapacity", 100))
 
-            # When using a "prioritized" strategy, AWS will treat the overrides as priority list when deciding
-            # which instances to launch, meaning we always pick the first entry in a mocked environment.
             primary_weight_str = overrides[0].get("WeightedCapacity", "1")
-            primary_weight = (
-                int(primary_weight_str) if primary_weight_str.isdigit() else 1
-            )
+            primary_weight = int(primary_weight_str) if primary_weight_str.isdigit() else 1
             if primary_weight == 0:
                 primary_weight = 1
+
 
             if on_demand_base >= total_desired_capacity:
                 # If the base capacity meets or exceeds desired capacity, the entire desired capacity is fulfilled by On-Demand.
@@ -980,20 +973,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 total_spot_capacity = 0
 
             else:
-                # After fulfilling the OnDemandBase, we need to add more on-demand and spot instances according
-                # to the passed percentage.
                 above_base_capacity = total_desired_capacity - on_demand_base
 
-                on_demand_above_base_capacity = (
-                    above_base_capacity * percent_above_base
-                ) / 100.0
-                spot_above_base_capacity = (
-                    above_base_capacity - on_demand_above_base_capacity
-                )
+                on_demand_above_base_capacity = (above_base_capacity * percent_above_base) / 100.0
+                spot_above_base_capacity = above_base_capacity - on_demand_above_base_capacity
 
-                total_on_demand_capacity = (
-                    on_demand_base + on_demand_above_base_capacity
-                )
+                total_on_demand_capacity = on_demand_base + on_demand_above_base_capacity
                 total_spot_capacity = spot_above_base_capacity
 
             on_demand_instances = math.ceil(total_on_demand_capacity / primary_weight)
@@ -1015,13 +1000,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
         else:
             count_to_remove = abs(instance_count_delta)
 
-            instances_to_remove = [  # only remove unprotected
-                state
-                for state in self.instance_states
-                if not state.protected_from_scale_in
-            ][:count_to_remove]
+            instances_to_remove = [
+                                      state
+                                      for state in self.instance_states
+                                      if not state.protected_from_scale_in
+                                  ][:count_to_remove]
 
-            if instances_to_remove:  # just in case not instances to remove
+            if instances_to_remove:
                 instance_ids_to_remove = [
                     instance.instance.id for instance in instances_to_remove
                 ]
@@ -1098,10 +1083,10 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     def put_warm_pool(
         self,
-        max_group_prepared_capacity: int | None,
-        min_size: int | None,
-        pool_state: str | None,
-        instance_reuse_policy: dict[str, bool] | None,
+        max_group_prepared_capacity: Optional[int],
+        min_size: Optional[int],
+        pool_state: Optional[str],
+        instance_reuse_policy: Optional[dict[str, bool]],
     ) -> None:
         self.warm_pool = FakeWarmPool(
             max_group_prepared_capacity=max_group_prepared_capacity,
@@ -1110,7 +1095,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             instance_reuse_policy=instance_reuse_policy,
         )
 
-    def get_warm_pool(self) -> FakeWarmPool | None:
+    def get_warm_pool(self) -> Optional[FakeWarmPool]:
         return self.warm_pool
 
 
@@ -1130,22 +1115,22 @@ class AutoScalingBackend(BaseBackend):
         self,
         name: str,
         image_id: str,
-        key_name: str | None,
+        key_name: Optional[str],
         kernel_id: str,
         ramdisk_id: str,
         security_groups: list[str],
         user_data: str,
         instance_type: str,
         instance_monitoring: bool,
-        instance_profile_name: str | None,
-        spot_price: str | None,
+        instance_profile_name: Optional[str],
+        spot_price: Optional[str],
         ebs_optimized: bool,
         associate_public_ip_address: bool,
         block_device_mappings: list[dict[str, Any]],
-        instance_id: str | None = None,
-        metadata_options: str | None = None,
-        classic_link_vpc_id: str | None = None,
-        classic_link_vpc_security_groups: str | None = None,
+        instance_id: Optional[str] = None,
+        metadata_options: Optional[str] = None,
+        classic_link_vpc_id: Optional[str] = None,
+        classic_link_vpc_security_groups: Optional[str] = None,
     ) -> FakeLaunchConfiguration:
         valid_requests = [
             instance_id is not None,
@@ -1183,7 +1168,7 @@ class AutoScalingBackend(BaseBackend):
         return launch_configuration
 
     def describe_launch_configurations(
-        self, names: list[str] | None
+        self, names: Optional[list[str]]
     ) -> list[FakeLaunchConfiguration]:
         configurations = self.launch_configurations.values()
         if names:
@@ -1205,10 +1190,10 @@ class AutoScalingBackend(BaseBackend):
         max_size: Union[None, str, int],
         min_size: Union[None, str, int],
         scheduled_action_name: str,
-        start_time: str | None,
-        end_time: str | None,
-        recurrence: str | None,
-        timezone: str | None,
+        start_time: Optional[str],
+        end_time: Optional[str],
+        recurrence: Optional[str],
+        timezone: Optional[str],
     ) -> FakeScheduledAction:
         max_size = make_int(max_size)
         min_size = make_int(min_size)
@@ -1258,8 +1243,8 @@ class AutoScalingBackend(BaseBackend):
 
     def describe_scheduled_actions(
         self,
-        autoscaling_group_name: str | None = None,
-        scheduled_action_names: list[str] | None = None,
+        autoscaling_group_name: Optional[str] = None,
+        scheduled_action_names: Optional[list[str]] = None,
     ) -> list[FakeScheduledAction]:
         scheduled_actions = []
         for scheduled_action in self.scheduled_actions.values():
@@ -1314,19 +1299,19 @@ class AutoScalingBackend(BaseBackend):
         min_size: Union[None, str, int],
         launch_config_name: str,
         launch_template: dict[str, Any],
-        vpc_zone_identifier: str | None,
-        default_cooldown: int | None,
+        vpc_zone_identifier: Optional[str],
+        default_cooldown: Optional[int],
         health_check_period: Union[None, str, int],
-        health_check_type: str | None,
+        health_check_type: Optional[str],
         load_balancers: list[str],
         target_group_arns: list[str],
-        placement_group: str | None,
+        placement_group: Optional[str],
         termination_policies: list[str],
         tags: list[dict[str, str]],
         capacity_rebalance: bool = False,
         new_instances_protected_from_scale_in: bool = False,
-        instance_id: str | None = None,
-        mixed_instances_policy: dict[str, Any] | None = None,
+        instance_id: Optional[str] = None,
+        mixed_instances_policy: Optional[dict[str, Any]] = None,
     ) -> FakeAutoScalingGroup:
         max_size = make_int(max_size)
         min_size = make_int(min_size)
@@ -1391,15 +1376,15 @@ class AutoScalingBackend(BaseBackend):
         self,
         name: str,
         availability_zones: list[str],
-        desired_capacity: int | None,
-        max_size: int | None,
-        min_size: int | None,
+        desired_capacity: Optional[int],
+        max_size: Optional[int],
+        min_size: Optional[int],
         launch_config_name: str,
         launch_template: dict[str, Any],
         vpc_zone_identifier: str,
         health_check_period: int,
         health_check_type: str,
-        new_instances_protected_from_scale_in: bool | None = None,
+        new_instances_protected_from_scale_in: Optional[bool] = None,
     ) -> FakeAutoScalingGroup:
         """
         The parameter DefaultCooldown, PlacementGroup, TerminationPolicies are not yet implemented
@@ -1430,7 +1415,7 @@ class AutoScalingBackend(BaseBackend):
         return group
 
     def describe_auto_scaling_groups(
-        self, names: list[str], filters: list[dict[str, str]] | None = None
+        self, names: list[str], filters: Optional[list[dict[str, str]]] = None
     ) -> list[FakeAutoScalingGroup]:
         groups = list(self.autoscaling_groups.values())
 
@@ -1546,19 +1531,21 @@ class AutoScalingBackend(BaseBackend):
         return activities
 
     def set_desired_capacity(
-        self, group_name: str, desired_capacity: int | None
+        self, group_name: str, desired_capacity: Optional[int]
     ) -> None:
         group = self.autoscaling_groups[group_name]
         group.set_desired_capacity(desired_capacity)
         self.update_attached_elbs(group_name)
 
-    def change_capacity(self, group_name: str, scaling_adjustment: int | None) -> None:
+    def change_capacity(
+        self, group_name: str, scaling_adjustment: Optional[int]
+    ) -> None:
         group = self.autoscaling_groups[group_name]
         desired_capacity = group.desired_capacity + scaling_adjustment  # type: ignore[operator]
         self.set_desired_capacity(group_name, desired_capacity)
 
     def change_capacity_percent(
-        self, group_name: str, scaling_adjustment: int | None
+        self, group_name: str, scaling_adjustment: Optional[int]
     ) -> None:
         """http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/as-scale-based-on-demand.html
         If PercentChangeInCapacity returns a value between 0 and 1,
@@ -1580,7 +1567,7 @@ class AutoScalingBackend(BaseBackend):
         name: str,
         as_name: str,
         transition: str,
-        timeout: int | None,
+        timeout: Optional[int],
         result: str,
     ) -> LifecycleHook:
         lifecycle_hook = LifecycleHook(name, as_name, transition, timeout, result)
@@ -1589,7 +1576,7 @@ class AutoScalingBackend(BaseBackend):
         return lifecycle_hook
 
     def describe_lifecycle_hooks(
-        self, as_name: str, lifecycle_hook_names: list[str] | None = None
+        self, as_name: str, lifecycle_hook_names: Optional[list[str]] = None
     ) -> list[LifecycleHook]:
         return [
             lifecycle_hook
@@ -1611,8 +1598,8 @@ class AutoScalingBackend(BaseBackend):
         adjustment_type: str,
         as_name: str,
         min_adjustment_magnitude: str,
-        scaling_adjustment: int | None,
-        cooldown: int | None,
+        scaling_adjustment: Optional[int],
+        cooldown: Optional[int],
         target_tracking_config: dict[str, Any],
         step_adjustments: str,
         estimated_instance_warmup: str,
@@ -1639,9 +1626,9 @@ class AutoScalingBackend(BaseBackend):
 
     def describe_policies(
         self,
-        autoscaling_group_name: str | None = None,
-        policy_names: list[str] | None = None,
-        policy_types: list[str] | None = None,
+        autoscaling_group_name: Optional[str] = None,
+        policy_names: Optional[list[str]] = None,
+        policy_types: Optional[list[str]] = None,
     ) -> list[FakeScalingPolicy]:
         return [
             policy
@@ -1812,7 +1799,7 @@ class AutoScalingBackend(BaseBackend):
         self,
         group_name: str,
         instance_ids: list[str],
-        protected_from_scale_in: bool | None,
+        protected_from_scale_in: Optional[bool],
     ) -> None:
         group = self.autoscaling_groups[group_name]
         protected_instances = [
@@ -1918,10 +1905,10 @@ class AutoScalingBackend(BaseBackend):
     def put_warm_pool(
         self,
         group_name: str,
-        max_group_prepared_capacity: int | None,
-        min_size: int | None,
-        pool_state: str | None,
-        instance_reuse_policy: dict[str, bool] | None,
+        max_group_prepared_capacity: Optional[int],
+        min_size: Optional[int],
+        pool_state: Optional[str],
+        instance_reuse_policy: Optional[dict[str, bool]],
     ) -> None:
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.put_warm_pool(
@@ -1931,7 +1918,7 @@ class AutoScalingBackend(BaseBackend):
             instance_reuse_policy=instance_reuse_policy,
         )
 
-    def describe_warm_pool(self, group_name: str) -> FakeWarmPool | None:
+    def describe_warm_pool(self, group_name: str) -> Optional[FakeWarmPool]:
         """
         Pagination is not yet implemented. Does not create/return any Instances currently.
         """

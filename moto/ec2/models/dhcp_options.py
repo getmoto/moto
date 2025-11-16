@@ -1,5 +1,5 @@
 import itertools
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions import (
     DependencyViolationError,
@@ -15,11 +15,11 @@ class DHCPOptionsSet(TaggedEC2Resource):
     def __init__(
         self,
         ec2_backend: Any,
-        domain_name_servers: list[str] | None = None,
-        domain_name: str | None = None,
-        ntp_servers: list[str] | None = None,
-        netbios_name_servers: list[str] | None = None,
-        netbios_node_type: str | None = None,
+        domain_name_servers: Optional[list[str]] = None,
+        domain_name: Optional[str] = None,
+        ntp_servers: Optional[list[str]] = None,
+        netbios_name_servers: Optional[list[str]] = None,
+        netbios_node_type: Optional[str] = None,
     ):
         self.ec2_backend = ec2_backend
         self._options = {
@@ -32,7 +32,9 @@ class DHCPOptionsSet(TaggedEC2Resource):
         self.id = random_dhcp_option_id()
         self.vpc = None
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         """
         API Version 2015-10-01 defines the following filters for DescribeDhcpOptions:
 
@@ -75,11 +77,11 @@ class DHCPOptionsSetBackend:
 
     def create_dhcp_options(
         self,
-        domain_name_servers: list[str] | None = None,
-        domain_name: str | None = None,
-        ntp_servers: list[str] | None = None,
-        netbios_name_servers: list[str] | None = None,
-        netbios_node_type: str | None = None,
+        domain_name_servers: Optional[list[str]] = None,
+        domain_name: Optional[str] = None,
+        ntp_servers: Optional[list[str]] = None,
+        netbios_name_servers: Optional[list[str]] = None,
+        netbios_node_type: Optional[str] = None,
     ) -> DHCPOptionsSet:
         NETBIOS_NODE_TYPES = [1, 2, 4, 8]
 
@@ -101,7 +103,7 @@ class DHCPOptionsSetBackend:
         self.dhcp_options_sets[options.id] = options
         return options
 
-    def delete_dhcp_options_set(self, options_id: str | None) -> None:
+    def delete_dhcp_options_set(self, options_id: Optional[str]) -> None:
         if not (options_id and options_id.startswith("dopt-")):
             raise MalformedDHCPOptionsIdError(options_id)
 
@@ -113,7 +115,7 @@ class DHCPOptionsSetBackend:
             raise InvalidDHCPOptionsIdError(options_id)
 
     def describe_dhcp_options(
-        self, dhcp_options_ids: list[str] | None = None, filters: Any = None
+        self, dhcp_options_ids: Optional[list[str]] = None, filters: Any = None
     ) -> list[DHCPOptionsSet]:
         dhcp_options_sets = list(self.dhcp_options_sets.copy().values())
 

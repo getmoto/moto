@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
 
@@ -24,7 +24,7 @@ class KeyPair(TaggedEC2Resource):
         self,
         name: str,
         fingerprint: str,
-        material: str | None,
+        material: Optional[str],
         material_public: str,
         tags: dict[str, str],
         ec2_backend: Any,
@@ -42,7 +42,9 @@ class KeyPair(TaggedEC2Resource):
     def created_iso_8601(self) -> str:
         return iso_8601_datetime_with_milliseconds(self.create_time)
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> str:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> str:
         if filter_name == "key-name":
             return self.name
         elif filter_name == "fingerprint":

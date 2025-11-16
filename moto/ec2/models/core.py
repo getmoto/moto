@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel
 
@@ -27,7 +27,9 @@ class TaggedEC2Resource(BaseModel):
         for key, value in tag_map.items():
             self.ec2_backend.create_tags([self.id], {key: value})  # type: ignore[attr-defined]
 
-    def get_filter_value(self, filter_name: str, method_name: str | None = None) -> Any:
+    def get_filter_value(
+        self, filter_name: str, method_name: Optional[str] = None
+    ) -> Any:
         tags = self.get_tags()
 
         if filter_name.startswith("tag:"):

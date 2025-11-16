@@ -2,7 +2,7 @@
 
 import datetime
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -182,12 +182,12 @@ class FakePortal(BaseModel):
         self.status = "CREATED"
         self.renderer_type = "AppStream"
         self.status_reason = "TestStatusReason"
-        self.browser_settings_arn: str | None = None
-        self.network_settings_arn: str | None = None
-        self.trust_store_arn: str | None = None
-        self.ip_access_settings_arn: str | None = None
-        self.user_access_logging_settings_arn: str | None = None
-        self.user_settings_arn: str | None = None
+        self.browser_settings_arn: Optional[str] = None
+        self.network_settings_arn: Optional[str] = None
+        self.trust_store_arn: Optional[str] = None
+        self.ip_access_settings_arn: Optional[str] = None
+        self.user_access_logging_settings_arn: Optional[str] = None
+        self.user_settings_arn: Optional[str] = None
 
     def arn_formatter(self, _id: str, account_id: str, region_name: str) -> str:
         return f"arn:{get_partition(region_name)}:workspaces-web:{region_name}:{account_id}:portal/{_id}"
@@ -265,7 +265,7 @@ class WorkSpacesWebBackend(BaseBackend):
         browser_policy: str,
         client_token: str,
         customer_managed_key: str,
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> str:
         browser_settings_object = FakeBrowserSettings(
             additional_encryption_context,
@@ -301,7 +301,7 @@ class WorkSpacesWebBackend(BaseBackend):
         display_name: str,
         instance_type: str,
         max_concurrent_sessions: str,
-        tags: list[dict[str, str]] | None = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> tuple[str, str]:
         portal_object = FakePortal(
             additional_encryption_context,

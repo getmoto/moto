@@ -1,5 +1,6 @@
 import abc
 import logging
+from typing import Optional
 
 from moto.stepfunctions.parser.asl.component.common.error_name.failure_event import (
     FailureEventException,
@@ -13,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 class EvalComponent(Component, abc.ABC):
-    __heap_key: str | None = None
+    __heap_key: Optional[str] = None
 
     @property
     def heap_key(self) -> str:
@@ -85,5 +86,5 @@ class EvalComponent(Component, abc.ABC):
     def _eval_body(self, env: Environment) -> None:
         raise NotImplementedError()
 
-    def _field_name(self) -> str | None:
+    def _field_name(self) -> Optional[str]:
         return self.__class__.__name__

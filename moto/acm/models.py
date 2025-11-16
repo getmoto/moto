@@ -3,7 +3,7 @@ import datetime
 import ipaddress
 import re
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Optional
 
 import cryptography.hazmat.primitives.asymmetric.rsa
 import cryptography.x509
@@ -60,12 +60,12 @@ def datetime_to_epoch(date: datetime.datetime) -> float:
     return date.timestamp()
 
 
-class TagHolder(dict[str, str | None]):
+class TagHolder(dict[str, Optional[str]]):
     MAX_TAG_COUNT = 50
     MAX_KEY_LENGTH = 128
     MAX_VALUE_LENGTH = 256
 
-    def _validate_kv(self, key: str, value: str | None, index: int) -> None:
+    def _validate_kv(self, key: str, value: Optional[str], index: int) -> None:
         if len(key) > self.MAX_KEY_LENGTH:
             raise AWSValidationException(
                 f"Value '{key}' at 'tags.{index}.member.key' failed to satisfy constraint: Member must have length less than or equal to {self.MAX_KEY_LENGTH}"
@@ -123,13 +123,13 @@ class CertBundle(BaseModel):
         account_id: str,
         certificate: bytes,
         private_key: bytes,
-        chain: bytes | None = None,
+        chain: Optional[bytes] = None,
         region: str = "us-east-1",
-        arn: str | None = None,
+        arn: Optional[str] = None,
         cert_type: str = "IMPORTED",
         cert_status: str = "ISSUED",
-        cert_authority_arn: str | None = None,
-        cert_options: dict[str, Any] | None = None,
+        cert_authority_arn: Optional[str] = None,
+        cert_options: Optional[dict[str, Any]] = None,
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -169,8 +169,8 @@ class CertBundle(BaseModel):
         domain_name: str,
         account_id: str,
         region: str,
-        sans: list[str] | None = None,
-        cert_authority_arn: str | None = None,
+        sans: Optional[list[str]] = None,
+        cert_authority_arn: Optional[str] = None,
     ) -> "CertBundle":
         unique_sans: set[str] = set(sans) if sans else set()
 
@@ -464,7 +464,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         cert_bundle = self._certificates[arn]
         cert_bundle.in_use_by.append(load_balancer_name)
 
-    def _get_arn_from_idempotency_token(self, token: str) -> str | None:
+    def _get_arn_from_idempotency_token(self, token: str) -> Optional[str]:
         """
         If token doesnt exist, return None, later it will be
         set with an expiry and arn.
@@ -497,8 +497,8 @@ class AWSCertificateManagerBackend(BaseBackend):
         self,
         certificate: bytes,
         private_key: bytes,
-        chain: bytes | None,
-        arn: str | None,
+        chain: Optional[bytes],
+        arn: Optional[str],
         tags: list[dict[str, str]],
     ) -> str:
         if arn is not None:
@@ -581,8 +581,8 @@ class AWSCertificateManagerBackend(BaseBackend):
         idempotency_token: str,
         subject_alt_names: list[str],
         tags: list[dict[str, str]],
-        cert_authority_arn: str | None = None,
-        cert_options: dict[str, Any] | None = None,
+        cert_authority_arn: Optional[str] = None,
+        cert_options: Optional[dict[str, Any]] = None,
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented

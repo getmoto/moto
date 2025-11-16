@@ -1,6 +1,6 @@
 import base64
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, Optional
 
 import xmltodict
 
@@ -26,7 +26,7 @@ class ConfigurationRevision(BaseModel):
         configuration_id: str,
         revision_id: str,
         description: str,
-        data: str | None = None,
+        data: Optional[str] = None,
     ):
         self.configuration_id = configuration_id
         self.created = utcnow()
@@ -117,15 +117,17 @@ class User(BaseModel):
         self,
         broker_id: str,
         username: str,
-        console_access: bool | None = None,
-        groups: list[str] | None = None,
+        console_access: Optional[bool] = None,
+        groups: Optional[list[str]] = None,
     ):
         self.broker_id = broker_id
         self.username = username
         self.console_access = console_access or False
         self.groups = groups or []
 
-    def update(self, console_access: bool | None, groups: list[str] | None) -> None:
+    def update(
+        self, console_access: Optional[bool], groups: Optional[list[str]]
+    ) -> None:
         if console_access is not None:
             self.console_access = console_access
         if groups:
@@ -142,13 +144,13 @@ class Broker(BaseModel):
         auto_minor_version_upgrade: bool,
         configuration: dict[str, Any],
         deployment_mode: str,
-        encryption_options: dict[str, Any] | None,
+        encryption_options: Optional[dict[str, Any]],
         engine_type: str,
         engine_version: str,
         host_instance_type: str,
-        ldap_server_metadata: dict[str, Any] | None,
+        ldap_server_metadata: Optional[dict[str, Any]],
         logs: dict[str, bool],
-        maintenance_window_start_time: dict[str, Any] | None,
+        maintenance_window_start_time: Optional[dict[str, Any]],
         publicly_accessible: bool,
         security_groups: list[str],
         storage_type: str,
@@ -243,15 +245,15 @@ class Broker(BaseModel):
 
     def update(
         self,
-        authentication_strategy: str | None,
-        auto_minor_version_upgrade: bool | None,
-        configuration: dict[str, Any] | None,
-        engine_version: str | None,
-        host_instance_type: str | None,
-        ldap_server_metadata: dict[str, Any] | None,
-        logs: dict[str, bool] | None,
-        maintenance_window_start_time: dict[str, str] | None,
-        security_groups: list[str] | None,
+        authentication_strategy: Optional[str],
+        auto_minor_version_upgrade: Optional[bool],
+        configuration: Optional[dict[str, Any]],
+        engine_version: Optional[str],
+        host_instance_type: Optional[str],
+        ldap_server_metadata: Optional[dict[str, Any]],
+        logs: Optional[dict[str, bool]],
+        maintenance_window_start_time: Optional[dict[str, str]],
+        security_groups: Optional[list[str]],
     ) -> None:
         if authentication_strategy:
             self.authentication_strategy = authentication_strategy
@@ -320,15 +322,15 @@ class MQBackend(BaseBackend):
         authentication_strategy: str,
         auto_minor_version_upgrade: bool,
         broker_name: str,
-        configuration: dict[str, Any] | None,
+        configuration: Optional[dict[str, Any]],
         deployment_mode: str,
-        encryption_options: dict[str, Any] | None,
+        encryption_options: Optional[dict[str, Any]],
         engine_type: str,
         engine_version: str,
         host_instance_type: str,
-        ldap_server_metadata: dict[str, Any] | None,
+        ldap_server_metadata: Optional[dict[str, Any]],
         logs: dict[str, bool],
-        maintenance_window_start_time: dict[str, Any] | None,
+        maintenance_window_start_time: Optional[dict[str, Any]],
         publicly_accessible: bool,
         security_groups: list[str],
         storage_type: str,

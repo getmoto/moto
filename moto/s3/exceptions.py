@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from moto.core.exceptions import RESTError
 
@@ -339,7 +339,7 @@ class InvalidNotificationEvent(S3ClientError):
 class InvalidStorageClass(S3ClientError):
     code = 400
 
-    def __init__(self, storage: str | None):
+    def __init__(self, storage: Optional[str]):
         super().__init__(
             "InvalidStorageClass",
             "The storage class you specified is not valid",
@@ -550,7 +550,7 @@ class InvalidBucketState(S3ClientError):
 class InvalidObjectState(BucketError):
     code = 403
 
-    def __init__(self, storage_class: str | None, **kwargs: Any):
+    def __init__(self, storage_class: Optional[str], **kwargs: Any):
         kwargs.setdefault("template", "storage_error")
         super().__init__(
             error_type="InvalidObjectState",

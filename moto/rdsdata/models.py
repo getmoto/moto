@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 
@@ -6,11 +6,11 @@ from moto.core.base_backend import BackendDict, BaseBackend
 class QueryResults:
     def __init__(
         self,
-        records: list[list[dict[str, Any]]] | None = None,
-        column_metadata: list[dict[str, Any]] | None = None,
-        number_of_records_updated: int | None = None,
-        generated_fields: list[dict[str, Any]] | None = None,
-        formatted_records: str | None = None,
+        records: Optional[list[list[dict[str, Any]]]] = None,
+        column_metadata: Optional[list[dict[str, Any]]] = None,
+        number_of_records_updated: Optional[int] = None,
+        generated_fields: Optional[list[dict[str, Any]]] = None,
+        formatted_records: Optional[str] = None,
     ):
         self.records = records
         self.column_metadata = column_metadata

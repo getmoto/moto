@@ -3,7 +3,7 @@ import hashlib
 import hmac
 import re
 import string
-from typing import Any
+from typing import Any, Optional
 
 from moto.moto_api._internal import mock_random as random
 
@@ -75,7 +75,7 @@ def check_secret_hash(
     app_client_secret: str,
     app_client_id: str,
     username: str,
-    secret_hash: str | None,
+    secret_hash: Optional[str],
 ) -> bool:
     key = bytes(str(app_client_secret).encode("latin-1"))
     msg = bytes(str(username + app_client_id).encode("latin-1"))
@@ -102,7 +102,7 @@ def expand_attrs(attrs: dict[str, Any]) -> list[dict[str, Any]]:
 ID_HASH_STRATEGY = "HASH"
 
 
-def generate_id(strategy: str | None, *args: Any) -> str:
+def generate_id(strategy: Optional[str], *args: Any) -> str:
     if strategy == ID_HASH_STRATEGY:
         return _generate_id_hash(args)
     else:

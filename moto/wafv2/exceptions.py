@@ -1,3 +1,5 @@
+from typing import Optional
+
 from moto.core.exceptions import JsonRESTError
 
 
@@ -16,10 +18,10 @@ class WAFV2DuplicateItemException(WAFv2ClientError):
 class WAFV2InsufficientInformationException(WAFv2ClientError):
     def __init__(
         self,
-        name: str | None,
-        scope: str | None,
-        id: str | None,
-        arn: str | None,
+        name: Optional[str],
+        scope: Optional[str],
+        id: Optional[str],
+        arn: Optional[str],
     ) -> None:
         super().__init__(
             "AcessDeniedException",

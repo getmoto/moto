@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 from yaml.parser import ParserError
@@ -391,7 +391,7 @@ class CloudFormationResponse(BaseResponse):
 
     def _validate_different_update(
         self,
-        incoming_params: list[dict[str, Any]] | None,
+        incoming_params: Optional[list[dict[str, Any]]],
         stack_body: str,
         old_stack: Stack,
     ) -> None:
@@ -434,7 +434,7 @@ class CloudFormationResponse(BaseResponse):
         # boto3 is supposed to let you clear the tags by passing an empty value, but the request body doesn't
         # end up containing anything we can use to differentiate between passing an empty value versus not
         # passing anything. so until that changes, moto won't be able to clear tags, only update them.
-        tags: dict[str, str] | None = {
+        tags: Optional[dict[str, str]] = {
             item["Key"]: item["Value"] for item in self._get_param("Tags", [])
         }
         # so that if we don't pass the parameter, we don't clear all the tags accidentally

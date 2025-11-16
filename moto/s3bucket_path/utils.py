@@ -1,7 +1,8 @@
+from typing import Optional
 from urllib.parse import urlparse
 
 
-def bucket_name_from_url(url: str) -> str | None:
+def bucket_name_from_url(url: str) -> Optional[str]:
     path = urlparse(url).path.lstrip("/")
 
     parts = path.lstrip("/").split("/")

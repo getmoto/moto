@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.asl.component.common.string.string_expression import (
     StringVariableSample,
@@ -32,9 +32,9 @@ class Argument(EvalComponent, abc.ABC):
 
 
 class ArgumentLiteral(Argument):
-    definition_value: Final[Any | None]
+    definition_value: Final[Optional[Any]]
 
-    def __init__(self, definition_value: Any | None):
+    def __init__(self, definition_value: Optional[Any]):
         self.definition_value = definition_value
 
     def _eval_argument(self, env: Environment) -> Any:

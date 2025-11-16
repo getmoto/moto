@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from threading import Lock
 from threading import Timer as ThreadingTimer
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel
 from moto.core.utils import camelcase_to_underscores, unix_time
@@ -59,16 +59,16 @@ class WorkflowExecution(BaseModel):
         # TODO: check valid values among:
         # COMPLETED | FAILED | CANCELED | TERMINATED | CONTINUED_AS_NEW | TIMED_OUT
         # TODO: implement them all
-        self.close_cause: str | None = None
-        self.close_status: str | None = None
-        self.close_timestamp: float | None = None
+        self.close_cause: Optional[str] = None
+        self.close_status: Optional[str] = None
+        self.close_timestamp: Optional[float] = None
         self.execution_status = "OPEN"
-        self.latest_activity_task_timestamp: float | None = None
-        self.latest_execution_context: str | None = None
+        self.latest_activity_task_timestamp: Optional[float] = None
+        self.latest_execution_context: Optional[str] = None
         self.parent = None
-        self.start_timestamp: float | None = None
+        self.start_timestamp: Optional[float] = None
         self.tag_list = kwargs.get("tag_list", None) or []
-        self.timeout_type: str | None = None
+        self.timeout_type: Optional[str] = None
         self.workflow_type = workflow_type
         # args processing
         # NB: the order follows boto/SWF order of exceptions appearance (if no
@@ -99,7 +99,7 @@ class WorkflowExecution(BaseModel):
         self._events: list[HistoryEvent] = []
         # child workflows
         self.child_workflow_executions: list[WorkflowExecution] = []
-        self._previous_started_event_id: int | None = None
+        self._previous_started_event_id: Optional[int] = None
         # timers/thread utils
         self.threading_lock = Lock()
         self._timers: dict[str, Timer] = {}
@@ -111,7 +111,7 @@ class WorkflowExecution(BaseModel):
         self,
         kwargs: dict[str, Any],
         local_key: str,
-        workflow_type_key: str | None = None,
+        workflow_type_key: Optional[str] = None,
     ) -> Any:
         if workflow_type_key is None:
             workflow_type_key = "default_" + local_key
@@ -306,7 +306,7 @@ class WorkflowExecution(BaseModel):
         self._schedule_decision_task()
 
     # Shortcut for tests: helps having auto-starting decision tasks when needed
-    def schedule_and_start_decision_task(self, identity: str | None = None) -> None:
+    def schedule_and_start_decision_task(self, identity: Optional[str] = None) -> None:
         self._schedule_decision_task()
         decision_task = self.decision_tasks[-1]
         self.start_decision_task(decision_task.task_token, identity=identity)
@@ -325,7 +325,9 @@ class WorkflowExecution(BaseModel):
                 return dt
         raise ValueError(f"No decision task with token: {task_token}")
 
-    def start_decision_task(self, task_token: str, identity: str | None = None) -> None:
+    def start_decision_task(
+        self, task_token: str, identity: Optional[str] = None
+    ) -> None:
         dt = self._find_decision_task(task_token)
         evt = self._add_event(
             "DecisionTaskStarted",
@@ -338,8 +340,8 @@ class WorkflowExecution(BaseModel):
     def complete_decision_task(
         self,
         task_token: str,
-        decisions: list[dict[str, Any]] | None = None,
-        execution_context: str | None = None,
+        decisions: Optional[list[dict[str, Any]]] = None,
+        execution_context: Optional[str] = None,
     ) -> None:
         # 'decisions' can be None per boto.swf defaults, so replace it with something iterable
         if not decisions:
@@ -473,7 +475,7 @@ class WorkflowExecution(BaseModel):
         )
 
     def fail(
-        self, event_id: int, details: Any = None, reason: str | None = None
+        self, event_id: int, details: Any = None, reason: Optional[str] = None
     ) -> None:
         # TODO: implement length constraints on details/reason
         self.execution_status = "CLOSED"
@@ -629,7 +631,7 @@ class WorkflowExecution(BaseModel):
         self.schedule_decision_task()
 
     def fail_activity_task(
-        self, task_token: str, reason: str | None = None, details: Any = None
+        self, task_token: str, reason: Optional[str] = None, details: Any = None
     ) -> None:
         task = self._find_activity_task(task_token)
         self._add_event(
@@ -646,9 +648,9 @@ class WorkflowExecution(BaseModel):
 
     def terminate(
         self,
-        child_policy: str | None = None,
-        details: dict[str, Any] | None = None,
-        reason: str | None = None,
+        child_policy: Optional[str] = None,
+        details: Optional[dict[str, Any]] = None,
+        reason: Optional[str] = None,
     ) -> None:
         # TODO: handle child policy for child workflows here
         # TODO: handle cause="CHILD_POLICY_APPLIED"
@@ -673,7 +675,7 @@ class WorkflowExecution(BaseModel):
         )
         self.schedule_decision_task()
 
-    def first_timeout(self) -> Timeout | None:
+    def first_timeout(self) -> Optional[Timeout]:
         if not self.open or not self.start_timestamp:
             return None
         start_to_close_at = self.start_timestamp + int(

@@ -1,5 +1,5 @@
 from collections.abc import Iterable
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from moto.core.exceptions import RESTError
 
@@ -97,7 +97,7 @@ class InvalidParameterCombination(EC2ClientError):
 
 
 class MalformedDHCPOptionsIdError(EC2ClientError):
-    def __init__(self, dhcp_options_id: str | None):
+    def __init__(self, dhcp_options_id: Optional[str]):
         super().__init__(
             "InvalidDhcpOptionsId.Malformed",
             f'Invalid id: "{dhcp_options_id}" (expecting "dopt-...")',
@@ -612,7 +612,7 @@ class MotoNotImplementedError(NotImplementedError):
 
 
 class FilterNotImplementedError(MotoNotImplementedError):
-    def __init__(self, filter_name: str, method_name: str | None):
+    def __init__(self, filter_name: str, method_name: Optional[str]):
         super().__init__(f"The filter '{filter_name}' for {method_name}")
 
 
@@ -653,7 +653,7 @@ class LastEniDetachError(OperationNotPermitted):
 
 class InvalidAvailabilityZoneError(EC2ClientError):
     def __init__(
-        self, availability_zone_value: str | None, valid_availability_zones: str
+        self, availability_zone_value: Optional[str], valid_availability_zones: str
     ):
         super().__init__(
             "InvalidParameterValue",
@@ -870,7 +870,7 @@ class InvalidCarrierGatewayID(EC2ClientError):
 
 
 class InvalidTransitGatewayID(EC2ClientError):
-    def __init__(self, transit_gateway_id: str, msg: str | None = None):
+    def __init__(self, transit_gateway_id: str, msg: Optional[str] = None):
         super().__init__(
             "InvalidTransitGatewayID.NotFound",
             msg or f"The transitGateway ID '{transit_gateway_id}' does not exist",

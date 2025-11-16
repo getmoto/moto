@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
-from typing import Final
+from typing import Callable, Final
 
 from moto.stepfunctions.parser.asl.component.state.exec.state_map.result_writer.resource_eval.resource_eval import (
     ResourceEval,

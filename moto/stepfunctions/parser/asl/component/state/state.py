@@ -4,7 +4,7 @@ import abc
 import datetime
 import logging
 from abc import ABC
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 from moto.stepfunctions.parser.api import (
     ExecutionFailedEventDetails,
@@ -73,27 +73,27 @@ class CommonStateField(EvalComponent, ABC):
     continue_with: ContinueWith
 
     # Holds a human-readable description of the state.
-    comment: Comment | None
+    comment: Optional[Comment]
 
     # A path that selects a portion of the state's input to be passed to the state's state_task for processing.
     # If omitted, it has the value $ which designates the entire input.
-    input_path: InputPath | None
+    input_path: Optional[InputPath]
 
     # A path that selects a portion of the state's output to be passed to the next state.
     # If omitted, it has the value $ which designates the entire output.
-    output_path: OutputPath | None
+    output_path: Optional[OutputPath]
 
-    assign_decl: AssignDecl | None
+    assign_decl: Optional[AssignDecl]
 
-    output: Output | None
+    output: Optional[Output]
 
     state_entered_event_type: Final[HistoryEventType]
-    state_exited_event_type: Final[HistoryEventType | None]
+    state_exited_event_type: Final[Optional[HistoryEventType]]
 
     def __init__(
         self,
         state_entered_event_type: HistoryEventType,
-        state_exited_event_type: HistoryEventType | None,
+        state_exited_event_type: Optional[HistoryEventType],
     ):
         self.state_entered_event_type = state_entered_event_type
         self.state_exited_event_type = state_exited_event_type
