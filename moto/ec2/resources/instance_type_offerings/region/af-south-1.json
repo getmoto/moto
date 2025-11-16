@@ -904,6 +904,46 @@
   "Location": "af-south-1"
  },
  {
+  "InstanceType": "r6id.12xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.16xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.24xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.2xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.32xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.4xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.8xlarge",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.large",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.metal",
+  "Location": "af-south-1"
+ },
+ {
+  "InstanceType": "r6id.xlarge",
+  "Location": "af-south-1"
+ },
+ {
   "InstanceType": "r7g.12xlarge",
   "Location": "af-south-1"
  },

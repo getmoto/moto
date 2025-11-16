@@ -1672,6 +1672,10 @@
   "Location": "euw3-az1"
  },
  {
+  "InstanceType": "u-3tb1.56xlarge",
+  "Location": "euw3-az1"
+ },
+ {
   "InstanceType": "u-6tb1.112xlarge",
   "Location": "euw3-az1"
  },

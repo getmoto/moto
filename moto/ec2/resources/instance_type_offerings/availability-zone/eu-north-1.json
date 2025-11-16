@@ -2040,6 +2040,10 @@
   "Location": "eu-north-1a"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "eu-north-1a"
+ },
+ {
   "InstanceType": "u7i-6tb.112xlarge",
   "Location": "eu-north-1a"
  },
@@ -4233,6 +4237,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "eu-north-1b"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "eu-north-1b"
  },
  {
