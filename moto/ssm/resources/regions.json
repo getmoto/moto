@@ -5016,6 +5016,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -6084,15 +6087,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -6328,15 +6322,6 @@
                 "Value": "lookoutmetrics",
                 "endpoint": {
                   "Value": "lookoutmetrics.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutvision": {
-                "Value": "lookoutvision",
-                "endpoint": {
-                  "Value": "lookoutvision.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -6766,15 +6751,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.ap-northeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.ap-northeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -8796,15 +8772,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.ap-northeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -9004,15 +8971,6 @@
                 "Value": "lookoutequipment",
                 "endpoint": {
                   "Value": "lookoutequipment.ap-northeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutvision": {
-                "Value": "lookoutvision",
-                "endpoint": {
-                  "Value": "lookoutvision.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -9382,15 +9340,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.ap-northeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.ap-northeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -12157,6 +12106,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
                 "endpoint": {
@@ -13034,15 +12986,6 @@
                 "Value": "iotevents-data",
                 "endpoint": {
                   "Value": "data.iotevents.ap-south-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.ap-south-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -16148,6 +16091,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -17189,15 +17135,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -17799,15 +17736,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.ap-southeast-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.ap-southeast-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -18898,6 +18826,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
               },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
@@ -19994,15 +19925,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -20688,15 +20610,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.ap-southeast-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.ap-southeast-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -26277,6 +26190,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "network-firewall": {
+                "Value": "network-firewall",
+                "endpoint": {
+                  "Value": "network-firewall.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "networkmanager": {
                 "Value": "networkmanager",
                 "endpoint": {
@@ -29036,15 +28958,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -29595,15 +29508,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.ca-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.ca-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -34849,6 +34753,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
                 "endpoint": {
@@ -35935,15 +35842,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotfleetwise": {
                 "Value": "iotfleetwise",
                 "endpoint": {
@@ -36170,15 +36068,6 @@
                 "Value": "lookoutmetrics",
                 "endpoint": {
                   "Value": "lookoutmetrics.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutvision": {
-                "Value": "lookoutvision",
-                "endpoint": {
-                  "Value": "lookoutvision.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -36641,15 +36530,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.eu-central-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.eu-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -39990,15 +39870,6 @@
                 "Value": "iotdevicemanagement",
                 "endpoint": {
                   "Value": "iot.eu-north-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.eu-north-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -44849,6 +44720,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
                 "endpoint": {
@@ -45917,15 +45791,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -46170,15 +46035,6 @@
                 "Value": "lookoutmetrics",
                 "endpoint": {
                   "Value": "lookoutmetrics.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutvision": {
-                "Value": "lookoutvision",
-                "endpoint": {
-                  "Value": "lookoutvision.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -46674,15 +46530,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.eu-west-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.eu-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -48834,15 +48681,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -49408,15 +49246,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.eu-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.eu-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -60739,7 +60568,13 @@
                 }
               },
               "artifact": {
-                "Value": "artifact"
+                "Value": "artifact",
+                "endpoint": {
+                  "Value": "artifact.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "athena": {
                 "Value": "athena",
@@ -60881,6 +60716,9 @@
                 "protocols": {
                   "Value": "HTTPS"
                 }
+              },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
               },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
@@ -62097,15 +61935,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotfleetwise": {
                 "Value": "iotfleetwise",
                 "endpoint": {
@@ -62359,15 +62188,6 @@
                 "Value": "lookoutmetrics",
                 "endpoint": {
                   "Value": "lookoutmetrics.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutvision": {
-                "Value": "lookoutvision",
-                "endpoint": {
-                  "Value": "lookoutvision.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -62977,15 +62797,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.us-east-1.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.us-east-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -64212,6 +64023,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-runtime": {
                 "Value": "bedrock-runtime",
                 "endpoint": {
@@ -65208,15 +65022,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -65386,15 +65191,6 @@
                 "Value": "lookoutmetrics",
                 "endpoint": {
                   "Value": "lookoutmetrics.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutvision": {
-                "Value": "lookoutvision",
-                "endpoint": {
-                  "Value": "lookoutvision.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -65782,15 +65578,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.us-east-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.us-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -68292,7 +68079,13 @@
                 }
               },
               "artifact": {
-                "Value": "artifact"
+                "Value": "artifact",
+                "endpoint": {
+                  "Value": "artifact.us-gov-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
               },
               "athena": {
                 "Value": "athena",
@@ -72480,6 +72273,9 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock-agentcore": {
+                "Value": "bedrock-agentcore"
+              },
               "bedrock-data-automation": {
                 "Value": "bedrock-data-automation",
                 "endpoint": {
@@ -73638,15 +73434,6 @@
                   "Value": "HTTPS"
                 }
               },
-              "iotfleethub": {
-                "Value": "iotfleethub",
-                "endpoint": {
-                  "Value": "api.fleethub.iot.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
               "iotsecuretunneling": {
                 "Value": "iotsecuretunneling",
                 "endpoint": {
@@ -73882,15 +73669,6 @@
                 "Value": "lookoutmetrics",
                 "endpoint": {
                   "Value": "lookoutmetrics.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "lookoutvision": {
-                "Value": "lookoutvision",
-                "endpoint": {
-                  "Value": "lookoutvision.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -74386,15 +74164,6 @@
                 "Value": "qldb",
                 "endpoint": {
                   "Value": "qldb.us-west-2.amazonaws.com"
-                },
-                "protocols": {
-                  "Value": "HTTPS"
-                }
-              },
-              "qldb-session": {
-                "Value": "qldb-session",
-                "endpoint": {
-                  "Value": "session.qldb.us-west-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
