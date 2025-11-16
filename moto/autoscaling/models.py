@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import math
 from collections import OrderedDict
 from datetime import datetime
 from typing import Any, Optional, Union
@@ -954,6 +955,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         )
 
         if is_mixed_instances:
+            # These calculations assume a strategy of "prioritized"
             overrides = self.mixed_instances_policy["LaunchTemplate"]["Overrides"]
             distribution = self.mixed_instances_policy.get("InstancesDistribution", {})
 
@@ -961,11 +963,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
             on_demand_base = int(distribution.get("OnDemandBaseCapacity", 0))
             percent_above_base = int(distribution.get("OnDemandPercentageAboveBaseCapacity", 100))
 
+            # When using a "prioritized" strategy, AWS will treat the overrides as priority list when deciding
+            # which instances to launch, meaning we always pick the first entry in a mocked environment.
             primary_weight_str = overrides[0].get("WeightedCapacity", "1")
             primary_weight = int(primary_weight_str) if primary_weight_str.isdigit() else 1
             if primary_weight == 0:
                 primary_weight = 1
-
 
             if on_demand_base >= total_desired_capacity:
                 # If the base capacity meets or exceeds desired capacity, the entire desired capacity is fulfilled by On-Demand.
@@ -973,6 +976,8 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 total_spot_capacity = 0
 
             else:
+                # After fulfilling the OnDemandBase, we need to add more on-demand and spot instances according
+                # to the passed percentage.
                 above_base_capacity = total_desired_capacity - on_demand_base
 
                 on_demand_above_base_capacity = (above_base_capacity * percent_above_base) / 100.0
@@ -1000,13 +1005,13 @@ class FakeAutoScalingGroup(CloudFormationModel):
         else:
             count_to_remove = abs(instance_count_delta)
 
-            instances_to_remove = [
+            instances_to_remove = [ # only remove unprotected
                                       state
                                       for state in self.instance_states
                                       if not state.protected_from_scale_in
                                   ][:count_to_remove]
 
-            if instances_to_remove:
+            if instances_to_remove: # just in case not instances to remove
                 instance_ids_to_remove = [
                     instance.instance.id for instance in instances_to_remove
                 ]
