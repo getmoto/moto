@@ -1006,10 +1006,10 @@ class FakeAutoScalingGroup(CloudFormationModel):
             count_to_remove = abs(instance_count_delta)
 
             instances_to_remove = [ # only remove unprotected
-                                      state
-                                      for state in self.instance_states
-                                      if not state.protected_from_scale_in
-                                  ][:count_to_remove]
+                state
+                for state in self.instance_states
+                if not state.protected_from_scale_in
+            ][:count_to_remove]
 
             if instances_to_remove: # just in case not instances to remove
                 instance_ids_to_remove = [
