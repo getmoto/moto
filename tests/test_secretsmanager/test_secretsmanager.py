@@ -1186,7 +1186,7 @@ def lambda_handler(event, context):
     except Exception as e:
         pending_value = str(e)
     print(pending_value)
-    
+
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1", """
         + endpoint
         + """)
