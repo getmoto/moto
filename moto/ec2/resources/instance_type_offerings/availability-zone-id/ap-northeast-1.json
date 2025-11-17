@@ -4120,6 +4120,18 @@
   "Location": "apne1-az2"
  },
  {
+  "InstanceType": "f2.12xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "f2.48xlarge",
+  "Location": "apne1-az2"
+ },
+ {
+  "InstanceType": "f2.6xlarge",
+  "Location": "apne1-az2"
+ },
+ {
   "InstanceType": "g4ad.16xlarge",
   "Location": "apne1-az2"
  },

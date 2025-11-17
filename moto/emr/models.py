@@ -69,7 +69,7 @@ class Instance(BaseModel):
 
     @property
     def public_dns_name(self) -> str | None:
-        return self.ec2_instance.public_dns
+        return self.ec2_instance.public_dns_name
 
     @property
     def public_ip_address(self) -> str | None:
@@ -81,7 +81,7 @@ class Instance(BaseModel):
 
     @property
     def private_dns_name(self) -> str:
-        return self.ec2_instance.private_dns
+        return self.ec2_instance.private_dns_name
 
     @property
     def instance_group_id(self) -> str:

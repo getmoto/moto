@@ -169,10 +169,13 @@ class StepFunctionsParserBackend(StepFunctionBackend):
         state_machine_clone = copy.deepcopy(state_machine)
 
         if execution_input is None:
-            input_data = {}
+            input_data = "{}"
         else:
+            input_data = execution_input
             try:
-                input_data = json.loads(execution_input)
+                # Make sure input is valid json
+                json.loads(execution_input)
+
             except Exception as ex:
                 raise InvalidExecutionInput(
                     str(ex)

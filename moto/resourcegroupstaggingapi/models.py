@@ -48,6 +48,7 @@ from moto.s3.models import S3Backend, s3_backends
 from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
+from moto.servicecatalog.models import ServiceCatalogBackend, servicecatalog_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -181,6 +182,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def sqs_backend(self) -> SQSBackend:
         return sqs_backends[self.account_id][self.region_name]
+
+    @property
+    def servicecatalog_backend(self) -> ServiceCatalogBackend:
+        return servicecatalog_backends[self.account_id][self.region_name]
 
     @property
     def stepfunctions_backend(self) -> StepFunctionBackend:
@@ -386,28 +391,56 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         # Comprehend
         if self.comprehend_backend:
-            if not resource_type_filters or "comprehend" in resource_type_filters:
-                for document_classifier in self.comprehend_backend.classifiers.values():
-                    tags = self.comprehend_backend.tagger.list_tags_for_resource(
-                        document_classifier.arn
-                    )["Tags"]
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": f"{document_classifier.arn}",
-                        "Tags": tags,
-                    }
+            comprehend_resource_map: dict[str, dict[str, Any]] = {
+                "comprehend:document-classification-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:document-classifier": dict(
+                    self.comprehend_backend.classifiers
+                ),
+                "comprehend:dominant-language-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:entity-recognizer": dict(
+                    self.comprehend_backend.recognizers
+                ),
+                "comprehend:entities-detection-job": dict(self.comprehend_backend.jobs),
+                "comprehend:endpoint": dict(self.comprehend_backend.endpoints),
+                "comprehend:events-detection-job": dict(self.comprehend_backend.jobs),
+                "comprehend:flywheel": dict(self.comprehend_backend.flywheels),
+                "comprehend:key-phrases-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:pii-entities-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:sentiment-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:targeted-sentiment-detection-job": dict(
+                    self.comprehend_backend.jobs
+                ),
+                "comprehend:topic-detection-job": dict(self.comprehend_backend.jobs),
+            }
+            for resource_type, resource_source in comprehend_resource_map.items():
+                if (
+                    not resource_type_filters
+                    or "comprehend" in resource_type_filters
+                    or resource_type in resource_type_filters
+                ):
+                    for resource in resource_source.values():
+                        arn = getattr(resource, "arn", None) or getattr(
+                            resource, "job_arn", None
+                        )
+                        if not arn:
+                            continue
 
-                for entity_recognizer in self.comprehend_backend.recognizers.values():
-                    tags = self.comprehend_backend.tagger.list_tags_for_resource(
-                        entity_recognizer.arn
-                    )["Tags"]
-                    if not tags or not tag_filter(tags):
-                        continue
-                    yield {
-                        "ResourceARN": f"{entity_recognizer.arn}",
-                        "Tags": tags,
-                    }
+                        tags = self.comprehend_backend.tagger.list_tags_for_resource(
+                            arn
+                        )["Tags"]
+                        if not tag_filter(tags):
+                            continue
+                        yield {"ResourceARN": f"{arn}", "Tags": tags}
 
         # S3
         if (
@@ -992,6 +1025,26 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
 
                 yield {"ResourceARN": f"{queue.queue_arn}", "Tags": tags}
+
+        # Service Catalog
+        if not resource_type_filters or "servicecatalog" in resource_type_filters:
+            # Portfolio
+            for portfolio in self.servicecatalog_backend.portfolios.values():
+                tags = self.servicecatalog_backend.tagger.list_tags_for_resource(
+                    portfolio.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{portfolio.arn}", "Tags": tags}
+
+            # Product
+            for product in self.servicecatalog_backend.products.values():
+                tags = self.servicecatalog_backend.tagger.list_tags_for_resource(
+                    product.arn
+                )["Tags"]
+                if not tags or not tag_filter(tags):
+                    continue
+                yield {"ResourceARN": f"{product.arn}", "Tags": tags}
 
         # SNS
         if not resource_type_filters or "sns" in resource_type_filters:

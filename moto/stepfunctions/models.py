@@ -123,15 +123,21 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         execution_name: str,
         execution_input: str,
     ) -> "Execution":
-        self._ensure_execution_name_doesnt_exist(execution_name)
         self._validate_execution_input(execution_input)
+        existing_execution = self._handle_name_input_idempotency(
+            execution_name, execution_input
+        )
+        if existing_execution is not None:
+            # If we found a match for the name and input, return the existing execution.
+            return existing_execution
+
         execution = Execution(
             region_name=region_name,
             account_id=account_id,
             state_machine_name=self.name,
             execution_name=execution_name,
             state_machine_arn=self.arn,
-            execution_input=json.loads(execution_input),
+            execution_input=execution_input,
         )
         self.executions.append(execution)
         return execution
@@ -147,12 +153,20 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         execution.stop(stop_date=datetime.now(), error="", cause="")
         return execution
 
-    def _ensure_execution_name_doesnt_exist(self, name: str) -> None:
+    def _handle_name_input_idempotency(
+        self, name: str, execution_input: str
+    ) -> Optional["Execution"]:
         for execution in self.executions:
             if execution.name == name:
+                # Executions with the same name and input are considered idempotent
+                if execution_input == execution.execution_input:
+                    return execution
+
+                # If the inputs are different, raise
                 raise ExecutionAlreadyExists(
                     "Execution Already Exists: '" + execution.execution_arn + "'"
                 )
+        return None
 
     def _validate_execution_input(self, execution_input: str) -> None:
         try:

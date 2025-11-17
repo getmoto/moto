@@ -133,7 +133,7 @@ class Execution:
         start_date: Timestamp,
         cloud_watch_logging_session: Optional[CloudWatchLoggingSession],
         activity_store: dict[Arn, Activity],
-        input_data: Optional[json] = None,
+        input_data: str,
         trace_header: Optional[TraceHeader] = None,
     ):
         self.name = name
@@ -145,7 +145,7 @@ class Execution:
         self.region_name = region_name
         self.state_machine = state_machine
         self._cloud_watch_logging_session = cloud_watch_logging_session
-        self.input_data = input_data
+        self.input_data = json.loads(input_data)
         self.input_details = CloudWatchEventsExecutionDataDetails(included=True)
         self.trace_header = trace_header
         self.exec_status = None
