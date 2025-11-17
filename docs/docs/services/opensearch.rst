@@ -27,6 +27,7 @@ opensearch
 - [ ] cancel_service_software_update
 - [ ] create_application
 - [X] create_domain
+- [ ] create_index
 - [ ] create_outbound_connection
 - [ ] create_package
 - [ ] create_vpc_endpoint
@@ -35,6 +36,7 @@ opensearch
 - [ ] delete_direct_query_data_source
 - [X] delete_domain
 - [ ] delete_inbound_connection
+- [ ] delete_index
 - [ ] delete_outbound_connection
 - [ ] delete_package
 - [ ] delete_vpc_endpoint
@@ -58,8 +60,10 @@ opensearch
 - [ ] get_application
 - [X] get_compatible_versions
 - [ ] get_data_source
+- [ ] get_default_application_setting
 - [ ] get_direct_query_data_source
 - [ ] get_domain_maintenance_status
+- [ ] get_index
 - [ ] get_package_version_history
 - [ ] get_upgrade_history
 - [ ] get_upgrade_status
@@ -78,6 +82,7 @@ opensearch
 - [ ] list_vpc_endpoints
 - [ ] list_vpc_endpoints_for_domain
 - [ ] purchase_reserved_instance_offering
+- [ ] put_default_application_setting
 - [ ] reject_inbound_connection
 - [X] remove_tags
 - [ ] revoke_vpc_endpoint_access
@@ -87,6 +92,7 @@ opensearch
 - [ ] update_data_source
 - [ ] update_direct_query_data_source
 - [X] update_domain_config
+- [ ] update_index
 - [ ] update_package
 - [ ] update_package_scope
 - [ ] update_scheduled_action

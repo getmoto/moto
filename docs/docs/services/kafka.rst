@@ -65,6 +65,7 @@ kafka
 - [ ] update_configuration
 - [ ] update_connectivity
 - [ ] update_monitoring
+- [ ] update_rebalancing
 - [ ] update_replication_info
 - [ ] update_security
 - [ ] update_storage
