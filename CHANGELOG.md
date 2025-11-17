@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.17
 -----
-Docker Digest for 5.1.17: <autopopulateddigest>
+Docker Digest for 5.1.17: _sha256:0361ac8f0cc6687dcf3835da1d60e31cf457fb0d49229d56586f2aa5c510f170_
 
     General:
         * The MotoServer dashboard (available on http://localhost:5000/moto-api) now has an new and improved look, making it easier to search for and find your resources
