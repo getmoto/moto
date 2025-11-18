@@ -985,9 +985,9 @@ class FakeAutoScalingGroup(CloudFormationModel):
                 # to the passed percentage.
                 above_base_capacity = target_capacity - on_demand_base
 
-                on_demand_above_base_capacity = int(
-                    above_base_capacity * percent_above_base
-                ) / 100.0
+                on_demand_above_base_capacity = (
+                    int(above_base_capacity * percent_above_base) / 100.0
+                )
                 spot_above_base_capacity = int(
                     above_base_capacity - on_demand_above_base_capacity
                 )
