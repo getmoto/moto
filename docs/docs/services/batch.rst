@@ -53,7 +53,7 @@ batch
 - [X] list_jobs
   
         TODO: Pagination is not yet implemented
-        TODO: Acording to Boto3 documentation, filters are not supported when filtering by batch array job id.
+        TODO: According to Boto3 documentation, filters are not supported when filtering by batch array job id.
             Current implementation does not differentiate between array job listing and normal job listing.
         
 
