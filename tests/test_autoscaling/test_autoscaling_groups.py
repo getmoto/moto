@@ -275,8 +275,7 @@ class TestAutoScalingGroup(TestCase):
             # Remaining 6 units: 50% OD (3 units->1 inst) + 50% Spot (3 units->1 inst).
             # Total = 3 instances.
             (8, 2, 50, 3),
-            # Case C: Base (0) < Desired (8).
-            # Path: Pure Percentage Split.
+            # Case C: Base (0) < Desired (8). Pure Percentage Split.
             # 25% OD (2 units -> 1 inst) + 75% Spot (6 units -> 2 inst).
             # Total = 3 instances.
             (8, 0, 25, 3),
