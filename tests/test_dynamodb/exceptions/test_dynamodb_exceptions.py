@@ -225,9 +225,9 @@ def test_empty_expressionattributenames(table_name=None):
     ddb = boto3.resource("dynamodb", region_name="us-east-1")
     table = ddb.Table(table_name)
     with pytest.raises(ClientError) as exc:
-        # Note: provided key is wrong
-        # Empty ExpressionAttributeName is verified earlier, so that's the error we get
-        table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={})
+        # Note: provided key is wrong. Expression doesn't exist either.
+        # Whether we can supply ExpressionAttributeName in the first place, that's what we're validating here
+        table.get_item(Key={"id": "my_id"}, ExpressionAttributeNames={"#a": "b"})
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
     assert (
