@@ -42,7 +42,6 @@ from moto.core.utils import (
     get_value,
     gzip_decompress,
     method_names_from_class,
-    params_sort_function,
 )
 from moto.utilities.aws_headers import gen_amzn_requestid_long
 from moto.utilities.utils import get_partition
@@ -731,7 +730,7 @@ class BaseResponse(_TemplateEnvironmentMixin, ActionAuthenticatorMixin):
         if self.automated_parameter_parsing:
             return self.params
         params: dict[str, Any] = {}
-        for k, v in sorted(self.querystring.items(), key=params_sort_function):
+        for k, v in sorted(self.querystring.items()):
             self._parse_param(k, v[0], params)
         return params
 
