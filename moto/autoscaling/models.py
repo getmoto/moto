@@ -953,13 +953,14 @@ class FakeAutoScalingGroup(CloudFormationModel):
         is_mixed_instances = self.mixed_instances_policy and len(
             self.mixed_instances_policy.get("LaunchTemplate", {}).get("Overrides", [])
         )
+        target_capacity = self.desired_capacity or 0
 
         if is_mixed_instances:
+            policy = self.mixed_instances_policy or {}
             # These calculations assume a strategy of "prioritized"
-            overrides = self.mixed_instances_policy["LaunchTemplate"]["Overrides"]
-            distribution = self.mixed_instances_policy.get("InstancesDistribution", {})
+            overrides = policy["LaunchTemplate"]["Overrides"]
+            distribution = policy.get("InstancesDistribution", {})
 
-            total_desired_capacity = self.desired_capacity
             on_demand_base = int(distribution.get("OnDemandBaseCapacity", 0))
             percent_above_base = int(
                 distribution.get("OnDemandPercentageAboveBaseCapacity", 100)
@@ -974,24 +975,24 @@ class FakeAutoScalingGroup(CloudFormationModel):
             if primary_weight == 0:
                 primary_weight = 1
 
-            if on_demand_base >= total_desired_capacity:
+            if on_demand_base >= target_capacity:
                 # If the base capacity meets or exceeds desired capacity, the entire desired capacity is fulfilled by On-Demand.
-                total_on_demand_capacity = total_desired_capacity
+                total_on_demand_capacity = target_capacity
                 total_spot_capacity = 0
 
             else:
                 # After fulfilling the OnDemandBase, we need to add more on-demand and spot instances according
                 # to the passed percentage.
-                above_base_capacity = total_desired_capacity - on_demand_base
+                above_base_capacity = target_capacity - on_demand_base
 
-                on_demand_above_base_capacity = (
+                on_demand_above_base_capacity = int(
                     above_base_capacity * percent_above_base
                 ) / 100.0
-                spot_above_base_capacity = (
+                spot_above_base_capacity = int(
                     above_base_capacity - on_demand_above_base_capacity
                 )
 
-                total_on_demand_capacity = (
+                total_on_demand_capacity = int(
                     on_demand_base + on_demand_above_base_capacity
                 )
                 total_spot_capacity = spot_above_base_capacity
@@ -1002,7 +1003,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
             total_target_instances = on_demand_instances + spot_instances
 
         else:
-            total_target_instances = self.desired_capacity
+            total_target_instances = target_capacity
 
         instance_count_delta = total_target_instances - current_instance_count
 
