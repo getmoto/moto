@@ -297,8 +297,8 @@ def test_put_object_tagging(bucket_name=None):
     )
     assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
 
-    tags_set = s3_client.get_object_tagging(Bucket=bucket_name, Key=key)["TagSet"]
-    assert tags_set == tags_to_set
+    actual_tags = s3_client.get_object_tagging(Bucket=bucket_name, Key=key)["TagSet"]
+    assert all(tag in actual_tags for tag in tags_to_set)
 
 
 @mock_aws

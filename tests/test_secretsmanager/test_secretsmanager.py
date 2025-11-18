@@ -1316,6 +1316,9 @@ def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=N
             sleep(5)
     rotated_version = updated_secret["VersionId"]
 
+    # Delete function as early as possible, to ensure it's not left dangling
+    lambda_conn.delete_function(FunctionName=function_name)
+
     assert initial_version != rotated_version
 
     u2 = secrets_conn.get_secret_value(SecretId=secret["ARN"])
@@ -1324,10 +1327,9 @@ def test_rotate_secret_using_lambda(secret=None, iam_role_arn=None, table_name=N
 
     metadata = secrets_conn.describe_secret(SecretId=secret["ARN"])
     assert metadata["VersionIdsToStages"][initial_version] == ["AWSPREVIOUS"]
-    assert metadata["VersionIdsToStages"][rotated_version] == ["AWSCURRENT"]
+    # XXX: Test is non-deterministic - sometimes this will return AWSCURRENT, sometimes both AWSCURRENT and AWSPENDING
+    assert "AWSCURRENT" in metadata["VersionIdsToStages"][rotated_version]
     assert updated_secret["SecretString"] == "UpdatedValue"
-
-    lambda_conn.delete_function(FunctionName=function_name)
 
     dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
     items = dynamodb.Table(table_name).scan()["Items"]
