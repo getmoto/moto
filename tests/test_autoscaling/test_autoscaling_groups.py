@@ -255,13 +255,13 @@ class TestAutoScalingGroup(TestCase):
             LaunchConfigurationName=self.lc_name,
             VPCZoneIdentifier=self.mocked_networking["subnet1"],
         )
-    
+
     def test_mixed_instance_calculations(self):
         lt_name = "test_launch_template"
         ec2_client = boto3.client("ec2", region_name="us-east-1")
         ec2_client.create_launch_template(
             LaunchTemplateName=lt_name,
-            LaunchTemplateData={"ImageId": "ami-12345678", "InstanceType": "t2.nano"}
+            LaunchTemplateData={"ImageId": "ami-12345678", "InstanceType": "t2.nano"},
         )
 
         # Format: (Desired, OD_Base, OD_Percent, Expected_Instance_Count)
@@ -270,13 +270,11 @@ class TestAutoScalingGroup(TestCase):
             # Case A: Base (8) >= Desired (8).
             # Entire capacity is On-Demand. 8 units / 4 weight = 2 instances.
             (8, 8, 0, 2),
-
             # Case B: Base (2) < Desired (8).
             # Base: 2 units -> 1 inst.
             # Remaining 6 units: 50% OD (3 units->1 inst) + 50% Spot (3 units->1 inst).
             # Total = 3 instances.
             (8, 2, 50, 3),
-
             # Case C: Base (0) < Desired (8).
             # Path: Pure Percentage Split.
             # 25% OD (2 units -> 1 inst) + 75% Spot (6 units -> 2 inst).
@@ -297,19 +295,19 @@ class TestAutoScalingGroup(TestCase):
                     "LaunchTemplate": {
                         "LaunchTemplateSpecification": {
                             "LaunchTemplateName": lt_name,
-                            "Version": "$Latest"
+                            "Version": "$Latest",
                         },
                         "Overrides": [
                             {"InstanceType": "t2.micro", "WeightedCapacity": "4"}
-                        ]
+                        ],
                     },
                     "InstancesDistribution": {
                         "OnDemandBaseCapacity": base,
                         "OnDemandPercentageAboveBaseCapacity": pct,
                         "OnDemandAllocationStrategy": "prioritized",
-                        "SpotAllocationStrategy": "capacity-optimized"
-                    }
-                }
+                        "SpotAllocationStrategy": "capacity-optimized",
+                    },
+                },
             )
 
             group = self.as_client.describe_auto_scaling_groups(
@@ -324,7 +322,6 @@ class TestAutoScalingGroup(TestCase):
                 f"Expected {expected_count} instances, but got {actual_count}."
             )
             assert actual_count == expected_count, err_msg
-        
 
 
 @mock_aws
