@@ -1,4 +1,6 @@
 import functools
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Callable,
@@ -124,3 +126,33 @@ class ActionAuthenticatorMixin:
             return wrapper
 
         return decorator
+
+
+@contextmanager
+def enable_iam_authentication() -> Generator[None, None, None]:
+    """Make it so that all fixtures and tests run with a simulation of IAM permissions."""
+
+    old_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+    old_request_count = ActionAuthenticatorMixin.request_count
+    settings.INITIAL_NO_AUTH_ACTION_COUNT = 0
+    ActionAuthenticatorMixin.request_count = 0
+    try:
+        yield
+    finally:
+        settings.INITIAL_NO_AUTH_ACTION_COUNT = old_initial_no_auth_action_count
+        ActionAuthenticatorMixin.request_count = old_request_count
+
+
+@contextmanager
+def disable_iam_authentication() -> Generator[None, None, None]:
+    """Inverse of enable()."""
+
+    old_initial_no_auth_action_count = settings.INITIAL_NO_AUTH_ACTION_COUNT
+    old_request_count = ActionAuthenticatorMixin.request_count
+    settings.INITIAL_NO_AUTH_ACTION_COUNT = float("inf")
+    ActionAuthenticatorMixin.request_count = 0
+    try:
+        yield
+    finally:
+        settings.INITIAL_NO_AUTH_ACTION_COUNT = old_initial_no_auth_action_count
+        ActionAuthenticatorMixin.request_count = old_request_count
