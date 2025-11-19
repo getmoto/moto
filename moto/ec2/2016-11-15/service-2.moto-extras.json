@@ -19,9 +19,19 @@
           }
         }
       },
+      "KeyPair": {
+        "members": {
+          "KeyMaterial": {
+            "shape": "String"
+          }
+        }
+      },
       "RunInstancesUserData": {
         "type": "blob",
         "documentation": "Botocore models this as a `string` type, but has a dedicated handler to ensure it is always base64-encoded before sending to the server. Moto sets it to a `blob` type here to ensure that it will always be base64-decoded when parsing."
+      },
+      "SensitiveUserData": {
+        "type": "blob"
       }
     }
   }

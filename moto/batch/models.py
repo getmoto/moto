@@ -1324,7 +1324,7 @@ class BatchBackend(BaseBackend):
                 reservation = self.ec2_backend.run_instances(
                     image_id="ami-03cf127a",  # Todo import AMIs
                     count=1,
-                    user_data=None,
+                    user_data=b"",
                     security_group_names=[],
                     instance_type=instance_type,
                     region_name=self.region_name,

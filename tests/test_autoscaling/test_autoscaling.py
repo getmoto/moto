@@ -1,3 +1,4 @@
+from base64 import b64decode
 from datetime import datetime
 from uuid import uuid4
 
@@ -13,13 +14,14 @@ from .utils import setup_instance_with_networking, setup_networking
 
 
 @mock_aws
-def test_propogate_tags():
+def test_propagate_attributes():
     mocked_networking = setup_networking()
     conn = boto3.client("autoscaling", region_name="us-east-1")
     conn.create_launch_configuration(
         LaunchConfigurationName="TestLC",
         ImageId=EXAMPLE_AMI_ID,
         InstanceType="t2.medium",
+        UserData="test user data",
     )
 
     conn.create_auto_scaling_group(
@@ -41,10 +43,14 @@ def test_propogate_tags():
 
     ec2 = boto3.client("ec2", region_name="us-east-1")
     instances = ec2.describe_instances()
-
-    tags = instances["Reservations"][0]["Instances"][0]["Tags"]
+    instance = instances["Reservations"][0]["Instances"][0]
+    tags = instance["Tags"]
     assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
     assert {"Value": "TestGroup1", "Key": "aws:autoscaling:groupName"} in tags
+    resp = ec2.describe_instance_attribute(
+        InstanceId=instance["InstanceId"], Attribute="userData"
+    )
+    assert b64decode(resp["UserData"]["Value"]).decode() == "test user data"
 
 
 @mock_aws

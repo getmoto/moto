@@ -820,3 +820,53 @@ def test_create_fleet_api_response():
     assert fleet_res[0]["ValidFrom"].isoformat() == "2020-01-01T00:00:00+00:00"
     assert "ValidUntil" in fleet_res[0]
     assert fleet_res[0]["ValidUntil"].isoformat() == "2020-12-31T00:00:00+00:00"
+
+
+@mock_aws
+def test_user_data():
+    USERDATA = "userdata"
+    ec2_client = boto3.client("ec2", region_name="us-west-2")
+    from base64 import b64encode
+
+    userdata_base64 = b64encode(USERDATA.encode("utf-8")).decode("utf-8")
+
+    template_args = {
+        "LaunchTemplateName": "test-template",
+        "LaunchTemplateData": {
+            "ImageId": "ami-0157ed312f9c59a91",
+            "InstanceType": "t3.nano",
+            "UserData": userdata_base64,
+        },
+    }
+
+    ec2_client.create_launch_template(**template_args)
+
+    fleet_args = {
+        "OnDemandOptions": {
+            "AllocationStrategy": "lowest-price",
+        },
+        "TargetCapacitySpecification": {
+            "TotalTargetCapacity": 1,
+            "DefaultTargetCapacityType": "on-demand",
+        },
+        "LaunchTemplateConfigs": [
+            {
+                "LaunchTemplateSpecification": {
+                    "LaunchTemplateName": "test-template",
+                    "Version": "$Latest",
+                },
+            },
+        ],
+        "Type": "instant",
+    }
+
+    fleet = ec2_client.create_fleet(**fleet_args)
+
+    instance = fleet["Instances"][0]
+
+    attrs = ec2_client.describe_instance_attribute(
+        InstanceId=instance["InstanceIds"][0],
+        Attribute="userData",
+    )
+
+    assert attrs["UserData"]["Value"] == userdata_base64

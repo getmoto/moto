@@ -49,8 +49,8 @@ class LaunchTemplateVersion:
         return self.data.get("SecurityGroups", [])
 
     @property
-    def user_data(self) -> str:
-        return self.data.get("UserData", "")
+    def user_data(self) -> bytes:
+        return self.data.get("UserData", b"")
 
 
 class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):

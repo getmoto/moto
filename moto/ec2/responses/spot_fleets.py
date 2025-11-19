@@ -117,7 +117,7 @@ DESCRIBE_SPOT_FLEET_TEMPLATE = """<DescribeSpotFleetRequestsResponse xmlns="http
                         {% if launch_spec.spot_price %}
                         <spotPrice>{{ launch_spec.spot_price }}</spotPrice>
                         {% endif %}
-                        <userData>{{ launch_spec.user_data }}</userData>
+                        <userData>{{ launch_spec.user_data | base64_encode }}</userData>
                         <weightedCapacity>{{ launch_spec.weighted_capacity }}</weightedCapacity>
                         <groupSet>
                             {% for group in launch_spec.group_set %}

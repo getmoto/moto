@@ -48,7 +48,7 @@ class InstanceResponse(EC2BaseResponse):
     def run_instances(self) -> ActionResult:
         min_count = int(self._get_param("MinCount", if_none="1"))
         image_id = self._get_param("ImageId")
-        user_data = self._get_param("UserData")
+        user_data = self._get_param("UserData", b"")
         security_group_names = self._get_param("SecurityGroups", [])
         kwargs = {
             "instance_type": self._get_param("InstanceType", "m1.small"),
@@ -226,6 +226,8 @@ class InstanceResponse(EC2BaseResponse):
         if attribute_name == "GroupSet":
             attribute_name = "Groups"
             attribute_value = [{"GroupId": group.id} for group in value]
+        elif attribute_name == "UserData" and value == b"":
+            attribute_value = ""
         result = {"InstanceId": instance.id, attribute_name: attribute_value}
         return ActionResult(result)
 
