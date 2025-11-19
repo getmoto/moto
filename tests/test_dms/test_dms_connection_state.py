@@ -77,7 +77,7 @@ def test_describe_connection_with_manual_transition(execution_state_transition):
     connection = response["Connections"][0]
     assert connection["ReplicationInstanceArn"] == replication_instance_arn
     assert connection["EndpointArn"] == endpoint_arn
-    assert connection["Status"] == "success"
+    assert connection["Status"] == "successful"
     assert connection["EndpointIdentifier"] == "test-endpoint"
     assert connection["ReplicationInstanceIdentifier"] == "test-instance"
 
@@ -118,6 +118,6 @@ def test_describe_connection_without_transition():
     connection = response["Connections"][0]
     assert connection["ReplicationInstanceArn"] == replication_instance_arn
     assert connection["EndpointArn"] == endpoint_arn
-    assert connection["Status"] == "success"
+    assert connection["Status"] == "successful"
     assert connection["EndpointIdentifier"] == "test-endpoint"
     assert connection["ReplicationInstanceIdentifier"] == "test-instance"

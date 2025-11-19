@@ -2040,6 +2040,10 @@
   "Location": "eun1-az1"
  },
  {
+  "InstanceType": "u7i-12tb.224xlarge",
+  "Location": "eun1-az1"
+ },
+ {
   "InstanceType": "u7i-6tb.112xlarge",
   "Location": "eun1-az1"
  },
@@ -4233,6 +4237,10 @@
  },
  {
   "InstanceType": "u-6tb1.56xlarge",
+  "Location": "eun1-az2"
+ },
+ {
+  "InstanceType": "u7i-12tb.224xlarge",
   "Location": "eun1-az2"
  },
  {

@@ -78,6 +78,7 @@ cloudfront
         
 
 - [ ] delete_realtime_log_config
+- [ ] delete_resource_policy
 - [ ] delete_response_headers_policy
 - [ ] delete_streaming_distribution
 - [ ] delete_vpc_origin
@@ -116,6 +117,7 @@ cloudfront
 - [X] get_public_key
 - [ ] get_public_key_config
 - [ ] get_realtime_log_config
+- [ ] get_resource_policy
 - [ ] get_response_headers_policy
 - [ ] get_response_headers_policy_config
 - [ ] get_streaming_distribution
@@ -139,6 +141,7 @@ cloudfront
 - [ ] list_distributions_by_connection_mode
 - [ ] list_distributions_by_key_group
 - [ ] list_distributions_by_origin_request_policy_id
+- [ ] list_distributions_by_owned_resource
 - [ ] list_distributions_by_realtime_log_config
 - [ ] list_distributions_by_response_headers_policy_id
 - [ ] list_distributions_by_vpc_origin_id
@@ -176,9 +179,11 @@ cloudfront
 - [X] list_tags_for_resource
 - [ ] list_vpc_origins
 - [ ] publish_function
+- [ ] put_resource_policy
 - [X] tag_resource
 - [ ] test_function
 - [X] untag_resource
+- [ ] update_anycast_ip_list
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
 - [ ] update_connection_group
