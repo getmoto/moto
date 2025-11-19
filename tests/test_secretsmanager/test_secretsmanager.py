@@ -830,8 +830,9 @@ def test_describe_secret_with_KmsKeyId():
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
     assert secret_description["KmsKeyId"] == "dummy_arn"
-    assert conn.list_secrets()["SecretList"][0]["KmsKeyId"] == (
-        secret_description["KmsKeyId"]
+    assert (
+        conn.list_secrets()["SecretList"][0]["KmsKeyId"]
+        == (secret_description["KmsKeyId"])
     )
 
 
