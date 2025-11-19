@@ -791,6 +791,10 @@ class SecretsManagerBackend(BaseBackend):
         if existing_secret:
             return existing_secret
 
+        # If it is the first version add AWSCURRENT to the versions
+        if not secret.versions and "AWSCURRENT" not in version_stages:
+            version_stages.append("AWSCURRENT")
+
         secret, _ = self._add_secret(
             secret_id,
             secret_string,
