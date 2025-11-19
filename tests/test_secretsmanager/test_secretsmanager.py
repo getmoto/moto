@@ -830,9 +830,8 @@ def test_describe_secret_with_KmsKeyId():
     secret_description = conn.describe_secret(SecretId=results["ARN"])
 
     assert secret_description["KmsKeyId"] == "dummy_arn"
-    assert (
-        conn.list_secrets()["SecretList"][0]["KmsKeyId"]
-        == (secret_description["KmsKeyId"])
+    assert conn.list_secrets()["SecretList"][0]["KmsKeyId"] == (
+        secret_description["KmsKeyId"]
     )
 
 
@@ -1548,6 +1547,19 @@ def test_put_secret_value_versions_differ_if_same_secret_put_twice():
     second_version_id = put_secret_value_dict["VersionId"]
 
     assert first_version_id != second_version_id
+
+
+@mock_aws
+def test_put_secret_value_versions_adds_awscurrent_label_in_first_version():
+    conn = boto3.client("secretsmanager", region_name="us-west-2")
+    conn.create_secret(Name=DEFAULT_SECRET_NAME)
+    put_secret_value_dict = conn.put_secret_value(
+        SecretId=DEFAULT_SECRET_NAME,
+        SecretString="dupe_secret",
+        VersionStages=["AWSPENDING"],
+    )
+
+    assert put_secret_value_dict["VersionStages"] == ["AWSPENDING", "AWSCURRENT"]
 
 
 @mock_aws
