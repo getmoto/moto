@@ -122,12 +122,6 @@ class DynamicDictLoader(DictLoader):
         return bool(template in self.mapping)
 
 
-def b64encode_filter(data: bytes) -> str:
-    from base64 import b64encode
-
-    return b64encode(data).decode("utf-8")
-
-
 class _TemplateEnvironmentMixin:
     LEFT_PATTERN = re.compile(r"[\s\n]+<")
     RIGHT_PATTERN = re.compile(r">[\s\n]+")
@@ -151,7 +145,7 @@ class _TemplateEnvironmentMixin:
                 lstrip_blocks=True,
             )
             JINJA_ENVS[key] = environment
-        environment.filters["base64_encode"] = b64encode_filter
+
         return environment
 
     def contains_template(self, template_id: str) -> bool:

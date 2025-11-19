@@ -2,6 +2,7 @@ from typing import Any
 from xml.dom import minidom
 from xml.etree import ElementTree
 
+from moto.core.types import Base64EncodedString
 from moto.ec2.exceptions import FilterNotImplementedError
 from moto.moto_api._internal import mock_random
 
@@ -57,7 +58,10 @@ class LaunchTemplates(EC2BaseResponse):
         tag_spec = self._parse_tag_specification()
 
         parsed_template_data = self._get_param("LaunchTemplateData", {})
-
+        if parsed_template_data.get("UserData"):
+            parsed_template_data["UserData"] = Base64EncodedString(
+                parsed_template_data["UserData"]
+            )
         self.error_on_dryrun()
 
         if tag_spec:

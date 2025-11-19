@@ -4,6 +4,7 @@ import boto3
 import pytest
 
 from moto import mock_aws
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
 
 from . import ec2_aws_verified
@@ -824,23 +825,17 @@ def test_create_fleet_api_response():
 
 @mock_aws
 def test_user_data():
-    USERDATA = "userdata"
     ec2_client = boto3.client("ec2", region_name="us-west-2")
-    from base64 import b64encode
-
-    userdata_base64 = b64encode(USERDATA.encode("utf-8")).decode("utf-8")
-
+    user_data = Base64EncodedString.from_raw_string("test user data")
     template_args = {
         "LaunchTemplateName": "test-template",
         "LaunchTemplateData": {
             "ImageId": "ami-0157ed312f9c59a91",
             "InstanceType": "t3.nano",
-            "UserData": userdata_base64,
+            "UserData": str(user_data),
         },
     }
-
     ec2_client.create_launch_template(**template_args)
-
     fleet_args = {
         "OnDemandOptions": {
             "AllocationStrategy": "lowest-price",
@@ -859,14 +854,10 @@ def test_user_data():
         ],
         "Type": "instant",
     }
-
     fleet = ec2_client.create_fleet(**fleet_args)
-
     instance = fleet["Instances"][0]
-
     attrs = ec2_client.describe_instance_attribute(
         InstanceId=instance["InstanceIds"][0],
         Attribute="userData",
     )
-
-    assert attrs["UserData"]["Value"] == userdata_base64
+    assert attrs["UserData"]["Value"] == str(user_data)

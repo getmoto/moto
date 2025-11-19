@@ -13,6 +13,7 @@ import dateutil.parser
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.core.utils import unix_time_millis
 from moto.ec2.exceptions import InvalidSubnetIdError
 from moto.ec2.models import EC2Backend, ec2_backends
@@ -1324,7 +1325,7 @@ class BatchBackend(BaseBackend):
                 reservation = self.ec2_backend.run_instances(
                     image_id="ami-03cf127a",  # Todo import AMIs
                     count=1,
-                    user_data=b"",
+                    user_data=Base64EncodedString.from_raw_string(""),
                     security_group_names=[],
                     instance_type=instance_type,
                     region_name=self.region_name,
