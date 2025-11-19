@@ -26,7 +26,7 @@ class Base64EncodedString:
         return decoded_bytes.decode(encoding)
 
     @classmethod
-    def from_raw_bytes(cls, raw_bytes: bytes) -> Base64EncodedString:
+    def from_encoded_bytes(cls, raw_bytes: bytes) -> Base64EncodedString:
         return cls(raw_bytes.decode("ascii"))
 
     @classmethod
@@ -34,7 +34,7 @@ class Base64EncodedString:
         cls, raw_string: str, encoding: str = "utf-8"
     ) -> Base64EncodedString:
         encoded_bytes = base64.b64encode(raw_string.encode(encoding))
-        return cls.from_raw_bytes(encoded_bytes)
+        return cls.from_encoded_bytes(encoded_bytes)
 
     def __str__(self) -> str:
         return self._encoded_string

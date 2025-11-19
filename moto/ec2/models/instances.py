@@ -95,7 +95,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         ec2_backend: Any,
         image_id: str,
-        user_data: Base64EncodedString,
+        user_data: Optional[Base64EncodedString],
         security_groups: list[SecurityGroup],
         **kwargs: Any,
     ):
@@ -738,7 +738,7 @@ class InstanceBackend:
         self,
         image_id: str,
         count: int,
-        user_data: Base64EncodedString,
+        user_data: Optional[Base64EncodedString],
         security_group_names: list[str],
         **kwargs: Any,
     ) -> Reservation:

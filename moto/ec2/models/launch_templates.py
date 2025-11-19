@@ -50,8 +50,11 @@ class LaunchTemplateVersion:
         return self.data.get("SecurityGroups", [])
 
     @property
-    def user_data(self) -> Base64EncodedString:
-        return Base64EncodedString(self.data.get("UserData", ""))
+    def user_data(self) -> Optional[Base64EncodedString]:
+        user_data = self.data.get("UserData", None)
+        if user_data is not None:
+            user_data = Base64EncodedString(user_data)
+        return user_data
 
 
 class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):

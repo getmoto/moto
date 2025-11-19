@@ -265,7 +265,7 @@ class FakeLaunchConfiguration(CloudFormationModel):
         ramdisk_id: str,
         kernel_id: str,
         security_groups: list[str],
-        user_data: Base64EncodedString,
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         instance_monitoring: bool,
         instance_profile_name: Optional[str],
@@ -871,7 +871,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
         return self.launch_config.instance_type  # type: ignore[union-attr]
 
     @property
-    def user_data(self) -> Base64EncodedString:
+    def user_data(self) -> Optional[Base64EncodedString]:
         if self.ec2_launch_template:
             version = self.ec2_launch_template.get_version(self.launch_template_version)
             return version.user_data
@@ -1136,7 +1136,7 @@ class AutoScalingBackend(BaseBackend):
         kernel_id: str,
         ramdisk_id: str,
         security_groups: list[str],
-        user_data: Base64EncodedString,
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         instance_monitoring: bool,
         instance_profile_name: Optional[str],
