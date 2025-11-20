@@ -2,6 +2,7 @@ from copy import deepcopy
 from typing import Any
 
 from moto.core.responses import ActionResult, EmptyResult
+from moto.core.types import Base64EncodedString
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
     InvalidParameterCombination,
@@ -49,6 +50,8 @@ class InstanceResponse(EC2BaseResponse):
         min_count = int(self._get_param("MinCount", if_none="1"))
         image_id = self._get_param("ImageId")
         user_data = self._get_param("UserData")
+        if user_data is not None:
+            user_data = Base64EncodedString(user_data)
         security_group_names = self._get_param("SecurityGroups", [])
         kwargs = {
             "instance_type": self._get_param("InstanceType", "m1.small"),
@@ -226,6 +229,8 @@ class InstanceResponse(EC2BaseResponse):
         if attribute_name == "GroupSet":
             attribute_name = "Groups"
             attribute_value = [{"GroupId": group.id} for group in value]
+        elif attribute_name == "UserData" and value is None:
+            attribute_value = ""
         result = {"InstanceId": instance.id, attribute_name: attribute_value}
         return ActionResult(result)
 
@@ -334,6 +339,8 @@ class InstanceResponse(EC2BaseResponse):
                 instance_id = self._get_param("InstanceId")
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self._get_param(f"{attribute}.Value")
+                if attribute == "UserData" and attr_value:
+                    attr_value = Base64EncodedString.from_encoded_bytes(attr_value)
                 self.ec2_backend.modify_instance_attribute(
                     instance_id, attr_name, attr_value
                 )

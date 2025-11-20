@@ -2,6 +2,7 @@ from collections import OrderedDict
 from typing import Any, Optional
 
 from moto.core.common_models import CloudFormationModel
+from moto.core.types import Base64EncodedString
 
 from ..exceptions import (
     InvalidLaunchTemplateNameAlreadyExistsError,
@@ -49,8 +50,11 @@ class LaunchTemplateVersion:
         return self.data.get("SecurityGroups", [])
 
     @property
-    def user_data(self) -> str:
-        return self.data.get("UserData", "")
+    def user_data(self) -> Optional[Base64EncodedString]:
+        user_data = self.data.get("UserData", None)
+        if user_data is not None:
+            user_data = Base64EncodedString(user_data)
+        return user_data
 
 
 class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):

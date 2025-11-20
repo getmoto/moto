@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from moto import settings
 from moto.core.common_models import CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.core.utils import camelcase_to_underscores, utcnow
 from moto.ec2.models.elastic_network_interfaces import NetworkInterface
 from moto.ec2.models.fleets import Fleet
@@ -94,7 +95,7 @@ class Instance(TaggedEC2Resource, BotoInstance, CloudFormationModel):
         self,
         ec2_backend: Any,
         image_id: str,
-        user_data: Any,
+        user_data: Optional[Base64EncodedString],
         security_groups: list[SecurityGroup],
         **kwargs: Any,
     ):
@@ -737,7 +738,7 @@ class InstanceBackend:
         self,
         image_id: str,
         count: int,
-        user_data: Optional[str],
+        user_data: Optional[Base64EncodedString],
         security_group_names: list[str],
         **kwargs: Any,
     ) -> Reservation:

@@ -13,6 +13,7 @@ from freezegun import freeze_time
 
 from moto import mock_aws, settings
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
 
 from .helpers import assert_dryrun_error
@@ -1047,18 +1048,15 @@ def test_instance_attribute_user_data():
     ec2 = boto3.resource("ec2", region_name="us-east-1")
     res = ec2.create_instances(ImageId=EXAMPLE_AMI_ID, MinCount=1, MaxCount=1)
     instance = res[0]
-
+    user_data = Base64EncodedString.from_raw_string("this is my user data")
     with pytest.raises(ClientError) as ex:
-        instance.modify_attribute(
-            UserData={"Value": "this is my user data"}, DryRun=True
-        )
+        instance.modify_attribute(UserData={"Value": user_data.as_bytes()}, DryRun=True)
     assert_dryrun_error(ex)
 
-    instance.modify_attribute(UserData={"Value": "this is my user data"})
+    instance.modify_attribute(UserData={"Value": user_data.as_bytes()})
 
     attribute = instance.describe_attribute(Attribute="userData")["UserData"]
-    retrieved_user_data = attribute["Value"].encode("utf-8")
-    assert decode_method(retrieved_user_data) == b"this is my user data"
+    assert attribute["Value"] == str(user_data)
 
 
 @mock_aws
