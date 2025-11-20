@@ -91,7 +91,7 @@ class EventBridgePipesBackend(BaseBackend):
         tags: Optional[dict[str, str]],
         log_configuration: Optional[dict[str, Any]],
         kms_key_identifier: Optional[str],
-    ) -> tuple[str, str, str, str, str, str]:
+    ) -> Pipe:
         pipe = Pipe(
             name=name,
             account_id=self.account_id,
@@ -112,61 +112,12 @@ class EventBridgePipesBackend(BaseBackend):
 
         self.pipes[name] = pipe
 
-        return (
-            pipe.arn,
-            pipe.name,
-            pipe.desired_state,
-            pipe.current_state,
-            iso_8601_datetime_without_milliseconds(pipe.creation_time),
-            iso_8601_datetime_without_milliseconds(pipe.last_modified_time),
-        )
+        return pipe
 
-    def describe_pipe(
-        self, name: str
-    ) -> tuple[
-        str,
-        str,
-        Optional[str],
-        str,
-        str,
-        Optional[str],
-        str,
-        Optional[dict[str, Any]],
-        Optional[str],
-        Optional[dict[str, Any]],
-        str,
-        Optional[dict[str, Any]],
-        str,
-        Optional[dict[str, str]],
-        str,
-        str,
-        Optional[dict[str, Any]],
-        Optional[str],
-    ]:
+    def describe_pipe(self, name: str) -> Pipe:
         if name not in self.pipes:
             raise NotFoundException(f"Pipe {name} not found")
-        pipe = self.pipes[name]
-
-        return (
-            pipe.arn,
-            pipe.name,
-            pipe.description,
-            pipe.desired_state,
-            pipe.current_state,
-            pipe.state_reason,
-            pipe.source,
-            pipe.source_parameters,
-            pipe.enrichment,
-            pipe.enrichment_parameters,
-            pipe.target,
-            pipe.target_parameters,
-            pipe.role_arn,
-            pipe.tags,
-            iso_8601_datetime_without_milliseconds(pipe.creation_time),
-            iso_8601_datetime_without_milliseconds(pipe.last_modified_time),
-            pipe.log_configuration,
-            pipe.kms_key_identifier,
-        )
+        return self.pipes[name]
 
     def delete_pipe(self, name: str) -> tuple[str, str, str, str, str, str]:
         if name not in self.pipes:

@@ -311,21 +311,6 @@ def test_create_pipe_missing_role_arn():
     assert "RoleArn is a required parameter" in error["Message"]
 
 
-def test_validation_exception_with_field_list():
-    from moto.pipes.exceptions import ValidationException
-
-    field_list = [{"name": "Name", "message": "Name is invalid"}]
-    exc = ValidationException("Validation failed", field_list=field_list)
-    assert exc.code == 400
-    assert "Validation failed" in exc.message
-    assert "fieldList" in exc.description
-    import json
-
-    body = json.loads(exc.description)
-    assert "fieldList" in body
-    assert body["fieldList"] == field_list
-
-
 def test_conflict_exception_with_all_parameters():
     from moto.pipes.exceptions import ConflictException
 

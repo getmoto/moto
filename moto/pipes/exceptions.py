@@ -9,11 +9,10 @@ from moto.core.exceptions import JsonRESTError
 class ValidationException(JsonRESTError):
     code = 400
 
-    def __init__(self, message: str, field_list: Optional[list[dict[str, str]]] = None):
+    # TODO: Add field_list parameter in future iterations as it is not being used yet in current codebase
+    def __init__(self, message: str):
         super().__init__("ValidationException", message)
         body: dict[str, Any] = {"message": self.message}
-        if field_list is not None:
-            body["fieldList"] = field_list
         self.description = json.dumps(body)
 
 
