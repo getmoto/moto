@@ -684,8 +684,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     tags = format_tags(self.ec2_backend.tags.get(resource.id, {}))
                     if not tags or not tag_filter(tags):
                         continue
+                    resource_type_part = resource_type.split(":", 1)[1]
+                    resource_arn = f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{resource_type_part}/{resource.id}"
                     yield {
-                        "ResourceARN": f"arn:{self.partition}:ec2:{self.region_name}:{self.account_id}:{resource_type}/{resource.id}",
+                        "ResourceARN": resource_arn,
                         "Tags": tags,
                     }
 
