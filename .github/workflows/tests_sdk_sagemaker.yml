@@ -18,7 +18,7 @@ jobs:
         pip install .[sagemaker]
     - name: Install dependencies
       run: |
-        pip install boto3 pytest sagemaker
+        pip install boto3 pytest "sagemaker<3"
         # Multiple versions of sagemaker_core failing with the following:
         # E       pydantic_core._pydantic_core.ValidationError: 1 validation error for TrainingJob.create
         # E       session
