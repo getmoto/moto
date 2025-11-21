@@ -16,6 +16,7 @@ from ..ses.models import (
     RawMessage,
     ses_backends,
 )
+from ..ses.utils import get_arn
 
 PAGINATION_MODEL = {
     "list_dedicated_ip_pools": {
@@ -38,7 +39,8 @@ PAGINATION_MODEL = {
     },
 }
 
-
+# TODO
+# ListTagsForResource, TagResource, UntagResource to do
 class SESV2Backend(BaseBackend):
     """Implementation of SESV2 APIs, piggy back on v1 SES"""
 
@@ -53,6 +55,13 @@ class SESV2Backend(BaseBackend):
         description = params.get("Description")
         topics = [] if "Topics" not in params else params["Topics"]
         new_list = ContactList(name, str(description), topics)
+
+        if params.get("Tags"):
+            self.core_backend.tagger.tag_resource(
+                resource_arn=get_arn(self, name),
+                tags=params["Tags"],
+            )
+
         self.core_backend.contacts_lists[name] = new_list
 
     def get_contact_list(self, contact_list_name: str) -> ContactList:
@@ -118,6 +127,12 @@ class SESV2Backend(BaseBackend):
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
+        if tags:
+            self.core_backend.tagger.tag_resource(
+                resource_arn=get_arn(self, email_identity),
+                tags=tags,
+            )
+
         return self.core_backend.create_email_identity_v2(
             email_identity, tags, dkim_signing_attributes, configuration_set_name
         )
@@ -155,6 +170,12 @@ class SESV2Backend(BaseBackend):
             vdm_options=vdm_options,
         )
 
+        if tags:
+            self.core_backend.tagger.tag_resource(
+                resource_arn=get_arn(self, configuration_set_name),
+                tags=tags,
+            )
+
     def delete_configuration_set(self, configuration_set_name: str) -> None:
         self.core_backend.delete_configuration_set(configuration_set_name)
 
@@ -175,6 +196,13 @@ class SESV2Backend(BaseBackend):
             new_pool = DedicatedIpPool(
                 pool_name=pool_name, tags=tags, scaling_mode=scaling_mode
             )
+
+            if tags:
+                self.core_backend.tagger.tag_resource(
+                    resource_arn=get_arn(self, pool_name),
+                    tags=tags,
+                )
+
             self.core_backend.dedicated_ip_pools[pool_name] = new_pool
 
     def delete_dedicated_ip_pool(self, pool_name: str) -> None:

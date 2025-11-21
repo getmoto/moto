@@ -19,3 +19,14 @@ def is_valid_address(addr: str) -> Optional[str]:
     if len(address_parts) != 2 or not address_parts[1]:
         return "Missing domain"
     return None
+
+
+# TODO
+def get_arn(
+    partition: str,
+    service: str,
+    region: str,
+    account_id: str,
+    resource: str,
+) -> str:
+    return f"arn:{partition}:{service}:{region}:{account_id}:{resource}"

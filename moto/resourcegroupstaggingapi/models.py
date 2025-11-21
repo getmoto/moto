@@ -49,6 +49,7 @@ from moto.sagemaker.models import SageMakerModelBackend, sagemaker_backends
 from moto.secretsmanager import secretsmanager_backends
 from moto.secretsmanager.models import ReplicaSecret, SecretsManagerBackend
 from moto.servicecatalog.models import ServiceCatalogBackend, servicecatalog_backends
+from moto.sesv2.models import SESV2Backend, sesv2_backends
 from moto.sns.models import SNSBackend, sns_backends
 from moto.sqs.models import SQSBackend, sqs_backends
 from moto.ssm.models import SimpleSystemManagerBackend, ssm_backends
@@ -268,6 +269,10 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
     @property
     def vpclattice_backend(self) -> VPCLatticeBackend:
         return vpclattice_backends[self.account_id][self.region_name]
+
+    @property
+    def sesv2_backend(self) -> SESV2Backend:
+        return sesv2_backends[self.account_id][self.region_name]
 
     def _get_resources_generator(
         self,
@@ -1046,6 +1051,45 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     continue
                 yield {"ResourceARN": f"{product.arn}", "Tags": tags}
 
+        if self.sesv2_backend:
+            sesv2_resource_map: dict[str, dict[str, Any]] = {
+                "ses:configuration-set": self.sesv2_backend.core_backend.configuration_sets,
+                "ses:contact-list": self.sesv2_backend.core_backend.contact_lists,
+                "ses:dedicated-ip-pool": self.sesv2_backend.core_backend.dedicated_ips,
+                "ses:email-identity": self.sesv2_backend.core_backend.email_identities,
+            }
+
+            resource_id_attr_map: dict[str, str] = {
+                "ses:configuration-set": "configuration_set_name",
+                "ses:contact-list": "contact_list_name",
+                "ses:dedicated-ip-pool": "pool_name",
+                "ses:email-identity": "identity_name",
+            }
+
+            # Need to validate with the tagger still
+            for resource_type, resource_source in sesv2_resource_map.items():
+                if (
+                    not resource_type_filters
+                    or "ses" in resource_type_filters
+                    or resource_type in resource_type_filters
+                ):
+                    for resource in resource_source.values():
+                        resource_id_attr = resource_id_attr_map[resource_type]
+                        resource_id = getattr(resource, resource_id_attr)
+
+                        arn = f"arn:{get_partition(self.region_name)}:ses:{self.region_name}:{self.account_id}:{resource_type.split(':')[-1]}/{resource_id}"
+
+                        tags = self.sesv2_backend.core_backend.list_tags_for_resource(
+                            arn
+                        )["Tags"]
+
+                        if not tags or not tag_filter(tags):
+                            continue
+
+                        yield {
+                            "ResourceARN": arn,
+                            "Tags": tags,
+                        }
         # SNS
         if not resource_type_filters or "sns" in resource_type_filters:
             for topic in self.sns_backend.topics.values():
