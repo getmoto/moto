@@ -2384,6 +2384,10 @@
   "Location": "sae1-az1"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "sae1-az1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sae1-az1"
  },
@@ -4544,6 +4548,10 @@
   "Location": "sae1-az2"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "sae1-az2"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sae1-az2"
  },
@@ -6617,6 +6625,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "sae1-az3"
+ },
+ {
+  "InstanceType": "trn2.3xlarge",
   "Location": "sae1-az3"
  },
  {

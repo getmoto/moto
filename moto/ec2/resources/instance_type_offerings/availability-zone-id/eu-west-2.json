@@ -4240,6 +4240,10 @@
   "Location": "euw2-az2"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "euw2-az2"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "euw2-az2"
  },
@@ -6689,6 +6693,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "euw2-az3"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "euw2-az3"
  },
  {
