@@ -2412,6 +2412,10 @@
   "Location": "sa-east-1"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "sa-east-1"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1"
  },

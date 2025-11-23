@@ -2640,6 +2640,10 @@
   "Location": "us-west-2a"
  },
  {
+  "InstanceType": "p6-b300.48xlarge",
+  "Location": "us-west-2a"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-west-2a"
  },
@@ -3837,6 +3841,10 @@
  },
  {
   "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "us-west-2a"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
   "Location": "us-west-2a"
  },
  {

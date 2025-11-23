@@ -2704,6 +2704,10 @@
   "Location": "us-west-2"
  },
  {
+  "InstanceType": "p6-b300.48xlarge",
+  "Location": "us-west-2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "us-west-2"
  },

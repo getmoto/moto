@@ -6752,6 +6752,10 @@
   "Location": "usw2-az2"
  },
  {
+  "InstanceType": "p6-b300.48xlarge",
+  "Location": "usw2-az2"
+ },
+ {
   "InstanceType": "r3.2xlarge",
   "Location": "usw2-az2"
  },
@@ -7949,6 +7953,10 @@
  },
  {
   "InstanceType": "u7i-8tb.112xlarge",
+  "Location": "usw2-az2"
+ },
+ {
+  "InstanceType": "u7in-24tb.224xlarge",
   "Location": "usw2-az2"
  },
  {

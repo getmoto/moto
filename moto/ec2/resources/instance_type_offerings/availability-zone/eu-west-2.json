@@ -1772,6 +1772,10 @@
   "Location": "eu-west-2a"
  },
  {
+  "InstanceType": "p4d.24xlarge",
+  "Location": "eu-west-2a"
+ },
+ {
   "InstanceType": "p5.48xlarge",
   "Location": "eu-west-2a"
  },
@@ -4221,6 +4225,10 @@
  },
  {
   "InstanceType": "p3.8xlarge",
+  "Location": "eu-west-2b"
+ },
+ {
+  "InstanceType": "p4d.24xlarge",
   "Location": "eu-west-2b"
  },
  {
