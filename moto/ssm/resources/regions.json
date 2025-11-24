@@ -250,6 +250,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.af-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "chatbot": {
                 "Value": "chatbot"
               },
@@ -4540,6 +4549,15 @@
                 "Value": "ssm",
                 "endpoint": {
                   "Value": "ssm.ap-east-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "sso-oidc": {
+                "Value": "sso-oidc",
+                "endpoint": {
+                  "Value": "oidc.ap-east-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -24458,6 +24476,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appstream": {
+                "Value": "appstream",
+                "endpoint": {
+                  "Value": "appstream2.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -25547,6 +25574,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.ap-southeast-5.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "shield": {
                 "Value": "shield",
                 "endpoint": {
@@ -25977,6 +26013,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "ds": {
+                "Value": "ds",
+                "endpoint": {
+                  "Value": "ds.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "dynamodb": {
                 "Value": "dynamodb",
                 "endpoint": {
@@ -26133,6 +26178,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "identitystore": {
+                "Value": "identitystore",
+                "endpoint": {
+                  "Value": "identitystore.ap-southeast-6.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "imagebuilder": {
                 "Value": "imagebuilder",
                 "endpoint": {
@@ -26221,6 +26275,15 @@
                 "Value": "organizations",
                 "endpoint": {
                   "Value": "organizations.us-east-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "pca-connector-ad": {
+                "Value": "pca-connector-ad",
+                "endpoint": {
+                  "Value": "pca-connector-ad.ap-southeast-6.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -30431,6 +30494,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "chatbot": {
                 "Value": "chatbot"
               },
@@ -31323,6 +31395,15 @@
                 "Value": "servicediscovery",
                 "endpoint": {
                   "Value": "servicediscovery.ca-west-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "ses": {
+                "Value": "ses",
+                "endpoint": {
+                  "Value": "email.ca-west-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -41148,6 +41229,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appstream": {
+                "Value": "appstream",
+                "endpoint": {
+                  "Value": "appstream2.eu-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -42839,6 +42929,15 @@
                 "Value": "appmesh",
                 "endpoint": {
                   "Value": "appmesh.eu-south-2.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "appstream": {
+                "Value": "appstream",
+                "endpoint": {
+                  "Value": "appstream2.eu-south-2.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
@@ -52227,6 +52326,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "appstream": {
+                "Value": "appstream",
+                "endpoint": {
+                  "Value": "appstream2.il-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "appsync": {
                 "Value": "appsync",
                 "endpoint": {
@@ -55507,6 +55615,15 @@
                   "Value": "HTTPS"
                 }
               },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.me-south-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
               "chatbot": {
                 "Value": "chatbot"
               },
@@ -57150,6 +57267,15 @@
                 "Value": "batch",
                 "endpoint": {
                   "Value": "batch.mx-central-1.amazonaws.com"
+                },
+                "protocols": {
+                  "Value": "HTTPS"
+                }
+              },
+              "bedrock": {
+                "Value": "bedrock",
+                "endpoint": {
+                  "Value": "bedrock.mx-central-1.amazonaws.com"
                 },
                 "protocols": {
                   "Value": "HTTPS"
