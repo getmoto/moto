@@ -256,5 +256,14 @@ class SESV2Backend(BaseBackend):
 
         return email_id.policies
 
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self.core_backend.tagger.tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.core_backend.tagger.untag_resource(resource_arn, tag_keys)
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        return self.core_backend.tagger.list_tags_for_resource(resource_arn)
+
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

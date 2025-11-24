@@ -38,7 +38,7 @@ from .exceptions import (
 )
 from .feedback import BOUNCE, COMMON_MAIL, COMPLAINT, DELIVERY
 from .template import parse_template
-from .utils import get_random_message_id, is_valid_address, get_arn
+from .utils import get_arn, get_random_message_id, is_valid_address
 
 RECIPIENT_LIMIT = 50
 
