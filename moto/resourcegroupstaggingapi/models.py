@@ -952,7 +952,11 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                     yield {"ResourceARN": f"{secret.arn}", "Tags": formated_tags}
 
         # SQS
-        if not resource_type_filters or "sqs" in resource_type_filters:
+        if (
+            not resource_type_filters
+            or "sqs" in resource_type_filters
+            or "sqs:queue" in resource_type_filters
+        ):
             for queue in self.sqs_backend.queues.values():
                 tags = format_tags(queue.tags)
                 if not tags or not tag_filter(

@@ -1092,6 +1092,14 @@ def test_get_resources_sqs():
     assert len(resp["ResourceTagMappingList"]) == 1
     assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
 
+    # Test tag filtering with sqs:queue
+    resp = rtapi.get_resources(
+        ResourceTypeFilters=["sqs:queue"],
+        TagFilters=[{"Key": "Test", "Values": ["1"]}],
+    )
+    assert len(resp["ResourceTagMappingList"]) == 1
+    assert {"Key": "Test", "Value": "1"} in resp["ResourceTagMappingList"][0]["Tags"]
+
 
 def create_directory():
     ec2_client = boto3.client("ec2", region_name="eu-central-1")
