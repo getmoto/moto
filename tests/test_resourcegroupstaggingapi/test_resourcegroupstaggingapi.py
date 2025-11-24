@@ -1084,6 +1084,9 @@ def test_get_resources_sqs():
     resp = rtapi.get_resources(ResourceTypeFilters=["sqs"])
     assert len(resp["ResourceTagMappingList"]) == 2
 
+    resp = rtapi.get_resources(ResourceTypeFilters=["sqs:queue"])
+    assert len(resp["ResourceTagMappingList"]) == 2
+
     # Test tag filtering
     resp = rtapi.get_resources(
         ResourceTypeFilters=["sqs"],
