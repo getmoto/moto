@@ -1053,9 +1053,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
         if self.sesv2_backend:
             sesv2_resource_map: dict[str, dict[str, Any]] = {
-                "ses:configuration-set": self.sesv2_backend.core_backend.configuration_sets,
-                "ses:contact-list": self.sesv2_backend.core_backend.contact_lists,
-                "ses:dedicated-ip-pool": self.sesv2_backend.core_backend.dedicated_ips,
+                "ses:configuration-set": self.sesv2_backend.core_backend.config_sets,
+                "ses:contact-list": self.sesv2_backend.core_backend.contacts_lists,
+                "ses:dedicated-ip-pool": self.sesv2_backend.core_backend.dedicated_ip_pools,
                 "ses:email-identity": self.sesv2_backend.core_backend.email_identities,
             }
 
@@ -1063,10 +1063,9 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 "ses:configuration-set": "configuration_set_name",
                 "ses:contact-list": "contact_list_name",
                 "ses:dedicated-ip-pool": "pool_name",
-                "ses:email-identity": "identity_name",
+                "ses:email-identity": "email_identity",
             }
 
-            # Need to validate with the tagger still
             for resource_type, resource_source in sesv2_resource_map.items():
                 if (
                     not resource_type_filters
@@ -1079,7 +1078,7 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
 
                         arn = f"arn:{get_partition(self.region_name)}:ses:{self.region_name}:{self.account_id}:{resource_type.split(':')[-1]}/{resource_id}"
 
-                        tags = self.sesv2_backend.core_backend.list_tags_for_resource(
+                        tags = self.sesv2_backend.core_backend.tagger.list_tags_for_resource(
                             arn
                         )["Tags"]
 

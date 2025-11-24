@@ -39,6 +39,7 @@ PAGINATION_MODEL = {
     },
 }
 
+
 # TODO
 # ListTagsForResource, TagResource, UntagResource to do
 class SESV2Backend(BaseBackend):
@@ -58,7 +59,7 @@ class SESV2Backend(BaseBackend):
 
         if params.get("Tags"):
             self.core_backend.tagger.tag_resource(
-                resource_arn=get_arn(self, name),
+                arn=get_arn(self, "ses", f"contact-list/{name}"),
                 tags=params["Tags"],
             )
 
@@ -129,7 +130,7 @@ class SESV2Backend(BaseBackend):
     ) -> EmailIdentity:
         if tags:
             self.core_backend.tagger.tag_resource(
-                resource_arn=get_arn(self, email_identity),
+                arn=get_arn(self, "ses", f"email-identity/{email_identity}"),
                 tags=tags,
             )
 
@@ -170,12 +171,6 @@ class SESV2Backend(BaseBackend):
             vdm_options=vdm_options,
         )
 
-        if tags:
-            self.core_backend.tagger.tag_resource(
-                resource_arn=get_arn(self, configuration_set_name),
-                tags=tags,
-            )
-
     def delete_configuration_set(self, configuration_set_name: str) -> None:
         self.core_backend.delete_configuration_set(configuration_set_name)
 
@@ -199,7 +194,7 @@ class SESV2Backend(BaseBackend):
 
             if tags:
                 self.core_backend.tagger.tag_resource(
-                    resource_arn=get_arn(self, pool_name),
+                    arn=get_arn(self, "ses", f"dedicated-ip-pool/{pool_name}"),
                     tags=tags,
                 )
 

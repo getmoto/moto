@@ -21,12 +21,9 @@ def is_valid_address(addr: str) -> Optional[str]:
     return None
 
 
-# TODO
 def get_arn(
-    partition: str,
-    service: str,
-    region: str,
-    account_id: str,
-    resource: str,
+    backend,
+    service,
+    resource,
 ) -> str:
-    return f"arn:{partition}:{service}:{region}:{account_id}:{resource}"
+    return f"arn:{backend.partition}:{service}:{backend.region_name}:{backend.account_id}:{resource}"

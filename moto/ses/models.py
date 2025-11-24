@@ -432,7 +432,7 @@ class SESBackend(BaseBackend):
 
         if tags:
             self.tagger.tag_resource(
-                resource_arn=get_arn(self, identity),
+                arn=get_arn(self, "ses", f"email-identity/{email_identity}"),
                 tags=tags,
             )
         self.email_identities[email_identity] = identity
@@ -686,9 +686,11 @@ class SESBackend(BaseBackend):
             )
         config_set = ConfigurationSet(configuration_set_name=configuration_set_name)
         # # TODO fix the tags
+        import pdb
+        # pdb.set_trace()
         # if tags:
-        #     self.tagger.tag_resource(
-        #         resource_arn=get_arn(self, configuration_set_name),
+        #     self.core_backend.tagger.tag_resource(
+        #         arn=get_arn(self, "ses", f"configuration-set/{configuration_set_name}"),
         #         tags=tags,
         #     )
 
@@ -722,7 +724,7 @@ class SESBackend(BaseBackend):
 
         if tags:
             self.tagger.tag_resource(
-                resource_arn=get_arn(self, configuration_set_name),
+                arn=get_arn(self, "ses", f"configuration-set/{configuration_set_name}"),
                 tags=tags,
             )
 
