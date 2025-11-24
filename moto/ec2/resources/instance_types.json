@@ -37219,7 +37219,7 @@
      "Name": "L4"
     }
    ],
-   "TotalGpuMemoryInMiB": 0
+   "TotalGpuMemoryInMiB": 2861
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -37622,7 +37622,7 @@
      "Name": "L4"
     }
    ],
-   "TotalGpuMemoryInMiB": 0
+   "TotalGpuMemoryInMiB": 11444
   },
   "HibernationSupported": false,
   "Hypervisor": "nitro",
@@ -84264,6 +84264,312 @@
    ]
   }
  },
+ "p6-b300.48xlarge": {
+  "AutoRecoverySupported": false,
+  "BareMetal": false,
+  "BurstablePerformanceSupported": false,
+  "CurrentGeneration": true,
+  "DedicatedHostsSupported": false,
+  "EbsInfo": {
+   "AttachmentLimitType": "dedicated",
+   "EbsOptimizedInfo": {
+    "BaselineBandwidthInMbps": 100000,
+    "BaselineIops": 400000,
+    "BaselineThroughputInMBps": 12500.0,
+    "MaximumBandwidthInMbps": 100000,
+    "MaximumIops": 400000,
+    "MaximumThroughputInMBps": 12500.0
+   },
+   "EbsOptimizedSupport": "default",
+   "EncryptionSupport": "supported",
+   "MaximumEbsAttachments": 64,
+   "NvmeSupport": "required"
+  },
+  "FreeTierEligible": false,
+  "GpuInfo": {
+   "Gpus": [
+    {
+     "Count": 8,
+     "Manufacturer": "NVIDIA",
+     "MemoryInfo": {
+      "SizeInMiB": 275040
+     },
+     "Name": "B300"
+    }
+   ],
+   "TotalGpuMemoryInMiB": 2200320
+  },
+  "HibernationSupported": false,
+  "Hypervisor": "nitro",
+  "InstanceStorageInfo": {
+   "Disks": [
+    {
+     "Count": 8,
+     "SizeInGB": 3800,
+     "Type": "ssd"
+    }
+   ],
+   "EncryptionSupport": "required",
+   "NvmeSupport": "required",
+   "TotalSizeInGB": 30400
+  },
+  "InstanceStorageSupported": true,
+  "InstanceType": "p6-b300.48xlarge",
+  "MemoryInfo": {
+   "SizeInMiB": 4194304
+  },
+  "NetworkInfo": {
+   "DefaultNetworkCardIndex": 0,
+   "EfaInfo": {
+    "MaximumEfaInterfaces": 16
+   },
+   "EfaSupported": true,
+   "EnaSrdSupported": true,
+   "EnaSupport": "required",
+   "EncryptionInTransitSupported": true,
+   "FlexibleEnaQueuesSupport": "unsupported",
+   "Ipv4AddressesPerInterface": 50,
+   "Ipv6AddressesPerInterface": 50,
+   "Ipv6Supported": true,
+   "MaximumNetworkCards": 17,
+   "MaximumNetworkInterfaces": 68,
+   "NetworkCards": [
+    {
+     "BaselineBandwidthInGbps": 350.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 0,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 350.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 1,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 2,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 3,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 4,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 5,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 6,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 7,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 8,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 9,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 10,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 11,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 12,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 13,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 14,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 15,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    },
+    {
+     "BaselineBandwidthInGbps": 400.0,
+     "DefaultEnaQueueCountPerInterface": 32,
+     "MaximumNetworkInterfaces": 4,
+     "NetworkCardIndex": 16,
+     "NetworkPerformance": "400 Gigabit",
+     "PeakBandwidthInGbps": 400.0
+    }
+   ],
+   "NetworkPerformance": "6400 Gigabit"
+  },
+  "NitroEnclavesSupport": "supported",
+  "NitroTpmInfo": {
+   "SupportedVersions": [
+    "2.0"
+   ]
+  },
+  "NitroTpmSupport": "supported",
+  "PhcSupport": "supported",
+  "PlacementGroupInfo": {
+   "SupportedStrategies": [
+    "cluster",
+    "partition",
+    "spread"
+   ]
+  },
+  "ProcessorInfo": {
+   "Manufacturer": "Intel",
+   "SupportedArchitectures": [
+    "x86_64"
+   ],
+   "SustainedClockSpeedInGhz": 2.4
+  },
+  "RebootMigrationSupport": "unsupported",
+  "SupportedBootModes": [
+   "legacy-bios",
+   "uefi"
+  ],
+  "SupportedRootDeviceTypes": [
+   "ebs"
+  ],
+  "SupportedUsageClasses": [
+   "capacity-block",
+   "on-demand",
+   "spot"
+  ],
+  "SupportedVirtualizationTypes": [
+   "hvm"
+  ],
+  "VCpuInfo": {
+   "DefaultCores": 96,
+   "DefaultThreadsPerCore": 2,
+   "DefaultVCpus": 192,
+   "ValidCores": [
+    4,
+    6,
+    8,
+    10,
+    12,
+    14,
+    16,
+    18,
+    20,
+    22,
+    24,
+    26,
+    28,
+    30,
+    32,
+    34,
+    36,
+    38,
+    40,
+    42,
+    44,
+    46,
+    48,
+    50,
+    52,
+    54,
+    56,
+    58,
+    60,
+    62,
+    64,
+    66,
+    68,
+    70,
+    72,
+    74,
+    76,
+    78,
+    80,
+    82,
+    84,
+    86,
+    88,
+    90,
+    92,
+    94,
+    96
+   ],
+   "ValidThreadsPerCore": [
+    1,
+    2
+   ]
+  }
+ },
  "r3.2xlarge": {
   "AutoRecoverySupported": true,
   "BareMetal": false,
@@ -120107,13 +120413,13 @@
    "Disks": [
     {
      "Count": 1,
-     "SizeInGB": 475,
+     "SizeInGB": 470,
      "Type": "ssd"
     }
    ],
    "EncryptionSupport": "required",
    "NvmeSupport": "required",
-   "TotalSizeInGB": 475
+   "TotalSizeInGB": 470
   },
   "InstanceStorageSupported": true,
   "InstanceType": "trn2.3xlarge",
