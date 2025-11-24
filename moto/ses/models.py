@@ -685,14 +685,6 @@ class SESBackend(BaseBackend):
                 f"Configuration set <{configuration_set_name}> already exists"
             )
         config_set = ConfigurationSet(configuration_set_name=configuration_set_name)
-        # # TODO fix the tags
-        import pdb
-        # pdb.set_trace()
-        # if tags:
-        #     self.core_backend.tagger.tag_resource(
-        #         arn=get_arn(self, "ses", f"configuration-set/{configuration_set_name}"),
-        #         tags=tags,
-        #     )
 
         self.config_sets[configuration_set_name] = config_set
 
