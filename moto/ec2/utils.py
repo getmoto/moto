@@ -62,6 +62,8 @@ EC2_RESOURCE_TO_PREFIX = {
     "subnet": "subnet",
     "subnet-ipv6-cidr-block-association": "subnet-cidr-assoc",
     "reservation": "r",
+    "traffic-mirror-filter": "traf-mir-fil",
+    "traffic-mirror-target": "traf-mir-tar",
     "volume": "vol",
     "vpc": "vpc",
     "vpc-endpoint": "vpce",
@@ -229,8 +231,13 @@ def random_transit_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway"])
 
 
-def random_traffic_mirror_id() -> str:
-    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror"])
+def random_traffic_mirror_filter_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-filter"])
+
+
+def random_traffic_mirror_target_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-target"])
+
 
 def random_transit_gateway_route_table_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-route-table"])
