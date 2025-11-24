@@ -2144,6 +2144,14 @@
   "Location": "us-east-2a"
  },
  {
+  "InstanceType": "m7i-flex.12xlarge",
+  "Location": "us-east-2a"
+ },
+ {
+  "InstanceType": "m7i-flex.16xlarge",
+  "Location": "us-east-2a"
+ },
+ {
   "InstanceType": "m7i-flex.2xlarge",
   "Location": "us-east-2a"
  },

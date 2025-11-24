@@ -2384,6 +2384,10 @@
   "Location": "sa-east-1a"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "sa-east-1a"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1a"
  },
@@ -4544,6 +4548,10 @@
   "Location": "sa-east-1b"
  },
  {
+  "InstanceType": "trn2.3xlarge",
+  "Location": "sa-east-1b"
+ },
+ {
   "InstanceType": "u-3tb1.56xlarge",
   "Location": "sa-east-1b"
  },
@@ -6617,6 +6625,10 @@
  },
  {
   "InstanceType": "t4g.xlarge",
+  "Location": "sa-east-1c"
+ },
+ {
+  "InstanceType": "trn2.3xlarge",
   "Location": "sa-east-1c"
  },
  {
