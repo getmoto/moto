@@ -52,8 +52,6 @@ class LaunchTemplateVersion:
     @property
     def user_data(self) -> Optional[Base64EncodedString]:
         user_data = self.data.get("UserData", None)
-        if user_data is not None:
-            user_data = Base64EncodedString(user_data)
         return user_data
 
 
