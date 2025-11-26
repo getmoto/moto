@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.types import Base64EncodedString
@@ -50,7 +50,7 @@ class LaunchTemplateVersion:
         return self.data.get("SecurityGroups", [])
 
     @property
-    def user_data(self) -> Optional[Base64EncodedString]:
+    def user_data(self) -> Base64EncodedString | None:
         user_data = self.data.get("UserData", None)
         if user_data is not None and not isinstance(user_data, Base64EncodedString):
             user_data = Base64EncodedString(user_data)
@@ -111,7 +111,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         return self.id
 
     def get_filter_value(
-        self, filter_name: str, method_name: Optional[str] = None
+        self, filter_name: str, method_name: str | None = None
     ) -> Any:
         if filter_name == "launch-template-name":
             return self.name
@@ -235,8 +235,8 @@ class LaunchTemplateBackend:
     def modify_launch_template(
         self,
         default_version: str,
-        template_name: Optional[str] = None,
-        template_id: Optional[str] = None,
+        template_name: str | None = None,
+        template_id: str | None = None,
     ) -> LaunchTemplate:
         if template_name:
             template_id = self.launch_template_name_to_ids.get(template_name)
@@ -256,7 +256,7 @@ class LaunchTemplateBackend:
             raise InvalidLaunchTemplateNameNotFoundWithNameError(name)
         return self.get_launch_template(self.launch_template_name_to_ids[name])
 
-    def delete_launch_template(self, name: str, tid: Optional[str]) -> LaunchTemplate:
+    def delete_launch_template(self, name: str, tid: str | None) -> LaunchTemplate:
         if name:
             tid = self.launch_template_name_to_ids.get(name)
         if tid is None:
@@ -269,8 +269,8 @@ class LaunchTemplateBackend:
 
     def describe_launch_templates(
         self,
-        template_names: Optional[list[str]] = None,
-        template_ids: Optional[list[str]] = None,
+        template_names: list[str] | None = None,
+        template_ids: list[str] | None = None,
         filters: Any = None,
     ) -> list[LaunchTemplate]:
         if template_names and not template_ids:
