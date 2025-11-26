@@ -261,7 +261,7 @@ class TestAutoScalingGroup(TestCase):
         ec2_client = boto3.client("ec2", region_name="us-east-1")
         ec2_client.create_launch_template(
             LaunchTemplateName=lt_name,
-            LaunchTemplateData={"ImageId": "ami-12345678", "InstanceType": "t2.nano"},
+            LaunchTemplateData={"ImageId": "ami-12345678", "InstanceType": "t2.nano","UserData": base64.b64encode(b"DummyData").decode("utf-8")},
         )
 
         # Format: (Desired, OD_Base, OD_Percent, Expected_Instance_Count)
