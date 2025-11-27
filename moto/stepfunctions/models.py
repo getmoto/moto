@@ -159,10 +159,13 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
         for execution in self.executions:
             if execution.name == name:
                 # Executions with the same name and input are considered idempotent
-                if execution_input == execution.execution_input:
+                if (
+                    execution_input == execution.execution_input
+                    and execution.status == "RUNNING"
+                ):
                     return execution
 
-                # If the inputs are different, raise
+                # If the inputs are different _or_ the execution already finished, raise
                 raise ExecutionAlreadyExists(
                     "Execution Already Exists: '" + execution.execution_arn + "'"
                 )
