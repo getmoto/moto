@@ -8321,7 +8321,7 @@
 
 ## s3control
 <details>
-<summary>16% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] associate_access_grants_identity_center
 - [ ] create_access_grant
@@ -8397,7 +8397,7 @@
 - [ ] list_regional_buckets
 - [X] list_storage_lens_configurations
 - [ ] list_storage_lens_groups
-- [ ] list_tags_for_resource
+- [X] list_tags_for_resource
 - [ ] put_access_grants_instance_resource_policy
 - [ ] put_access_point_configuration_for_object_lambda
 - [X] put_access_point_policy
@@ -8414,8 +8414,8 @@
 - [X] put_storage_lens_configuration
 - [X] put_storage_lens_configuration_tagging
 - [ ] submit_multi_region_access_point_routes
-- [ ] tag_resource
-- [ ] untag_resource
+- [X] tag_resource
+- [X] untag_resource
 - [ ] update_access_grants_location
 - [ ] update_job_priority
 - [ ] update_job_status
