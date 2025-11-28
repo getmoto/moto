@@ -13,6 +13,7 @@ from ..exceptions import (
 from ..utils import (
     convert_tag_spec,
     generic_filter,
+    parse_user_data,
     random_launch_template_id,
     random_launch_template_name,
     utc_date_and_time,
@@ -52,6 +53,10 @@ class LaunchTemplateVersion:
     @property
     def user_data(self) -> Optional[Base64EncodedString]:
         user_data = self.data.get("UserData", None)
+        # There are a lot of entry points for UserData, so we have to assert
+        assert user_data is None or isinstance(user_data, Base64EncodedString), type(
+            user_data
+        )
         return user_data
 
 
@@ -141,6 +146,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         properties = cloudformation_json["Properties"]
         name = properties.get("LaunchTemplateName")
         data = properties.get("LaunchTemplateData")
+        data["UserData"] = parse_user_data(data.get("UserData"))
         description = properties.get("VersionDescription")
         tag_spec = convert_tag_spec(
             properties.get("TagSpecifications", {}), tag_key="Tags"
@@ -171,6 +177,7 @@ class LaunchTemplate(TaggedEC2Resource, CloudFormationModel):
         properties = cloudformation_json["Properties"]
 
         data = properties.get("LaunchTemplateData")
+        data["UserData"] = parse_user_data(data.get("UserData"))
         description = properties.get("VersionDescription")
 
         launch_template = backend.get_launch_template(original_resource.id)

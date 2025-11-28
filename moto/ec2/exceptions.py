@@ -913,3 +913,11 @@ class AuthFailureRestricted(RESTError):
             "AuthFailure",
             "Unauthorized attempt to access restricted resource",
         )
+
+
+class InvalidUserDataError(EC2ClientError):
+    def __init__(self, message: str):
+        super().__init__(
+            "InvalidUserData.Malformed",
+            message,
+        )

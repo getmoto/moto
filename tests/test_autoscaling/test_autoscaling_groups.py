@@ -257,11 +257,17 @@ class TestAutoScalingGroup(TestCase):
         )
 
     def test_mixed_instance_calculations(self):
+        from base64 import b64encode
+
         lt_name = "test_launch_template"
         ec2_client = boto3.client("ec2", region_name="us-east-1")
         ec2_client.create_launch_template(
             LaunchTemplateName=lt_name,
-            LaunchTemplateData={"ImageId": "ami-12345678", "InstanceType": "t2.nano"},
+            LaunchTemplateData={
+                "ImageId": "ami-12345678",
+                "InstanceType": "t2.nano",
+                "UserData": b64encode(b"DummyData").decode("utf-8"),
+            },
         )
 
         # Format: (Desired, OD_Base, OD_Percent, Expected_Instance_Count)

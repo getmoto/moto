@@ -29,7 +29,7 @@ def xml_serialize(tree: ElementTree.Element, key: str, value: Any) -> None:
 
     node = ElementTree.SubElement(tree, name)
 
-    if isinstance(value, (str, int, float, str)):
+    if isinstance(value, (str, int, float, str, Base64EncodedString)):
         node.text = str(value)
     elif isinstance(value, dict):
         for dictkey, dictvalue in value.items():

@@ -56,7 +56,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
         availability_zone_group: Optional[str],
         key_name: str,
         security_groups: list[str],
-        user_data: dict[str, Any],
+        user_data: dict[str, Any],  # TODO: should be Optional[Base64EncodedString]
         instance_type: str,
         placement: Optional[str],
         kernel_id: Optional[str],
