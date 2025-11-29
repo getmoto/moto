@@ -43,3 +43,10 @@ class VectorBucketAlreadyExists(ServiceException):
 
     def __init__(self) -> None:
         super().__init__("A vector bucket with the specified name already exists")
+
+
+class VectorBucketNotEmpty(ServiceException):
+    code = "ConflictException"
+
+    def __init__(self) -> None:
+        super().__init__("The specified vector bucket is not empty")
