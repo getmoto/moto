@@ -4,6 +4,7 @@ import boto3
 
 from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
+from moto.core.types import Base64EncodedString
 from tests import EXAMPLE_AMI_ID
 
 from .utils import setup_networking
@@ -257,17 +258,11 @@ class TestAutoScalingGroup(TestCase):
         )
 
     def test_mixed_instance_calculations(self):
-        from base64 import b64encode
-
         lt_name = "test_launch_template"
         ec2_client = boto3.client("ec2", region_name="us-east-1")
         ec2_client.create_launch_template(
             LaunchTemplateName=lt_name,
-            LaunchTemplateData={
-                "ImageId": "ami-12345678",
-                "InstanceType": "t2.nano",
-                "UserData": b64encode(b"DummyData").decode("utf-8"),
-            },
+            LaunchTemplateData={"ImageId": "ami-12345678", "InstanceType": "t2.nano"},
         )
 
         # Format: (Desired, OD_Base, OD_Percent, Expected_Instance_Count)
@@ -369,3 +364,35 @@ def test_launch_template_with_tags():
     tags = instances["Reservations"][0]["Instances"][0]["Tags"]
     assert {"Value": "TestTagValue1", "Key": "TestTagKey1"} in tags
     assert {"Key": "from_lt", "Value": "val"} in tags
+
+
+@mock_aws
+def test_launch_template_with_user_data():
+    mocked_networking = setup_networking()
+    user_data = Base64EncodedString.from_raw_string("test user data")
+    ec2_client = boto3.client("ec2", region_name="us-east-1")
+    template = ec2_client.create_launch_template(
+        LaunchTemplateName="test_launch_template",
+        LaunchTemplateData={
+            "ImageId": EXAMPLE_AMI_ID,
+            "InstanceType": "t2.micro",
+            "UserData": str(user_data),
+        },
+    )["LaunchTemplate"]
+    as_client = boto3.client("autoscaling", region_name="us-east-1")
+    as_client.create_auto_scaling_group(
+        AutoScalingGroupName="myasgroup",
+        MinSize=2,
+        MaxSize=3,
+        LaunchTemplate={"LaunchTemplateId": template["LaunchTemplateId"]},
+        VPCZoneIdentifier=mocked_networking["subnet1"],
+    )
+    resp = ec2_client.describe_instances(
+        Filters=[{"Name": "tag:aws:autoscaling:groupName", "Values": ["myasgroup"]}]
+    )
+    instances = resp["Reservations"][0]["Instances"]
+    for instance in instances:
+        attr_resp = ec2_client.describe_instance_attribute(
+            InstanceId=instance["InstanceId"], Attribute="userData"
+        )
+        assert attr_resp["UserData"]["Value"] == str(user_data)
