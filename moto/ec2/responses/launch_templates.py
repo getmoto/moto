@@ -21,6 +21,8 @@ def xml_root(name: str) -> ElementTree.Element:
 
 
 def xml_serialize(tree: ElementTree.Element, key: str, value: Any) -> None:
+    if value is None:
+        return
     name = key[0].lower() + key[1:]
     if isinstance(value, list):
         if name[-1] == "s":
