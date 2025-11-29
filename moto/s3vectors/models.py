@@ -12,6 +12,7 @@ from .exceptions import (
     VectorBucketAlreadyExists,
     VectorBucketNotEmpty,
     VectorBucketNotFound,
+    VectorBucketPolicyNotFound,
 )
 from .utils import create_vector_bucket_arn
 
@@ -49,6 +50,7 @@ class VectorBucket(BaseModel):
         }
 
         self.indexes: dict[str, Index] = {}
+        self.policy: Optional[str] = None
 
 
 class S3VectorsBackend(BaseBackend):
@@ -156,6 +158,32 @@ class S3VectorsBackend(BaseBackend):
             vector_bucket_name, vector_bucket_arn=vector_bucket_arn
         )
         return list(bucket.indexes.values())
+
+    def delete_vector_bucket_policy(
+        self, vector_bucket_name: str, vector_bucket_arn: str
+    ) -> None:
+        bucket = self.get_vector_bucket(
+            vector_bucket_name, vector_bucket_arn=vector_bucket_arn
+        )
+        bucket.policy = None
+
+    def get_vector_bucket_policy(
+        self, vector_bucket_name: str, vector_bucket_arn: str
+    ) -> str:
+        bucket = self.get_vector_bucket(
+            vector_bucket_name, vector_bucket_arn=vector_bucket_arn
+        )
+        if not bucket.policy:
+            raise VectorBucketPolicyNotFound
+        return bucket.policy
+
+    def put_vector_bucket_policy(
+        self, vector_bucket_name: str, vector_bucket_arn: str, policy: str
+    ) -> None:
+        bucket = self.get_vector_bucket(
+            vector_bucket_name, vector_bucket_arn=vector_bucket_arn
+        )
+        bucket.policy = policy
 
 
 s3vectors_backends = BackendDict(

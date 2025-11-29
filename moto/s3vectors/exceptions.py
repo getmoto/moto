@@ -50,3 +50,10 @@ class VectorBucketNotEmpty(ServiceException):
 
     def __init__(self) -> None:
         super().__init__("The specified vector bucket is not empty")
+
+
+class VectorBucketPolicyNotFound(ServiceException):
+    code = "NotFoundException"
+
+    def __init__(self) -> None:
+        super().__init__("The specified vector bucket policy could not be found")

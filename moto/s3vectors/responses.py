@@ -135,3 +135,50 @@ class S3VectorsResponse(BaseResponse):
             vector_bucket_arn=vector_bucket_arn,
         )
         return ActionResult(result={"indexes": indexes})
+
+    def delete_vector_bucket_policy(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        vector_bucket_arn = self._get_param("vectorBucketArn")
+
+        if vector_bucket_name and vector_bucket_arn:
+            raise ValidationError(
+                "Must specify either vectorBucketName or vectorBucketArn but not both"
+            )
+
+        self.s3vectors_backend.delete_vector_bucket_policy(
+            vector_bucket_name=vector_bucket_name,
+            vector_bucket_arn=vector_bucket_arn,
+        )
+        return EmptyResult()
+
+    def get_vector_bucket_policy(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        vector_bucket_arn = self._get_param("vectorBucketArn")
+
+        if vector_bucket_name and vector_bucket_arn:
+            raise ValidationError(
+                "Must specify either vectorBucketName or vectorBucketArn but not both"
+            )
+
+        policy = self.s3vectors_backend.get_vector_bucket_policy(
+            vector_bucket_name=vector_bucket_name,
+            vector_bucket_arn=vector_bucket_arn,
+        )
+        return ActionResult(result={"policy": policy})
+
+    def put_vector_bucket_policy(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        vector_bucket_arn = self._get_param("vectorBucketArn")
+
+        if vector_bucket_name and vector_bucket_arn:
+            raise ValidationError(
+                "Must specify either vectorBucketName or vectorBucketArn but not both"
+            )
+
+        vector_bucket_policy = self._get_param("policy")
+        self.s3vectors_backend.put_vector_bucket_policy(
+            vector_bucket_name=vector_bucket_name,
+            vector_bucket_arn=vector_bucket_arn,
+            policy=vector_bucket_policy,
+        )
+        return EmptyResult()
