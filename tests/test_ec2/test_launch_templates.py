@@ -763,3 +763,20 @@ def test_modify_launch_template_by_name():
     assert (
         version["LaunchTemplateId"] == create_resp["LaunchTemplate"]["LaunchTemplateId"]
     )
+
+
+@mock_aws
+def test_create_launch_template_with_non_base64_encoded_user_data_fails():
+    client = boto3.client("ec2", region_name="us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.create_launch_template(
+            LaunchTemplateName="test-template",
+            LaunchTemplateData={
+                "ImageId": "ami-12345678",
+                "InstanceType": "t2.nano",
+                "UserData": "not base64 encoded",
+            },
+        )
+    error = exc.value.response["Error"]
+    assert error["Code"] == "InvalidUserData.Malformed"
+    assert error["Message"] == "Invalid BASE64 encoding of user data."
