@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Optional
 
 from moto.core.common_models import BaseModel, CloudFormationModel
+from moto.core.types import Base64EncodedString
 from moto.ec2.exceptions import InvalidParameterValueErrorTagSpotFleetRequest
 
 if TYPE_CHECKING:
@@ -56,7 +57,7 @@ class SpotInstanceRequest(TaggedEC2Resource):
         availability_zone_group: Optional[str],
         key_name: str,
         security_groups: list[str],
-        user_data: dict[str, Any],  # TODO: should be Optional[Base64EncodedString]
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         placement: Optional[str],
         kernel_id: Optional[str],
@@ -411,7 +412,7 @@ class SpotRequestBackend:
         availability_zone_group: Optional[str],
         key_name: str,
         security_groups: list[str],
-        user_data: dict[str, Any],
+        user_data: Optional[Base64EncodedString],
         instance_type: str,
         placement: Optional[str],
         kernel_id: Optional[str],
