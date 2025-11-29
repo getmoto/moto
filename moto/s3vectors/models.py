@@ -7,7 +7,12 @@ from moto.core.common_models import BaseModel
 from moto.utilities.arns import parse_arn
 from moto.utilities.utils import PARTITION_NAMES
 
-from .exceptions import IndexNotFound, VectorBucketAlreadyExists, VectorBucketNotFound
+from .exceptions import (
+    IndexNotFound,
+    VectorBucketAlreadyExists,
+    VectorBucketNotEmpty,
+    VectorBucketNotFound,
+)
 from .utils import create_vector_bucket_arn
 
 
@@ -86,11 +91,10 @@ class S3VectorsBackend(BaseBackend):
 
     def delete_vector_bucket(self, vector_bucket_name: str) -> None:
         if vector_bucket_name:
-            try:
-                bucket = self.get_vector_bucket(vector_bucket_name=vector_bucket_name)
-                self.vector_buckets.pop(bucket.vector_bucket_arn, None)
-            except VectorBucketNotFound:
-                pass
+            bucket = self.get_vector_bucket(vector_bucket_name=vector_bucket_name)
+            if bucket.indexes:
+                raise VectorBucketNotEmpty
+            self.vector_buckets.pop(bucket.vector_bucket_arn, None)
 
     def list_vector_buckets(self, prefix: Optional[str]) -> list[VectorBucket]:
         return [
