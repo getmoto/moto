@@ -21,17 +21,22 @@ s3vectors
 - [X] delete_index
 - [X] delete_vector_bucket
 - [X] delete_vector_bucket_policy
-- [ ] delete_vectors
+- [X] delete_vectors
 - [X] get_index
 - [X] get_vector_bucket
 - [X] get_vector_bucket_policy
-- [ ] get_vectors
+- [X] get_vectors
 - [X] list_indexes
   Pagination is not yet implemented. The prefix-parameter is also not yet implemented.
 
 - [X] list_vector_buckets
-- [ ] list_vectors
+- [X] list_vectors
+  
+        Pagination is not yet implemented
+        Segmentation is not yet implemented
+        
+
 - [X] put_vector_bucket_policy
-- [ ] put_vectors
+- [X] put_vectors
 - [ ] query_vectors
 

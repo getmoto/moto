@@ -182,3 +182,88 @@ class S3VectorsResponse(BaseResponse):
             policy=vector_bucket_policy,
         )
         return EmptyResult()
+
+    def put_vectors(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        index_arn = self._get_param("indexArn")
+        index_name = self._get_param("indexName")
+        self._validate_index_params(index_arn, index_name, vector_bucket_name)
+        vectors = self._get_param("vectors")
+
+        self.s3vectors_backend.put_vectors(
+            vector_bucket_name=vector_bucket_name,
+            index_arn=index_arn,
+            index_name=index_name,
+            vectors=vectors,
+        )
+
+        return EmptyResult()
+
+    def get_vectors(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        index_arn = self._get_param("indexArn")
+        index_name = self._get_param("indexName")
+        self._validate_index_params(index_arn, index_name, vector_bucket_name)
+        keys = self._get_param("keys")
+        return_data = self._get_bool_param("returnData", False)
+        return_metadata = self._get_bool_param("returnMetadata", False)
+
+        vectors = self.s3vectors_backend.get_vectors(
+            vector_bucket_name=vector_bucket_name,
+            index_arn=index_arn,
+            index_name=index_name,
+            keys=keys,
+        )
+        response = [
+            v.to_dict(return_data, return_metadata=return_metadata) for v in vectors
+        ]
+
+        return ActionResult(result={"vectors": response})
+
+    def list_vectors(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        index_arn = self._get_param("indexArn")
+        index_name = self._get_param("indexName")
+        self._validate_index_params(index_arn, index_name, vector_bucket_name)
+
+        return_data = self._get_bool_param("returnData", False)
+        return_metadata = self._get_bool_param("returnMetadata", False)
+
+        vectors = self.s3vectors_backend.list_vectors(
+            vector_bucket_name=vector_bucket_name,
+            index_arn=index_arn,
+            index_name=index_name,
+        )
+        response = [
+            v.to_dict(return_data, return_metadata=return_metadata) for v in vectors
+        ]
+
+        return ActionResult(result={"vectors": response})
+
+    def delete_vectors(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        index_arn = self._get_param("indexArn")
+        index_name = self._get_param("indexName")
+        self._validate_index_params(index_arn, index_name, vector_bucket_name)
+
+        keys = self._get_param("keys")
+
+        self.s3vectors_backend.delete_vectors(
+            vector_bucket_name=vector_bucket_name,
+            index_arn=index_arn,
+            index_name=index_name,
+            keys=keys,
+        )
+
+        return EmptyResult()
+
+    def _validate_index_params(
+        self, index_arn: str, index_name: str, vector_bucket_name: str
+    ) -> None:
+        if vector_bucket_name and index_name and not index_arn:
+            return  # Valid
+        elif index_arn and not vector_bucket_name and not index_name:
+            return  # Valid
+        raise ValidationError(
+            "Must specify either indexArn or both vectorBucketName and indexName"
+        )

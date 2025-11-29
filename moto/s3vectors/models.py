@@ -1,6 +1,7 @@
 """S3VectorsBackend class with methods for supported APIs."""
 
-from typing import Optional
+from collections.abc import Iterable
+from typing import Any, Literal, Optional, TypedDict
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -13,8 +14,39 @@ from .exceptions import (
     VectorBucketNotEmpty,
     VectorBucketNotFound,
     VectorBucketPolicyNotFound,
+    VectorWrongDimension,
 )
 from .utils import create_vector_bucket_arn
+
+
+class VectorData(TypedDict):
+    float32: list[float]
+
+
+class VectorType(TypedDict, total=False):
+    key: str
+    data: VectorData
+    metadata: Any
+
+
+class Vector(BaseModel):
+    def __init__(self, key: str, data: VectorData, metadata: Any):
+        self.key = key
+        self.data = data
+        self.metadata = metadata
+
+    def to_dict(self, return_data: bool, return_metadata: bool) -> VectorType:
+        return (
+            {"key": self.key}  # type: ignore[return-value]
+            | ({"data": self.data} if return_data else {})
+            | ({"metadata": self.metadata} if return_metadata else {})
+        )
+
+    @staticmethod
+    def from_dict(dct: VectorType) -> "Vector":
+        return Vector(
+            key=dct["key"], data=dct["data"], metadata=dct.get("metadata", {})
+        )
 
 
 class Index(BaseModel):
@@ -23,7 +55,7 @@ class Index(BaseModel):
         bucket: "VectorBucket",
         name: str,
         dimension: int,
-        data_type: str,
+        data_type: Literal["float32"],
         distance_metric: str,
     ):
         self.vectorBucketName = bucket.vector_bucket_name
@@ -34,6 +66,7 @@ class Index(BaseModel):
         self.distance_metric = distance_metric
 
         self._bucket = bucket
+        self.vectors: dict[str, Vector] = {}
 
 
 class VectorBucket(BaseModel):
@@ -110,7 +143,7 @@ class S3VectorsBackend(BaseBackend):
         vector_bucket_name: str,
         vector_bucket_arn: str,
         index_name: str,
-        data_type: str,
+        data_type: Literal["float32"],
         dimension: int,
         distance_metric: str,
     ) -> None:
@@ -184,6 +217,56 @@ class S3VectorsBackend(BaseBackend):
             vector_bucket_name, vector_bucket_arn=vector_bucket_arn
         )
         bucket.policy = policy
+
+    def put_vectors(
+        self,
+        vector_bucket_name: str,
+        index_name: str,
+        index_arn: str,
+        vectors: list[VectorType],
+    ) -> None:
+        index = self.get_index(
+            vector_bucket_name, index_name=index_name, index_arn=index_arn
+        )
+
+        for vector in vectors:
+            provided = len(vector["data"][index.data_type])  # type: ignore[literal-required]
+            if provided != index.dimension:
+                raise VectorWrongDimension(
+                    key=vector["key"], actual=index.dimension, provided=provided
+                )
+
+        for vector in vectors:
+            index.vectors[vector["key"]] = Vector.from_dict(vector)
+
+    def get_vectors(
+        self, vector_bucket_name: str, index_name: str, index_arn: str, keys: list[str]
+    ) -> list[Vector]:
+        index = self.get_index(
+            vector_bucket_name, index_name=index_name, index_arn=index_arn
+        )
+        return [index.vectors[name] for name in index.vectors if name in keys]
+
+    def list_vectors(
+        self, vector_bucket_name: str, index_name: str, index_arn: str
+    ) -> Iterable[Vector]:
+        """
+        Pagination is not yet implemented
+        Segmentation is not yet implemented
+        """
+        index = self.get_index(
+            vector_bucket_name, index_name=index_name, index_arn=index_arn
+        )
+        return index.vectors.values()
+
+    def delete_vectors(
+        self, vector_bucket_name: str, index_name: str, index_arn: str, keys: list[str]
+    ) -> None:
+        index = self.get_index(
+            vector_bucket_name, index_name=index_name, index_arn=index_arn
+        )
+        for key in keys:
+            index.vectors.pop(key, None)
 
 
 s3vectors_backends = BackendDict(
