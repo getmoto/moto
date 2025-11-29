@@ -15,4 +15,7 @@ url_paths = {
     "{0}/DeleteIndex$": S3VectorsResponse.dispatch,
     "{0}/GetIndex$": S3VectorsResponse.dispatch,
     "{0}/ListIndexes$": S3VectorsResponse.dispatch,
+    "{0}/DeleteVectorBucketPolicy$": S3VectorsResponse.dispatch,
+    "{0}/GetVectorBucketPolicy$": S3VectorsResponse.dispatch,
+    "{0}/PutVectorBucketPolicy$": S3VectorsResponse.dispatch,
 }

@@ -8466,22 +8466,22 @@
 
 ## s3vectors
 <details>
-<summary>50% implemented</summary>
+<summary>68% implemented</summary>
 
 - [X] create_index
 - [X] create_vector_bucket
 - [X] delete_index
 - [X] delete_vector_bucket
-- [ ] delete_vector_bucket_policy
+- [X] delete_vector_bucket_policy
 - [ ] delete_vectors
 - [X] get_index
 - [X] get_vector_bucket
-- [ ] get_vector_bucket_policy
+- [X] get_vector_bucket_policy
 - [ ] get_vectors
 - [X] list_indexes
 - [X] list_vector_buckets
 - [ ] list_vectors
-- [ ] put_vector_bucket_policy
+- [X] put_vector_bucket_policy
 - [ ] put_vectors
 - [ ] query_vectors
 </details>
