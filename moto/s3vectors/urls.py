@@ -18,4 +18,8 @@ url_paths = {
     "{0}/DeleteVectorBucketPolicy$": S3VectorsResponse.dispatch,
     "{0}/GetVectorBucketPolicy$": S3VectorsResponse.dispatch,
     "{0}/PutVectorBucketPolicy$": S3VectorsResponse.dispatch,
+    "{0}/ListVectors$": S3VectorsResponse.dispatch,
+    "{0}/DeleteVectors$": S3VectorsResponse.dispatch,
+    "{0}/GetVectors$": S3VectorsResponse.dispatch,
+    "{0}/PutVectors$": S3VectorsResponse.dispatch,
 }
