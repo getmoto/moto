@@ -52,11 +52,10 @@ class LaunchTemplateVersion:
 
     @property
     def user_data(self) -> Optional[Base64EncodedString]:
-        user_data = self.data.get("UserData", None)
-        # There are a lot of entry points for UserData, so we have to assert
-        assert user_data is None or isinstance(user_data, Base64EncodedString), type(
-            user_data
-        )
+        user_data = self.data.get("UserData")
+        # UserData can be specified via multiple services/api endpoints,
+        # so we make an assertion here that it's in the format we expect.
+        assert user_data is None or isinstance(user_data, Base64EncodedString)
         return user_data
 
 
