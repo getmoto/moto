@@ -9,6 +9,7 @@ from moto.ec2.exceptions import (
     MissingParameterError,
 )
 from moto.ec2.utils import filter_iam_instance_profiles, parse_user_data
+
 from ._base_response import EC2BaseResponse
 
 
