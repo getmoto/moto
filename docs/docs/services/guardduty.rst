@@ -57,6 +57,7 @@ guardduty
 - [ ] get_invitations_count
 - [ ] get_ip_set
 - [ ] get_malware_protection_plan
+- [ ] get_malware_scan
 - [ ] get_malware_scan_settings
 - [ ] get_master_account
 - [ ] get_member_detectors
@@ -79,6 +80,7 @@ guardduty
 - [ ] list_invitations
 - [ ] list_ip_sets
 - [ ] list_malware_protection_plans
+- [ ] list_malware_scans
 - [ ] list_members
 - [X] list_organization_admin_accounts
   

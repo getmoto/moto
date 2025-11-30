@@ -21,6 +21,7 @@ cloudfront
 - [ ] create_anycast_ip_list
 - [ ] create_cache_policy
 - [ ] create_cloud_front_origin_access_identity
+- [ ] create_connection_function
 - [ ] create_connection_group
 - [ ] create_continuous_deployment_policy
 - [X] create_distribution
@@ -47,10 +48,12 @@ cloudfront
 - [ ] create_response_headers_policy
 - [ ] create_streaming_distribution
 - [ ] create_streaming_distribution_with_tags
+- [ ] create_trust_store
 - [ ] create_vpc_origin
 - [ ] delete_anycast_ip_list
 - [ ] delete_cache_policy
 - [ ] delete_cloud_front_origin_access_identity
+- [ ] delete_connection_function
 - [ ] delete_connection_group
 - [ ] delete_continuous_deployment_policy
 - [X] delete_distribution
@@ -81,7 +84,9 @@ cloudfront
 - [ ] delete_resource_policy
 - [ ] delete_response_headers_policy
 - [ ] delete_streaming_distribution
+- [ ] delete_trust_store
 - [ ] delete_vpc_origin
+- [ ] describe_connection_function
 - [ ] describe_function
 - [ ] describe_key_value_store
 - [ ] disassociate_distribution_tenant_web_acl
@@ -91,6 +96,7 @@ cloudfront
 - [ ] get_cache_policy_config
 - [ ] get_cloud_front_origin_access_identity
 - [ ] get_cloud_front_origin_access_identity_config
+- [ ] get_connection_function
 - [ ] get_connection_group
 - [ ] get_connection_group_by_routing_endpoint
 - [ ] get_continuous_deployment_policy
@@ -122,11 +128,13 @@ cloudfront
 - [ ] get_response_headers_policy_config
 - [ ] get_streaming_distribution
 - [ ] get_streaming_distribution_config
+- [ ] get_trust_store
 - [ ] get_vpc_origin
 - [ ] list_anycast_ip_lists
 - [ ] list_cache_policies
 - [ ] list_cloud_front_origin_access_identities
 - [ ] list_conflicting_aliases
+- [ ] list_connection_functions
 - [ ] list_connection_groups
 - [ ] list_continuous_deployment_policies
 - [ ] list_distribution_tenants
@@ -138,12 +146,14 @@ cloudfront
 
 - [ ] list_distributions_by_anycast_ip_list_id
 - [ ] list_distributions_by_cache_policy_id
+- [ ] list_distributions_by_connection_function
 - [ ] list_distributions_by_connection_mode
 - [ ] list_distributions_by_key_group
 - [ ] list_distributions_by_origin_request_policy_id
 - [ ] list_distributions_by_owned_resource
 - [ ] list_distributions_by_realtime_log_config
 - [ ] list_distributions_by_response_headers_policy_id
+- [ ] list_distributions_by_trust_store
 - [ ] list_distributions_by_vpc_origin_id
 - [ ] list_distributions_by_web_acl_id
 - [ ] list_domain_conflicts
@@ -177,15 +187,19 @@ cloudfront
 - [ ] list_response_headers_policies
 - [ ] list_streaming_distributions
 - [X] list_tags_for_resource
+- [ ] list_trust_stores
 - [ ] list_vpc_origins
+- [ ] publish_connection_function
 - [ ] publish_function
 - [ ] put_resource_policy
 - [X] tag_resource
+- [ ] test_connection_function
 - [ ] test_function
 - [X] untag_resource
 - [ ] update_anycast_ip_list
 - [ ] update_cache_policy
 - [ ] update_cloud_front_origin_access_identity
+- [ ] update_connection_function
 - [ ] update_connection_group
 - [ ] update_continuous_deployment_policy
 - [X] update_distribution
@@ -212,6 +226,7 @@ cloudfront
 - [ ] update_realtime_log_config
 - [ ] update_response_headers_policy
 - [ ] update_streaming_distribution
+- [ ] update_trust_store
 - [ ] update_vpc_origin
 - [ ] verify_dns_configuration
 

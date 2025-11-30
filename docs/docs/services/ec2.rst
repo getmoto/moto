@@ -101,8 +101,10 @@ ec2
 - [ ] create_instance_event_window
 - [ ] create_instance_export_task
 - [X] create_internet_gateway
+- [ ] create_interruptible_capacity_reservation_allocation
 - [ ] create_ipam
 - [ ] create_ipam_external_resource_verification_token
+- [ ] create_ipam_policy
 - [ ] create_ipam_pool
 - [ ] create_ipam_prefix_list_resolver
 - [ ] create_ipam_prefix_list_resolver_target
@@ -155,6 +157,8 @@ ec2
 - [X] create_transit_gateway
 - [ ] create_transit_gateway_connect
 - [ ] create_transit_gateway_connect_peer
+- [ ] create_transit_gateway_metering_policy
+- [ ] create_transit_gateway_metering_policy_entry
 - [ ] create_transit_gateway_multicast_domain
 - [X] create_transit_gateway_peering_attachment
 - [ ] create_transit_gateway_policy_table
@@ -170,10 +174,12 @@ ec2
 - [X] create_volume
 - [X] create_vpc
 - [ ] create_vpc_block_public_access_exclusion
+- [ ] create_vpc_encryption_control
 - [X] create_vpc_endpoint
 - [ ] create_vpc_endpoint_connection_notification
 - [X] create_vpc_endpoint_service_configuration
 - [X] create_vpc_peering_connection
+- [ ] create_vpn_concentrator
 - [X] create_vpn_connection
 - [ ] create_vpn_connection_route
 - [X] create_vpn_gateway
@@ -195,6 +201,7 @@ ec2
 - [X] delete_internet_gateway
 - [ ] delete_ipam
 - [ ] delete_ipam_external_resource_verification_token
+- [ ] delete_ipam_policy
 - [ ] delete_ipam_pool
 - [ ] delete_ipam_prefix_list_resolver
 - [ ] delete_ipam_prefix_list_resolver_target
@@ -240,6 +247,8 @@ ec2
 - [X] delete_transit_gateway
 - [ ] delete_transit_gateway_connect
 - [ ] delete_transit_gateway_connect_peer
+- [ ] delete_transit_gateway_metering_policy
+- [ ] delete_transit_gateway_metering_policy_entry
 - [ ] delete_transit_gateway_multicast_domain
 - [X] delete_transit_gateway_peering_attachment
 - [ ] delete_transit_gateway_policy_table
@@ -255,10 +264,12 @@ ec2
 - [X] delete_volume
 - [X] delete_vpc
 - [ ] delete_vpc_block_public_access_exclusion
+- [ ] delete_vpc_encryption_control
 - [ ] delete_vpc_endpoint_connection_notifications
 - [X] delete_vpc_endpoint_service_configurations
 - [X] delete_vpc_endpoints
 - [X] delete_vpc_peering_connection
+- [ ] delete_vpn_concentrator
 - [X] delete_vpn_connection
 - [ ] delete_vpn_connection_route
 - [X] delete_vpn_gateway
@@ -355,6 +366,7 @@ ec2
 - [X] describe_internet_gateways
 - [ ] describe_ipam_byoasn
 - [ ] describe_ipam_external_resource_verification_tokens
+- [ ] describe_ipam_policies
 - [ ] describe_ipam_pools
 - [ ] describe_ipam_prefix_list_resolver_targets
 - [ ] describe_ipam_prefix_list_resolvers
@@ -428,6 +440,7 @@ ec2
 - [X] describe_transit_gateway_attachments
 - [ ] describe_transit_gateway_connect_peers
 - [ ] describe_transit_gateway_connects
+- [ ] describe_transit_gateway_metering_policies
 - [ ] describe_transit_gateway_multicast_domains
 - [X] describe_transit_gateway_peering_attachments
 - [ ] describe_transit_gateway_policy_tables
@@ -450,6 +463,7 @@ ec2
 - [ ] describe_vpc_block_public_access_options
 - [ ] describe_vpc_classic_link
 - [ ] describe_vpc_classic_link_dns_support
+- [ ] describe_vpc_encryption_controls
 - [ ] describe_vpc_endpoint_associations
 - [ ] describe_vpc_endpoint_connection_notifications
 - [ ] describe_vpc_endpoint_connections
@@ -478,6 +492,7 @@ ec2
 - [X] describe_vpc_endpoints
 - [X] describe_vpc_peering_connections
 - [X] describe_vpcs
+- [ ] describe_vpn_concentrators
 - [X] describe_vpn_connections
 - [X] describe_vpn_gateways
 - [ ] detach_classic_link_vpc
@@ -499,6 +514,7 @@ ec2
 - [ ] disable_image_deregistration_protection
 - [ ] disable_instance_sql_ha_standby_detections
 - [ ] disable_ipam_organization_admin_account
+- [ ] disable_ipam_policy
 - [ ] disable_route_server_propagation
 - [ ] disable_serial_console_access
 - [ ] disable_snapshot_block_public_access
@@ -537,6 +553,7 @@ ec2
 - [ ] enable_image_deregistration_protection
 - [ ] enable_instance_sql_ha_standby_detections
 - [ ] enable_ipam_organization_admin_account
+- [ ] enable_ipam_policy
 - [ ] enable_reachability_analyzer_organization_sharing
 - [ ] enable_route_server_propagation
 - [ ] enable_serial_console_access
@@ -567,6 +584,7 @@ ec2
 - [ ] get_default_credit_specification
 - [ ] get_ebs_default_kms_key_id
 - [X] get_ebs_encryption_by_default
+- [ ] get_enabled_ipam_policy
 - [ ] get_flow_logs_integration_template
 - [ ] get_groups_for_capacity_reservation
 - [ ] get_host_reservation_purchase_preview
@@ -580,6 +598,8 @@ ec2
 - [ ] get_ipam_discovered_accounts
 - [ ] get_ipam_discovered_public_addresses
 - [ ] get_ipam_discovered_resource_cidrs
+- [ ] get_ipam_policy_allocation_rules
+- [ ] get_ipam_policy_organization_targets
 - [ ] get_ipam_pool_allocations
 - [ ] get_ipam_pool_cidrs
 - [ ] get_ipam_prefix_list_resolver_rules
@@ -602,6 +622,7 @@ ec2
 - [ ] get_spot_placement_scores
 - [ ] get_subnet_cidr_reservations
 - [ ] get_transit_gateway_attachment_propagations
+- [ ] get_transit_gateway_metering_policy_entries
 - [ ] get_transit_gateway_multicast_domain_associations
 - [ ] get_transit_gateway_policy_table_associations
 - [ ] get_transit_gateway_policy_table_entries
@@ -611,6 +632,7 @@ ec2
 - [ ] get_verified_access_endpoint_policy
 - [ ] get_verified_access_endpoint_targets
 - [ ] get_verified_access_group_policy
+- [ ] get_vpc_resources_blocking_encryption_enforcement
 - [ ] get_vpn_connection_device_sample_configuration
 - [ ] get_vpn_connection_device_types
 - [ ] get_vpn_tunnel_replacement_status
@@ -622,6 +644,7 @@ ec2
 - [ ] import_volume
 - [ ] list_images_in_recycle_bin
 - [ ] list_snapshots_in_recycle_bin
+- [ ] list_volumes_in_recycle_bin
 - [ ] lock_snapshot
 - [ ] modify_address_attribute
 - [ ] modify_availability_zone_group
@@ -649,6 +672,7 @@ ec2
 - [ ] modify_instance_network_performance_options
 - [ ] modify_instance_placement
 - [ ] modify_ipam
+- [ ] modify_ipam_policy_allocation_rules
 - [ ] modify_ipam_pool
 - [ ] modify_ipam_prefix_list_resolver
 - [ ] modify_ipam_prefix_list_resolver_target
@@ -672,6 +696,7 @@ ec2
 - [ ] modify_traffic_mirror_filter_rule
 - [ ] modify_traffic_mirror_session
 - [X] modify_transit_gateway
+- [ ] modify_transit_gateway_metering_policy
 - [ ] modify_transit_gateway_prefix_list_reference
 - [X] modify_transit_gateway_vpc_attachment
 - [ ] modify_verified_access_endpoint
@@ -686,6 +711,7 @@ ec2
 - [X] modify_vpc_attribute
 - [ ] modify_vpc_block_public_access_exclusion
 - [ ] modify_vpc_block_public_access_options
+- [ ] modify_vpc_encryption_control
 - [X] modify_vpc_endpoint
 - [ ] modify_vpc_endpoint_connection_notification
 - [X] modify_vpc_endpoint_service_configuration
@@ -751,6 +777,7 @@ ec2
 - [ ] restore_managed_prefix_list_version
 - [ ] restore_snapshot_from_recycle_bin
 - [ ] restore_snapshot_tier
+- [ ] restore_volume_from_recycle_bin
 - [ ] revoke_client_vpn_ingress
 - [X] revoke_security_group_egress
 - [X] revoke_security_group_ingress
@@ -791,6 +818,7 @@ ec2
 - [ ] unlock_snapshot
 - [ ] unmonitor_instances
 - [ ] update_capacity_manager_organizations_access
+- [ ] update_interruptible_capacity_reservation_allocation
 - [X] update_security_group_rule_descriptions_egress
 - [X] update_security_group_rule_descriptions_ingress
 - [ ] withdraw_byoip_cidr

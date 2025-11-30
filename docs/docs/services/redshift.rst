@@ -133,6 +133,7 @@ redshift
 - [ ] modify_endpoint_access
 - [ ] modify_event_subscription
 - [ ] modify_integration
+- [ ] modify_lakehouse_configuration
 - [ ] modify_redshift_idc_application
 - [ ] modify_scheduled_action
 - [X] modify_snapshot_copy_retention_period
