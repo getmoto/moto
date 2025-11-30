@@ -4,6 +4,7 @@ from xml.etree import ElementTree
 
 from moto.core.types import Base64EncodedString
 from moto.ec2.exceptions import FilterNotImplementedError
+from moto.ec2.utils import parse_user_data
 from moto.moto_api._internal import mock_random
 
 from ._base_response import EC2BaseResponse
@@ -20,6 +21,8 @@ def xml_root(name: str) -> ElementTree.Element:
 
 
 def xml_serialize(tree: ElementTree.Element, key: str, value: Any) -> None:
+    if value is None:
+        return
     name = key[0].lower() + key[1:]
     if isinstance(value, list):
         if name[-1] == "s":
@@ -29,7 +32,7 @@ def xml_serialize(tree: ElementTree.Element, key: str, value: Any) -> None:
 
     node = ElementTree.SubElement(tree, name)
 
-    if isinstance(value, (str, int, float, str)):
+    if isinstance(value, (str, int, float, str, Base64EncodedString)):
         node.text = str(value)
     elif isinstance(value, dict):
         for dictkey, dictvalue in value.items():
@@ -58,10 +61,9 @@ class LaunchTemplates(EC2BaseResponse):
         tag_spec = self._parse_tag_specification()
 
         parsed_template_data = self._get_param("LaunchTemplateData", {})
-        if parsed_template_data.get("UserData"):
-            parsed_template_data["UserData"] = Base64EncodedString(
-                parsed_template_data["UserData"]
-            )
+        parsed_template_data["UserData"] = parse_user_data(
+            self._get_param("LaunchTemplateData.UserData")
+        )
         self.error_on_dryrun()
 
         if tag_spec:

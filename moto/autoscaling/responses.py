@@ -1,6 +1,6 @@
 from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
-from moto.core.types import Base64EncodedString
+from moto.ec2.utils import parse_user_data
 from moto.utilities.aws_headers import amz_crc32
 
 from .models import AutoScalingBackend, autoscaling_backends
@@ -21,9 +21,7 @@ class AutoScalingResponse(BaseResponse):
 
     def create_launch_configuration(self) -> ActionResult:
         params = self._get_params()
-        user_data = params.get("UserData")
-        if user_data is not None:
-            user_data = Base64EncodedString(user_data)
+        user_data = parse_user_data(params.get("UserData"))
         self.autoscaling_backend.create_launch_configuration(
             name=params.get("LaunchConfigurationName"),  # type: ignore[arg-type]
             image_id=params.get("ImageId"),  # type: ignore[arg-type]

@@ -7,6 +7,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws, settings
+from moto.core.types import Base64EncodedString
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 from tests import EXAMPLE_AMI_ID
 
@@ -45,7 +46,7 @@ def test_request_spot_instances():
                 "ImageId": EXAMPLE_AMI_ID,
                 "KeyName": "test",
                 "SecurityGroups": [sec_name_1, sec_name_2],
-                "UserData": "some test data",
+                "UserData": str(Base64EncodedString.from_raw_string("some test data")),
                 "InstanceType": "m1.small",
                 "Placement": {"AvailabilityZone": "us-east-1c"},
                 "KernelId": "test-kernel",
@@ -69,7 +70,7 @@ def test_request_spot_instances():
             "ImageId": EXAMPLE_AMI_ID,
             "KeyName": "test",
             "SecurityGroups": [sec_name_1, sec_name_2],
-            "UserData": "some test data",
+            "UserData": str(Base64EncodedString.from_raw_string("some test data")),
             "InstanceType": "m1.small",
             "Placement": {"AvailabilityZone": "us-east-1c"},
             "KernelId": "test-kernel",
