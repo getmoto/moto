@@ -14,9 +14,11 @@ iam
 
 |start-h3| Implemented features for this service |end-h3|
 
+- [ ] accept_delegation_request
 - [ ] add_client_id_to_open_id_connect_provider
 - [X] add_role_to_instance_profile
 - [X] add_user_to_group
+- [ ] associate_delegation_request
 - [X] attach_group_policy
 - [X] attach_role_policy
 - [X] attach_user_policy
@@ -67,11 +69,13 @@ iam
 - [X] detach_user_policy
 - [ ] disable_organizations_root_credentials_management
 - [ ] disable_organizations_root_sessions
+- [ ] disable_outbound_web_identity_federation
 - [X] enable_mfa_device
   Enable MFA Device for user.
 
 - [ ] enable_organizations_root_credentials_management
 - [ ] enable_organizations_root_sessions
+- [ ] enable_outbound_web_identity_federation
 - [ ] generate_credential_report
 - [ ] generate_organizations_access_report
 - [ ] generate_service_last_accessed_details
@@ -82,17 +86,20 @@ iam
 - [ ] get_context_keys_for_custom_policy
 - [ ] get_context_keys_for_principal_policy
 - [X] get_credential_report
+- [ ] get_delegation_request
 - [X] get_group
   
         Pagination is not yet implemented
         
 
 - [X] get_group_policy
+- [ ] get_human_readable_summary
 - [X] get_instance_profile
 - [X] get_login_profile
 - [ ] get_mfa_device
 - [X] get_open_id_connect_provider
 - [ ] get_organizations_access_report
+- [ ] get_outbound_web_identity_federation_info
 - [X] get_policy
 - [X] get_policy_version
 - [X] get_role
@@ -118,6 +125,7 @@ iam
 - [X] list_attached_group_policies
 - [X] list_attached_role_policies
 - [X] list_attached_user_policies
+- [ ] list_delegation_requests
 - [ ] list_entities_for_policy
 - [X] list_group_policies
   
@@ -161,11 +169,13 @@ iam
 - [X] put_role_policy
 - [ ] put_user_permissions_boundary
 - [X] put_user_policy
+- [ ] reject_delegation_request
 - [ ] remove_client_id_from_open_id_connect_provider
 - [X] remove_role_from_instance_profile
 - [X] remove_user_from_group
 - [ ] reset_service_specific_credential
 - [ ] resync_mfa_device
+- [ ] send_delegation_token
 - [X] set_default_policy_version
 - [ ] set_security_token_service_preferences
 - [ ] simulate_custom_policy
@@ -189,6 +199,7 @@ iam
 - [X] update_access_key
 - [X] update_account_password_policy
 - [X] update_assume_role_policy
+- [ ] update_delegation_request
 - [X] update_group
 - [X] update_login_profile
 - [X] update_open_id_connect_provider_thumbprint
