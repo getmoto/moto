@@ -941,7 +941,7 @@ def parse_user_data(value: Any) -> Optional[Base64EncodedString]:
     try:
         if isinstance(value, bytes):
             user_data = Base64EncodedString.from_encoded_bytes(value)
-        elif isinstance(value, str):
+        else:
             user_data = Base64EncodedString(value)
     except ValueError:
         raise InvalidUserDataError("Invalid BASE64 encoding of user data.")
