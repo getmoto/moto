@@ -2,7 +2,6 @@ from copy import deepcopy
 from typing import Any
 
 from moto.core.responses import ActionResult, EmptyResult
-from moto.core.types import Base64EncodedString
 from moto.core.utils import camelcase_to_underscores
 from moto.ec2.exceptions import (
     InvalidParameterCombination,
@@ -10,7 +9,6 @@ from moto.ec2.exceptions import (
     MissingParameterError,
 )
 from moto.ec2.utils import filter_iam_instance_profiles, parse_user_data
-
 from ._base_response import EC2BaseResponse
 
 
@@ -338,7 +336,7 @@ class InstanceResponse(EC2BaseResponse):
                 attr_name = camelcase_to_underscores(attribute)
                 attr_value = self._get_param(f"{attribute}.Value")
                 if attribute == "UserData" and attr_value:
-                    attr_value = Base64EncodedString.from_encoded_bytes(attr_value)
+                    attr_value = parse_user_data(attr_value)
                 self.ec2_backend.modify_instance_attribute(
                     instance_id, attr_name, attr_value
                 )
