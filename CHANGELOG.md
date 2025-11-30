@@ -3,7 +3,7 @@ Moto Changelog
 
 5.1.18
 -----
-Docker Digest for 5.1.18: <autopopulateddigest>
+Docker Digest for 5.1.18: _sha256:c99ea4ab0881e1d95af5601c2cd42ef4dac15eefdf6597532c59d9631068818a_
 
     General:
         * Introduces two methods for enabling and disabling IAM authentication:
