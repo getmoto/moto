@@ -1810,11 +1810,11 @@ class APIGatewayBackend(BaseBackend):
                         response_parameters=None,
                     )
 
-                # TODO change to add integration
+                # Add integration if defined
                 if method_doc.get("x-amazon-apigateway-integration"):
                     integration = method_doc.get("x-amazon-apigateway-integration")
                     integration_args = self._build_integration_args(integration)
-                    # TODO: connectionId not referenced
+
                     self.put_integration(
                         function_id=function_id,
                         resource_id=resource.id,
@@ -2647,7 +2647,6 @@ class APIGatewayBackend(BaseBackend):
             "request_parameters": x_amaz_apigw_integ.get("requestParameters"),
             "content_handling": x_amaz_apigw_integ.get("contentHandling"),
             "connection_type": x_amaz_apigw_integ.get("connectionType"),
-            # TODO: connectionId is not mapped because put_integration has no param for it
         }
 
     def _build_integration_responses_args(
