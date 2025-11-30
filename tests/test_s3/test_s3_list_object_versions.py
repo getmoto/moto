@@ -651,3 +651,35 @@ def test_list_object_versions_with_custom_limit():
     page1 = s3_client.list_object_versions(Bucket=bucket_name)
     assert page1["MaxKeys"] == 5
     assert len(page1["Versions"]) == 5
+
+
+@mock_aws
+def test_list_object_versions_is_latest_flag_is_correct_when_response_is_paginated():
+    bucket_name = "test-bucket"
+    valid = 500
+    deleted = 501
+    s3_client = boto3.client("s3", region_name=DEFAULT_REGION_NAME)
+    s3_client.create_bucket(Bucket=bucket_name)
+    s3_client.put_bucket_versioning(
+        Bucket=bucket_name, VersioningConfiguration={"Status": "Enabled"}
+    )
+    for i in range(valid + deleted):
+        key = f"mongodb/object-{i}"
+        s3_client.put_object(Bucket=bucket_name, Key=key, Body=b"content")
+        if i >= valid:
+            s3_client.delete_object(Bucket=bucket_name, Key=key)
+
+    first_page = s3_client.list_object_versions(
+        Bucket=bucket_name, Prefix="mongodb/", MaxKeys=1000
+    )
+    assert first_page["DeleteMarkers"][-1]["Key"] == "mongodb/object-761"
+    assert first_page["DeleteMarkers"][-1]["IsLatest"] is True
+    second_page = s3_client.list_object_versions(
+        Bucket=bucket_name,
+        Prefix="mongodb/",
+        MaxKeys=1000,
+        KeyMarker=first_page["NextKeyMarker"],
+        VersionIdMarker=first_page["NextVersionIdMarker"],
+    )
+    assert second_page["Versions"][0]["Key"] == "mongodb/object-761"
+    assert second_page["Versions"][0]["IsLatest"] is False
