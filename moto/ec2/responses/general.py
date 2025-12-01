@@ -1,6 +1,5 @@
-from datetime import datetime
-
 from moto.core.responses import ActionResult
+from moto.core.utils import utcnow
 from moto.ec2.utils import Base64EncodedString
 
 from ._base_response import EC2BaseResponse
@@ -24,7 +23,7 @@ class General(EC2BaseResponse):
         instance = self.ec2_backend.get_instance(instance_id)
         result = {
             "InstanceId": instance.id,
-            "Timestamp": datetime(2015, 1, 1),
+            "Timestamp": utcnow(),
             "Output": Base64EncodedString.from_raw_string(SAMPLE_CONSOLE_OUTPUT),
         }
         return ActionResult(result)
