@@ -18,14 +18,12 @@ class TrafficMirrorFilter(TaggedEC2Resource):
         ec2_backend: Any,
         description: Optional[str],
         tag_specifications: Optional[list[dict[str, Any]]],
-        dry_run: Optional[bool],
         client_token: Optional[str],
     ):
         self.ec2_backend = ec2_backend
         self.id = random_traffic_mirror_filter_id()
 
         self.description = description
-        self.dry_run = dry_run
         self.client_token = client_token
 
         self.tags = []
@@ -63,7 +61,6 @@ class TrafficMirrorTarget(TaggedEC2Resource):
         network_load_balancer_arn: Optional[str],
         description: Optional[str],
         tag_specifications: Optional[list[dict[str, Any]]],
-        dry_run: Optional[bool],
         client_token: Optional[str],
         gateway_load_balancer_endpoint_id: Optional[str],
     ):
@@ -80,7 +77,6 @@ class TrafficMirrorTarget(TaggedEC2Resource):
         self.network_interface_id = network_interface_id
         self.network_load_balancer_arn = network_load_balancer_arn
         self.description = description
-        self.dry_run = dry_run
         self.client_token = client_token
         self.gateway_load_balancer_endpoint_id = gateway_load_balancer_endpoint_id
 
@@ -143,11 +139,10 @@ class TrafficMirrorsBackend:
         self,
         description: Optional[str],
         tag_specifications: Optional[list[dict[str, Any]]],
-        dry_run: Optional[bool],
         client_token: Optional[str],
     ) -> TrafficMirrorFilter:
         mirror_filter = TrafficMirrorFilter(
-            self, description, tag_specifications, dry_run, client_token
+            self, description, tag_specifications, client_token
         )
         self.traffic_mirror_filters[mirror_filter.id] = mirror_filter
 
@@ -159,7 +154,6 @@ class TrafficMirrorsBackend:
         network_load_balancer_arn: Optional[str],
         description: Optional[str],
         tag_specifications: Optional[list[dict[str, Any]]],
-        dry_run: Optional[bool],
         client_token: Optional[str],
         gateway_load_balancer_endpoint_id: Optional[str],
     ) -> TrafficMirrorTarget:
@@ -169,7 +163,6 @@ class TrafficMirrorsBackend:
             network_load_balancer_arn,
             description,
             tag_specifications,
-            dry_run,
             client_token,
             gateway_load_balancer_endpoint_id,
         )

@@ -8,13 +8,11 @@ class TrafficMirrors(EC2BaseResponse):
         description = self._get_param("Description")
         tag_specifications = self._get_param("TagSpecifications")
         client_token = self._get_param("ClientToken")
-        dry_run = self._get_bool_param("DryRun")
 
         mirror_filter = self.ec2_backend.create_traffic_mirror_filter(
             description=description,
             tag_specifications=tag_specifications,
             client_token=client_token,
-            dry_run=dry_run,
         )
 
         return ActionResult(
@@ -30,7 +28,6 @@ class TrafficMirrors(EC2BaseResponse):
         description = self._get_param("Description")
         tag_specifications = self._get_param("TagSpecifications")
         client_token = self._get_param("ClientToken")
-        dry_run = self._get_bool_param("DryRun")
         gateway_load_balancer_endpoint_id = self._get_param(
             "GatewayLoadBalancerEndpointId"
         )
@@ -41,7 +38,6 @@ class TrafficMirrors(EC2BaseResponse):
             description=description,
             tag_specifications=tag_specifications,
             client_token=client_token,
-            dry_run=dry_run,
             gateway_load_balancer_endpoint_id=gateway_load_balancer_endpoint_id,
         )
 
