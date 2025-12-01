@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from moto.core.responses import ActionResult
+from moto.ec2.utils import Base64EncodedString
 
 from ._base_response import EC2BaseResponse
 
@@ -24,6 +25,6 @@ class General(EC2BaseResponse):
         result = {
             "InstanceId": instance.id,
             "Timestamp": datetime(2015, 1, 1),
-            "Output": SAMPLE_CONSOLE_OUTPUT,
+            "Output": Base64EncodedString.from_raw_string(SAMPLE_CONSOLE_OUTPUT),
         }
         return ActionResult(result)
