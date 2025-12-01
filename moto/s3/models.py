@@ -2020,6 +2020,12 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         skip_versions = True
         last_item_added: Union[None, FakeKey, FakeDeleteMarker] = None
         for version in all_versions:
+            name = version.name
+            # guaranteed to be sorted - so the first key with this name will be the latest
+            version.is_latest = name != last_name
+            if version.is_latest:
+                last_name = name
+
             # Pagination
             if skip_versions:
                 if key_marker is None:
@@ -2042,12 +2048,6 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
                     continue
                 else:
                     continue
-
-            name = version.name
-            # guaranteed to be sorted - so the first key with this name will be the latest
-            version.is_latest = name != last_name
-            if version.is_latest:
-                last_name = name
 
             # Filter for keys that start with prefix
             if not name.startswith(prefix):

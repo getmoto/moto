@@ -50445,6 +50445,15 @@
               }
             }
           },
+          "nova-act": {
+            "Value": "nova-act",
+            "longName": {
+              "Value": "Amazon Nova Act"
+            },
+            "marketingHomeURL": {
+              "Value": "https://aws.amazon.com/nova/act/"
+            }
+          },
           "oam": {
             "Value": "oam",
             "longName": {

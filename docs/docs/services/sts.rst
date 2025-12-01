@@ -28,4 +28,5 @@ sts
 - [ ] get_delegated_access_token
 - [X] get_federation_token
 - [X] get_session_token
+- [ ] get_web_identity_token
 

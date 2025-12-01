@@ -106,6 +106,7 @@ route53
 - [ ] test_dns_answer
 - [X] update_health_check
 - [X] update_hosted_zone_comment
+- [ ] update_hosted_zone_features
 - [ ] update_traffic_policy_comment
 - [ ] update_traffic_policy_instance
 
