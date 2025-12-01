@@ -385,17 +385,19 @@ GET_LAUNCH_TEMPLATE_DATA_RESPONSE = """<GetLaunchTemplateDataResponse xmlns="htt
             <hostnameType>ip-name</hostnameType>
         </privateDnsNameOptions>
         <tagSpecificationSet>
-        {% for tag in i.tags %}
+        {%if i.get_tags() %}
             <item>
                 <resourceType>instance</resourceType>
                 <tagSet>
+                {% for tag in i.get_tags() %}
                     <item>
                         <key>{{ tag.key }}</key>
                         <value>{{ tag.value }}</value>
                     </item>
+                {% endfor %}
                 </tagSet>
             </item>
-        {% endfor %}
+        {%endif%}
         </tagSpecificationSet>
     </launchTemplateData>
 </GetLaunchTemplateDataResponse>"""
