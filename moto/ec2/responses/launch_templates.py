@@ -274,13 +274,15 @@ class LaunchTemplates(EC2BaseResponse):
                         "ResourceType": "instance",
                         "Tags": [
                             {
-                                "Key": tag.key,
-                                "Value": tag.value,
+                                "Key": tag["key"],
+                                "Value": tag["value"],
                             }
+                            for tag in instance.get_tags()
                         ],
                     }
-                    for tag in instance.tags
-                ],
+                ]
+                if instance.get_tags()
+                else [],
             }
         }
         return ActionResult(result)
