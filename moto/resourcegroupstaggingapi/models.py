@@ -1374,12 +1374,12 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
                 yield value
 
         # EC2 Mirror Filters
-        for filter in self.ec2_backend.traffic_mirror_filters().values():
+        for filter in self.ec2_backend.traffic_mirror_filters.values():
             for value in get_ec2_values(filter.id):  # type: ignore[assignment]
                 yield value
 
         # EC2 Mirror Targets
-        for target in self.ec2_backend.traffic_mirror_targets().values():
+        for target in self.ec2_backend.traffic_mirror_targets.values():
             for value in get_ec2_values(target.id):  # type: ignore[assignment]
                 yield value
 
