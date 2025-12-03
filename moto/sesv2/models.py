@@ -124,7 +124,7 @@ class SESV2Backend(BaseBackend):
     def create_email_identity(
         self,
         email_identity: str,
-        tags: Optional[dict[str, str]],
+        tags: Optional[list[dict[str, str]]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:
@@ -256,14 +256,15 @@ class SESV2Backend(BaseBackend):
 
         return email_id.policies
 
-    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.core_backend.tagger.tag_resource(resource_arn, tags)
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.core_backend.tagger.untag_resource(resource_arn, tag_keys)
+        self.core_backend.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
-    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
-        return self.core_backend.tagger.list_tags_for_resource(resource_arn)
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        tags = self.core_backend.tagger.list_tags_for_resource(resource_arn)
+        return tags.get("Tags", [])
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

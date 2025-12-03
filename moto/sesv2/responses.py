@@ -280,7 +280,7 @@ class SESV2Response(BaseResponse):
 
     def untag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
-        tag_keys = self._get_param("TagKeys")
+        tag_keys = self.__dict__["data"]["TagKeys"]
         self.sesv2_backend.untag_resource(
             resource_arn=resource_arn,
             tag_keys=tag_keys,

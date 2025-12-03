@@ -419,7 +419,7 @@ class SESBackend(BaseBackend):
     def create_email_identity_v2(
         self,
         email_identity: str,
-        tags: Optional[dict[str, str]],
+        tags: Optional[list[dict[str, str]]],
         dkim_signing_attributes: Optional[object],
         configuration_set_name: Optional[str],
     ) -> EmailIdentity:

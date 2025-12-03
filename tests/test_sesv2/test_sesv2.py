@@ -1024,3 +1024,57 @@ def test_get_email_identity_policies():
 
     assert policy_name in response["Policies"]
     assert response["Policies"][policy_name] == policy
+
+
+@mock_aws
+def test_tag_resource():
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+
+    client.create_email_identity(EmailIdentity=email_identity)
+    client.create_contact_list(ContactListName="test-list")
+    client.create_configuration_set(ConfigurationSetName="test-config-set")
+    client.create_dedicated_ip_pool(PoolName="test-ip-pool", ScalingMode="STANDARD")
+
+    for i in range(4):
+        client.tag_resource(
+            ResourceArn=f"arn:aws:ses:us-east-1:{DEFAULT_ACCOUNT_ID}:identity/{email_identity}",
+            Tags=[{"Key": f"Owner{i}", "Value": f"Moto{i}"}],
+        )
+
+    tags = client.list_tags_for_resource(
+        ResourceArn=f"arn:aws:ses:us-east-1:{DEFAULT_ACCOUNT_ID}:identity/{email_identity}"
+    )["Tags"]
+
+    assert len(tags) == 4
+    assert {"Key": "Owner3", "Value": "Moto3"} in tags
+
+
+@mock_aws
+def test_untag_resource():
+    client = boto3.client("sesv2", region_name="us-east-1")
+    email_identity = "example.com"
+
+    client.create_email_identity(EmailIdentity=email_identity)
+    client.create_contact_list(ContactListName="test-list")
+    client.create_configuration_set(ConfigurationSetName="test-config-set")
+    client.create_dedicated_ip_pool(PoolName="test-ip-pool", ScalingMode="STANDARD")
+
+    for i in range(4):
+        client.tag_resource(
+            ResourceArn=f"arn:aws:ses:us-east-1:{DEFAULT_ACCOUNT_ID}:identity/{email_identity}",
+            Tags=[{"Key": f"Owner{i}", "Value": f"Moto{i}"}],
+        )
+
+    client.untag_resource(
+        ResourceArn=f"arn:aws:ses:us-east-1:{DEFAULT_ACCOUNT_ID}:identity/{email_identity}",
+        TagKeys=["Owner1", "Owner3"],
+    )
+
+    tags = client.list_tags_for_resource(
+        ResourceArn=f"arn:aws:ses:us-east-1:{DEFAULT_ACCOUNT_ID}:identity/{email_identity}"
+    )["Tags"]
+
+    assert len(tags) == 2
+    assert {"Key": "Owner0", "Value": "Moto0"} in tags
+    assert {"Key": "Owner2", "Value": "Moto2"} in tags
