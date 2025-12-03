@@ -1,8 +1,11 @@
 import string
 from email.utils import parseaddr
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from moto.moto_api._internal import mock_random as random
+
+if TYPE_CHECKING:
+    from .models import SESBackend
 
 
 def random_hex(length: int) -> str:
@@ -22,8 +25,8 @@ def is_valid_address(addr: str) -> Optional[str]:
 
 
 def get_arn(
-    backend,
-    service,
-    resource,
+    backend: "SESBackend",
+    service: str,
+    resource: str,
 ) -> str:
     return f"arn:{backend.partition}:{service}:{backend.region_name}:{backend.account_id}:{resource}"
